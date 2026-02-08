@@ -161,7 +161,7 @@ fun LibraryScreen(contentPadding: PaddingValues) {
         try {
             val cached = PinballDataCache.passthroughOrCachedText(LIBRARY_URL)
             games = parseGames(JSONArray(cached.text.orEmpty()))
-            error = cached.statusMessage
+            error = null
         } catch (t: Throwable) {
             error = "Failed to load pinball library: ${t.message}"
         }
@@ -757,10 +757,11 @@ private fun ZoomablePlayfieldImage(
     Box(
         modifier = modifier
             .clipToBounds()
-            .pointerInput(touchSlop, scale) {
+            .pointerInput(touchSlop) {
                 awaitEachGesture {
                     var moved = false
                     var multiTouch = false
+                    var transformed = false
                     var activePointer: androidx.compose.ui.input.pointer.PointerId? = null
                     var accumulatedMove = Offset.Zero
 
@@ -781,6 +782,9 @@ private fun ZoomablePlayfieldImage(
                         if (pointersDown >= 2 || scale > 1f) {
                             val zoom = event.calculateZoom()
                             val pan = event.calculatePan()
+                            if (pointersDown >= 2 || kotlin.math.abs(zoom - 1f) > 0.01f || pan.getDistance() > 0f) {
+                                transformed = true
+                            }
                             scale = (scale * zoom).coerceIn(1f, 6f)
                             if (scale > 1f) {
                                 offsetX += pan.x
@@ -792,7 +796,7 @@ private fun ZoomablePlayfieldImage(
                         }
                     } while (event.changes.any { it.pressed })
 
-                    if (!multiTouch && !moved) {
+                    if (!multiTouch && !moved && !transformed) {
                         onTap()
                     }
                 }
@@ -1066,10 +1070,10 @@ private fun PinballGame.derivedPlayfield(width: Int): String? {
 
 private fun PinballGame.libraryPlayfieldCandidate(): String? = derivedPlayfield(700)
 private fun PinballGame.gameInlinePlayfieldCandidates(): List<String> =
-    listOfNotNull(derivedPlayfield(1400))
+    listOfNotNull(derivedPlayfield(1400), resolve(playfieldLocal), derivedPlayfield(700))
 
 private fun PinballGame.fullscreenPlayfieldCandidates(): List<String> =
-    listOfNotNull(resolve(playfieldLocal))
+    listOfNotNull(resolve(playfieldLocal), derivedPlayfield(1400), derivedPlayfield(700))
 
 private fun openYoutubeInApp(context: android.content.Context, url: String, fallbackVideoId: String): Boolean {
     return try {

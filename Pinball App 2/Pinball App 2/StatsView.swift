@@ -467,7 +467,7 @@ private final class StatsViewModel: ObservableObject {
             let loaded = try await CSVScoreLoader().loadRows()
             let loadedRows = loaded.rows
             rows = loadedRows
-            errorMessage = loaded.statusMessage
+            errorMessage = nil
             season = latestSeason(in: loadedRows) ?? ""
             player = ""
             bankNumber = nil
@@ -567,7 +567,6 @@ private struct StatResult {
 private final class CSVScoreLoader {
     struct LoadResult {
         let rows: [ScoreRow]
-        let statusMessage: String?
     }
 
     static let defaultPath = "/pinball/data/LPL_Stats.csv"
@@ -577,7 +576,7 @@ private final class CSVScoreLoader {
         guard let text = cached.text else {
             throw CSVLoaderError.network("Stats CSV is missing from cache and server.")
         }
-        return LoadResult(rows: parse(text: text), statusMessage: cached.statusMessage)
+        return LoadResult(rows: parse(text: text))
     }
 
     private func parse(text: String) -> [ScoreRow] {

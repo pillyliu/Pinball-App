@@ -74,7 +74,7 @@ fun TargetsScreen(contentPadding: PaddingValues) {
             }
 
             rows = merged.sortedWith(compareBy<TargetRow> { it.libraryOrder }.thenBy { it.fallbackOrder })
-            error = cached.statusMessage
+            error = null
         } catch (t: Throwable) {
             error = "Using default order (library unavailable)."
         }

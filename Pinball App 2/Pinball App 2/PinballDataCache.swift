@@ -5,7 +5,6 @@ struct CachedTextResult {
     let text: String?
     let isMissing: Bool
     let isStale: Bool
-    let statusMessage: String?
 }
 
 actor PinballDataCache {
@@ -60,11 +59,14 @@ actor PinballDataCache {
     private let manifestURL = URL(string: "https://pillyliu.com/pinball/cache-manifest.json")!
     private let updateLogURL = URL(string: "https://pillyliu.com/pinball/cache-update-log.json")!
     private let metadataRefreshInterval: TimeInterval = 300
+    private let starterPackBundleName = "PinballStarter"
+    private let starterPackBundleExt = "bundle"
+    private let starterPackBundlePath = "pinball"
+    private let starterSeedMarkerName = "starter-pack-seeded-v1"
 
     private var isLoaded = false
     private var index = CacheIndex()
     private var manifest: Manifest?
-    private var dirtyPaths = Set<String>()
 
     private let fileManager = FileManager.default
     private let encoder = JSONEncoder()
@@ -125,7 +127,7 @@ actor PinballDataCache {
     private func fetchTextFromNetwork(path: String, allowMissing: Bool) async throws -> CachedTextResult {
         let data = try await fetchBinaryFromNetwork(path: path, allowMissing: allowMissing)
         if data == nil {
-            return CachedTextResult(text: nil, isMissing: true, isStale: false, statusMessage: "No cached file is listed in manifest yet.")
+            return CachedTextResult(text: nil, isMissing: true, isStale: false)
         }
 
         guard let data,
@@ -136,8 +138,7 @@ actor PinballDataCache {
         return CachedTextResult(
             text: text,
             isMissing: false,
-            isStale: false,
-            statusMessage: nil
+            isStale: false
         )
     }
 
@@ -177,7 +178,6 @@ actor PinballDataCache {
             try write(data: data, for: path)
             let manifestHash = manifest?.files[path]?.hash
             index.resources[path] = CacheIndex.Resource(path: path, hash: manifestHash, lastValidatedAt: Date().timeIntervalSince1970, missing: false)
-            dirtyPaths.remove(path)
             try persistIndex()
             return data
         } catch {
@@ -192,29 +192,11 @@ actor PinballDataCache {
         guard let data = try cachedData(for: path) else { return nil }
         guard let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .unicode) else { return nil }
 
-        let staleReason = staleReason(for: path)
         return CachedTextResult(
             text: text,
             isMissing: false,
-            isStale: staleReason != nil,
-            statusMessage: staleReason
+            isStale: false
         )
-    }
-
-    private func staleReason(for path: String) -> String? {
-        if dirtyPaths.contains(path) {
-            return "Showing cached copy while checking for updates."
-        }
-
-        guard let manifest,
-              let entry = manifest.files[path],
-              let record = index.resources[path],
-              let hash = record.hash,
-              hash == entry.hash else {
-            return nil
-        }
-
-        return nil
     }
 
     private func cachedData(for path: String) throws -> Data? {
@@ -264,8 +246,6 @@ actor PinballDataCache {
             return event.generatedAt > lastScan
         }
 
-        let changedPaths = updatedEvents.flatMap { $0.added + $0.changed + $0.removed }
-        dirtyPaths.formUnion(changedPaths)
         index.lastUpdateScanAt = updateLog.events.first?.generatedAt ?? lastScan
 
         // Ensure removed paths don't stay on disk forever.
@@ -273,7 +253,6 @@ actor PinballDataCache {
         for removed in removedPaths {
             try? fileManager.removeItem(at: fileURL(for: removed))
             index.resources.removeValue(forKey: removed)
-            dirtyPaths.remove(removed)
         }
 
         try persistIndex()
@@ -292,9 +271,57 @@ actor PinballDataCache {
             index = saved
         }
 
+        do {
+            try seedBundledStarterPackIfNeeded()
+        } catch {
+            // Starter pack seeding is best effort; runtime cache/network flow remains fallback.
+        }
+
         Task.detached(priority: .utility) {
             await PinballDataCache.shared.refreshMetadataBestEffort(force: true)
         }
+    }
+
+    private func seedBundledStarterPackIfNeeded() throws {
+        let markerURL = cacheRootURL().appendingPathComponent(starterSeedMarkerName)
+        if fileManager.fileExists(atPath: markerURL.path) {
+            return
+        }
+
+        guard let starterBundleURL = Bundle.main.url(
+            forResource: starterPackBundleName,
+            withExtension: starterPackBundleExt
+        ) else {
+            return
+        }
+
+        let starterRoot = starterBundleURL.appendingPathComponent(starterPackBundlePath, isDirectory: true)
+        guard
+              fileManager.fileExists(atPath: starterRoot.path) else {
+            return
+        }
+
+        let enumerator = fileManager.enumerator(
+            at: starterRoot,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        )
+
+        while let fileURL = enumerator?.nextObject() as? URL {
+            let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey])
+            guard values.isRegularFile == true else { continue }
+
+            let relativePath = fileURL.path.replacingOccurrences(of: starterRoot.path + "/", with: "")
+            let cachePath = "/pinball/\(relativePath)"
+            if try cachedData(for: cachePath) != nil {
+                continue
+            }
+
+            let data = try Data(contentsOf: fileURL)
+            try write(data: data, for: cachePath)
+        }
+
+        try Data("ok".utf8).write(to: markerURL, options: .atomic)
     }
 
     private func refreshMetadataBestEffort(force: Bool) async {
@@ -303,6 +330,10 @@ actor PinballDataCache {
         } catch {
             // Allow offline/slow-network startup without stalling UI.
         }
+    }
+
+    func refreshMetadataFromForeground() async {
+        await refreshMetadataBestEffort(force: true)
     }
 
     private func persistIndex() throws {

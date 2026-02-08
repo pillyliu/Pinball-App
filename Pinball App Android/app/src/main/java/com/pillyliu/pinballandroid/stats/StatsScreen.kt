@@ -94,7 +94,7 @@ fun StatsScreen(contentPadding: PaddingValues) {
             rows = withContext(Dispatchers.IO) {
                 parseScoreRows(cached.text.orEmpty())
             }
-            error = cached.statusMessage
+            error = null
         } catch (t: Throwable) {
             error = t.message ?: "Failed to load stats CSV"
         }

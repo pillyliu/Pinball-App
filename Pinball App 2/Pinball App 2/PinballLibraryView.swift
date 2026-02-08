@@ -228,9 +228,9 @@ private struct PinballGameDetailView: View {
                 }
                 .buttonStyle(.bordered)
 
-                if let localImage = game.playfieldLocalURL ?? game.gamePlayfieldCandidates.first {
+                if !game.fullscreenPlayfieldCandidates.isEmpty {
                     NavigationLink("Playfield") {
-                        HostedImageView(imageURL: localImage)
+                        HostedImageView(imageCandidates: game.fullscreenPlayfieldCandidates)
                     }
                     .buttonStyle(.bordered)
                 }
@@ -696,17 +696,18 @@ private enum NativeMarkdownParser {
                 continue
             }
 
-            var paragraphLines: [String] = [trimmed]
+            var paragraphLines: [String] = [trimLeadingWhitespace(line)]
             index += 1
             while index < lines.count {
-                let candidate = lines[index].trimmingCharacters(in: .whitespaces)
+                let rawCandidate = lines[index]
+                let candidate = rawCandidate.trimmingCharacters(in: .whitespaces)
                 if candidate.isEmpty || startsNewBlock(candidate, nextLine: index + 1 < lines.count ? lines[index + 1].trimmingCharacters(in: .whitespaces) : nil) {
                     break
                 }
-                paragraphLines.append(candidate)
+                paragraphLines.append(trimLeadingWhitespace(rawCandidate))
                 index += 1
             }
-            blocks.append(.paragraph(paragraphLines.joined(separator: " ")))
+            blocks.append(.paragraph(paragraphLines.joined(separator: "\n")))
         }
 
         return blocks
@@ -814,6 +815,13 @@ private enum NativeMarkdownParser {
         return cleaned.split(separator: "|", omittingEmptySubsequences: false).map {
             $0.trimmingCharacters(in: .whitespaces)
         }
+    }
+
+    private static func trimLeadingWhitespace(_ line: String) -> String {
+        guard let firstNonWhitespace = line.firstIndex(where: { !$0.isWhitespace }) else {
+            return ""
+        }
+        return String(line[firstNonWhitespace...])
     }
 }
 
@@ -1023,7 +1031,7 @@ private final class PinballLibraryViewModel: ObservableObject {
 
             let decoder = JSONDecoder()
             games = try decoder.decode([PinballGame].self, from: data)
-            errorMessage = cached.statusMessage
+            errorMessage = nil
         } catch {
             games = []
             errorMessage = "Failed to load pinball library: \(error.localizedDescription)"
@@ -1703,7 +1711,7 @@ private struct FallbackAsyncImageView: View {
 }
 
 private struct HostedImageView: View {
-    let imageURL: URL
+    let imageCandidates: [URL]
     @StateObject private var loader = RemoteUIImageLoader()
     @Environment(\.dismiss) private var dismiss
     @State private var controlsVisible = false
@@ -1719,8 +1727,10 @@ private struct HostedImageView: View {
                 VStack(spacing: 8) {
                     Text("Could not load image.")
                         .foregroundStyle(.secondary)
-                    Link("Open Original URL", destination: imageURL)
-                        .font(.footnote)
+                    if let sourceURL = imageCandidates.first {
+                        Link("Open Original URL", destination: sourceURL)
+                            .font(.footnote)
+                    }
                 }
             } else {
                 ProgressView()
@@ -1762,7 +1772,7 @@ private struct HostedImageView: View {
             controlsVisible = false
         }
         .task {
-            await loader.loadIfNeeded(from: imageURL)
+            await loader.loadIfNeeded(from: imageCandidates)
         }
     }
 
@@ -1775,22 +1785,26 @@ private final class RemoteUIImageLoader: ObservableObject {
 
     private var didLoad = false
 
-    func loadIfNeeded(from url: URL) async {
+    func loadIfNeeded(from urls: [URL]) async {
         guard !didLoad else { return }
         didLoad = true
 
-        do {
-            let data = try await PinballDataCache.shared.loadData(url: url)
-            guard let uiImage = UIImage(data: data) else {
-                failed = true
-                return
-            }
+        for url in urls {
+            do {
+                let data = try await PinballDataCache.shared.loadData(url: url)
+                guard let uiImage = UIImage(data: data) else {
+                    continue
+                }
 
-            image = uiImage
-            failed = false
-        } catch {
-            failed = true
+                image = uiImage
+                failed = false
+                return
+            } catch {
+                continue
+            }
         }
+
+        failed = true
     }
 }
 
@@ -1959,7 +1973,11 @@ private struct PinballGame: Identifiable, Decodable {
     }
 
     var gamePlayfieldCandidates: [URL] {
-        [derivedPlayfieldURL(width: 1400), playfieldLocalURL].compactMap { $0 }
+        [derivedPlayfieldURL(width: 1400), playfieldLocalURL, derivedPlayfieldURL(width: 700)].compactMap { $0 }
+    }
+
+    var fullscreenPlayfieldCandidates: [URL] {
+        [playfieldLocalURL, derivedPlayfieldURL(width: 1400), derivedPlayfieldURL(width: 700)].compactMap { $0 }
     }
 
     var playfieldImageSourceURL: URL? {

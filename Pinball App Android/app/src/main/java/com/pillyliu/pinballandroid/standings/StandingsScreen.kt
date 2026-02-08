@@ -84,7 +84,7 @@ fun StandingsScreen(contentPadding: PaddingValues) {
         try {
             val cached = PinballDataCache.passthroughOrCachedText(CSV_URL)
             rows = parseStandings(cached.text.orEmpty())
-            error = cached.statusMessage
+            error = null
             if (selectedSeason == null) {
                 selectedSeason = rows.map { it.season }.distinct().maxOrNull()
             }

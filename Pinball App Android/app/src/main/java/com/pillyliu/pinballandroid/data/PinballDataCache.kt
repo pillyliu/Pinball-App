@@ -1,6 +1,9 @@
 package com.pillyliu.pinballandroid.data
 
 import android.content.Context
+import android.content.res.AssetManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,11 +22,12 @@ private const val BASE_URL = "https://pillyliu.com"
 private const val MANIFEST_URL = "https://pillyliu.com/pinball/cache-manifest.json"
 private const val UPDATE_LOG_URL = "https://pillyliu.com/pinball/cache-update-log.json"
 private const val META_REFRESH_INTERVAL_MS = 5 * 60 * 1000L
+private const val STARTER_ASSET_ROOT = "starter-pack/pinball"
+private const val STARTER_SEED_MARKER = "starter-pack-seeded-v1"
 
 data class CachedTextResult(
     val text: String?,
     val isMissing: Boolean,
-    val statusMessage: String?,
 )
 
 data class CachedBytesResult(
@@ -42,8 +46,6 @@ object PinballDataCache {
     private var loaded = false
 
     private val manifestFiles = mutableMapOf<String, String>()
-    private val dirtyPaths = mutableSetOf<String>()
-
     private var lastMetaFetchAt: Long = 0L
     private var lastUpdateScanAt: String? = null
 
@@ -61,7 +63,6 @@ object PinballDataCache {
             return@withContext CachedTextResult(
                 text = cached.decodeToString(),
                 isMissing = false,
-                statusMessage = if (dirtyPaths.contains(path)) "Showing cached copy while checking for updates." else null,
             )
         }
 
@@ -70,12 +71,11 @@ object PinballDataCache {
             return@withContext CachedTextResult(
                 text = null,
                 isMissing = true,
-                statusMessage = "No cached file is listed in manifest yet.",
             )
         }
 
         val text = fetched.bytes?.decodeToString()
-        CachedTextResult(text = text, isMissing = text == null, statusMessage = null)
+        CachedTextResult(text = text, isMissing = text == null)
     }
 
     suspend fun loadBytes(url: String, allowMissing: Boolean = false): CachedBytesResult = withContext(Dispatchers.IO) {
@@ -92,7 +92,23 @@ object PinballDataCache {
     }
 
     private suspend fun fetchBytes(path: String, allowMissing: Boolean): CachedBytesResult {
-        refreshMetadataIfNeeded(force = false)
+        if (!hasUsableNetwork(appContext)) {
+            val stale = readCached(path)
+            if (stale != null) {
+                return CachedBytesResult(bytes = stale, isMissing = false)
+            }
+            if (allowMissing) {
+                upsertIndex(path = path, hash = null, missing = true)
+                return CachedBytesResult(bytes = null, isMissing = true)
+            }
+            throw IllegalStateException("Offline and no cached file for $path")
+        }
+
+        try {
+            refreshMetadataIfNeeded(force = false)
+        } catch (_: Throwable) {
+            // Metadata refresh is best effort and should not block direct fetch attempts.
+        }
 
         if (allowMissing && manifestFiles[path] == null) {
             upsertIndex(path = path, hash = null, missing = true)
@@ -117,7 +133,6 @@ object PinballDataCache {
                 val bytes = conn.inputStream.use { it.readBytes() }
                 writeCached(path, bytes)
                 upsertIndex(path = path, hash = manifestFiles[path], missing = false)
-                dirtyPaths.remove(path)
                 CachedBytesResult(bytes = bytes, isMissing = false)
             }
         } catch (t: Throwable) {
@@ -185,7 +200,6 @@ object PinballDataCache {
             }
         }
 
-        dirtyPaths += changed
         lastUpdateScanAt = newestEventAt
         lastMetaFetchAt = now
         persistMetaState()
@@ -206,12 +220,9 @@ object PinballDataCache {
             val dir = cacheRoot(context)
             if (!dir.exists()) dir.mkdirs()
             readIndexState()
+            seedStarterPackIfNeeded(context)
             loaded = true
-            try {
-                refreshMetadataIfNeeded(force = true)
-            } catch (_: Throwable) {
-                // Offline startup is allowed.
-            }
+            requestMetadataRefresh(force = true)
         }
     }
 
@@ -247,7 +258,7 @@ object PinballDataCache {
     suspend fun passthroughOrCachedText(url: String, allowMissing: Boolean = false): CachedTextResult {
         if (!shouldCacheByManifest(url)) {
             val text = httpText(url)
-            return CachedTextResult(text = text, isMissing = false, statusMessage = null)
+            return CachedTextResult(text = text, isMissing = false)
         }
         return loadText(url, allowMissing)
     }
@@ -362,5 +373,60 @@ object PinballDataCache {
             root.put("resources", JSONObject())
         }
         file.writeText(root.toString())
+    }
+
+    private fun hasUsableNetwork(context: Context?): Boolean {
+        context ?: return false
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+        val network = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(network) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
+
+    fun requestMetadataRefresh(force: Boolean = true) {
+        refreshScope.launch {
+            try {
+                mutex.withLock {
+                    if (!loaded) return@withLock
+                    refreshMetadataIfNeeded(force = force)
+                }
+            } catch (_: Throwable) {
+                // Keep existing cache if metadata refresh fails.
+            }
+        }
+    }
+
+    private fun seedStarterPackIfNeeded(context: Context) {
+        val marker = File(cacheRoot(context), STARTER_SEED_MARKER)
+        if (marker.exists()) return
+
+        try {
+            val roots = context.assets.list(STARTER_ASSET_ROOT) ?: return
+            if (roots.isEmpty()) return
+            copyStarterAssetTree(context.assets, STARTER_ASSET_ROOT, "/pinball")
+            marker.writeText("ok")
+        } catch (_: Throwable) {
+            // Starter pack seeding is best effort.
+        }
+    }
+
+    private fun copyStarterAssetTree(assets: AssetManager, assetPath: String, cachePath: String) {
+        val children = assets.list(assetPath) ?: return
+        if (children.isEmpty()) {
+            if (readCached(cachePath) == null) {
+                val bytes = assets.open(assetPath).use { it.readBytes() }
+                writeCached(cachePath, bytes)
+            }
+            return
+        }
+
+        children.forEach { child ->
+            copyStarterAssetTree(
+                assets = assets,
+                assetPath = "$assetPath/$child",
+                cachePath = "$cachePath/$child",
+            )
+        }
     }
 }

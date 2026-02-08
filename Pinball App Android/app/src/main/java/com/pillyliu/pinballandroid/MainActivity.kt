@@ -43,6 +43,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent { PinballApp() }
     }
+
+    override fun onResume() {
+        super.onResume()
+        PinballDataCache.requestMetadataRefresh(force = true)
+    }
 }
 
 private enum class PinballTab(val title: String) {

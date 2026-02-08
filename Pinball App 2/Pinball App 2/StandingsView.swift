@@ -253,7 +253,7 @@ private final class StandingsViewModel: ObservableObject {
                 throw StandingsCSVError.network("Standings data is missing from cache and server.")
             }
             rows = try StandingsCSVLoader.parse(text: text)
-            errorMessage = cached.statusMessage
+            errorMessage = nil
 
             if let selectedSeason, seasons.contains(selectedSeason) {
                 self.selectedSeason = selectedSeason

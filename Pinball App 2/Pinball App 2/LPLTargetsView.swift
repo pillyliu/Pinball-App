@@ -239,7 +239,7 @@ private final class LPLTargetsViewModel: ObservableObject {
                 return $0.libraryOrder < $1.libraryOrder
             }
 
-            errorMessage = cached.statusMessage
+            errorMessage = nil
         } catch {
             errorMessage = "Using default order (library unavailable)."
         }
