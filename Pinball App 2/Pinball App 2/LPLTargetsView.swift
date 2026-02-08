@@ -98,7 +98,8 @@ struct LPLTargetsView: View {
                                 .lineLimit(1)
                             Spacer(minLength: 4)
                             Image(systemName: "chevron.down")
-                                .font(.caption2.weight(.semibold))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
                         }
                         .opacity(0)
 
@@ -108,11 +109,12 @@ struct LPLTargetsView: View {
                                 .lineLimit(1)
                             Spacer(minLength: 4)
                             Image(systemName: "chevron.down")
-                                .font(.caption2.weight(.semibold))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
                         }
                     }
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 6)
                     .background(Color(white: 0.14))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
