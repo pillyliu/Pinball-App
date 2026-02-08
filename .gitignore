@@ -9,7 +9,9 @@
 local.properties
 
 # Android
+**/.idea/
 **/.gradle/
+**/.kotlin/
 **/build/
 **/captures/
 **/*.apk
