@@ -84,6 +84,45 @@ struct LPLTargetsView: View {
                     .foregroundStyle(floorColor)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+
+            HStack {
+                Menu {
+                    ForEach(LPLTargetsSortMode.allCases) { mode in
+                        Button("Sort: \(mode.title)") { viewModel.sortMode = mode }
+                    }
+                } label: {
+                    ZStack {
+                        HStack(spacing: 6) {
+                            Text("Sort: \(LPLTargetsSortMode.widestTitle)")
+                                .font(.caption2)
+                                .lineLimit(1)
+                            Spacer(minLength: 4)
+                            Image(systemName: "chevron.down")
+                                .font(.caption2.weight(.semibold))
+                        }
+                        .opacity(0)
+
+                        HStack(spacing: 6) {
+                            Text("Sort: \(viewModel.sortMode.title)")
+                                .font(.caption2)
+                                .lineLimit(1)
+                            Spacer(minLength: 4)
+                            Image(systemName: "chevron.down")
+                                .font(.caption2.weight(.semibold))
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color(white: 0.14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(white: 0.25), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+                .tint(.white)
+            }
+            .padding(.top, 4)
         }
         .padding(12)
         .background(Color(white: 0.09))
@@ -198,20 +237,51 @@ private struct LPLTargetsHeaderCell: View {
 private struct LPLTargetRow: Identifiable {
     let target: LPLTarget
     let bank: Int?
+    let group: Int?
+    let pos: Int?
     let libraryOrder: Int
     let fallbackOrder: Int
 
     var id: String { target.id }
 }
 
+private enum LPLTargetsSortMode: String, CaseIterable, Identifiable {
+    case location
+    case bank
+    case alphabetical
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .location:
+            return "Location"
+        case .bank:
+            return "Bank"
+        case .alphabetical:
+            return "Alphabetical"
+        }
+    }
+
+    static var widestTitle: String {
+        allCases.map(\.title).max(by: { $0.count < $1.count }) ?? "Alphabetical"
+    }
+}
+
 @MainActor
 private final class LPLTargetsViewModel: ObservableObject {
     @Published private(set) var rows: [LPLTargetRow] = LPLTarget.rows.enumerated().map { index, target in
-        LPLTargetRow(target: target, bank: nil, libraryOrder: Int.max, fallbackOrder: index)
+        LPLTargetRow(target: target, bank: nil, group: nil, pos: nil, libraryOrder: Int.max, fallbackOrder: index)
+    }
+    @Published var sortMode: LPLTargetsSortMode = .location {
+        didSet { applySort() }
     }
     @Published var errorMessage: String?
 
     private var didLoad = false
+    private var allRows: [LPLTargetRow] = LPLTarget.rows.enumerated().map { index, target in
+        LPLTargetRow(target: target, bank: nil, group: nil, pos: nil, libraryOrder: Int.max, fallbackOrder: index)
+    }
 
     private static let libraryPath = "/pinball/data/pinball_library.json"
 
@@ -232,12 +302,8 @@ private final class LPLTargetsViewModel: ObservableObject {
             let libraryGames = try JSONDecoder().decode([LibraryGame].self, from: data)
             let rowsWithLibrary = mergeTargetsWithLibrary(libraryGames: libraryGames)
 
-            rows = rowsWithLibrary.sorted {
-                if $0.libraryOrder == $1.libraryOrder {
-                    return $0.fallbackOrder < $1.fallbackOrder
-                }
-                return $0.libraryOrder < $1.libraryOrder
-            }
+            allRows = rowsWithLibrary
+            applySort()
 
             errorMessage = nil
         } catch {
@@ -246,8 +312,8 @@ private final class LPLTargetsViewModel: ObservableObject {
     }
 
     private func mergeTargetsWithLibrary(libraryGames: [LibraryGame]) -> [LPLTargetRow] {
-        let normalizedLibrary: [(index: Int, normalized: String, bank: Int?)] = libraryGames.enumerated().map { index, game in
-            (index, normalize(game.name), game.bank)
+        let normalizedLibrary: [(index: Int, normalized: String, bank: Int?, group: Int?, pos: Int?)] = libraryGames.enumerated().map { index, game in
+            (index, normalize(game.name), game.bank, game.group, game.pos)
         }
 
         return LPLTarget.rows.enumerated().map { fallbackIndex, target in
@@ -256,7 +322,14 @@ private final class LPLTargetsViewModel: ObservableObject {
             let candidateKeys = [normalizedTarget] + aliasKeys
 
             if let exact = normalizedLibrary.first(where: { candidateKeys.contains($0.normalized) }) {
-                return LPLTargetRow(target: target, bank: exact.bank, libraryOrder: exact.index, fallbackOrder: fallbackIndex)
+                return LPLTargetRow(
+                    target: target,
+                    bank: exact.bank,
+                    group: exact.group,
+                    pos: exact.pos,
+                    libraryOrder: exact.index,
+                    fallbackOrder: fallbackIndex
+                )
             }
 
             if let loose = normalizedLibrary.first(where: { entry in
@@ -264,11 +337,68 @@ private final class LPLTargetsViewModel: ObservableObject {
                     entry.normalized.contains(key) || key.contains(entry.normalized)
                 }
             }) {
-                return LPLTargetRow(target: target, bank: loose.bank, libraryOrder: loose.index, fallbackOrder: fallbackIndex)
+                return LPLTargetRow(
+                    target: target,
+                    bank: loose.bank,
+                    group: loose.group,
+                    pos: loose.pos,
+                    libraryOrder: loose.index,
+                    fallbackOrder: fallbackIndex
+                )
             }
 
-            return LPLTargetRow(target: target, bank: nil, libraryOrder: Int.max, fallbackOrder: fallbackIndex)
+            return LPLTargetRow(target: target, bank: nil, group: nil, pos: nil, libraryOrder: Int.max, fallbackOrder: fallbackIndex)
         }
+    }
+
+    private func applySort() {
+        switch sortMode {
+        case .location:
+            rows = allRows.sorted {
+                byOptionalAscending($0.group, $1.group)
+                    ?? byOptionalAscending($0.pos, $1.pos)
+                    ?? byAscending($0.libraryOrder, $1.libraryOrder)
+                    ?? byAscending($0.fallbackOrder, $1.fallbackOrder)
+                    ?? false
+            }
+        case .bank:
+            rows = allRows.sorted {
+                byOptionalAscending($0.bank, $1.bank)
+                    ?? byOptionalAscending($0.group, $1.group)
+                    ?? byOptionalAscending($0.pos, $1.pos)
+                    ?? byAscending($0.target.game.lowercased(), $1.target.game.lowercased())
+                    ?? byAscending($0.libraryOrder, $1.libraryOrder)
+                    ?? byAscending($0.fallbackOrder, $1.fallbackOrder)
+                    ?? false
+            }
+        case .alphabetical:
+            rows = allRows.sorted {
+                byAscending($0.target.game.lowercased(), $1.target.game.lowercased())
+                    ?? byOptionalAscending($0.group, $1.group)
+                    ?? byOptionalAscending($0.pos, $1.pos)
+                    ?? byAscending($0.libraryOrder, $1.libraryOrder)
+                    ?? byAscending($0.fallbackOrder, $1.fallbackOrder)
+                    ?? false
+            }
+        }
+    }
+
+    private func byOptionalAscending<T: Comparable>(_ lhs: T?, _ rhs: T?) -> Bool? {
+        switch (lhs, rhs) {
+        case let (l?, r?):
+            return byAscending(l, r)
+        case (nil, nil):
+            return nil
+        case (nil, _?):
+            return false
+        case (_?, nil):
+            return true
+        }
+    }
+
+    private func byAscending<T: Comparable>(_ lhs: T, _ rhs: T) -> Bool? {
+        if lhs == rhs { return nil }
+        return lhs < rhs
     }
 
     private func normalize(_ name: String) -> String {
@@ -295,6 +425,8 @@ private final class LPLTargetsViewModel: ObservableObject {
 
 private struct LibraryGame: Decodable {
     let name: String
+    let group: Int?
+    let pos: Int?
     let bank: Int?
 }
 

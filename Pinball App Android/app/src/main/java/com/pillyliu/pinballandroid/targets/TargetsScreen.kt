@@ -3,22 +3,29 @@ package com.pillyliu.pinballandroid.targets
 import android.content.res.Configuration
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,7 +36,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.ui.AppScreen
+import com.pillyliu.pinballandroid.ui.Border
 import com.pillyliu.pinballandroid.ui.CardContainer
+import com.pillyliu.pinballandroid.ui.CardBg
 import com.pillyliu.pinballandroid.ui.SectionTitle
 import org.json.JSONArray
 import java.text.NumberFormat
@@ -37,7 +46,27 @@ import java.text.NumberFormat
 private const val LIBRARY_URL = "https://pillyliu.com/pinball/data/pinball_library.json"
 
 private data class LPLTarget(val game: String, val great: Long, val main: Long, val floor: Long)
-private data class TargetRow(val target: LPLTarget, val bank: Int?, val libraryOrder: Int, val fallbackOrder: Int)
+private data class TargetRow(
+    val target: LPLTarget,
+    val bank: Int?,
+    val group: Int?,
+    val pos: Int?,
+    val libraryOrder: Int,
+    val fallbackOrder: Int,
+)
+private data class LibraryLookup(
+    val index: Int,
+    val normalizedName: String,
+    val bank: Int?,
+    val group: Int?,
+    val pos: Int?,
+)
+
+private enum class TargetSortOption(val label: String) {
+    LOCATION("Location"),
+    BANK("Bank"),
+    ALPHABETICAL("Alphabetical"),
+}
 
 @Composable
 fun TargetsScreen(contentPadding: PaddingValues) {
@@ -45,9 +74,16 @@ fun TargetsScreen(contentPadding: PaddingValues) {
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     var rows by remember {
-        mutableStateOf(lplTargets.mapIndexed { idx, t -> TargetRow(t, null, Int.MAX_VALUE, idx) })
+        mutableStateOf(
+            lplTargets.mapIndexed { idx, t ->
+                TargetRow(t, null, null, null, Int.MAX_VALUE, idx)
+            },
+        )
     }
+    var sortOptionName by rememberSaveable { mutableStateOf(TargetSortOption.LOCATION.name) }
     var error by remember { mutableStateOf<String?>(null) }
+    val sortOption = remember(sortOptionName) { TargetSortOption.valueOf(sortOptionName) }
+    val sortedRows = remember(rows, sortOption) { sortRows(rows, sortOption) }
 
     LaunchedEffect(Unit) {
         try {
@@ -55,25 +91,33 @@ fun TargetsScreen(contentPadding: PaddingValues) {
             val libraryGames = JSONArray(cached.text.orEmpty())
             val normalizedLibrary = (0 until libraryGames.length()).map { index ->
                 val item = libraryGames.getJSONObject(index)
-                Triple(index, normalize(item.optString("name")), item.optInt("bank").takeIf { it > 0 })
+                LibraryLookup(
+                    index = index,
+                    normalizedName = normalize(item.optString("name")),
+                    bank = item.optInt("bank").takeIf { it > 0 },
+                    group = item.optInt("group").takeIf { it > 0 },
+                    pos = item.optInt("pos").takeIf { it > 0 },
+                )
             }
 
             val merged = lplTargets.mapIndexed { fallbackIndex, target ->
                 val normalizedTarget = normalize(target.game)
                 val keys = listOf(normalizedTarget) + (aliases[normalizedTarget] ?: emptyList())
 
-                val exact = normalizedLibrary.firstOrNull { (_, name, _) -> keys.contains(name) }
-                val loose = normalizedLibrary.firstOrNull { (_, name, _) -> keys.any { key -> name.contains(key) || key.contains(name) } }
+                val exact = normalizedLibrary.firstOrNull { keys.contains(it.normalizedName) }
+                val loose = normalizedLibrary.firstOrNull { entry ->
+                    keys.any { key -> entry.normalizedName.contains(key) || key.contains(entry.normalizedName) }
+                }
                 val chosen = exact ?: loose
 
                 if (chosen != null) {
-                    TargetRow(target, chosen.third, chosen.first, fallbackIndex)
+                    TargetRow(target, chosen.bank, chosen.group, chosen.pos, chosen.index, fallbackIndex)
                 } else {
-                    TargetRow(target, null, Int.MAX_VALUE, fallbackIndex)
+                    TargetRow(target, null, null, null, Int.MAX_VALUE, fallbackIndex)
                 }
             }
 
-            rows = merged.sortedWith(compareBy<TargetRow> { it.libraryOrder }.thenBy { it.fallbackOrder })
+            rows = merged
             error = null
         } catch (t: Throwable) {
             error = "Using default order (library unavailable)."
@@ -85,7 +129,13 @@ fun TargetsScreen(contentPadding: PaddingValues) {
             modifier = Modifier.verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            CardContainer {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(CardBg, RoundedCornerShape(12.dp))
+                    .border(1.dp, Border, RoundedCornerShape(12.dp))
+                    .padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 7.dp),
+            ) {
                 SectionTitle("LPL Score Targets")
                 Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                     Row {
@@ -98,6 +148,10 @@ fun TargetsScreen(contentPadding: PaddingValues) {
                         Text("main target", color = Color(0xFFC0DBFF), modifier = Modifier.weight(1f), fontSize = 11.sp)
                         Text("solid floor", color = Color(0xFFE3E7EB), modifier = Modifier.weight(1f), fontSize = 11.sp)
                     }
+                    SortMenu(
+                        selected = sortOption,
+                        onSelect = { sortOptionName = it.name },
+                    )
                 }
             }
 
@@ -117,7 +171,7 @@ fun TargetsScreen(contentPadding: PaddingValues) {
                     ) {
                         Column {
                             Header(gameWidth, bankWidth, scoreWidth)
-                            rows.forEachIndexed { index, row ->
+                            sortedRows.forEachIndexed { index, row ->
                                 TargetRowView(index, row, gameWidth, bankWidth, scoreWidth)
                             }
                         }
@@ -130,6 +184,61 @@ fun TargetsScreen(contentPadding: PaddingValues) {
                 color = Color(0xFFAAAAAA),
             )
         }
+    }
+}
+
+@Composable
+private fun SortMenu(
+    selected: TargetSortOption,
+    onSelect: (TargetSortOption) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 34.dp),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
+            shape = RoundedCornerShape(10.dp),
+        ) {
+            Text("Sort: ${selected.label}", fontSize = 12.sp, maxLines = 1)
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            TargetSortOption.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text("Sort: ${option.label}", fontSize = 12.sp) },
+                    onClick = {
+                        expanded = false
+                        onSelect(option)
+                    },
+                )
+            }
+        }
+    }
+}
+
+private fun sortRows(rows: List<TargetRow>, option: TargetSortOption): List<TargetRow> {
+    return when (option) {
+        TargetSortOption.LOCATION -> rows.sortedWith(
+            compareBy<TargetRow> { it.group ?: Int.MAX_VALUE }
+                .thenBy { it.pos ?: Int.MAX_VALUE }
+                .thenBy { it.libraryOrder }
+                .thenBy { it.fallbackOrder },
+        )
+        TargetSortOption.BANK -> rows.sortedWith(
+            compareBy<TargetRow> { it.bank ?: Int.MAX_VALUE }
+                .thenBy { it.group ?: Int.MAX_VALUE }
+                .thenBy { it.pos ?: Int.MAX_VALUE }
+                .thenBy { it.target.game.lowercase() }
+                .thenBy { it.libraryOrder }
+                .thenBy { it.fallbackOrder },
+        )
+        TargetSortOption.ALPHABETICAL -> rows.sortedWith(
+            compareBy<TargetRow> { it.target.game.lowercase() }
+                .thenBy { it.group ?: Int.MAX_VALUE }
+                .thenBy { it.pos ?: Int.MAX_VALUE }
+                .thenBy { it.libraryOrder }
+                .thenBy { it.fallbackOrder },
+        )
     }
 }
 

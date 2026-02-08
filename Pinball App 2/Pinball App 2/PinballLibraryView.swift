@@ -53,24 +53,53 @@ struct PinballLibraryView: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Menu {
+                    ForEach(PinballLibrarySortOption.allCases) { option in
+                        Button(option.menuLabel) { viewModel.sortOption = option }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(viewModel.selectedSortLabel)
+                            .font(.caption2)
+                            .lineLimit(1)
+                        Spacer(minLength: 4)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color(white: 0.14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(white: 0.25), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .tint(.white)
+                .disabled(viewModel.games.isEmpty)
+
                 Menu {
                     Button("All banks") { viewModel.selectedBank = nil }
                     ForEach(viewModel.bankOptions, id: \.self) { bank in
                         Button("Bank \(bank)") { viewModel.selectedBank = bank }
                     }
                 } label: {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Text(viewModel.selectedBankLabel)
+                            .font(.caption2)
                             .lineLimit(1)
-                        Spacer()
+                        Spacer(minLength: 4)
                         Image(systemName: "chevron.down")
-                            .font(.caption)
+                            .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 6)
                     .background(Color(white: 0.14))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
@@ -125,7 +154,7 @@ struct PinballLibraryView: View {
         } else {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 12)], spacing: 12) {
-                    ForEach(viewModel.filteredGames) { game in
+                    ForEach(viewModel.sortedFilteredGames) { game in
                         gameCard(for: game)
                     }
                 }
@@ -953,10 +982,30 @@ private enum LoadStatus {
     case error
 }
 
+private enum PinballLibrarySortOption: String, CaseIterable, Identifiable {
+    case location
+    case bank
+    case alphabetical
+
+    var id: String { rawValue }
+
+    var menuLabel: String {
+        switch self {
+        case .location:
+            return "Sort: Location"
+        case .bank:
+            return "Sort: Bank"
+        case .alphabetical:
+            return "Sort: Alphabetical"
+        }
+    }
+}
+
 @MainActor
 private final class PinballLibraryViewModel: ObservableObject {
     @Published private(set) var games: [PinballGame] = []
     @Published var query: String = ""
+    @Published var sortOption: PinballLibrarySortOption = .location
     @Published var selectedBank: Int?
     @Published private(set) var errorMessage: String?
     @Published private(set) var isLoading: Bool = false
@@ -973,6 +1022,10 @@ private final class PinballLibraryViewModel: ObservableObject {
             return "Bank \(selectedBank)"
         }
         return "All banks"
+    }
+
+    var selectedSortLabel: String {
+        sortOption.menuLabel
     }
 
     var filteredGames: [PinballGame] {
@@ -992,24 +1045,80 @@ private final class PinballLibraryViewModel: ObservableObject {
         }
     }
 
+    var sortedFilteredGames: [PinballGame] {
+        switch sortOption {
+        case .location:
+            return filteredGames.sorted {
+                byOptionalAscending($0.group, $1.group)
+                    ?? byOptionalAscending($0.pos, $1.pos)
+                    ?? byAscending($0.name.lowercased(), $1.name.lowercased())
+                    ?? false
+            }
+        case .bank:
+            return filteredGames.sorted {
+                byOptionalAscending($0.bank, $1.bank)
+                    ?? byOptionalAscending($0.group, $1.group)
+                    ?? byOptionalAscending($0.pos, $1.pos)
+                    ?? byAscending($0.name.lowercased(), $1.name.lowercased())
+                    ?? false
+            }
+        case .alphabetical:
+            return filteredGames.sorted {
+                byAscending($0.name.lowercased(), $1.name.lowercased())
+                    ?? byOptionalAscending($0.group, $1.group)
+                    ?? byOptionalAscending($0.pos, $1.pos)
+                    ?? false
+            }
+        }
+    }
+
     var showGroupedView: Bool {
-        selectedBank == nil
+        selectedBank == nil && (sortOption == .location || sortOption == .bank)
     }
 
     var sections: [PinballGroupSection] {
         var out: [PinballGroupSection] = []
+        let groupingKey: (PinballGame) -> Int? = {
+            switch sortOption {
+            case .location:
+                return { $0.group }
+            case .bank:
+                return { $0.bank }
+            case .alphabetical:
+                return { _ in nil }
+            }
+        }()
 
-        for game in filteredGames {
-            if let last = out.last, last.groupKey == game.group {
+        for game in sortedFilteredGames {
+            let key = groupingKey(game)
+            if let last = out.last, last.groupKey == key {
                 var mutable = last
                 mutable.games.append(game)
                 out[out.count - 1] = mutable
             } else {
-                out.append(PinballGroupSection(groupKey: game.group, games: [game]))
+                out.append(PinballGroupSection(groupKey: key, games: [game]))
             }
         }
 
         return out
+    }
+
+    private func byOptionalAscending<T: Comparable>(_ lhs: T?, _ rhs: T?) -> Bool? {
+        switch (lhs, rhs) {
+        case let (l?, r?):
+            return byAscending(l, r)
+        case (nil, nil):
+            return nil
+        case (nil, _?):
+            return false
+        case (_?, nil):
+            return true
+        }
+    }
+
+    private func byAscending<T: Comparable>(_ lhs: T, _ rhs: T) -> Bool? {
+        if lhs == rhs { return nil }
+        return lhs < rhs
     }
 
     func loadIfNeeded() async {

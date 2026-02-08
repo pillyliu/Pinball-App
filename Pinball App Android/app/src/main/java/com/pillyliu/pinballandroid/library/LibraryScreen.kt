@@ -132,6 +132,11 @@ private val bundleParcelSaver = Saver<Bundle, ByteArray>(
 
 private data class Video(val label: String?, val url: String?)
 private data class LibraryGroupSection(val groupKey: Int?, val games: List<PinballGame>)
+private enum class LibrarySortOption(val label: String) {
+    LOCATION("Sort: Location"),
+    BANK("Sort: Bank"),
+    ALPHABETICAL("Sort: Alphabetical"),
+}
 private data class PinballGame(
     val group: Int?,
     val pos: Int?,
@@ -151,6 +156,7 @@ fun LibraryScreen(contentPadding: PaddingValues) {
     val bottomBarVisible = LocalBottomBarVisible.current
     var games by remember { mutableStateOf(emptyList<PinballGame>()) }
     var query by rememberSaveable { mutableStateOf("") }
+    var sortOptionName by rememberSaveable { mutableStateOf(LibrarySortOption.LOCATION.name) }
     var selectedBank by rememberSaveable { mutableStateOf<Int?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var routeKind by rememberSaveable { mutableStateOf("list") }
@@ -179,9 +185,11 @@ fun LibraryScreen(contentPadding: PaddingValues) {
             contentPadding = contentPadding,
             games = games,
             query = query,
+            sortOptionName = sortOptionName,
             selectedBank = selectedBank,
             error = error,
             onQueryChange = { query = it },
+            onSortOptionChange = { sortOptionName = it },
             onBankChange = { selectedBank = it },
             onOpenGame = {
                 routeSlug = it.slug
@@ -290,9 +298,11 @@ fun LibraryScreen(contentPadding: PaddingValues) {
                 contentPadding = contentPadding,
                 games = games,
                 query = query,
+                sortOptionName = sortOptionName,
                 selectedBank = selectedBank,
                 error = error,
                 onQueryChange = { query = it },
+                onSortOptionChange = { sortOptionName = it },
                 onBankChange = { selectedBank = it },
                 onOpenGame = {
                     routeSlug = it.slug
@@ -309,12 +319,17 @@ private fun LibraryList(
     contentPadding: PaddingValues,
     games: List<PinballGame>,
     query: String,
+    sortOptionName: String,
     selectedBank: Int?,
     error: String?,
     onQueryChange: (String) -> Unit,
+    onSortOptionChange: (String) -> Unit,
     onBankChange: (Int?) -> Unit,
     onOpenGame: (PinballGame) -> Unit,
 ) {
+    val sortOption = remember(sortOptionName) {
+        LibrarySortOption.entries.firstOrNull { it.name == sortOptionName } ?: LibrarySortOption.LOCATION
+    }
     val bankOptions = games.mapNotNull { it.bank }.toSet().sorted()
     val filtered = games.filter { game ->
         val q = query.trim().lowercase()
@@ -324,7 +339,15 @@ private fun LibraryList(
         val bankMatch = selectedBank == null || game.bank == selectedBank
         queryMatch && bankMatch
     }
-    val groupedSections = buildSections(filtered, selectedBank)
+    val sortedGames = remember(filtered, sortOption) { sortLibraryGames(filtered, sortOption) }
+    val showGroupedView = selectedBank == null && (sortOption == LibrarySortOption.LOCATION || sortOption == LibrarySortOption.BANK)
+    val groupedSections = remember(sortedGames, sortOption) {
+        when (sortOption) {
+            LibrarySortOption.LOCATION -> buildSections(sortedGames) { it.group }
+            LibrarySortOption.BANK -> buildSections(sortedGames) { it.bank }
+            LibrarySortOption.ALPHABETICAL -> emptyList()
+        }
+    }
 
     AppScreen(contentPadding) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -346,44 +369,81 @@ private fun LibraryList(
                     ),
                 )
 
-                var expanded by remember { mutableStateOf(false) }
-                OutlinedButton(
-                    onClick = { expanded = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                ) {
-                    Text(selectedBank?.let { "Bank $it" } ?: "All banks")
-                }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    DropdownMenuItem(text = { Text("All banks") }, onClick = {
-                        expanded = false
-                        onBankChange(null)
-                    })
-                    bankOptions.forEach { bank ->
-                        DropdownMenuItem(text = { Text("Bank $bank") }, onClick = {
-                            expanded = false
+                BoxWithConstraints {
+                    val menuWidth = (maxWidth - 8.dp) / 2
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CompactLibraryFilterMenu(
+                            selected = sortOption.label,
+                            options = LibrarySortOption.entries.map { it.label },
+                            modifier = Modifier.width(menuWidth),
+                        ) { selected ->
+                            val option = LibrarySortOption.entries.firstOrNull { it.label == selected } ?: LibrarySortOption.LOCATION
+                            onSortOptionChange(option.name)
+                        }
+
+                        CompactLibraryFilterMenu(
+                            selected = selectedBank?.let { "Bank $it" } ?: "All banks",
+                            options = listOf("All banks") + bankOptions.map { "Bank $it" },
+                            modifier = Modifier.width(menuWidth),
+                        ) { selected ->
+                            val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
                             onBankChange(bank)
-                        })
+                        }
                     }
                 }
             }
 
             error?.let { Text(it, color = Color.Red) }
 
-            if (filtered.isEmpty()) {
+            if (sortedGames.isEmpty()) {
                 EmptyLabel(if (games.isEmpty()) "Loading library..." else "No data loaded.")
             } else {
                 Column(
                     modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    groupedSections.forEachIndexed { idx, section ->
-                        if (idx > 0) {
-                            HorizontalDivider(color = Color.White.copy(alpha = 0.7f), thickness = 1.dp)
+                    if (showGroupedView) {
+                        groupedSections.forEachIndexed { idx, section ->
+                            if (idx > 0) {
+                                HorizontalDivider(color = Color.White.copy(alpha = 0.7f), thickness = 1.dp)
+                            }
+                            LibrarySectionGrid(games = section.games, onOpenGame = onOpenGame)
                         }
-                        LibrarySectionGrid(games = section.games, onOpenGame = onOpenGame)
+                    } else {
+                        LibrarySectionGrid(games = sortedGames, onOpenGame = onOpenGame)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactLibraryFilterMenu(
+    selected: String,
+    options: List<String>,
+    modifier: Modifier = Modifier,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(modifier = modifier) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 34.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp),
+            shape = RoundedCornerShape(10.dp),
+        ) {
+            Text(selected, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option, fontSize = 12.sp) },
+                    onClick = {
+                        expanded = false
+                        onSelect(option)
+                    },
+                )
             }
         }
     }
@@ -411,19 +471,42 @@ private fun LibrarySectionGrid(games: List<PinballGame>, onOpenGame: (PinballGam
     }
 }
 
-private fun buildSections(filtered: List<PinballGame>, selectedBank: Int?): List<LibraryGroupSection> {
-    if (selectedBank != null) return listOf(LibraryGroupSection(groupKey = selectedBank, games = filtered))
-
+private fun buildSections(
+    filtered: List<PinballGame>,
+    keySelector: (PinballGame) -> Int?,
+): List<LibraryGroupSection> {
     val out = mutableListOf<LibraryGroupSection>()
     filtered.forEach { game ->
-        if (out.isNotEmpty() && out.last().groupKey == game.group) {
+        val key = keySelector(game)
+        if (out.isNotEmpty() && out.last().groupKey == key) {
             val merged = out.last().games + game
-            out[out.lastIndex] = LibraryGroupSection(groupKey = game.group, games = merged)
+            out[out.lastIndex] = LibraryGroupSection(groupKey = key, games = merged)
         } else {
-            out += LibraryGroupSection(groupKey = game.group, games = listOf(game))
+            out += LibraryGroupSection(groupKey = key, games = listOf(game))
         }
     }
     return out
+}
+
+private fun sortLibraryGames(games: List<PinballGame>, option: LibrarySortOption): List<PinballGame> {
+    return when (option) {
+        LibrarySortOption.LOCATION -> games.sortedWith(
+            compareBy<PinballGame> { it.group ?: Int.MAX_VALUE }
+                .thenBy { it.pos ?: Int.MAX_VALUE }
+                .thenBy { it.name.lowercase() },
+        )
+        LibrarySortOption.BANK -> games.sortedWith(
+            compareBy<PinballGame> { it.bank ?: Int.MAX_VALUE }
+                .thenBy { it.group ?: Int.MAX_VALUE }
+                .thenBy { it.pos ?: Int.MAX_VALUE }
+                .thenBy { it.name.lowercase() },
+        )
+        LibrarySortOption.ALPHABETICAL -> games.sortedWith(
+            compareBy<PinballGame> { it.name.lowercase() }
+                .thenBy { it.group ?: Int.MAX_VALUE }
+                .thenBy { it.pos ?: Int.MAX_VALUE },
+        )
+    }
 }
 
 @Composable
