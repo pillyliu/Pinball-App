@@ -81,9 +81,14 @@ fun TargetsScreen(contentPadding: PaddingValues) {
         )
     }
     var sortOptionName by rememberSaveable { mutableStateOf(TargetSortOption.LOCATION.name) }
+    var selectedBank by rememberSaveable { mutableStateOf<Int?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     val sortOption = remember(sortOptionName) { TargetSortOption.valueOf(sortOptionName) }
+    val bankOptions = remember(rows) { rows.mapNotNull { it.bank }.toSet().sorted() }
     val sortedRows = remember(rows, sortOption) { sortRows(rows, sortOption) }
+    val filteredRows = remember(sortedRows, selectedBank) {
+        if (selectedBank == null) sortedRows else sortedRows.filter { it.bank == selectedBank }
+    }
 
     LaunchedEffect(Unit) {
         try {
@@ -148,10 +153,22 @@ fun TargetsScreen(contentPadding: PaddingValues) {
                         Text("main target", color = Color(0xFFC0DBFF), modifier = Modifier.weight(1f), fontSize = 11.sp)
                         Text("solid floor", color = Color(0xFFE3E7EB), modifier = Modifier.weight(1f), fontSize = 11.sp)
                     }
-                    SortMenu(
-                        selected = sortOption,
-                        onSelect = { sortOptionName = it.name },
-                    )
+                    BoxWithConstraints {
+                        val menuWidth = (maxWidth - 8.dp) / 2
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SortMenu(
+                                selected = sortOption,
+                                onSelect = { sortOptionName = it.name },
+                                modifier = Modifier.width(menuWidth),
+                            )
+                            BankMenu(
+                                selectedBank = selectedBank,
+                                bankOptions = bankOptions,
+                                onSelect = { selectedBank = it },
+                                modifier = Modifier.width(menuWidth),
+                            )
+                        }
+                    }
                 }
             }
 
@@ -171,7 +188,7 @@ fun TargetsScreen(contentPadding: PaddingValues) {
                     ) {
                         Column {
                             Header(gameWidth, bankWidth, scoreWidth)
-                            sortedRows.forEachIndexed { index, row ->
+                            filteredRows.forEachIndexed { index, row ->
                                 TargetRowView(index, row, gameWidth, bankWidth, scoreWidth)
                             }
                         }
@@ -191,9 +208,10 @@ fun TargetsScreen(contentPadding: PaddingValues) {
 private fun SortMenu(
     selected: TargetSortOption,
     onSelect: (TargetSortOption) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Column {
+    Column(modifier = modifier) {
         OutlinedButton(
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth().heightIn(min = 34.dp),
@@ -209,6 +227,44 @@ private fun SortMenu(
                     onClick = {
                         expanded = false
                         onSelect(option)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BankMenu(
+    selectedBank: Int?,
+    bankOptions: List<Int>,
+    onSelect: (Int?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(modifier = modifier) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 34.dp),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
+            shape = RoundedCornerShape(10.dp),
+        ) {
+            Text(selectedBank?.let { "Bank $it" } ?: "All banks", fontSize = 12.sp, maxLines = 1)
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text("All banks", fontSize = 12.sp) },
+                onClick = {
+                    expanded = false
+                    onSelect(null)
+                },
+            )
+            bankOptions.forEach { bank ->
+                DropdownMenuItem(
+                    text = { Text("Bank $bank", fontSize = 12.sp) },
+                    onClick = {
+                        expanded = false
+                        onSelect(bank)
                     },
                 )
             }

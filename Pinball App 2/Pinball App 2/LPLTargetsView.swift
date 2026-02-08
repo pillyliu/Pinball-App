@@ -85,7 +85,7 @@ struct LPLTargetsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            HStack {
+            HStack(spacing: 8) {
                 Menu {
                     ForEach(LPLTargetsSortMode.allCases) { mode in
                         Button("Sort: \(mode.title)") { viewModel.sortMode = mode }
@@ -112,6 +112,32 @@ struct LPLTargetsView: View {
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color(white: 0.14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(white: 0.25), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+                .tint(.white)
+
+                Menu {
+                    Button("All banks") { viewModel.selectedBank = nil }
+                    ForEach(viewModel.bankOptions, id: \.self) { bank in
+                        Button("Bank \(bank)") { viewModel.selectedBank = bank }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(viewModel.selectedBankLabel)
+                            .font(.caption2)
+                            .lineLimit(1)
+                        Spacer(minLength: 4)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
@@ -276,7 +302,10 @@ private final class LPLTargetsViewModel: ObservableObject {
         LPLTargetRow(target: target, bank: nil, group: nil, pos: nil, libraryOrder: Int.max, fallbackOrder: index)
     }
     @Published var sortMode: LPLTargetsSortMode = .location {
-        didSet { applySort() }
+        didSet { applySortAndFilter() }
+    }
+    @Published var selectedBank: Int? {
+        didSet { applySortAndFilter() }
     }
     @Published var errorMessage: String?
 
@@ -286,6 +315,14 @@ private final class LPLTargetsViewModel: ObservableObject {
     }
 
     private static let libraryPath = "/pinball/data/pinball_library.json"
+
+    var bankOptions: [Int] {
+        Array(Set(allRows.compactMap(\.bank))).sorted()
+    }
+
+    var selectedBankLabel: String {
+        selectedBank.map { "Bank \($0)" } ?? "All banks"
+    }
 
     func loadIfNeeded() async {
         guard !didLoad else { return }
@@ -305,7 +342,7 @@ private final class LPLTargetsViewModel: ObservableObject {
             let rowsWithLibrary = mergeTargetsWithLibrary(libraryGames: libraryGames)
 
             allRows = rowsWithLibrary
-            applySort()
+            applySortAndFilter()
 
             errorMessage = nil
         } catch {
@@ -353,10 +390,10 @@ private final class LPLTargetsViewModel: ObservableObject {
         }
     }
 
-    private func applySort() {
-        switch sortMode {
+    private func applySortAndFilter() {
+        let sortedRows: [LPLTargetRow] = switch sortMode {
         case .location:
-            rows = allRows.sorted {
+            allRows.sorted {
                 byOptionalAscending($0.group, $1.group)
                     ?? byOptionalAscending($0.pos, $1.pos)
                     ?? byAscending($0.libraryOrder, $1.libraryOrder)
@@ -364,7 +401,7 @@ private final class LPLTargetsViewModel: ObservableObject {
                     ?? false
             }
         case .bank:
-            rows = allRows.sorted {
+            allRows.sorted {
                 byOptionalAscending($0.bank, $1.bank)
                     ?? byOptionalAscending($0.group, $1.group)
                     ?? byOptionalAscending($0.pos, $1.pos)
@@ -374,7 +411,7 @@ private final class LPLTargetsViewModel: ObservableObject {
                     ?? false
             }
         case .alphabetical:
-            rows = allRows.sorted {
+            allRows.sorted {
                 byAscending($0.target.game.lowercased(), $1.target.game.lowercased())
                     ?? byOptionalAscending($0.group, $1.group)
                     ?? byOptionalAscending($0.pos, $1.pos)
@@ -382,6 +419,12 @@ private final class LPLTargetsViewModel: ObservableObject {
                     ?? byAscending($0.fallbackOrder, $1.fallbackOrder)
                     ?? false
             }
+        }
+
+        rows = if let selectedBank {
+            sortedRows.filter { $0.bank == selectedBank }
+        } else {
+            sortedRows
         }
     }
 
