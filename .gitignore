@@ -5,8 +5,20 @@
 *.jks
 *.keystore
 *.p12
+*.p8
 *.mobileprovision
 local.properties
+*.env
+*.env.*
+!.env.example
+!.env.*.example
+**/fastlane/.env
+**/fastlane/.env.*
+!**/fastlane/.env.*.example
+**/fastlane/report.xml
+**/fastlane/test_output/
+**/fastlane/screenshots/
+**/fastlane/Preview.html
 
 # Android
 **/.idea/

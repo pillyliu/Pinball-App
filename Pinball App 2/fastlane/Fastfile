@@ -1,0 +1,68 @@
+default_platform(:ios)
+
+platform :ios do
+  before_all do
+    ensure_env_vars(
+      env_vars: %w[
+        APP_STORE_CONNECT_KEY_ID
+        APP_STORE_CONNECT_ISSUER_ID
+        APP_STORE_CONNECT_KEY_PATH
+      ]
+    )
+  end
+
+  desc "Build an App Store archive"
+  lane :build do |options|
+    build_app(
+      project: options[:project] || "Pinball App 2.xcodeproj",
+      scheme: options[:scheme] || "Pinball App 2",
+      clean: true,
+      export_method: "app-store"
+    )
+  end
+
+  desc "Build and upload to TestFlight"
+  lane :beta do |options|
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_filepath: ENV.fetch("APP_STORE_CONNECT_KEY_PATH"),
+      duration: 1200,
+      in_house: false
+    )
+
+    build_app(
+      project: options[:project] || "Pinball App 2.xcodeproj",
+      scheme: options[:scheme] || "Pinball App 2",
+      clean: true,
+      export_method: "app-store"
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Build and submit to App Store Connect"
+  lane :release do |options|
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_filepath: ENV.fetch("APP_STORE_CONNECT_KEY_PATH"),
+      duration: 1200,
+      in_house: false
+    )
+
+    build_app(
+      project: options[:project] || "Pinball App 2.xcodeproj",
+      scheme: options[:scheme] || "Pinball App 2",
+      clean: true,
+      export_method: "app-store"
+    )
+
+    upload_to_app_store(
+      api_key: api_key
+    )
+  end
+end
