@@ -13,6 +13,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebViewClient
 import android.webkit.WebSettings
 import android.webkit.WebView
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,14 +30,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.shadow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -47,6 +51,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -74,6 +79,10 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.Icon
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.calculatePan
@@ -95,6 +104,8 @@ import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.Border
 import com.pillyliu.pinballandroid.ui.CardBg
 import com.pillyliu.pinballandroid.ui.CardContainer
+import com.pillyliu.pinballandroid.ui.ControlBg
+import com.pillyliu.pinballandroid.ui.ControlBorder
 import com.pillyliu.pinballandroid.ui.EmptyLabel
 import com.pillyliu.pinballandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinballandroid.ui.SectionTitle
@@ -158,18 +169,32 @@ fun LibraryScreen(contentPadding: PaddingValues) {
     var query by rememberSaveable { mutableStateOf("") }
     var sortOptionName by rememberSaveable { mutableStateOf(LibrarySortOption.LOCATION.name) }
     var selectedBank by rememberSaveable { mutableStateOf<Int?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
     var routeKind by rememberSaveable { mutableStateOf("list") }
     var routeSlug by rememberSaveable { mutableStateOf<String?>(null) }
     var routeImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
+
+    BackHandler(enabled = routeKind != "list") {
+        when (routeKind) {
+            "detail" -> {
+                routeKind = "list"
+                routeSlug = null
+                routeImageUrl = null
+            }
+            "rulesheet", "playfield" -> routeKind = "detail"
+            else -> {
+                routeKind = "list"
+                routeSlug = null
+                routeImageUrl = null
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         try {
             val cached = PinballDataCache.passthroughOrCachedText(LIBRARY_URL)
             games = parseGames(JSONArray(cached.text.orEmpty()))
-            error = null
         } catch (t: Throwable) {
-            error = "Failed to load pinball library: ${t.message}"
+            games = emptyList()
         }
     }
     LaunchedEffect(routeKind) {
@@ -187,7 +212,6 @@ fun LibraryScreen(contentPadding: PaddingValues) {
             query = query,
             sortOptionName = sortOptionName,
             selectedBank = selectedBank,
-            error = error,
             onQueryChange = { query = it },
             onSortOptionChange = { sortOptionName = it },
             onBankChange = { selectedBank = it },
@@ -200,7 +224,7 @@ fun LibraryScreen(contentPadding: PaddingValues) {
         "detail" -> {
             if (routeGame == null) {
                 if (games.isEmpty()) {
-                    AppScreen(contentPadding) { EmptyLabel("Loading library...") }
+                    AppScreen(contentPadding) { }
                 } else {
                     AppScreen(contentPadding) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -236,7 +260,7 @@ fun LibraryScreen(contentPadding: PaddingValues) {
         "rulesheet" -> {
             if (routeGame == null) {
                 if (games.isEmpty()) {
-                    AppScreen(contentPadding) { EmptyLabel("Loading rulesheet...") }
+                    AppScreen(contentPadding) { }
                 } else {
                     AppScreen(contentPadding) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -263,7 +287,7 @@ fun LibraryScreen(contentPadding: PaddingValues) {
         "playfield" -> {
             if (routeGame == null) {
                 if (games.isEmpty()) {
-                    AppScreen(contentPadding) { EmptyLabel("Loading playfield...") }
+                    AppScreen(contentPadding) { }
                 } else {
                     AppScreen(contentPadding) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -300,7 +324,6 @@ fun LibraryScreen(contentPadding: PaddingValues) {
                 query = query,
                 sortOptionName = sortOptionName,
                 selectedBank = selectedBank,
-                error = error,
                 onQueryChange = { query = it },
                 onSortOptionChange = { sortOptionName = it },
                 onBankChange = { selectedBank = it },
@@ -321,12 +344,16 @@ private fun LibraryList(
     query: String,
     sortOptionName: String,
     selectedBank: Int?,
-    error: String?,
     onQueryChange: (String) -> Unit,
     onSortOptionChange: (String) -> Unit,
     onBankChange: (Int?) -> Unit,
     onOpenGame: (PinballGame) -> Unit,
 ) {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val searchFontSize = if (isLandscape) 14.sp else 13.sp
+    val searchControlMinHeight = if (isLandscape) 48.dp else 48.dp
+    val searchTextStyle = TextStyle(color = Color.White, fontSize = searchFontSize)
     val sortOption = remember(sortOptionName) {
         LibrarySortOption.entries.firstOrNull { it.name == sortOptionName } ?: LibrarySortOption.LOCATION
     }
@@ -350,56 +377,12 @@ private fun LibraryList(
     }
 
     AppScreen(contentPadding) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            CardContainer {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = onQueryChange,
-                    label = { Text("Search games...", fontSize = 12.sp) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None),
-                    textStyle = TextStyle(color = Color.White, fontSize = 13.sp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedLabelColor = Color.White,
-                        unfocusedLabelColor = Color(0xFFCECECE),
-                        cursorColor = Color.White,
-                    ),
-                )
-
-                BoxWithConstraints {
-                    val menuWidth = (maxWidth - 8.dp) / 2
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CompactLibraryFilterMenu(
-                            selected = sortOption.label,
-                            options = LibrarySortOption.entries.map { it.label },
-                            modifier = Modifier.width(menuWidth),
-                        ) { selected ->
-                            val option = LibrarySortOption.entries.firstOrNull { it.label == selected } ?: LibrarySortOption.LOCATION
-                            onSortOptionChange(option.name)
-                        }
-
-                        CompactLibraryFilterMenu(
-                            selected = selectedBank?.let { "Bank $it" } ?: "All banks",
-                            options = listOf("All banks") + bankOptions.map { "Bank $it" },
-                            modifier = Modifier.width(menuWidth),
-                        ) { selected ->
-                            val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
-                            onBankChange(bank)
-                        }
-                    }
-                }
-            }
-
-            error?.let { Text(it, color = Color.Red) }
-
-            if (sortedGames.isEmpty()) {
-                EmptyLabel(if (games.isEmpty()) "Loading library..." else "No data loaded.")
-            } else {
+        val controlsTopOffset = 4.dp
+        val controlsTopInset = if (isLandscape) 76.dp else 120.dp
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (games.isNotEmpty()) {
                 Column(
-                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = controlsTopInset),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     if (showGroupedView) {
@@ -414,6 +397,135 @@ private fun LibraryList(
                     }
                 }
             }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = controlsTopOffset),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (isLandscape) {
+                    BoxWithConstraints {
+                        val spacing = 8.dp
+                        val totalWidth = maxWidth - (spacing * 2)
+                        val searchWidth = totalWidth * 0.5f
+                        val sortWidth = totalWidth * 0.25f
+                        val bankWidth = totalWidth - searchWidth - sortWidth
+                        Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
+                            OutlinedTextField(
+                                value = query,
+                                onValueChange = onQueryChange,
+                                placeholder = {
+                                    Text(
+                                        "Search games...",
+                                        color = Color(0xFFCECECE),
+                                        style = searchTextStyle,
+                                        maxLines = 1,
+                                    )
+                                },
+                                modifier = Modifier
+                                    .width(searchWidth)
+                                    .height(searchControlMinHeight)
+                                    .shadow(10.dp, RoundedCornerShape(14.dp), clip = false),
+                                shape = RoundedCornerShape(14.dp),
+                                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None),
+                                textStyle = searchTextStyle,
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedLabelColor = Color.White,
+                                    unfocusedLabelColor = Color(0xFFCECECE),
+                                    cursorColor = Color.White,
+                                    focusedContainerColor = ControlBg.copy(alpha = 0.94f),
+                                    unfocusedContainerColor = ControlBg.copy(alpha = 0.9f),
+                                    focusedBorderColor = ControlBorder,
+                                    unfocusedBorderColor = ControlBorder,
+                                ),
+                            )
+
+                            CompactLibraryFilterMenu(
+                                selected = sortOption.label,
+                                options = LibrarySortOption.entries.map { it.label },
+                                modifier = Modifier.width(sortWidth),
+                                isLandscape = true,
+                                landscapeHeight = searchControlMinHeight,
+                                landscapeFontSize = searchFontSize,
+                            ) { selected ->
+                                val option = LibrarySortOption.entries.firstOrNull { it.label == selected } ?: LibrarySortOption.LOCATION
+                                onSortOptionChange(option.name)
+                            }
+
+                            CompactLibraryFilterMenu(
+                                selected = selectedBank?.let { "Bank $it" } ?: "All banks",
+                                options = listOf("All banks") + bankOptions.map { "Bank $it" },
+                                modifier = Modifier.width(bankWidth),
+                                isLandscape = true,
+                                landscapeHeight = searchControlMinHeight,
+                                landscapeFontSize = searchFontSize,
+                            ) { selected ->
+                                val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
+                                onBankChange(bank)
+                            }
+                        }
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = onQueryChange,
+                        placeholder = {
+                            Text(
+                                "Search games...",
+                                color = Color(0xFFCECECE),
+                                style = searchTextStyle,
+                                maxLines = 1,
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(searchControlMinHeight)
+                            .shadow(10.dp, RoundedCornerShape(14.dp), clip = false),
+                        shape = RoundedCornerShape(14.dp),
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None),
+                        textStyle = searchTextStyle,
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedLabelColor = Color.White,
+                            unfocusedLabelColor = Color(0xFFCECECE),
+                            cursorColor = Color.White,
+                            focusedContainerColor = ControlBg.copy(alpha = 0.94f),
+                            unfocusedContainerColor = ControlBg.copy(alpha = 0.9f),
+                            focusedBorderColor = ControlBorder,
+                            unfocusedBorderColor = ControlBorder,
+                        ),
+                    )
+
+                    BoxWithConstraints {
+                        val menuWidth = (maxWidth - 8.dp) / 2
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CompactLibraryFilterMenu(
+                                selected = sortOption.label,
+                                options = LibrarySortOption.entries.map { it.label },
+                                modifier = Modifier.width(menuWidth),
+                            ) { selected ->
+                                val option = LibrarySortOption.entries.firstOrNull { it.label == selected } ?: LibrarySortOption.LOCATION
+                                onSortOptionChange(option.name)
+                            }
+
+                            CompactLibraryFilterMenu(
+                                selected = selectedBank?.let { "Bank $it" } ?: "All banks",
+                                options = listOf("All banks") + bankOptions.map { "Bank $it" },
+                                modifier = Modifier.width(menuWidth),
+                            ) { selected ->
+                                val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
+                                onBankChange(bank)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -423,22 +535,50 @@ private fun CompactLibraryFilterMenu(
     selected: String,
     options: List<String>,
     modifier: Modifier = Modifier,
+    isLandscape: Boolean = false,
+    landscapeHeight: androidx.compose.ui.unit.Dp = 44.dp,
+    landscapeFontSize: androidx.compose.ui.unit.TextUnit = 13.sp,
     onSelect: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Column(modifier = modifier) {
         OutlinedButton(
             onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 34.dp),
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (isLandscape) Modifier.height(landscapeHeight) else Modifier.defaultMinSize(minHeight = 34.dp))
+                .shadow(8.dp, RoundedCornerShape(10.dp), clip = false),
+            contentPadding = PaddingValues(
+                horizontal = if (isLandscape) 10.dp else 8.dp,
+                vertical = if (isLandscape) 6.dp else 3.dp,
+            ),
             shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = ControlBg.copy(alpha = 0.9f),
+                contentColor = Color.White,
+            ),
+            border = androidx.compose.foundation.BorderStroke(1.dp, ControlBorder),
         ) {
-            Text(selected, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    selected,
+                    fontSize = if (isLandscape) landscapeFontSize else 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    imageVector = Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = Color(0xFFC6C6C6),
+                    modifier = Modifier.defaultMinSize(minWidth = if (isLandscape) 18.dp else 14.dp),
+                )
+            }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option, fontSize = 12.sp) },
+                    text = { Text(option, fontSize = if (isLandscape) landscapeFontSize else 12.sp) },
                     onClick = {
                         expanded = false
                         onSelect(option)
@@ -576,11 +716,16 @@ private fun LibraryDetail(
 
     AppScreen(contentPadding) {
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(detailScroll),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(detailScroll),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = onBack) { Text("Back") }
+            Row(
+                modifier = Modifier.padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                GlassBackButton(onClick = onBack)
                 Spacer(Modifier.width(10.dp))
                 Text(game.name, color = Color.White, fontWeight = FontWeight.SemiBold)
             }
@@ -638,9 +783,7 @@ private fun LibraryDetail(
             CardContainer {
                 SectionTitle("Game Info")
                 when (infoStatus) {
-                    "loading" -> Text("Loading...", color = Color(0xFFD0D0D0))
-                    "missing" -> Text("No game info yet.", color = Color(0xFFD0D0D0))
-                    "error" -> Text("Could not load game info.", color = Color(0xFFD0D0D0))
+                    "loading", "missing", "error" -> {}
                     else -> CompositionLocalProvider(LocalContentColor provides Color.White) {
                         val gameInfoStyle = remember {
                             RichTextStyle.Default.copy(
@@ -758,6 +901,7 @@ private fun EmbeddedYouTubeView(videoId: String) {
 private fun RulesheetScreen(contentPadding: PaddingValues, slug: String, onBack: () -> Unit) {
     var status by rememberSaveable(slug) { mutableStateOf("loading") }
     var markdown by rememberSaveable(slug) { mutableStateOf("") }
+    var chromeVisible by rememberSaveable(slug) { mutableStateOf(false) }
 
     LaunchedEffect(slug) {
         if (status == "loaded" || status == "missing") return@LaunchedEffect
@@ -773,14 +917,26 @@ private fun RulesheetScreen(contentPadding: PaddingValues, slug: String, onBack:
     }
 
     AppScreen(contentPadding) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxSize()) {
-            Button(onClick = onBack) { Text("Back") }
+        Box(
+            modifier = Modifier.fillMaxSize(),
+        ) {
             when (status) {
-                "loading" -> EmptyLabel("Loading rulesheet...")
-                "missing" -> EmptyLabel("Rulesheet not available.")
-                "error" -> EmptyLabel("Could not load rulesheet.")
-                else -> Box(modifier = Modifier.fillMaxSize()) {
-                    MarkdownWebView(markdown, Modifier.fillMaxSize(), stateKey = "rulesheet-$slug")
+                "loading", "missing", "error" -> {}
+                else -> MarkdownWebView(
+                    markdown,
+                    Modifier.fillMaxSize(),
+                    stateKey = "rulesheet-$slug",
+                    onTap = { chromeVisible = !chromeVisible },
+                )
+            }
+            if (chromeVisible) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    GlassBackButton(onClick = onBack)
                 }
             }
         }
@@ -814,11 +970,34 @@ private fun PlayfieldScreen(contentPadding: PaddingValues, title: String, imageU
                     .padding(start = 14.dp, end = 14.dp, top = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Button(onClick = onBack) { Text("Back") }
+                GlassBackButton(onClick = onBack)
                 Spacer(Modifier.width(10.dp))
                 Text(title, color = Color.White, fontWeight = FontWeight.SemiBold)
             }
         }
+    }
+}
+
+@Composable
+private fun GlassBackButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .size(34.dp)
+            .shadow(8.dp, CircleShape, clip = false)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.16f))
+            .border(1.dp, Color.White.copy(alpha = 0.34f), CircleShape),
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Back",
+            tint = Color.White,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }
 
@@ -978,7 +1157,12 @@ private fun VideoTile(
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun MarkdownWebView(markdown: String, modifier: Modifier = Modifier, stateKey: String = "default") {
+private fun MarkdownWebView(
+    markdown: String,
+    modifier: Modifier = Modifier,
+    stateKey: String = "default",
+    onTap: (() -> Unit)? = null,
+) {
     val webViewState = rememberSaveable(stateKey, saver = bundleParcelSaver) { Bundle() }
     var savedScrollRatio by rememberSaveable(stateKey) { mutableStateOf(0f) }
     var loadedHash by remember(stateKey) { mutableStateOf<Int?>(null) }
@@ -986,13 +1170,34 @@ private fun MarkdownWebView(markdown: String, modifier: Modifier = Modifier, sta
         modifier = modifier,
         factory = { context ->
             WebView(context).apply {
-                setBackgroundColor(android.graphics.Color.BLACK)
+                var downX = 0f
+                var downY = 0f
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 settings.javaScriptEnabled = false
                 settings.cacheMode = WebSettings.LOAD_NO_CACHE
                 settings.domStorageEnabled = true
                 isVerticalScrollBarEnabled = true
                 overScrollMode = WebView.OVER_SCROLL_IF_CONTENT_SCROLLS
                 setOnTouchListener { view, event ->
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> {
+                            downX = event.x
+                            downY = event.y
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            val dx = kotlin.math.abs(event.x - downX)
+                            val dy = kotlin.math.abs(event.y - downY)
+                            if (dx < 12f && dy < 12f) {
+                                val webView = view as? WebView
+                                val hitType = webView?.hitTestResult?.type
+                                val isLinkTap = hitType == WebView.HitTestResult.SRC_ANCHOR_TYPE ||
+                                    hitType == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE
+                                if (!isLinkTap) {
+                                    onTap?.invoke()
+                                }
+                            }
+                        }
+                    }
                     if (event.action == MotionEvent.ACTION_DOWN || event.action == MotionEvent.ACTION_MOVE) {
                         view.parent?.requestDisallowInterceptTouchEvent(true)
                     }
@@ -1036,12 +1241,12 @@ private fun MarkdownWebView(markdown: String, modifier: Modifier = Modifier, sta
                         <meta charset=\"utf-8\" />
                         <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
                         <style>
-                            html, body { margin:0; padding:0; background:#000 !important; color:#fff !important; overflow-x:hidden !important; width:100%; }
+                            html, body { margin:0; padding:0; background:transparent !important; color:#fff !important; overflow-x:hidden !important; width:100%; }
                             body { padding:14px; line-height:1.45; font-size:16px; box-sizing:border-box; }
                             *, *:before, *:after { box-sizing:border-box; }
                             * { color:#fff !important; background: transparent !important; }
                             a { color:#a6c8ff !important; }
-                            code, pre { background:#111 !important; border-radius:8px; color:#fff !important; }
+                            code, pre { background:transparent !important; border-radius:0 !important; color:#fff !important; }
                             pre { padding:10px; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word; }
                             table { border-collapse:collapse; width:100%; max-width:100%; table-layout:fixed; }
                             th, td { border:1px solid #2a2a2a; padding:6px 8px; word-break:break-word; overflow-wrap:anywhere; }

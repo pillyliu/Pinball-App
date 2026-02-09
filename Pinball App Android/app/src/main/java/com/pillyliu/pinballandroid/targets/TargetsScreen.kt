@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -16,9 +18,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,18 +34,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.ui.AppScreen
-import com.pillyliu.pinballandroid.ui.Border
 import com.pillyliu.pinballandroid.ui.CardContainer
-import com.pillyliu.pinballandroid.ui.CardBg
-import com.pillyliu.pinballandroid.ui.SectionTitle
+import com.pillyliu.pinballandroid.ui.ControlBg
+import com.pillyliu.pinballandroid.ui.ControlBorder
 import org.json.JSONArray
 import java.text.NumberFormat
 
@@ -131,50 +138,52 @@ fun TargetsScreen(contentPadding: PaddingValues) {
 
     AppScreen(contentPadding) {
         Column(
-            modifier = Modifier.verticalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(CardBg, RoundedCornerShape(12.dp))
-                    .border(1.dp, Border, RoundedCornerShape(12.dp))
-                    .padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 7.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                SectionTitle("LPL Score Targets")
-                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                if (isLandscape) {
                     Row {
-                        Text("2nd highest", color = Color(0xFFBAF5D1), modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                        Text("4th highest", color = Color(0xFFC0DBFF), modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                        Text("8th highest", color = Color(0xFFE3E7EB), modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text("2nd highest \"great game\"", color = Color(0xFFBAF5D1), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                        Text("4th highest main target", color = Color(0xFFC0DBFF), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                        Text("8th highest solid floor", color = Color(0xFFE3E7EB), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                    }
+                } else {
+                    Row {
+                        Text("2nd highest", color = Color(0xFFBAF5D1), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text("4th highest", color = Color(0xFFC0DBFF), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text("8th highest", color = Color(0xFFE3E7EB), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                     Row {
-                        Text("\"great game\"", color = Color(0xFFBAF5D1), modifier = Modifier.weight(1f), fontSize = 11.sp)
-                        Text("main target", color = Color(0xFFC0DBFF), modifier = Modifier.weight(1f), fontSize = 11.sp)
-                        Text("solid floor", color = Color(0xFFE3E7EB), modifier = Modifier.weight(1f), fontSize = 11.sp)
+                        Text("\"great game\"", color = Color(0xFFBAF5D1), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
+                        Text("main target", color = Color(0xFFC0DBFF), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
+                        Text("solid floor", color = Color(0xFFE3E7EB), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
                     }
-                    BoxWithConstraints {
-                        val menuWidth = (maxWidth - 8.dp) / 2
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SortMenu(
-                                selected = sortOption,
-                                onSelect = { sortOptionName = it.name },
-                                modifier = Modifier.width(menuWidth),
-                            )
-                            BankMenu(
-                                selectedBank = selectedBank,
-                                bankOptions = bankOptions,
-                                onSelect = { selectedBank = it },
-                                modifier = Modifier.width(menuWidth),
-                            )
-                        }
+                }
+                BoxWithConstraints(modifier = Modifier.padding(top = 4.dp)) {
+                    val menuWidth = (maxWidth - 8.dp) / 2
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SortMenu(
+                            selected = sortOption,
+                            onSelect = { sortOptionName = it.name },
+                            modifier = Modifier.width(menuWidth),
+                        )
+                        BankMenu(
+                            selectedBank = selectedBank,
+                            bankOptions = bankOptions,
+                            onSelect = { selectedBank = it },
+                            modifier = Modifier.width(menuWidth),
+                        )
                     }
                 }
             }
 
             error?.let { Text(it, color = Color(0xFFE39A9A)) }
 
-            CardContainer {
+            CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
                 BoxWithConstraints {
                     val baseWidth = 660f
                     val scale = if (isLandscape) (maxWidth.value / baseWidth).coerceIn(1f, 1.7f) else 1f
@@ -188,8 +197,10 @@ fun TargetsScreen(contentPadding: PaddingValues) {
                     ) {
                         Column {
                             Header(gameWidth, bankWidth, scoreWidth)
-                            filteredRows.forEachIndexed { index, row ->
-                                TargetRowView(index, row, gameWidth, bankWidth, scoreWidth)
+                            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                                filteredRows.forEachIndexed { index, row ->
+                                    TargetRowView(index, row, gameWidth, bankWidth, scoreWidth)
+                                }
                             }
                         }
                     }
@@ -197,8 +208,11 @@ fun TargetsScreen(contentPadding: PaddingValues) {
             }
 
             Text(
-                "Benchmarks are based on historical LPL league results across all seasons where each game appeared.",
-                color = Color(0xFFAAAAAA),
+                "Benchmarks are based on historical LPL league results across all seasons where each game appeared. For each game, scores are derived from per-bank results using 2nd / 4th / 8th highest averages with sample-size adjustments. These values are then averaged across all bank appearances for that game.",
+                color = Color(0xFFB3B3B3),
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                modifier = Modifier.padding(top = 1.dp, start = 4.dp, end = 4.dp),
             )
         }
     }
@@ -217,8 +231,17 @@ private fun SortMenu(
             modifier = Modifier.fillMaxWidth().heightIn(min = 34.dp),
             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
             shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = ControlBg,
+                contentColor = Color.White,
+            ),
+            border = androidx.compose.foundation.BorderStroke(1.dp, ControlBorder),
         ) {
-            Text("Sort: ${selected.label}", fontSize = 12.sp, maxLines = 1)
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Sort: ${selected.label}", fontSize = 12.sp, maxLines = 1)
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(imageVector = Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = Color(0xFFC6C6C6))
+            }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             TargetSortOption.entries.forEach { option ->
@@ -248,8 +271,17 @@ private fun BankMenu(
             modifier = Modifier.fillMaxWidth().heightIn(min = 34.dp),
             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
             shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = ControlBg,
+                contentColor = Color.White,
+            ),
+            border = androidx.compose.foundation.BorderStroke(1.dp, ControlBorder),
         ) {
-            Text(selectedBank?.let { "Bank $it" } ?: "All banks", fontSize = 12.sp, maxLines = 1)
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(selectedBank?.let { "Bank $it" } ?: "All banks", fontSize = 12.sp, maxLines = 1)
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(imageVector = Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = Color(0xFFC6C6C6))
+            }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
@@ -313,8 +345,8 @@ private fun Header(gameWidth: Int, bankWidth: Int, scoreWidth: Int) {
 private fun TargetRowView(index: Int, row: TargetRow, gameWidth: Int, bankWidth: Int, scoreWidth: Int) {
     Row(
         modifier = Modifier
-            .background(if (index % 2 == 0) Color(0xFF121212) else Color(0xFF222222))
-            .padding(vertical = 2.dp),
+            .background(if (index % 2 == 0) Color(0xFF0A0A0A) else Color(0xFF171717))
+            .padding(vertical = 5.dp),
     ) {
         Cell(row.target.game, gameWidth, maxLines = 1)
         Cell(row.bank?.toString() ?: "-", bankWidth)

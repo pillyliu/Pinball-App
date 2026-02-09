@@ -16,23 +16,36 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-val AppBg = Color.Black
+val AppBg = Color(0xFF0A0A0A)
 val CardBg = Color(0xFF171717)
 val Border = Color(0xFF343434)
+val ControlBg = Color(0xFF171717)
+val ControlBorder = Color(0xFF404040)
+val HeaderBg = Color(0xFF111111)
+val RowOddBg = Color(0xFF171717)
+val RowEvenBg = Color(0xFF0A0A0A)
 val LocalBottomBarVisible = compositionLocalOf<MutableState<Boolean>> {
     error("LocalBottomBarVisible not provided")
 }
 
 @Composable
 fun AppScreen(contentPadding: PaddingValues, content: @Composable () -> Unit) {
+    val backgroundBrush = Brush.radialGradient(
+        colors = listOf(Color(0x2338BDF8), Color.Transparent),
+        center = Offset(220f, -80f),
+        radius = 980f,
+    )
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBg)
+            .background(backgroundBrush)
             .padding(contentPadding)
             .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {

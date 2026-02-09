@@ -3,26 +3,32 @@ package com.pillyliu.pinballandroid.stats
 import android.content.res.Configuration
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,9 +37,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
@@ -46,6 +55,8 @@ import com.pillyliu.pinballandroid.ui.CardContainer
 import com.pillyliu.pinballandroid.ui.EmptyLabel
 import com.pillyliu.pinballandroid.ui.Border
 import com.pillyliu.pinballandroid.ui.CardBg
+import com.pillyliu.pinballandroid.ui.ControlBg
+import com.pillyliu.pinballandroid.ui.ControlBorder
 import java.text.NumberFormat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,6 +64,7 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 private const val CSV_URL = "https://pillyliu.com/pinball/data/LPL_Stats.csv"
+private data class FilterOption(val value: String, val label: String)
 
 private data class ScoreRow(
     val id: Int,
@@ -144,52 +156,66 @@ fun StatsScreen(contentPadding: PaddingValues) {
             modifier = Modifier.verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CompactFilterCard {
-                BoxWithConstraints {
-                    val menuWidth = (maxWidth - 8.dp) / 2
+            val seasonOptions = listOf(FilterOption("", "S: All")) + seasons.map { FilterOption(it, abbrSeason(it)) }
+            val playerOptions = listOf(FilterOption("", "Player: All")) + players.map { FilterOption(it, it) }
+            val bankOptions = listOf(FilterOption("", "B: All")) + banks.map { FilterOption(it.toString(), "B$it") }
+            val machineOptions = listOf(FilterOption("", "Machine: All")) + machines.map { FilterOption(it, it) }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterMenu(
-                                "Season",
-                                season.ifEmpty { "All" },
-                                listOf("All") + seasons,
-                                modifier = Modifier.width(menuWidth),
-                            ) {
-                                season = if (it == "All") "" else it
-                                player = ""
-                                bankNumber = null
-                                machine = ""
-                            }
-                            FilterMenu(
-                                "Player",
-                                player.ifEmpty { "All" },
-                                listOf("All") + players,
-                                modifier = Modifier.width(menuWidth),
-                            ) {
-                                player = if (it == "All") "" else it
-                                bankNumber = null
-                                machine = ""
-                            }
+            if (isLandscape) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    FilterMenu(selectedText = seasonDisplayText(season), options = seasonOptions, modifier = Modifier.weight(1f)) {
+                        season = it
+                        player = ""
+                        bankNumber = null
+                        machine = ""
+                    }
+                    FilterMenu(selectedText = playerDisplayText(player), options = playerOptions, modifier = Modifier.weight(1f)) {
+                        player = it
+                        bankNumber = null
+                        machine = ""
+                    }
+                    FilterMenu(selectedText = bankDisplayText(bankNumber), options = bankOptions, modifier = Modifier.weight(1f)) {
+                        bankNumber = it.toIntOrNull()
+                        machine = ""
+                    }
+                    FilterMenu(selectedText = machineDisplayText(machine), options = machineOptions, modifier = Modifier.weight(1f)) {
+                        machine = it
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        FilterMenu(selectedText = seasonDisplayText(season), options = seasonOptions, modifier = Modifier.weight(3f)) {
+                            season = it
+                            player = ""
+                            bankNumber = null
+                            machine = ""
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterMenu(
-                                "Bank",
-                                bankNumber?.toString() ?: "All",
-                                listOf("All") + banks.map { it.toString() },
-                                modifier = Modifier.width(menuWidth),
-                            ) {
-                                bankNumber = if (it == "All") null else it.toIntOrNull()
-                                machine = ""
-                            }
-                            FilterMenu(
-                                "Machine",
-                                machine.ifEmpty { "All" },
-                                listOf("All") + machines,
-                                modifier = Modifier.width(menuWidth),
-                            ) {
-                                machine = if (it == "All") "" else it
-                            }
+                        FilterMenu(selectedText = playerDisplayText(player), options = playerOptions, modifier = Modifier.weight(7f)) {
+                            player = it
+                            bankNumber = null
+                            machine = ""
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        FilterMenu(selectedText = bankDisplayText(bankNumber), options = bankOptions, modifier = Modifier.weight(3f)) {
+                            bankNumber = it.toIntOrNull()
+                            machine = ""
+                        }
+                        FilterMenu(selectedText = machineDisplayText(machine), options = machineOptions, modifier = Modifier.weight(7f)) {
+                            machine = it
                         }
                     }
                 }
@@ -231,9 +257,9 @@ private fun StatsTable(filtered: List<ScoreRow>) {
                     itemsIndexed(filtered, key = { _, row -> row.id }) { _, row ->
                         Row(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .background(if (row.id % 2 == 0) Color(0xFF121212) else Color(0xFF222222))
-                                .padding(vertical = 4.dp),
+                            .fillMaxWidth()
+                                .background(if (row.id % 2 == 0) Color(0xFF0A0A0A) else Color(0xFF171717))
+                                .padding(vertical = 6.dp),
                         ) {
                             TableCell(row.season, 72)
                             TableCell(row.player, 130)
@@ -257,78 +283,205 @@ private fun MachineStatsPanel(
     bankStats: StatResult,
     historyStats: StatResult,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("Machine Stats", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-        if (machine.isEmpty() || bankNumber == null || season.isEmpty()) {
+        if (machine.isEmpty()) {
+            Text("Select a machine to view detailed stats.", color = Color(0xFFD0D0D0), fontSize = 12.sp)
+            return@Column
+        }
+        if (bankNumber == null || season.isEmpty()) {
             Text("Select season, bank, and machine to view detailed stats.", color = Color(0xFFD0D0D0), fontSize = 12.sp)
         }
-        StatSection("Selected Bank", "$season - Bank ${bankNumber ?: "?"}", bankStats)
-        StatSection("Historical (All Seasons)", "All Seasons", historyStats)
+        MachineStatsTable(
+            selectedLabel = selectedBankLabel(season, bankNumber),
+            selectedStats = bankStats,
+            allSeasonsStats = historyStats,
+        )
     }
 }
 
 @Composable
-private fun StatSection(title: String, label: String, stats: StatResult) {
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(title, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-        if (stats.count == 0) {
-            Text("No data - select filters.", color = Color(0xFFBDBDBD), fontSize = 12.sp)
-            return
-        }
-        Text(label, color = Color(0xFFBABABA), fontSize = 14.sp)
-        StatRow("High", formatInt(stats.high), stats.highPlayer, Color(0xFF8DE18A))
-        StatRow("Low", formatInt(stats.low), stats.lowPlayer, Color(0xFFFF9292))
-        StatRow("Mean", formatInt(stats.mean), null)
-        StatRow("Median", formatInt(stats.median), null)
-        StatRow("Std Dev", formatInt(stats.std), null)
-        StatRow("Count", stats.count.toString(), null)
-    }
-}
-
-@Composable
-private fun StatRow(label: String, value: String, subtitle: String?, valueColor: Color = Color.White) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 0.5.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+private fun MachineStatsTable(selectedLabel: String, selectedStats: StatResult, allSeasonsStats: StatResult) {
+    val rowLabels = listOf("High", "Low", "Avg", "Med", "Std", "Count")
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 0.dp),
     ) {
-        Text(label, color = Color(0xFFCBCBCB), fontSize = 13.sp)
-        Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
-            Text(value, color = valueColor, fontWeight = FontWeight.Medium, fontSize = 13.sp)
-            subtitle?.let { Text("by $it", color = Color(0xFFA3A3A3), fontSize = 12.sp) }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            HeaderCell("", modifier = Modifier.weight(0.9f))
+            HeaderCell(selectedLabel, modifier = Modifier.weight(1.55f), alignRight = true)
+            HeaderCell("All Seasons", modifier = Modifier.weight(1.55f), alignRight = true)
+        }
+        rowLabels.forEachIndexed { idx, label ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 0.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                StatLabelCell(label, modifier = Modifier.weight(0.9f))
+                StatValueCell(
+                    label = label,
+                    stats = selectedStats,
+                    isAllSeasons = false,
+                    modifier = Modifier.weight(1.55f),
+                )
+                StatValueCell(
+                    label = label,
+                    stats = allSeasonsStats,
+                    isAllSeasons = true,
+                    modifier = Modifier.weight(1.55f),
+                )
+            }
         }
     }
 }
+
+@Composable
+private fun HeaderCell(text: String, modifier: Modifier, alignRight: Boolean = false) {
+    Text(
+        text = text,
+        modifier = modifier,
+        color = Color(0xFFBDBDBD),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Medium,
+        maxLines = 1,
+        textAlign = if (alignRight) TextAlign.End else TextAlign.Start,
+    )
+}
+
+@Composable
+private fun StatLabelCell(text: String, modifier: Modifier) {
+    Text(
+        text = text,
+        modifier = modifier.padding(vertical = 1.dp),
+        color = Color(0xFFD7D7D7),
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Medium,
+        maxLines = 1,
+    )
+}
+
+@Composable
+private fun StatValueCell(label: String, stats: StatResult, isAllSeasons: Boolean, modifier: Modifier) {
+    val valueColor = when (label) {
+        "High" -> Color(0xFF6EE7B7)
+        "Low" -> Color(0xFFFCA5A5)
+        "Avg", "Med" -> Color(0xFF7DD3FC)
+        else -> Color(0xFFE5E5E5)
+    }
+    val value = when (label) {
+        "High" -> formatInt(stats.high)
+        "Low" -> formatInt(stats.low)
+        "Avg" -> formatInt(stats.mean)
+        "Med" -> formatInt(stats.median)
+        "Std" -> formatInt(stats.std)
+        "Count" -> if (stats.count > 0) stats.count.toString() else "-"
+        else -> "-"
+    }
+    val player = when (label) {
+        "High" -> stats.highPlayer
+        "Low" -> stats.lowPlayer
+        else -> null
+    }
+
+    Column(modifier = modifier.padding(vertical = 1.dp)) {
+        Text(
+            text = value,
+            color = valueColor,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.End,
+            modifier = Modifier.fillMaxWidth(),
+            maxLines = 1,
+        )
+        if (label == "High" || label == "Low") {
+            val playerText = if (player.isNullOrBlank()) "-" else if (isAllSeasons) player else player.substringBefore(" (S")
+            Text(
+                text = playerText,
+                color = Color(0xFF737373),
+                fontSize = 10.sp,
+                textAlign = TextAlign.End,
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+private fun selectedBankLabel(season: String, bankNumber: Int?): String {
+    val seasonLabel = if (season.isBlank()) "S?" else abbrSeason(season)
+    val bankLabel = bankNumber?.let { "B$it" } ?: "B?"
+    return "$seasonLabel $bankLabel"
+}
+
+private fun seasonDisplayText(season: String): String = if (season.isBlank()) "S: All" else abbrSeason(season)
+private fun bankDisplayText(bankNumber: Int?): String = bankNumber?.let { "B$it" } ?: "B: All"
+private fun playerDisplayText(player: String): String = if (player.isBlank()) "Player: All" else player
+private fun machineDisplayText(machine: String): String = if (machine.isBlank()) "Machine: All" else machine
 
 @Composable
 private fun FilterMenu(
-    label: String,
-    selected: String,
-    options: List<String>,
+    selectedText: String,
+    options: List<FilterOption>,
     modifier: Modifier = Modifier,
     onSelect: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Column(modifier = modifier) {
+    val density = LocalDensity.current
+    var menuWidth by remember { mutableStateOf(0.dp) }
+    Box(modifier = modifier.fillMaxWidth()) {
         OutlinedButton(
             onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 36.dp),
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 40.dp)
+                .onGloballyPositioned { coordinates ->
+                    menuWidth = with(density) { coordinates.size.width.toDp() }
+                },
+            contentPadding = PaddingValues(start = 10.dp, end = 28.dp, top = 7.dp, bottom = 7.dp),
+            shape = RoundedCornerShape(11.dp),
+            border = BorderStroke(1.dp, ControlBorder),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = ControlBg,
+                contentColor = Color.White,
+            ),
         ) {
-            Text(
-                "$label: $selected",
-                modifier = Modifier.fillMaxWidth(),
-                fontSize = 12.sp,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-            )
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    selectedText,
+                    modifier = Modifier.weight(1f),
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Start,
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+            }
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        Icon(
+            imageVector = Icons.Filled.KeyboardArrowDown,
+            contentDescription = null,
+            tint = Color(0xFFC6C6C6),
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 8.dp)
+                .size(18.dp),
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = if (menuWidth > 0.dp) Modifier.width(menuWidth) else Modifier,
+        ) {
             options.forEach { option ->
-                DropdownMenuItem(text = { Text(option) }, onClick = {
+                DropdownMenuItem(text = { Text(option.label, fontSize = 12.sp) }, onClick = {
                     expanded = false
-                    onSelect(option)
+                    onSelect(option.value)
                 })
             }
         }
@@ -366,20 +519,6 @@ private fun TableCell(text: String, width: Int, bold: Boolean = false, color: Co
         fontSize = 13.sp,
         maxLines = 1,
     )
-}
-
-@Composable
-private fun CompactFilterCard(content: @Composable () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(CardBg, RoundedCornerShape(12.dp))
-            .border(1.dp, Border, RoundedCornerShape(12.dp))
-            .padding(horizontal = 7.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        content()
-    }
 }
 
 private fun parseScoreRows(text: String): List<ScoreRow> {

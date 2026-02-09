@@ -10,11 +10,26 @@ import Combine
 
 struct StandingsView: View {
     @StateObject private var viewModel = StandingsViewModel()
+    @State private var tableAvailableWidth: CGFloat = 0
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    private var widthScale: CGFloat {
+        guard tableAvailableWidth > 0 else { return 1 }
+        return max(1, min(1.7, tableAvailableWidth / 646))
+    }
+    private var rankWidth: CGFloat { 34 * widthScale }
+    private var playerWidth: CGFloat { 136 * widthScale }
+    private var pointsWidth: CGFloat { 68 * widthScale }
+    private var eligibleWidth: CGFloat { 38 * widthScale }
+    private var nightsWidth: CGFloat { 34 * widthScale }
+    private var bankWidth: CGFloat { 42 * widthScale }
+    private var tableContentWidth: CGFloat { rankWidth + playerWidth + pointsWidth + eligibleWidth + nightsWidth + bankWidth * 8 + 10 }
+    private var tableMinWidth: CGFloat { max(tableContentWidth, tableAvailableWidth) }
+    private var contentHorizontalPadding: CGFloat { verticalSizeClass == .compact ? 2 : 14 }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                AppBackground()
 
                 VStack(spacing: 12) {
                     seasonSelector
@@ -27,10 +42,12 @@ struct StandingsView: View {
                     }
 
                     standingsTable
+                        .frame(maxHeight: .infinity)
                 }
-                .padding(.horizontal, 14)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .padding(.horizontal, contentHorizontalPadding)
                 .padding(.top, 4)
-                .padding(.bottom, 10)
+                .padding(.bottom, 8)
             }
             .toolbar(.hidden, for: .navigationBar)
             .task {
@@ -49,6 +66,7 @@ struct StandingsView: View {
         } label: {
             HStack(spacing: 8) {
                 Text(viewModel.selectedSeasonLabel)
+                    .font(.footnote)
                     .lineLimit(1)
                 Spacer()
                 Image(systemName: "chevron.down")
@@ -57,29 +75,16 @@ struct StandingsView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(Color(white: 0.14))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color(white: 0.25), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .padding(.vertical, 8)
+            .appControlStyle()
         }
         .disabled(viewModel.seasons.isEmpty)
         .tint(.white)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(Color(white: 0.09))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(white: 0.2), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var standingsTable: some View {
         VStack(spacing: 0) {
-            ScrollView([.horizontal, .vertical]) {
+            ScrollView(.horizontal) {
                 VStack(spacing: 0) {
                     tableHeader
                     Divider().overlay(Color(white: 0.2))
@@ -90,42 +95,58 @@ struct StandingsView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 68)
                     } else {
-                        LazyVStack(spacing: 0) {
-                            ForEach(Array(viewModel.standings.enumerated()), id: \.element.id) { index, standing in
-                                StandingsRowView(standing: standing, rank: index + 1)
-                                    .background(index.isMultiple(of: 2) ? Color.clear : Color(white: 0.11))
-                                Divider().overlay(Color(white: 0.15))
+                        ScrollView(.vertical) {
+                            LazyVStack(spacing: 0) {
+                                ForEach(Array(viewModel.standings.enumerated()), id: \.element.id) { index, standing in
+                                    StandingsRowView(
+                                        standing: standing,
+                                        rank: index + 1,
+                                        rankWidth: rankWidth,
+                                        playerWidth: playerWidth,
+                                        pointsWidth: pointsWidth,
+                                        eligibleWidth: eligibleWidth,
+                                        nightsWidth: nightsWidth,
+                                        bankWidth: bankWidth
+                                    )
+                                    .background(index.isMultiple(of: 2) ? AppTheme.rowEven : AppTheme.rowOdd)
+                                    Divider().overlay(Color(white: 0.15))
+                                }
                             }
                         }
+                        .frame(maxHeight: .infinity)
                     }
                 }
-                .frame(minWidth: 760, alignment: .leading)
+                .frame(minWidth: tableMinWidth, alignment: .leading)
             }
             .scrollIndicators(.hidden)
         }
-        .background(Color(white: 0.07))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(white: 0.2), lineWidth: 1)
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { tableAvailableWidth = geo.size.width }
+                    .onChange(of: geo.size.width) { _, newValue in
+                        tableAvailableWidth = newValue
+                    }
+            }
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .appPanelStyle()
     }
 
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            HeaderCell(title: "#", width: 34)
-            HeaderCell(title: "Player", width: 136)
-            HeaderCell(title: "Pts", width: 68)
-            HeaderCell(title: "Elg", width: 38)
-            HeaderCell(title: "N", width: 34)
-            HeaderCell(title: "B1", width: 42)
-            HeaderCell(title: "B2", width: 42)
-            HeaderCell(title: "B3", width: 42)
-            HeaderCell(title: "B4", width: 42)
-            HeaderCell(title: "B5", width: 42)
-            HeaderCell(title: "B6", width: 42)
-            HeaderCell(title: "B7", width: 42)
-            HeaderCell(title: "B8", width: 42)
+            HeaderCell(title: "#", width: rankWidth)
+            HeaderCell(title: "Player", width: playerWidth)
+            HeaderCell(title: "Pts", width: pointsWidth)
+            HeaderCell(title: "Elg", width: eligibleWidth)
+            HeaderCell(title: "N", width: nightsWidth)
+            HeaderCell(title: "B1", width: bankWidth)
+            HeaderCell(title: "B2", width: bankWidth)
+            HeaderCell(title: "B3", width: bankWidth)
+            HeaderCell(title: "B4", width: bankWidth)
+            HeaderCell(title: "B5", width: bankWidth)
+            HeaderCell(title: "B6", width: bankWidth)
+            HeaderCell(title: "B7", width: bankWidth)
+            HeaderCell(title: "B8", width: bankWidth)
         }
         .frame(height: 42)
         .background(Color(white: 0.1))
@@ -135,17 +156,23 @@ struct StandingsView: View {
 private struct StandingsRowView: View {
     let standing: Standing
     let rank: Int
+    let rankWidth: CGFloat
+    let playerWidth: CGFloat
+    let pointsWidth: CGFloat
+    let eligibleWidth: CGFloat
+    let nightsWidth: CGFloat
+    let bankWidth: CGFloat
 
     var body: some View {
         HStack(spacing: 0) {
-            rowCell(rank.formatted(), width: 34, color: rankColor, monospaced: true)
-            rowCell(standing.player, width: 136, weight: rank <= 8 ? .semibold : .regular)
-            rowCell(formatRounded(standing.seasonTotal), width: 68, monospaced: true)
-            rowCell(standing.eligible, width: 38)
-            rowCell(standing.nights, width: 34, monospaced: true)
+            rowCell(rank.formatted(), width: rankWidth, color: rankColor, monospaced: true)
+            rowCell(standing.player, width: playerWidth, weight: rank <= 8 ? .semibold : .regular)
+            rowCell(formatRounded(standing.seasonTotal), width: pointsWidth, monospaced: true)
+            rowCell(standing.eligible, width: eligibleWidth)
+            rowCell(standing.nights, width: nightsWidth, monospaced: true)
 
             ForEach(standing.banks.indices, id: \.self) { index in
-                rowCell(formatRounded(standing.banks[index]), width: 42, monospaced: true)
+                rowCell(formatRounded(standing.banks[index]), width: bankWidth, monospaced: true)
             }
         }
         .frame(height: 36)

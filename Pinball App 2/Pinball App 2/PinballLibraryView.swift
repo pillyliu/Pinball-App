@@ -5,28 +5,78 @@ import UIKit
 
 struct PinballLibraryView: View {
     @StateObject private var viewModel = PinballLibraryViewModel()
+    @State private var controlsHeight: CGFloat = 96
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    private var isLandscapePhone: Bool { verticalSizeClass == .compact }
+    private let landscapeControlHeight: CGFloat = 40
+    private var cardsTopBuffer: CGFloat {
+        if isLandscapePhone {
+            return max(6, controlsHeight - 40)
+        }
+        return max(20, controlsHeight - 10)
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                AppBackground()
 
-                VStack(spacing: 12) {
-                    controls
-
-                    if let error = viewModel.errorMessage {
-                        Text(error)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-
+                ZStack(alignment: .top) {
                     content
+                        .padding(.horizontal, 14)
+                        .ignoresSafeArea(edges: .bottom)
+
+                    GeometryReader { geo in
+                        let safeTop = geo.safeAreaInsets.top
+                        let fadeHeight = isLandscapePhone
+                            ? max(52, safeTop + 30)
+                            : max(128, controlsHeight + safeTop + 22)
+
+                        LinearGradient(
+                            gradient: Gradient(stops: [
+                                .init(color: Color.black.opacity(0.62), location: 0.0),
+                                .init(color: Color.black.opacity(0.62), location: 0.08),
+                                .init(color: Color.black.opacity(0.32), location: 0.50),
+                                .init(color: Color.black.opacity(0.17), location: 0.8),
+                                .init(color: .clear, location: 1.0)
+                            ]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(maxWidth: .infinity)
+                        .frame(height: fadeHeight, alignment: .top)
+                        .ignoresSafeArea(edges: [.top, .horizontal])
+                        .allowsHitTesting(false)
+                    }
+                    .zIndex(0.5)
+
+                    VStack(spacing: 8) {
+                        controls
+                            .padding(.horizontal, 14)
+                            .padding(.top, 6)
+                            .background(
+                                GeometryReader { geo in
+                                    Color.clear.preference(key: LibraryControlsHeightKey.self, value: geo.size.height)
+                                }
+                            )
+
+                        if let error = viewModel.errorMessage {
+                            Text(error)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 14)
+                        }
+                    }
+                    .zIndex(1)
                 }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 10)
             }
             .toolbar(.hidden, for: .navigationBar)
+            .onPreferenceChange(LibraryControlsHeightKey.self) { newValue in
+                guard newValue > 0 else { return }
+                controlsHeight = newValue
+            }
             .task {
                 await viewModel.loadIfNeeded()
             }
@@ -34,91 +84,115 @@ struct PinballLibraryView: View {
     }
 
     private var controls: some View {
-        VStack(spacing: 10) {
-            TextField(
-                "",
-                text: $viewModel.query,
-                prompt: Text("Search games...")
-                    .foregroundStyle(Color(white: 0.72))
-            )
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled(true)
-                .foregroundStyle(Color(white: 0.96))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(Color(white: 0.18))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color(white: 0.32), lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        Group {
+            if isLandscapePhone {
+                GeometryReader { geo in
+                    let spacing: CGFloat = 8
+                    let total = max(0, geo.size.width - (spacing * 2))
+                    let minBankWidth: CGFloat = 82
+                    let minSortWidth: CGFloat = 130
+                    let idealSortWidth: CGFloat = 190 // keep "Sort: Alphabetical" fully visible
+                    // Nudge search wider so the search/sort gap sits on the screen center.
+                    let centeredSearchWidth = (total * 0.5) + (spacing * 0.5)
+                    let searchWidth = max(130, centeredSearchWidth)
+                    let sortMaxAllowed = max(minSortWidth, total - searchWidth - minBankWidth)
+                    let sortWidth = min(idealSortWidth, sortMaxAllowed)
+                    let bankWidth = max(minBankWidth, total - searchWidth - sortWidth)
 
-            HStack(spacing: 8) {
-                Menu {
-                    ForEach(PinballLibrarySortOption.allCases) { option in
-                        Button(option.menuLabel) { viewModel.sortOption = option }
+                    HStack(spacing: spacing) {
+                        searchField
+                            .frame(width: searchWidth)
+                            .frame(height: landscapeControlHeight)
+                        sortMenu
+                            .frame(width: sortWidth)
+                            .frame(height: landscapeControlHeight)
+                        bankMenu
+                            .frame(width: bankWidth)
+                            .frame(height: landscapeControlHeight)
                     }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(viewModel.selectedSortLabel)
-                            .font(.caption2)
-                            .lineLimit(1)
-                        Spacer(minLength: 4)
-                        Image(systemName: "chevron.down")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color(white: 0.14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(white: 0.25), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .tint(.white)
-                .disabled(viewModel.games.isEmpty)
-
-                Menu {
-                    Button("All banks") { viewModel.selectedBank = nil }
-                    ForEach(viewModel.bankOptions, id: \.self) { bank in
-                        Button("Bank \(bank)") { viewModel.selectedBank = bank }
+                .frame(height: landscapeControlHeight)
+            } else {
+                VStack(spacing: 10) {
+                    searchField
+                    HStack(spacing: 8) {
+                        sortMenu
+                        bankMenu
                     }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(viewModel.selectedBankLabel)
-                            .font(.caption2)
-                            .lineLimit(1)
-                        Spacer(minLength: 4)
-                        Image(systemName: "chevron.down")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color(white: 0.14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(white: 0.25), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .tint(.white)
-                .disabled(viewModel.games.isEmpty)
             }
         }
-        .padding(12)
-        .background(Color(white: 0.09))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(white: 0.2), lineWidth: 1)
+    }
+
+    private var searchField: some View {
+        TextField(
+            "",
+            text: $viewModel.query,
+            prompt: Text("Search games...")
+                .foregroundStyle(Color(white: 0.72))
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .textInputAutocapitalization(.never)
+        .autocorrectionDisabled(true)
+        .font(.subheadline)
+        .foregroundStyle(Color(white: 0.96))
+        .padding(.horizontal, isLandscapePhone ? 11 : 12)
+        .padding(.vertical, isLandscapePhone ? 6 : 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: isLandscapePhone ? landscapeControlHeight : nil)
+        .appGlassControlStyle()
+    }
+
+    private var sortMenu: some View {
+        Menu {
+            ForEach(PinballLibrarySortOption.allCases) { option in
+                Button(option.menuLabel) { viewModel.sortOption = option }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(viewModel.selectedSortLabel)
+                    .font(isLandscapePhone ? .subheadline : .caption2)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.down")
+                    .font(isLandscapePhone ? .subheadline : .caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, isLandscapePhone ? 11 : 10)
+            .padding(.vertical, isLandscapePhone ? 6 : 6)
+            .frame(height: isLandscapePhone ? landscapeControlHeight : nil)
+            .appGlassControlStyle()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .tint(.white)
+        .disabled(viewModel.games.isEmpty)
+    }
+
+    private var bankMenu: some View {
+        Menu {
+            Button("All banks") { viewModel.selectedBank = nil }
+            ForEach(viewModel.bankOptions, id: \.self) { bank in
+                Button("Bank \(bank)") { viewModel.selectedBank = bank }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(viewModel.selectedBankLabel)
+                    .font(isLandscapePhone ? .subheadline : .caption2)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.down")
+                    .font(isLandscapePhone ? .subheadline : .caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, isLandscapePhone ? 11 : 10)
+            .padding(.vertical, isLandscapePhone ? 6 : 6)
+            .frame(height: isLandscapePhone ? landscapeControlHeight : nil)
+            .appGlassControlStyle()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .tint(.white)
+        .disabled(viewModel.games.isEmpty)
     }
 
     @ViewBuilder
@@ -136,10 +210,12 @@ struct PinballLibraryView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         } else if viewModel.showGroupedView {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 20) {
+                LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(viewModel.sections.enumerated()), id: \.offset) { idx, section in
                         if idx > 0 {
-                            Divider().overlay(Color.white)
+                            Divider()
+                                .overlay(Color.white)
+                                .padding(.vertical, 10)
                         }
 
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 12)], spacing: 12) {
@@ -149,8 +225,10 @@ struct PinballLibraryView: View {
                         }
                     }
                 }
+                .padding(.top, cardsTopBuffer)
                 .padding(.vertical, 2)
             }
+            .ignoresSafeArea(edges: .bottom)
         } else {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 12)], spacing: 12) {
@@ -158,8 +236,10 @@ struct PinballLibraryView: View {
                         gameCard(for: game)
                     }
                 }
+                .padding(.top, cardsTopBuffer)
                 .padding(.vertical, 2)
             }
+            .ignoresSafeArea(edges: .bottom)
         }
     }
 
@@ -195,14 +275,17 @@ struct PinballLibraryView: View {
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .background(Color(white: 0.09))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(white: 0.2), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .appPanelStyle()
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct LibraryControlsHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 96
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
@@ -214,6 +297,7 @@ private struct PinballGameDetailView: View {
     let game: PinballGame
     @StateObject private var viewModel: PinballGameInfoViewModel
     @State private var activeVideoID: String?
+    @Environment(\.dismiss) private var dismiss
 
     init(game: PinballGame) {
         self.game = game
@@ -231,10 +315,18 @@ private struct PinballGameDetailView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(AppBackground())
         .navigationTitle(game.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 14).onEnded { value in
+                guard value.startLocation.x < 28 else { return }
+                guard value.translation.width > 80 else { return }
+                guard abs(value.translation.height) < 90 else { return }
+                dismiss()
+            }
+        )
         .task {
             await viewModel.loadIfNeeded()
         }
@@ -864,8 +956,8 @@ private struct RulesheetView: View {
     let slug: String
     @StateObject private var viewModel: RulesheetViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var controlsVisible = true
-    @State private var controlsHideTask: Task<Void, Never>?
+    @State private var controlsVisible = false
+    @State private var suppressChromeToggle = false
 
     init(slug: String) {
         self.slug = slug
@@ -874,7 +966,7 @@ private struct RulesheetView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            AppBackground()
 
             switch viewModel.status {
             case .idle, .loading:
@@ -888,26 +980,16 @@ private struct RulesheetView: View {
                     .foregroundStyle(.secondary)
             case .loaded:
                 if let markdownText = viewModel.markdownText {
-                    MarkdownWebView(markdown: markdownText)
+                    MarkdownWebView(
+                        markdown: markdownText,
+                        onAnchorTap: {
+                            suppressChromeToggle = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                                suppressChromeToggle = false
+                            }
+                        }
+                    )
                         .ignoresSafeArea()
-                }
-            }
-
-            GeometryReader { geo in
-                let isPortrait = geo.size.height >= geo.size.width
-                let topInset = geo.safeAreaInsets.top
-                if isPortrait && topInset > 0 {
-                    VStack {
-                        LinearGradient(
-                            colors: [Color.black.opacity(0.5), Color.black.opacity(0.2), Color.black.opacity(0.0)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .frame(height: topInset)
-                        Spacer()
-                    }
-                    .ignoresSafeArea(edges: .top)
-                    .allowsHitTesting(false)
                 }
             }
 
@@ -936,42 +1018,30 @@ private struct RulesheetView: View {
         }
         .simultaneousGesture(
             TapGesture().onEnded {
-                controlsHideTask?.cancel()
-                controlsHideTask = nil
+                if suppressChromeToggle { return }
                 withAnimation(.easeInOut(duration: 0.18)) {
                     controlsVisible.toggle()
                 }
+            }
+        )
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 14).onEnded { value in
+                guard value.startLocation.x < 28 else { return }
+                guard value.translation.width > 80 else { return }
+                guard abs(value.translation.height) < 90 else { return }
+                dismiss()
             }
         )
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.visible, for: .tabBar)
         .toolbarBackground(.hidden, for: .tabBar)
         .onAppear {
-            revealControlsTemporarily()
-        }
-        .onDisappear {
-            controlsHideTask?.cancel()
-            controlsHideTask = nil
+            controlsVisible = false
         }
         .task {
             await viewModel.loadIfNeeded()
         }
     }
-
-    private func revealControlsTemporarily() {
-        controlsHideTask?.cancel()
-        withAnimation(.easeInOut(duration: 0.18)) {
-            controlsVisible = true
-        }
-        controlsHideTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 1_700_000_000)
-            guard !Task.isCancelled else { return }
-            withAnimation(.easeInOut(duration: 0.3)) {
-                controlsVisible = false
-            }
-        }
-    }
-
 }
 
 private enum LoadStatus {
@@ -1248,14 +1318,17 @@ private final class RulesheetViewModel: ObservableObject {
 
 private struct MarkdownWebView: UIViewRepresentable {
     let markdown: String
+    var disableMarkerTracking: Bool = false
+    var onAnchorTap: (() -> Void)? = nil
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(disableMarkerTracking: disableMarkerTracking, onAnchorTap: onAnchorTap)
     }
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        configuration.userContentController.add(context.coordinator, name: "codexAnchorTap")
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.isOpaque = false
@@ -1277,7 +1350,7 @@ private struct MarkdownWebView: UIViewRepresentable {
         context.coordinator.lastKnownHeight = boundsHeight
 
         guard context.coordinator.lastMarkdown != markdown else {
-            if heightChanged {
+            if heightChanged && !context.coordinator.disableMarkerTracking {
                 context.coordinator.prepareForRestore()
                 DispatchQueue.main.async {
                     context.coordinator.restoreScrollPosition(in: webView)
@@ -1287,18 +1360,27 @@ private struct MarkdownWebView: UIViewRepresentable {
         }
 
         context.coordinator.lastMarkdown = markdown
-        webView.loadHTMLString(Self.html(for: markdown), baseURL: URL(string: "https://pillyliu.com"))
+        webView.loadHTMLString(
+            Self.html(for: markdown, disableMarkerTracking: context.coordinator.disableMarkerTracking),
+            baseURL: URL(string: "https://pillyliu.com")
+        )
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, UIScrollViewDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, UIScrollViewDelegate, WKScriptMessageHandler {
+        let disableMarkerTracking: Bool
+        let onAnchorTap: (() -> Void)?
         var lastMarkdown: String?
         var lastKnownHeight: CGFloat = 0
         weak var webView: WKWebView?
         private var restoreToken = 0
+        private var lastScrollRatio: CGFloat = 0
+        private var pendingRestoreRatio: CGFloat?
         private var orientationObserver: NSObjectProtocol?
         private var orientationRestoreWorkItem: DispatchWorkItem?
 
-        override init() {
+        init(disableMarkerTracking: Bool, onAnchorTap: (() -> Void)?) {
+            self.disableMarkerTracking = disableMarkerTracking
+            self.onAnchorTap = onAnchorTap
             super.init()
             orientationObserver = NotificationCenter.default.addObserver(
                 forName: UIDevice.orientationDidChangeNotification,
@@ -1306,6 +1388,8 @@ private struct MarkdownWebView: UIViewRepresentable {
                 queue: .main
             ) { [weak self] _ in
                 guard let self else { return }
+                if self.disableMarkerTracking { return }
+                self.pendingRestoreRatio = self.lastScrollRatio
                 self.orientationRestoreWorkItem?.cancel()
                 let work = DispatchWorkItem { [weak self] in
                     guard let self, let webView = self.webView else { return }
@@ -1317,6 +1401,7 @@ private struct MarkdownWebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            if disableMarkerTracking { return }
             updateReadableTopInset(in: webView)
             restoreScrollPosition(in: webView)
         }
@@ -1327,17 +1412,34 @@ private struct MarkdownWebView: UIViewRepresentable {
         func restoreScrollPosition(in webView: WKWebView) {
             restoreToken += 1
             let token = restoreToken
+            let expectedRatio = pendingRestoreRatio ?? lastScrollRatio
+            pendingRestoreRatio = nil
             updateReadableTopInset(in: webView)
-            let js = "window.__codexSetMarkerTracking(false); window.__codexRestoreFromMarker();"
-            webView.evaluateJavaScript(js, completionHandler: nil)
+            let markerRestoreJS = "window.__codexRestoreFromMarkerPoint();"
+            webView.evaluateJavaScript("window.__codexSetMarkerTracking(false);", completionHandler: nil)
+            webView.evaluateJavaScript(markerRestoreJS, completionHandler: nil)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self, weak webView] in
                 guard let self, let webView, token == self.restoreToken else { return }
-                webView.evaluateJavaScript(js, completionHandler: nil)
+                webView.evaluateJavaScript(markerRestoreJS, completionHandler: nil)
+                self.applyScrollRatioFallbackIfNeeded(in: webView, expectedRatio: expectedRatio)
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in
-                guard let self, token == self.restoreToken else { return }
-                self.webView?.evaluateJavaScript("window.__codexSetMarkerTracking(true);", completionHandler: nil)
+                guard let self, token == self.restoreToken, let webView = self.webView else { return }
+                webView.evaluateJavaScript(markerRestoreJS, completionHandler: nil)
+                self.applyScrollRatioFallbackIfNeeded(in: webView, expectedRatio: expectedRatio)
+                webView.evaluateJavaScript("window.__codexSetMarkerTracking(true);", completionHandler: nil)
             }
+        }
+
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            guard !disableMarkerTracking else { return }
+            let maxScroll = scrollView.contentSize.height - scrollView.bounds.height
+            guard maxScroll > 1 else {
+                lastScrollRatio = 0
+                return
+            }
+            let ratio = scrollView.contentOffset.y / maxScroll
+            lastScrollRatio = min(max(ratio, 0), 1)
         }
 
         private func updateReadableTopInset(in webView: WKWebView) {
@@ -1369,11 +1471,43 @@ private struct MarkdownWebView: UIViewRepresentable {
             sequence(first: view.next, next: { $0?.next }).first { $0 is UIViewController } as? UIViewController
         }
 
+        private func applyScrollRatioFallbackIfNeeded(in webView: WKWebView, expectedRatio: CGFloat) {
+            let currentRatio = currentScrollRatio(in: webView)
+            let unexpectedBottomJump = currentRatio > 0.97 && expectedRatio < 0.9
+            guard unexpectedBottomJump else { return }
+
+            applyScrollRatio(in: webView, ratio: expectedRatio)
+        }
+
+        private func applyScrollRatio(in webView: WKWebView, ratio: CGFloat) {
+            let targetRatio = min(max(ratio, 0), 1)
+            let scrollView = webView.scrollView
+            let maxScroll = scrollView.contentSize.height - scrollView.bounds.height
+            guard maxScroll > 1 else { return }
+            let targetY = min(max(targetRatio * maxScroll, 0), maxScroll)
+            scrollView.setContentOffset(CGPoint(x: 0, y: targetY), animated: false)
+        }
+
+        private func currentScrollRatio(in webView: WKWebView) -> CGFloat {
+            let scrollView = webView.scrollView
+            let maxScroll = scrollView.contentSize.height - scrollView.bounds.height
+            guard maxScroll > 1 else { return 0 }
+            return min(max(scrollView.contentOffset.y / maxScroll, 0), 1)
+        }
+
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == "codexAnchorTap" else { return }
+            DispatchQueue.main.async { [weak self] in
+                self?.onAnchorTap?()
+            }
+        }
+
         deinit {
             orientationRestoreWorkItem?.cancel()
             if let orientationObserver {
                 NotificationCenter.default.removeObserver(orientationObserver)
             }
+            webView?.configuration.userContentController.removeScriptMessageHandler(forName: "codexAnchorTap")
         }
 
     }
@@ -1456,19 +1590,32 @@ private extension MarkdownWebView {
           __codexMarkerTracking = !!enabled;
         }
 
-        function __codexEnsureMarker() {
-          var marker = document.getElementById('__codex_top_marker');
-          if (marker) return marker;
-          marker = document.createElement('span');
-          marker.id = '__codex_top_marker';
-          marker.setAttribute('aria-hidden', 'true');
-          marker.style.display = 'inline-block';
-          marker.style.width = '0px';
-          marker.style.height = '0px';
-          marker.style.overflow = 'hidden';
-          marker.style.pointerEvents = 'none';
-          marker.style.opacity = '0';
-          return marker;
+        var __codexMarkerPoint = null;
+
+        function __codexPathToNode(node) {
+          var path = [];
+          var n = node;
+          while (n && n !== document.body) {
+            var parent = n.parentNode;
+            if (!parent) break;
+            var idx = 0;
+            while (idx < parent.childNodes.length && parent.childNodes[idx] !== n) idx += 1;
+            path.push(idx);
+            n = parent;
+          }
+          path.reverse();
+          return path;
+        }
+
+        function __codexNodeFromPath(path) {
+          if (!Array.isArray(path)) return null;
+          var n = document.body;
+          for (var i = 0; i < path.length; i++) {
+            var idx = path[i];
+            if (!n || !n.childNodes || idx < 0 || idx >= n.childNodes.length) return null;
+            n = n.childNodes[idx];
+          }
+          return n;
         }
 
         function __codexTopTextPoint() {
@@ -1519,24 +1666,63 @@ private extension MarkdownWebView {
           try {
             var point = __codexTopTextPoint();
             if (!point || !point.node) return false;
-            var marker = __codexEnsureMarker();
-            var r = document.createRange();
-            r.setStart(point.node, point.offset);
-            r.setEnd(point.node, point.offset);
-            if (marker.parentNode) marker.parentNode.removeChild(marker);
-            r.insertNode(marker);
+            var range = document.createRange();
+            range.setStart(point.node, point.offset);
+            range.setEnd(point.node, point.offset);
+            var rect = range.getBoundingClientRect();
+            if ((!rect || !Number.isFinite(rect.top)) && point.node.parentElement) {
+              rect = point.node.parentElement.getBoundingClientRect();
+            }
+            if (!rect || !Number.isFinite(rect.top)) return false;
+            __codexMarkerPoint = {
+              path: __codexPathToNode(point.node),
+              offset: point.offset || 0,
+              topDelta: rect.top - __codexReadableTopInset()
+            };
             return true;
-          } catch (e) {}
+          } catch (e) {
+            try {
+              if (point && point.node && point.node.parentElement) {
+                var fallbackRect = point.node.parentElement.getBoundingClientRect();
+                if (fallbackRect && Number.isFinite(fallbackRect.top)) {
+                  __codexMarkerPoint = {
+                    path: __codexPathToNode(point.node),
+                    offset: point.offset || 0,
+                    topDelta: fallbackRect.top - __codexReadableTopInset()
+                  };
+                  return true;
+                }
+              }
+            } catch (_) {
+            }
+          }
           return false;
         }
 
-        function __codexRestoreFromMarker() {
+        function __codexRestoreFromMarkerPoint() {
           try {
-            var marker = document.getElementById('__codex_top_marker');
-            if (!marker) return false;
+            if (!__codexMarkerPoint || !Array.isArray(__codexMarkerPoint.path)) return false;
+            var node = __codexNodeFromPath(__codexMarkerPoint.path);
+            if (!node) return false;
+            var targetNode = node;
+            if (targetNode.nodeType !== Node.TEXT_NODE) {
+              var textNode = __codexFirstTextDesc(targetNode) || __codexLastTextDesc(targetNode);
+              if (textNode) targetNode = textNode;
+            }
+            if (targetNode.nodeType !== Node.TEXT_NODE) return false;
+            var maxOffset = (targetNode.nodeValue || '').length;
+            var offset = Math.max(0, Math.min(__codexMarkerPoint.offset || 0, maxOffset));
+            var range = document.createRange();
+            range.setStart(targetNode, offset);
+            range.setEnd(targetNode, offset);
+            var rect = range.getBoundingClientRect();
+            if ((!rect || !Number.isFinite(rect.top)) && targetNode.parentElement) {
+              rect = targetNode.parentElement.getBoundingClientRect();
+            }
+            if (!rect || !Number.isFinite(rect.top)) return false;
             var inset = __codexReadableTopInset();
-            var rect = marker.getBoundingClientRect();
-            window.scrollTo(0, Math.max(0, window.scrollY + rect.top - inset));
+            var desiredTop = inset + (Number.isFinite(__codexMarkerPoint.topDelta) ? __codexMarkerPoint.topDelta : 0);
+            window.scrollTo(0, Math.max(0, window.scrollY + rect.top - desiredTop));
             return true;
           } catch (e) {}
           return false;
@@ -1559,16 +1745,33 @@ private extension MarkdownWebView {
           window.scrollTo(0, Math.max(0, top));
         }
 
+        function __codexBestTextNodeForElement(el) {
+          if (!el) return null;
+          var text = __codexFirstTextDesc(el) || __codexLastTextDesc(el);
+          if (text) return text;
+          var p = el.parentElement;
+          while (p && p !== document.body) {
+            text = __codexFirstTextDesc(p) || __codexLastTextDesc(p);
+            if (text) return text;
+            p = p.parentElement;
+          }
+          return null;
+        }
+
         function __codexPlaceMarkerForHash(hash) {
           try {
             if (!hash) return false;
             var id = hash.charAt(0) === '#' ? decodeURIComponent(hash.slice(1)) : decodeURIComponent(hash);
             if (!id) return false;
             var el = document.getElementById(id);
-            if (!el || !el.parentNode) return false;
-            var marker = __codexEnsureMarker();
-            if (marker.parentNode) marker.parentNode.removeChild(marker);
-            el.parentNode.insertBefore(marker, el);
+            if (!el) return false;
+            var targetNode = __codexBestTextNodeForElement(el);
+            if (!targetNode) return false;
+            __codexMarkerPoint = {
+              path: __codexPathToNode(targetNode),
+              offset: 0,
+              topDelta: 0
+            };
             return true;
           } catch (e) {}
           return false;
@@ -1606,14 +1809,35 @@ private extension MarkdownWebView {
             __codexSetMarkerTracking(true);
           }, 80);
         });
+        function __codexNotifyAnchorTapToNative() {
+          try {
+            if (
+              window.webkit &&
+              window.webkit.messageHandlers &&
+              window.webkit.messageHandlers.codexAnchorTap
+            ) {
+              window.webkit.messageHandlers.codexAnchorTap.postMessage('anchor');
+            }
+          } catch (e) {}
+        }
+        document.addEventListener('touchstart', function(e) {
+          var t = e.target;
+          var a = t && t.closest ? t.closest('a[href^="#"]') : null;
+          if (a) __codexNotifyAnchorTapToNative();
+        }, { passive: true, capture: true });
+        document.addEventListener('mousedown', function(e) {
+          var t = e.target;
+          var a = t && t.closest ? t.closest('a[href^="#"]') : null;
+          if (a) __codexNotifyAnchorTapToNative();
+        }, { capture: true });
         setTimeout(__codexPlaceMarker, 0);
         """
     }
 }
 
 private extension MarkdownWebView {
-    static func injectedScript(markdownJSON: String) -> String {
-        """
+    static func injectedScript(markdownJSON: String, disableMarkerTracking: Bool) -> String {
+        let renderScript = """
             const markdown = \(markdownJSON);
             const container = document.getElementById('content');
             if (!window.markdownit) {
@@ -1625,27 +1849,33 @@ private extension MarkdownWebView {
               const md = window.markdownit({ html: true, linkify: true, breaks: false });
               container.innerHTML = md.render(markdown);
             }
+        """
+        if disableMarkerTracking {
+            return renderScript
+        }
+        return """
+        \(renderScript)
 
-            \(scriptForTopAnchor())
+        \(scriptForTopAnchor())
 
-            if (location.hash) {
-              __codexHashToken += 1;
-              var token = __codexHashToken;
-              __codexSetMarkerTracking(false);
-              __codexScrollToHash(location.hash);
-              setTimeout(function() {
-                if (token !== __codexHashToken) return;
-                __codexPlaceMarkerForHash(location.hash);
-                __codexSetMarkerTracking(true);
-                __codexPlaceMarker();
-              }, 80);
-            }
+        if (location.hash) {
+          __codexHashToken += 1;
+          var token = __codexHashToken;
+          __codexSetMarkerTracking(false);
+          __codexScrollToHash(location.hash);
+          setTimeout(function() {
+            if (token !== __codexHashToken) return;
+            __codexPlaceMarkerForHash(location.hash);
+            __codexSetMarkerTracking(true);
+            __codexPlaceMarker();
+          }, 80);
+        }
         """
     }
 }
 
 private extension MarkdownWebView {
-    static func html(for markdown: String) -> String {
+    static func html(for markdown: String, disableMarkerTracking: Bool) -> String {
         let markdownJSON = (try? String(data: JSONEncoder().encode(markdown), encoding: .utf8)) ?? "\"\""
 
         return """
@@ -1658,12 +1888,14 @@ private extension MarkdownWebView {
             :root { color-scheme: dark; }
             body {
               margin: 0;
-              padding: 14px;
-              padding-top: 50px;
+              padding: 14px 18px;
+              padding-left: max(18px, calc(env(safe-area-inset-left) + 10px));
+              padding-right: max(18px, calc(env(safe-area-inset-right) + 10px));
+              padding-top: calc(14px + env(safe-area-inset-top));
               font: -apple-system-body;
               -webkit-text-size-adjust: 100%;
               text-size-adjust: 100%;
-              background: #000;
+              background: transparent;
               color: #f3f3f3;
               line-height: 1.45;
             }
@@ -1682,7 +1914,7 @@ private extension MarkdownWebView {
         <body>
           <article id="content"></article>
           <script>
-        \(injectedScript(markdownJSON: markdownJSON))
+        \(injectedScript(markdownJSON: markdownJSON, disableMarkerTracking: disableMarkerTracking))
           </script>
         </body>
         </html>
@@ -1872,6 +2104,14 @@ private struct HostedImageView: View {
                 withAnimation(.easeInOut(duration: 0.18)) {
                     controlsVisible.toggle()
                 }
+            }
+        )
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 14).onEnded { value in
+                guard value.startLocation.x < 28 else { return }
+                guard value.translation.width > 80 else { return }
+                guard abs(value.translation.height) < 90 else { return }
+                dismiss()
             }
         )
         .toolbar(.hidden, for: .navigationBar)

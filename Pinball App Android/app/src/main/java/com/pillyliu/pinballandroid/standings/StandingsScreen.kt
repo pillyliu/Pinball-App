@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
@@ -16,9 +18,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
@@ -39,6 +46,8 @@ import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
 import com.pillyliu.pinballandroid.ui.Border
 import com.pillyliu.pinballandroid.ui.CardBg
+import com.pillyliu.pinballandroid.ui.ControlBg
+import com.pillyliu.pinballandroid.ui.ControlBorder
 import com.pillyliu.pinballandroid.ui.EmptyLabel
 import java.text.NumberFormat
 
@@ -97,30 +106,41 @@ fun StandingsScreen(contentPadding: PaddingValues) {
     val standingRows = buildStandings(rows, selectedSeason)
 
     AppScreen(contentPadding) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            CompactFilterCard {
-                var expanded by remember { mutableStateOf(false) }
-                OutlinedButton(
-                    onClick = { expanded = true },
-                    modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 38.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                    shape = RoundedCornerShape(10.dp),
-                ) {
-                    Text(selectedSeason?.let { "Season $it" } ?: "Select")
+        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            var expanded by remember { mutableStateOf(false) }
+            OutlinedButton(
+                onClick = { expanded = true },
+                modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 38.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = ControlBg,
+                    contentColor = Color.White,
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, ControlBorder),
+            ) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(selectedSeason?.let { "Season $it" } ?: "Select", fontSize = 12.sp)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = Color(0xFFC6C6C6),
+                    )
                 }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    seasons.forEach { season ->
-                        DropdownMenuItem(text = { Text("Season $season") }, onClick = {
-                            expanded = false
-                            selectedSeason = season
-                        })
-                    }
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                seasons.forEach { season ->
+                    DropdownMenuItem(text = { Text("Season $season") }, onClick = {
+                        expanded = false
+                        selectedSeason = season
+                    })
                 }
             }
 
             error?.let { Text(it, color = Color.Red) }
 
-            CardContainer {
+            CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
                 BoxWithConstraints {
                     val baseTableWidth = 646f
                     val scaled = if (isLandscape) {
@@ -141,13 +161,15 @@ fun StandingsScreen(contentPadding: PaddingValues) {
                         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement = if (isLandscape) Arrangement.Center else Arrangement.Start,
                     ) {
-                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        Column {
                             HeaderRow(widths)
                             if (standingRows.isEmpty()) {
                                 EmptyLabel("No rows. Check data source or season selection.")
                             } else {
-                                standingRows.forEachIndexed { index, standing ->
-                                    StandingRow(rank = index + 1, standing = standing, widths = widths)
+                                Column(modifier = Modifier.verticalScroll(rememberScrollState()).fillMaxSize()) {
+                                    standingRows.forEachIndexed { index, standing ->
+                                        StandingRow(rank = index + 1, standing = standing, widths = widths)
+                                    }
                                 }
                             }
                         }
@@ -180,8 +202,8 @@ private fun StandingRow(rank: Int, standing: Standing, widths: StandingsWidths) 
     }
     Row(
         modifier = Modifier
-            .background(if (rank % 2 == 0) Color(0xFF121212) else Color(0xFF222222))
-            .padding(vertical = 4.dp),
+            .background(if (rank % 2 == 0) Color(0xFF0A0A0A) else Color(0xFF171717))
+            .padding(vertical = 6.dp),
     ) {
         Cell(rank.toString(), widths.rank, color = rankColor)
         Cell(standing.player, widths.player, bold = rank <= 8)
@@ -202,20 +224,6 @@ private fun Cell(text: String, width: Int, bold: Boolean = false, color: Color =
         fontSize = 13.sp,
         maxLines = 1,
     )
-}
-
-@Composable
-private fun CompactFilterCard(content: @Composable () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(CardBg, RoundedCornerShape(12.dp))
-            .border(1.dp, Border, RoundedCornerShape(12.dp))
-            .padding(horizontal = 7.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        content()
-    }
 }
 
 private fun buildStandings(rows: List<StandingsCsvRow>, selectedSeason: Int?): List<Standing> {

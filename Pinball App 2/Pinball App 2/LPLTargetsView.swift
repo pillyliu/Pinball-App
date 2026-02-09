@@ -10,33 +10,50 @@ import Combine
 
 struct LPLTargetsView: View {
     @StateObject private var viewModel = LPLTargetsViewModel()
+    @State private var tableAvailableWidth: CGFloat = 0
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    private var contentHorizontalPadding: CGFloat { verticalSizeClass == .compact ? 2 : 14 }
 
-    private let gameColumnWidth: CGFloat = 160
-    private let bankColumnWidth: CGFloat = 30
-    private let scoreColumnWidth: CGFloat = 106
+    private let baseGameColumnWidth: CGFloat = 160
+    private let baseBankColumnWidth: CGFloat = 30
+    private let baseScoreColumnWidth: CGFloat = 106
+    private var widthScale: CGFloat {
+        guard tableAvailableWidth > 0 else { return 1 }
+        let baseTotal = baseGameColumnWidth + baseBankColumnWidth + (baseScoreColumnWidth * 3)
+        return max(1, min(1.7, tableAvailableWidth / baseTotal))
+    }
+    private var gameColumnWidth: CGFloat { baseGameColumnWidth * widthScale }
+    private var bankColumnWidth: CGFloat { baseBankColumnWidth * widthScale }
+    private var scoreColumnWidth: CGFloat { baseScoreColumnWidth * widthScale }
+    private var tableContentWidth: CGFloat { gameColumnWidth + bankColumnWidth + (scoreColumnWidth * 3) }
+    private var tableMinWidth: CGFloat { max(tableContentWidth, tableAvailableWidth) }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                AppBackground()
 
-                ScrollView(.vertical) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        headerSection
+                VStack(alignment: .leading, spacing: 8) {
+                    headerSection
+                        .padding(.horizontal, 4)
 
-                        if let errorMessage = viewModel.errorMessage {
-                            Text(errorMessage)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                                .padding(.horizontal, 2)
-                        }
-
-                        targetsTable
-                        footerSection
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .padding(.horizontal, 2)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 4)
+
+                    targetsTable
+                        .padding(.horizontal, 4)
+                        .frame(maxHeight: .infinity)
+                    footerSection
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.horizontal, contentHorizontalPadding)
+                .padding(.top, 4)
+                .padding(.bottom, 8)
             }
             .toolbar(.hidden, for: .navigationBar)
             .task {
@@ -49,40 +66,54 @@ struct LPLTargetsView: View {
         let greatColor = Color(red: 0.73, green: 0.96, blue: 0.82)
         let targetColor = Color(red: 0.75, green: 0.86, blue: 0.99)
         let floorColor = Color(red: 0.9, green: 0.91, blue: 0.92)
+        let isLandscapePhone = verticalSizeClass == .compact
 
-        return VStack(alignment: .leading, spacing: 8) {
-            Text("LPL Score Targets")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(.white)
+        return VStack(alignment: .center, spacing: 8) {
+            if isLandscapePhone {
+                HStack(spacing: 10) {
+                    Text("2nd highest \"great game\"")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(greatColor)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("4th highest main target")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(targetColor)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("8th highest solid floor")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(floorColor)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+            } else {
+                HStack(spacing: 10) {
+                    Text("2nd highest")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(greatColor)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("4th highest")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(targetColor)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("8th highest")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(floorColor)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
 
-            HStack(spacing: 10) {
-                Text("2nd highest")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(greatColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Text("4th highest")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(targetColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Text("8th highest")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(floorColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            HStack(spacing: 10) {
-                Text("\"great game\"")
-                    .font(.caption)
-                    .foregroundStyle(greatColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Text("main target")
-                    .font(.caption)
-                    .foregroundStyle(targetColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Text("solid floor")
-                    .font(.caption)
-                    .foregroundStyle(floorColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 10) {
+                    Text("\"great game\"")
+                        .font(.caption)
+                        .foregroundStyle(greatColor)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("main target")
+                        .font(.caption)
+                        .foregroundStyle(targetColor)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("solid floor")
+                        .font(.caption)
+                        .foregroundStyle(floorColor)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
             }
 
             HStack(spacing: 8) {
@@ -115,12 +146,7 @@ struct LPLTargetsView: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(Color(white: 0.14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(white: 0.25), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .appControlStyle()
                 }
                 .tint(.white)
 
@@ -141,57 +167,52 @@ struct LPLTargetsView: View {
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(Color(white: 0.14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(white: 0.25), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .appControlStyle()
                 }
                 .tint(.white)
             }
             .padding(.top, 4)
         }
-        .padding(12)
-        .background(Color(white: 0.09))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(white: 0.2), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var targetsTable: some View {
         VStack(spacing: 0) {
-            ScrollView([.horizontal, .vertical]) {
+            ScrollView(.horizontal) {
                 VStack(spacing: 0) {
                     tableHeader
                     Divider().overlay(Color(white: 0.2))
 
-                    LazyVStack(spacing: 0) {
-                        ForEach(Array(viewModel.rows.enumerated()), id: \.element.id) { index, row in
-                            LPLTargetsRowView(
-                                row: row,
-                                gameColumnWidth: gameColumnWidth,
-                                bankColumnWidth: bankColumnWidth,
-                                scoreColumnWidth: scoreColumnWidth
-                            )
-                            .background(index.isMultiple(of: 2) ? Color.clear : Color(white: 0.11))
+                    ScrollView(.vertical) {
+                        LazyVStack(spacing: 0) {
+                            ForEach(Array(viewModel.rows.enumerated()), id: \.element.id) { index, row in
+                                LPLTargetsRowView(
+                                    row: row,
+                                    gameColumnWidth: gameColumnWidth,
+                                    bankColumnWidth: bankColumnWidth,
+                                    scoreColumnWidth: scoreColumnWidth
+                                )
+                                .background(index.isMultiple(of: 2) ? AppTheme.rowEven : AppTheme.rowOdd)
 
-                            Divider().overlay(Color(white: 0.15))
+                                Divider().overlay(Color(white: 0.15))
+                            }
                         }
                     }
+                    .frame(maxHeight: .infinity)
                 }
-                .frame(minWidth: gameColumnWidth + bankColumnWidth + (scoreColumnWidth * 3), alignment: .leading)
+                .frame(minWidth: tableMinWidth, alignment: .leading)
             }
             .scrollIndicators(.hidden)
         }
-        .background(Color(white: 0.07))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(white: 0.2), lineWidth: 1)
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { tableAvailableWidth = geo.size.width }
+                    .onChange(of: geo.size.width) { _, newValue in
+                        tableAvailableWidth = newValue
+                    }
+            }
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .appPanelStyle()
     }
 
     private var tableHeader: some View {
@@ -207,10 +228,11 @@ struct LPLTargetsView: View {
     }
 
     private var footerSection: some View {
-        Text("Benchmarks are based on historical LPL league results across all seasons where each game appeared. For each game, scores are derived from per-bank results using 2nd / 4th / 8th highest averages with sample-size adjustments. Method: For each game, scores are grouped by season and bank. When a full field played, the 2nd / 4th / 8th highest scores are taken. When about half the league played, we use mean(1st & 2nd), 3rd, and 4th. These values are then averaged across all appearances for that game.")
+        Text("Benchmarks are based on historical LPL league results across all seasons where each game appeared. For each game, scores are derived from per-bank results using 2nd / 4th / 8th highest averages with sample-size adjustments. These values are then averaged across all bank appearances for that game.")
             .font(.caption)
-            .foregroundStyle(Color(white: 0.66))
+            .foregroundStyle(Color(white: 0.7))
             .padding(.horizontal, 4)
+            .padding(.top, 2)
     }
 }
 

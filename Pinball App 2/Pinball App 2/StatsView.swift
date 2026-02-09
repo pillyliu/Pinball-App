@@ -9,29 +9,52 @@ import SwiftUI
 import Combine
 
 struct StatsView: View {
+    private struct FilterOption: Hashable {
+        let value: String
+        let label: String
+    }
+
     @StateObject private var viewModel = StatsViewModel()
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    private let rowHeight: CGFloat = 32
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @State private var tableAvailableWidth: CGFloat = 0
+    @State private var statsCardHeight: CGFloat = 0
     private let headerHeight: CGFloat = 34
-    private let maxBodyHeight: CGFloat = 380
     
     private var isRegularWidth: Bool { horizontalSizeClass == .regular }
-    private var seasonColWidth: CGFloat { isRegularWidth ? 74 : 56 }
-    private var playerColWidth: CGFloat { isRegularWidth ? 170 : 118 }
-    private var bankNumColWidth: CGFloat { isRegularWidth ? 56 : 44 }
-    private var machineColWidth: CGFloat { isRegularWidth ? 230 : 145 }
-    private var scoreColWidth: CGFloat { isRegularWidth ? 150 : 102 }
-    private var pointsColWidth: CGFloat { isRegularWidth ? 72 : 54 }
+    private var useLandscapeSplitLayout: Bool { verticalSizeClass == .compact }
+    private var useWideFilterLayout: Bool { isRegularWidth || verticalSizeClass == .compact }
+    private var contentHorizontalPadding: CGFloat { verticalSizeClass == .compact ? 2 : 14 }
+    private var baseSeasonColWidth: CGFloat { isRegularWidth ? 74 : 56 }
+    private var basePlayerColWidth: CGFloat { isRegularWidth ? 170 : 118 }
+    private var baseBankNumColWidth: CGFloat { isRegularWidth ? 56 : 44 }
+    private var baseMachineColWidth: CGFloat { isRegularWidth ? 230 : 145 }
+    private var baseScoreColWidth: CGFloat { isRegularWidth ? 150 : 102 }
+    private var basePointsColWidth: CGFloat { isRegularWidth ? 72 : 54 }
+    private var baseTableContentWidth: CGFloat {
+        baseSeasonColWidth + basePlayerColWidth + baseBankNumColWidth + baseMachineColWidth + baseScoreColWidth + basePointsColWidth + 72
+    }
+    private var widthScale: CGFloat {
+        guard tableAvailableWidth > 0 else { return 1 }
+        return max(1, min(1.7, tableAvailableWidth / baseTableContentWidth))
+    }
+    private var seasonColWidth: CGFloat { baseSeasonColWidth * widthScale }
+    private var playerColWidth: CGFloat { basePlayerColWidth * widthScale }
+    private var bankNumColWidth: CGFloat { baseBankNumColWidth * widthScale }
+    private var machineColWidth: CGFloat { baseMachineColWidth * widthScale }
+    private var scoreColWidth: CGFloat { baseScoreColWidth * widthScale }
+    private var pointsColWidth: CGFloat { basePointsColWidth * widthScale }
     private var tableContentWidth: CGFloat {
         seasonColWidth + playerColWidth + bankNumColWidth + machineColWidth + scoreColWidth + pointsColWidth + 72
     }
+    private var tableMinWidth: CGFloat { max(tableContentWidth, tableAvailableWidth) }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                AppBackground()
 
-                ScrollView(.vertical) {
+                if useLandscapeSplitLayout {
                     VStack(spacing: 14) {
                         filterSection
 
@@ -42,21 +65,64 @@ struct StatsView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
-                        if horizontalSizeClass == .regular {
-                            HStack(alignment: .top, spacing: 14) {
+                        GeometryReader { geo in
+                            let spacing: CGFloat = 14
+                            let available = max(0, geo.size.width - spacing)
+                            let mainWidth = available * 0.6
+                            let machineWidth = available - mainWidth
+
+                            HStack(alignment: .top, spacing: spacing) {
                                 tableCard
-                                    .frame(maxWidth: .infinity)
+                                    .frame(width: mainWidth)
+                                    .frame(maxHeight: .infinity)
                                 statsCard
-                                    .frame(width: 320)
+                                    .frame(width: machineWidth)
+                                    .frame(maxHeight: .infinity, alignment: .top)
                             }
-                        } else {
-                            tableCard
-                            statsCard
                         }
+                        .frame(maxHeight: .infinity)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(.horizontal, contentHorizontalPadding)
+                    .padding(.top, 4)
+                    .padding(.bottom, 14)
+                } else {
+                    VStack(spacing: 14) {
+                        filterSection
+
+                        if let errorMessage = viewModel.errorMessage {
+                            Text(errorMessage)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        GeometryReader { geo in
+                            let spacing: CGFloat = 14
+                            let defaultStatsHeight: CGFloat = 214
+                            let measuredStatsHeight = statsCardHeight > 0 ? statsCardHeight : defaultStatsHeight
+                            let bottomBuffer: CGFloat = 14
+                            let tableHeight = max(120, geo.size.height - measuredStatsHeight - spacing - bottomBuffer)
+
+                            VStack(alignment: .leading, spacing: spacing) {
+                                tableCard
+                                    .frame(height: tableHeight)
+
+                                statsCard
+                                    .readHeight { height in
+                                        if abs(height - statsCardHeight) > 0.5 {
+                                            statsCardHeight = height
+                                        }
+                                    }
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        }
+                        .frame(maxHeight: .infinity)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(.horizontal, contentHorizontalPadding)
+                    .padding(.top, 4)
+                    .padding(.bottom, 14)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -67,48 +133,50 @@ struct StatsView: View {
     }
 
     private var filterSection: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                filterMenu(
-                    title: "Season",
-                    value: viewModel.season,
-                    allLabel: "All",
-                    options: viewModel.seasons,
-                    setValue: { viewModel.season = $0 }
-                )
-                filterMenu(
-                    title: "Player",
-                    value: viewModel.player,
-                    allLabel: "All",
-                    options: viewModel.players,
-                    setValue: { viewModel.player = $0 }
-                )
-            }
+        let seasonOptions = [FilterOption(value: "", label: "S: All")] + viewModel.seasons.map {
+            FilterOption(value: $0, label: seasonToken($0))
+        }
+        let playerOptions = [FilterOption(value: "", label: "Player: All")] + viewModel.players.map {
+            FilterOption(value: $0, label: $0)
+        }
+        let bankOptions = [FilterOption(value: "", label: "B: All")] + viewModel.bankNumbers.map {
+            FilterOption(value: String($0), label: "B\($0)")
+        }
+        let machineOptions = [FilterOption(value: "", label: "Machine: All")] + viewModel.machines.map {
+            FilterOption(value: $0, label: $0)
+        }
 
-            HStack(spacing: 10) {
-                filterMenu(
-                    title: "Bank",
-                    value: viewModel.bankNumber.map(String.init) ?? "",
-                    allLabel: "All",
-                    options: viewModel.bankNumbers.map(String.init),
-                    setValue: { viewModel.bankNumber = Int($0) }
-                )
-                filterMenu(
-                    title: "Machine",
-                    value: viewModel.machine,
-                    allLabel: "All",
-                    options: viewModel.machines,
-                    setValue: { viewModel.machine = $0 }
-                )
+        return VStack(spacing: 8) {
+            if useWideFilterLayout {
+                HStack(spacing: 12) {
+                    filterMenu(selectedText: seasonDisplayText, options: seasonOptions, setValue: { viewModel.season = $0 })
+                    filterMenu(selectedText: playerDisplayText, options: playerOptions, setValue: { viewModel.player = $0 })
+                    filterMenu(selectedText: bankDisplayText, options: bankOptions, setValue: { viewModel.bankNumber = Int($0) })
+                    filterMenu(selectedText: machineDisplayText, options: machineOptions, setValue: { viewModel.machine = $0 })
+                }
+            } else {
+                GeometryReader { geo in
+                    let gap: CGFloat = 12
+                    let leftWidth = max(0, ((geo.size.width - gap) * 0.3).rounded(.down))
+                    let rightWidth = max(0, geo.size.width - gap - leftWidth)
+                    VStack(spacing: 8) {
+                        HStack(spacing: gap) {
+                            filterMenu(selectedText: seasonDisplayText, options: seasonOptions, setValue: { viewModel.season = $0 })
+                                .frame(width: leftWidth)
+                            filterMenu(selectedText: playerDisplayText, options: playerOptions, setValue: { viewModel.player = $0 })
+                                .frame(width: rightWidth)
+                        }
+                        HStack(spacing: gap) {
+                            filterMenu(selectedText: bankDisplayText, options: bankOptions, setValue: { viewModel.bankNumber = Int($0) })
+                                .frame(width: leftWidth)
+                            filterMenu(selectedText: machineDisplayText, options: machineOptions, setValue: { viewModel.machine = $0 })
+                                .frame(width: rightWidth)
+                        }
+                    }
+                }
+                .frame(height: 88)
             }
         }
-        .padding(12)
-        .background(Color(white: 0.09))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(white: 0.2), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var tableCard: some View {
@@ -124,7 +192,7 @@ struct StatsView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 64)
                     } else {
-                        ScrollView(.vertical) {
+                        let bodyRows = ScrollView(.vertical) {
                             LazyVStack(spacing: 0) {
                                 ForEach(Array(viewModel.filteredRows.enumerated()), id: \.element.id) { idx, row in
                                     TableRowView(
@@ -136,29 +204,29 @@ struct StatsView: View {
                                         scoreColWidth: scoreColWidth,
                                         pointsColWidth: pointsColWidth
                                     )
-                                        .background(idx.isMultiple(of: 2) ? Color.clear : Color(white: 0.11))
+                                        .background(idx.isMultiple(of: 2) ? AppTheme.rowEven : AppTheme.rowOdd)
                                     Divider().overlay(Color(white: 0.15))
                                 }
                             }
                         }
-                        .frame(height: tableBodyHeight)
+                        bodyRows
+                            .frame(maxHeight: .infinity)
                     }
                 }
-                .frame(minWidth: tableContentWidth, alignment: .leading)
+                .frame(minWidth: tableMinWidth, alignment: .leading)
             }
             .scrollIndicators(.hidden)
         }
-        .background(Color(white: 0.07))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(white: 0.2), lineWidth: 1)
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { tableAvailableWidth = geo.size.width }
+                    .onChange(of: geo.size.width) { _, newValue in
+                        tableAvailableWidth = newValue
+                    }
+            }
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private var tableBodyHeight: CGFloat {
-        let contentHeight = CGFloat(viewModel.filteredRows.count) * rowHeight
-        return min(maxBodyHeight, max(rowHeight, contentHeight))
+        .appPanelStyle()
     }
 
     private var tableHeader: some View {
@@ -171,7 +239,7 @@ struct StatsView: View {
             HeaderCell(title: "Points", width: pointsColWidth)
         }
         .frame(height: headerHeight)
-        .background(Color(white: 0.1))
+        .background(Color(white: 0.11))
     }
 
     private var statsCard: some View {
@@ -185,44 +253,68 @@ struct StatsView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func filterMenu(
-        title: String,
-        value: String,
-        allLabel: String,
-        options: [String],
-        setValue: @escaping (String) -> Void
-    ) -> some View {
+    private func filterMenu(selectedText: String, options: [FilterOption], setValue: @escaping (String) -> Void) -> some View {
         Menu {
-            Button(allLabel) { setValue("") }
+            Button {
+                setValue(options.first?.value ?? "")
+            } label: {
+                Text(options.first?.label ?? "")
+                    .font(.footnote)
+            }
             ForEach(options, id: \.self) { option in
-                Button(option) { setValue(option) }
+                if option != options.first {
+                    Button {
+                        setValue(option.value)
+                    } label: {
+                        Text(option.label)
+                            .font(.footnote)
+                    }
+                }
             }
         } label: {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                HStack {
-                    Text(value.isEmpty ? allLabel : value)
-                        .lineLimit(1)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 9)
-                .background(Color(white: 0.14))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color(white: 0.25), lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            HStack(spacing: 8) {
+                Text(selectedText)
+                    .lineLimit(1)
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color(white: 0.78))
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 10)
+            .padding(.trailing, 10)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+            .appControlStyle()
+            .contentShape(Rectangle())
             .foregroundStyle(.white)
         }
         .tint(.white)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var seasonDisplayText: String { viewModel.season.isEmpty ? "S: All" : seasonToken(viewModel.season) }
+    private var bankDisplayText: String { viewModel.bankNumber.map { "B\($0)" } ?? "B: All" }
+    private var playerDisplayText: String { viewModel.player.isEmpty ? "Player: All" : viewModel.player }
+    private var machineDisplayText: String { viewModel.machine.isEmpty ? "Machine: All" : viewModel.machine }
+
+    private func seasonToken(_ raw: String) -> String {
+        let digits = raw.filter(\.isNumber)
+        return digits.isEmpty ? raw : "S\(digits)"
+    }
+}
+
+private extension View {
+    func readHeight(onChange: @escaping (CGFloat) -> Void) -> some View {
+        background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { onChange(geo.size.height) }
+                    .onChange(of: geo.size.height) { _, newValue in
+                        onChange(newValue)
+                    }
+            }
+        )
     }
 }
 
@@ -281,25 +373,19 @@ private struct MachineStatsPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Machine Stats")
-                .font(.title3.weight(.semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white)
 
-            if machine.isEmpty && bankNumber == nil {
-                Text("Select a bank or machine to view detailed stats.")
+            if machine.isEmpty {
+                Text("Select a machine to view detailed stats.")
                     .font(.footnote)
                     .foregroundStyle(Color(white: 0.82))
             } else {
-                StatsSection(
-                    title: "Selected Bank",
-                    label: "\(season.isEmpty ? "Season" : season) - Bank \(bankNumber.map(String.init) ?? "?")",
-                    stats: bankStats
+                MachineStatsTable(
+                    selectedLabel: selectedBankLabel,
+                    selectedStats: bankStats,
+                    allSeasonsStats: historicalStats
                 )
-                StatsSection(
-                    title: "Historical (All Seasons)",
-                    label: "All Seasons",
-                    stats: historicalStats
-                )
-                .padding(.top, 4)
             }
         }
         .padding(12)
@@ -311,55 +397,102 @@ private struct MachineStatsPanel: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
+
+    private var selectedBankLabel: String {
+        "\(abbreviatedSeason(season)) \(bankNumber.map { "B\($0)" } ?? "B?")"
+    }
+
+    private func abbreviatedSeason(_ raw: String) -> String {
+        let digits = raw.filter(\.isNumber)
+        return digits.isEmpty ? "S?" : "S\(digits)"
+    }
 }
 
-private struct StatsSection: View {
-    let title: String
-    let label: String
-    let stats: StatResult
+private struct MachineStatsTable: View {
+    let selectedLabel: String
+    let selectedStats: StatResult
+    let allSeasonsStats: StatResult
+
+    private let labels = ["High", "Low", "Avg", "Med", "Std", "Count"]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                headerCell("", align: .leading)
+                    .frame(width: 44, alignment: .leading)
+                headerCell(selectedLabel, align: .trailing)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                headerCell("All Seasons", align: .trailing)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .padding(.bottom, 4)
 
-            if stats.count == 0 {
-                Text("No data - select filters.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text(label)
-                    .font(.caption)
-                    .foregroundStyle(Color(white: 0.78))
-
-                statRow(label: "High", value: formatScore(stats.high), subtitle: stats.highPlayer, valueColor: .green)
-                statRow(label: "Low", value: formatScore(stats.low), subtitle: stats.lowPlayer, valueColor: .red)
-                statRow(label: "Mean", value: formatScore(stats.mean), subtitle: nil)
-                statRow(label: "Median", value: formatScore(stats.median), subtitle: nil)
-                statRow(label: "Std Dev", value: formatScore(stats.std), subtitle: nil)
-                statRow(label: "Count", value: String(stats.count), subtitle: nil)
+            ForEach(labels, id: \.self) { label in
+                HStack(spacing: 8) {
+                    Text(label)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Color(white: 0.84))
+                        .frame(width: 44, alignment: .leading)
+                        .padding(.vertical, 3)
+                    statCell(label: label, stats: selectedStats, allSeasons: false)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    statCell(label: label, stats: allSeasonsStats, allSeasons: true)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
             }
         }
     }
 
-    private func statRow(label: String, value: String, subtitle: String?, valueColor: Color = .white) -> some View {
-        HStack(alignment: .top) {
-            Text(label)
-                .foregroundStyle(Color(white: 0.82))
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(value)
-                    .foregroundStyle(valueColor)
-                    .font(.footnote.monospacedDigit())
-                if let subtitle {
-                    Text("by \(subtitle)")
-                        .font(.caption2)
-                        .foregroundStyle(Color(white: 0.72))
-                }
+    private func headerCell(_ text: String, align: Alignment) -> some View {
+        Text(text)
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(Color(white: 0.74))
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: align)
+    }
+
+    private func statCell(label: String, stats: StatResult, allSeasons: Bool) -> some View {
+        let value: String = switch label {
+        case "High": formatScore(stats.high)
+        case "Low": formatScore(stats.low)
+        case "Avg": formatScore(stats.mean)
+        case "Med": formatScore(stats.median)
+        case "Std": formatScore(stats.std)
+        case "Count": stats.count > 0 ? String(stats.count) : "-"
+        default: "-"
+        }
+        let color: Color = switch label {
+        case "High": Color(red: 110 / 255, green: 231 / 255, blue: 183 / 255)
+        case "Low": Color(red: 252 / 255, green: 165 / 255, blue: 165 / 255)
+        case "Avg", "Med": Color(red: 125 / 255, green: 211 / 255, blue: 252 / 255)
+        default: Color(red: 229 / 255, green: 229 / 255, blue: 229 / 255)
+        }
+        let player: String? = switch label {
+        case "High": stats.highPlayer
+        case "Low": stats.lowPlayer
+        default: nil
+        }
+
+        return VStack(alignment: .trailing, spacing: 2) {
+            Text(value)
+                .font(.caption.monospacedDigit().weight(.medium))
+                .foregroundStyle(color)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            if label == "High" || label == "Low" {
+                Text(playerName(player, allSeasons: allSeasons))
+                    .font(.caption2)
+                    .foregroundStyle(Color(red: 115 / 255, green: 115 / 255, blue: 115 / 255))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 3)
+    }
+
+    private func playerName(_ raw: String?, allSeasons: Bool) -> String {
+        guard let raw, !raw.isEmpty else { return "-" }
+        return allSeasons ? raw : raw.components(separatedBy: " (S").first ?? raw
     }
 }
 

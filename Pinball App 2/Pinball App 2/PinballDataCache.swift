@@ -59,6 +59,7 @@ actor PinballDataCache {
     private let manifestURL = URL(string: "https://pillyliu.com/pinball/cache-manifest.json")!
     private let updateLogURL = URL(string: "https://pillyliu.com/pinball/cache-update-log.json")!
     private let metadataRefreshInterval: TimeInterval = 300
+    private let backgroundRevalidateInterval: TimeInterval = 180
     private let starterPackBundleName = "PinballStarter"
     private let starterPackBundleExt = "bundle"
     private let starterPackBundlePath = "pinball"
@@ -67,6 +68,7 @@ actor PinballDataCache {
     private var isLoaded = false
     private var index = CacheIndex()
     private var manifest: Manifest?
+    private var inFlightRevalidations: Set<String> = []
 
     private let fileManager = FileManager.default
     private let encoder = JSONEncoder()
@@ -79,9 +81,7 @@ actor PinballDataCache {
         let normalizedPath = normalize(path)
 
         if let cached = try cachedText(for: normalizedPath) {
-            Task.detached(priority: .utility) {
-                await PinballDataCache.shared.revalidate(path: normalizedPath, allowMissing: allowMissing)
-            }
+            scheduleRevalidateIfNeeded(path: normalizedPath, allowMissing: allowMissing)
             return cached
         }
 
@@ -103,9 +103,7 @@ actor PinballDataCache {
 
         let path = normalize(url.path)
         if let cached = try cachedData(for: path) {
-            Task.detached(priority: .utility) {
-                await PinballDataCache.shared.revalidate(path: path, allowMissing: false)
-            }
+            scheduleRevalidateIfNeeded(path: path, allowMissing: false)
             return cached
         }
 
@@ -122,6 +120,27 @@ actor PinballDataCache {
         } catch {
             // Keep stale data on revalidation failures.
         }
+    }
+
+    private func scheduleRevalidateIfNeeded(path: String, allowMissing: Bool) {
+        let now = Date().timeIntervalSince1970
+        if let resource = index.resources[path],
+           now - resource.lastValidatedAt < backgroundRevalidateInterval {
+            return
+        }
+        if inFlightRevalidations.contains(path) {
+            return
+        }
+
+        inFlightRevalidations.insert(path)
+        Task.detached(priority: .utility) {
+            await PinballDataCache.shared.runRevalidate(path: path, allowMissing: allowMissing)
+        }
+    }
+
+    private func runRevalidate(path: String, allowMissing: Bool) async {
+        defer { inFlightRevalidations.remove(path) }
+        await revalidate(path: path, allowMissing: allowMissing)
     }
 
     private func fetchTextFromNetwork(path: String, allowMissing: Bool) async throws -> CachedTextResult {
