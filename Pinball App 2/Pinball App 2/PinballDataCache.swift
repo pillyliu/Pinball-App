@@ -4,7 +4,6 @@ import CryptoKit
 struct CachedTextResult {
     let text: String?
     let isMissing: Bool
-    let isStale: Bool
 }
 
 actor PinballDataCache {
@@ -146,7 +145,7 @@ actor PinballDataCache {
     private func fetchTextFromNetwork(path: String, allowMissing: Bool) async throws -> CachedTextResult {
         let data = try await fetchBinaryFromNetwork(path: path, allowMissing: allowMissing)
         if data == nil {
-            return CachedTextResult(text: nil, isMissing: true, isStale: false)
+            return CachedTextResult(text: nil, isMissing: true)
         }
 
         guard let data,
@@ -156,8 +155,7 @@ actor PinballDataCache {
 
         return CachedTextResult(
             text: text,
-            isMissing: false,
-            isStale: false
+            isMissing: false
         )
     }
 
@@ -213,8 +211,7 @@ actor PinballDataCache {
 
         return CachedTextResult(
             text: text,
-            isMissing: false,
-            isStale: false
+            isMissing: false
         )
     }
 

@@ -231,12 +231,12 @@ struct StatsView: View {
 
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            HeaderCell(title: "Season", width: seasonColWidth)
-            HeaderCell(title: "Player", width: playerColWidth)
-            HeaderCell(title: "Bank", width: bankNumColWidth)
-            HeaderCell(title: "Machine", width: machineColWidth)
-            HeaderCell(title: "Score", width: scoreColWidth)
-            HeaderCell(title: "Points", width: pointsColWidth)
+            AppHeaderCell(title: "Season", width: seasonColWidth)
+            AppHeaderCell(title: "Player", width: playerColWidth)
+            AppHeaderCell(title: "Bank", width: bankNumColWidth)
+            AppHeaderCell(title: "Machine", width: machineColWidth)
+            AppHeaderCell(title: "Score", width: scoreColWidth)
+            AppHeaderCell(title: "Points", width: pointsColWidth)
         }
         .frame(height: headerHeight)
         .background(Color(white: 0.11))
@@ -315,20 +315,6 @@ private extension View {
                     }
             }
         )
-    }
-}
-
-private struct HeaderCell: View {
-    let title: String
-    let width: CGFloat
-    var alignment: Alignment = .leading
-
-    var body: some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(Color(white: 0.75))
-            .frame(width: width, alignment: alignment)
-            .padding(.horizontal, 4)
     }
 }
 
@@ -677,7 +663,6 @@ private struct ScoreRow: Identifiable {
     let id: Int
     let season: String
     let bankNumber: Int
-    let bank: String
     let player: String
     let machine: String
     let rawScore: Double
@@ -713,7 +698,7 @@ private final class CSVScoreLoader {
     }
 
     private func parse(text: String) -> [ScoreRow] {
-        let table = parseCSV(text)
+        let table = parseCSVRows(text)
         guard let header = table.first else { return [] }
         let headers = header.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
 
@@ -723,22 +708,20 @@ private final class CSVScoreLoader {
 
         let seasonIndex = idx("Season")
         let bankNumberIndex = idx("BankNumber")
-        let bankIndex = idx("Bank")
         let playerIndex = idx("Player")
         let machineIndex = idx("Machine")
         let rawScoreIndex = idx("RawScore")
         let pointsIndex = idx("Points")
 
-        guard [seasonIndex, bankNumberIndex, bankIndex, playerIndex, machineIndex, rawScoreIndex, pointsIndex].allSatisfy({ $0 >= 0 }) else {
+        guard [seasonIndex, bankNumberIndex, playerIndex, machineIndex, rawScoreIndex, pointsIndex].allSatisfy({ $0 >= 0 }) else {
             return []
         }
 
         return table.dropFirst().enumerated().compactMap { offset, columns in
             guard columns.count == headers.count else { return nil }
 
-            let season = normalizeSeason(columns[seasonIndex])
+            let season = normalizeSeasonToken(columns[seasonIndex])
             let bankNumber = Int(columns[bankNumberIndex].trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
-            let bank = columns[bankIndex].trimmingCharacters(in: .whitespacesAndNewlines)
             let player = columns[playerIndex].trimmingCharacters(in: .whitespacesAndNewlines)
             let machine = columns[machineIndex].trimmingCharacters(in: .whitespacesAndNewlines)
             let rawScore = Double(columns[rawScoreIndex].trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
@@ -748,7 +731,6 @@ private final class CSVScoreLoader {
                 id: offset,
                 season: season,
                 bankNumber: bankNumber,
-                bank: bank,
                 player: player,
                 machine: machine,
                 rawScore: rawScore,
@@ -756,68 +738,15 @@ private final class CSVScoreLoader {
             )
         }
     }
-
-    private func parseCSV(_ text: String) -> [[String]] {
-        var rows: [[String]] = []
-        var row: [String] = []
-        var field = ""
-        var inQuotes = false
-        let chars = Array(text)
-        var index = 0
-
-        while index < chars.count {
-            let char = chars[index]
-            if inQuotes {
-                if char == "\"" {
-                    if index + 1 < chars.count, chars[index + 1] == "\"" {
-                        field.append("\"")
-                        index += 1
-                    } else {
-                        inQuotes = false
-                    }
-                } else {
-                    field.append(char)
-                }
-            } else {
-                switch char {
-                case "\"":
-                    inQuotes = true
-                case ",":
-                    row.append(field)
-                    field = ""
-                case "\n":
-                    row.append(field)
-                    rows.append(row)
-                    row = []
-                    field = ""
-                case "\r":
-                    break
-                default:
-                    field.append(char)
-                }
-            }
-            index += 1
-        }
-
-        if !field.isEmpty || !row.isEmpty {
-            row.append(field)
-            rows.append(row)
-        }
-
-        return rows
-    }
 }
 
 private enum CSVLoaderError: LocalizedError {
     case network(String)
-    case invalidEncoding
 
     var errorDescription: String? {
         switch self {
         case .network(let message):
             return message
-        case .invalidEncoding:
-            return "LPL_Stats.csv encoding is not supported."
         }
     }
 }
@@ -830,12 +759,6 @@ private func formatScore(_ value: Double?) -> String {
 private func formatPoints(_ value: Double?) -> String {
     guard let value, value.isFinite else { return "-" }
     return Int(value.rounded()).formatted()
-}
-
-private func normalizeSeason(_ raw: String) -> String {
-    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-    let digits = trimmed.filter(\.isNumber)
-    return digits.isEmpty ? trimmed : digits
 }
 
 #Preview {

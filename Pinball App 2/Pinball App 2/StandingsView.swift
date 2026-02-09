@@ -134,19 +134,19 @@ struct StandingsView: View {
 
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            HeaderCell(title: "#", width: rankWidth)
-            HeaderCell(title: "Player", width: playerWidth)
-            HeaderCell(title: "Pts", width: pointsWidth)
-            HeaderCell(title: "Elg", width: eligibleWidth)
-            HeaderCell(title: "N", width: nightsWidth)
-            HeaderCell(title: "B1", width: bankWidth)
-            HeaderCell(title: "B2", width: bankWidth)
-            HeaderCell(title: "B3", width: bankWidth)
-            HeaderCell(title: "B4", width: bankWidth)
-            HeaderCell(title: "B5", width: bankWidth)
-            HeaderCell(title: "B6", width: bankWidth)
-            HeaderCell(title: "B7", width: bankWidth)
-            HeaderCell(title: "B8", width: bankWidth)
+            AppHeaderCell(title: "#", width: rankWidth, horizontalPadding: 3)
+            AppHeaderCell(title: "Player", width: playerWidth, horizontalPadding: 3)
+            AppHeaderCell(title: "Pts", width: pointsWidth, horizontalPadding: 3)
+            AppHeaderCell(title: "Elg", width: eligibleWidth, horizontalPadding: 3)
+            AppHeaderCell(title: "N", width: nightsWidth, horizontalPadding: 3)
+            AppHeaderCell(title: "B1", width: bankWidth, horizontalPadding: 3)
+            AppHeaderCell(title: "B2", width: bankWidth, horizontalPadding: 3)
+            AppHeaderCell(title: "B3", width: bankWidth, horizontalPadding: 3)
+            AppHeaderCell(title: "B4", width: bankWidth, horizontalPadding: 3)
+            AppHeaderCell(title: "B5", width: bankWidth, horizontalPadding: 3)
+            AppHeaderCell(title: "B6", width: bankWidth, horizontalPadding: 3)
+            AppHeaderCell(title: "B7", width: bankWidth, horizontalPadding: 3)
+            AppHeaderCell(title: "B8", width: bankWidth, horizontalPadding: 3)
         }
         .frame(height: 42)
         .background(Color(white: 0.1))
@@ -200,20 +200,6 @@ private struct StandingsRowView: View {
             .foregroundStyle(color)
             .lineLimit(1)
             .truncationMode(.tail)
-            .frame(width: width, alignment: alignment)
-            .padding(.horizontal, 3)
-    }
-}
-
-private struct HeaderCell: View {
-    let title: String
-    let width: CGFloat
-    var alignment: Alignment = .leading
-
-    var body: some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(Color(white: 0.75))
             .frame(width: width, alignment: alignment)
             .padding(.horizontal, 3)
     }
@@ -317,10 +303,10 @@ private enum StandingsCSVLoader {
     static let defaultPath = "/pinball/data/LPL_Standings.csv"
 
     static func parse(text: String) throws -> [StandingsCSVRow] {
-        let table = parseCSV(text)
+        let table = parseCSVRows(text)
         guard !table.isEmpty else { return [] }
 
-        let headers = table[0].map { normalize($0) }
+        let headers = table[0].map { normalizeCSVHeader($0) }
         let required = [
             "season", "player", "total", "bank_1", "bank_2", "bank_3", "bank_4",
             "bank_5", "bank_6", "bank_7", "bank_8"
@@ -335,7 +321,7 @@ private enum StandingsCSVLoader {
 
             let dict = Dictionary(uniqueKeysWithValues: zip(headers, row))
 
-            let season = coerceSeason(dict["season"] ?? "")
+            let season = coerceSeasonNumber(dict["season"] ?? "")
             let player = (dict["player"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             let total = Double(dict["total"] ?? "") ?? 0
             let rank = Int((dict["rank"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines))
@@ -359,78 +345,11 @@ private enum StandingsCSVLoader {
             )
         }
     }
-
-    private static func parseCSV(_ text: String) -> [[String]] {
-        var rows: [[String]] = []
-        var row: [String] = []
-        var field = ""
-        var inQuotes = false
-        let chars = Array(text)
-        var index = 0
-
-        while index < chars.count {
-            let char = chars[index]
-            if inQuotes {
-                if char == "\"" {
-                    if index + 1 < chars.count, chars[index + 1] == "\"" {
-                        field.append("\"")
-                        index += 1
-                    } else {
-                        inQuotes = false
-                    }
-                } else {
-                    field.append(char)
-                }
-            } else {
-                switch char {
-                case "\"":
-                    inQuotes = true
-                case ",":
-                    row.append(field)
-                    field = ""
-                case "\n":
-                    row.append(field)
-                    rows.append(row)
-                    row = []
-                    field = ""
-                case "\r":
-                    break
-                default:
-                    field.append(char)
-                }
-            }
-            index += 1
-        }
-
-        if !field.isEmpty || !row.isEmpty {
-            row.append(field)
-            rows.append(row)
-        }
-
-        return rows
-    }
-
-    private static func normalize(_ header: String) -> String {
-        header
-            .replacingOccurrences(of: "\u{FEFF}", with: "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-    }
-
-    private static func coerceSeason(_ value: String) -> Int {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        let digits = trimmed.filter(\.isNumber)
-        if let number = Int(digits), number > 0 {
-            return number
-        }
-        return Int(trimmed) ?? 0
-    }
 }
 
 private enum StandingsCSVError: LocalizedError {
     case missingColumn(String)
     case network(String)
-    case invalidEncoding
 
     var errorDescription: String? {
         switch self {
@@ -438,8 +357,6 @@ private enum StandingsCSVError: LocalizedError {
             return "Standings CSV missing column: \(column)"
         case .network(let message):
             return message
-        case .invalidEncoding:
-            return "Standings CSV encoding is not supported."
         }
     }
 }

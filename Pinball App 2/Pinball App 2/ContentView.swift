@@ -35,7 +35,7 @@ struct ContentView: View {
                     Label("Targets", systemImage: "scope")
                 }
 
-            PinballLibraryView()
+            LibraryListScreen()
                 .tabItem {
                     Label("Library", systemImage: "books.vertical")
                 }
@@ -58,7 +58,7 @@ private struct LPLInfoView: View {
                                 .frame(maxWidth: .infinity)
                                 .frame(minHeight: 120, maxHeight: 220)
 
-                                                        Text("Pinball in the Capital City")
+                            Text("Pinball in the Capital City")
                                 .font(.headline)
                                 .foregroundStyle(Color.white.opacity(0.92))
 
@@ -93,10 +93,10 @@ private struct LPLInfoView: View {
                             HStack(spacing: 10) {
                                 Link(destination: LPLLinks.website) {
                                     Text("lansingpinleague.com")
-                                        .font(.callout.weight(.semibold))
-                                        .foregroundStyle(.white)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(Color.white.opacity(0.9))
                                         .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
+                                        .padding(.vertical, 8)
                                         .background(AppTheme.controlBg)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -106,10 +106,10 @@ private struct LPLInfoView: View {
                                 }
                                 Link(destination: LPLLinks.facebook) {
                                     Text("Facebook Group")
-                                        .font(.callout.weight(.semibold))
-                                        .foregroundStyle(.white)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(Color.white.opacity(0.9))
                                         .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
+                                        .padding(.vertical, 8)
                                         .background(AppTheme.controlBg)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 10, style: .continuous)
