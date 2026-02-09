@@ -27,9 +27,6 @@ val CardBg = Color(0xFF171717)
 val Border = Color(0xFF343434)
 val ControlBg = Color(0xFF171717)
 val ControlBorder = Color(0xFF404040)
-val HeaderBg = Color(0xFF111111)
-val RowOddBg = Color(0xFF171717)
-val RowEvenBg = Color(0xFF0A0A0A)
 val LocalBottomBarVisible = compositionLocalOf<MutableState<Boolean>> {
     error("LocalBottomBarVisible not provided")
 }

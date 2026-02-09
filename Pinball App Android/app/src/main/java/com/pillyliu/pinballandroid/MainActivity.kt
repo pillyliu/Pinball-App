@@ -74,12 +74,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class PinballTab(val title: String) {
-    About("About"),
-    Stats("Stats"),
-    Standings("Standings"),
-    Targets("Targets"),
-    Library("Library")
+private enum class PinballTab {
+    About,
+    Stats,
+    Standings,
+    Targets,
+    Library,
 }
 
 @Composable

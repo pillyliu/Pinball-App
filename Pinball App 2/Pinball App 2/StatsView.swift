@@ -357,13 +357,9 @@ private struct MachineStatsPanel: View {
     let historicalStats: StatResult
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Machine Stats")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-
+        VStack(alignment: .leading, spacing: 1) {
             if machine.isEmpty {
-                Text("Select a machine to view detailed stats.")
+                Text("Select a machine to see machine stats")
                     .font(.footnote)
                     .foregroundStyle(Color(white: 0.82))
             } else {
@@ -400,16 +396,17 @@ private struct MachineStatsTable: View {
     let allSeasonsStats: StatResult
 
     private let labels = ["High", "Low", "Avg", "Med", "Std", "Count"]
+    private let labelColumnWidth: CGFloat = 44
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 headerCell("", align: .leading)
-                    .frame(width: 44, alignment: .leading)
-                headerCell(selectedLabel, align: .trailing)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                headerCell("All Seasons", align: .trailing)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .frame(width: labelColumnWidth, alignment: .leading)
+                headerCell(selectedLabel, align: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                headerCell("All Seasons", align: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.bottom, 4)
 
@@ -418,12 +415,12 @@ private struct MachineStatsTable: View {
                     Text(label)
                         .font(.caption.weight(.medium))
                         .foregroundStyle(Color(white: 0.84))
-                        .frame(width: 44, alignment: .leading)
+                        .frame(width: labelColumnWidth, alignment: .leading)
                         .padding(.vertical, 3)
                     statCell(label: label, stats: selectedStats, allSeasons: false)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     statCell(label: label, stats: allSeasonsStats, allSeasons: true)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
@@ -459,18 +456,18 @@ private struct MachineStatsTable: View {
         default: nil
         }
 
-        return VStack(alignment: .trailing, spacing: 2) {
+        return VStack(alignment: .leading, spacing: 2) {
             Text(value)
                 .font(.caption.monospacedDigit().weight(.medium))
                 .foregroundStyle(color)
                 .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .leading)
             if label == "High" || label == "Low" {
                 Text(playerName(player, allSeasons: allSeasons))
                     .font(.caption2)
                     .foregroundStyle(Color(red: 115 / 255, green: 115 / 255, blue: 115 / 255))
                     .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(.vertical, 3)

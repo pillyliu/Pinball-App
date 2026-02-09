@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -17,14 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,8 +36,8 @@ import androidx.compose.ui.unit.sp
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
-import com.pillyliu.pinballandroid.ui.ControlBg
-import com.pillyliu.pinballandroid.ui.ControlBorder
+import com.pillyliu.pinballandroid.ui.CompactDropdownFilter
+import com.pillyliu.pinballandroid.ui.FixedWidthTableCell
 import org.json.JSONArray
 import java.text.NumberFormat
 
@@ -186,7 +177,7 @@ fun TargetsScreen(contentPadding: PaddingValues) {
             CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
                 BoxWithConstraints {
                     val baseWidth = 660f
-                    val scale = if (isLandscape) (maxWidth.value / baseWidth).coerceIn(1f, 1.7f) else 1f
+                    val scale = (maxWidth.value / baseWidth).coerceIn(1f, 1.9f)
                     val gameWidth = (210 * scale).toInt()
                     val bankWidth = (44 * scale).toInt()
                     val scoreWidth = (136 * scale).toInt()
@@ -224,37 +215,20 @@ private fun SortMenu(
     onSelect: (TargetSortOption) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    Column(modifier = modifier) {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 34.dp),
-            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = ControlBg,
-                contentColor = Color.White,
-            ),
-            border = androidx.compose.foundation.BorderStroke(1.dp, ControlBorder),
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Sort: ${selected.label}", fontSize = 12.sp, maxLines = 1)
-                Spacer(modifier = Modifier.weight(1f))
-                Icon(imageVector = Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = Color(0xFFC6C6C6))
-            }
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            TargetSortOption.entries.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text("Sort: ${option.label}", fontSize = 12.sp) },
-                    onClick = {
-                        expanded = false
-                        onSelect(option)
-                    },
-                )
-            }
-        }
-    }
+    CompactDropdownFilter(
+        selectedText = "Sort: ${selected.label}",
+        options = TargetSortOption.entries.map { "Sort: ${it.label}" },
+        onSelect = { label ->
+            val raw = label.removePrefix("Sort: ").trim()
+            val option = TargetSortOption.entries.firstOrNull { it.label == raw } ?: selected
+            onSelect(option)
+        },
+        modifier = modifier,
+        minHeight = 34.dp,
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
+        textSize = 12.sp,
+        itemTextSize = 12.sp,
+    )
 }
 
 @Composable
@@ -264,44 +238,22 @@ private fun BankMenu(
     onSelect: (Int?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    Column(modifier = modifier) {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth().heightIn(min = 34.dp),
-            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = ControlBg,
-                contentColor = Color.White,
-            ),
-            border = androidx.compose.foundation.BorderStroke(1.dp, ControlBorder),
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(selectedBank?.let { "Bank $it" } ?: "All banks", fontSize = 12.sp, maxLines = 1)
-                Spacer(modifier = Modifier.weight(1f))
-                Icon(imageVector = Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = Color(0xFFC6C6C6))
+    CompactDropdownFilter(
+        selectedText = selectedBank?.let { "Bank $it" } ?: "All banks",
+        options = listOf("All banks") + bankOptions.map { "Bank $it" },
+        onSelect = { label ->
+            if (label == "All banks") {
+                onSelect(null)
+            } else {
+                onSelect(label.removePrefix("Bank ").trim().toIntOrNull())
             }
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text("All banks", fontSize = 12.sp) },
-                onClick = {
-                    expanded = false
-                    onSelect(null)
-                },
-            )
-            bankOptions.forEach { bank ->
-                DropdownMenuItem(
-                    text = { Text("Bank $bank", fontSize = 12.sp) },
-                    onClick = {
-                        expanded = false
-                        onSelect(bank)
-                    },
-                )
-            }
-        }
-    }
+        },
+        modifier = modifier,
+        minHeight = 34.dp,
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
+        textSize = 12.sp,
+        itemTextSize = 12.sp,
+    )
 }
 
 private fun sortRows(rows: List<TargetRow>, option: TargetSortOption): List<TargetRow> {
@@ -333,11 +285,11 @@ private fun sortRows(rows: List<TargetRow>, option: TargetSortOption): List<Targ
 @Composable
 private fun Header(gameWidth: Int, bankWidth: Int, scoreWidth: Int) {
     Row {
-        Cell("Game", gameWidth, bold = true)
-        Cell("B", bankWidth, bold = true)
-        Cell("2nd", scoreWidth, bold = true)
-        Cell("4th", scoreWidth, bold = true)
-        Cell("8th", scoreWidth, bold = true)
+        FixedWidthTableCell("Game", gameWidth, bold = true, horizontalPadding = 5.dp)
+        FixedWidthTableCell("B", bankWidth, bold = true, horizontalPadding = 5.dp)
+        FixedWidthTableCell("2nd", scoreWidth, bold = true, horizontalPadding = 5.dp)
+        FixedWidthTableCell("4th", scoreWidth, bold = true, horizontalPadding = 5.dp)
+        FixedWidthTableCell("8th", scoreWidth, bold = true, horizontalPadding = 5.dp)
     }
 }
 
@@ -348,31 +300,18 @@ private fun TargetRowView(index: Int, row: TargetRow, gameWidth: Int, bankWidth:
             .background(if (index % 2 == 0) Color(0xFF0A0A0A) else Color(0xFF171717))
             .padding(vertical = 5.dp),
     ) {
-        Cell(row.target.game, gameWidth, maxLines = 1)
-        Cell(row.bank?.toString() ?: "-", bankWidth)
-        Cell(fmt(row.target.great), scoreWidth, color = Color(0xFFBAF5D1))
-        Cell(fmt(row.target.main), scoreWidth, color = Color(0xFFC0DBFF))
-        Cell(fmt(row.target.floor), scoreWidth, color = Color(0xFFE3E7EB))
+        FixedWidthTableCell(
+            text = row.target.game,
+            width = gameWidth,
+            maxLines = 1,
+            horizontalPadding = 5.dp,
+            overflow = TextOverflow.Ellipsis,
+        )
+        FixedWidthTableCell(row.bank?.toString() ?: "-", bankWidth, horizontalPadding = 5.dp)
+        FixedWidthTableCell(fmt(row.target.great), scoreWidth, color = Color(0xFFBAF5D1), horizontalPadding = 5.dp)
+        FixedWidthTableCell(fmt(row.target.main), scoreWidth, color = Color(0xFFC0DBFF), horizontalPadding = 5.dp)
+        FixedWidthTableCell(fmt(row.target.floor), scoreWidth, color = Color(0xFFE3E7EB), horizontalPadding = 5.dp)
     }
-}
-
-@Composable
-private fun Cell(
-    text: String,
-    width: Int,
-    bold: Boolean = false,
-    color: Color = Color.White,
-    maxLines: Int = Int.MAX_VALUE,
-) {
-    Text(
-        text = text,
-        modifier = Modifier.width(width.dp).padding(horizontal = 5.dp),
-        color = color,
-        fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal,
-        fontSize = 13.sp,
-        maxLines = maxLines,
-        overflow = TextOverflow.Ellipsis,
-    )
 }
 
 private fun fmt(value: Long): String = NumberFormat.getIntegerInstance().format(value)

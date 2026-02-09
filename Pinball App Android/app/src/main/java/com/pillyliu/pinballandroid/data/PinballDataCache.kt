@@ -178,7 +178,6 @@ object PinballDataCache {
         val updateJson = JSONObject(updateText)
         val events = updateJson.optJSONArray("events") ?: JSONArray()
 
-        val changed = mutableSetOf<String>()
         var newestEventAt = lastUpdateScanAt
         for (i in 0 until events.length()) {
             val event = events.optJSONObject(i) ?: continue
@@ -189,12 +188,9 @@ object PinballDataCache {
             if (lastUpdateScanAt != null && generatedAt <= lastUpdateScanAt!!) {
                 continue
             }
-            collectPaths(event.optJSONArray("added"), changed)
-            collectPaths(event.optJSONArray("changed"), changed)
             val removed = mutableSetOf<String>()
             collectPaths(event.optJSONArray("removed"), removed)
             removed.forEach { path ->
-                changed += path
                 deleteCached(path)
                 removeFromIndex(path)
             }

@@ -7,24 +7,12 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,11 +32,9 @@ import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.data.parseCsv
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
-import com.pillyliu.pinballandroid.ui.Border
-import com.pillyliu.pinballandroid.ui.CardBg
-import com.pillyliu.pinballandroid.ui.ControlBg
-import com.pillyliu.pinballandroid.ui.ControlBorder
+import com.pillyliu.pinballandroid.ui.CompactDropdownFilter
 import com.pillyliu.pinballandroid.ui.EmptyLabel
+import com.pillyliu.pinballandroid.ui.FixedWidthTableCell
 import java.text.NumberFormat
 
 private const val CSV_URL = "https://pillyliu.com/pinball/data/LPL_Standings.csv"
@@ -107,47 +93,25 @@ fun StandingsScreen(contentPadding: PaddingValues) {
 
     AppScreen(contentPadding) {
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            var expanded by remember { mutableStateOf(false) }
-            OutlinedButton(
-                onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 38.dp),
+            CompactDropdownFilter(
+                selectedText = selectedSeason?.let { "Season $it" } ?: "Select",
+                options = seasons.map { "Season $it" },
+                onSelect = { label ->
+                    selectedSeason = label.removePrefix("Season ").trim().toIntOrNull()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                minHeight = 38.dp,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = ControlBg,
-                    contentColor = Color.White,
-                ),
-                border = androidx.compose.foundation.BorderStroke(1.dp, ControlBorder),
-            ) {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(selectedSeason?.let { "Season $it" } ?: "Select", fontSize = 12.sp)
-                    Spacer(modifier = Modifier.weight(1f))
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = Color(0xFFC6C6C6),
-                    )
-                }
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                seasons.forEach { season ->
-                    DropdownMenuItem(text = { Text("Season $season") }, onClick = {
-                        expanded = false
-                        selectedSeason = season
-                    })
-                }
-            }
+                textSize = 12.sp,
+                itemTextSize = 12.sp,
+            )
 
             error?.let { Text(it, color = Color.Red) }
 
             CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
                 BoxWithConstraints {
                     val baseTableWidth = 646f
-                    val scaled = if (isLandscape) {
-                        (maxWidth.value / baseTableWidth).coerceIn(1f, 1.7f)
-                    } else {
-                        1f
-                    }
+                    val scaled = (maxWidth.value / baseTableWidth).coerceIn(1f, 1.9f)
                     val widths = StandingsWidths(
                         rank = (34 * scaled).toInt(),
                         player = (136 * scaled).toInt(),
@@ -183,12 +147,12 @@ fun StandingsScreen(contentPadding: PaddingValues) {
 @Composable
 private fun HeaderRow(widths: StandingsWidths) {
     Row {
-        Cell("#", widths.rank, bold = true)
-        Cell("Player", widths.player, bold = true)
-        Cell("Pts", widths.points, bold = true)
-        Cell("Elg", widths.eligible, bold = true)
-        Cell("N", widths.nights, bold = true)
-        (1..8).forEach { Cell("B$it", widths.bank, bold = true) }
+        FixedWidthTableCell("#", widths.rank, bold = true)
+        FixedWidthTableCell("Player", widths.player, bold = true)
+        FixedWidthTableCell("Pts", widths.points, bold = true)
+        FixedWidthTableCell("Elg", widths.eligible, bold = true)
+        FixedWidthTableCell("N", widths.nights, bold = true)
+        (1..8).forEach { FixedWidthTableCell("B$it", widths.bank, bold = true) }
     }
 }
 
@@ -205,25 +169,13 @@ private fun StandingRow(rank: Int, standing: Standing, widths: StandingsWidths) 
             .background(if (rank % 2 == 0) Color(0xFF0A0A0A) else Color(0xFF171717))
             .padding(vertical = 6.dp),
     ) {
-        Cell(rank.toString(), widths.rank, color = rankColor)
-        Cell(standing.player, widths.player, bold = rank <= 8)
-        Cell(fmt(standing.seasonTotal), widths.points)
-        Cell(standing.eligible, widths.eligible)
-        Cell(standing.nights, widths.nights)
-        standing.banks.forEach { Cell(fmt(it), widths.bank) }
+        FixedWidthTableCell(rank.toString(), widths.rank, color = rankColor)
+        FixedWidthTableCell(standing.player, widths.player, bold = rank <= 8)
+        FixedWidthTableCell(fmt(standing.seasonTotal), widths.points)
+        FixedWidthTableCell(standing.eligible, widths.eligible)
+        FixedWidthTableCell(standing.nights, widths.nights)
+        standing.banks.forEach { FixedWidthTableCell(fmt(it), widths.bank) }
     }
-}
-
-@Composable
-private fun Cell(text: String, width: Int, bold: Boolean = false, color: Color = Color.White) {
-    Text(
-        text = text,
-        modifier = Modifier.width(width.dp).padding(horizontal = 3.dp),
-        color = color,
-        fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal,
-        fontSize = 13.sp,
-        maxLines = 1,
-    )
 }
 
 private fun buildStandings(rows: List<StandingsCsvRow>, selectedSeason: Int?): List<Standing> {

@@ -3,13 +3,12 @@ package com.pillyliu.pinballandroid.stats
 import android.content.res.Configuration
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -17,11 +16,12 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.DropdownMenu
@@ -40,9 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
@@ -53,10 +51,11 @@ import com.pillyliu.pinballandroid.data.parseCsv
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
 import com.pillyliu.pinballandroid.ui.EmptyLabel
-import com.pillyliu.pinballandroid.ui.Border
-import com.pillyliu.pinballandroid.ui.CardBg
 import com.pillyliu.pinballandroid.ui.ControlBg
 import com.pillyliu.pinballandroid.ui.ControlBorder
+import com.pillyliu.pinballandroid.ui.AnchoredDropdownFilter
+import com.pillyliu.pinballandroid.ui.DropdownOption
+import com.pillyliu.pinballandroid.ui.FixedWidthTableCell
 import java.text.NumberFormat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -64,7 +63,6 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 private const val CSV_URL = "https://pillyliu.com/pinball/data/LPL_Stats.csv"
-private data class FilterOption(val value: String, val label: String)
 
 private data class ScoreRow(
     val id: Int,
@@ -85,6 +83,15 @@ private data class StatResult(
     val mean: Double?,
     val median: Double?,
     val std: Double?,
+)
+
+private data class StatsTableWidths(
+    val season: Int,
+    val player: Int,
+    val bank: Int,
+    val machine: Int,
+    val score: Int,
+    val points: Int,
 )
 
 @Composable
@@ -153,37 +160,57 @@ fun StatsScreen(contentPadding: PaddingValues) {
 
     AppScreen(contentPadding) {
         Column(
-            modifier = Modifier.verticalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            val seasonOptions = listOf(FilterOption("", "S: All")) + seasons.map { FilterOption(it, abbrSeason(it)) }
-            val playerOptions = listOf(FilterOption("", "Player: All")) + players.map { FilterOption(it, it) }
-            val bankOptions = listOf(FilterOption("", "B: All")) + banks.map { FilterOption(it.toString(), "B$it") }
-            val machineOptions = listOf(FilterOption("", "Machine: All")) + machines.map { FilterOption(it, it) }
+            val seasonOptions = listOf(DropdownOption("", "S: All")) + seasons.map { DropdownOption(it, abbrSeason(it)) }
+            val playerOptions = listOf(DropdownOption("", "Player: All")) + players.map { DropdownOption(it, it) }
+            val bankOptions = listOf(DropdownOption("", "B: All")) + banks.map { DropdownOption(it.toString(), "B$it") }
+            val machineOptions = listOf(DropdownOption("", "Machine: All")) + machines.map { DropdownOption(it, it) }
 
             if (isLandscape) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    FilterMenu(selectedText = seasonDisplayText(season), options = seasonOptions, modifier = Modifier.weight(1f)) {
+                    AnchoredDropdownFilter(
+                        selectedText = seasonDisplayText(season),
+                        options = seasonOptions,
+                        modifier = Modifier.weight(1f),
+                        onSelect = {
                         season = it
                         player = ""
                         bankNumber = null
                         machine = ""
-                    }
-                    FilterMenu(selectedText = playerDisplayText(player), options = playerOptions, modifier = Modifier.weight(1f)) {
+                    },
+                    )
+                    AnchoredDropdownFilter(
+                        selectedText = playerDisplayText(player),
+                        options = playerOptions,
+                        modifier = Modifier.weight(1f),
+                        onSelect = {
                         player = it
                         bankNumber = null
                         machine = ""
-                    }
-                    FilterMenu(selectedText = bankDisplayText(bankNumber), options = bankOptions, modifier = Modifier.weight(1f)) {
+                    },
+                    )
+                    AnchoredDropdownFilter(
+                        selectedText = bankDisplayText(bankNumber),
+                        options = bankOptions,
+                        modifier = Modifier.weight(1f),
+                        onSelect = {
                         bankNumber = it.toIntOrNull()
                         machine = ""
-                    }
-                    FilterMenu(selectedText = machineDisplayText(machine), options = machineOptions, modifier = Modifier.weight(1f)) {
+                    },
+                    )
+                    AnchoredDropdownFilter(
+                        selectedText = machineDisplayText(machine),
+                        options = machineOptions,
+                        modifier = Modifier.weight(1f),
+                        onSelect = {
                         machine = it
-                    }
+                    },
+                    )
                 }
             } else {
                 Column(
@@ -194,29 +221,49 @@ fun StatsScreen(contentPadding: PaddingValues) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        FilterMenu(selectedText = seasonDisplayText(season), options = seasonOptions, modifier = Modifier.weight(3f)) {
+                        AnchoredDropdownFilter(
+                            selectedText = seasonDisplayText(season),
+                            options = seasonOptions,
+                            modifier = Modifier.weight(3f),
+                            onSelect = {
                             season = it
                             player = ""
                             bankNumber = null
                             machine = ""
-                        }
-                        FilterMenu(selectedText = playerDisplayText(player), options = playerOptions, modifier = Modifier.weight(7f)) {
+                        },
+                        )
+                        AnchoredDropdownFilter(
+                            selectedText = playerDisplayText(player),
+                            options = playerOptions,
+                            modifier = Modifier.weight(7f),
+                            onSelect = {
                             player = it
                             bankNumber = null
                             machine = ""
-                        }
+                        },
+                        )
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        FilterMenu(selectedText = bankDisplayText(bankNumber), options = bankOptions, modifier = Modifier.weight(3f)) {
+                        AnchoredDropdownFilter(
+                            selectedText = bankDisplayText(bankNumber),
+                            options = bankOptions,
+                            modifier = Modifier.weight(3f),
+                            onSelect = {
                             bankNumber = it.toIntOrNull()
                             machine = ""
-                        }
-                        FilterMenu(selectedText = machineDisplayText(machine), options = machineOptions, modifier = Modifier.weight(7f)) {
+                        },
+                        )
+                        AnchoredDropdownFilter(
+                            selectedText = machineDisplayText(machine),
+                            options = machineOptions,
+                            modifier = Modifier.weight(7f),
+                            onSelect = {
                             machine = it
-                        }
+                        },
+                        )
                     }
                 }
             }
@@ -224,20 +271,36 @@ fun StatsScreen(contentPadding: PaddingValues) {
             error?.let { Text(text = it, color = Color.Red) }
 
             if (isLandscape) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = true),
+                ) {
                     CardContainer(modifier = Modifier.weight(0.6f, fill = true)) {
-                        StatsTable(filtered)
+                        StatsTable(filtered, modifier = Modifier.fillMaxSize())
                     }
                     CardContainer(modifier = Modifier.weight(0.4f, fill = true)) {
-                        MachineStatsPanel(machine, bankNumber, season, bankStats, historyStats)
+                        MachineStatsPanel(
+                            machine = machine,
+                            bankNumber = bankNumber,
+                            season = season,
+                            bankStats = bankStats,
+                            historyStats = historyStats,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                     }
                 }
             } else {
-                CardContainer {
-                    StatsTable(filtered)
+                CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
+                    StatsTable(filtered, modifier = Modifier.fillMaxSize())
                 }
-                CardContainer {
-                    MachineStatsPanel(machine, bankNumber, season, bankStats, historyStats)
+                CardContainer(modifier = Modifier.fillMaxWidth()) {
+                    MachineStatsPanel(
+                        machine = machine,
+                        bankNumber = bankNumber,
+                        season = season,
+                        bankStats = bankStats,
+                        historyStats = historyStats,
+                    )
                 }
             }
         }
@@ -245,28 +308,45 @@ fun StatsScreen(contentPadding: PaddingValues) {
 }
 
 @Composable
-private fun StatsTable(filtered: List<ScoreRow>) {
+private fun StatsTable(filtered: List<ScoreRow>, modifier: Modifier = Modifier) {
     val hState = rememberScrollState()
-    Row(modifier = Modifier.horizontalScroll(hState)) {
-        Column {
-            HeaderRow(listOf("Season", "Player", "Bank", "Machine", "Score", "Points"))
-            if (filtered.isEmpty()) {
-                EmptyLabel("No rows - check filters or data source.")
-            } else {
-                LazyColumn(modifier = Modifier.heightIn(max = 380.dp)) {
-                    itemsIndexed(filtered, key = { _, row -> row.id }) { _, row ->
-                        Row(
-                            modifier = Modifier
-                            .fillMaxWidth()
-                                .background(if (row.id % 2 == 0) Color(0xFF0A0A0A) else Color(0xFF171717))
-                                .padding(vertical = 6.dp),
-                        ) {
-                            TableCell(row.season, 72)
-                            TableCell(row.player, 130)
-                            TableCell(row.bankNumber.toString(), 52)
-                            TableCell(row.machine, 170)
-                            TableCell(formatInt(row.rawScore), 120)
-                            TableCell(formatInt(row.points), 70)
+    BoxWithConstraints(modifier = modifier) {
+        val baseTableWidth = 614f
+        val scale = (maxWidth.value / baseTableWidth).coerceIn(1f, 1.8f)
+        val widths = StatsTableWidths(
+            season = (72 * scale).toInt(),
+            player = (130 * scale).toInt(),
+            bank = (52 * scale).toInt(),
+            machine = (170 * scale).toInt(),
+            score = (120 * scale).toInt(),
+            points = (70 * scale).toInt(),
+        )
+        val tableWidth = widths.season + widths.player + widths.bank + widths.machine + widths.score + widths.points
+
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(hState),
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Column(modifier = Modifier.width(tableWidth.dp)) {
+                HeaderRow(widths)
+                if (filtered.isEmpty()) {
+                    EmptyLabel("No rows - check filters or data source.")
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        itemsIndexed(filtered, key = { _, row -> row.id }) { _, row ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(if (row.id % 2 == 0) Color(0xFF0A0A0A) else Color(0xFF171717))
+                                    .padding(vertical = 6.dp),
+                            ) {
+                                FixedWidthTableCell(row.season, widths.season)
+                                FixedWidthTableCell(row.player, widths.player)
+                                FixedWidthTableCell(row.bankNumber.toString(), widths.bank)
+                                FixedWidthTableCell(row.machine, widths.machine)
+                                FixedWidthTableCell(formatInt(row.rawScore), widths.score)
+                                FixedWidthTableCell(formatInt(row.points), widths.points)
+                            }
                         }
                     }
                 }
@@ -282,15 +362,15 @@ private fun MachineStatsPanel(
     season: String,
     bankStats: StatResult,
     historyStats: StatResult,
+    modifier: Modifier = Modifier,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Machine Stats", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(1.dp),
+    ) {
         if (machine.isEmpty()) {
-            Text("Select a machine to view detailed stats.", color = Color(0xFFD0D0D0), fontSize = 12.sp)
+            Text("Select a machine to see machine stats", color = Color(0xFFD0D0D0), fontSize = 12.sp)
             return@Column
-        }
-        if (bankNumber == null || season.isEmpty()) {
-            Text("Select season, bank, and machine to view detailed stats.", color = Color(0xFFD0D0D0), fontSize = 12.sp)
         }
         MachineStatsTable(
             selectedLabel = selectedBankLabel(season, bankNumber),
@@ -309,32 +389,32 @@ private fun MachineStatsTable(selectedLabel: String, selectedStats: StatResult, 
             .padding(top = 0.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            HeaderCell("", modifier = Modifier.weight(0.9f))
-            HeaderCell(selectedLabel, modifier = Modifier.weight(1.55f), alignRight = true)
-            HeaderCell("All Seasons", modifier = Modifier.weight(1.55f), alignRight = true)
+            HeaderCell("", modifier = Modifier.weight(0.7f))
+            HeaderCell(selectedLabel, modifier = Modifier.weight(1.65f))
+            HeaderCell("All Seasons", modifier = Modifier.weight(1.65f))
         }
         rowLabels.forEachIndexed { idx, label ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 0.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                StatLabelCell(label, modifier = Modifier.weight(0.9f))
+                StatLabelCell(label, modifier = Modifier.weight(0.7f))
                 StatValueCell(
                     label = label,
                     stats = selectedStats,
                     isAllSeasons = false,
-                    modifier = Modifier.weight(1.55f),
+                    modifier = Modifier.weight(1.65f),
                 )
                 StatValueCell(
                     label = label,
                     stats = allSeasonsStats,
                     isAllSeasons = true,
-                    modifier = Modifier.weight(1.55f),
+                    modifier = Modifier.weight(1.65f),
                 )
             }
         }
@@ -358,7 +438,7 @@ private fun HeaderCell(text: String, modifier: Modifier, alignRight: Boolean = f
 private fun StatLabelCell(text: String, modifier: Modifier) {
     Text(
         text = text,
-        modifier = modifier.padding(vertical = 1.dp),
+        modifier = modifier,
         color = Color(0xFFD7D7D7),
         fontSize = 12.sp,
         fontWeight = FontWeight.Medium,
@@ -389,13 +469,13 @@ private fun StatValueCell(label: String, stats: StatResult, isAllSeasons: Boolea
         else -> null
     }
 
-    Column(modifier = modifier.padding(vertical = 1.dp)) {
+    Column(modifier = modifier) {
         Text(
             text = value,
             color = valueColor,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.End,
+            textAlign = TextAlign.Start,
             modifier = Modifier.fillMaxWidth(),
             maxLines = 1,
         )
@@ -404,9 +484,10 @@ private fun StatValueCell(label: String, stats: StatResult, isAllSeasons: Boolea
             Text(
                 text = playerText,
                 color = Color(0xFF737373),
-                fontSize = 10.sp,
-                textAlign = TextAlign.End,
-                modifier = Modifier.fillMaxWidth(),
+                fontSize = 9.sp,
+                textAlign = TextAlign.Start,
+                lineHeight = 9.sp,
+                modifier = Modifier.fillMaxWidth().padding(top = 0.dp),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -426,99 +507,15 @@ private fun playerDisplayText(player: String): String = if (player.isBlank()) "P
 private fun machineDisplayText(machine: String): String = if (machine.isBlank()) "Machine: All" else machine
 
 @Composable
-private fun FilterMenu(
-    selectedText: String,
-    options: List<FilterOption>,
-    modifier: Modifier = Modifier,
-    onSelect: (String) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val density = LocalDensity.current
-    var menuWidth by remember { mutableStateOf(0.dp) }
-    Box(modifier = modifier.fillMaxWidth()) {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = 40.dp)
-                .onGloballyPositioned { coordinates ->
-                    menuWidth = with(density) { coordinates.size.width.toDp() }
-                },
-            contentPadding = PaddingValues(start = 10.dp, end = 28.dp, top = 7.dp, bottom = 7.dp),
-            shape = RoundedCornerShape(11.dp),
-            border = BorderStroke(1.dp, ControlBorder),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = ControlBg,
-                contentColor = Color.White,
-            ),
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    selectedText,
-                    modifier = Modifier.weight(1f),
-                    fontSize = 13.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Start,
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-            }
-        }
-        Icon(
-            imageVector = Icons.Filled.KeyboardArrowDown,
-            contentDescription = null,
-            tint = Color(0xFFC6C6C6),
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 8.dp)
-                .size(18.dp),
-        )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = if (menuWidth > 0.dp) Modifier.width(menuWidth) else Modifier,
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(text = { Text(option.label, fontSize = 12.sp) }, onClick = {
-                    expanded = false
-                    onSelect(option.value)
-                })
-            }
-        }
-    }
-}
-
-@Composable
-private fun HeaderRow(headers: List<String>) {
+private fun HeaderRow(widths: StatsTableWidths) {
     Row {
-        headers.forEachIndexed { idx, header ->
-            TableCell(
-                text = header,
-                width = when (idx) {
-                    0 -> 72
-                    1 -> 130
-                    2 -> 52
-                    3 -> 170
-                    4 -> 120
-                    else -> 70
-                },
-                bold = true,
-                color = Color(0xFFCFCFCF),
-            )
-        }
+        FixedWidthTableCell(text = "Season", width = widths.season, bold = true, color = Color(0xFFCFCFCF))
+        FixedWidthTableCell(text = "Player", width = widths.player, bold = true, color = Color(0xFFCFCFCF))
+        FixedWidthTableCell(text = "Bank", width = widths.bank, bold = true, color = Color(0xFFCFCFCF))
+        FixedWidthTableCell(text = "Machine", width = widths.machine, bold = true, color = Color(0xFFCFCFCF))
+        FixedWidthTableCell(text = "Score", width = widths.score, bold = true, color = Color(0xFFCFCFCF))
+        FixedWidthTableCell(text = "Points", width = widths.points, bold = true, color = Color(0xFFCFCFCF))
     }
-}
-
-@Composable
-private fun TableCell(text: String, width: Int, bold: Boolean = false, color: Color = Color.White) {
-    Text(
-        text = text,
-        modifier = Modifier.width(width.dp).padding(horizontal = 3.dp),
-        color = color,
-        fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal,
-        fontSize = 13.sp,
-        maxLines = 1,
-    )
 }
 
 private fun parseScoreRows(text: String): List<ScoreRow> {

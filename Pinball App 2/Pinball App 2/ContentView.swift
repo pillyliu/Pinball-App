@@ -66,26 +66,14 @@ private struct LPLInfoView: View {
                                 .font(.callout)
                                 .foregroundStyle(Color.white.opacity(0.92))
 
-                            (
-                                Text("We meet the 2nd and 4th Tuesdays at ") +
-                                Text("The Avenue Cafe").bold() +
-                                Text(" (2021 E. Michigan Ave, Lansing), about halfway between MSU and the Capitol. We're currently in ") +
-                                Text("Season 24").bold() +
-                                Text(", which started in January. New members can join during the first 5 meetings, and players must attend at least 4 of the 8 meetings to qualify for finals. Guests are welcome at any session. ") +
-                                Text("Season dues are $10").bold() +
-                                Text(", paid in cash.")
+                            Text(
+                                "We meet the 2nd and 4th Tuesdays at \(Text("The Avenue Cafe").bold()) (2021 E. Michigan Ave, Lansing), about halfway between MSU and the Capitol. We're currently in \(Text("Season 24").bold()), which started in January. New members can join during the first 5 meetings, and players must attend at least 4 of the 8 meetings to qualify for finals. Guests are welcome at any session. \(Text("Season dues are $10").bold()), paid in cash."
                             )
                             .font(.callout)
                             .foregroundStyle(Color.white.opacity(0.92))
 
-                            (
-                                Text("We also run a side tournament, ") +
-                                Text("Tuesday Night Smackdown").bold() +
-                                Text(", played on a single game. Qualifying starts around ") +
-                                Text("6 pm").bold() +
-                                Text(", with finals (top 8 players) after league play finishes, usually around ") +
-                                Text("9:30 pm").bold() +
-                                Text(".")
+                            Text(
+                                "We also run a side tournament, \(Text("Tuesday Night Smackdown").bold()), played on a single game. Qualifying starts around \(Text("6 pm").bold()), with finals (top 8 players) after league play finishes, usually around \(Text("9:30 pm").bold())."
                             )
                             .font(.callout)
                             .foregroundStyle(Color.white.opacity(0.92))
