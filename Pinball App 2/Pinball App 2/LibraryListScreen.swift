@@ -32,7 +32,7 @@ struct LibraryListScreen: View {
     }
     private var gridMinCardWidth: CGFloat {
         if isLargeTablet { return 220 }
-        return isLandscapePhone ? 180 : 170
+        return 170
     }
     private var lastVisibleGameID: String? {
         viewModel.sortedFilteredGames.last?.id

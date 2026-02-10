@@ -221,12 +221,11 @@ private extension MarkdownWebView {
               padding-top: calc(14px + env(safe-area-inset-top));
               padding-bottom: calc(18px + env(safe-area-inset-bottom));
               font: -apple-system-body;
-              font-size: 18px;
               -webkit-text-size-adjust: 100%;
               text-size-adjust: 100%;
               background: transparent;
               color: #f3f3f3;
-              line-height: 1.55;
+              line-height: 1.45;
               max-width: 980px;
               box-sizing: border-box;
             }
