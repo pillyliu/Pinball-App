@@ -3,8 +3,13 @@ import SwiftUI
 struct LibraryListScreen: View {
     @StateObject private var viewModel = PinballLibraryViewModel()
     @State private var controlsHeight: CGFloat = 96
+    @State private var viewportWidth: CGFloat = 0
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
+    private var isLargeTablet: Bool {
+        AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportWidth)
+    }
     private var isLandscapePhone: Bool { verticalSizeClass == .compact }
     private let landscapeControlHeight: CGFloat = 40
     private var cardsTopBuffer: CGFloat {
@@ -15,6 +20,16 @@ struct LibraryListScreen: View {
     }
     private var scrollBottomClearance: CGFloat {
         isLandscapePhone ? 70 : 100
+    }
+    private var contentHorizontalPadding: CGFloat {
+        AppLayout.contentHorizontalPadding(verticalSizeClass: verticalSizeClass, isLargeTablet: isLargeTablet)
+    }
+    private var readableContentWidth: CGFloat? {
+        AppLayout.maxReadableContentWidth(isLargeTablet: isLargeTablet)
+    }
+    private var gridMinCardWidth: CGFloat {
+        if isLargeTablet { return 220 }
+        return isLandscapePhone ? 180 : 170
     }
     private var lastVisibleGameID: String? {
         viewModel.sortedFilteredGames.last?.id
@@ -27,7 +42,8 @@ struct LibraryListScreen: View {
 
                 ZStack(alignment: .top) {
                     content
-                        .padding(.horizontal, 14)
+                        .appReadableWidth(maxWidth: readableContentWidth)
+                        .padding(.horizontal, contentHorizontalPadding)
                         .ignoresSafeArea(edges: .bottom)
 
                     GeometryReader { geo in
@@ -56,7 +72,8 @@ struct LibraryListScreen: View {
 
                     VStack(spacing: 8) {
                         controls
-                            .padding(.horizontal, 14)
+                            .appReadableWidth(maxWidth: readableContentWidth)
+                            .padding(.horizontal, contentHorizontalPadding)
                             .padding(.top, 6)
                             .background(
                                 GeometryReader { geo in
@@ -69,12 +86,22 @@ struct LibraryListScreen: View {
                                 .font(.footnote)
                                 .foregroundStyle(.red)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 14)
+                                .appReadableWidth(maxWidth: readableContentWidth)
+                                .padding(.horizontal, contentHorizontalPadding)
                         }
                     }
                     .zIndex(1)
                 }
             }
+            .background(
+                GeometryReader { geo in
+                    Color.clear
+                        .onAppear { viewportWidth = geo.size.width }
+                        .onChange(of: geo.size.width) { _, newValue in
+                            viewportWidth = newValue
+                        }
+                }
+            )
             .toolbar(.hidden, for: .navigationBar)
             .onPreferenceChange(LibraryControlsHeightKey.self) { newValue in
                 guard newValue > 0 else { return }
@@ -136,7 +163,7 @@ struct LibraryListScreen: View {
         )
         .textInputAutocapitalization(.never)
         .autocorrectionDisabled(true)
-        .font(.subheadline)
+        .font(isLargeTablet ? .body : .subheadline)
         .foregroundStyle(Color(white: 0.96))
         .padding(.horizontal, isLandscapePhone ? 11 : 12)
         .padding(.vertical, isLandscapePhone ? 6 : 9)
@@ -153,11 +180,11 @@ struct LibraryListScreen: View {
         } label: {
             HStack(spacing: 6) {
                 Text(viewModel.selectedSortLabel)
-                    .font(isLandscapePhone ? .subheadline : .caption2)
+                    .font(isLandscapePhone || isLargeTablet ? .subheadline : .caption2)
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 Image(systemName: "chevron.down")
-                    .font(isLandscapePhone ? .subheadline : .caption2)
+                    .font(isLandscapePhone || isLargeTablet ? .subheadline : .caption2)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -180,11 +207,11 @@ struct LibraryListScreen: View {
         } label: {
             HStack(spacing: 6) {
                 Text(viewModel.selectedBankLabel)
-                    .font(isLandscapePhone ? .subheadline : .caption2)
+                    .font(isLandscapePhone || isLargeTablet ? .subheadline : .caption2)
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 Image(systemName: "chevron.down")
-                    .font(isLandscapePhone ? .subheadline : .caption2)
+                    .font(isLandscapePhone || isLargeTablet ? .subheadline : .caption2)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -240,7 +267,7 @@ struct LibraryListScreen: View {
                                 .padding(.vertical, 10)
                         }
 
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 12)], spacing: 12) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: gridMinCardWidth), spacing: 12)], spacing: 12) {
                             ForEach(section.games) { game in
                                 gameCard(for: game)
                             }
@@ -252,7 +279,7 @@ struct LibraryListScreen: View {
             }
         } else {
             ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 12)], spacing: 12) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: gridMinCardWidth), spacing: 12)], spacing: 12) {
                     ForEach(viewModel.sortedFilteredGames) { game in
                         gameCard(for: game)
                     }
@@ -277,18 +304,18 @@ struct LibraryListScreen: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(game.name)
-                        .font(.headline)
+                        .font(isLargeTablet ? .title3 : .headline)
                         .foregroundStyle(.white)
                         .lineLimit(2)
-                        .frame(height: 44, alignment: .topLeading)
+                        .frame(height: isLargeTablet ? 52 : 44, alignment: .topLeading)
 
                     Text(game.manufacturerYearLine)
-                        .font(.caption)
+                        .font(isLargeTablet ? .footnote : .caption)
                         .foregroundStyle(Color(white: 0.7))
                         .lineLimit(1)
 
                     Text(game.locationBankLine)
-                        .font(.caption)
+                        .font(isLargeTablet ? .footnote : .caption)
                         .foregroundStyle(Color(white: 0.78))
                         .lineLimit(1)
                 }

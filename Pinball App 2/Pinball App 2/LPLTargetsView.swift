@@ -11,8 +11,15 @@ import Combine
 struct LPLTargetsView: View {
     @StateObject private var viewModel = LPLTargetsViewModel()
     @State private var tableAvailableWidth: CGFloat = 0
+    @State private var viewportWidth: CGFloat = 0
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
-    private var contentHorizontalPadding: CGFloat { verticalSizeClass == .compact ? 2 : 14 }
+    private var isLargeTablet: Bool {
+        AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportWidth)
+    }
+    private var contentHorizontalPadding: CGFloat {
+        verticalSizeClass == .compact ? 2 : 14
+    }
 
     private let baseGameColumnWidth: CGFloat = 160
     private let baseBankColumnWidth: CGFloat = 30
@@ -20,7 +27,7 @@ struct LPLTargetsView: View {
     private var widthScale: CGFloat {
         guard tableAvailableWidth > 0 else { return 1 }
         let baseTotal = baseGameColumnWidth + baseBankColumnWidth + (baseScoreColumnWidth * 3)
-        return max(1, min(1.7, tableAvailableWidth / baseTotal))
+        return max(1, min(AppLayout.maxTableWidthScale(isLargeTablet: isLargeTablet), tableAvailableWidth / baseTotal))
     }
     private var gameColumnWidth: CGFloat { baseGameColumnWidth * widthScale }
     private var bankColumnWidth: CGFloat { baseBankColumnWidth * widthScale }
@@ -55,6 +62,15 @@ struct LPLTargetsView: View {
                 .padding(.top, 4)
                 .padding(.bottom, 8)
             }
+            .background(
+                GeometryReader { geo in
+                    Color.clear
+                        .onAppear { viewportWidth = geo.size.width }
+                        .onChange(of: geo.size.width) { _, newValue in
+                            viewportWidth = newValue
+                        }
+                }
+            )
             .toolbar(.hidden, for: .navigationBar)
             .task {
                 await viewModel.loadIfNeeded()
@@ -72,45 +88,45 @@ struct LPLTargetsView: View {
             if isLandscapePhone {
                 HStack(spacing: 10) {
                     Text("2nd highest \"great game\"")
-                        .font(.caption.weight(.semibold))
+                        .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
                         .foregroundStyle(greatColor)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("4th highest main target")
-                        .font(.caption.weight(.semibold))
+                        .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
                         .foregroundStyle(targetColor)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("8th highest solid floor")
-                        .font(.caption.weight(.semibold))
+                        .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
                         .foregroundStyle(floorColor)
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
             } else {
                 HStack(spacing: 10) {
                     Text("2nd highest")
-                        .font(.caption.weight(.semibold))
+                        .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
                         .foregroundStyle(greatColor)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("4th highest")
-                        .font(.caption.weight(.semibold))
+                        .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
                         .foregroundStyle(targetColor)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("8th highest")
-                        .font(.caption.weight(.semibold))
+                        .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
                         .foregroundStyle(floorColor)
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
 
                 HStack(spacing: 10) {
                     Text("\"great game\"")
-                        .font(.caption)
+                        .font(isLargeTablet ? .footnote : .caption)
                         .foregroundStyle(greatColor)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("main target")
-                        .font(.caption)
+                        .font(isLargeTablet ? .footnote : .caption)
                         .foregroundStyle(targetColor)
                         .frame(maxWidth: .infinity, alignment: .center)
                     Text("solid floor")
-                        .font(.caption)
+                        .font(isLargeTablet ? .footnote : .caption)
                         .foregroundStyle(floorColor)
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
@@ -125,27 +141,27 @@ struct LPLTargetsView: View {
                     ZStack {
                         HStack(spacing: 6) {
                             Text("Sort: \(LPLTargetsSortMode.widestTitle)")
-                                .font(.caption2)
+                                .font(isLargeTablet ? .footnote : .caption2)
                                 .lineLimit(1)
                             Spacer(minLength: 4)
                             Image(systemName: "chevron.down")
-                                .font(.caption2)
+                                .font(isLargeTablet ? .footnote : .caption2)
                                 .foregroundStyle(.secondary)
                         }
                         .opacity(0)
 
                         HStack(spacing: 6) {
                             Text("Sort: \(viewModel.sortMode.title)")
-                                .font(.caption2)
+                                .font(isLargeTablet ? .footnote : .caption2)
                                 .lineLimit(1)
                             Spacer(minLength: 4)
                             Image(systemName: "chevron.down")
-                                .font(.caption2)
+                                .font(isLargeTablet ? .footnote : .caption2)
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, isLargeTablet ? 12 : 10)
+                    .padding(.vertical, isLargeTablet ? 8 : 6)
                     .appControlStyle()
                 }
                 .tint(.white)
@@ -158,15 +174,15 @@ struct LPLTargetsView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Text(viewModel.selectedBankLabel)
-                            .font(.caption2)
+                            .font(isLargeTablet ? .footnote : .caption2)
                             .lineLimit(1)
                         Spacer(minLength: 4)
                         Image(systemName: "chevron.down")
-                            .font(.caption2)
+                            .font(isLargeTablet ? .footnote : .caption2)
                             .foregroundStyle(.secondary)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, isLargeTablet ? 12 : 10)
+                    .padding(.vertical, isLargeTablet ? 8 : 6)
                     .appControlStyle()
                 }
                 .tint(.white)
@@ -189,7 +205,8 @@ struct LPLTargetsView: View {
                                     row: row,
                                     gameColumnWidth: gameColumnWidth,
                                     bankColumnWidth: bankColumnWidth,
-                                    scoreColumnWidth: scoreColumnWidth
+                                    scoreColumnWidth: scoreColumnWidth,
+                                    largeText: isLargeTablet
                                 )
                                 .background(index.isMultiple(of: 2) ? AppTheme.rowEven : AppTheme.rowOdd)
 
@@ -217,19 +234,19 @@ struct LPLTargetsView: View {
 
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            LPLTargetsHeaderCell(title: "Game", width: gameColumnWidth)
-            LPLTargetsHeaderCell(title: "B", width: bankColumnWidth, alignment: .leading)
-            LPLTargetsHeaderCell(title: "2nd", width: scoreColumnWidth, alignment: .leading)
-            LPLTargetsHeaderCell(title: "4th", width: scoreColumnWidth, alignment: .leading)
-            LPLTargetsHeaderCell(title: "8th", width: scoreColumnWidth, alignment: .leading)
+            LPLTargetsHeaderCell(title: "Game", width: gameColumnWidth, largeText: isLargeTablet)
+            LPLTargetsHeaderCell(title: "B", width: bankColumnWidth, alignment: .leading, largeText: isLargeTablet)
+            LPLTargetsHeaderCell(title: "2nd", width: scoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
+            LPLTargetsHeaderCell(title: "4th", width: scoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
+            LPLTargetsHeaderCell(title: "8th", width: scoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
         }
-        .frame(height: 34)
+        .frame(height: isLargeTablet ? 40 : 34)
         .background(Color(white: 0.1))
     }
 
     private var footerSection: some View {
         Text("Benchmarks are based on historical LPL league results across all seasons where each game appeared. For each game, scores are derived from per-bank results using 2nd / 4th / 8th highest averages with sample-size adjustments. These values are then averaged across all bank appearances for that game.")
-            .font(.caption)
+            .font(isLargeTablet ? .footnote : .caption)
             .foregroundStyle(Color(white: 0.7))
             .padding(.horizontal, 4)
             .padding(.top, 2)
@@ -241,6 +258,7 @@ private struct LPLTargetsRowView: View {
     let gameColumnWidth: CGFloat
     let bankColumnWidth: CGFloat
     let scoreColumnWidth: CGFloat
+    let largeText: Bool
 
     var body: some View {
         HStack(spacing: 0) {
@@ -250,7 +268,7 @@ private struct LPLTargetsRowView: View {
             rowCell(row.target.main.formattedWithCommas, width: scoreColumnWidth, alignment: .leading, color: Color(red: 0.75, green: 0.86, blue: 0.99), monospaced: true)
             rowCell(row.target.floor.formattedWithCommas, width: scoreColumnWidth, alignment: .leading, color: Color(red: 0.9, green: 0.91, blue: 0.92), monospaced: true)
         }
-        .frame(height: 32)
+        .frame(height: largeText ? 38 : 32)
     }
 
     private func rowCell(
@@ -262,7 +280,9 @@ private struct LPLTargetsRowView: View {
         weight: Font.Weight = .regular
     ) -> some View {
         Text(text)
-            .font(monospaced ? .footnote.monospacedDigit().weight(weight) : .footnote.weight(weight))
+            .font(monospaced
+                ? (largeText ? Font.callout.monospacedDigit().weight(weight) : Font.footnote.monospacedDigit().weight(weight))
+                : (largeText ? Font.callout.weight(weight) : Font.footnote.weight(weight)))
             .foregroundStyle(color)
             .lineLimit(1)
             .frame(width: width, alignment: alignment)
@@ -274,10 +294,11 @@ private struct LPLTargetsHeaderCell: View {
     let title: String
     let width: CGFloat
     var alignment: Alignment = .leading
+    var largeText: Bool = false
 
     var body: some View {
         Text(title)
-            .font(.caption2.weight(.semibold))
+            .font((largeText ? Font.footnote : Font.caption2).weight(.semibold))
             .foregroundStyle(Color(white: 0.75))
             .frame(width: width, alignment: alignment)
             .padding(.horizontal, 4)

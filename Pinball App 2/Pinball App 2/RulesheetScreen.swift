@@ -226,6 +226,20 @@ private extension MarkdownWebView {
               background: transparent;
               color: #f3f3f3;
               line-height: 1.45;
+              max-width: 980px;
+              box-sizing: border-box;
+            }
+            article { width: 100%; }
+            @media (min-width: 1000px) {
+              body {
+                margin-left: auto;
+                margin-right: auto;
+                font-size: 18px;
+                line-height: 1.5;
+                padding-left: max(24px, calc(env(safe-area-inset-left) + 12px));
+                padding-right: max(24px, calc(env(safe-area-inset-right) + 12px));
+              }
+              th, td { padding: 8px 10px; }
             }
             #content > :first-child { margin-top: 0 !important; }
             :target { scroll-margin-top: calc(env(safe-area-inset-top) + 0px); }

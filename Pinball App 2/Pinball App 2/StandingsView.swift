@@ -11,10 +11,15 @@ import Combine
 struct StandingsView: View {
     @StateObject private var viewModel = StandingsViewModel()
     @State private var tableAvailableWidth: CGFloat = 0
+    @State private var viewportWidth: CGFloat = 0
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    private var isLargeTablet: Bool {
+        AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportWidth)
+    }
     private var widthScale: CGFloat {
         guard tableAvailableWidth > 0 else { return 1 }
-        return max(1, min(1.7, tableAvailableWidth / 646))
+        return max(1, min(AppLayout.maxTableWidthScale(isLargeTablet: isLargeTablet), tableAvailableWidth / 646))
     }
     private var rankWidth: CGFloat { 34 * widthScale }
     private var playerWidth: CGFloat { 136 * widthScale }
@@ -24,7 +29,9 @@ struct StandingsView: View {
     private var bankWidth: CGFloat { 42 * widthScale }
     private var tableContentWidth: CGFloat { rankWidth + playerWidth + pointsWidth + eligibleWidth + nightsWidth + bankWidth * 8 + 10 }
     private var tableMinWidth: CGFloat { max(tableContentWidth, tableAvailableWidth) }
-    private var contentHorizontalPadding: CGFloat { verticalSizeClass == .compact ? 2 : 14 }
+    private var contentHorizontalPadding: CGFloat {
+        verticalSizeClass == .compact ? 2 : 14
+    }
 
     var body: some View {
         NavigationStack {
@@ -49,6 +56,15 @@ struct StandingsView: View {
                 .padding(.top, 4)
                 .padding(.bottom, 8)
             }
+            .background(
+                GeometryReader { geo in
+                    Color.clear
+                        .onAppear { viewportWidth = geo.size.width }
+                        .onChange(of: geo.size.width) { _, newValue in
+                            viewportWidth = newValue
+                        }
+                }
+            )
             .toolbar(.hidden, for: .navigationBar)
             .task {
                 await viewModel.loadIfNeeded()
@@ -66,16 +82,16 @@ struct StandingsView: View {
         } label: {
             HStack(spacing: 8) {
                 Text(viewModel.selectedSeasonLabel)
-                    .font(.footnote)
+                    .font(isLargeTablet ? .callout : .footnote)
                     .lineLimit(1)
                 Spacer()
                 Image(systemName: "chevron.down")
-                    .font(.caption)
+                    .font(isLargeTablet ? .footnote : .caption)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, isLargeTablet ? 14 : 12)
+            .padding(.vertical, isLargeTablet ? 10 : 8)
             .appControlStyle()
         }
         .disabled(viewModel.seasons.isEmpty)
@@ -106,7 +122,8 @@ struct StandingsView: View {
                                         pointsWidth: pointsWidth,
                                         eligibleWidth: eligibleWidth,
                                         nightsWidth: nightsWidth,
-                                        bankWidth: bankWidth
+                                        bankWidth: bankWidth,
+                                        largeText: isLargeTablet
                                     )
                                     .background(index.isMultiple(of: 2) ? AppTheme.rowEven : AppTheme.rowOdd)
                                     Divider().overlay(Color(white: 0.15))
@@ -134,21 +151,21 @@ struct StandingsView: View {
 
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            AppHeaderCell(title: "#", width: rankWidth, horizontalPadding: 3)
-            AppHeaderCell(title: "Player", width: playerWidth, horizontalPadding: 3)
-            AppHeaderCell(title: "Pts", width: pointsWidth, horizontalPadding: 3)
-            AppHeaderCell(title: "Elg", width: eligibleWidth, horizontalPadding: 3)
-            AppHeaderCell(title: "N", width: nightsWidth, horizontalPadding: 3)
-            AppHeaderCell(title: "B1", width: bankWidth, horizontalPadding: 3)
-            AppHeaderCell(title: "B2", width: bankWidth, horizontalPadding: 3)
-            AppHeaderCell(title: "B3", width: bankWidth, horizontalPadding: 3)
-            AppHeaderCell(title: "B4", width: bankWidth, horizontalPadding: 3)
-            AppHeaderCell(title: "B5", width: bankWidth, horizontalPadding: 3)
-            AppHeaderCell(title: "B6", width: bankWidth, horizontalPadding: 3)
-            AppHeaderCell(title: "B7", width: bankWidth, horizontalPadding: 3)
-            AppHeaderCell(title: "B8", width: bankWidth, horizontalPadding: 3)
+            AppHeaderCell(title: "#", width: rankWidth, horizontalPadding: 3, largeText: isLargeTablet)
+            AppHeaderCell(title: "Player", width: playerWidth, horizontalPadding: 3, largeText: isLargeTablet)
+            AppHeaderCell(title: "Pts", width: pointsWidth, horizontalPadding: 3, largeText: isLargeTablet)
+            AppHeaderCell(title: "Elg", width: eligibleWidth, horizontalPadding: 3, largeText: isLargeTablet)
+            AppHeaderCell(title: "N", width: nightsWidth, horizontalPadding: 3, largeText: isLargeTablet)
+            AppHeaderCell(title: "B1", width: bankWidth, horizontalPadding: 3, largeText: isLargeTablet)
+            AppHeaderCell(title: "B2", width: bankWidth, horizontalPadding: 3, largeText: isLargeTablet)
+            AppHeaderCell(title: "B3", width: bankWidth, horizontalPadding: 3, largeText: isLargeTablet)
+            AppHeaderCell(title: "B4", width: bankWidth, horizontalPadding: 3, largeText: isLargeTablet)
+            AppHeaderCell(title: "B5", width: bankWidth, horizontalPadding: 3, largeText: isLargeTablet)
+            AppHeaderCell(title: "B6", width: bankWidth, horizontalPadding: 3, largeText: isLargeTablet)
+            AppHeaderCell(title: "B7", width: bankWidth, horizontalPadding: 3, largeText: isLargeTablet)
+            AppHeaderCell(title: "B8", width: bankWidth, horizontalPadding: 3, largeText: isLargeTablet)
         }
-        .frame(height: 42)
+        .frame(height: isLargeTablet ? 46 : 42)
         .background(Color(white: 0.1))
     }
 }
@@ -162,6 +179,7 @@ private struct StandingsRowView: View {
     let eligibleWidth: CGFloat
     let nightsWidth: CGFloat
     let bankWidth: CGFloat
+    let largeText: Bool
 
     var body: some View {
         HStack(spacing: 0) {
@@ -175,7 +193,7 @@ private struct StandingsRowView: View {
                 rowCell(formatRounded(standing.banks[index]), width: bankWidth, monospaced: true)
             }
         }
-        .frame(height: 36)
+        .frame(height: largeText ? 40 : 36)
     }
 
     private var rankColor: Color {
@@ -196,7 +214,9 @@ private struct StandingsRowView: View {
         weight: Font.Weight = .regular
     ) -> some View {
         Text(text)
-            .font(monospaced ? .footnote.monospacedDigit().weight(weight) : .footnote.weight(weight))
+            .font(monospaced
+                ? (largeText ? Font.callout.monospacedDigit().weight(weight) : Font.footnote.monospacedDigit().weight(weight))
+                : (largeText ? Font.callout.weight(weight) : Font.footnote.weight(weight)))
             .foregroundStyle(color)
             .lineLimit(1)
             .truncationMode(.tail)

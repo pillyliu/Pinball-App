@@ -10,6 +10,27 @@ enum AppTheme {
     static let rowEven = Color(red: 10 / 255, green: 10 / 255, blue: 10 / 255)
 }
 
+enum AppLayout {
+    static func isLargeTablet(horizontalSizeClass: UserInterfaceSizeClass?, width: CGFloat) -> Bool {
+        horizontalSizeClass == .regular && width >= 1000
+    }
+
+    static func contentHorizontalPadding(verticalSizeClass: UserInterfaceSizeClass?, isLargeTablet: Bool) -> CGFloat {
+        if verticalSizeClass == .compact {
+            return 2
+        }
+        return isLargeTablet ? 22 : 14
+    }
+
+    static func maxReadableContentWidth(isLargeTablet: Bool) -> CGFloat? {
+        isLargeTablet ? 1180 : nil
+    }
+
+    static func maxTableWidthScale(isLargeTablet _: Bool) -> CGFloat {
+        return 1.9
+    }
+}
+
 struct AppBackground: View {
     var body: some View {
         AppTheme.bg
@@ -26,6 +47,12 @@ struct AppBackground: View {
 }
 
 extension View {
+    func appReadableWidth(maxWidth: CGFloat?) -> some View {
+        self
+            .frame(maxWidth: maxWidth ?? .infinity)
+            .frame(maxWidth: .infinity)
+    }
+
     func appPanelStyle() -> some View {
         self
             .background(AppTheme.panel)

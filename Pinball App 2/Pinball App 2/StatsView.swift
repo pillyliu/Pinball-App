@@ -17,14 +17,21 @@ struct StatsView: View {
     @StateObject private var viewModel = StatsViewModel()
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @State private var viewportWidth: CGFloat = 0
     @State private var tableAvailableWidth: CGFloat = 0
     @State private var statsCardHeight: CGFloat = 0
-    private let headerHeight: CGFloat = 34
+    private var headerHeight: CGFloat { isLargeTablet ? 40 : 34 }
+    private var tableRowHeight: CGFloat { isLargeTablet ? 38 : 32 }
     
     private var isRegularWidth: Bool { horizontalSizeClass == .regular }
+    private var isLargeTablet: Bool {
+        AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportWidth)
+    }
     private var useLandscapeSplitLayout: Bool { verticalSizeClass == .compact }
     private var useWideFilterLayout: Bool { isRegularWidth || verticalSizeClass == .compact }
-    private var contentHorizontalPadding: CGFloat { verticalSizeClass == .compact ? 2 : 14 }
+    private var contentHorizontalPadding: CGFloat {
+        verticalSizeClass == .compact ? 2 : 14
+    }
     private var baseSeasonColWidth: CGFloat { isRegularWidth ? 74 : 56 }
     private var basePlayerColWidth: CGFloat { isRegularWidth ? 170 : 118 }
     private var baseBankNumColWidth: CGFloat { isRegularWidth ? 56 : 44 }
@@ -36,7 +43,7 @@ struct StatsView: View {
     }
     private var widthScale: CGFloat {
         guard tableAvailableWidth > 0 else { return 1 }
-        return max(1, min(1.7, tableAvailableWidth / baseTableContentWidth))
+        return max(1, min(AppLayout.maxTableWidthScale(isLargeTablet: isLargeTablet), tableAvailableWidth / baseTableContentWidth))
     }
     private var seasonColWidth: CGFloat { baseSeasonColWidth * widthScale }
     private var playerColWidth: CGFloat { basePlayerColWidth * widthScale }
@@ -125,6 +132,15 @@ struct StatsView: View {
                     .padding(.bottom, 14)
                 }
             }
+            .background(
+                GeometryReader { geo in
+                    Color.clear
+                        .onAppear { viewportWidth = geo.size.width }
+                        .onChange(of: geo.size.width) { _, newValue in
+                            viewportWidth = newValue
+                        }
+                }
+            )
             .toolbar(.hidden, for: .navigationBar)
             .task {
                 await viewModel.loadIfNeeded()
@@ -174,7 +190,7 @@ struct StatsView: View {
                         }
                     }
                 }
-                .frame(height: 88)
+                .frame(height: isLargeTablet ? 96 : 88)
             }
         }
     }
@@ -202,7 +218,9 @@ struct StatsView: View {
                                         bankNumColWidth: bankNumColWidth,
                                         machineColWidth: machineColWidth,
                                         scoreColWidth: scoreColWidth,
-                                        pointsColWidth: pointsColWidth
+                                        pointsColWidth: pointsColWidth,
+                                        rowHeight: tableRowHeight,
+                                        largeText: isLargeTablet
                                     )
                                         .background(idx.isMultiple(of: 2) ? AppTheme.rowEven : AppTheme.rowOdd)
                                     Divider().overlay(Color(white: 0.15))
@@ -231,12 +249,12 @@ struct StatsView: View {
 
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            AppHeaderCell(title: "Season", width: seasonColWidth)
-            AppHeaderCell(title: "Player", width: playerColWidth)
-            AppHeaderCell(title: "Bank", width: bankNumColWidth)
-            AppHeaderCell(title: "Machine", width: machineColWidth)
-            AppHeaderCell(title: "Score", width: scoreColWidth)
-            AppHeaderCell(title: "Points", width: pointsColWidth)
+            AppHeaderCell(title: "Season", width: seasonColWidth, largeText: isLargeTablet)
+            AppHeaderCell(title: "Player", width: playerColWidth, largeText: isLargeTablet)
+            AppHeaderCell(title: "Bank", width: bankNumColWidth, largeText: isLargeTablet)
+            AppHeaderCell(title: "Machine", width: machineColWidth, largeText: isLargeTablet)
+            AppHeaderCell(title: "Score", width: scoreColWidth, largeText: isLargeTablet)
+            AppHeaderCell(title: "Points", width: pointsColWidth, largeText: isLargeTablet)
         }
         .frame(height: headerHeight)
         .background(Color(white: 0.11))
@@ -248,7 +266,8 @@ struct StatsView: View {
             season: viewModel.season,
             bankNumber: viewModel.bankNumber,
             bankStats: viewModel.bankStats,
-            historicalStats: viewModel.historicalStats
+            historicalStats: viewModel.historicalStats,
+            largeText: isLargeTablet
         )
         .frame(maxWidth: .infinity)
     }
@@ -275,16 +294,16 @@ struct StatsView: View {
             HStack(spacing: 8) {
                 Text(selectedText)
                     .lineLimit(1)
-                    .font(.footnote)
+                    .font(isLargeTablet ? .callout : .footnote)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "chevron.down")
-                    .font(.caption.weight(.semibold))
+                    .font(isLargeTablet ? .footnote.weight(.semibold) : .caption.weight(.semibold))
                     .foregroundStyle(Color(white: 0.78))
             }
             .padding(.leading, 10)
             .padding(.trailing, 10)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+            .padding(.vertical, isLargeTablet ? 10 : 8)
+            .frame(maxWidth: .infinity, minHeight: isLargeTablet ? 46 : 40, alignment: .leading)
             .appControlStyle()
             .contentShape(Rectangle())
             .foregroundStyle(.white)
@@ -326,6 +345,8 @@ private struct TableRowView: View {
     let machineColWidth: CGFloat
     let scoreColWidth: CGFloat
     let pointsColWidth: CGFloat
+    let rowHeight: CGFloat
+    let largeText: Bool
 
     var body: some View {
         HStack(spacing: 0) {
@@ -336,12 +357,14 @@ private struct TableRowView: View {
             rowCell(formatScore(row.rawScore), width: scoreColWidth, monospaced: true)
             rowCell(formatPoints(row.points), width: pointsColWidth, monospaced: true)
         }
-        .frame(height: 32)
+        .frame(height: rowHeight)
     }
 
     private func rowCell(_ text: String, width: CGFloat, alignment: Alignment = .leading, monospaced: Bool = false) -> some View {
         Text(text)
-            .font(monospaced ? .footnote.monospacedDigit() : .footnote)
+            .font(monospaced
+                ? (largeText ? Font.callout.monospacedDigit() : Font.footnote.monospacedDigit())
+                : (largeText ? .callout : .footnote))
             .foregroundStyle(.white)
             .lineLimit(1)
             .frame(width: width, alignment: alignment)
@@ -355,6 +378,7 @@ private struct MachineStatsPanel: View {
     let bankNumber: Int?
     let bankStats: StatResult
     let historicalStats: StatResult
+    let largeText: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
@@ -366,7 +390,8 @@ private struct MachineStatsPanel: View {
                 MachineStatsTable(
                     selectedLabel: selectedBankLabel,
                     selectedStats: bankStats,
-                    allSeasonsStats: historicalStats
+                    allSeasonsStats: historicalStats,
+                    largeText: largeText
                 )
             }
         }
@@ -394,6 +419,7 @@ private struct MachineStatsTable: View {
     let selectedLabel: String
     let selectedStats: StatResult
     let allSeasonsStats: StatResult
+    let largeText: Bool
 
     private let labels = ["High", "Low", "Avg", "Med", "Std", "Count"]
     private let labelColumnWidth: CGFloat = 44
@@ -413,7 +439,7 @@ private struct MachineStatsTable: View {
             ForEach(labels, id: \.self) { label in
                 HStack(spacing: 8) {
                     Text(label)
-                        .font(.caption.weight(.medium))
+                        .font((largeText ? Font.footnote : Font.caption).weight(.medium))
                         .foregroundStyle(Color(white: 0.84))
                         .frame(width: labelColumnWidth, alignment: .leading)
                         .padding(.vertical, 3)
@@ -428,7 +454,7 @@ private struct MachineStatsTable: View {
 
     private func headerCell(_ text: String, align: Alignment) -> some View {
         Text(text)
-            .font(.caption2.weight(.medium))
+            .font((largeText ? Font.caption : Font.caption2).weight(.medium))
             .foregroundStyle(Color(white: 0.74))
             .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: align)
@@ -458,13 +484,13 @@ private struct MachineStatsTable: View {
 
         return VStack(alignment: .leading, spacing: 2) {
             Text(value)
-                .font(.caption.monospacedDigit().weight(.medium))
+                .font((largeText ? Font.footnote : Font.caption).monospacedDigit().weight(.medium))
                 .foregroundStyle(color)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if label == "High" || label == "Low" {
                 Text(playerName(player, allSeasons: allSeasons))
-                    .font(.caption2)
+                    .font(largeText ? .caption : .caption2)
                     .foregroundStyle(Color(red: 115 / 255, green: 115 / 255, blue: 115 / 255))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
