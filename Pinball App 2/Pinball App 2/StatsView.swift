@@ -366,7 +366,7 @@ private struct TableRowView: View {
 
     private func rowCell(_ text: String, width: CGFloat, alignment: Alignment = .leading, monospaced: Bool = false) -> some View {
         let horizontalPadding: CGFloat = 4
-        let adjustedWidth = max(0, width - (horizontalPadding * 2))
+        let adjustedWidth = AppTableLayout.adjustedCellWidth(width, horizontalPadding: horizontalPadding)
         return Text(text)
             .font(monospaced
                 ? (largeText ? Font.callout.monospacedDigit() : Font.footnote.monospacedDigit())

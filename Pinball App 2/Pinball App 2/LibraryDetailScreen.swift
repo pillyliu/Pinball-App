@@ -65,32 +65,7 @@ struct PinballGameDetailView: View {
 
     private func imageCard(usesDesktopLandscapeLayout: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Group {
-                if usesDesktopLandscapeLayout {
-                    FallbackAsyncImageView(
-                        candidates: game.gamePlayfieldCandidates,
-                        emptyMessage: nil,
-                        contentMode: .fit
-                    )
-                    .frame(maxWidth: .infinity)
-                    .id("game-detail-image-landscape")
-                } else {
-                    Rectangle()
-                        .fill(Color.clear)
-                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                        .overlay {
-                            FallbackAsyncImageView(
-                                candidates: game.gamePlayfieldCandidates,
-                                emptyMessage: nil,
-                                contentMode: .fill
-                            )
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .clipped()
-                        }
-                        .clipped()
-                        .id("game-detail-image-portrait")
-                }
-            }
+            imagePreview(usesDesktopLandscapeLayout: usesDesktopLandscapeLayout)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
             Text(game.metaLine)
@@ -121,6 +96,42 @@ struct PinballGameDetailView: View {
                 .stroke(Color(white: 0.2), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func imagePreview(usesDesktopLandscapeLayout: Bool) -> some View {
+        if usesDesktopLandscapeLayout {
+            landscapeImagePreview
+        } else {
+            portraitImagePreview
+        }
+    }
+
+    private var landscapeImagePreview: some View {
+        FallbackAsyncImageView(
+            candidates: game.gamePlayfieldCandidates,
+            emptyMessage: nil,
+            contentMode: .fit
+        )
+        .frame(maxWidth: .infinity)
+        .id("game-detail-image-landscape")
+    }
+
+    private var portraitImagePreview: some View {
+        Rectangle()
+            .fill(Color.clear)
+            .aspectRatio(16.0 / 9.0, contentMode: .fit)
+            .overlay {
+                FallbackAsyncImageView(
+                    candidates: game.gamePlayfieldCandidates,
+                    emptyMessage: nil,
+                    contentMode: .fill
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+            }
+            .clipped()
+            .id("game-detail-image-portrait")
     }
 
     private var sourcesCard: some View {

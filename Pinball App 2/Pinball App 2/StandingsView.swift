@@ -225,7 +225,7 @@ private struct StandingsRowView: View {
         weight: Font.Weight = .regular
     ) -> some View {
         let horizontalPadding: CGFloat = 3
-        let adjustedWidth = max(0, width - (horizontalPadding * 2))
+        let adjustedWidth = AppTableLayout.adjustedCellWidth(width, horizontalPadding: horizontalPadding)
         return Text(text)
             .font(monospaced
                 ? (largeText ? Font.callout.monospacedDigit().weight(weight) : Font.footnote.monospacedDigit().weight(weight))
