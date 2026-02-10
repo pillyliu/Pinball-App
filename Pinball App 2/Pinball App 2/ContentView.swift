@@ -56,6 +56,15 @@ private struct LPLInfoView: View {
     private var readableContentWidth: CGFloat? {
         AppLayout.maxReadableContentWidth(isLargeTablet: isLargeTablet)
     }
+    private var aboutTitleFont: Font {
+        isLargeTablet ? .title2 : .headline
+    }
+    private var aboutBodyFont: Font {
+        isLargeTablet ? .title3 : .callout
+    }
+    private var aboutLinkFont: Font {
+        isLargeTablet ? .title3.weight(.semibold) : .subheadline.weight(.semibold)
+    }
 
     var body: some View {
         NavigationStack {
@@ -72,29 +81,29 @@ private struct LPLInfoView: View {
                                 .frame(minHeight: 120, maxHeight: 220)
 
                             Text("Pinball in the Capital City")
-                                .font(isLargeTablet ? .title3 : .headline)
+                                .font(aboutTitleFont)
                                 .foregroundStyle(Color.white.opacity(0.92))
 
                             Text("The Lansing Pinball League is the Capital City's IFPA-endorsed pinball league, open to players of all skill levels. New players are always welcome. We're a friendly, casual group with everyone from first-timers to seasoned competitors.")
-                                .font(isLargeTablet ? .body : .callout)
+                                .font(aboutBodyFont)
                                 .foregroundStyle(Color.white.opacity(0.92))
 
                             Text(
                                 "We meet the 2nd and 4th Tuesdays at \(Text("The Avenue Cafe").bold()) (2021 E. Michigan Ave, Lansing), about halfway between MSU and the Capitol. We're currently in \(Text("Season 24").bold()), which started in January. New members can join during the first 5 meetings, and players must attend at least 4 of the 8 meetings to qualify for finals. Guests are welcome at any session. \(Text("Season dues are $10").bold()), paid in cash."
                             )
-                            .font(isLargeTablet ? .body : .callout)
+                            .font(aboutBodyFont)
                             .foregroundStyle(Color.white.opacity(0.92))
 
                             Text(
                                 "We also run a side tournament, \(Text("Tuesday Night Smackdown").bold()), played on a single game. Qualifying starts around \(Text("6 pm").bold()), with finals (top 8 players) after league play finishes, usually around \(Text("9:30 pm").bold())."
                             )
-                            .font(isLargeTablet ? .body : .callout)
+                            .font(aboutBodyFont)
                             .foregroundStyle(Color.white.opacity(0.92))
 
                             HStack(spacing: 10) {
                                 Link(destination: LPLLinks.website) {
                                     Text("lansingpinleague.com")
-                                        .font((isLargeTablet ? Font.body : Font.subheadline).weight(.semibold))
+                                        .font(aboutLinkFont)
                                         .foregroundStyle(Color.white.opacity(0.9))
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 8)
@@ -107,7 +116,7 @@ private struct LPLInfoView: View {
                                 }
                                 Link(destination: LPLLinks.facebook) {
                                     Text("Facebook Group")
-                                        .font((isLargeTablet ? Font.body : Font.subheadline).weight(.semibold))
+                                        .font(aboutLinkFont)
                                         .foregroundStyle(Color.white.opacity(0.9))
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 8)
@@ -127,7 +136,7 @@ private struct LPLInfoView: View {
                     }
 
                     Text("Source: lansingpinleague.com")
-                        .font(.caption2)
+                        .font(isLargeTablet ? .footnote : .caption2)
                         .foregroundStyle(Color.white.opacity(0.7))
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.bottom, 4)

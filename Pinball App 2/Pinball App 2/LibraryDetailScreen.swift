@@ -6,6 +6,7 @@ struct PinballGameDetailView: View {
     @StateObject private var viewModel: PinballGameInfoViewModel
     @State private var activeVideoID: String?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     init(game: PinballGame) {
         self.game = game
@@ -13,15 +14,44 @@ struct PinballGameDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                imageCard
-                videosCard
-                gameInfoCard
-                sourcesCard
+        GeometryReader { geo in
+            let viewportSize = geo.size
+            let largeTablet = AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportSize.width)
+            let usesDesktopLandscapeLayout = largeTablet && viewportSize.width > viewportSize.height
+
+            let gap: CGFloat = 14
+            let horizontalPadding: CGFloat = 14
+            let availableWidth = max(0, viewportSize.width - (horizontalPadding * 2) - (gap * 2))
+            let unitWidth = max(180, availableWidth / 4)
+            let desktopCardHeight = max(460, viewportSize.height - 220)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    if usesDesktopLandscapeLayout {
+                        HStack(alignment: .top, spacing: gap) {
+                            imageCard(usesDesktopLandscapeLayout: true)
+                                .frame(width: unitWidth, alignment: .topLeading)
+                                .frame(minHeight: desktopCardHeight, alignment: .top)
+                            videosCard(usesDesktopLandscapeLayout: true)
+                                .frame(width: unitWidth * 2, alignment: .topLeading)
+                                .frame(minHeight: desktopCardHeight, alignment: .top)
+                            gameInfoCard
+                                .frame(width: unitWidth, alignment: .topLeading)
+                                .frame(minHeight: desktopCardHeight, alignment: .top)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        imageCard(usesDesktopLandscapeLayout: false)
+                        videosCard(usesDesktopLandscapeLayout: false)
+                        gameInfoCard
+                    }
+
+                    sourcesCard
+                }
+                .padding(.horizontal, horizontalPadding)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
         }
         .background(AppBackground())
         .navigationTitle(game.name)
@@ -33,11 +63,34 @@ struct PinballGameDetailView: View {
         }
     }
 
-    private var imageCard: some View {
+    private func imageCard(usesDesktopLandscapeLayout: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            FallbackAsyncImageView(candidates: game.gamePlayfieldCandidates, emptyMessage: nil)
-            .frame(maxWidth: .infinity)
-            .frame(height: 200)
+            Group {
+                if usesDesktopLandscapeLayout {
+                    FallbackAsyncImageView(
+                        candidates: game.gamePlayfieldCandidates,
+                        emptyMessage: nil,
+                        contentMode: .fit
+                    )
+                    .frame(maxWidth: .infinity)
+                    .id("game-detail-image-landscape")
+                } else {
+                    Rectangle()
+                        .fill(Color.clear)
+                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                        .overlay {
+                            FallbackAsyncImageView(
+                                candidates: game.gamePlayfieldCandidates,
+                                emptyMessage: nil,
+                                contentMode: .fill
+                            )
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .clipped()
+                        }
+                        .clipped()
+                        .id("game-detail-image-portrait")
+                }
+            }
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
             Text(game.metaLine)
@@ -95,7 +148,7 @@ struct PinballGameDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var videosCard: some View {
+    private func videosCard(usesDesktopLandscapeLayout: Bool) -> some View {
         let playableVideos = game.videos.compactMap { video -> PinballGame.PlayableVideo? in
             guard let rawURL = video.url,
                   let id = PinballGame.youtubeID(from: rawURL) else {
@@ -113,18 +166,30 @@ struct PinballGameDetailView: View {
                 .foregroundStyle(.white)
 
             if playableVideos.isEmpty {
-                Text("No videos listed.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                ZStack {
+                    Color.black.opacity(0.42)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    Text("No videos listed.")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                }
+                .frame(maxWidth: .infinity)
+                .aspectRatio(16.0 / 9.0, contentMode: .fit)
             } else {
                 if let activeVideoID {
                     EmbeddedYouTubeView(videoID: activeVideoID)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 220)
+                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                        .frame(minHeight: usesDesktopLandscapeLayout ? 260 : 0)
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
 
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                LazyVGrid(
+                    columns: usesDesktopLandscapeLayout
+                        ? [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+                        : [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
+                    spacing: 10
+                ) {
                     ForEach(playableVideos) { video in
                         Button {
                             activeVideoID = video.id

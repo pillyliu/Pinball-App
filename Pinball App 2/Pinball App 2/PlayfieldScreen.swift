@@ -5,6 +5,7 @@ import Combine
 struct FallbackAsyncImageView: View {
     let candidates: [URL]
     let emptyMessage: String?
+    var contentMode: ContentMode = .fill
     @State private var index = 0
     @State private var image: UIImage?
     @State private var didFailCurrent = false
@@ -16,7 +17,7 @@ struct FallbackAsyncImageView: View {
             if let image {
                 Image(uiImage: image)
                     .resizable()
-                    .scaledToFill()
+                    .modifier(AppImageContentMode(contentMode: contentMode))
             } else {
                 Color(white: 0.12)
                     .overlay {
@@ -50,6 +51,21 @@ struct FallbackAsyncImageView: View {
                     index += 1
                 }
             }
+        }
+    }
+}
+
+private struct AppImageContentMode: ViewModifier {
+    let contentMode: ContentMode
+
+    func body(content: Content) -> some View {
+        switch contentMode {
+        case .fit:
+            content.scaledToFit()
+        case .fill:
+            content.scaledToFill()
+        @unknown default:
+            content.scaledToFill()
         }
     }
 }

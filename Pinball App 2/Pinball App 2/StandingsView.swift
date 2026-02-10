@@ -21,14 +21,25 @@ struct StandingsView: View {
         guard tableAvailableWidth > 0 else { return 1 }
         return max(1, min(AppLayout.maxTableWidthScale(isLargeTablet: isLargeTablet), tableAvailableWidth / 646))
     }
-    private var rankWidth: CGFloat { 34 * widthScale }
-    private var playerWidth: CGFloat { 136 * widthScale }
-    private var pointsWidth: CGFloat { 68 * widthScale }
-    private var eligibleWidth: CGFloat { 38 * widthScale }
-    private var nightsWidth: CGFloat { 34 * widthScale }
-    private var bankWidth: CGFloat { 42 * widthScale }
-    private var tableContentWidth: CGFloat { rankWidth + playerWidth + pointsWidth + eligibleWidth + nightsWidth + bankWidth * 8 + 10 }
-    private var tableMinWidth: CGFloat { max(tableContentWidth, tableAvailableWidth) }
+    private var scaledRankWidth: CGFloat { 34 * widthScale }
+    private var scaledPlayerWidth: CGFloat { 136 * widthScale }
+    private var scaledPointsWidth: CGFloat { 68 * widthScale }
+    private var scaledEligibleWidth: CGFloat { 38 * widthScale }
+    private var scaledNightsWidth: CGFloat { 34 * widthScale }
+    private var scaledBankWidth: CGFloat { 42 * widthScale }
+    private var scaledFixedTableWidth: CGFloat {
+        scaledRankWidth + scaledPlayerWidth + scaledPointsWidth + scaledEligibleWidth + scaledNightsWidth + scaledBankWidth * 8
+    }
+    private var tableFlexibleExtraWidth: CGFloat { max(0, tableAvailableWidth - scaledFixedTableWidth) }
+    private var extraPerColumn: CGFloat { tableFlexibleExtraWidth / 13.0 }
+    private var rankWidth: CGFloat { scaledRankWidth + extraPerColumn }
+    private var playerWidth: CGFloat { scaledPlayerWidth + extraPerColumn }
+    private var pointsWidth: CGFloat { scaledPointsWidth + extraPerColumn }
+    private var eligibleWidth: CGFloat { scaledEligibleWidth + extraPerColumn }
+    private var nightsWidth: CGFloat { scaledNightsWidth + extraPerColumn }
+    private var bankWidth: CGFloat { scaledBankWidth + extraPerColumn }
+    private var tableContentWidth: CGFloat { scaledFixedTableWidth + tableFlexibleExtraWidth }
+    private var tableMinWidth: CGFloat { tableContentWidth }
     private var contentHorizontalPadding: CGFloat {
         verticalSizeClass == .compact ? 2 : 14
     }
@@ -213,15 +224,17 @@ private struct StandingsRowView: View {
         monospaced: Bool = false,
         weight: Font.Weight = .regular
     ) -> some View {
-        Text(text)
+        let horizontalPadding: CGFloat = 3
+        let adjustedWidth = max(0, width - (horizontalPadding * 2))
+        return Text(text)
             .font(monospaced
                 ? (largeText ? Font.callout.monospacedDigit().weight(weight) : Font.footnote.monospacedDigit().weight(weight))
                 : (largeText ? Font.callout.weight(weight) : Font.footnote.weight(weight)))
             .foregroundStyle(color)
             .lineLimit(1)
             .truncationMode(.tail)
-            .frame(width: width, alignment: alignment)
-            .padding(.horizontal, 3)
+            .frame(width: adjustedWidth, alignment: alignment)
+            .padding(.horizontal, horizontalPadding)
     }
 }
 

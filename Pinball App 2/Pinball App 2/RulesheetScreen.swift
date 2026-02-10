@@ -221,11 +221,12 @@ private extension MarkdownWebView {
               padding-top: calc(14px + env(safe-area-inset-top));
               padding-bottom: calc(18px + env(safe-area-inset-bottom));
               font: -apple-system-body;
+              font-size: 18px;
               -webkit-text-size-adjust: 100%;
               text-size-adjust: 100%;
               background: transparent;
               color: #f3f3f3;
-              line-height: 1.45;
+              line-height: 1.55;
               max-width: 980px;
               box-sizing: border-box;
             }
@@ -234,12 +235,21 @@ private extension MarkdownWebView {
               body {
                 margin-left: auto;
                 margin-right: auto;
-                font-size: 18px;
-                line-height: 1.5;
+                font-size: 21px;
+                line-height: 1.58;
                 padding-left: max(24px, calc(env(safe-area-inset-left) + 12px));
                 padding-right: max(24px, calc(env(safe-area-inset-right) + 12px));
               }
               th, td { padding: 8px 10px; }
+            }
+            @media (min-width: 1000px) and (orientation: landscape) {
+              body {
+                max-width: none;
+                margin-left: 0;
+                margin-right: 0;
+                font-size: 22px;
+                line-height: 1.6;
+              }
             }
             #content > :first-child { margin-top: 0 !important; }
             :target { scroll-margin-top: calc(env(safe-area-inset-top) + 0px); }

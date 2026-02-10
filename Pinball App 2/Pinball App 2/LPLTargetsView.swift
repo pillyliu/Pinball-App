@@ -29,11 +29,16 @@ struct LPLTargetsView: View {
         let baseTotal = baseGameColumnWidth + baseBankColumnWidth + (baseScoreColumnWidth * 3)
         return max(1, min(AppLayout.maxTableWidthScale(isLargeTablet: isLargeTablet), tableAvailableWidth / baseTotal))
     }
-    private var gameColumnWidth: CGFloat { baseGameColumnWidth * widthScale }
+    private var scaledGameColumnWidth: CGFloat { baseGameColumnWidth * widthScale }
     private var bankColumnWidth: CGFloat { baseBankColumnWidth * widthScale }
     private var scoreColumnWidth: CGFloat { baseScoreColumnWidth * widthScale }
-    private var tableContentWidth: CGFloat { gameColumnWidth + bankColumnWidth + (scoreColumnWidth * 3) }
-    private var tableMinWidth: CGFloat { max(tableContentWidth, tableAvailableWidth) }
+    private var scaledFixedTableWidth: CGFloat { scaledGameColumnWidth + bankColumnWidth + (scoreColumnWidth * 3) }
+    private var tableFlexibleExtraWidth: CGFloat { max(0, tableAvailableWidth - scaledFixedTableWidth) }
+    private var gameColumnWidth: CGFloat { scaledGameColumnWidth + (tableFlexibleExtraWidth * (scaledGameColumnWidth / max(1, scaledFixedTableWidth))) }
+    private var adjustedBankColumnWidth: CGFloat { bankColumnWidth + (tableFlexibleExtraWidth * (bankColumnWidth / max(1, scaledFixedTableWidth))) }
+    private var adjustedScoreColumnWidth: CGFloat { scoreColumnWidth + (tableFlexibleExtraWidth * (scoreColumnWidth / max(1, scaledFixedTableWidth))) }
+    private var tableContentWidth: CGFloat { scaledFixedTableWidth + tableFlexibleExtraWidth }
+    private var tableMinWidth: CGFloat { tableContentWidth }
 
     var body: some View {
         NavigationStack {
@@ -204,8 +209,8 @@ struct LPLTargetsView: View {
                                 LPLTargetsRowView(
                                     row: row,
                                     gameColumnWidth: gameColumnWidth,
-                                    bankColumnWidth: bankColumnWidth,
-                                    scoreColumnWidth: scoreColumnWidth,
+                                    bankColumnWidth: adjustedBankColumnWidth,
+                                    scoreColumnWidth: adjustedScoreColumnWidth,
                                     largeText: isLargeTablet
                                 )
                                 .background(index.isMultiple(of: 2) ? AppTheme.rowEven : AppTheme.rowOdd)
@@ -235,10 +240,10 @@ struct LPLTargetsView: View {
     private var tableHeader: some View {
         HStack(spacing: 0) {
             LPLTargetsHeaderCell(title: "Game", width: gameColumnWidth, largeText: isLargeTablet)
-            LPLTargetsHeaderCell(title: "B", width: bankColumnWidth, alignment: .leading, largeText: isLargeTablet)
-            LPLTargetsHeaderCell(title: "2nd", width: scoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
-            LPLTargetsHeaderCell(title: "4th", width: scoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
-            LPLTargetsHeaderCell(title: "8th", width: scoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
+            LPLTargetsHeaderCell(title: "B", width: adjustedBankColumnWidth, alignment: .leading, largeText: isLargeTablet)
+            LPLTargetsHeaderCell(title: "2nd", width: adjustedScoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
+            LPLTargetsHeaderCell(title: "4th", width: adjustedScoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
+            LPLTargetsHeaderCell(title: "8th", width: adjustedScoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
         }
         .frame(height: isLargeTablet ? 40 : 34)
         .background(Color(white: 0.1))
@@ -279,14 +284,16 @@ private struct LPLTargetsRowView: View {
         monospaced: Bool = false,
         weight: Font.Weight = .regular
     ) -> some View {
-        Text(text)
+        let horizontalPadding: CGFloat = 4
+        let adjustedWidth = max(0, width - (horizontalPadding * 2))
+        return Text(text)
             .font(monospaced
                 ? (largeText ? Font.callout.monospacedDigit().weight(weight) : Font.footnote.monospacedDigit().weight(weight))
                 : (largeText ? Font.callout.weight(weight) : Font.footnote.weight(weight)))
             .foregroundStyle(color)
             .lineLimit(1)
-            .frame(width: width, alignment: alignment)
-            .padding(.horizontal, 4)
+            .frame(width: adjustedWidth, alignment: alignment)
+            .padding(.horizontal, horizontalPadding)
     }
 }
 
@@ -297,11 +304,13 @@ private struct LPLTargetsHeaderCell: View {
     var largeText: Bool = false
 
     var body: some View {
-        Text(title)
+        let horizontalPadding: CGFloat = 4
+        let adjustedWidth = max(0, width - (horizontalPadding * 2))
+        return Text(title)
             .font((largeText ? Font.footnote : Font.caption2).weight(.semibold))
             .foregroundStyle(Color(white: 0.75))
-            .frame(width: width, alignment: alignment)
-            .padding(.horizontal, 4)
+            .frame(width: adjustedWidth, alignment: alignment)
+            .padding(.horizontal, horizontalPadding)
     }
 }
 

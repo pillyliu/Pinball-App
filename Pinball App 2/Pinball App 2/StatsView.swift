@@ -17,7 +17,7 @@ struct StatsView: View {
     @StateObject private var viewModel = StatsViewModel()
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
-    @State private var viewportWidth: CGFloat = 0
+    @State private var viewportSize: CGSize = .zero
     @State private var tableAvailableWidth: CGFloat = 0
     @State private var statsCardHeight: CGFloat = 0
     private var headerHeight: CGFloat { isLargeTablet ? 40 : 34 }
@@ -25,9 +25,9 @@ struct StatsView: View {
     
     private var isRegularWidth: Bool { horizontalSizeClass == .regular }
     private var isLargeTablet: Bool {
-        AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportWidth)
+        AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportSize.width)
     }
-    private var useLandscapeSplitLayout: Bool { verticalSizeClass == .compact }
+    private var useLandscapeSplitLayout: Bool { viewportSize.width > viewportSize.height }
     private var useWideFilterLayout: Bool { isRegularWidth || verticalSizeClass == .compact }
     private var contentHorizontalPadding: CGFloat {
         verticalSizeClass == .compact ? 2 : 14
@@ -39,22 +39,26 @@ struct StatsView: View {
     private var baseScoreColWidth: CGFloat { isRegularWidth ? 150 : 102 }
     private var basePointsColWidth: CGFloat { isRegularWidth ? 72 : 54 }
     private var baseTableContentWidth: CGFloat {
-        baseSeasonColWidth + basePlayerColWidth + baseBankNumColWidth + baseMachineColWidth + baseScoreColWidth + basePointsColWidth + 72
+        baseSeasonColWidth + basePlayerColWidth + baseBankNumColWidth + baseMachineColWidth + baseScoreColWidth + basePointsColWidth
     }
     private var widthScale: CGFloat {
         guard tableAvailableWidth > 0 else { return 1 }
         return max(1, min(AppLayout.maxTableWidthScale(isLargeTablet: isLargeTablet), tableAvailableWidth / baseTableContentWidth))
     }
     private var seasonColWidth: CGFloat { baseSeasonColWidth * widthScale }
-    private var playerColWidth: CGFloat { basePlayerColWidth * widthScale }
+    private var scaledPlayerColWidth: CGFloat { basePlayerColWidth * widthScale }
     private var bankNumColWidth: CGFloat { baseBankNumColWidth * widthScale }
-    private var machineColWidth: CGFloat { baseMachineColWidth * widthScale }
+    private var scaledMachineColWidth: CGFloat { baseMachineColWidth * widthScale }
     private var scoreColWidth: CGFloat { baseScoreColWidth * widthScale }
     private var pointsColWidth: CGFloat { basePointsColWidth * widthScale }
-    private var tableContentWidth: CGFloat {
-        seasonColWidth + playerColWidth + bankNumColWidth + machineColWidth + scoreColWidth + pointsColWidth + 72
+    private var scaledFixedTableWidth: CGFloat {
+        seasonColWidth + scaledPlayerColWidth + bankNumColWidth + scaledMachineColWidth + scoreColWidth + pointsColWidth
     }
-    private var tableMinWidth: CGFloat { max(tableContentWidth, tableAvailableWidth) }
+    private var tableFlexibleExtraWidth: CGFloat { max(0, tableAvailableWidth - scaledFixedTableWidth) }
+    private var playerColWidth: CGFloat { scaledPlayerColWidth + (tableFlexibleExtraWidth * 0.4) }
+    private var machineColWidth: CGFloat { scaledMachineColWidth + (tableFlexibleExtraWidth * 0.6) }
+    private var tableContentWidth: CGFloat { scaledFixedTableWidth + tableFlexibleExtraWidth }
+    private var tableMinWidth: CGFloat { tableContentWidth }
 
     var body: some View {
         NavigationStack {
@@ -135,9 +139,9 @@ struct StatsView: View {
             .background(
                 GeometryReader { geo in
                     Color.clear
-                        .onAppear { viewportWidth = geo.size.width }
-                        .onChange(of: geo.size.width) { _, newValue in
-                            viewportWidth = newValue
+                        .onAppear { viewportSize = geo.size }
+                        .onChange(of: geo.size) { _, newValue in
+                            viewportSize = newValue
                         }
                 }
             )
@@ -361,14 +365,16 @@ private struct TableRowView: View {
     }
 
     private func rowCell(_ text: String, width: CGFloat, alignment: Alignment = .leading, monospaced: Bool = false) -> some View {
-        Text(text)
+        let horizontalPadding: CGFloat = 4
+        let adjustedWidth = max(0, width - (horizontalPadding * 2))
+        return Text(text)
             .font(monospaced
                 ? (largeText ? Font.callout.monospacedDigit() : Font.footnote.monospacedDigit())
                 : (largeText ? .callout : .footnote))
             .foregroundStyle(.white)
             .lineLimit(1)
-            .frame(width: width, alignment: alignment)
-            .padding(.horizontal, 4)
+            .frame(width: adjustedWidth, alignment: alignment)
+            .padding(.horizontal, horizontalPadding)
     }
 }
 
@@ -384,7 +390,7 @@ private struct MachineStatsPanel: View {
         VStack(alignment: .leading, spacing: 1) {
             if machine.isEmpty {
                 Text("Select a machine to see machine stats")
-                    .font(.footnote)
+                    .font(largeText ? .callout : .footnote)
                     .foregroundStyle(Color(white: 0.82))
             } else {
                 MachineStatsTable(
@@ -395,7 +401,7 @@ private struct MachineStatsPanel: View {
                 )
             }
         }
-        .padding(12)
+        .padding(largeText ? 16 : 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(white: 0.09))
         .overlay(
@@ -422,7 +428,7 @@ private struct MachineStatsTable: View {
     let largeText: Bool
 
     private let labels = ["High", "Low", "Avg", "Med", "Std", "Count"]
-    private let labelColumnWidth: CGFloat = 44
+    private var labelColumnWidth: CGFloat { largeText ? 64 : 44 }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -439,10 +445,10 @@ private struct MachineStatsTable: View {
             ForEach(labels, id: \.self) { label in
                 HStack(spacing: 8) {
                     Text(label)
-                        .font((largeText ? Font.footnote : Font.caption).weight(.medium))
+                        .font((largeText ? Font.callout : Font.caption).weight(.medium))
                         .foregroundStyle(Color(white: 0.84))
                         .frame(width: labelColumnWidth, alignment: .leading)
-                        .padding(.vertical, 3)
+                        .padding(.vertical, largeText ? 5 : 3)
                     statCell(label: label, stats: selectedStats, allSeasons: false)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     statCell(label: label, stats: allSeasonsStats, allSeasons: true)
@@ -454,7 +460,7 @@ private struct MachineStatsTable: View {
 
     private func headerCell(_ text: String, align: Alignment) -> some View {
         Text(text)
-            .font((largeText ? Font.caption : Font.caption2).weight(.medium))
+            .font((largeText ? Font.callout : Font.caption2).weight(.medium))
             .foregroundStyle(Color(white: 0.74))
             .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: align)
@@ -484,19 +490,19 @@ private struct MachineStatsTable: View {
 
         return VStack(alignment: .leading, spacing: 2) {
             Text(value)
-                .font((largeText ? Font.footnote : Font.caption).monospacedDigit().weight(.medium))
+                .font((largeText ? Font.body : Font.caption).monospacedDigit().weight(.medium))
                 .foregroundStyle(color)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if label == "High" || label == "Low" {
                 Text(playerName(player, allSeasons: allSeasons))
-                    .font(largeText ? .caption : .caption2)
+                    .font(largeText ? .footnote : .caption2)
                     .foregroundStyle(Color(red: 115 / 255, green: 115 / 255, blue: 115 / 255))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, largeText ? 5 : 3)
     }
 
     private func playerName(_ raw: String?, allSeasons: Bool) -> String {

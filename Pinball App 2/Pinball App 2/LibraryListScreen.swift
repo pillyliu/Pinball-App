@@ -14,9 +14,12 @@ struct LibraryListScreen: View {
     private let landscapeControlHeight: CGFloat = 40
     private var cardsTopBuffer: CGFloat {
         if isLandscapePhone {
-            return max(6, controlsHeight - 40)
+            return max(14, controlsHeight - 30)
         }
-        return max(20, controlsHeight - 10)
+        if isLargeTablet {
+            return max(38, controlsHeight + 12)
+        }
+        return max(24, controlsHeight - 4)
     }
     private var scrollBottomClearance: CGFloat {
         isLandscapePhone ? 70 : 100

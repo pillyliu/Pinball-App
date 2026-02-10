@@ -27,7 +27,7 @@ enum AppLayout {
     }
 
     static func maxTableWidthScale(isLargeTablet _: Bool) -> CGFloat {
-        return 1.9
+        return 1.7
     }
 }
 

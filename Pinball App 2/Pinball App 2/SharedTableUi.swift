@@ -8,10 +8,11 @@ struct AppHeaderCell: View {
     var largeText: Bool = false
 
     var body: some View {
+        let adjustedWidth = max(0, width - (horizontalPadding * 2))
         Text(title)
             .font((largeText ? Font.footnote : Font.caption).weight(.semibold))
             .foregroundStyle(Color(white: 0.75))
-            .frame(width: width, alignment: alignment)
+            .frame(width: adjustedWidth, alignment: alignment)
             .padding(.horizontal, horizontalPadding)
     }
 }
