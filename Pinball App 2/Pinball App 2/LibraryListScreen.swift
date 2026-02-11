@@ -12,6 +12,7 @@ struct LibraryListScreen: View {
     private var isLargeTablet: Bool {
         AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportWidth)
     }
+    private var isCompactWidth: Bool { horizontalSizeClass == .compact }
     private var isLandscapePhone: Bool { verticalSizeClass == .compact }
     private var contentHorizontalPadding: CGFloat {
         AppLayout.contentHorizontalPadding(verticalSizeClass: verticalSizeClass, isLargeTablet: isLargeTablet)
@@ -57,10 +58,12 @@ struct LibraryListScreen: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button {
-                        isSearchPresented = true
-                    } label: {
-                        Image(systemName: "magnifyingglass")
+                    if isCompactWidth {
+                        Button {
+                            isSearchPresented = true
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                        }
                     }
 
                     Menu {
