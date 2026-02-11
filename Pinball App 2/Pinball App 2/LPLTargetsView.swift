@@ -12,6 +12,7 @@ struct LPLTargetsView: View {
     @StateObject private var viewModel = LPLTargetsViewModel()
     @State private var tableAvailableWidth: CGFloat = 0
     @State private var viewportWidth: CGFloat = 0
+    private let tableDividerHeight: CGFloat = 1
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     private var isLargeTablet: Bool {
@@ -39,6 +40,11 @@ struct LPLTargetsView: View {
     private var adjustedScoreColumnWidth: CGFloat { scoreColumnWidth + (tableFlexibleExtraWidth * (scoreColumnWidth / max(1, scaledFixedTableWidth))) }
     private var tableContentWidth: CGFloat { scaledFixedTableWidth + tableFlexibleExtraWidth }
     private var tableMinWidth: CGFloat { tableContentWidth }
+    private var headerHeight: CGFloat { isLargeTablet ? 40 : 34 }
+    private var tableRowHeight: CGFloat { isLargeTablet ? 38 : 32 }
+    private var compactTableContentHeight: CGFloat {
+        headerHeight + tableDividerHeight + (CGFloat(viewModel.rows.count) * (tableRowHeight + tableDividerHeight))
+    }
 
     var body: some View {
         NavigationStack {
@@ -56,9 +62,14 @@ struct LPLTargetsView: View {
                             .padding(.horizontal, 2)
                     }
 
-                    targetsTable
-                        .padding(.horizontal, 4)
-                        .frame(maxHeight: .infinity)
+                    GeometryReader { geo in
+                        let effectiveTableHeight = resolvedTableHeight(maxHeight: geo.size.height)
+                        targetsTable
+                            .padding(.horizontal, 4)
+                            .frame(height: effectiveTableHeight, alignment: .top)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    }
+                    .frame(maxHeight: .infinity)
                     footerSection
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -253,6 +264,10 @@ struct LPLTargetsView: View {
             .foregroundStyle(.secondary)
             .padding(.horizontal, 4)
             .padding(.top, 2)
+    }
+
+    private func resolvedTableHeight(maxHeight: CGFloat) -> CGFloat {
+        return min(maxHeight, compactTableContentHeight)
     }
 }
 

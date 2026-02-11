@@ -20,6 +20,7 @@ struct StatsView: View {
     @State private var viewportSize: CGSize = .zero
     @State private var tableAvailableWidth: CGFloat = 0
     @State private var statsCardHeight: CGFloat = 0
+    private let tableDividerHeight: CGFloat = 1
     private var headerHeight: CGFloat { isLargeTablet ? 40 : 34 }
     private var tableRowHeight: CGFloat { isLargeTablet ? 38 : 32 }
     
@@ -59,6 +60,15 @@ struct StatsView: View {
     private var machineColWidth: CGFloat { scaledMachineColWidth + (tableFlexibleExtraWidth * 0.6) }
     private var tableContentWidth: CGFloat { scaledFixedTableWidth + tableFlexibleExtraWidth }
     private var tableMinWidth: CGFloat { tableContentWidth }
+    private var compactTableContentHeight: CGFloat {
+        let bodyHeight: CGFloat
+        if viewModel.filteredRows.isEmpty {
+            bodyHeight = 64
+        } else {
+            bodyHeight = CGFloat(viewModel.filteredRows.count) * (tableRowHeight + tableDividerHeight)
+        }
+        return headerHeight + tableDividerHeight + bodyHeight
+    }
 
     var body: some View {
         NavigationStack {
@@ -81,11 +91,13 @@ struct StatsView: View {
                             let available = max(0, geo.size.width - spacing)
                             let mainWidth = available * 0.6
                             let machineWidth = available - mainWidth
+                            let effectiveTableHeight = resolvedTableHeight(maxHeight: geo.size.height)
 
                             HStack(alignment: .top, spacing: spacing) {
                                 tableCard
                                     .frame(width: mainWidth)
-                                    .frame(maxHeight: .infinity)
+                                    .frame(height: effectiveTableHeight, alignment: .top)
+                                    .frame(maxHeight: .infinity, alignment: .top)
                                 statsCard
                                     .frame(width: machineWidth)
                                     .frame(maxHeight: .infinity, alignment: .top)
@@ -113,11 +125,12 @@ struct StatsView: View {
                             let defaultStatsHeight: CGFloat = 214
                             let measuredStatsHeight = statsCardHeight > 0 ? statsCardHeight : defaultStatsHeight
                             let bottomBuffer: CGFloat = 14
-                            let tableHeight = max(120, geo.size.height - measuredStatsHeight - spacing - bottomBuffer)
+                            let defaultTableHeight = max(120, geo.size.height - measuredStatsHeight - spacing - bottomBuffer)
+                            let effectiveTableHeight = resolvedTableHeight(maxHeight: defaultTableHeight)
 
                             VStack(alignment: .leading, spacing: spacing) {
                                 tableCard
-                                    .frame(height: tableHeight)
+                                    .frame(height: effectiveTableHeight)
 
                                 statsCard
                                     .readHeight { height in
@@ -338,6 +351,10 @@ struct StatsView: View {
     private func seasonToken(_ raw: String) -> String {
         let digits = raw.filter(\.isNumber)
         return digits.isEmpty ? raw : "S\(digits)"
+    }
+
+    private func resolvedTableHeight(maxHeight: CGFloat) -> CGFloat {
+        return min(maxHeight, compactTableContentHeight)
     }
 }
 
