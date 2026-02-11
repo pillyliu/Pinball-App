@@ -4,8 +4,9 @@ import WebKit
 struct RulesheetView: View {
     let slug: String
     @StateObject private var viewModel: RulesheetViewModel
+    @StateObject private var chrome = FullscreenChromeController()
     @Environment(\.dismiss) private var dismiss
-    @State private var controlsVisible = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var suppressChromeToggle = false
 
     init(slug: String) {
@@ -42,7 +43,7 @@ struct RulesheetView: View {
                 }
             }
 
-            if controlsVisible {
+            if chrome.isVisible {
                 VStack {
                     HStack {
                         Button {
@@ -50,14 +51,18 @@ struct RulesheetView: View {
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.title2.weight(.semibold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(.primary)
                                 .padding(14)
-                                .background(Color.black.opacity(0.4))
+                                .background(.regularMaterial, in: Circle())
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color(uiColor: .separator).opacity(0.75), lineWidth: 1)
+                                )
                                 .clipShape(Circle())
                         }
                         Spacer()
                     }
-                    .padding(.top, 16)
+                    .padding(.top, 0)
                     .padding(.horizontal, 16)
                     Spacer()
                 }
@@ -68,17 +73,19 @@ struct RulesheetView: View {
         .simultaneousGesture(
             TapGesture().onEnded {
                 if suppressChromeToggle { return }
-                withAnimation(.easeInOut(duration: 0.18)) {
-                    controlsVisible.toggle()
-                }
+                chrome.toggle(reduceMotion: reduceMotion)
             }
         )
         .appEdgeBackGesture(dismiss: dismiss)
+        .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.visible, for: .tabBar)
         .toolbarBackground(.hidden, for: .tabBar)
         .onAppear {
-            controlsVisible = false
+            chrome.resetOnAppear()
+        }
+        .onDisappear {
+            chrome.cleanupOnDisappear()
         }
         .task {
             await viewModel.loadIfNeeded()
@@ -212,7 +219,25 @@ private extension MarkdownWebView {
           <meta charset="utf-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
           <style>
-            :root { color-scheme: dark; }
+            :root {
+              color-scheme: light dark;
+              --body-text: #1f1f1f;
+              --link: #0a65cc;
+              --code-bg: #f1f3f5;
+              --code-text: #202124;
+              --rule: #d7d9de;
+              --table-border: #d7d9de;
+            }
+            @media (prefers-color-scheme: dark) {
+              :root {
+                --body-text: #f3f3f3;
+                --link: #a6c8ff;
+                --code-bg: #111;
+                --code-text: #f3f3f3;
+                --rule: #2a2a2a;
+                --table-border: #2a2a2a;
+              }
+            }
             body {
               margin: 0;
               padding: 14px 18px;
@@ -224,7 +249,7 @@ private extension MarkdownWebView {
               -webkit-text-size-adjust: 100%;
               text-size-adjust: 100%;
               background: transparent;
-              color: #f3f3f3;
+              color: var(--body-text);
               line-height: 1.45;
               max-width: 980px;
               box-sizing: border-box;
@@ -252,14 +277,14 @@ private extension MarkdownWebView {
             }
             #content > :first-child { margin-top: 0 !important; }
             :target { scroll-margin-top: calc(env(safe-area-inset-top) + 0px); }
-            a { color: #a6c8ff; text-decoration: underline; }
-            code, pre { background: #111; border-radius: 8px; color: #f3f3f3; }
+            a { color: var(--link); text-decoration: underline; }
+            code, pre { background: var(--code-bg); border-radius: 8px; color: var(--code-text); }
             pre { padding: 10px; overflow-x: auto; }
-            .fallback-markdown { white-space: pre-wrap; color: #f3f3f3; }
+            .fallback-markdown { white-space: pre-wrap; color: var(--body-text); }
             table { border-collapse: collapse; width: 100%; overflow-x: auto; display: block; }
-            th, td { border: 1px solid #2a2a2a; padding: 6px 8px; }
+            th, td { border: 1px solid var(--table-border); padding: 6px 8px; }
             img { max-width: 100%; height: auto; }
-            hr { border: none; border-top: 1px solid #2a2a2a; }
+            hr { border: none; border-top: 1px solid var(--rule); }
           </style>
           <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
         </head>

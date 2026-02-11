@@ -168,12 +168,29 @@ struct StatsView: View {
 
         return VStack(spacing: 8) {
             if useWideFilterLayout {
-                HStack(spacing: 12) {
-                    filterMenu(selectedText: seasonDisplayText, options: seasonOptions, setValue: { viewModel.season = $0 })
-                    filterMenu(selectedText: playerDisplayText, options: playerOptions, setValue: { viewModel.player = $0 })
-                    filterMenu(selectedText: bankDisplayText, options: bankOptions, setValue: { viewModel.bankNumber = Int($0) })
-                    filterMenu(selectedText: machineDisplayText, options: machineOptions, setValue: { viewModel.machine = $0 })
+                GeometryReader { geo in
+                    let gap: CGFloat = 12
+                    let pairWidth = max(0, (geo.size.width - gap) / 2)
+                    let narrowWidth = max(0, ((pairWidth - gap) * 0.3).rounded(.down))
+                    let wideWidth = max(0, pairWidth - gap - narrowWidth)
+
+                    HStack(spacing: gap) {
+                        HStack(spacing: gap) {
+                            filterMenu(selectedText: seasonDisplayText, options: seasonOptions, setValue: { viewModel.season = $0 })
+                                .frame(width: narrowWidth)
+                            filterMenu(selectedText: playerDisplayText, options: playerOptions, setValue: { viewModel.player = $0 })
+                                .frame(width: wideWidth)
+                        }
+
+                        HStack(spacing: gap) {
+                            filterMenu(selectedText: bankDisplayText, options: bankOptions, setValue: { viewModel.bankNumber = Int($0) })
+                                .frame(width: narrowWidth)
+                            filterMenu(selectedText: machineDisplayText, options: machineOptions, setValue: { viewModel.machine = $0 })
+                                .frame(width: wideWidth)
+                        }
+                    }
                 }
+                .frame(height: isLargeTablet ? 52 : 44)
             } else {
                 GeometryReader { geo in
                     let gap: CGFloat = 12
@@ -204,7 +221,7 @@ struct StatsView: View {
             ScrollView(.horizontal) {
                 VStack(spacing: 0) {
                     tableHeader
-                    Divider().overlay(Color(white: 0.2))
+                    AppTableHeaderDivider()
 
                     if viewModel.filteredRows.isEmpty {
                         Text("No rows - check filters or data source.")
@@ -227,7 +244,7 @@ struct StatsView: View {
                                         largeText: isLargeTablet
                                     )
                                         .background(idx.isMultiple(of: 2) ? AppTheme.rowEven : AppTheme.rowOdd)
-                                    Divider().overlay(Color(white: 0.15))
+                                    AppTableRowDivider()
                                 }
                             }
                         }
@@ -261,7 +278,7 @@ struct StatsView: View {
             AppHeaderCell(title: "Points", width: pointsColWidth, largeText: isLargeTablet)
         }
         .frame(height: headerHeight)
-        .background(Color(white: 0.11))
+        .background(.thinMaterial)
     }
 
     private var statsCard: some View {
@@ -295,24 +312,21 @@ struct StatsView: View {
                 }
             }
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: AppLayout.dropdownContentSpacing) {
                 Text(selectedText)
                     .lineLimit(1)
-                    .font(isLargeTablet ? .callout : .footnote)
+                    .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "chevron.down")
-                    .font(isLargeTablet ? .footnote.weight(.semibold) : .caption.weight(.semibold))
-                    .foregroundStyle(Color(white: 0.78))
+                    .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
+                    .foregroundStyle(.secondary)
             }
-            .padding(.leading, 10)
-            .padding(.trailing, 10)
-            .padding(.vertical, isLargeTablet ? 10 : 8)
-            .frame(maxWidth: .infinity, minHeight: isLargeTablet ? 46 : 40, alignment: .leading)
-            .appControlStyle()
+            .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
+            .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
+            .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
-            .foregroundStyle(.white)
         }
-        .tint(.white)
+        .buttonStyle(.glass)
         .frame(maxWidth: .infinity)
     }
 
@@ -371,7 +385,7 @@ private struct TableRowView: View {
             .font(monospaced
                 ? (largeText ? Font.callout.monospacedDigit() : Font.footnote.monospacedDigit())
                 : (largeText ? .callout : .footnote))
-            .foregroundStyle(.white)
+            .foregroundStyle(.primary)
             .lineLimit(1)
             .frame(width: adjustedWidth, alignment: alignment)
             .padding(.horizontal, horizontalPadding)
@@ -391,7 +405,7 @@ private struct MachineStatsPanel: View {
             if machine.isEmpty {
                 Text("Select a machine to see machine stats")
                     .font(largeText ? .callout : .footnote)
-                    .foregroundStyle(Color(white: 0.82))
+                    .foregroundStyle(.secondary)
             } else {
                 MachineStatsTable(
                     selectedLabel: selectedBankLabel,
@@ -403,10 +417,10 @@ private struct MachineStatsPanel: View {
         }
         .padding(largeText ? 16 : 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(white: 0.09))
+        .background(.regularMaterial)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(white: 0.2), lineWidth: 1)
+                .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
@@ -446,7 +460,7 @@ private struct MachineStatsTable: View {
                 HStack(spacing: 8) {
                     Text(label)
                         .font((largeText ? Font.callout : Font.caption).weight(.medium))
-                        .foregroundStyle(Color(white: 0.84))
+                        .foregroundStyle(.primary)
                         .frame(width: labelColumnWidth, alignment: .leading)
                         .padding(.vertical, largeText ? 5 : 3)
                     statCell(label: label, stats: selectedStats, allSeasons: false)
@@ -461,7 +475,7 @@ private struct MachineStatsTable: View {
     private func headerCell(_ text: String, align: Alignment) -> some View {
         Text(text)
             .font((largeText ? Font.callout : Font.caption2).weight(.medium))
-            .foregroundStyle(Color(white: 0.74))
+            .foregroundStyle(.primary)
             .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: align)
     }
@@ -477,10 +491,10 @@ private struct MachineStatsTable: View {
         default: "-"
         }
         let color: Color = switch label {
-        case "High": Color(red: 110 / 255, green: 231 / 255, blue: 183 / 255)
-        case "Low": Color(red: 252 / 255, green: 165 / 255, blue: 165 / 255)
-        case "Avg", "Med": Color(red: 125 / 255, green: 211 / 255, blue: 252 / 255)
-        default: Color(red: 229 / 255, green: 229 / 255, blue: 229 / 255)
+        case "High": AppTheme.statsHigh
+        case "Low": AppTheme.statsLow
+        case "Avg", "Med": AppTheme.statsMeanMedian
+        default: .primary
         }
         let player: String? = switch label {
         case "High": stats.highPlayer
@@ -497,7 +511,7 @@ private struct MachineStatsTable: View {
             if label == "High" || label == "Low" {
                 Text(playerName(player, allSeasons: allSeasons))
                     .font(largeText ? .footnote : .caption2)
-                    .foregroundStyle(Color(red: 115 / 255, green: 115 / 255, blue: 115 / 255))
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }

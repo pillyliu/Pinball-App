@@ -84,9 +84,9 @@ struct LPLTargetsView: View {
     }
 
     private var headerSection: some View {
-        let greatColor = Color(red: 0.73, green: 0.96, blue: 0.82)
-        let targetColor = Color(red: 0.75, green: 0.86, blue: 0.99)
-        let floorColor = Color(red: 0.9, green: 0.91, blue: 0.92)
+        let greatColor = AppTheme.targetGreat
+        let targetColor = AppTheme.targetMain
+        let floorColor = AppTheme.targetFloor
         let isLandscapePhone = verticalSizeClass == .compact
 
         return VStack(alignment: .center, spacing: 8) {
@@ -144,32 +144,31 @@ struct LPLTargetsView: View {
                     }
                 } label: {
                     ZStack {
-                        HStack(spacing: 6) {
+                        HStack(spacing: AppLayout.dropdownContentSpacing) {
                             Text("Sort: \(LPLTargetsSortMode.widestTitle)")
-                                .font(isLargeTablet ? .footnote : .caption2)
+                                .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
                                 .lineLimit(1)
                             Spacer(minLength: 4)
                             Image(systemName: "chevron.down")
-                                .font(isLargeTablet ? .footnote : .caption2)
+                                .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
                                 .foregroundStyle(.secondary)
                         }
                         .opacity(0)
 
-                        HStack(spacing: 6) {
+                        HStack(spacing: AppLayout.dropdownContentSpacing) {
                             Text("Sort: \(viewModel.sortMode.title)")
-                                .font(isLargeTablet ? .footnote : .caption2)
+                                .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
                                 .lineLimit(1)
                             Spacer(minLength: 4)
                             Image(systemName: "chevron.down")
-                                .font(isLargeTablet ? .footnote : .caption2)
+                                .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    .padding(.horizontal, isLargeTablet ? 12 : 10)
-                    .padding(.vertical, isLargeTablet ? 8 : 6)
-                    .appControlStyle()
+                    .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
+                    .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
                 }
-                .tint(.white)
+                .buttonStyle(.glass)
 
                 Menu {
                     Button("All banks") { viewModel.selectedBank = nil }
@@ -177,20 +176,19 @@ struct LPLTargetsView: View {
                         Button("Bank \(bank)") { viewModel.selectedBank = bank }
                     }
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: AppLayout.dropdownContentSpacing) {
                         Text(viewModel.selectedBankLabel)
-                            .font(isLargeTablet ? .footnote : .caption2)
+                            .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
                             .lineLimit(1)
                         Spacer(minLength: 4)
                         Image(systemName: "chevron.down")
-                            .font(isLargeTablet ? .footnote : .caption2)
+                            .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
                             .foregroundStyle(.secondary)
                     }
-                    .padding(.horizontal, isLargeTablet ? 12 : 10)
-                    .padding(.vertical, isLargeTablet ? 8 : 6)
-                    .appControlStyle()
+                    .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
+                    .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
                 }
-                .tint(.white)
+                .buttonStyle(.glass)
             }
             .padding(.top, 4)
         }
@@ -201,7 +199,7 @@ struct LPLTargetsView: View {
             ScrollView(.horizontal) {
                 VStack(spacing: 0) {
                     tableHeader
-                    Divider().overlay(Color(white: 0.2))
+                    AppTableHeaderDivider()
 
                     ScrollView(.vertical) {
                         LazyVStack(spacing: 0) {
@@ -215,7 +213,7 @@ struct LPLTargetsView: View {
                                 )
                                 .background(index.isMultiple(of: 2) ? AppTheme.rowEven : AppTheme.rowOdd)
 
-                                Divider().overlay(Color(white: 0.15))
+                                AppTableRowDivider()
                             }
                         }
                     }
@@ -246,13 +244,13 @@ struct LPLTargetsView: View {
             LPLTargetsHeaderCell(title: "8th", width: adjustedScoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
         }
         .frame(height: isLargeTablet ? 40 : 34)
-        .background(Color(white: 0.1))
+        .background(.thinMaterial)
     }
 
     private var footerSection: some View {
         Text("Benchmarks are based on historical LPL league results across all seasons where each game appeared. For each game, scores are derived from per-bank results using 2nd / 4th / 8th highest averages with sample-size adjustments. These values are then averaged across all bank appearances for that game.")
             .font(isLargeTablet ? .footnote : .caption)
-            .foregroundStyle(Color(white: 0.7))
+            .foregroundStyle(.secondary)
             .padding(.horizontal, 4)
             .padding(.top, 2)
     }
@@ -269,9 +267,9 @@ private struct LPLTargetsRowView: View {
         HStack(spacing: 0) {
             rowCell(row.target.game, width: gameColumnWidth)
             rowCell(row.bank.map(String.init) ?? "-", width: bankColumnWidth, alignment: .leading)
-            rowCell(row.target.great.formattedWithCommas, width: scoreColumnWidth, alignment: .leading, color: Color(red: 0.73, green: 0.96, blue: 0.82), monospaced: true, weight: .medium)
-            rowCell(row.target.main.formattedWithCommas, width: scoreColumnWidth, alignment: .leading, color: Color(red: 0.75, green: 0.86, blue: 0.99), monospaced: true)
-            rowCell(row.target.floor.formattedWithCommas, width: scoreColumnWidth, alignment: .leading, color: Color(red: 0.9, green: 0.91, blue: 0.92), monospaced: true)
+            rowCell(row.target.great.formattedWithCommas, width: scoreColumnWidth, alignment: .leading, color: AppTheme.targetGreat, monospaced: true, weight: .medium)
+            rowCell(row.target.main.formattedWithCommas, width: scoreColumnWidth, alignment: .leading, color: AppTheme.targetMain, monospaced: true)
+            rowCell(row.target.floor.formattedWithCommas, width: scoreColumnWidth, alignment: .leading, color: AppTheme.targetFloor, monospaced: true)
         }
         .frame(height: largeText ? 38 : 32)
     }
@@ -280,7 +278,7 @@ private struct LPLTargetsRowView: View {
         _ text: String,
         width: CGFloat,
         alignment: Alignment = .leading,
-        color: Color = .white,
+        color: Color = .primary,
         monospaced: Bool = false,
         weight: Font.Weight = .regular
     ) -> some View {
@@ -308,7 +306,7 @@ private struct LPLTargetsHeaderCell: View {
         let adjustedWidth = AppTableLayout.adjustedCellWidth(width, horizontalPadding: horizontalPadding)
         return Text(title)
             .font((largeText ? Font.footnote : Font.caption2).weight(.semibold))
-            .foregroundStyle(Color(white: 0.75))
+            .foregroundStyle(.secondary)
             .frame(width: adjustedWidth, alignment: alignment)
             .padding(.horizontal, horizontalPadding)
     }

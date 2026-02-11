@@ -70,32 +70,26 @@ struct PinballGameDetailView: View {
 
             Text(game.metaLine)
                 .font(.subheadline)
-                .foregroundStyle(Color(white: 0.7))
+                .foregroundStyle(.primary)
 
             HStack(spacing: 8) {
                 NavigationLink("Rulesheet") {
                     RulesheetView(slug: game.slug)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
 
                 if !game.fullscreenPlayfieldCandidates.isEmpty {
                     NavigationLink("Playfield") {
                         HostedImageView(imageCandidates: game.fullscreenPlayfieldCandidates)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.glass)
                 }
             }
             .font(.caption)
-            .tint(.white)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(white: 0.09))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(white: 0.2), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .appPanelStyle()
     }
 
     @ViewBuilder
@@ -136,15 +130,19 @@ struct PinballGameDetailView: View {
 
     private var sourcesCard: some View {
         VStack(alignment: .leading, spacing: 10) {
+            Text("Sources")
+                .font(.headline)
+                .foregroundStyle(.primary)
+
             HStack(spacing: 8) {
                 if let rulesheetSourceURL = game.rulesheetSourceURL {
                     Link("Rulesheet (source)", destination: rulesheetSourceURL)
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.glass)
                 }
 
                 if let playfieldSourceURL = game.playfieldImageSourceURL {
                     Link("Playfield (source)", destination: playfieldSourceURL)
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.glass)
                 }
             }
 
@@ -155,8 +153,9 @@ struct PinballGameDetailView: View {
             }
         }
         .font(.caption)
-        .tint(.white)
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .appPanelStyle()
     }
 
     private func videosCard(usesDesktopLandscapeLayout: Bool) -> some View {
@@ -174,15 +173,19 @@ struct PinballGameDetailView: View {
         return VStack(alignment: .leading, spacing: 8) {
             Text("Videos")
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
 
             if playableVideos.isEmpty {
                 ZStack {
-                    Color.black.opacity(0.42)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(.regularMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
+                        )
                     Text("No videos listed.")
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                 }
                 .frame(maxWidth: .infinity)
                 .aspectRatio(16.0 / 9.0, contentMode: .fit)
@@ -213,15 +216,19 @@ struct PinballGameDetailView: View {
 
                                 Text(video.label)
                                     .font(.footnote.weight(.semibold))
-                                    .foregroundStyle(Color(white: 0.95))
+                                    .foregroundStyle(.primary)
                                     .lineLimit(1)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(10)
-                            .background(activeVideoID == video.id ? Color(white: 0.24) : Color(white: 0.14))
+                            .background(
+                                activeVideoID == video.id
+                                    ? Color(uiColor: .secondarySystemFill)
+                                    : Color(uiColor: .tertiarySystemFill)
+                            )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color(white: activeVideoID == video.id ? 0.5 : 0.28), lineWidth: 1)
+                                    .stroke(Color(uiColor: .separator).opacity(activeVideoID == video.id ? 0.8 : 0.5), lineWidth: 1)
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
@@ -231,12 +238,7 @@ struct PinballGameDetailView: View {
             }
         }
         .padding(12)
-        .background(Color(white: 0.09))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(white: 0.2), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .appPanelStyle()
         .onAppear {
             if activeVideoID == nil {
                 activeVideoID = playableVideos.first?.id
@@ -248,21 +250,21 @@ struct PinballGameDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Game Info")
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
 
             switch viewModel.status {
             case .idle, .loading:
                 Text("Loading...")
                     .font(.footnote)
-                    .foregroundStyle(Color(white: 0.85))
+                    .foregroundStyle(.secondary)
             case .missing:
                 Text("No game info yet.")
                     .font(.footnote)
-                    .foregroundStyle(Color(white: 0.85))
+                    .foregroundStyle(.secondary)
             case .error:
                 Text("Could not load game info.")
                     .font(.footnote)
-                    .foregroundStyle(Color(white: 0.85))
+                    .foregroundStyle(.secondary)
             case .loaded:
                 if let infoText = viewModel.markdownText {
                     NativeMarkdownView(markdown: infoText)
@@ -271,12 +273,7 @@ struct PinballGameDetailView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(white: 0.09))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(white: 0.2), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .appPanelStyle()
     }
 }
 
@@ -300,18 +297,18 @@ private struct NativeMarkdownView: View {
     private func blockView(_ block: MarkdownBlock) -> some View {
         switch block {
         case .heading(let level, let text):
-            MarkdownInlineText(raw: text, baseFont: headingFont(level), textColor: .white)
+            MarkdownInlineText(raw: text, baseFont: headingFont(level), textColor: .primary)
                 .fontWeight(.semibold)
                 .padding(.top, level <= 2 ? 4 : 2)
         case .paragraph(let text):
-            MarkdownInlineText(raw: text, baseFont: .body, textColor: Color(white: 0.92))
+            MarkdownInlineText(raw: text, baseFont: .body, textColor: .primary)
         case .unorderedList(let items):
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                     HStack(alignment: .top, spacing: 8) {
                         Text("•")
-                            .foregroundStyle(Color(white: 0.9))
-                        MarkdownInlineText(raw: item, baseFont: .body, textColor: Color(white: 0.92))
+                            .foregroundStyle(.secondary)
+                        MarkdownInlineText(raw: item, baseFont: .body, textColor: .primary)
                     }
                 }
             }
@@ -320,20 +317,20 @@ private struct NativeMarkdownView: View {
                 ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                     HStack(alignment: .top, spacing: 8) {
                         Text("\(item.number).")
-                            .foregroundStyle(Color(white: 0.9))
+                            .foregroundStyle(.secondary)
                             .font(.body.monospacedDigit())
-                        MarkdownInlineText(raw: item.text, baseFont: .body, textColor: Color(white: 0.92))
+                        MarkdownInlineText(raw: item.text, baseFont: .body, textColor: .primary)
                     }
                 }
             }
         case .blockquote(let lines):
             HStack(alignment: .top, spacing: 10) {
                 Rectangle()
-                    .fill(Color(white: 0.35))
+                    .fill(Color(uiColor: .separator))
                     .frame(width: 3)
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                        MarkdownInlineText(raw: line, baseFont: .body, textColor: Color(white: 0.85))
+                        MarkdownInlineText(raw: line, baseFont: .body, textColor: .secondary)
                     }
                 }
             }
@@ -341,20 +338,20 @@ private struct NativeMarkdownView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 Text(code)
                     .font(.footnote.monospaced())
-                    .foregroundStyle(Color(white: 0.95))
+                    .foregroundStyle(.primary)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(10)
-            .background(Color(white: 0.12))
+            .background(Color(uiColor: .tertiarySystemBackground))
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color(white: 0.22), lineWidth: 1)
+                    .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
             )
         case .horizontalRule:
             Rectangle()
-                .fill(Color(white: 0.25))
+                .fill(Color(uiColor: .separator))
                 .frame(height: 1)
                 .padding(.vertical, 2)
         case .table(let headers, let alignments, let rows):
@@ -382,7 +379,7 @@ private struct MarkdownInlineText: View {
             Text(attributed)
                 .font(baseFont)
                 .foregroundStyle(textColor)
-                .tint(Color(red: 0.65, green: 0.78, blue: 1.0))
+                .tint(AppTheme.rulesheetLink)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {
@@ -434,7 +431,7 @@ private struct MarkdownTableView: View {
             }
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color(white: 0.22), lineWidth: 1)
+                    .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
@@ -445,22 +442,26 @@ private struct MarkdownTableView: View {
         MarkdownInlineText(
             raw: text,
             baseFont: isHeader ? .subheadline : .footnote,
-            textColor: isHeader ? .white : Color(white: 0.92)
+            textColor: .primary
         )
         .fontWeight(isHeader ? .semibold : .regular)
         .frame(minWidth: 120, alignment: swiftUIAlignment(alignment))
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
-        .background(isHeader ? Color(white: 0.14) : Color(white: 0.09))
+        .background(
+            isHeader
+                ? Color(uiColor: .secondarySystemBackground)
+                : Color(uiColor: .tertiarySystemBackground)
+        )
         .overlay(
             Rectangle()
-                .fill(Color(white: 0.22))
+                .fill(Color(uiColor: .separator).opacity(0.7))
                 .frame(width: 1),
             alignment: .trailing
         )
         .overlay(
             Rectangle()
-                .fill(Color(white: 0.22))
+                .fill(Color(uiColor: .separator).opacity(0.7))
                 .frame(height: 1),
             alignment: .bottom
         )
@@ -529,7 +530,7 @@ private struct YouTubeThumbnailView: View {
         AsyncImage(url: currentURL) { phase in
             switch phase {
             case .empty:
-                Color(white: 0.18)
+                Color(uiColor: .tertiarySystemBackground)
                     .overlay { ProgressView() }
             case .success(let image):
                 image
@@ -537,19 +538,19 @@ private struct YouTubeThumbnailView: View {
                     .scaledToFill()
             case .failure:
                 if index + 1 < candidates.count {
-                    Color(white: 0.18)
+                    Color(uiColor: .tertiarySystemBackground)
                         .task {
                             index += 1
                         }
                 } else {
-                    Color(white: 0.18)
+                    Color(uiColor: .tertiarySystemBackground)
                         .overlay {
                             Image(systemName: "photo")
                                 .foregroundStyle(.secondary)
                         }
                 }
             @unknown default:
-                Color(white: 0.18)
+                Color(uiColor: .tertiarySystemBackground)
             }
         }
     }

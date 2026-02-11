@@ -19,7 +19,7 @@ struct FallbackAsyncImageView: View {
                     .resizable()
                     .modifier(AppImageContentMode(contentMode: contentMode))
             } else {
-                Color(white: 0.12)
+                Color(uiColor: .tertiarySystemBackground)
                     .overlay {
                         if let emptyMessage, candidates.isEmpty || didFailCurrent {
                             Text(emptyMessage)
@@ -73,8 +73,9 @@ private struct AppImageContentMode: ViewModifier {
 struct HostedImageView: View {
     let imageCandidates: [URL]
     @StateObject private var loader = RemoteUIImageLoader()
+    @StateObject private var chrome = FullscreenChromeController()
     @Environment(\.dismiss) private var dismiss
-    @State private var controlsVisible = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
@@ -96,7 +97,7 @@ struct HostedImageView: View {
                 ProgressView()
             }
 
-            if controlsVisible {
+            if chrome.isVisible {
                 VStack {
                     HStack {
                         Button {
@@ -104,14 +105,18 @@ struct HostedImageView: View {
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.title2.weight(.semibold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(.primary)
                                 .padding(14)
-                                .background(Color.black.opacity(0.4))
+                                .background(.regularMaterial, in: Circle())
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color(uiColor: .separator).opacity(0.75), lineWidth: 1)
+                                )
                                 .clipShape(Circle())
                         }
                         Spacer()
                     }
-                    .padding(.top, 16)
+                    .padding(.top, 0)
                     .padding(.horizontal, 16)
                     Spacer()
                 }
@@ -120,23 +125,24 @@ struct HostedImageView: View {
         }
         .simultaneousGesture(
             TapGesture().onEnded {
-                withAnimation(.easeInOut(duration: 0.18)) {
-                    controlsVisible.toggle()
-                }
+                chrome.toggle(reduceMotion: reduceMotion)
             }
         )
         .appEdgeBackGesture(dismiss: dismiss)
+        .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .statusBarHidden(true)
         .onAppear {
-            controlsVisible = false
+            chrome.resetOnAppear()
+        }
+        .onDisappear {
+            chrome.cleanupOnDisappear()
         }
         .task {
             await loader.loadIfNeeded(from: imageCandidates)
         }
     }
-
 }
 
 @MainActor

@@ -91,22 +91,21 @@ struct StandingsView: View {
                 }
             }
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: AppLayout.dropdownContentSpacing) {
                 Text(viewModel.selectedSeasonLabel)
-                    .font(isLargeTablet ? .callout : .footnote)
+                    .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
                     .lineLimit(1)
                 Spacer()
                 Image(systemName: "chevron.down")
-                    .font(isLargeTablet ? .footnote : .caption)
+                    .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, isLargeTablet ? 14 : 12)
-            .padding(.vertical, isLargeTablet ? 10 : 8)
-            .appControlStyle()
+            .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
+            .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
         }
+        .buttonStyle(.glass)
         .disabled(viewModel.seasons.isEmpty)
-        .tint(.white)
     }
 
     private var standingsTable: some View {
@@ -114,7 +113,7 @@ struct StandingsView: View {
             ScrollView(.horizontal) {
                 VStack(spacing: 0) {
                     tableHeader
-                    Divider().overlay(Color(white: 0.2))
+                    AppTableHeaderDivider()
 
                     if viewModel.standings.isEmpty {
                         Text("No rows. Check data source or season selection.")
@@ -137,7 +136,7 @@ struct StandingsView: View {
                                         largeText: isLargeTablet
                                     )
                                     .background(index.isMultiple(of: 2) ? AppTheme.rowEven : AppTheme.rowOdd)
-                                    Divider().overlay(Color(white: 0.15))
+                                    AppTableRowDivider()
                                 }
                             }
                         }
@@ -177,7 +176,7 @@ struct StandingsView: View {
             AppHeaderCell(title: "B8", width: bankWidth, horizontalPadding: 3, largeText: isLargeTablet)
         }
         .frame(height: isLargeTablet ? 46 : 42)
-        .background(Color(white: 0.1))
+        .background(.thinMaterial)
     }
 }
 
@@ -209,10 +208,10 @@ private struct StandingsRowView: View {
 
     private var rankColor: Color {
         switch rank {
-        case 1: return .yellow
-        case 2: return Color(white: 0.86)
-        case 3: return .orange
-        default: return .white
+        case 1: return AppTheme.podiumGold
+        case 2: return AppTheme.podiumSilver
+        case 3: return AppTheme.podiumBronze
+        default: return .primary
         }
     }
 
@@ -220,7 +219,7 @@ private struct StandingsRowView: View {
         _ text: String,
         width: CGFloat,
         alignment: Alignment = .leading,
-        color: Color = .white,
+        color: Color = .primary,
         monospaced: Bool = false,
         weight: Font.Weight = .regular
     ) -> some View {

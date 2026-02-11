@@ -82,51 +82,34 @@ private struct LPLInfoView: View {
 
                             Text("Pinball in the Capital City")
                                 .font(aboutTitleFont)
-                                .foregroundStyle(Color.white.opacity(0.92))
+                                .foregroundStyle(.primary)
 
                             Text("The Lansing Pinball League is the Capital City's IFPA-endorsed pinball league, open to players of all skill levels. New players are always welcome. We're a friendly, casual group with everyone from first-timers to seasoned competitors.")
                                 .font(aboutBodyFont)
-                                .foregroundStyle(Color.white.opacity(0.92))
+                                .foregroundStyle(.primary)
 
                             Text(
                                 "We meet the 2nd and 4th Tuesdays at \(Text("The Avenue Cafe").bold()) (2021 E. Michigan Ave, Lansing), about halfway between MSU and the Capitol. We're currently in \(Text("Season 24").bold()), which started in January. New members can join during the first 5 meetings, and players must attend at least 4 of the 8 meetings to qualify for finals. Guests are welcome at any session. \(Text("Season dues are $10").bold()), paid in cash."
                             )
                             .font(aboutBodyFont)
-                            .foregroundStyle(Color.white.opacity(0.92))
+                            .foregroundStyle(.primary)
 
                             Text(
                                 "We also run a side tournament, \(Text("Tuesday Night Smackdown").bold()), played on a single game. Qualifying starts around \(Text("6 pm").bold()), with finals (top 8 players) after league play finishes, usually around \(Text("9:30 pm").bold())."
                             )
                             .font(aboutBodyFont)
-                            .foregroundStyle(Color.white.opacity(0.92))
+                            .foregroundStyle(.primary)
 
                             HStack(spacing: 10) {
-                                Link(destination: LPLLinks.website) {
-                                    Text("lansingpinleague.com")
-                                        .font(aboutLinkFont)
-                                        .foregroundStyle(Color.white.opacity(0.9))
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 8)
-                                        .background(AppTheme.controlBg)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .stroke(AppTheme.controlBorder, lineWidth: 1)
-                                        )
-                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                }
-                                Link(destination: LPLLinks.facebook) {
-                                    Text("Facebook Group")
-                                        .font(aboutLinkFont)
-                                        .foregroundStyle(Color.white.opacity(0.9))
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 8)
-                                        .background(AppTheme.controlBg)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .stroke(AppTheme.controlBorder, lineWidth: 1)
-                                        )
-                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                }
+                                Link("lansingpinleague.com", destination: LPLLinks.website)
+                                    .font(aboutLinkFont)
+                                    .frame(maxWidth: .infinity)
+                                    .buttonStyle(.glass)
+
+                                Link("Facebook Group", destination: LPLLinks.facebook)
+                                    .font(aboutLinkFont)
+                                    .frame(maxWidth: .infinity)
+                                    .buttonStyle(.glass)
                             }
                         }
                         .appReadableWidth(maxWidth: readableContentWidth)
@@ -137,7 +120,7 @@ private struct LPLInfoView: View {
 
                     Text("Source: lansingpinleague.com")
                         .font(isLargeTablet ? .footnote : .caption2)
-                        .foregroundStyle(Color.white.opacity(0.7))
+                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.bottom, 4)
                 }

@@ -2,8 +2,10 @@ import SwiftUI
 
 struct LibraryListScreen: View {
     @StateObject private var viewModel = PinballLibraryViewModel()
-    @State private var controlsHeight: CGFloat = 96
     @State private var viewportWidth: CGFloat = 0
+    @State private var isSearchPresented = false
+    @Namespace private var cardTransition
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
@@ -11,19 +13,6 @@ struct LibraryListScreen: View {
         AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportWidth)
     }
     private var isLandscapePhone: Bool { verticalSizeClass == .compact }
-    private let landscapeControlHeight: CGFloat = 40
-    private var cardsTopBuffer: CGFloat {
-        if isLandscapePhone {
-            return max(14, controlsHeight - 30)
-        }
-        if isLargeTablet {
-            return max(38, controlsHeight + 12)
-        }
-        return max(24, controlsHeight - 4)
-    }
-    private var scrollBottomClearance: CGFloat {
-        isLandscapePhone ? 70 : 100
-    }
     private var contentHorizontalPadding: CGFloat {
         AppLayout.contentHorizontalPadding(verticalSizeClass: verticalSizeClass, isLargeTablet: isLargeTablet)
     }
@@ -43,58 +32,9 @@ struct LibraryListScreen: View {
             ZStack {
                 AppBackground()
 
-                ZStack(alignment: .top) {
-                    content
-                        .appReadableWidth(maxWidth: readableContentWidth)
-                        .padding(.horizontal, contentHorizontalPadding)
-                        .ignoresSafeArea(edges: .bottom)
-
-                    GeometryReader { geo in
-                        let safeTop = geo.safeAreaInsets.top
-                        let fadeHeight = isLandscapePhone
-                            ? max(52, safeTop + 30)
-                            : max(128, controlsHeight + safeTop + 22)
-
-                        LinearGradient(
-                            gradient: Gradient(stops: [
-                                .init(color: Color.black.opacity(0.62), location: 0.0),
-                                .init(color: Color.black.opacity(0.62), location: 0.08),
-                                .init(color: Color.black.opacity(0.32), location: 0.50),
-                                .init(color: Color.black.opacity(0.17), location: 0.8),
-                                .init(color: .clear, location: 1.0)
-                            ]),
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .frame(maxWidth: .infinity)
-                        .frame(height: fadeHeight, alignment: .top)
-                        .ignoresSafeArea(edges: [.top, .horizontal])
-                        .allowsHitTesting(false)
-                    }
-                    .zIndex(0.5)
-
-                    VStack(spacing: 8) {
-                        controls
-                            .appReadableWidth(maxWidth: readableContentWidth)
-                            .padding(.horizontal, contentHorizontalPadding)
-                            .padding(.top, 6)
-                            .background(
-                                GeometryReader { geo in
-                                    Color.clear.preference(key: LibraryControlsHeightKey.self, value: geo.size.height)
-                                }
-                            )
-
-                        if let error = viewModel.errorMessage {
-                            Text(error)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .appReadableWidth(maxWidth: readableContentWidth)
-                                .padding(.horizontal, contentHorizontalPadding)
-                        }
-                    }
-                    .zIndex(1)
-                }
+                content
+                    .appReadableWidth(maxWidth: readableContentWidth)
+                    .padding(.horizontal, contentHorizontalPadding)
             }
             .background(
                 GeometryReader { geo in
@@ -102,13 +42,34 @@ struct LibraryListScreen: View {
                         .onAppear { viewportWidth = geo.size.width }
                         .onChange(of: geo.size.width) { _, newValue in
                             viewportWidth = newValue
-                        }
+                    }
                 }
             )
-            .toolbar(.hidden, for: .navigationBar)
-            .onPreferenceChange(LibraryControlsHeightKey.self) { newValue in
-                guard newValue > 0 else { return }
-                controlsHeight = newValue
+            .searchable(
+                text: $viewModel.query,
+                isPresented: $isSearchPresented,
+                placement: .toolbar,
+                prompt: "Search games"
+            )
+            .onAppear {
+                isSearchPresented = false
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        isSearchPresented = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+
+                    Menu {
+                        sortMenuSection
+                        bankMenuSection
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                    }
+                }
             }
             .task {
                 await viewModel.loadIfNeeded()
@@ -116,116 +77,43 @@ struct LibraryListScreen: View {
         }
     }
 
-    private var controls: some View {
-        Group {
-            if isLandscapePhone {
-                GeometryReader { geo in
-                    let spacing: CGFloat = 8
-                    let total = max(0, geo.size.width - (spacing * 2))
-                    let minBankWidth: CGFloat = 82
-                    let minSortWidth: CGFloat = 130
-                    let idealSortWidth: CGFloat = 190 // keep "Sort: Alphabetical" fully visible
-                    // Nudge search wider so the search/sort gap sits on the screen center.
-                    let centeredSearchWidth = (total * 0.5) + (spacing * 0.5)
-                    let searchWidth = max(130, centeredSearchWidth)
-                    let sortMaxAllowed = max(minSortWidth, total - searchWidth - minBankWidth)
-                    let sortWidth = min(idealSortWidth, sortMaxAllowed)
-                    let bankWidth = max(minBankWidth, total - searchWidth - sortWidth)
-
-                    HStack(spacing: spacing) {
-                        searchField
-                            .frame(width: searchWidth)
-                            .frame(height: landscapeControlHeight)
-                        sortMenu
-                            .frame(width: sortWidth)
-                            .frame(height: landscapeControlHeight)
-                        bankMenu
-                            .frame(width: bankWidth)
-                            .frame(height: landscapeControlHeight)
-                    }
-                }
-                .frame(height: landscapeControlHeight)
-            } else {
-                VStack(spacing: 10) {
-                    searchField
-                    HStack(spacing: 8) {
-                        sortMenu
-                        bankMenu
-                    }
-                }
-            }
-        }
-    }
-
-    private var searchField: some View {
-        TextField(
-            "",
-            text: $viewModel.query,
-            prompt: Text("Search games...")
-                .foregroundStyle(Color(white: 0.72))
-        )
-        .textInputAutocapitalization(.never)
-        .autocorrectionDisabled(true)
-        .font(isLargeTablet ? .body : .subheadline)
-        .foregroundStyle(Color(white: 0.96))
-        .padding(.horizontal, isLandscapePhone ? 11 : 12)
-        .padding(.vertical, isLandscapePhone ? 6 : 9)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: isLandscapePhone ? landscapeControlHeight : nil)
-        .appGlassControlStyle()
-    }
-
-    private var sortMenu: some View {
-        Menu {
+    private var sortMenuSection: some View {
+        Section("Sort") {
             ForEach(PinballLibrarySortOption.allCases) { option in
-                Button(option.menuLabel) { viewModel.sortOption = option }
+                Button {
+                    viewModel.sortOption = option
+                } label: {
+                    selectableMenuLabel(option.menuLabel, isSelected: viewModel.sortOption == option)
+                }
             }
-        } label: {
-            HStack(spacing: 6) {
-                Text(viewModel.selectedSortLabel)
-                    .font(isLandscapePhone || isLargeTablet ? .subheadline : .caption2)
-                    .lineLimit(1)
-                Spacer(minLength: 4)
-                Image(systemName: "chevron.down")
-                    .font(isLandscapePhone || isLargeTablet ? .subheadline : .caption2)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, isLandscapePhone ? 11 : 10)
-            .padding(.vertical, isLandscapePhone ? 6 : 6)
-            .frame(height: isLandscapePhone ? landscapeControlHeight : nil)
-            .appGlassControlStyle()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .tint(.white)
-        .disabled(viewModel.games.isEmpty)
     }
 
-    private var bankMenu: some View {
-        Menu {
-            Button("All banks") { viewModel.selectedBank = nil }
+    private var bankMenuSection: some View {
+        Section("Bank") {
+            Button {
+                viewModel.selectedBank = nil
+            } label: {
+                selectableMenuLabel("All banks", isSelected: viewModel.selectedBank == nil)
+            }
+
             ForEach(viewModel.bankOptions, id: \.self) { bank in
-                Button("Bank \(bank)") { viewModel.selectedBank = bank }
+                Button {
+                    viewModel.selectedBank = bank
+                } label: {
+                    selectableMenuLabel("Bank \(bank)", isSelected: viewModel.selectedBank == bank)
+                }
             }
-        } label: {
-            HStack(spacing: 6) {
-                Text(viewModel.selectedBankLabel)
-                    .font(isLandscapePhone || isLargeTablet ? .subheadline : .caption2)
-                    .lineLimit(1)
-                Spacer(minLength: 4)
-                Image(systemName: "chevron.down")
-                    .font(isLandscapePhone || isLargeTablet ? .subheadline : .caption2)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, isLandscapePhone ? 11 : 10)
-            .padding(.vertical, isLandscapePhone ? 6 : 6)
-            .frame(height: isLandscapePhone ? landscapeControlHeight : nil)
-            .appGlassControlStyle()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .tint(.white)
-        .disabled(viewModel.games.isEmpty)
+    }
+
+    @ViewBuilder
+    private func selectableMenuLabel(_ title: String, isSelected: Bool) -> some View {
+        if isSelected {
+            Label(title, systemImage: "checkmark")
+        } else {
+            Text(title)
+        }
     }
 
     @ViewBuilder
@@ -254,7 +142,6 @@ struct LibraryListScreen: View {
                         }
                     }
             }
-            .ignoresSafeArea(edges: .bottom)
         }
     }
 
@@ -265,9 +152,7 @@ struct LibraryListScreen: View {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(viewModel.sections.enumerated()), id: \.offset) { idx, section in
                         if idx > 0 {
-                            Divider()
-                                .overlay(Color.white)
-                                .padding(.vertical, 10)
+                            AppSectionDivider()
                         }
 
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: gridMinCardWidth), spacing: 12)], spacing: 12) {
@@ -277,8 +162,6 @@ struct LibraryListScreen: View {
                         }
                     }
                 }
-                .padding(.top, cardsTopBuffer)
-                .padding(.bottom, scrollBottomClearance)
             }
         } else {
             ScrollView {
@@ -287,17 +170,20 @@ struct LibraryListScreen: View {
                         gameCard(for: game)
                     }
                 }
-                .padding(.top, cardsTopBuffer)
-                .padding(.bottom, scrollBottomClearance)
             }
         }
     }
 
     private func gameCard(for game: PinballGame) -> some View {
         NavigationLink {
-            PinballGameDetailView(game: game)
+            if reduceMotion {
+                PinballGameDetailView(game: game)
+            } else {
+                PinballGameDetailView(game: game)
+                    .navigationTransition(.zoom(sourceID: game.id, in: cardTransition))
+            }
         } label: {
-            VStack(alignment: .leading, spacing: 0) {
+            let card = VStack(alignment: .leading, spacing: 0) {
                 FallbackAsyncImageView(
                     candidates: game.libraryPlayfieldCandidates,
                     emptyMessage: game.playfieldLocalURL == nil ? "No image" : nil
@@ -308,18 +194,18 @@ struct LibraryListScreen: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(game.name)
                         .font(isLargeTablet ? .title3 : .headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                         .lineLimit(2)
                         .frame(height: isLargeTablet ? 52 : 44, alignment: .topLeading)
 
                     Text(game.manufacturerYearLine)
                         .font(isLargeTablet ? .footnote : .caption)
-                        .foregroundStyle(Color(white: 0.7))
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
 
                     Text(game.locationBankLine)
                         .font(isLargeTablet ? .footnote : .caption)
-                        .foregroundStyle(Color(white: 0.78))
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
                 }
                 .padding(10)
@@ -327,16 +213,16 @@ struct LibraryListScreen: View {
             }
             .appPanelStyle()
             .contentShape(Rectangle())
+
+            if reduceMotion {
+                card
+            } else {
+                card
+                    .matchedTransitionSource(id: game.id, in: cardTransition)
+            }
         }
         .id(game.id)
         .buttonStyle(.plain)
-    }
-}
-
-private struct LibraryControlsHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 96
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }
 
