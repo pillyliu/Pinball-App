@@ -9,6 +9,12 @@ import SwiftUI
 import Combine
 
 struct StandingsView: View {
+    let embeddedInNavigation: Bool
+
+    init(embeddedInNavigation: Bool = false) {
+        self.embeddedInNavigation = embeddedInNavigation
+    }
+
     @StateObject private var viewModel = StandingsViewModel()
     @State private var tableAvailableWidth: CGFloat = 0
     @State private var viewportWidth: CGFloat = 0
@@ -45,42 +51,119 @@ struct StandingsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                AppBackground()
-
-                VStack(spacing: 12) {
-                    seasonSelector
-
-                    if let errorMessage = viewModel.errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-
-                    standingsTable
-                        .frame(maxHeight: .infinity)
+        Group {
+            if embeddedInNavigation {
+                content
+            } else {
+                NavigationStack {
+                    content
+                        .toolbar(.hidden, for: .navigationBar)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .padding(.horizontal, contentHorizontalPadding)
-                .padding(.top, 4)
-                .padding(.bottom, 8)
-            }
-            .background(
-                GeometryReader { geo in
-                    Color.clear
-                        .onAppear { viewportWidth = geo.size.width }
-                        .onChange(of: geo.size.width) { _, newValue in
-                            viewportWidth = newValue
-                        }
-                }
-            )
-            .toolbar(.hidden, for: .navigationBar)
-            .task {
-                await viewModel.loadIfNeeded()
             }
         }
+        .toolbar {
+            if embeddedInNavigation {
+                ToolbarItem(placement: .principal) {
+                    navSummaryLabel
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    topRightFilterMenu
+                }
+            }
+        }
+    }
+
+    private var content: some View {
+        ZStack {
+            AppBackground()
+
+            VStack(spacing: 12) {
+                if !embeddedInNavigation {
+                    seasonSelector
+                }
+
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                updatedStatusRow
+
+                standingsTable
+                    .frame(maxHeight: .infinity)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .padding(.horizontal, contentHorizontalPadding)
+            .padding(.top, embeddedInNavigation ? 0 : 4)
+            .padding(.bottom, 8)
+        }
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { viewportWidth = geo.size.width }
+                    .onChange(of: geo.size.width) { _, newValue in
+                        viewportWidth = newValue
+                    }
+            }
+        )
+        .task {
+            await viewModel.loadIfNeeded()
+        }
+    }
+
+    private var navSummaryLabel: some View {
+        Text("Standings - \(viewModel.selectedSeasonLabel)")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+    }
+
+    @ViewBuilder
+    private var updatedStatusRow: some View {
+        if let updatedAtLabel = viewModel.updatedAtLabel {
+            Button {
+                Task { await viewModel.refreshNow() }
+            } label: {
+                HStack(spacing: 4) {
+                    Text("Data updated at \(updatedAtLabel)")
+                    if viewModel.isRefreshing {
+                        ProgressView()
+                            .controlSize(.mini)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                            .opacity(viewModel.hasNewerData ? 0.35 : 1)
+                            .animation(
+                                viewModel.hasNewerData
+                                    ? .easeInOut(duration: 0.65).repeatForever(autoreverses: true)
+                                    : .default,
+                                value: viewModel.hasNewerData
+                            )
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isRefreshing)
+        }
+    }
+
+    private var topRightFilterMenu: some View {
+        Menu {
+            ForEach(viewModel.seasons, id: \.self) { season in
+                Button("Season \(season)") {
+                    viewModel.selectedSeason = season
+                }
+            }
+        } label: {
+            Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                .font(.title3)
+                .frame(width: 34, height: 34)
+        }
+        .buttonStyle(.plain)
     }
 
     private var seasonSelector: some View {
@@ -194,7 +277,7 @@ private struct StandingsRowView: View {
     var body: some View {
         HStack(spacing: 0) {
             rowCell(rank.formatted(), width: rankWidth, color: rankColor, monospaced: true)
-            rowCell(standing.player, width: playerWidth, weight: rank <= 8 ? .semibold : .regular)
+            rowCell(standing.displayPlayer, width: playerWidth, weight: rank <= 8 ? .semibold : .regular)
             rowCell(formatRounded(standing.seasonTotal), width: pointsWidth, monospaced: true)
             rowCell(standing.eligible, width: eligibleWidth)
             rowCell(standing.nights, width: nightsWidth, monospaced: true)
@@ -242,6 +325,9 @@ private final class StandingsViewModel: ObservableObject {
     @Published private(set) var rows: [StandingsCSVRow] = []
     @Published var selectedSeason: Int?
     @Published var errorMessage: String?
+    @Published var dataUpdatedAt: Date?
+    @Published var isRefreshing: Bool = false
+    @Published var hasNewerData: Bool = false
 
     private var didLoad = false
 
@@ -256,6 +342,11 @@ private final class StandingsViewModel: ObservableObject {
         return "Select"
     }
 
+    var updatedAtLabel: String? {
+        guard let dataUpdatedAt else { return nil }
+        return Self.updatedAtFormatter.string(from: dataUpdatedAt)
+    }
+
     var standings: [Standing] {
         guard let selectedSeason else { return [] }
 
@@ -265,7 +356,8 @@ private final class StandingsViewModel: ObservableObject {
         let mapped = seasonRows.map {
             Standing(
                 id: $0.player,
-                player: $0.player,
+                rawPlayer: $0.player,
+                displayPlayer: redactPlayerNameForDisplay($0.player),
                 seasonTotal: $0.total,
                 eligible: $0.eligible,
                 nights: $0.nights,
@@ -279,7 +371,7 @@ private final class StandingsViewModel: ObservableObject {
             for row in seasonRows {
                 rankByPlayer[row.player] = row.rank ?? Int.max
             }
-            return mapped.sorted { (rankByPlayer[$0.player] ?? Int.max) < (rankByPlayer[$1.player] ?? Int.max) }
+            return mapped.sorted { (rankByPlayer[$0.rawPlayer] ?? Int.max) < (rankByPlayer[$1.rawPlayer] ?? Int.max) }
         }
 
         return mapped.sorted { $0.seasonTotal > $1.seasonTotal }
@@ -288,17 +380,34 @@ private final class StandingsViewModel: ObservableObject {
     func loadIfNeeded() async {
         guard !didLoad else { return }
         didLoad = true
-        await loadCSV()
+        await loadCSV(forceRefresh: false)
     }
 
-    private func loadCSV() async {
+    func refreshNow() async {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+        await loadCSV(forceRefresh: true)
+    }
+
+    private func loadCSV(forceRefresh: Bool) async {
         do {
-            let cached = try await PinballDataCache.shared.loadText(path: StandingsCSVLoader.defaultPath)
+            let cached: CachedTextResult
+            if forceRefresh {
+                cached = try await PinballDataCache.shared.forceRefreshText(path: StandingsCSVLoader.defaultPath)
+            } else {
+                cached = try await PinballDataCache.shared.loadText(path: StandingsCSVLoader.defaultPath)
+            }
             guard let text = cached.text else {
                 throw StandingsCSVError.network("Standings data is missing from cache and server.")
             }
             rows = try StandingsCSVLoader.parse(text: text)
+            dataUpdatedAt = cached.updatedAt
             errorMessage = nil
+            if forceRefresh {
+                hasNewerData = false
+            }
+            Task { await refreshUpdateIndicator() }
 
             if let selectedSeason, seasons.contains(selectedSeason) {
                 self.selectedSeason = selectedSeason
@@ -307,14 +416,40 @@ private final class StandingsViewModel: ObservableObject {
             }
         } catch {
             rows = []
+            dataUpdatedAt = nil
+            hasNewerData = false
             errorMessage = error.localizedDescription
         }
     }
+
+    private func refreshUpdateIndicator() async {
+        guard dataUpdatedAt != nil else {
+            hasNewerData = false
+            return
+        }
+
+        let remoteHasNewer: Bool
+        do {
+            remoteHasNewer = try await PinballDataCache.shared.hasRemoteUpdate(path: StandingsCSVLoader.defaultPath)
+        } catch {
+            remoteHasNewer = false
+        }
+
+        hasNewerData = remoteHasNewer
+    }
+
+    private static let updatedAtFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateFormat = "MMM d, h:mm a"
+        return formatter
+    }()
 }
 
 private struct Standing: Identifiable {
     let id: String
-    let player: String
+    let rawPlayer: String
+    let displayPlayer: String
     let seasonTotal: Double
     let eligible: String
     let nights: String

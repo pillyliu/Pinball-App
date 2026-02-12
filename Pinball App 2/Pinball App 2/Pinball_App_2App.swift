@@ -14,11 +14,15 @@ struct Pinball_App_2App: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .task {
+                    await refreshRedactedPlayersFromCSV()
+                }
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             Task {
                 await PinballDataCache.shared.refreshMetadataFromForeground()
+                await refreshRedactedPlayersFromCSV()
             }
         }
     }

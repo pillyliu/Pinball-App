@@ -4,6 +4,7 @@ import CryptoKit
 struct CachedTextResult {
     let text: String?
     let isMissing: Bool
+    let updatedAt: Date?
 }
 
 actor PinballDataCache {
@@ -63,6 +64,12 @@ actor PinballDataCache {
     private let starterPackBundleExt = "bundle"
     private let starterPackBundlePath = "pinball"
     private let starterSeedMarkerName = "starter-pack-seeded-v1"
+    private let starterPriorityPaths = [
+        "/pinball/data/LPL_Stats.csv",
+        "/pinball/data/LPL_Standings.csv",
+        "/pinball/data/redacted_players.csv",
+        "/pinball/data/lpl_stats.csv",
+    ]
 
     private var isLoaded = false
     private var index = CacheIndex()
@@ -85,6 +92,32 @@ actor PinballDataCache {
         }
 
         return try await fetchTextFromNetwork(path: normalizedPath, allowMissing: allowMissing)
+    }
+
+    func forceRefreshText(path: String, allowMissing: Bool = false) async throws -> CachedTextResult {
+        try await ensureLoaded()
+        let normalizedPath = normalize(path)
+        return try await fetchTextFromNetwork(path: normalizedPath, allowMissing: allowMissing)
+    }
+
+    func hasRemoteUpdate(path: String) async throws -> Bool {
+        try await ensureLoaded()
+        let normalizedPath = normalize(path)
+        try await refreshMetadataIfNeeded(force: true)
+
+        guard let remoteHash = manifest?.files[normalizedPath]?.hash else {
+            return false
+        }
+        guard let localData = try cachedData(for: normalizedPath) else {
+            return false
+        }
+        return sha256Hex(localData) != remoteHash
+    }
+
+    func cachedUpdatedAt(path: String) async throws -> Date? {
+        try await ensureLoaded()
+        let normalizedPath = normalize(path)
+        return cachedFileUpdatedAt(for: normalizedPath)
     }
 
     func loadData(url: URL) async throws -> Data {
@@ -145,7 +178,7 @@ actor PinballDataCache {
     private func fetchTextFromNetwork(path: String, allowMissing: Bool) async throws -> CachedTextResult {
         let data = try await fetchBinaryFromNetwork(path: path, allowMissing: allowMissing)
         if data == nil {
-            return CachedTextResult(text: nil, isMissing: true)
+            return CachedTextResult(text: nil, isMissing: true, updatedAt: nil)
         }
 
         guard let data,
@@ -155,7 +188,8 @@ actor PinballDataCache {
 
         return CachedTextResult(
             text: text,
-            isMissing: false
+            isMissing: false,
+            updatedAt: cachedFileUpdatedAt(for: path)
         )
     }
 
@@ -211,14 +245,20 @@ actor PinballDataCache {
 
         return CachedTextResult(
             text: text,
-            isMissing: false
+            isMissing: false,
+            updatedAt: cachedFileUpdatedAt(for: path)
         )
     }
 
     private func cachedData(for path: String) throws -> Data? {
         let url = fileURL(for: path)
-        guard fileManager.fileExists(atPath: url.path) else { return nil }
-        return try Data(contentsOf: url)
+        if fileManager.fileExists(atPath: url.path) {
+            return try Data(contentsOf: url)
+        }
+
+        guard let bundled = try bundledStarterData(for: path) else { return nil }
+        try write(data: bundled, for: path)
+        return bundled
     }
 
     private func write(data: Data, for path: String) throws {
@@ -226,6 +266,19 @@ actor PinballDataCache {
         let dir = url.deletingLastPathComponent()
         try fileManager.createDirectory(at: dir, withIntermediateDirectories: true, attributes: nil)
         try data.write(to: url, options: .atomic)
+    }
+
+    private func cachedFileUpdatedAt(for path: String) -> Date? {
+        let url = fileURL(for: path)
+        guard let attrs = try? fileManager.attributesOfItem(atPath: url.path),
+              let modified = attrs[.modificationDate] as? Date else {
+            return nil
+        }
+        return modified
+    }
+
+    private func sha256Hex(_ data: Data) -> String {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 
     private func refreshMetadataIfNeeded(force: Bool) async throws {
@@ -276,7 +329,6 @@ actor PinballDataCache {
 
     private func ensureLoaded() async throws {
         guard !isLoaded else { return }
-        isLoaded = true
 
         let root = cacheRootURL()
         try fileManager.createDirectory(at: root, withIntermediateDirectories: true, attributes: nil)
@@ -288,13 +340,33 @@ actor PinballDataCache {
         }
 
         do {
-            try seedBundledStarterPackIfNeeded()
+            try preloadStarterPriorityFilesIfNeeded()
         } catch {
-            // Starter pack seeding is best effort; runtime cache/network flow remains fallback.
+            // Priority preload is best effort.
+        }
+
+        isLoaded = true
+
+        Task.detached(priority: .utility) {
+            await PinballDataCache.shared.seedStarterPackBestEffort()
         }
 
         Task.detached(priority: .utility) {
             await PinballDataCache.shared.refreshMetadataBestEffort(force: true)
+        }
+    }
+
+    private func preloadStarterPriorityFilesIfNeeded() throws {
+        for path in starterPriorityPaths {
+            _ = try cachedData(for: path)
+        }
+    }
+
+    private func seedStarterPackBestEffort() async {
+        do {
+            try seedBundledStarterPackIfNeeded()
+        } catch {
+            // Starter pack seeding is best effort; runtime cache/network flow remains fallback.
         }
     }
 
@@ -338,6 +410,23 @@ actor PinballDataCache {
         }
 
         try Data("ok".utf8).write(to: markerURL, options: .atomic)
+    }
+
+    private func bundledStarterData(for path: String) throws -> Data? {
+        guard path.hasPrefix("/pinball/"),
+              let starterBundleURL = Bundle.main.url(
+                forResource: starterPackBundleName,
+                withExtension: starterPackBundleExt
+              ) else {
+            return nil
+        }
+
+        let relativePath = String(path.dropFirst("/pinball/".count))
+        let fileURL = starterBundleURL
+            .appendingPathComponent(starterPackBundlePath, isDirectory: true)
+            .appendingPathComponent(relativePath)
+        guard fileManager.fileExists(atPath: fileURL.path) else { return nil }
+        return try Data(contentsOf: fileURL)
     }
 
     private func refreshMetadataBestEffort(force: Bool) async {

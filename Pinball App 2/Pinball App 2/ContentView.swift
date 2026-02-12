@@ -20,24 +20,19 @@ struct ContentView: View {
                     Label("About", systemImage: "info.circle")
                 }
 
-            StatsView()
+            LeagueHubView()
                 .tabItem {
-                    Label("Stats", systemImage: "chart.bar")
-                }
-
-            StandingsView()
-                .tabItem {
-                    Label("Standings", systemImage: "list.number")
-                }
-
-            LPLTargetsView()
-                .tabItem {
-                    Label("Targets", systemImage: "scope")
+                    Label("League", systemImage: "chart.bar.xaxis")
                 }
 
             LibraryListScreen()
                 .tabItem {
                     Label("Library", systemImage: "books.vertical")
+                }
+
+            PracticeUpgradeTab()
+                .tabItem {
+                    Label("Practice", systemImage: "figure.play")
                 }
         }
     }

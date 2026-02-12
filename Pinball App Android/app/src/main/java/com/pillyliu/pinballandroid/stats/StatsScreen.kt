@@ -24,17 +24,26 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.data.parseCsv
+import com.pillyliu.pinballandroid.data.redactPlayerNameForDisplay
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
 import com.pillyliu.pinballandroid.ui.EmptyLabel
@@ -57,7 +67,11 @@ import com.pillyliu.pinballandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinballandroid.ui.DropdownOption
 import com.pillyliu.pinballandroid.ui.FixedWidthTableCell
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -101,22 +115,99 @@ fun StatsScreen(contentPadding: PaddingValues) {
 
     var rows by remember { mutableStateOf(emptyList<ScoreRow>()) }
     var error by remember { mutableStateOf<String?>(null) }
+    var dataUpdatedAtMs by remember { mutableStateOf<Long?>(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    var hasNewerData by remember { mutableStateOf(false) }
+    var initialLoadComplete by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val pulseTransition = rememberInfiniteTransition(label = "statsRefreshPulse")
+    val pulseAlpha by pulseTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.35f,
+        animationSpec = infiniteRepeatable(animation = tween(650), repeatMode = RepeatMode.Reverse),
+        label = "statsRefreshPulseAlpha",
+    )
 
     var season by rememberSaveable { mutableStateOf("") }
     var player by rememberSaveable { mutableStateOf("") }
     var bankNumber by rememberSaveable { mutableStateOf<Int?>(null) }
     var machine by rememberSaveable { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
-        try {
-            val cached = PinballDataCache.passthroughOrCachedText(CSV_URL)
-            rows = withContext(Dispatchers.IO) {
-                parseScoreRows(cached.text.orEmpty())
+    fun refresh(force: Boolean) {
+        if (isRefreshing) return
+        scope.launch {
+            isRefreshing = true
+            try {
+                val cached = if (force) {
+                    PinballDataCache.forceRefreshText(CSV_URL)
+                } else {
+                    PinballDataCache.passthroughOrCachedText(CSV_URL)
+                }
+                rows = withContext(Dispatchers.IO) {
+                    parseScoreRows(cached.text.orEmpty())
+                }
+                dataUpdatedAtMs = cached.updatedAtMs
+                if (rows.isNotEmpty()) {
+                    val seasonsNow = rows.map { it.season }.toSet().sortedWith(::compareSeasons)
+                    if (season.isBlank() || season !in seasonsNow) {
+                        season = seasonsNow.lastOrNull().orEmpty()
+                        player = ""
+                        bankNumber = null
+                        machine = ""
+                    }
+
+                    val playersNow = rows
+                        .filter { season.isEmpty() || it.season == season }
+                        .map { it.player }
+                        .toSet()
+                    if (player.isNotEmpty() && player !in playersNow) {
+                        player = ""
+                        bankNumber = null
+                        machine = ""
+                    }
+
+                    val banksNow = rows
+                        .filter { (season.isEmpty() || it.season == season) && (player.isEmpty() || it.player == player) }
+                        .map { it.bankNumber }
+                        .toSet()
+                    if (bankNumber != null && bankNumber !in banksNow) {
+                        bankNumber = null
+                        machine = ""
+                    }
+
+                    val machinesNow = rows
+                        .filter {
+                            (season.isEmpty() || it.season == season) &&
+                                (player.isEmpty() || it.player == player) &&
+                                (bankNumber == null || it.bankNumber == bankNumber)
+                        }
+                        .map { it.machine }
+                        .filter { it.isNotBlank() }
+                        .toSet()
+                    if (machine.isNotEmpty() && machine !in machinesNow) {
+                        machine = ""
+                    }
+                }
+                error = null
+                if (dataUpdatedAtMs != null) {
+                    scope.launch {
+                        val remoteHasNewer = PinballDataCache.hasRemoteUpdate(CSV_URL)
+                        hasNewerData = remoteHasNewer
+                    }
+                } else {
+                    hasNewerData = false
+                }
+            } catch (t: Throwable) {
+                error = t.message ?: "Failed to load stats CSV"
+            } finally {
+                isRefreshing = false
+                initialLoadComplete = true
             }
-            error = null
-        } catch (t: Throwable) {
-            error = t.message ?: "Failed to load stats CSV"
         }
+    }
+
+    LaunchedEffect(Unit) {
+        refresh(false)
     }
 
     val seasons = rows.map { it.season }.toSet().sortedWith(::compareSeasons)
@@ -269,6 +360,35 @@ fun StatsScreen(contentPadding: PaddingValues) {
             }
 
             error?.let { Text(text = it, color = Color.Red) }
+            dataUpdatedAtMs?.let { updatedAt ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Data updated at ${formatUpdatedAt(updatedAt)}",
+                        color = Color(0xFF9CA3AF),
+                        fontSize = 11.sp,
+                    )
+                    if (isRefreshing) {
+                        Spacer(Modifier.width(6.dp))
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(10.dp),
+                            strokeWidth = 1.5.dp,
+                            color = Color(0xFF9CA3AF),
+                        )
+                    } else {
+                        IconButton(
+                            onClick = { refresh(true) },
+                            modifier = Modifier.size(20.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Refresh,
+                                contentDescription = "Refresh data",
+                                tint = Color(0xFF9CA3AF).copy(alpha = if (hasNewerData) pulseAlpha else 1f),
+                                modifier = Modifier.size(12.dp),
+                            )
+                        }
+                    }
+                }
+            }
 
             if (isLandscape) {
                 Row(
@@ -276,7 +396,12 @@ fun StatsScreen(contentPadding: PaddingValues) {
                     modifier = Modifier.fillMaxWidth().weight(1f, fill = true),
                 ) {
                     CardContainer(modifier = Modifier.weight(0.6f, fill = true)) {
-                        StatsTable(filtered, modifier = Modifier.fillMaxSize())
+                        StatsTable(
+                            filtered = filtered,
+                            isRefreshing = isRefreshing,
+                            initialLoadComplete = initialLoadComplete,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                     }
                     CardContainer(modifier = Modifier.weight(0.4f, fill = true)) {
                         MachineStatsPanel(
@@ -291,7 +416,12 @@ fun StatsScreen(contentPadding: PaddingValues) {
                 }
             } else {
                 CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
-                    StatsTable(filtered, modifier = Modifier.fillMaxSize())
+                    StatsTable(
+                        filtered = filtered,
+                        isRefreshing = isRefreshing,
+                        initialLoadComplete = initialLoadComplete,
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 }
                 CardContainer(modifier = Modifier.fillMaxWidth()) {
                     MachineStatsPanel(
@@ -308,7 +438,12 @@ fun StatsScreen(contentPadding: PaddingValues) {
 }
 
 @Composable
-private fun StatsTable(filtered: List<ScoreRow>, modifier: Modifier = Modifier) {
+private fun StatsTable(
+    filtered: List<ScoreRow>,
+    isRefreshing: Boolean,
+    initialLoadComplete: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val hState = rememberScrollState()
     BoxWithConstraints(modifier = modifier) {
         val baseTableWidth = 614f
@@ -329,7 +464,9 @@ private fun StatsTable(filtered: List<ScoreRow>, modifier: Modifier = Modifier) 
         ) {
             Column(modifier = Modifier.width(tableWidth.dp)) {
                 HeaderRow(widths)
-                if (filtered.isEmpty()) {
+                if (!initialLoadComplete && isRefreshing) {
+                    EmptyLabel("Loading data…")
+                } else if (filtered.isEmpty()) {
                     EmptyLabel("No rows - check filters or data source.")
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -341,7 +478,7 @@ private fun StatsTable(filtered: List<ScoreRow>, modifier: Modifier = Modifier) 
                                     .padding(vertical = 6.dp),
                             ) {
                                 FixedWidthTableCell(row.season, widths.season)
-                                FixedWidthTableCell(row.player, widths.player)
+                                FixedWidthTableCell(redactPlayerNameForDisplay(row.player), widths.player)
                                 FixedWidthTableCell(row.bankNumber.toString(), widths.bank)
                                 FixedWidthTableCell(row.machine, widths.machine)
                                 FixedWidthTableCell(formatInt(row.rawScore), widths.score)
@@ -482,7 +619,7 @@ private fun StatValueCell(label: String, stats: StatResult, isAllSeasons: Boolea
         if (label == "High" || label == "Low") {
             val playerText = if (player.isNullOrBlank()) "-" else if (isAllSeasons) player else player.substringBefore(" (S")
             Text(
-                text = playerText,
+                text = redactPlayerNameForDisplay(playerText),
                 color = Color(0xFF737373),
                 fontSize = 9.sp,
                 textAlign = TextAlign.Start,
@@ -503,7 +640,7 @@ private fun selectedBankLabel(season: String, bankNumber: Int?): String {
 
 private fun seasonDisplayText(season: String): String = if (season.isBlank()) "S: All" else abbrSeason(season)
 private fun bankDisplayText(bankNumber: Int?): String = bankNumber?.let { "B$it" } ?: "B: All"
-private fun playerDisplayText(player: String): String = if (player.isBlank()) "Player: All" else player
+private fun playerDisplayText(player: String): String = if (player.isBlank()) "Player: All" else redactPlayerNameForDisplay(player)
 private fun machineDisplayText(machine: String): String = if (machine.isBlank()) "Machine: All" else machine
 
 @Composable
@@ -579,7 +716,8 @@ private fun computeStats(scope: List<ScoreRow>, isBankScope: Boolean): StatResul
     val lowRow = scope.firstOrNull { it.rawScore == low }
     val highRow = scope.firstOrNull { it.rawScore == high }
 
-    fun label(row: ScoreRow): String = if (isBankScope) row.player else "${row.player} (${abbrSeason(row.season)})"
+    fun label(row: ScoreRow): String =
+        if (isBankScope) redactPlayerNameForDisplay(row.player) else "${redactPlayerNameForDisplay(row.player)} (${abbrSeason(row.season)})"
 
     return StatResult(
         count = count,
@@ -601,4 +739,8 @@ private fun abbrSeason(season: String): String {
 private fun formatInt(value: Double?): String {
     if (value == null || !value.isFinite()) return "-"
     return NumberFormat.getIntegerInstance().format(value.toLong())
+}
+
+private fun formatUpdatedAt(epochMs: Long): String {
+    return SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(epochMs))
 }

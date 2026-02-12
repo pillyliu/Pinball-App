@@ -46,12 +46,15 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinballandroid.data.PinballDataCache
+import com.pillyliu.pinballandroid.data.refreshRedactedPlayersFromCsv
 import com.pillyliu.pinballandroid.info.AboutScreen
 import com.pillyliu.pinballandroid.library.LibraryScreen
 import com.pillyliu.pinballandroid.standings.StandingsScreen
 import com.pillyliu.pinballandroid.stats.StatsScreen
 import com.pillyliu.pinballandroid.targets.TargetsScreen
 import com.pillyliu.pinballandroid.ui.LocalBottomBarVisible
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,12 +68,18 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
         }
+        lifecycleScope.launch {
+            refreshRedactedPlayersFromCsv()
+        }
         setContent { PinballApp() }
     }
 
     override fun onResume() {
         super.onResume()
         PinballDataCache.requestMetadataRefresh(force = true)
+        lifecycleScope.launch {
+            refreshRedactedPlayersFromCsv()
+        }
     }
 }
 

@@ -9,6 +9,12 @@ import SwiftUI
 import Combine
 
 struct LPLTargetsView: View {
+    let embeddedInNavigation: Bool
+
+    init(embeddedInNavigation: Bool = false) {
+        self.embeddedInNavigation = embeddedInNavigation
+    }
+
     @StateObject private var viewModel = LPLTargetsViewModel()
     @State private var tableAvailableWidth: CGFloat = 0
     @State private var viewportWidth: CGFloat = 0
@@ -45,52 +51,84 @@ struct LPLTargetsView: View {
     private var compactTableContentHeight: CGFloat {
         headerHeight + tableDividerHeight + (CGFloat(viewModel.rows.count) * (tableRowHeight + tableDividerHeight))
     }
+    private var sortControlWidth: CGFloat {
+        if embeddedInNavigation {
+            return isLargeTablet ? 176 : 136
+        }
+        return isLargeTablet ? 220 : 182
+    }
+    private var bankControlWidth: CGFloat {
+        if embeddedInNavigation {
+            return isLargeTablet ? 118 : 90
+        }
+        return isLargeTablet ? 150 : 122
+    }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                AppBackground()
-
-                VStack(alignment: .leading, spacing: 8) {
-                    headerSection
-                        .padding(.horizontal, 4)
-
-                    if let errorMessage = viewModel.errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .padding(.horizontal, 2)
-                    }
-
-                    GeometryReader { geo in
-                        let effectiveTableHeight = resolvedTableHeight(maxHeight: geo.size.height)
-                        targetsTable
-                            .padding(.horizontal, 4)
-                            .frame(height: effectiveTableHeight, alignment: .top)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    }
-                    .frame(maxHeight: .infinity)
-                    footerSection
-                        .fixedSize(horizontal: false, vertical: true)
+        Group {
+            if embeddedInNavigation {
+                content
+            } else {
+                NavigationStack {
+                    content
+                        .toolbar(.hidden, for: .navigationBar)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(.horizontal, contentHorizontalPadding)
-                .padding(.top, 4)
-                .padding(.bottom, 8)
             }
-            .background(
+        }
+        .toolbar {
+            if embeddedInNavigation {
+                ToolbarItem(placement: .principal) {
+                    navSummaryLabels
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    topRightFilterMenu
+                }
+            }
+        }
+    }
+
+    private var content: some View {
+        ZStack {
+            AppBackground()
+
+            VStack(alignment: .leading, spacing: 8) {
+                headerSection
+                    .padding(.horizontal, 4)
+
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .padding(.horizontal, 2)
+                }
+
                 GeometryReader { geo in
-                    Color.clear
-                        .onAppear { viewportWidth = geo.size.width }
-                        .onChange(of: geo.size.width) { _, newValue in
-                            viewportWidth = newValue
-                        }
+                    let effectiveTableHeight = resolvedTableHeight(maxHeight: geo.size.height)
+                    targetsTable
+                        .padding(.horizontal, 4)
+                        .frame(height: effectiveTableHeight, alignment: .top)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
-            )
-            .toolbar(.hidden, for: .navigationBar)
-            .task {
-                await viewModel.loadIfNeeded()
+                .frame(maxHeight: .infinity)
+                footerSection
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.horizontal, contentHorizontalPadding)
+            .padding(.top, embeddedInNavigation ? 0 : 4)
+            .padding(.bottom, 8)
+        }
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { viewportWidth = geo.size.width }
+                    .onChange(of: geo.size.width) { _, newValue in
+                        viewportWidth = newValue
+                    }
+            }
+        )
+        .task {
+            await viewModel.loadIfNeeded()
         }
     }
 
@@ -101,6 +139,10 @@ struct LPLTargetsView: View {
         let isLandscapePhone = verticalSizeClass == .compact
 
         return VStack(alignment: .center, spacing: 8) {
+            if !embeddedInNavigation {
+                dropdownControls
+            }
+
             if isLandscapePhone {
                 HStack(spacing: 10) {
                     Text("2nd highest \"great game\"")
@@ -147,61 +189,149 @@ struct LPLTargetsView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
+        }
+    }
 
-            HStack(spacing: 8) {
-                Menu {
-                    ForEach(LPLTargetsSortMode.allCases) { mode in
-                        Button("Sort: \(mode.title)") { viewModel.sortMode = mode }
-                    }
-                } label: {
-                    ZStack {
-                        HStack(spacing: AppLayout.dropdownContentSpacing) {
-                            Text("Sort: \(LPLTargetsSortMode.widestTitle)")
-                                .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
-                                .lineLimit(1)
-                            Spacer(minLength: 4)
-                            Image(systemName: "chevron.down")
-                                .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
-                                .foregroundStyle(.secondary)
-                        }
-                        .opacity(0)
+    private var dropdownControls: some View {
+        HStack(spacing: embeddedInNavigation ? 6 : 8) {
+            sortDropdown
+            bankDropdown
+        }
+    }
 
-                        HStack(spacing: AppLayout.dropdownContentSpacing) {
-                            Text("Sort: \(viewModel.sortMode.title)")
-                                .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
-                                .lineLimit(1)
-                            Spacer(minLength: 4)
-                            Image(systemName: "chevron.down")
-                                .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
-                    .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
+    private var navSummaryLabels: some View {
+        HStack(spacing: 12) {
+            Text("Sort: \(viewModel.sortMode.title)")
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(viewModel.selectedBankLabel)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .foregroundStyle(.secondary)
+    }
+
+    private var topRightFilterMenu: some View {
+        Menu {
+            Section("Sort") {
+                ForEach(LPLTargetsSortMode.allCases) { mode in
+                    Button("Sort: \(mode.title)") { viewModel.sortMode = mode }
                 }
-                .buttonStyle(.glass)
-
-                Menu {
-                    Button("All banks") { viewModel.selectedBank = nil }
-                    ForEach(viewModel.bankOptions, id: \.self) { bank in
-                        Button("Bank \(bank)") { viewModel.selectedBank = bank }
-                    }
-                } label: {
-                    HStack(spacing: AppLayout.dropdownContentSpacing) {
-                        Text(viewModel.selectedBankLabel)
-                            .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
-                            .lineLimit(1)
-                        Spacer(minLength: 4)
-                        Image(systemName: "chevron.down")
-                            .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
-                    .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
-                }
-                .buttonStyle(.glass)
             }
-            .padding(.top, 4)
+
+            Section("Bank") {
+                Button("Bank: All") { viewModel.selectedBank = nil }
+                ForEach(viewModel.bankOptions, id: \.self) { bank in
+                    Button("Bank: \(bank)") { viewModel.selectedBank = bank }
+                }
+            }
+        } label: {
+            Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                .font(.title3)
+                .frame(width: 34, height: 34)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var sortDropdown: some View {
+        Group {
+            if embeddedInNavigation {
+                sortDropdownMenu
+                    .buttonStyle(.plain)
+            } else {
+                sortDropdownMenu
+                    .buttonStyle(.glass)
+            }
+        }
+        .frame(width: sortControlWidth)
+    }
+
+    private var bankDropdown: some View {
+        Group {
+            if embeddedInNavigation {
+                bankDropdownMenu
+                    .buttonStyle(.plain)
+            } else {
+                bankDropdownMenu
+                    .buttonStyle(.glass)
+            }
+        }
+        .frame(width: bankControlWidth)
+    }
+
+    private var sortDropdownMenu: some View {
+        Menu {
+            ForEach(LPLTargetsSortMode.allCases) { mode in
+                Button("Sort: \(mode.title)") { viewModel.sortMode = mode }
+            }
+        } label: {
+            ZStack {
+                HStack(spacing: AppLayout.dropdownContentSpacing) {
+                    Text("Sort: \(LPLTargetsSortMode.widestTitle)")
+                        .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.down")
+                        .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
+                        .foregroundStyle(.secondary)
+                }
+                .opacity(0)
+
+                HStack(spacing: AppLayout.dropdownContentSpacing) {
+                    Text("Sort: \(viewModel.sortMode.title)")
+                        .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.down")
+                        .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
+            .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
+            .background(
+                embeddedInNavigation ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.clear),
+                in: Capsule()
+            )
+            .overlay {
+                if embeddedInNavigation {
+                    Capsule()
+                        .stroke(Color.white.opacity(0.28), lineWidth: 0.6)
+                }
+            }
+        }
+    }
+
+    private var bankDropdownMenu: some View {
+        Menu {
+            Button("All banks") { viewModel.selectedBank = nil }
+            ForEach(viewModel.bankOptions, id: \.self) { bank in
+                Button("Bank \(bank)") { viewModel.selectedBank = bank }
+            }
+        } label: {
+            HStack(spacing: AppLayout.dropdownContentSpacing) {
+                Text(viewModel.selectedBankLabel)
+                    .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.down")
+                    .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
+            .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
+            .background(
+                embeddedInNavigation ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.clear),
+                in: Capsule()
+            )
+            .overlay {
+                if embeddedInNavigation {
+                    Capsule()
+                        .stroke(Color.white.opacity(0.28), lineWidth: 0.6)
+                }
+            }
         }
     }
 
@@ -386,7 +516,7 @@ private final class LPLTargetsViewModel: ObservableObject {
     }
 
     var selectedBankLabel: String {
-        selectedBank.map { "Bank \($0)" } ?? "All banks"
+        selectedBank.map { "Bank: \($0)" } ?? "Bank: All"
     }
 
     func loadIfNeeded() async {

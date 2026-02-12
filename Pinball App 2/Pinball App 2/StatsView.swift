@@ -9,6 +9,12 @@ import SwiftUI
 import Combine
 
 struct StatsView: View {
+    let embeddedInNavigation: Bool
+
+    init(embeddedInNavigation: Bool = false) {
+        self.embeddedInNavigation = embeddedInNavigation
+    }
+
     private struct FilterOption: Hashable {
         let value: String
         let label: String
@@ -71,98 +77,148 @@ struct StatsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                AppBackground()
-
-                if useLandscapeSplitLayout {
-                    VStack(spacing: 14) {
-                        filterSection
-
-                        if let errorMessage = viewModel.errorMessage {
-                            Text(errorMessage)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-
-                        GeometryReader { geo in
-                            let spacing: CGFloat = 14
-                            let available = max(0, geo.size.width - spacing)
-                            let mainWidth = available * 0.6
-                            let machineWidth = available - mainWidth
-                            let effectiveTableHeight = resolvedTableHeight(maxHeight: geo.size.height)
-
-                            HStack(alignment: .top, spacing: spacing) {
-                                tableCard
-                                    .frame(width: mainWidth)
-                                    .frame(height: effectiveTableHeight, alignment: .top)
-                                    .frame(maxHeight: .infinity, alignment: .top)
-                                statsCard
-                                    .frame(width: machineWidth)
-                                    .frame(maxHeight: .infinity, alignment: .top)
-                            }
-                        }
-                        .frame(maxHeight: .infinity)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .padding(.horizontal, contentHorizontalPadding)
-                    .padding(.top, 4)
-                    .padding(.bottom, 14)
-                } else {
-                    VStack(spacing: 14) {
-                        filterSection
-
-                        if let errorMessage = viewModel.errorMessage {
-                            Text(errorMessage)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-
-                        GeometryReader { geo in
-                            let spacing: CGFloat = 14
-                            let defaultStatsHeight: CGFloat = 214
-                            let measuredStatsHeight = statsCardHeight > 0 ? statsCardHeight : defaultStatsHeight
-                            let bottomBuffer: CGFloat = 14
-                            let defaultTableHeight = max(120, geo.size.height - measuredStatsHeight - spacing - bottomBuffer)
-                            let effectiveTableHeight = resolvedTableHeight(maxHeight: defaultTableHeight)
-
-                            VStack(alignment: .leading, spacing: spacing) {
-                                tableCard
-                                    .frame(height: effectiveTableHeight)
-
-                                statsCard
-                                    .readHeight { height in
-                                        if abs(height - statsCardHeight) > 0.5 {
-                                            statsCardHeight = height
-                                        }
-                                    }
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        }
-                        .frame(maxHeight: .infinity)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .padding(.horizontal, contentHorizontalPadding)
-                    .padding(.top, 4)
-                    .padding(.bottom, 14)
+        Group {
+            if embeddedInNavigation {
+                content
+            } else {
+                NavigationStack {
+                    content
+                        .toolbar(.hidden, for: .navigationBar)
                 }
-            }
-            .background(
-                GeometryReader { geo in
-                    Color.clear
-                        .onAppear { viewportSize = geo.size }
-                        .onChange(of: geo.size) { _, newValue in
-                            viewportSize = newValue
-                        }
-                }
-            )
-            .toolbar(.hidden, for: .navigationBar)
-            .task {
-                await viewModel.loadIfNeeded()
             }
         }
+        .toolbar {
+            if embeddedInNavigation {
+                ToolbarItem(placement: .principal) {
+                    navSummaryLabels
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    topRightFilterMenu
+                }
+            }
+        }
+    }
+
+    private var content: some View {
+        ZStack {
+            AppBackground()
+
+            if useLandscapeSplitLayout {
+                VStack(spacing: 14) {
+                    if !embeddedInNavigation {
+                        filterBar
+                    }
+
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    updatedStatusRow
+
+                    GeometryReader { geo in
+                        let spacing: CGFloat = 14
+                        let available = max(0, geo.size.width - spacing)
+                        let mainWidth = available * 0.6
+                        let machineWidth = available - mainWidth
+                        let effectiveTableHeight = resolvedTableHeight(maxHeight: geo.size.height)
+
+                        HStack(alignment: .top, spacing: spacing) {
+                            tableCard
+                                .frame(width: mainWidth)
+                                .frame(height: effectiveTableHeight, alignment: .top)
+                                .frame(maxHeight: .infinity, alignment: .top)
+                            statsCard
+                                .frame(width: machineWidth)
+                                .frame(maxHeight: .infinity, alignment: .top)
+                        }
+                    }
+                    .frame(maxHeight: .infinity)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.horizontal, contentHorizontalPadding)
+                .padding(.top, embeddedInNavigation ? 0 : 4)
+                .padding(.bottom, 14)
+            } else {
+                VStack(spacing: 14) {
+                    if !embeddedInNavigation {
+                        filterBar
+                    }
+
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    updatedStatusRow
+
+                    GeometryReader { geo in
+                        let spacing: CGFloat = 14
+                        let defaultStatsHeight: CGFloat = 214
+                        let measuredStatsHeight = statsCardHeight > 0 ? statsCardHeight : defaultStatsHeight
+                        let bottomBuffer: CGFloat = 14
+                        let defaultTableHeight = max(120, geo.size.height - measuredStatsHeight - spacing - bottomBuffer)
+                        let effectiveTableHeight = resolvedTableHeight(maxHeight: defaultTableHeight)
+
+                        VStack(alignment: .leading, spacing: spacing) {
+                            tableCard
+                                .frame(height: effectiveTableHeight)
+
+                            statsCard
+                                .readHeight { height in
+                                    if abs(height - statsCardHeight) > 0.5 {
+                                        statsCardHeight = height
+                                    }
+                                }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    }
+                    .frame(maxHeight: .infinity)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.horizontal, contentHorizontalPadding)
+                .padding(.top, embeddedInNavigation ? 0 : 4)
+                .padding(.bottom, 14)
+            }
+        }
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { viewportSize = geo.size }
+                    .onChange(of: geo.size) { _, newValue in
+                        viewportSize = newValue
+                    }
+            }
+        )
+        .task {
+            await viewModel.loadIfNeeded()
+        }
+    }
+
+    @ViewBuilder
+    private var filterBar: some View {
+        filterSection
+    }
+
+    private var navSummaryLabels: some View {
+        HStack(spacing: 10) {
+            Text(navSeasonText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+            Text(navPlayerText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+            Text(navBankText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+            Text(navMachineText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(.secondary)
     }
 
     private var filterSection: some View {
@@ -170,7 +226,7 @@ struct StatsView: View {
             FilterOption(value: $0, label: seasonToken($0))
         }
         let playerOptions = [FilterOption(value: "", label: "Player: All")] + viewModel.players.map {
-            FilterOption(value: $0, label: $0)
+            FilterOption(value: $0, label: redactPlayerNameForDisplay($0))
         }
         let bankOptions = [FilterOption(value: "", label: "B: All")] + viewModel.bankNumbers.map {
             FilterOption(value: String($0), label: "B\($0)")
@@ -184,7 +240,7 @@ struct StatsView: View {
                 GeometryReader { geo in
                     let gap: CGFloat = 12
                     let pairWidth = max(0, (geo.size.width - gap) / 2)
-                    let narrowWidth = max(0, ((pairWidth - gap) * 0.3).rounded(.down))
+                    let narrowWidth = max(0, ((pairWidth - gap) * 0.32).rounded(.down))
                     let wideWidth = max(0, pairWidth - gap - narrowWidth)
 
                     HStack(spacing: gap) {
@@ -207,7 +263,7 @@ struct StatsView: View {
             } else {
                 GeometryReader { geo in
                     let gap: CGFloat = 12
-                    let leftWidth = max(0, ((geo.size.width - gap) * 0.3).rounded(.down))
+                    let leftWidth = max(0, ((geo.size.width - gap) * 0.32).rounded(.down))
                     let rightWidth = max(0, geo.size.width - gap - leftWidth)
                     VStack(spacing: 8) {
                         HStack(spacing: gap) {
@@ -227,6 +283,50 @@ struct StatsView: View {
                 .frame(height: isLargeTablet ? 96 : 88)
             }
         }
+    }
+
+    private var topRightFilterMenu: some View {
+        Menu {
+            Button("Clear all filters") {
+                viewModel.season = ""
+                viewModel.player = ""
+                viewModel.bankNumber = nil
+                viewModel.machine = ""
+            }
+
+            Menu("Season") {
+                Button("All seasons") { viewModel.season = "" }
+                ForEach(viewModel.seasons, id: \.self) { season in
+                    Button(seasonToken(season)) { viewModel.season = season }
+                }
+            }
+
+            Menu("Player") {
+                Button("All players") { viewModel.player = "" }
+                ForEach(viewModel.players, id: \.self) { player in
+                    Button(redactPlayerNameForDisplay(player)) { viewModel.player = player }
+                }
+            }
+
+            Menu("Bank") {
+                Button("All banks") { viewModel.bankNumber = nil }
+                ForEach(viewModel.bankNumbers, id: \.self) { bank in
+                    Button("B\(bank)") { viewModel.bankNumber = bank }
+                }
+            }
+
+            Menu("Machine") {
+                Button("All machines") { viewModel.machine = "" }
+                ForEach(viewModel.machines, id: \.self) { machine in
+                    Button(machine) { viewModel.machine = machine }
+                }
+            }
+        } label: {
+            Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                .font(.title3)
+                .frame(width: 34, height: 34)
+        }
+        .buttonStyle(.plain)
     }
 
     private var tableCard: some View {
@@ -345,8 +445,47 @@ struct StatsView: View {
 
     private var seasonDisplayText: String { viewModel.season.isEmpty ? "S: All" : seasonToken(viewModel.season) }
     private var bankDisplayText: String { viewModel.bankNumber.map { "B\($0)" } ?? "B: All" }
-    private var playerDisplayText: String { viewModel.player.isEmpty ? "Player: All" : viewModel.player }
+    private var playerDisplayText: String { viewModel.player.isEmpty ? "Player: All" : redactPlayerNameForDisplay(viewModel.player) }
     private var machineDisplayText: String { viewModel.machine.isEmpty ? "Machine: All" : viewModel.machine }
+    private var navSeasonText: String {
+        if viewModel.season.isEmpty { return "S: All" }
+        let digits = viewModel.season.filter(\.isNumber)
+        return digits.isEmpty ? "S: \(viewModel.season)" : "S: \(digits)"
+    }
+    private var navPlayerText: String { viewModel.player.isEmpty ? "Player: All" : redactPlayerNameForDisplay(viewModel.player) }
+    private var navBankText: String { viewModel.bankNumber.map { "B: \($0)" } ?? "B: All" }
+    private var navMachineText: String { viewModel.machine.isEmpty ? "Machine: All" : viewModel.machine }
+
+    @ViewBuilder
+    private var updatedStatusRow: some View {
+        if let updatedAtLabel = viewModel.updatedAtLabel {
+            Button {
+                Task { await viewModel.refreshNow() }
+            } label: {
+                HStack(spacing: 4) {
+                    Text("Data updated at \(updatedAtLabel)")
+                    if viewModel.isRefreshing {
+                        ProgressView()
+                            .controlSize(.mini)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                            .opacity(viewModel.hasNewerData ? 0.35 : 1)
+                            .animation(
+                                viewModel.hasNewerData
+                                    ? .easeInOut(duration: 0.65).repeatForever(autoreverses: true)
+                                    : .default,
+                                value: viewModel.hasNewerData
+                            )
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isRefreshing)
+        }
+    }
 
     private func seasonToken(_ raw: String) -> String {
         let digits = raw.filter(\.isNumber)
@@ -386,7 +525,7 @@ private struct TableRowView: View {
     var body: some View {
         HStack(spacing: 0) {
             rowCell(row.season, width: seasonColWidth)
-            rowCell(row.player, width: playerColWidth)
+            rowCell(redactPlayerNameForDisplay(row.player), width: playerColWidth)
             rowCell(String(row.bankNumber), width: bankNumColWidth)
             rowCell(row.machine, width: machineColWidth)
             rowCell(formatScore(row.rawScore), width: scoreColWidth, monospaced: true)
@@ -538,7 +677,8 @@ private struct MachineStatsTable: View {
 
     private func playerName(_ raw: String?, allSeasons: Bool) -> String {
         guard let raw, !raw.isEmpty else { return "-" }
-        return allSeasons ? raw : raw.components(separatedBy: " (S").first ?? raw
+        let display = allSeasons ? raw : raw.components(separatedBy: " (S").first ?? raw
+        return redactPlayerNameForDisplay(display)
     }
 }
 
@@ -546,6 +686,9 @@ private struct MachineStatsTable: View {
 private final class StatsViewModel: ObservableObject {
     @Published private(set) var rows: [ScoreRow] = []
     @Published var errorMessage: String?
+    @Published var dataUpdatedAt: Date?
+    @Published var isRefreshing: Bool = false
+    @Published var hasNewerData: Bool = false
     private var didLoad = false
 
     @Published var season: String = "" {
@@ -635,27 +778,94 @@ private final class StatsViewModel: ObservableObject {
         return computeStats(from: scoped, isBankScope: false)
     }
 
+    var updatedAtLabel: String? {
+        guard let dataUpdatedAt else { return nil }
+        return Self.updatedAtFormatter.string(from: dataUpdatedAt)
+    }
+
     func loadIfNeeded() async {
         guard !didLoad else { return }
         didLoad = true
-        await loadCSV()
+        await loadCSV(resetSelection: true)
     }
 
-    private func loadCSV() async {
+    func refreshNow() async {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+
         do {
-            let loaded = try await CSVScoreLoader().loadRows()
-            let loadedRows = loaded.rows
-            rows = loadedRows
+            let loaded = try await CSVScoreLoader().forceRefreshRows()
+            applyLoadedRows(loaded, resetSelection: false)
             errorMessage = nil
-            season = latestSeason(in: loadedRows) ?? ""
-            player = ""
-            bankNumber = nil
-            machine = ""
+            hasNewerData = false
+            Task { await refreshUpdateIndicator() }
         } catch {
-            rows = []
             errorMessage = error.localizedDescription
         }
     }
+
+    private func loadCSV(resetSelection: Bool) async {
+        do {
+            let loaded = try await CSVScoreLoader().loadRows()
+            applyLoadedRows(loaded, resetSelection: resetSelection)
+            errorMessage = nil
+            Task { await refreshUpdateIndicator() }
+        } catch {
+            rows = []
+            dataUpdatedAt = nil
+            hasNewerData = false
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func applyLoadedRows(_ loaded: CSVScoreLoader.LoadResult, resetSelection: Bool) {
+        rows = loaded.rows
+        dataUpdatedAt = loaded.updatedAt
+        if resetSelection {
+            season = latestSeason(in: loaded.rows) ?? ""
+            player = ""
+            bankNumber = nil
+            machine = ""
+            return
+        }
+
+        if !season.isEmpty, !seasons.contains(season) {
+            season = latestSeason(in: loaded.rows) ?? ""
+        }
+        if !player.isEmpty, !players.contains(player) {
+            player = ""
+        }
+        if let bankNumber, !bankNumbers.contains(bankNumber) {
+            self.bankNumber = nil
+        }
+        if !machine.isEmpty, !machines.contains(machine) {
+            machine = ""
+        }
+    }
+
+    private func refreshUpdateIndicator() async {
+        guard dataUpdatedAt != nil else {
+            hasNewerData = false
+            return
+        }
+
+        let remoteHasNewer: Bool
+        do {
+            remoteHasNewer = try await PinballDataCache.shared.hasRemoteUpdate(path: CSVScoreLoader.defaultPath)
+        } catch {
+            remoteHasNewer = false
+        }
+
+        hasNewerData = remoteHasNewer
+    }
+
+    private static let updatedAtFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateFormat = "MMM d, h:mm a"
+        return formatter
+    }()
 
     private func latestSeason(in rows: [ScoreRow]) -> String? {
         rows
@@ -708,9 +918,9 @@ private final class StatsViewModel: ObservableObject {
 
     private func playerLabel(for row: ScoreRow, isBankScope: Bool) -> String {
         if isBankScope {
-            return row.player
+            return redactPlayerNameForDisplay(row.player)
         }
-        return "\(row.player) (\(abbreviateSeason(row.season)))"
+        return "\(redactPlayerNameForDisplay(row.player)) (\(abbreviateSeason(row.season)))"
     }
 
     private func abbreviateSeason(_ season: String) -> String {
@@ -745,6 +955,7 @@ private struct StatResult {
 private final class CSVScoreLoader {
     struct LoadResult {
         let rows: [ScoreRow]
+        let updatedAt: Date?
     }
 
     static let defaultPath = "/pinball/data/LPL_Stats.csv"
@@ -754,7 +965,15 @@ private final class CSVScoreLoader {
         guard let text = cached.text else {
             throw CSVLoaderError.network("Stats CSV is missing from cache and server.")
         }
-        return LoadResult(rows: parse(text: text))
+        return LoadResult(rows: parse(text: text), updatedAt: cached.updatedAt)
+    }
+
+    func forceRefreshRows() async throws -> LoadResult {
+        let fresh = try await PinballDataCache.shared.forceRefreshText(path: Self.defaultPath)
+        guard let text = fresh.text else {
+            throw CSVLoaderError.network("Stats CSV is missing from cache and server.")
+        }
+        return LoadResult(rows: parse(text: text), updatedAt: fresh.updatedAt)
     }
 
     private func parse(text: String) -> [ScoreRow] {
