@@ -28,38 +28,45 @@ func parseCSVRows(_ text: String) -> [[String]] {
     var row: [String] = []
     var field = ""
     var inQuotes = false
-    let chars = Array(text)
+    let scalars = Array(text.unicodeScalars)
     var index = 0
 
-    while index < chars.count {
-        let char = chars[index]
+    func flushRow() {
+        row.append(field)
+        rows.append(row)
+        row = []
+        field = ""
+    }
+
+    while index < scalars.count {
+        let scalar = scalars[index]
         if inQuotes {
-            if char == "\"" {
-                if index + 1 < chars.count, chars[index + 1] == "\"" {
+            if scalar.value == 34 {
+                if index + 1 < scalars.count, scalars[index + 1].value == 34 {
                     field.append("\"")
                     index += 1
                 } else {
                     inQuotes = false
                 }
             } else {
-                field.append(char)
+                field.unicodeScalars.append(scalar)
             }
         } else {
-            switch char {
-            case "\"":
+            switch scalar.value {
+            case 34: // "\""
                 inQuotes = true
-            case ",":
+            case 44: // ","
                 row.append(field)
                 field = ""
-            case "\n":
-                row.append(field)
-                rows.append(row)
-                row = []
-                field = ""
-            case "\r":
-                break
+            case 10: // LF
+                flushRow()
+            case 13: // CR
+                flushRow()
+                if index + 1 < scalars.count, scalars[index + 1].value == 10 {
+                    index += 1
+                }
             default:
-                field.append(char)
+                field.unicodeScalars.append(scalar)
             }
         }
         index += 1
@@ -76,6 +83,7 @@ func parseCSVRows(_ text: String) -> [[String]] {
 func normalizeCSVHeader(_ header: String) -> String {
     header
         .replacingOccurrences(of: "\u{FEFF}", with: "")
+        .replacingOccurrences(of: "\0", with: "")
         .trimmingCharacters(in: .whitespacesAndNewlines)
         .lowercased()
 }
@@ -118,8 +126,13 @@ private func shouldRedactPlayerName(_ raw: String) -> Bool {
 }
 
 private func normalizePlayerName(_ raw: String) -> String {
-    raw
-        .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+    let decomposed = raw.decomposedStringWithCanonicalMapping
+    let withoutDiacritics = String(
+        decomposed.unicodeScalars.filter { !$0.properties.isDiacritic }
+    )
+    return withoutDiacritics
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .lowercased(with: Locale(identifier: "en_US_POSIX"))
         .split(whereSeparator: { $0.isWhitespace })
         .joined(separator: " ")
 }

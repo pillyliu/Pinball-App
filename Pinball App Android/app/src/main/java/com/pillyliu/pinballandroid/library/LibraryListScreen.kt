@@ -32,6 +32,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -56,8 +57,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinballandroid.ui.AppScreen
-import com.pillyliu.pinballandroid.ui.ControlBg
-import com.pillyliu.pinballandroid.ui.ControlBorder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +75,7 @@ internal fun LibraryList(
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val searchFontSize = if (isLandscape) 14.sp else 13.sp
     val searchControlMinHeight = if (isLandscape) 48.dp else 48.dp
-    val searchTextStyle = TextStyle(color = Color.White, fontSize = searchFontSize)
+    val searchTextStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = searchFontSize)
     val sortOption = remember(sortOptionName) {
         LibrarySortOption.entries.firstOrNull { it.name == sortOptionName } ?: LibrarySortOption.LOCATION
     }
@@ -111,7 +110,7 @@ internal fun LibraryList(
                     if (showGroupedView) {
                         groupedSections.forEachIndexed { idx, section ->
                             if (idx > 0) {
-                                HorizontalDivider(color = Color.White.copy(alpha = 0.7f), thickness = 1.dp)
+                                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), thickness = 1.dp)
                             }
                             LibrarySectionGrid(games = section.games, onOpenGame = onOpenGame)
                         }
@@ -142,7 +141,7 @@ internal fun LibraryList(
                                 placeholder = {
                                     Text(
                                         "Search games...",
-                                        color = Color(0xFFCECECE),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         style = searchTextStyle,
                                         maxLines = 1,
                                     )
@@ -156,15 +155,15 @@ internal fun LibraryList(
                                 textStyle = searchTextStyle,
                                 singleLine = true,
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White,
-                                    focusedLabelColor = Color.White,
-                                    unfocusedLabelColor = Color(0xFFCECECE),
-                                    cursorColor = Color.White,
-                                    focusedContainerColor = ControlBg.copy(alpha = 0.94f),
-                                    unfocusedContainerColor = ControlBg.copy(alpha = 0.9f),
-                                    focusedBorderColor = ControlBorder,
-                                    unfocusedBorderColor = ControlBorder,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    focusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    cursorColor = MaterialTheme.colorScheme.onSurface,
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    focusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                                 ),
                             )
 
@@ -200,7 +199,7 @@ internal fun LibraryList(
                         placeholder = {
                             Text(
                                 "Search games...",
-                                color = Color(0xFFCECECE),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = searchTextStyle,
                                 maxLines = 1,
                             )
@@ -214,15 +213,15 @@ internal fun LibraryList(
                         textStyle = searchTextStyle,
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedLabelColor = Color.White,
-                            unfocusedLabelColor = Color(0xFFCECECE),
-                            cursorColor = Color.White,
-                            focusedContainerColor = ControlBg.copy(alpha = 0.94f),
-                            unfocusedContainerColor = ControlBg.copy(alpha = 0.9f),
-                            focusedBorderColor = ControlBorder,
-                            unfocusedBorderColor = ControlBorder,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            focusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            cursorColor = MaterialTheme.colorScheme.onSurface,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            focusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                         ),
                     )
 
@@ -278,10 +277,10 @@ private fun CompactLibraryFilterMenu(
             ),
             shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = ControlBg.copy(alpha = 0.9f),
-                contentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                contentColor = MaterialTheme.colorScheme.onSurface,
             ),
-            border = androidx.compose.foundation.BorderStroke(1.dp, ControlBorder),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -294,7 +293,7 @@ private fun CompactLibraryFilterMenu(
                 Icon(
                     imageVector = Icons.Filled.KeyboardArrowDown,
                     contentDescription = null,
-                    tint = Color(0xFFC6C6C6),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.defaultMinSize(minWidth = if (isLandscape) 18.dp else 14.dp),
                 )
             }
@@ -339,8 +338,8 @@ private fun LibrarySectionGrid(games: List<PinballGame>, onOpenGame: (PinballGam
 private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit) {
     Column(
         modifier = Modifier
-            .background(Color(0xFF171717), RoundedCornerShape(12.dp))
-            .border(1.dp, Color(0xFF343434), RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(12.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
     ) {
@@ -360,14 +359,14 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit) {
         ) {
             Text(
                 game.name,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 minLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 lineHeight = 16.sp,
             )
-            Text(game.manufacturerYearLine(), color = Color(0xFFB0B0B0), maxLines = 1, fontSize = 12.sp, lineHeight = 14.sp)
-            Text(game.locationBankLine(), color = Color(0xFFC0C0C0), maxLines = 1, fontSize = 12.sp, lineHeight = 14.sp)
+            Text(game.manufacturerYearLine(), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, fontSize = 12.sp, lineHeight = 14.sp)
+            Text(game.locationBankLine(), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, fontSize = 12.sp, lineHeight = 14.sp)
         }
     }
 }

@@ -16,11 +16,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -167,8 +169,8 @@ fun StandingsScreen(contentPadding: PaddingValues) {
             dataUpdatedAtMs?.let { updatedAt ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Data updated at ${formatUpdatedAt(updatedAt)}",
-                        color = Color(0xFF9CA3AF),
+                        text = formatUpdatedAt(updatedAt),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp,
                     )
                     if (isRefreshing) {
@@ -176,7 +178,7 @@ fun StandingsScreen(contentPadding: PaddingValues) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(10.dp),
                             strokeWidth = 1.5.dp,
-                            color = Color(0xFF9CA3AF),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     } else {
                         IconButton(
@@ -186,7 +188,7 @@ fun StandingsScreen(contentPadding: PaddingValues) {
                             Icon(
                                 imageVector = Icons.Filled.Refresh,
                                 contentDescription = "Refresh data",
-                                tint = Color(0xFF9CA3AF).copy(alpha = if (hasNewerData) pulseAlpha else 1f),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (hasNewerData) pulseAlpha else 1f),
                                 modifier = Modifier.size(12.dp),
                             )
                         }
@@ -246,23 +248,28 @@ private fun HeaderRow(widths: StandingsWidths) {
 
 @Composable
 private fun StandingRow(rank: Int, standing: Standing, widths: StandingsWidths) {
-    val rankColor = when (rank) {
-        1 -> Color.Yellow
-        2 -> Color(0xFFDBDBDB)
-        3 -> Color(0xFFFFA948)
-        else -> Color.White
-    }
+    val rankColor = podiumRankColor(rank)
     Row(
         modifier = Modifier
-            .background(if (rank % 2 == 0) Color(0xFF0A0A0A) else Color(0xFF171717))
+            .background(if (rank % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerLow)
             .padding(vertical = 6.dp),
     ) {
-        FixedWidthTableCell(rank.toString(), widths.rank, color = rankColor)
+        FixedWidthTableCell(rank.toString(), widths.rank, color = rankColor, bold = rank <= 3)
         FixedWidthTableCell(standing.displayPlayer, widths.player, bold = rank <= 8)
         FixedWidthTableCell(fmt(standing.seasonTotal), widths.points)
         FixedWidthTableCell(standing.eligible, widths.eligible)
         FixedWidthTableCell(standing.nights, widths.nights)
         standing.banks.forEach { FixedWidthTableCell(fmt(it), widths.bank) }
+    }
+}
+
+@Composable
+private fun podiumRankColor(rank: Int): Color {
+    return when (rank) {
+        1 -> Color(0xFFFFD83D)
+        2 -> Color(0xFF98A3B3)
+        3 -> Color(0xFFC1845B)
+        else -> MaterialTheme.colorScheme.onSurface
     }
 }
 
@@ -337,5 +344,5 @@ private fun coerceSeason(value: String): Int {
 private fun fmt(value: Double): String = NumberFormat.getIntegerInstance().format(value.toLong())
 
 private fun formatUpdatedAt(epochMs: Long): String {
-    return SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(epochMs))
+    return SimpleDateFormat("M/d/yy h:mm a", Locale.getDefault()).format(Date(epochMs))
 }

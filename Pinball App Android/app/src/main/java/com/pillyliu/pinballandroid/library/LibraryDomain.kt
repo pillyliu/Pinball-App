@@ -15,7 +15,7 @@ internal data class LibraryGroupSection(val groupKey: Int?, val games: List<Pinb
 internal enum class LibrarySortOption(val label: String) {
     LOCATION("Sort: Location"),
     BANK("Sort: Bank"),
-    ALPHABETICAL("Sort: Alphabetical"),
+    ALPHABETICAL("Sort: A-Z"),
 }
 
 internal data class PinballGame(

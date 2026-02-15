@@ -20,12 +20,11 @@ struct LPLTargetsView: View {
     @State private var viewportWidth: CGFloat = 0
     private let tableDividerHeight: CGFloat = 1
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
     private var isLargeTablet: Bool {
         AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportWidth)
     }
     private var contentHorizontalPadding: CGFloat {
-        verticalSizeClass == .compact ? 2 : 14
+        AppLayout.contentHorizontalPadding(isLargeTablet: isLargeTablet)
     }
 
     private let baseGameColumnWidth: CGFloat = 160
@@ -136,58 +135,40 @@ struct LPLTargetsView: View {
         let greatColor = AppTheme.targetGreat
         let targetColor = AppTheme.targetMain
         let floorColor = AppTheme.targetFloor
-        let isLandscapePhone = verticalSizeClass == .compact
 
         return VStack(alignment: .center, spacing: 8) {
             if !embeddedInNavigation {
                 dropdownControls
             }
 
-            if isLandscapePhone {
-                HStack(spacing: 10) {
-                    Text("2nd highest \"great game\"")
-                        .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
-                        .foregroundStyle(greatColor)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    Text("4th highest main target")
-                        .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
-                        .foregroundStyle(targetColor)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    Text("8th highest solid floor")
-                        .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
-                        .foregroundStyle(floorColor)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-            } else {
-                HStack(spacing: 10) {
-                    Text("2nd highest")
-                        .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
-                        .foregroundStyle(greatColor)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    Text("4th highest")
-                        .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
-                        .foregroundStyle(targetColor)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    Text("8th highest")
-                        .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
-                        .foregroundStyle(floorColor)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
+            HStack(spacing: 10) {
+                Text("2nd highest")
+                    .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
+                    .foregroundStyle(greatColor)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                Text("4th highest")
+                    .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
+                    .foregroundStyle(targetColor)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                Text("8th highest")
+                    .font((isLargeTablet ? Font.footnote : Font.caption).weight(.semibold))
+                    .foregroundStyle(floorColor)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
 
-                HStack(spacing: 10) {
-                    Text("\"great game\"")
-                        .font(isLargeTablet ? .footnote : .caption)
-                        .foregroundStyle(greatColor)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    Text("main target")
-                        .font(isLargeTablet ? .footnote : .caption)
-                        .foregroundStyle(targetColor)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    Text("solid floor")
-                        .font(isLargeTablet ? .footnote : .caption)
-                        .foregroundStyle(floorColor)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
+            HStack(spacing: 10) {
+                Text("\"great game\"")
+                    .font(isLargeTablet ? .footnote : .caption)
+                    .foregroundStyle(greatColor)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                Text("main target")
+                    .font(isLargeTablet ? .footnote : .caption)
+                    .foregroundStyle(targetColor)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                Text("solid floor")
+                    .font(isLargeTablet ? .footnote : .caption)
+                    .foregroundStyle(floorColor)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
         }
     }
@@ -482,12 +463,12 @@ private enum LPLTargetsSortMode: String, CaseIterable, Identifiable {
         case .bank:
             return "Bank"
         case .alphabetical:
-            return "Alphabetical"
+            return "A-Z"
         }
     }
 
     static var widestTitle: String {
-        allCases.map(\.title).max(by: { $0.count < $1.count }) ?? "Alphabetical"
+        allCases.map(\.title).max(by: { $0.count < $1.count }) ?? "A-Z"
     }
 }
 

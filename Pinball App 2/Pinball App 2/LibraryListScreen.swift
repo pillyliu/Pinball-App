@@ -2,34 +2,44 @@ import SwiftUI
 
 struct LibraryListScreen: View {
     @StateObject private var viewModel = PinballLibraryViewModel()
+    @EnvironmentObject private var appNavigation: AppNavigationModel
     @State private var viewportWidth: CGFloat = 0
+    @State private var viewportHeight: CGFloat = 0
     @State private var isSearchPresented = false
+    @State private var navigationPath: [String] = []
     @Namespace private var cardTransition
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
-
     private var isLargeTablet: Bool {
         AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportWidth)
     }
     private var isCompactWidth: Bool { horizontalSizeClass == .compact }
-    private var isLandscapePhone: Bool { verticalSizeClass == .compact }
     private var contentHorizontalPadding: CGFloat {
-        AppLayout.contentHorizontalPadding(verticalSizeClass: verticalSizeClass, isLargeTablet: isLargeTablet)
+        AppLayout.contentHorizontalPadding(isLargeTablet: isLargeTablet)
     }
     private var readableContentWidth: CGFloat? {
         AppLayout.maxReadableContentWidth(isLargeTablet: isLargeTablet)
     }
-    private var gridMinCardWidth: CGFloat {
-        if isLargeTablet { return 220 }
-        return 170
+    private var gridSpacing: CGFloat { 12 }
+    private var isLandscapeViewport: Bool { viewportWidth > viewportHeight }
+    private var columnCount: Int { isLandscapeViewport ? 4 : 2 }
+    private var contentAvailableWidth: CGFloat {
+        max(0, viewportWidth - (contentHorizontalPadding * 2))
     }
-    private var lastVisibleGameID: String? {
-        viewModel.sortedFilteredGames.last?.id
+    private var estimatedColumnWidth: CGFloat {
+        guard columnCount > 0 else { return 0 }
+        let totalSpacing = gridSpacing * CGFloat(max(0, columnCount - 1))
+        return max(0, (contentAvailableWidth - totalSpacing) / CGFloat(columnCount))
     }
-
+    private var cardImageHeight: CGFloat {
+        // Use a shorter viewport than 16:9 so the 16:9 source fills width and crops vertically.
+        max(84, estimatedColumnWidth * 0.50)
+    }
+    private var gridColumns: [GridItem] {
+        return Array(repeating: GridItem(.flexible(minimum: 0, maximum: .infinity), spacing: gridSpacing), count: columnCount)
+    }
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 AppBackground()
 
@@ -40,9 +50,13 @@ struct LibraryListScreen: View {
             .background(
                 GeometryReader { geo in
                     Color.clear
-                        .onAppear { viewportWidth = geo.size.width }
-                        .onChange(of: geo.size.width) { _, newValue in
-                            viewportWidth = newValue
+                        .onAppear {
+                            viewportWidth = geo.size.width
+                            viewportHeight = geo.size.height
+                        }
+                        .onChange(of: geo.size) { _, newValue in
+                            viewportWidth = newValue.width
+                            viewportHeight = newValue.height
                     }
                 }
             )
@@ -76,6 +90,25 @@ struct LibraryListScreen: View {
             }
             .task {
                 await viewModel.loadIfNeeded()
+                consumeLibraryDeepLink()
+            }
+            .onChange(of: appNavigation.libraryGameIDToOpen) { _, _ in
+                consumeLibraryDeepLink()
+            }
+            .onChange(of: viewModel.games.count) { _, _ in
+                consumeLibraryDeepLink()
+            }
+            .navigationDestination(for: String.self) { gameID in
+                if let game = viewModel.games.first(where: { $0.id == gameID }) {
+                    PinballGameDetailView(game: game)
+                        .onAppear {
+                            appNavigation.lastViewedLibraryGameID = gameID
+                            LibraryActivityLog.log(gameID: gameID, gameName: game.name, kind: .browseGame)
+                        }
+                } else {
+                    Text("Game not found.")
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }
@@ -133,18 +166,7 @@ struct LibraryListScreen: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         } else {
-            ScrollViewReader { proxy in
-                scrollableContent
-                    .onChange(of: isLandscapePhone) { wasLandscape, isLandscape in
-                        guard wasLandscape, !isLandscape else { return }
-                        guard let lastVisibleGameID else { return }
-                        DispatchQueue.main.async {
-                            withAnimation(.easeOut(duration: 0.2)) {
-                                proxy.scrollTo(lastVisibleGameID, anchor: .bottom)
-                            }
-                        }
-                    }
-            }
+            scrollableContent
         }
     }
 
@@ -158,7 +180,7 @@ struct LibraryListScreen: View {
                             AppSectionDivider()
                         }
 
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: gridMinCardWidth), spacing: 12)], spacing: 12) {
+                        LazyVGrid(columns: gridColumns, alignment: .leading, spacing: gridSpacing) {
                             ForEach(section.games) { game in
                                 gameCard(for: game)
                             }
@@ -168,7 +190,7 @@ struct LibraryListScreen: View {
             }
         } else {
             ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: gridMinCardWidth), spacing: 12)], spacing: 12) {
+                LazyVGrid(columns: gridColumns, alignment: .leading, spacing: gridSpacing) {
                     ForEach(viewModel.sortedFilteredGames) { game in
                         gameCard(for: game)
                     }
@@ -178,36 +200,32 @@ struct LibraryListScreen: View {
     }
 
     private func gameCard(for game: PinballGame) -> some View {
-        NavigationLink {
-            if reduceMotion {
-                PinballGameDetailView(game: game)
-            } else {
-                PinballGameDetailView(game: game)
-                    .navigationTransition(.zoom(sourceID: game.id, in: cardTransition))
-            }
-        } label: {
+        NavigationLink(value: game.id) {
             let card = VStack(alignment: .leading, spacing: 0) {
                 FallbackAsyncImageView(
                     candidates: game.libraryPlayfieldCandidates,
-                    emptyMessage: game.playfieldLocalURL == nil ? "No image" : nil
+                    emptyMessage: game.playfieldLocalURL == nil ? "No image" : nil,
+                    contentMode: .fill
                 )
-                .frame(height: 96)
+                .frame(maxWidth: .infinity)
+                .frame(height: cardImageHeight)
+                .clipped()
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(game.name)
-                        .font(isLargeTablet ? .title3 : .headline)
+                        .font(.headline)
                         .foregroundStyle(.primary)
                         .lineLimit(2)
-                        .frame(height: isLargeTablet ? 52 : 44, alignment: .topLeading)
+                        .frame(height: 44, alignment: .topLeading)
 
                     Text(game.manufacturerYearLine)
-                        .font(isLargeTablet ? .footnote : .caption)
+                        .font(.caption)
                         .foregroundStyle(.primary)
                         .lineLimit(1)
 
                     Text(game.locationBankLine)
-                        .font(isLargeTablet ? .footnote : .caption)
+                        .font(.caption)
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                 }
@@ -226,6 +244,13 @@ struct LibraryListScreen: View {
         }
         .id(game.id)
         .buttonStyle(.plain)
+    }
+
+    private func consumeLibraryDeepLink() {
+        guard let gameID = appNavigation.libraryGameIDToOpen else { return }
+        guard viewModel.games.contains(where: { $0.id == gameID }) else { return }
+        navigationPath = [gameID]
+        appNavigation.libraryGameIDToOpen = nil
     }
 }
 

@@ -274,7 +274,7 @@ enum PinballLibrarySortOption: String, CaseIterable, Identifiable {
         case .bank:
             return "Sort: Bank"
         case .alphabetical:
-            return "Sort: Alphabetical"
+            return "Sort: A-Z"
         }
     }
 }
@@ -623,6 +623,10 @@ struct PinballGame: Identifiable, Decodable {
 
     var libraryPlayfieldCandidates: [URL] {
         [derivedPlayfieldURL(width: 700), playfieldLocalURL].compactMap { $0 }
+    }
+
+    var miniPlayfieldCandidates: [URL] {
+        [derivedPlayfieldURL(width: 700), playfieldLocalURL, derivedPlayfieldURL(width: 1400)].compactMap { $0 }
     }
 
     var gamePlayfieldCandidates: [URL] {

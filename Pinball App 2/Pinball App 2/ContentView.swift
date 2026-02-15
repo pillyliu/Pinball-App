@@ -6,47 +6,73 @@
 //
 
 import SwiftUI
+import Combine
 
 private enum LPLLinks {
     static let website = URL(string: "https://www.lansingpinleague.com/")!
     static let facebook = URL(string: "https://www.facebook.com/groups/LansingPinLeague/")!
 }
 
-struct ContentView: View {
-    var body: some View {
-        TabView {
-            LPLInfoView()
-                .tabItem {
-                    Label("About", systemImage: "info.circle")
-                }
+enum RootTab: Hashable {
+    case about
+    case league
+    case library
+    case practice
+}
 
+final class AppNavigationModel: ObservableObject {
+    @Published var selectedTab: RootTab = .league
+    @Published var libraryGameIDToOpen: String?
+    @Published var lastViewedLibraryGameID: String?
+
+    func openLibraryGame(gameID: String) {
+        guard !gameID.isEmpty else { return }
+        libraryGameIDToOpen = gameID
+        selectedTab = .library
+    }
+}
+
+struct ContentView: View {
+    @StateObject private var appNavigation = AppNavigationModel()
+
+    var body: some View {
+        TabView(selection: $appNavigation.selectedTab) {
             LeagueHubView()
+                .tag(RootTab.league)
                 .tabItem {
                     Label("League", systemImage: "chart.bar.xaxis")
                 }
 
             LibraryListScreen()
+                .tag(RootTab.library)
                 .tabItem {
                     Label("Library", systemImage: "books.vertical")
                 }
 
             PracticeUpgradeTab()
+                .tag(RootTab.practice)
                 .tabItem {
                     Label("Practice", systemImage: "figure.play")
                 }
+
+            LPLInfoView()
+                .tag(RootTab.about)
+                .tabItem {
+                    Label("About", systemImage: "info.circle")
+                }
         }
+        .environmentObject(appNavigation)
     }
 }
 
 private struct LPLInfoView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var viewportWidth: CGFloat = 0
     private var isLargeTablet: Bool {
         AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportWidth)
     }
     private var contentHorizontalPadding: CGFloat {
-        AppLayout.contentHorizontalPadding(verticalSizeClass: verticalSizeClass, isLargeTablet: isLargeTablet)
+        AppLayout.contentHorizontalPadding(isLargeTablet: isLargeTablet)
     }
     private var readableContentWidth: CGFloat? {
         AppLayout.maxReadableContentWidth(isLargeTablet: isLargeTablet)

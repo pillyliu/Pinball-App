@@ -15,36 +15,13 @@ struct PinballGameDetailView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let viewportSize = geo.size
-            let largeTablet = AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportSize.width)
-            let usesDesktopLandscapeLayout = largeTablet && viewportSize.width > viewportSize.height
-
-            let gap: CGFloat = 14
             let horizontalPadding: CGFloat = 14
-            let availableWidth = max(0, viewportSize.width - (horizontalPadding * 2) - (gap * 2))
-            let unitWidth = max(180, availableWidth / 4)
-            let desktopCardHeight = max(460, viewportSize.height - 220)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    if usesDesktopLandscapeLayout {
-                        HStack(alignment: .top, spacing: gap) {
-                            imageCard(usesDesktopLandscapeLayout: true)
-                                .frame(width: unitWidth, alignment: .topLeading)
-                                .frame(minHeight: desktopCardHeight, alignment: .top)
-                            videosCard(usesDesktopLandscapeLayout: true)
-                                .frame(width: unitWidth * 2, alignment: .topLeading)
-                                .frame(minHeight: desktopCardHeight, alignment: .top)
-                            gameInfoCard
-                                .frame(width: unitWidth, alignment: .topLeading)
-                                .frame(minHeight: desktopCardHeight, alignment: .top)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    } else {
-                        imageCard(usesDesktopLandscapeLayout: false)
-                        videosCard(usesDesktopLandscapeLayout: false)
-                        gameInfoCard
-                    }
+                    imageCard(usesDesktopLandscapeLayout: false)
+                    videosCard(usesDesktopLandscapeLayout: false)
+                    gameInfoCard
 
                     sourcesCard
                 }
@@ -74,15 +51,25 @@ struct PinballGameDetailView: View {
 
             HStack(spacing: 8) {
                 NavigationLink("Rulesheet") {
-                    RulesheetView(slug: game.slug)
+                    RulesheetView(slug: game.slug, gameName: game.name)
                 }
                 .buttonStyle(.glass)
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet)
+                    }
+                )
 
                 if !game.fullscreenPlayfieldCandidates.isEmpty {
                     NavigationLink("Playfield") {
                         HostedImageView(imageCandidates: game.fullscreenPlayfieldCandidates)
                     }
                     .buttonStyle(.glass)
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openPlayfield)
+                        }
+                    )
                 }
             }
             .font(.caption)
@@ -207,6 +194,12 @@ struct PinballGameDetailView: View {
                     ForEach(playableVideos) { video in
                         Button {
                             activeVideoID = video.id
+                            LibraryActivityLog.log(
+                                gameID: game.id,
+                                gameName: game.name,
+                                kind: .tapVideo,
+                                detail: video.label
+                            )
                         } label: {
                             VStack(alignment: .leading, spacing: 8) {
                                 YouTubeThumbnailView(candidates: video.thumbnailCandidates)

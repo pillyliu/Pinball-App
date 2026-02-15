@@ -19,7 +19,6 @@ struct StandingsView: View {
     @State private var tableAvailableWidth: CGFloat = 0
     @State private var viewportWidth: CGFloat = 0
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
     private var isLargeTablet: Bool {
         AppLayout.isLargeTablet(horizontalSizeClass: horizontalSizeClass, width: viewportWidth)
     }
@@ -47,7 +46,7 @@ struct StandingsView: View {
     private var tableContentWidth: CGFloat { scaledFixedTableWidth + tableFlexibleExtraWidth }
     private var tableMinWidth: CGFloat { tableContentWidth }
     private var contentHorizontalPadding: CGFloat {
-        verticalSizeClass == .compact ? 2 : 14
+        AppLayout.contentHorizontalPadding(isLargeTablet: isLargeTablet)
     }
 
     var body: some View {
@@ -126,8 +125,8 @@ struct StandingsView: View {
             Button {
                 Task { await viewModel.refreshNow() }
             } label: {
-                HStack(spacing: 4) {
-                    Text("Data updated at \(updatedAtLabel)")
+                HStack(spacing: 5) {
+                    Text(updatedAtLabel)
                     if viewModel.isRefreshing {
                         ProgressView()
                             .controlSize(.mini)
@@ -144,10 +143,10 @@ struct StandingsView: View {
                 }
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.isRefreshing)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -276,7 +275,7 @@ private struct StandingsRowView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            rowCell(rank.formatted(), width: rankWidth, color: rankColor, monospaced: true)
+            rowCell(rank.formatted(), width: rankWidth, color: rankColor, monospaced: true, weight: rank <= 3 ? .bold : .regular)
             rowCell(standing.displayPlayer, width: playerWidth, weight: rank <= 8 ? .semibold : .regular)
             rowCell(formatRounded(standing.seasonTotal), width: pointsWidth, monospaced: true)
             rowCell(standing.eligible, width: eligibleWidth)
@@ -441,7 +440,7 @@ private final class StandingsViewModel: ObservableObject {
     private static let updatedAtFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = .current
-        formatter.dateFormat = "MMM d, h:mm a"
+        formatter.dateFormat = "M/d/yy h:mm a"
         return formatter
     }()
 }

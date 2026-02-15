@@ -24,6 +24,8 @@ local.properties
 **/.idea/
 **/.gradle/
 **/.kotlin/
+**/.bundle/
+**/vendor/bundle/
 **/build/
 **/captures/
 **/keystore.properties
@@ -37,3 +39,6 @@ local.properties
 **/*.xcuserstate
 **/*.xcscmblueprint
 **/xcuserdata/
+
+# Android fastlane local credentials
+Pinball App Android/fastlane/play-store-service-account.json

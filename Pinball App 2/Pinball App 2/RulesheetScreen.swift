@@ -3,212 +3,334 @@ import WebKit
 
 struct RulesheetView: View {
     let slug: String
+    let gameName: String
     @StateObject private var viewModel: RulesheetViewModel
-    @StateObject private var chrome = FullscreenChromeController()
+    @State private var scrollProgress: CGFloat = 0
+    @State private var savedProgress: CGFloat?
+    @State private var showResumePrompt = false
+    @State private var resumeTarget: CGFloat?
+    @State private var resumeRequestID: Int = 0
+    @State private var didEvaluateResumePrompt = false
+    @State private var pulsePhase = false
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var suppressChromeToggle = false
+    @State private var showsBackButton = false
 
-    init(slug: String) {
+    init(slug: String, gameName: String? = nil) {
         self.slug = slug
+        self.gameName = gameName ?? slug.replacingOccurrences(of: "-", with: " ").capitalized
         _viewModel = StateObject(wrappedValue: RulesheetViewModel(slug: slug))
     }
 
     var body: some View {
-        ZStack {
-            AppBackground()
+        GeometryReader { geo in
+            let topInset = max(geo.safeAreaInsets.top, 44)
 
-            switch viewModel.status {
-            case .idle, .loading:
-                Text("Loading rulesheet...")
-                    .foregroundStyle(.secondary)
-            case .missing:
-                Text("Rulesheet not available.")
-                    .foregroundStyle(.secondary)
-            case .error:
-                Text("Could not load rulesheet.")
-                    .foregroundStyle(.secondary)
-            case .loaded:
-                if let markdownText = viewModel.markdownText {
-                    MarkdownWebView(
-                        markdown: markdownText,
-                        onAnchorTap: {
-                            suppressChromeToggle = true
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-                                suppressChromeToggle = false
+            ZStack {
+                AppBackground()
+
+                switch viewModel.status {
+                case .idle, .loading:
+                    Text("Loading rulesheet...")
+                        .foregroundStyle(.secondary)
+                case .missing:
+                    Text("Rulesheet not available.")
+                        .foregroundStyle(.secondary)
+                case .error:
+                    Text("Could not load rulesheet.")
+                        .foregroundStyle(.secondary)
+                case .loaded:
+                    if let markdownText = viewModel.markdownText {
+                        ZStack(alignment: .topTrailing) {
+                            RulesheetRenderer(
+                                markdown: markdownText,
+                                resumeTarget: resumeTarget,
+                                resumeRequestID: resumeRequestID,
+                                onProgressChange: { progress in
+                                    scrollProgress = progress
+                                }
+                            )
+
+                            Button {
+                                saveCurrentProgress()
+                            } label: {
+                                Text("\(currentProgressPercent)%")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(progressPillForeground)
+                                    .padding(.horizontal, 9)
+                                    .padding(.vertical, 5)
+                                    .background(progressPillBackground, in: Capsule())
+                                    .overlay(
+                                        Capsule()
+                                            .stroke(progressPillStroke, lineWidth: 0.7)
+                                    )
+                                    .opacity(progressNeedsSave ? (pulsePhase ? 0.52 : 1.0) : 1.0)
                             }
+                            .buttonStyle(.plain)
+                            .padding(.top, topInset + 30)
+                            .padding(.trailing, 12)
                         }
-                    )
-                        .ignoresSafeArea()
+                    }
                 }
-            }
 
-            if chrome.isVisible {
-                VStack {
-                    HStack {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.title2.weight(.semibold))
-                                .foregroundStyle(.primary)
-                                .padding(14)
-                                .background(.regularMaterial, in: Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color(uiColor: .separator).opacity(0.75), lineWidth: 1)
-                                )
-                                .clipShape(Circle())
+                LinearGradient(
+                    colors: [AppTheme.bg, AppTheme.bg.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: topInset + 44)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .allowsHitTesting(false)
+
+                if showsBackButton {
+                    VStack {
+                        HStack {
+                            Button {
+                                dismiss()
+                            } label: {
+                                Image(systemName: "chevron.left")
+                                    .font(.title2.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                    .padding(14)
+                                    .background(.regularMaterial, in: Circle())
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color(uiColor: .separator).opacity(0.75), lineWidth: 1)
+                                    )
+                                    .clipShape(Circle())
+                            }
+                            .accessibilityLabel("Back from \(gameName)")
+                            Spacer()
                         }
+                        .padding(.top, topInset + 12)
+                        .padding(.horizontal, 16)
                         Spacer()
                     }
-                    .padding(.top, 0)
-                    .padding(.horizontal, 16)
-                    Spacer()
+                    .transition(.opacity)
                 }
-                .transition(.opacity)
             }
-
         }
+        .ignoresSafeArea(.container, edges: [.top, .bottom])
+        .toolbar(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
+        .appEdgeBackGesture(dismiss: dismiss)
         .simultaneousGesture(
             TapGesture().onEnded {
-                if suppressChromeToggle { return }
-                chrome.toggle(reduceMotion: reduceMotion)
+                showsBackButton.toggle()
             }
         )
-        .appEdgeBackGesture(dismiss: dismiss)
-        .navigationBarBackButtonHidden(true)
-        .toolbar(.hidden, for: .navigationBar)
-        .toolbar(.visible, for: .tabBar)
-        .toolbarBackground(.hidden, for: .tabBar)
-        .onAppear {
-            chrome.resetOnAppear()
-        }
-        .onDisappear {
-            chrome.cleanupOnDisappear()
-        }
         .task {
             await viewModel.loadIfNeeded()
+            if savedProgress == nil {
+                savedProgress = loadSavedProgress()
+            }
+        }
+        .onAppear {
+            if savedProgress == nil {
+                savedProgress = loadSavedProgress()
+            }
+            if progressNeedsSave {
+                startPulse()
+            }
+        }
+        .onChange(of: viewModel.status) { _, newStatus in
+            guard newStatus == .loaded, !didEvaluateResumePrompt else { return }
+            didEvaluateResumePrompt = true
+            if let saved = savedProgress, saved > 0.001 {
+                showResumePrompt = true
+            }
+        }
+        .onChange(of: progressNeedsSave) { _, needsSave in
+            if needsSave {
+                startPulse()
+            }
+        }
+        .alert(
+            "Return to last saved position?",
+            isPresented: $showResumePrompt
+        ) {
+            Button("No", role: .cancel) {}
+            Button("Yes") {
+                if let saved = savedProgress {
+                    resumeTarget = saved
+                    resumeRequestID += 1
+                }
+            }
+        } message: {
+            Text("Return to \(savedProgressPercent)%?")
+        }
+    }
+
+    private var currentProgressPercent: Int {
+        Int((min(max(scrollProgress, 0), 1) * 100).rounded())
+    }
+
+    private var savedProgressPercent: Int {
+        Int((min(max(savedProgress ?? 0, 0), 1) * 100).rounded())
+    }
+
+    private var progressNeedsSave: Bool {
+        currentProgressPercent != savedProgressPercent
+    }
+
+    private var progressPillBackground: Color {
+        if !progressNeedsSave, savedProgress != nil {
+            return Color.green.opacity(0.85)
+        }
+        return Color(uiColor: .secondarySystemBackground).opacity(0.88)
+    }
+
+    private var progressPillForeground: Color {
+        if !progressNeedsSave, savedProgress != nil {
+            return .white
+        }
+        return .primary
+    }
+
+    private var progressPillStroke: Color {
+        if !progressNeedsSave, savedProgress != nil {
+            return Color.green.opacity(0.9)
+        }
+        return Color.primary.opacity(0.16)
+    }
+
+    private var progressStorageKey: String {
+        "rulesheet-last-progress-\(slug)"
+    }
+
+    private func loadSavedProgress() -> CGFloat? {
+        guard let number = UserDefaults.standard.object(forKey: progressStorageKey) as? NSNumber else {
+            return nil
+        }
+        return min(max(CGFloat(number.doubleValue), 0), 1)
+    }
+
+    private func saveCurrentProgress() {
+        let clamped = min(max(scrollProgress, 0), 1)
+        UserDefaults.standard.set(Double(clamped), forKey: progressStorageKey)
+        savedProgress = clamped
+    }
+
+    private func startPulse() {
+        pulsePhase = false
+        withAnimation(.easeInOut(duration: 1.05).repeatForever(autoreverses: true)) {
+            pulsePhase = true
         }
     }
 }
 
-private struct MarkdownWebView: UIViewRepresentable {
+private struct RulesheetRenderer: UIViewRepresentable {
     let markdown: String
-    var onAnchorTap: (() -> Void)? = nil
+    let resumeTarget: CGFloat?
+    let resumeRequestID: Int
+    let onProgressChange: (CGFloat) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onAnchorTap: onAnchorTap)
+        Coordinator(onProgressChange: onProgressChange)
     }
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
-        configuration.userContentController.add(context.coordinator, name: "codexAnchorTap")
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.isOpaque = false
         webView.backgroundColor = .clear
         webView.scrollView.backgroundColor = .clear
         webView.scrollView.contentInsetAdjustmentBehavior = .never
+        webView.scrollView.contentInset = .zero
+        webView.scrollView.scrollIndicatorInsets = .zero
         webView.navigationDelegate = context.coordinator
+        webView.scrollView.delegate = context.coordinator
+        context.coordinator.webView = webView
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        webView.navigationDelegate = context.coordinator
+        context.coordinator.onProgressChange = onProgressChange
+        context.coordinator.handleResumeRequest(ratio: resumeTarget, requestID: resumeRequestID, in: webView)
         guard context.coordinator.lastMarkdown != markdown else { return }
-
         context.coordinator.lastMarkdown = markdown
-        webView.loadHTMLString(
-            Self.html(for: markdown),
-            baseURL: URL(string: "https://pillyliu.com")
-        )
+        webView.loadHTMLString(Self.html(for: markdown), baseURL: URL(string: "https://pillyliu.com"))
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
-        let onAnchorTap: (() -> Void)?
+    final class Coordinator: NSObject, WKNavigationDelegate, UIScrollViewDelegate {
         var lastMarkdown: String?
         weak var webView: WKWebView?
+        var onProgressChange: (CGFloat) -> Void
+        private var didLoadPage = false
+        private var lastHandledResumeRequestID: Int = -1
+        private var pendingResumeRatio: CGFloat?
+        private var pendingResumeRequestID: Int?
 
-        init(onAnchorTap: (() -> Void)?) {
-            self.onAnchorTap = onAnchorTap
-            super.init()
+        init(onProgressChange: @escaping (CGFloat) -> Void) {
+            self.onProgressChange = onProgressChange
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            self.webView = webView
+            didLoadPage = true
+            applyPendingResumeIfPossible(in: webView)
+            onProgressChange(currentScrollRatio(in: webView))
         }
 
-        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                if message.name == "codexAnchorTap" {
-                    self.onAnchorTap?()
-                    return
-                }
-            }
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            guard let webView else { return }
+            let ratio = currentScrollRatio(in: webView)
+            onProgressChange(ratio)
         }
 
-        deinit {
-            webView?.configuration.userContentController.removeScriptMessageHandler(forName: "codexAnchorTap")
-        }
+        func handleResumeRequest(ratio: CGFloat?, requestID: Int, in webView: WKWebView) {
+            guard let ratio else { return }
+            guard requestID != lastHandledResumeRequestID else { return }
 
-    }
-}
-
-private extension MarkdownWebView {
-    static func scriptForTopAnchor() -> String {
-        """
-        function __codexNotifyAnchorTapToNative() {
-          try {
-            if (
-              window.webkit &&
-              window.webkit.messageHandlers &&
-              window.webkit.messageHandlers.codexAnchorTap
-            ) {
-              window.webkit.messageHandlers.codexAnchorTap.postMessage('anchor');
-            }
-          } catch (e) {}
-        }
-        document.addEventListener('touchstart', function(e) {
-          var t = e.target;
-          var a = t && t.closest ? t.closest('a[href^="#"]') : null;
-          if (a) __codexNotifyAnchorTapToNative();
-        }, { passive: true, capture: true });
-        document.addEventListener('mousedown', function(e) {
-          var t = e.target;
-          var a = t && t.closest ? t.closest('a[href^="#"]') : null;
-          if (a) __codexNotifyAnchorTapToNative();
-        }, { capture: true });
-        """
-    }
-}
-
-private extension MarkdownWebView {
-    static func injectedScript(markdownJSON: String) -> String {
-        let renderScript = """
-            const markdown = \(markdownJSON);
-            const container = document.getElementById('content');
-            if (!window.markdownit) {
-              const fallback = document.createElement('div');
-              fallback.className = 'fallback-markdown';
-              fallback.textContent = markdown;
-              container.appendChild(fallback);
+            let clamped = min(max(ratio, 0), 1)
+            if didLoadPage, canApplyRatio(in: webView) {
+                applyRatio(clamped, in: webView)
+                lastHandledResumeRequestID = requestID
+                pendingResumeRatio = nil
+                pendingResumeRequestID = nil
             } else {
-              const md = window.markdownit({ html: true, linkify: true, breaks: false });
-              container.innerHTML = md.render(markdown);
+                pendingResumeRatio = clamped
+                pendingResumeRequestID = requestID
             }
-        """
-        return """
-        \(renderScript)
+        }
 
-        \(scriptForTopAnchor())
-        """
+        private func applyPendingResumeIfPossible(in webView: WKWebView) {
+            guard let pending = pendingResumeRatio else { return }
+            guard let queuedRequestID = pendingResumeRequestID else { return }
+            guard queuedRequestID != lastHandledResumeRequestID else { return }
+            guard canApplyRatio(in: webView) else { return }
+            applyRatio(pending, in: webView)
+            lastHandledResumeRequestID = queuedRequestID
+            pendingResumeRatio = nil
+            pendingResumeRequestID = nil
+        }
+
+        func applyRatio(_ ratio: CGFloat, in webView: WKWebView) {
+            let scrollView = webView.scrollView
+            let maxY = max(0, scrollView.contentSize.height - scrollView.bounds.height)
+            guard maxY > 0 else { return }
+            let clamped = min(max(ratio, 0), 1)
+            let targetY = clamped * maxY
+            guard abs(scrollView.contentOffset.y - targetY) > 1 else { return }
+
+            scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: targetY), animated: false)
+            onProgressChange(clamped)
+        }
+
+        private func canApplyRatio(in webView: WKWebView) -> Bool {
+            let scrollView = webView.scrollView
+            return scrollView.contentSize.height > scrollView.bounds.height + 1
+        }
+
+        private func currentScrollRatio(in webView: WKWebView) -> CGFloat {
+            let scrollView = webView.scrollView
+            let maxY = max(1, scrollView.contentSize.height - scrollView.bounds.height)
+            return min(max(scrollView.contentOffset.y / maxY, 0), 1)
+        }
     }
 }
 
-private extension MarkdownWebView {
+private extension RulesheetRenderer {
     static func html(for markdown: String) -> String {
         let markdownJSON = (try? String(data: JSONEncoder().encode(markdown), encoding: .utf8)) ?? "\"\""
 
@@ -221,7 +343,7 @@ private extension MarkdownWebView {
           <style>
             :root {
               color-scheme: light dark;
-              --body-text: #1f1f1f;
+              --text: #1f1f1f;
               --link: #0a65cc;
               --code-bg: #f1f3f5;
               --code-text: #202124;
@@ -230,7 +352,7 @@ private extension MarkdownWebView {
             }
             @media (prefers-color-scheme: dark) {
               :root {
-                --body-text: #f3f3f3;
+                --text: #f3f3f3;
                 --link: #a6c8ff;
                 --code-bg: #111;
                 --code-text: #f3f3f3;
@@ -238,49 +360,25 @@ private extension MarkdownWebView {
                 --table-border: #2a2a2a;
               }
             }
-            body {
+            html, body {
               margin: 0;
-              padding: 14px 18px;
-              padding-left: max(18px, calc(env(safe-area-inset-left) + 10px));
-              padding-right: max(18px, calc(env(safe-area-inset-right) + 10px));
-              padding-top: calc(14px + env(safe-area-inset-top));
-              padding-bottom: calc(18px + env(safe-area-inset-bottom));
+              padding: 0;
+              background: transparent;
+            }
+            body {
+              padding: 50px 16px calc(env(safe-area-inset-bottom) + 28px);
               font: -apple-system-body;
               -webkit-text-size-adjust: 100%;
               text-size-adjust: 100%;
-              background: transparent;
-              color: var(--body-text);
+              color: var(--text);
               line-height: 1.45;
-              max-width: 980px;
               box-sizing: border-box;
             }
-            article { width: 100%; }
-            @media (min-width: 1000px) {
-              body {
-                margin-left: auto;
-                margin-right: auto;
-                font-size: 21px;
-                line-height: 1.58;
-                padding-left: max(24px, calc(env(safe-area-inset-left) + 12px));
-                padding-right: max(24px, calc(env(safe-area-inset-right) + 12px));
-              }
-              th, td { padding: 8px 10px; }
-            }
-            @media (min-width: 1000px) and (orientation: landscape) {
-              body {
-                max-width: none;
-                margin-left: 0;
-                margin-right: 0;
-                font-size: 22px;
-                line-height: 1.6;
-              }
-            }
+            #content { margin: 0; }
             #content > :first-child { margin-top: 0 !important; }
-            :target { scroll-margin-top: calc(env(safe-area-inset-top) + 0px); }
             a { color: var(--link); text-decoration: underline; }
             code, pre { background: var(--code-bg); border-radius: 8px; color: var(--code-text); }
             pre { padding: 10px; overflow-x: auto; }
-            .fallback-markdown { white-space: pre-wrap; color: var(--body-text); }
             table { border-collapse: collapse; width: 100%; overflow-x: auto; display: block; }
             th, td { border: 1px solid var(--table-border); padding: 6px 8px; }
             img { max-width: 100%; height: auto; }
@@ -291,7 +389,14 @@ private extension MarkdownWebView {
         <body>
           <article id="content"></article>
           <script>
-        \(injectedScript(markdownJSON: markdownJSON))
+            const markdown = \(markdownJSON);
+            const container = document.getElementById('content');
+            if (!window.markdownit) {
+              container.textContent = markdown;
+            } else {
+              const md = window.markdownit({ html: true, linkify: true, breaks: false });
+              container.innerHTML = md.render(markdown);
+            }
           </script>
         </body>
         </html>

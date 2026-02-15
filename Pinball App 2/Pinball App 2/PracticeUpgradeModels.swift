@@ -59,11 +59,11 @@ enum ScoreContext: String, CaseIterable, Codable, Identifiable {
 }
 
 enum PracticeCategory: String, CaseIterable, Codable, Identifiable {
+    case general
     case shots
     case modes
     case multiball
     case strategy
-    case general
 
     var id: String { rawValue }
 
@@ -168,6 +168,27 @@ struct ScoreLogEntry: Identifiable, Codable {
         self.timestamp = timestamp
         self.leagueImported = leagueImported
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case gameID
+        case score
+        case context
+        case tournamentName
+        case timestamp
+        case leagueImported
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        gameID = try container.decodeIfPresent(String.self, forKey: .gameID) ?? ""
+        score = try container.decodeIfPresent(Double.self, forKey: .score) ?? 0
+        context = try container.decodeIfPresent(ScoreContext.self, forKey: .context) ?? .practice
+        tournamentName = try container.decodeIfPresent(String.self, forKey: .tournamentName)
+        timestamp = try container.decodeIfPresent(Date.self, forKey: .timestamp) ?? Date()
+        leagueImported = try container.decodeIfPresent(Bool.self, forKey: .leagueImported) ?? false
+    }
 }
 
 struct PracticeNoteEntry: Identifiable, Codable {
@@ -192,7 +213,15 @@ struct JournalEntry: Identifiable, Codable {
     let id: UUID
     let gameID: String
     let action: JournalActionType
+    let task: StudyTaskKind?
     let progressPercent: Int?
+    let videoKind: VideoProgressInputKind?
+    let videoValue: String?
+    let score: Double?
+    let scoreContext: ScoreContext?
+    let tournamentName: String?
+    let noteCategory: PracticeCategory?
+    let noteDetail: String?
     let note: String?
     let timestamp: Date
 
@@ -200,14 +229,30 @@ struct JournalEntry: Identifiable, Codable {
         id: UUID = UUID(),
         gameID: String,
         action: JournalActionType,
+        task: StudyTaskKind? = nil,
         progressPercent: Int? = nil,
+        videoKind: VideoProgressInputKind? = nil,
+        videoValue: String? = nil,
+        score: Double? = nil,
+        scoreContext: ScoreContext? = nil,
+        tournamentName: String? = nil,
+        noteCategory: PracticeCategory? = nil,
+        noteDetail: String? = nil,
         note: String? = nil,
         timestamp: Date = Date()
     ) {
         self.id = id
         self.gameID = gameID
         self.action = action
+        self.task = task
         self.progressPercent = progressPercent
+        self.videoKind = videoKind
+        self.videoValue = videoValue
+        self.score = score
+        self.scoreContext = scoreContext
+        self.tournamentName = tournamentName
+        self.noteCategory = noteCategory
+        self.noteDetail = noteDetail
         self.note = note
         self.timestamp = timestamp
     }
@@ -219,18 +264,114 @@ struct GameGroupTemplate: Codable, Identifiable, Hashable {
     let gameIDs: [String]
 }
 
+enum GroupType: String, CaseIterable, Codable, Identifiable {
+    case bank
+    case location
+    case custom
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .bank: return "Bank"
+        case .location: return "Location"
+        case .custom: return "Custom"
+        }
+    }
+}
+
 struct CustomGameGroup: Identifiable, Codable {
     let id: UUID
     var name: String
     var gameIDs: [String]
+    var type: GroupType
+    var isActive: Bool
+    var isPriority: Bool
+    var startDate: Date?
+    var endDate: Date?
     var createdAt: Date
 
-    init(id: UUID = UUID(), name: String, gameIDs: [String], createdAt: Date = Date()) {
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case gameIDs
+        case type
+        case isActive
+        case isPriority
+        case startDate
+        case endDate
+        case createdAt
+    }
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        gameIDs: [String],
+        type: GroupType = .custom,
+        isActive: Bool = true,
+        isPriority: Bool = false,
+        startDate: Date? = nil,
+        endDate: Date? = nil,
+        createdAt: Date = Date()
+    ) {
         self.id = id
         self.name = name
         self.gameIDs = gameIDs
+        self.type = type
+        self.isActive = isActive
+        self.isPriority = isPriority
+        self.startDate = startDate
+        self.endDate = endDate
         self.createdAt = createdAt
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Group"
+        gameIDs = try container.decodeIfPresent([String].self, forKey: .gameIDs) ?? []
+        type = try container.decodeIfPresent(GroupType.self, forKey: .type) ?? .custom
+        isActive = try container.decodeIfPresent(Bool.self, forKey: .isActive) ?? true
+        isPriority = try container.decodeIfPresent(Bool.self, forKey: .isPriority) ?? false
+        startDate = try container.decodeIfPresent(Date.self, forKey: .startDate)
+        endDate = try container.decodeIfPresent(Date.self, forKey: .endDate)
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+    }
+}
+
+struct PracticeSettings: Codable {
+    var playerName: String
+    var comparisonPlayerName: String
+    var selectedGroupID: UUID?
+
+    private enum CodingKeys: String, CodingKey {
+        case playerName
+        case comparisonPlayerName
+        case selectedGroupID
+    }
+
+    init(
+        playerName: String,
+        comparisonPlayerName: String,
+        selectedGroupID: UUID?
+    ) {
+        self.playerName = playerName
+        self.comparisonPlayerName = comparisonPlayerName
+        self.selectedGroupID = selectedGroupID
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        playerName = try container.decodeIfPresent(String.self, forKey: .playerName) ?? ""
+        comparisonPlayerName = try container.decodeIfPresent(String.self, forKey: .comparisonPlayerName) ?? ""
+        selectedGroupID = try container.decodeIfPresent(UUID.self, forKey: .selectedGroupID)
+    }
+
+    static let defaults = PracticeSettings(
+        playerName: "",
+        comparisonPlayerName: "",
+        selectedGroupID: nil
+    )
 }
 
 struct LeagueLinkSettings: Codable {
@@ -266,6 +407,68 @@ struct PracticeUpgradeState: Codable {
     var leagueSettings: LeagueLinkSettings
     var syncSettings: SyncSettings
     var analyticsSettings: AnalyticsSettings
+    var rulesheetResumeOffsets: [String: Double]
+    var videoResumeHints: [String: String]
+    var practiceSettings: PracticeSettings
+
+    private enum CodingKeys: String, CodingKey {
+        case studyEvents
+        case videoProgressEntries
+        case scoreEntries
+        case noteEntries
+        case journalEntries
+        case customGroups
+        case leagueSettings
+        case syncSettings
+        case analyticsSettings
+        case rulesheetResumeOffsets
+        case videoResumeHints
+        case practiceSettings
+    }
+
+    init(
+        studyEvents: [StudyProgressEvent],
+        videoProgressEntries: [VideoProgressEntry],
+        scoreEntries: [ScoreLogEntry],
+        noteEntries: [PracticeNoteEntry],
+        journalEntries: [JournalEntry],
+        customGroups: [CustomGameGroup],
+        leagueSettings: LeagueLinkSettings,
+        syncSettings: SyncSettings,
+        analyticsSettings: AnalyticsSettings,
+        rulesheetResumeOffsets: [String: Double],
+        videoResumeHints: [String: String],
+        practiceSettings: PracticeSettings
+    ) {
+        self.studyEvents = studyEvents
+        self.videoProgressEntries = videoProgressEntries
+        self.scoreEntries = scoreEntries
+        self.noteEntries = noteEntries
+        self.journalEntries = journalEntries
+        self.customGroups = customGroups
+        self.leagueSettings = leagueSettings
+        self.syncSettings = syncSettings
+        self.analyticsSettings = analyticsSettings
+        self.rulesheetResumeOffsets = rulesheetResumeOffsets
+        self.videoResumeHints = videoResumeHints
+        self.practiceSettings = practiceSettings
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        studyEvents = try container.decodeIfPresent([StudyProgressEvent].self, forKey: .studyEvents) ?? []
+        videoProgressEntries = try container.decodeIfPresent([VideoProgressEntry].self, forKey: .videoProgressEntries) ?? []
+        scoreEntries = try container.decodeIfPresent([ScoreLogEntry].self, forKey: .scoreEntries) ?? []
+        noteEntries = try container.decodeIfPresent([PracticeNoteEntry].self, forKey: .noteEntries) ?? []
+        journalEntries = try container.decodeIfPresent([JournalEntry].self, forKey: .journalEntries) ?? []
+        customGroups = try container.decodeIfPresent([CustomGameGroup].self, forKey: .customGroups) ?? []
+        leagueSettings = try container.decodeIfPresent(LeagueLinkSettings.self, forKey: .leagueSettings) ?? .empty
+        syncSettings = try container.decodeIfPresent(SyncSettings.self, forKey: .syncSettings) ?? .defaults
+        analyticsSettings = try container.decodeIfPresent(AnalyticsSettings.self, forKey: .analyticsSettings) ?? .defaults
+        rulesheetResumeOffsets = try container.decodeIfPresent([String: Double].self, forKey: .rulesheetResumeOffsets) ?? [:]
+        videoResumeHints = try container.decodeIfPresent([String: String].self, forKey: .videoResumeHints) ?? [:]
+        practiceSettings = try container.decodeIfPresent(PracticeSettings.self, forKey: .practiceSettings) ?? .defaults
+    }
 
     static let empty = PracticeUpgradeState(
         studyEvents: [],
@@ -276,7 +479,10 @@ struct PracticeUpgradeState: Codable {
         customGroups: [],
         leagueSettings: .empty,
         syncSettings: .defaults,
-        analyticsSettings: .defaults
+        analyticsSettings: .defaults,
+        rulesheetResumeOffsets: [:],
+        videoResumeHints: [:],
+        practiceSettings: .defaults
     )
 }
 

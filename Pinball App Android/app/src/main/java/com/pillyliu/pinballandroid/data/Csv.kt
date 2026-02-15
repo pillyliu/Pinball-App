@@ -1,5 +1,8 @@
 package com.pillyliu.pinballandroid.data
 
+import java.text.Normalizer
+import java.util.Locale
+
 private const val REDACTION_TOKEN_SALT = "pinball-app-redaction-v1"
 private const val REDACTED_PLAYERS_CSV_PATH = "/pinball/data/redacted_players.csv"
 @Volatile private var redactedPlayersNormalized: Set<String> = emptySet()
@@ -73,7 +76,13 @@ private fun shouldRedactPlayerName(raw: String): Boolean {
 }
 
 private fun normalizePlayerName(raw: String): String {
-    return raw.trim().lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }.joinToString(" ")
+    val folded = Normalizer.normalize(raw, Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "")
+    return folded
+        .trim()
+        .lowercase(Locale.US)
+        .split(Regex("\\s+"))
+        .filter { it.isNotBlank() }
+        .joinToString(" ")
 }
 
 private fun redactionToken(raw: String): String {

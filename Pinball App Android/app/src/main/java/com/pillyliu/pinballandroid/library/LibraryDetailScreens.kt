@@ -1,6 +1,8 @@
 package com.pillyliu.pinballandroid.library
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.MotionEvent
@@ -12,6 +14,7 @@ import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
@@ -32,15 +35,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,12 +58,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -74,7 +76,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.graphics.ColorUtils
 import coil.compose.AsyncImage
+import coil.imageLoader
 import coil.request.ImageRequest
 import coil.size.Size
 import com.halilibo.richtext.markdown.Markdown
@@ -84,11 +88,11 @@ import com.halilibo.richtext.ui.string.RichTextStringStyle
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.data.downloadTextAllowMissing
 import com.pillyliu.pinballandroid.ui.AppScreen
-import com.pillyliu.pinballandroid.ui.Border
-import com.pillyliu.pinballandroid.ui.CardBg
 import com.pillyliu.pinballandroid.ui.CardContainer
 import com.pillyliu.pinballandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinballandroid.ui.SectionTitle
+import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
 internal fun LibraryDetail(
@@ -139,7 +143,7 @@ internal fun LibraryDetail(
                 )
                 Text(
                     text = game.name,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -158,7 +162,7 @@ internal fun LibraryDetail(
                     modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
                     contentScale = ContentScale.FillWidth,
                 )
-                Text(game.metaLine(), color = Color(0xFFB7B7B7))
+                Text(game.metaLine(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = onOpenRulesheet) { Text("Rulesheet") }
                     game.fullscreenPlayfieldCandidates().firstOrNull()?.let { url ->
@@ -171,11 +175,11 @@ internal fun LibraryDetail(
                 SectionTitle("Videos")
                 val playableVideos = game.videos.mapNotNull { v -> youtubeId(v.url)?.let { it to (v.label ?: "Video") } }
                 if (playableVideos.isEmpty()) {
-                    Text("No videos listed.", color = Color(0xFFBDBDBD))
+                    Text("No videos listed.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     activeVideoId?.let { id ->
                         EmbeddedYouTubeView(videoId = id)
-                    } ?: Text("Tap a video below to load player.", color = Color(0xFFBDBDBD))
+                    } ?: Text("Tap a video below to load player.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     BoxWithConstraints {
                         val tileWidth = (maxWidth - 10.dp) / 2
                         val rows = playableVideos.chunked(2)
@@ -205,11 +209,12 @@ internal fun LibraryDetail(
                 SectionTitle("Game Info")
                 when (infoStatus) {
                     "loading", "missing", "error" -> {}
-                    else -> CompositionLocalProvider(LocalContentColor provides Color.White) {
+                    else -> CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+                        val linkColor = MaterialTheme.colorScheme.primary
                         val gameInfoStyle = remember {
                             RichTextStyle.Default.copy(
                                 stringStyle = RichTextStringStyle.Default.copy(
-                                    linkStyle = SpanStyle(color = Color(0xFF8EC5FF)),
+                                    linkStyle = SpanStyle(color = linkColor),
                                 ),
                             )
                         }
@@ -235,10 +240,10 @@ internal fun LibraryDetail(
                         modifier = Modifier.defaultMinSize(minHeight = 32.dp),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = CardBg,
-                            contentColor = Color.White,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            contentColor = MaterialTheme.colorScheme.onSurface,
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Border),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     ) {
                         Text("Rulesheet (source)", fontSize = 12.sp)
                     }
@@ -249,10 +254,10 @@ internal fun LibraryDetail(
                         modifier = Modifier.defaultMinSize(minHeight = 32.dp),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = CardBg,
-                            contentColor = Color.White,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            contentColor = MaterialTheme.colorScheme.onSurface,
                         ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Border),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     ) {
                         Text("Playfield (source)", fontSize = 12.sp)
                     }
@@ -324,6 +329,7 @@ internal fun RulesheetScreen(contentPadding: PaddingValues, slug: String, onBack
     var status by rememberSaveable(slug) { mutableStateOf("loading") }
     var markdown by rememberSaveable(slug) { mutableStateOf("") }
     var chromeVisible by rememberSaveable(slug) { mutableStateOf(false) }
+    var progressRatio by rememberSaveable(slug) { mutableStateOf(0f) }
 
     LaunchedEffect(slug) {
         if (status == "loaded" || status == "missing") return@LaunchedEffect
@@ -349,6 +355,29 @@ internal fun RulesheetScreen(contentPadding: PaddingValues, slug: String, onBack
                     Modifier.fillMaxSize(),
                     stateKey = "rulesheet-$slug",
                     onTap = { chromeVisible = !chromeVisible },
+                    onProgressChange = { progressRatio = it },
+                )
+            }
+            if (status == "loaded") {
+                val percentText = "${(progressRatio.coerceIn(0f, 1f) * 100f).roundToInt()}%"
+                Text(
+                    text = percentText,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 12.dp, end = 12.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.76f),
+                            RoundedCornerShape(999.dp),
+                        )
+                        .border(
+                            width = 0.5.dp,
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+                            shape = RoundedCornerShape(999.dp),
+                        )
+                        .padding(horizontal = 9.dp, vertical = 4.dp),
                 )
             }
             if (chromeVisible) {
@@ -369,6 +398,7 @@ internal fun RulesheetScreen(contentPadding: PaddingValues, slug: String, onBack
 internal fun PlayfieldScreen(contentPadding: PaddingValues, title: String, imageUrls: List<String>, onBack: () -> Unit) {
     val bottomBarVisible = LocalBottomBarVisible.current
     var chromeVisible by rememberSaveable(title) { mutableStateOf(false) }
+    val adaptiveTitleColor = rememberPlayfieldTitleColor(imageUrls)
 
     LaunchedEffect(chromeVisible) {
         bottomBarVisible.value = chromeVisible
@@ -398,7 +428,7 @@ internal fun PlayfieldScreen(contentPadding: PaddingValues, title: String, image
                 )
                 Text(
                     text = title,
-                    color = Color.White,
+                    color = adaptiveTitleColor,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -414,23 +444,65 @@ internal fun PlayfieldScreen(contentPadding: PaddingValues, title: String, image
 }
 
 @Composable
+private fun rememberPlayfieldTitleColor(imageUrls: List<String>): Color {
+    val context = LocalContext.current
+    val fallback = MaterialTheme.colorScheme.onSurface
+    val candidates = imageUrls.filter { it.isNotBlank() }.distinct()
+    val primaryModel = rememberCachedImageModel(candidates.firstOrNull())
+    val titleColor by produceState(initialValue = fallback, key1 = primaryModel) {
+        value = fallback
+        val model = primaryModel ?: return@produceState
+        val request = ImageRequest.Builder(context)
+            .data(model)
+            .allowHardware(false)
+            .size(Size.ORIGINAL)
+            .build()
+        val result = runCatching { context.imageLoader.execute(request) }.getOrNull() ?: return@produceState
+        val bitmap = (result.drawable as? BitmapDrawable)?.bitmap ?: return@produceState
+        val luma = sampleTopCenterLuma(bitmap)
+        value = if (luma < 0.46) Color(0xFFF8FAFC) else Color(0xFF111827)
+    }
+    return titleColor
+}
+
+private fun sampleTopCenterLuma(bitmap: Bitmap): Double {
+    val width = bitmap.width
+    val height = bitmap.height
+    if (width <= 0 || height <= 0) return 0.5
+
+    val left = (width * 0.2f).toInt().coerceIn(0, width - 1)
+    val right = (width * 0.8f).toInt().coerceIn(left + 1, width)
+    val bottom = (height * 0.22f).toInt().coerceIn(1, height)
+    val stepX = maxOf(1, (right - left) / 36)
+    val stepY = maxOf(1, bottom / 18)
+
+    var total = 0.0
+    var count = 0
+    for (y in 0 until bottom step stepY) {
+        for (x in left until right step stepX) {
+            total += ColorUtils.calculateLuminance(bitmap.getPixel(x, y))
+            count++
+        }
+    }
+    return if (count == 0) 0.5 else total / count
+}
+
+@Composable
 private fun GlassBackButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    IconButton(
+    FilledTonalIconButton(
         onClick = onClick,
-        modifier = modifier
-            .size(34.dp)
-            .shadow(8.dp, CircleShape, clip = false)
-            .clip(CircleShape)
-            .background(Color(0xFF121212).copy(alpha = 0.72f))
-            .border(1.dp, Color(0xFF8C8C8C).copy(alpha = 0.62f), CircleShape),
+        modifier = modifier.size(40.dp),
+        colors = androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = "Back",
-            tint = Color.White,
             modifier = Modifier.size(18.dp),
         )
     }
@@ -575,8 +647,8 @@ private fun VideoTile(
         modifier = Modifier
             .width(width)
             .clickable(onClick = onSelect)
-            .background(if (selected) Color(0xFF333333) else Color(0xFF1F1F1F), RoundedCornerShape(8.dp))
-            .border(1.dp, if (selected) Color(0xFF666666) else Color(0xFF343434), RoundedCornerShape(8.dp))
+            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(8.dp))
+            .border(1.dp, if (selected) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
             .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -586,7 +658,7 @@ private fun VideoTile(
             modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
             contentScale = ContentScale.Crop,
         )
-        Text(label, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(label, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -597,7 +669,13 @@ private fun MarkdownWebView(
     modifier: Modifier = Modifier,
     stateKey: String = "default",
     onTap: (() -> Unit)? = null,
+    onProgressChange: (Float) -> Unit = {},
 ) {
+    val bodyColorHex = MaterialTheme.colorScheme.onSurface.toCssHex()
+    val mutedColorHex = MaterialTheme.colorScheme.onSurfaceVariant.toCssHex()
+    val linkColorHex = MaterialTheme.colorScheme.primary.toCssHex()
+    val codeBgHex = MaterialTheme.colorScheme.surfaceContainerLowest.toCssHex()
+    val tableBorderHex = MaterialTheme.colorScheme.outlineVariant.toCssHex()
     val webViewState = rememberSaveable(stateKey, saver = bundleParcelSaver) { Bundle() }
     var savedScrollRatio by rememberSaveable(stateKey) { mutableStateOf(0f) }
     var loadedHash by remember(stateKey) { mutableStateOf<Int?>(null) }
@@ -652,6 +730,7 @@ private fun MarkdownWebView(
                     val contentPx = (webView.contentHeight * webView.resources.displayMetrics.density).toInt()
                     val maxScroll = (contentPx - view.height).coerceAtLeast(1)
                     savedScrollRatio = (scrollY.toFloat() / maxScroll.toFloat()).coerceIn(0f, 1f)
+                    onProgressChange(savedScrollRatio)
                 }
                 if (!webViewState.isEmpty) {
                     restoreState(webViewState)
@@ -661,6 +740,7 @@ private fun MarkdownWebView(
                         val contextOffset = (24f * resources.displayMetrics.density).toInt()
                         val target = ((savedScrollRatio * maxScroll).toInt() - contextOffset).coerceAtLeast(0)
                         scrollTo(0, target)
+                        onProgressChange(savedScrollRatio)
                     }
                 }
             }
@@ -682,15 +762,17 @@ private fun MarkdownWebView(
                         <meta charset=\"utf-8\" />
                         <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
                         <style>
-                            html, body { margin:0; padding:0; background:transparent !important; color:#fff !important; overflow-x:hidden !important; width:100%; }
+                            html, body { margin:0; padding:0; background:transparent !important; color:$bodyColorHex !important; overflow-x:hidden !important; width:100%; }
                             body { padding:14px; line-height:1.45; font-size:16px; box-sizing:border-box; }
                             *, *:before, *:after { box-sizing:border-box; }
-                            * { color:#fff !important; background: transparent !important; }
-                            a { color:#a6c8ff !important; }
-                            code, pre { background:transparent !important; border-radius:0 !important; color:#fff !important; }
+                            * { color:$bodyColorHex !important; background: transparent !important; }
+                            p, li, dd, dt { color:$bodyColorHex !important; }
+                            blockquote { color:$mutedColorHex !important; border-left:3px solid $tableBorderHex !important; padding-left:10px; }
+                            a { color:$linkColorHex !important; text-decoration:underline !important; text-underline-offset:2px; font-weight:600; }
+                            code, pre { background:$codeBgHex !important; border-radius:6px !important; color:$bodyColorHex !important; }
                             pre { padding:10px; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word; }
                             table { border-collapse:collapse; width:100%; max-width:100%; table-layout:fixed; }
-                            th, td { border:1px solid #2a2a2a; padding:6px 8px; word-break:break-word; overflow-wrap:anywhere; }
+                            th, td { border:1px solid $tableBorderHex; padding:6px 8px; word-break:break-word; overflow-wrap:anywhere; }
                             img { max-width:100%; height:auto; display:block; }
                         </style>
                     </head>
@@ -707,6 +789,7 @@ private fun MarkdownWebView(
                     val contextOffset = (24f * webView.resources.displayMetrics.density).toInt()
                     val target = ((savedScrollRatio * maxScroll).toInt() - contextOffset).coerceAtLeast(0)
                     webView.scrollTo(0, target)
+                    onProgressChange(savedScrollRatio)
                 }
             }
         },
@@ -722,4 +805,12 @@ private fun MarkdownWebView(
             }
         },
     )
+}
+
+private fun Color.toCssHex(): String {
+    val argb = toArgb()
+    val red = (argb shr 16) and 0xFF
+    val green = (argb shr 8) and 0xFF
+    val blue = argb and 0xFF
+    return String.format(Locale.US, "#%02X%02X%02X", red, green, blue)
 }

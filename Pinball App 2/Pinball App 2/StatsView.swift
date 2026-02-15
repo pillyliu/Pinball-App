@@ -37,7 +37,7 @@ struct StatsView: View {
     private var useLandscapeSplitLayout: Bool { viewportSize.width > viewportSize.height }
     private var useWideFilterLayout: Bool { isRegularWidth || verticalSizeClass == .compact }
     private var contentHorizontalPadding: CGFloat {
-        verticalSizeClass == .compact ? 2 : 14
+        AppLayout.contentHorizontalPadding(isLargeTablet: isLargeTablet)
     }
     private var baseSeasonColWidth: CGFloat { isRegularWidth ? 74 : 56 }
     private var basePlayerColWidth: CGFloat { isRegularWidth ? 170 : 118 }
@@ -203,22 +203,20 @@ struct StatsView: View {
     }
 
     private var navSummaryLabels: some View {
-        HStack(spacing: 10) {
-            Text(navSeasonText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-            Text(navPlayerText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-            Text(navBankText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-            Text(navMachineText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-        }
+        Text(navSummaryText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .truncationMode(.tail)
         .font(.caption.weight(.semibold))
         .foregroundStyle(.secondary)
+    }
+    private var navSummaryText: String {
+        let seasonDigits = viewModel.season.filter(\.isNumber)
+        let seasonToken = viewModel.season.isEmpty ? "S*" : (seasonDigits.isEmpty ? viewModel.season : "S\(seasonDigits)")
+        let bankToken = viewModel.bankNumber.map { "B\($0)" } ?? "B*"
+        let playerToken = viewModel.player.isEmpty ? "Player: All" : redactPlayerNameForDisplay(viewModel.player)
+        let machineToken = viewModel.machine.isEmpty ? "Machine: All" : viewModel.machine
+        return "\(seasonToken)\(bankToken)  \(playerToken)  \(machineToken)"
     }
 
     private var filterSection: some View {
@@ -247,12 +245,12 @@ struct StatsView: View {
                         HStack(spacing: gap) {
                             filterMenu(selectedText: seasonDisplayText, options: seasonOptions, setValue: { viewModel.season = $0 })
                                 .frame(width: narrowWidth)
-                            filterMenu(selectedText: playerDisplayText, options: playerOptions, setValue: { viewModel.player = $0 })
+                            filterMenu(selectedText: bankDisplayText, options: bankOptions, setValue: { viewModel.bankNumber = Int($0) })
                                 .frame(width: wideWidth)
                         }
 
                         HStack(spacing: gap) {
-                            filterMenu(selectedText: bankDisplayText, options: bankOptions, setValue: { viewModel.bankNumber = Int($0) })
+                            filterMenu(selectedText: playerDisplayText, options: playerOptions, setValue: { viewModel.player = $0 })
                                 .frame(width: narrowWidth)
                             filterMenu(selectedText: machineDisplayText, options: machineOptions, setValue: { viewModel.machine = $0 })
                                 .frame(width: wideWidth)
@@ -269,11 +267,11 @@ struct StatsView: View {
                         HStack(spacing: gap) {
                             filterMenu(selectedText: seasonDisplayText, options: seasonOptions, setValue: { viewModel.season = $0 })
                                 .frame(width: leftWidth)
-                            filterMenu(selectedText: playerDisplayText, options: playerOptions, setValue: { viewModel.player = $0 })
+                            filterMenu(selectedText: bankDisplayText, options: bankOptions, setValue: { viewModel.bankNumber = Int($0) })
                                 .frame(width: rightWidth)
                         }
                         HStack(spacing: gap) {
-                            filterMenu(selectedText: bankDisplayText, options: bankOptions, setValue: { viewModel.bankNumber = Int($0) })
+                            filterMenu(selectedText: playerDisplayText, options: playerOptions, setValue: { viewModel.player = $0 })
                                 .frame(width: leftWidth)
                             filterMenu(selectedText: machineDisplayText, options: machineOptions, setValue: { viewModel.machine = $0 })
                                 .frame(width: rightWidth)
@@ -301,17 +299,17 @@ struct StatsView: View {
                 }
             }
 
-            Menu("Player") {
-                Button("All players") { viewModel.player = "" }
-                ForEach(viewModel.players, id: \.self) { player in
-                    Button(redactPlayerNameForDisplay(player)) { viewModel.player = player }
-                }
-            }
-
             Menu("Bank") {
                 Button("All banks") { viewModel.bankNumber = nil }
                 ForEach(viewModel.bankNumbers, id: \.self) { bank in
                     Button("B\(bank)") { viewModel.bankNumber = bank }
+                }
+            }
+
+            Menu("Player") {
+                Button("All players") { viewModel.player = "" }
+                ForEach(viewModel.players, id: \.self) { player in
+                    Button(redactPlayerNameForDisplay(player)) { viewModel.player = player }
                 }
             }
 
@@ -384,8 +382,8 @@ struct StatsView: View {
     private var tableHeader: some View {
         HStack(spacing: 0) {
             AppHeaderCell(title: "Season", width: seasonColWidth, largeText: isLargeTablet)
-            AppHeaderCell(title: "Player", width: playerColWidth, largeText: isLargeTablet)
             AppHeaderCell(title: "Bank", width: bankNumColWidth, largeText: isLargeTablet)
+            AppHeaderCell(title: "Player", width: playerColWidth, largeText: isLargeTablet)
             AppHeaderCell(title: "Machine", width: machineColWidth, largeText: isLargeTablet)
             AppHeaderCell(title: "Score", width: scoreColWidth, largeText: isLargeTablet)
             AppHeaderCell(title: "Points", width: pointsColWidth, largeText: isLargeTablet)
@@ -447,14 +445,6 @@ struct StatsView: View {
     private var bankDisplayText: String { viewModel.bankNumber.map { "B\($0)" } ?? "B: All" }
     private var playerDisplayText: String { viewModel.player.isEmpty ? "Player: All" : redactPlayerNameForDisplay(viewModel.player) }
     private var machineDisplayText: String { viewModel.machine.isEmpty ? "Machine: All" : viewModel.machine }
-    private var navSeasonText: String {
-        if viewModel.season.isEmpty { return "S: All" }
-        let digits = viewModel.season.filter(\.isNumber)
-        return digits.isEmpty ? "S: \(viewModel.season)" : "S: \(digits)"
-    }
-    private var navPlayerText: String { viewModel.player.isEmpty ? "Player: All" : redactPlayerNameForDisplay(viewModel.player) }
-    private var navBankText: String { viewModel.bankNumber.map { "B: \($0)" } ?? "B: All" }
-    private var navMachineText: String { viewModel.machine.isEmpty ? "Machine: All" : viewModel.machine }
 
     @ViewBuilder
     private var updatedStatusRow: some View {
@@ -462,8 +452,8 @@ struct StatsView: View {
             Button {
                 Task { await viewModel.refreshNow() }
             } label: {
-                HStack(spacing: 4) {
-                    Text("Data updated at \(updatedAtLabel)")
+                HStack(spacing: 5) {
+                    Text(updatedAtLabel)
                     if viewModel.isRefreshing {
                         ProgressView()
                             .controlSize(.mini)
@@ -480,10 +470,10 @@ struct StatsView: View {
                 }
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.isRefreshing)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -525,8 +515,8 @@ private struct TableRowView: View {
     var body: some View {
         HStack(spacing: 0) {
             rowCell(row.season, width: seasonColWidth)
-            rowCell(redactPlayerNameForDisplay(row.player), width: playerColWidth)
             rowCell(String(row.bankNumber), width: bankNumColWidth)
+            rowCell(redactPlayerNameForDisplay(row.player), width: playerColWidth)
             rowCell(row.machine, width: machineColWidth)
             rowCell(formatScore(row.rawScore), width: scoreColWidth, monospaced: true)
             rowCell(formatPoints(row.points), width: pointsColWidth, monospaced: true)
@@ -842,6 +832,13 @@ private final class StatsViewModel: ObservableObject {
         if !machine.isEmpty, !machines.contains(machine) {
             machine = ""
         }
+
+        if !rows.isEmpty, filteredRows.isEmpty {
+            season = latestSeason(in: loaded.rows) ?? ""
+            player = ""
+            bankNumber = nil
+            machine = ""
+        }
     }
 
     private func refreshUpdateIndicator() async {
@@ -863,7 +860,7 @@ private final class StatsViewModel: ObservableObject {
     private static let updatedAtFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = .current
-        formatter.dateFormat = "MMM d, h:mm a"
+        formatter.dateFormat = "M/d/yy h:mm a"
         return formatter
     }()
 
@@ -979,10 +976,10 @@ private final class CSVScoreLoader {
     private func parse(text: String) -> [ScoreRow] {
         let table = parseCSVRows(text)
         guard let header = table.first else { return [] }
-        let headers = header.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let headers = header.map(normalizeCSVHeader)
 
         func idx(_ name: String) -> Int {
-            headers.firstIndex(where: { $0.caseInsensitiveCompare(name) == .orderedSame }) ?? -1
+            headers.firstIndex(of: normalizeCSVHeader(name)) ?? -1
         }
 
         let seasonIndex = idx("Season")
@@ -997,14 +994,17 @@ private final class CSVScoreLoader {
         }
 
         return table.dropFirst().enumerated().compactMap { offset, columns in
-            guard columns.count == headers.count else { return nil }
+            let requiredIndexes = [
+                seasonIndex, bankNumberIndex, playerIndex, machineIndex, rawScoreIndex, pointsIndex
+            ]
+            guard requiredIndexes.allSatisfy({ columns.indices.contains($0) }) else { return nil }
 
             let season = normalizeSeasonToken(columns[seasonIndex])
             let bankNumber = Int(columns[bankNumberIndex].trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
             let player = columns[playerIndex].trimmingCharacters(in: .whitespacesAndNewlines)
             let machine = columns[machineIndex].trimmingCharacters(in: .whitespacesAndNewlines)
-            let rawScore = Double(columns[rawScoreIndex].trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
-            let points = Double(columns[pointsIndex].trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+            let rawScore = Double(columns[rawScoreIndex].trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: "")) ?? 0
+            let points = Double(columns[pointsIndex].trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: "")) ?? 0
 
             return ScoreRow(
                 id: offset,

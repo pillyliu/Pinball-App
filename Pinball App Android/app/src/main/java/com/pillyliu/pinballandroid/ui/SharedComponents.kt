@@ -1,32 +1,27 @@
 package com.pillyliu.pinballandroid.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -42,7 +37,7 @@ fun FixedWidthTableCell(
     width: Int,
     modifier: Modifier = Modifier,
     bold: Boolean = false,
-    color: Color = Color.White,
+    color: Color = Color.Unspecified,
     fontSize: TextUnit = 13.sp,
     maxLines: Int = 1,
     horizontalPadding: Dp = 3.dp,
@@ -51,7 +46,7 @@ fun FixedWidthTableCell(
     Text(
         text = text,
         modifier = modifier.width(width.dp).padding(horizontal = horizontalPadding),
-        color = color,
+        color = if (color == Color.Unspecified) MaterialTheme.colorScheme.onSurface else color,
         fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal,
         fontSize = fontSize,
         maxLines = maxLines,
@@ -59,6 +54,7 @@ fun FixedWidthTableCell(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompactDropdownFilter(
     selectedText: String,
@@ -66,49 +62,46 @@ fun CompactDropdownFilter(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
     minHeight: Dp = 34.dp,
-    contentPadding: androidx.compose.foundation.layout.PaddingValues =
-        androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 3.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
     textSize: TextUnit = 12.sp,
     itemTextSize: TextUnit = 12.sp,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val density = LocalDensity.current
-    var menuWidth by remember { mutableStateOf(0.dp) }
-    Box(modifier = modifier.fillMaxWidth()) {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = minHeight)
-                .onGloballyPositioned { coordinates ->
-                    menuWidth = with(density) { coordinates.size.width.toDp() }
-                },
-            contentPadding = contentPadding,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = ControlBg,
-                contentColor = Color.White,
-            ),
-            border = androidx.compose.foundation.BorderStroke(1.dp, ControlBorder),
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        CompositionLocalProvider(
+            LocalTextStyle provides LocalTextStyle.current.copy(fontSize = textSize),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Start,
-            ) {
-                Text(selectedText, fontSize = textSize, maxLines = 1)
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
-                Icon(
-                    imageVector = Icons.Filled.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = Color(0xFFC6C6C6),
-                )
-            }
+            OutlinedTextField(
+                value = selectedText,
+                onValueChange = {},
+                readOnly = true,
+                singleLine = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                textStyle = LocalTextStyle.current.copy(fontSize = textSize),
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    focusedBorderColor = MaterialTheme.colorScheme.outline,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+                modifier = Modifier
+                    .menuAnchor(type = MenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = minHeight),
+            )
         }
-        DropdownMenu(
+        ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = if (menuWidth > 0.dp) Modifier.width(menuWidth) else Modifier,
+            modifier = Modifier.fillMaxWidth(),
         ) {
             options.forEach { option ->
                 DropdownMenuItem(
@@ -123,6 +116,7 @@ fun CompactDropdownFilter(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnchoredDropdownFilter(
     selectedText: String,
@@ -135,48 +129,37 @@ fun AnchoredDropdownFilter(
     itemTextSize: TextUnit = 12.sp,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val density = LocalDensity.current
-    var menuWidth by remember { mutableStateOf(0.dp) }
-    Box(modifier = modifier.fillMaxWidth()) {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = minHeight)
-                .onGloballyPositioned { coordinates ->
-                    menuWidth = with(density) { coordinates.size.width.toDp() }
-                },
-            contentPadding = contentPadding,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(11.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, ControlBorder),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = ControlBg,
-                contentColor = Color.White,
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        OutlinedTextField(
+            value = selectedText,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            textStyle = LocalTextStyle.current.copy(fontSize = buttonTextSize),
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedBorderColor = MaterialTheme.colorScheme.outline,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
             ),
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    selectedText,
-                    modifier = Modifier.weight(1f),
-                    fontSize = buttonTextSize,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-            }
-        }
-        Icon(
-            imageVector = Icons.Filled.KeyboardArrowDown,
-            contentDescription = null,
-            tint = Color(0xFFC6C6C6),
             modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 8.dp),
+                .menuAnchor(type = MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = minHeight),
         )
-        DropdownMenu(
+        ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = if (menuWidth > 0.dp) Modifier.width(menuWidth) else Modifier,
+            modifier = Modifier.fillMaxWidth(),
         ) {
             options.forEach { option ->
                 DropdownMenuItem(

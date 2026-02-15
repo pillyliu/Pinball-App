@@ -14,9 +14,9 @@ enum AppTheme {
     static let statsLow = dynamicColor(light: UIColor(red: 0.77, green: 0.23, blue: 0.23, alpha: 1), dark: UIColor(red: 252 / 255, green: 165 / 255, blue: 165 / 255, alpha: 1))
     static let statsMeanMedian = dynamicColor(light: UIColor(red: 0.09, green: 0.39, blue: 0.78, alpha: 1), dark: UIColor(red: 125 / 255, green: 211 / 255, blue: 252 / 255, alpha: 1))
 
-    static let podiumGold = dynamicColor(light: UIColor(red: 0.63, green: 0.41, blue: 0.05, alpha: 1), dark: .systemYellow)
-    static let podiumSilver = dynamicColor(light: UIColor(red: 0.42, green: 0.45, blue: 0.50, alpha: 1), dark: UIColor(red: 0.86, green: 0.86, blue: 0.88, alpha: 1))
-    static let podiumBronze = dynamicColor(light: UIColor(red: 0.71, green: 0.33, blue: 0.05, alpha: 1), dark: .systemOrange)
+    static let podiumGold = dynamicColor(light: UIColor(red: 0.48, green: 0.35, blue: 0.00, alpha: 1), dark: UIColor(red: 1.00, green: 0.87, blue: 0.44, alpha: 1))
+    static let podiumSilver = dynamicColor(light: UIColor(red: 0.30, green: 0.33, blue: 0.38, alpha: 1), dark: UIColor(red: 0.94, green: 0.95, blue: 0.96, alpha: 1))
+    static let podiumBronze = dynamicColor(light: UIColor(red: 0.48, green: 0.25, blue: 0.08, alpha: 1), dark: UIColor(red: 1.00, green: 0.76, blue: 0.57, alpha: 1))
 
     static let targetGreat = dynamicColor(light: UIColor(red: 0.12, green: 0.55, blue: 0.30, alpha: 1), dark: UIColor(red: 0.73, green: 0.96, blue: 0.82, alpha: 1))
     static let targetMain = dynamicColor(light: UIColor(red: 0.09, green: 0.39, blue: 0.78, alpha: 1), dark: UIColor(red: 0.75, green: 0.86, blue: 0.99, alpha: 1))
@@ -37,10 +37,7 @@ enum AppLayout {
         horizontalSizeClass == .regular && width >= 1000
     }
 
-    static func contentHorizontalPadding(verticalSizeClass: UserInterfaceSizeClass?, isLargeTablet: Bool) -> CGFloat {
-        if verticalSizeClass == .compact {
-            return 2
-        }
+    static func contentHorizontalPadding(isLargeTablet: Bool) -> CGFloat {
         return isLargeTablet ? 22 : 14
     }
 
