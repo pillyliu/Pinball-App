@@ -1,5 +1,6 @@
 package com.pillyliu.pinballandroid.league
 
+import android.content.Context
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -47,11 +48,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.data.parseCsv
 import com.pillyliu.pinballandroid.data.redactPlayerNameForDisplay
+import com.pillyliu.pinballandroid.practice.PRACTICE_PREFS
+import com.pillyliu.pinballandroid.practice.parsePracticeStateJson
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
 import kotlinx.coroutines.Dispatchers
@@ -74,24 +78,38 @@ fun LeagueScreen(
     contentPadding: PaddingValues,
     onOpenDestination: (LeagueDestination) -> Unit,
 ) {
+    val context = LocalContext.current
     val previewState by produceState(initialValue = LeaguePreviewState()) {
-        value = withContext(Dispatchers.IO) { loadLeaguePreviewState() }
+        value = withContext(Dispatchers.IO) { loadLeaguePreviewState(context) }
     }
 
     var targetMetricIndex by rememberSaveable { mutableIntStateOf(0) }
+    var standingsModeIndex by rememberSaveable { mutableIntStateOf(0) }
     var showStatsScore by rememberSaveable { mutableStateOf(true) }
 
     LaunchedEffect(previewState.nextBankTargets) {
         while (true) {
-            delay(3500)
+            delay(4000)
             targetMetricIndex = (targetMetricIndex + 1) % 3
         }
     }
 
     LaunchedEffect(previewState.statsRecentRows) {
         while (true) {
-            delay(3000)
+            delay(4000)
             showStatsScore = !showStatsScore
+        }
+    }
+
+    LaunchedEffect(previewState.standingsAroundRows) {
+        standingsModeIndex = 0
+        while (true) {
+            delay(4000)
+            if (previewState.standingsAroundRows.isNotEmpty()) {
+                standingsModeIndex = (standingsModeIndex + 1) % 2
+            } else {
+                standingsModeIndex = 0
+            }
         }
     }
 
@@ -131,9 +149,12 @@ fun LeagueScreen(
                             )
                         }
                         LeagueDestination.Standings -> {
+                            val showAround = previewState.standingsAroundRows.isNotEmpty() && standingsModeIndex == 1
                             StandingsMiniPreview(
                                 seasonLabel = previewState.standingsSeasonLabel,
-                                rows = previewState.standingsTopRows.take(maxRows),
+                                showAround = showAround,
+                                topRows = previewState.standingsTopRows.take(maxRows),
+                                aroundRows = previewState.standingsAroundRows.take(maxRows),
                                 labelSize = miniLabelSize,
                                 headerSize = miniHeaderSize,
                                 valueSize = miniValueSize,
@@ -303,7 +324,7 @@ private fun StatsMiniPreview(
         Box(modifier = Modifier.width(valueColumnWidth), contentAlignment = Alignment.CenterEnd) {
             Crossfade(
                 targetState = showScore,
-                animationSpec = tween(durationMillis = 750),
+                animationSpec = tween(durationMillis = 1000),
                 label = "statsHeader",
             ) { score ->
                 Text(
@@ -337,7 +358,7 @@ private fun StatsMiniPreview(
             Box(modifier = Modifier.width(valueColumnWidth), contentAlignment = Alignment.CenterEnd) {
                 Crossfade(
                     targetState = showScore,
-                    animationSpec = tween(durationMillis = 750),
+                    animationSpec = tween(durationMillis = 1000),
                     label = "statsRow-${row.machine}",
                 ) { score ->
                     Text(
@@ -357,74 +378,99 @@ private fun StatsMiniPreview(
 @Composable
 private fun StandingsMiniPreview(
     seasonLabel: String,
-    rows: List<StandingsPreviewRow>,
+    showAround: Boolean,
+    topRows: List<StandingsPreviewRow>,
+    aroundRows: List<StandingsPreviewRow>,
     labelSize: androidx.compose.ui.unit.TextUnit,
     headerSize: androidx.compose.ui.unit.TextUnit,
     valueSize: androidx.compose.ui.unit.TextUnit,
 ) {
-    Text(seasonLabel, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold, fontSize = labelSize)
-    val placeColumnWidth = 34.dp
-    val pointsColumnWidth = 84.dp
-    val placePlayerGap = 8.dp
-    Row(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            "#",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = headerSize,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Start,
-            modifier = Modifier.width(placeColumnWidth),
-        )
-        Text(
-            "Player",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = headerSize,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Start,
-            modifier = Modifier.weight(1f).padding(start = placePlayerGap),
-        )
-        Text(
-            "Pts",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = headerSize,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.End,
-            modifier = Modifier.width(pointsColumnWidth),
-        )
-    }
-    if (rows.isEmpty()) {
-        Text("No standings preview available yet", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = valueSize)
-        return
-    }
-    rows.forEach { row ->
-        val isPodium = row.rank <= 3
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                row.rank.toString(),
-                color = rankColor(row.rank),
-                fontSize = valueSize,
-                fontWeight = if (isPodium) FontWeight.SemiBold else FontWeight.Normal,
-                modifier = Modifier.width(placeColumnWidth),
-                textAlign = TextAlign.Start,
-            )
-            Text(
-                row.player,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = valueSize,
-                fontWeight = if (isPodium) FontWeight.SemiBold else FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f).padding(start = placePlayerGap),
-                textAlign = TextAlign.Start,
-            )
-            Text(
-                row.points.toWholeNumber(),
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = valueSize,
-                fontWeight = if (isPodium) FontWeight.SemiBold else FontWeight.Normal,
-                textAlign = TextAlign.End,
-                modifier = Modifier.width(pointsColumnWidth),
-            )
+    val mode = if (showAround) "Around You" else "Top 5"
+
+    Crossfade(
+        targetState = mode,
+        animationSpec = tween(durationMillis = 1000),
+        label = "standingsModeBlock",
+    ) { activeMode ->
+        val rows = if (activeMode == "Around You") aroundRows else topRows
+        val placeColumnWidth = 34.dp
+        val pointsColumnWidth = 84.dp
+        val placePlayerGap = 8.dp
+
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(seasonLabel, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold, fontSize = labelSize)
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    activeMode,
+                    color = Color(0xFF3A7BD5),
+                    fontSize = headerSize,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "#",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = headerSize,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.width(placeColumnWidth),
+                )
+                Text(
+                    "Player",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = headerSize,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.weight(1f).padding(start = placePlayerGap),
+                )
+                Text(
+                    "Pts",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = headerSize,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.width(pointsColumnWidth),
+                )
+            }
+
+            if (rows.isEmpty()) {
+                Text("No standings preview available yet", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = valueSize)
+            } else {
+                rows.forEach { row ->
+                    val isPodium = row.rank <= 3
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            row.rank.toString(),
+                            color = rankColor(row.rank),
+                            fontSize = valueSize,
+                            fontWeight = if (isPodium) FontWeight.SemiBold else FontWeight.Normal,
+                            modifier = Modifier.width(placeColumnWidth),
+                            textAlign = TextAlign.Start,
+                        )
+                        Text(
+                            row.player,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = valueSize,
+                            fontWeight = if (isPodium) FontWeight.SemiBold else FontWeight.Normal,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f).padding(start = placePlayerGap),
+                            textAlign = TextAlign.Start,
+                        )
+                        Text(
+                            row.points.toWholeNumber(),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = valueSize,
+                            fontWeight = if (isPodium) FontWeight.SemiBold else FontWeight.Normal,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.width(pointsColumnWidth),
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -457,7 +503,7 @@ private fun TargetsMiniPreview(
         Text("Game", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = headerSize, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.weight(1f))
         Box(modifier = Modifier.width(valueColumnWidth), contentAlignment = Alignment.CenterEnd) {
-            Crossfade(targetState = metric, animationSpec = tween(750), label = "targetsHeader") { current ->
+            Crossfade(targetState = metric, animationSpec = tween(1000), label = "targetsHeader") { current ->
                 Text(
                     "${current.label} highest",
                     color = metricColor,
@@ -487,7 +533,7 @@ private fun TargetsMiniPreview(
             )
             Spacer(Modifier.width(8.dp))
             Box(modifier = Modifier.width(valueColumnWidth), contentAlignment = Alignment.CenterEnd) {
-                Crossfade(targetState = metric, animationSpec = tween(750), label = "targetsRow-${row.game}") { current ->
+                Crossfade(targetState = metric, animationSpec = tween(1000), label = "targetsRow-${row.game}") { current ->
                     Text(
                         current.value(row).toGroupNumber(),
                         color = metricColor,
@@ -520,6 +566,7 @@ private data class LeaguePreviewState(
     val nextBankLabel: String = "Next Bank",
     val standingsSeasonLabel: String = "Season",
     val standingsTopRows: List<StandingsPreviewRow> = emptyList(),
+    val standingsAroundRows: List<StandingsPreviewRow> = emptyList(),
     val statsRecentRows: List<StatsPreviewRow> = emptyList(),
     val statsRecentBankLabel: String = "Most Recent Bank",
     val statsPlayerLabel: String = "",
@@ -536,6 +583,7 @@ private data class TargetPreviewRow(
 
 private data class StandingsPreviewRow(
     val rank: Int,
+    val rawPlayer: String,
     val player: String,
     val points: Double,
 )
@@ -564,19 +612,20 @@ private data class StandingCsvRow(
     val rank: Int?,
 )
 
-private suspend fun loadLeaguePreviewState(): LeaguePreviewState {
+private suspend fun loadLeaguePreviewState(context: Context): LeaguePreviewState {
     return try {
         val targetsCsv = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/LPL_Targets.csv").text.orEmpty()
         val standingsCsv = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/LPL_Standings.csv", allowMissing = true).text.orEmpty()
         val statsCsv = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/LPL_Stats.csv", allowMissing = true).text.orEmpty()
         val libraryJson = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/pinball_library.json", allowMissing = true).text
+        val selectedPlayer = loadPreferredLeaguePlayerName(context)
 
         val statsRows = parseStatsRows(statsCsv)
         val targets = mergeTargetsWithLibrary(parseTargetRows(targetsCsv), libraryJson)
         val standingsRows = parseStandingsRows(standingsCsv)
 
         val availableBanks = targets.mapNotNull { it.bank }.toSet()
-        val nextBank = resolveNextBank(statsRows, availableBanks)
+        val nextBank = resolveNextBank(statsRows, availableBanks, selectedPlayer)
         val nextTargets = if (nextBank != null) {
             targets.filter { it.bank == nextBank }
                 .sortedWith(compareBy<TargetPreviewRow> { it.order }.thenBy { it.game.lowercase(Locale.US) })
@@ -585,14 +634,15 @@ private suspend fun loadLeaguePreviewState(): LeaguePreviewState {
             targets.take(5)
         }
 
-        val (seasonLabel, topRows) = buildStandingsPreview(standingsRows)
-        val statsPreview = buildStatsPreview(statsRows)
+        val standingsPreview = buildStandingsPreview(standingsRows, selectedPlayer)
+        val statsPreview = buildStatsPreview(statsRows, selectedPlayer)
 
         LeaguePreviewState(
             nextBankTargets = nextTargets,
             nextBankLabel = if (nextBank != null) "Next Bank • B$nextBank" else "Next Bank",
-            standingsSeasonLabel = seasonLabel,
-            standingsTopRows = topRows,
+            standingsSeasonLabel = standingsPreview.seasonLabel,
+            standingsTopRows = standingsPreview.topRows,
+            standingsAroundRows = standingsPreview.aroundRows,
             statsRecentRows = statsPreview.rows,
             statsRecentBankLabel = statsPreview.bankLabel,
             statsPlayerLabel = statsPreview.playerLabel,
@@ -608,11 +658,10 @@ private data class StatsPreviewPayload(
     val playerLabel: String,
 )
 
-private fun buildStatsPreview(rows: List<StatsCsvRow>): StatsPreviewPayload {
+private fun buildStatsPreview(rows: List<StatsCsvRow>, preferredPlayer: String?): StatsPreviewPayload {
     if (rows.isEmpty()) return StatsPreviewPayload(emptyList(), "Most Recent Bank", "")
 
-    val latest = rows.maxByOrNull { latestSortValue(it) } ?: return StatsPreviewPayload(emptyList(), "Most Recent Bank", "")
-    val selectedPlayer = latest.player
+    val selectedPlayer = resolvePlayerForStats(rows, preferredPlayer)
     val selected = rows.filter { normalizeHumanName(it.player) == normalizeHumanName(selectedPlayer) }
     if (selected.isEmpty()) return StatsPreviewPayload(emptyList(), "Most Recent Bank", "")
 
@@ -635,16 +684,34 @@ private fun buildStatsPreview(rows: List<StatsCsvRow>): StatsPreviewPayload {
     )
 }
 
+private fun resolvePlayerForStats(rows: List<StatsCsvRow>, preferredPlayer: String?): String {
+    if (!preferredPlayer.isNullOrBlank()) {
+        val normalized = normalizeHumanName(preferredPlayer)
+        if (rows.any { normalizeHumanName(it.player) == normalized }) {
+            return preferredPlayer
+        }
+    }
+
+    val latest = rows.maxByOrNull { latestSortValue(it) } ?: return rows.first().player
+    return latest.player
+}
+
 private fun latestSortValue(row: StatsCsvRow): Long {
     val datePart = row.eventDate?.toEpochDay() ?: 0L
     return (datePart * 1_000_000L) + (row.season * 100L + row.bank)
 }
 
-private fun buildStandingsPreview(rows: List<StandingCsvRow>): Pair<String, List<StandingsPreviewRow>> {
-    if (rows.isEmpty()) return "Season" to emptyList()
-    val latestSeason = rows.maxOfOrNull { it.season } ?: return "Season" to emptyList()
+private data class StandingsPreviewPayload(
+    val seasonLabel: String,
+    val topRows: List<StandingsPreviewRow>,
+    val aroundRows: List<StandingsPreviewRow>,
+)
+
+private fun buildStandingsPreview(rows: List<StandingCsvRow>, selectedPlayer: String?): StandingsPreviewPayload {
+    if (rows.isEmpty()) return StandingsPreviewPayload("Season", emptyList(), emptyList())
+    val latestSeason = rows.maxOfOrNull { it.season } ?: return StandingsPreviewPayload("Season", emptyList(), emptyList())
     val seasonRows = rows.filter { it.season == latestSeason }
-    if (seasonRows.isEmpty()) return "Season $latestSeason" to emptyList()
+    if (seasonRows.isEmpty()) return StandingsPreviewPayload("Season $latestSeason", emptyList(), emptyList())
 
     val hasRanks = seasonRows.all { it.rank != null }
     val sorted = if (hasRanks) {
@@ -652,14 +719,33 @@ private fun buildStandingsPreview(rows: List<StandingCsvRow>): Pair<String, List
     } else {
         seasonRows.sortedByDescending { it.total }
     }
-    val top = sorted.take(5).mapIndexed { index, row ->
+    val previewRows = sorted.mapIndexed { index, row ->
         StandingsPreviewRow(
             rank = row.rank ?: (index + 1),
+            rawPlayer = row.player,
             player = redactPlayerNameForDisplay(row.player),
             points = row.total,
         )
     }
-    return "Season $latestSeason" to top
+    val topRows = previewRows.take(5)
+
+    if (!selectedPlayer.isNullOrBlank()) {
+        val normalizedSelected = normalizeHumanName(selectedPlayer)
+        val selectedIndex = previewRows.indexOfFirst { normalizeHumanName(it.rawPlayer) == normalizedSelected }
+        if (selectedIndex >= 0) {
+            val totalCount = previewRows.size
+            val selectedRank = selectedIndex + 1
+            val startIndex = when {
+                selectedRank <= 3 -> 0
+                selectedRank >= totalCount - 2 -> maxOf(0, totalCount - 5)
+                else -> maxOf(0, selectedIndex - 2)
+            }
+            val endIndex = minOf(totalCount, startIndex + 5)
+            return StandingsPreviewPayload("Season $latestSeason", topRows, previewRows.subList(startIndex, endIndex))
+        }
+    }
+
+    return StandingsPreviewPayload("Season $latestSeason", topRows, emptyList())
 }
 
 private fun parseStatsRows(text: String): List<StatsCsvRow> {
@@ -786,18 +872,41 @@ private fun mergeTargetsWithLibrary(targetRows: List<TargetPreviewRow>, libraryJ
     }
 }
 
-private fun resolveNextBank(statsRows: List<StatsCsvRow>, availableBanks: Set<Int>): Int? {
+private fun resolveNextBank(statsRows: List<StatsCsvRow>, availableBanks: Set<Int>, preferredPlayer: String?): Int? {
     val sorted = availableBanks.sorted()
     if (sorted.isEmpty()) return null
     if (statsRows.isEmpty()) return sorted.first()
 
-    val latestSeason = statsRows.maxOfOrNull { it.season } ?: return sorted.first()
-    val played = statsRows
+    val scopedRows = scopedStatsRows(statsRows, preferredPlayer)
+    if (scopedRows.isEmpty()) return sorted.first()
+
+    val latestSeason = scopedRows.maxOfOrNull { it.season } ?: return sorted.first()
+    val played = scopedRows
         .filter { it.season == latestSeason && it.bank in sorted }
         .map { it.bank }
         .toSet()
 
     return sorted.firstOrNull { it !in played } ?: sorted.first()
+}
+
+private fun scopedStatsRows(rows: List<StatsCsvRow>, preferredPlayer: String?): List<StatsCsvRow> {
+    if (preferredPlayer.isNullOrBlank()) return rows
+    val normalizedPreferred = normalizeHumanName(preferredPlayer)
+    val selectedRows = rows.filter { normalizeHumanName(it.player) == normalizedPreferred }
+    return if (selectedRows.isEmpty()) rows else selectedRows
+}
+
+private const val PRACTICE_STATE_KEY = "practice-state-json"
+private const val LEGACY_PRACTICE_STATE_KEY = "practice-upgrade-state-v1"
+
+private fun loadPreferredLeaguePlayerName(context: Context): String? {
+    val prefs = context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE)
+    val raw = prefs.getString(PRACTICE_STATE_KEY, null)
+        ?: prefs.getString(LEGACY_PRACTICE_STATE_KEY, null)
+        ?: return null
+    val state = parsePracticeStateJson(raw) ?: return null
+    val trimmed = state.leaguePlayerName.trim()
+    return trimmed.takeIf { it.isNotEmpty() }
 }
 
 private fun normalizeHeader(value: String): String {

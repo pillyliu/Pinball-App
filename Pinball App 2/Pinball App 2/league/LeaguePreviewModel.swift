@@ -45,7 +45,11 @@ final class LeaguePreviewModel: ObservableObject {
                 let targetRows = parseTargetRows(targetsText)
                 let mergedRows = mergeTargetsWithLibrary(targetRows: targetRows, libraryJSON: libraryTextResult.text)
                 let availableBanks = Set(mergedRows.compactMap(\.bank))
-                if let nextBank = resolveNextBank(statsCSV: statsTextResult.text, availableBanks: availableBanks) {
+                if let nextBank = resolveNextBank(
+                    statsCSV: statsTextResult.text,
+                    availableBanks: availableBanks,
+                    preferredPlayer: selectedPlayer
+                ) {
                     let rowsForBank = mergedRows
                         .filter { $0.bank == nextBank }
                         .sorted { lhs, rhs in
@@ -402,7 +406,7 @@ final class LeaguePreviewModel: ObservableObject {
         }
     }
 
-    private func resolveNextBank(statsCSV: String?, availableBanks: Set<Int>) -> Int? {
+    private func resolveNextBank(statsCSV: String?, availableBanks: Set<Int>, preferredPlayer: String?) -> Int? {
         let sortedBanks = availableBanks.sorted()
         guard !sortedBanks.isEmpty else { return nil }
         guard let statsCSV else { return sortedBanks.first }
@@ -410,11 +414,14 @@ final class LeaguePreviewModel: ObservableObject {
         let statsRows = parseStatsRows(statsCSV)
         guard !statsRows.isEmpty else { return sortedBanks.first }
 
-        let latestSeason = statsRows.map(\.season).max() ?? 0
+        let scopedRows = scopedStatsRows(statsRows, preferredPlayer: preferredPlayer)
+        guard !scopedRows.isEmpty else { return sortedBanks.first }
+
+        let latestSeason = scopedRows.map(\.season).max() ?? 0
         guard latestSeason > 0 else { return sortedBanks.first }
 
         let playedBanks = Set(
-            statsRows
+            scopedRows
                 .filter { $0.season == latestSeason && sortedBanks.contains($0.bankNumber) }
                 .map(\.bankNumber)
         )
@@ -424,6 +431,13 @@ final class LeaguePreviewModel: ObservableObject {
         }
 
         return sortedBanks.first
+    }
+
+    private func scopedStatsRows(_ rows: [ParsedStatsRow], preferredPlayer: String?) -> [ParsedStatsRow] {
+        guard let preferredPlayer, !preferredPlayer.isEmpty else { return rows }
+        let normalizedPreferred = normalizeHumanName(preferredPlayer)
+        let selectedRows = rows.filter { normalizeHumanName($0.player) == normalizedPreferred }
+        return selectedRows.isEmpty ? rows : selectedRows
     }
 
     private func loadPreferredLeaguePlayerName() -> String? {

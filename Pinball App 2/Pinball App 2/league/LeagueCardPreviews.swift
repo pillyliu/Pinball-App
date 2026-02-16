@@ -9,9 +9,9 @@ struct LeagueCard: View {
     @State private var standingsModeIndex: Int = 0
     @State private var statsValueIndex: Int = 0
 
-    private let targetMetricTimer = Timer.publish(every: 3.5, on: .main, in: .common).autoconnect()
-    private let standingsModeTimer = Timer.publish(every: 5.5, on: .main, in: .common).autoconnect()
-    private let statsValueTimer = Timer.publish(every: 3.0, on: .main, in: .common).autoconnect()
+    private let targetMetricTimer = Timer.publish(every: 4.0, on: .main, in: .common).autoconnect()
+    private let standingsModeTimer = Timer.publish(every: 4.0, on: .main, in: .common).autoconnect()
+    private let statsValueTimer = Timer.publish(every: 4.0, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -43,20 +43,20 @@ struct LeagueCard: View {
         .appPanelStyle()
         .onReceive(targetMetricTimer) { _ in
             guard destination == .targets else { return }
-            withAnimation(.easeInOut(duration: 0.75)) {
+            withAnimation(.easeInOut(duration: 1.0)) {
                 targetMetricIndex = (targetMetricIndex + 1) % LeagueTargetMetric.allCases.count
             }
         }
         .onReceive(standingsModeTimer) { _ in
             guard destination == .standings else { return }
             guard previewModel.hasAroundYouStandings else { return }
-            withAnimation(.easeInOut(duration: 0.75)) {
+            withAnimation(.easeInOut(duration: 1.0)) {
                 standingsModeIndex = (standingsModeIndex + 1) % LeagueStandingsPreviewMode.allCases.count
             }
         }
         .onReceive(statsValueTimer) { _ in
             guard destination == .stats else { return }
-            withAnimation(.easeInOut(duration: 0.75)) {
+            withAnimation(.easeInOut(duration: 1.0)) {
                 statsValueIndex = (statsValueIndex + 1) % 2
             }
         }
@@ -153,7 +153,7 @@ private struct TargetsPreview: View {
                 .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.75), value: metric.rawValue)
+        .animation(.easeInOut(duration: 1.0), value: metric.rawValue)
     }
 }
 
@@ -172,6 +172,8 @@ private struct StandingsPreview: View {
                     .foregroundStyle(.secondary)
 
                 Text(mode.title)
+                    .id("standings-mode-title-\(mode.rawValue)")
+                    .transition(.opacity)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(AppTheme.statsMeanMedian)
                     .padding(.horizontal, 7)
@@ -179,37 +181,42 @@ private struct StandingsPreview: View {
                     .background(AppTheme.statsMeanMedian.opacity(0.14), in: Capsule())
             }
 
-            switch mode {
-            case .topFive:
-                if topRows.isEmpty {
-                    Text("No standings preview available yet")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else {
-                    headerRow
-                    standingsRows(topRows)
+            Group {
+                switch mode {
+                case .topFive:
+                    if topRows.isEmpty {
+                        Text("No standings preview available yet")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        headerRow
+                        standingsRows(topRows)
 
-                    if let currentPlayerRow, currentPlayerRow.rank > 5 {
-                        Rectangle()
-                            .fill(Color.primary.opacity(0.28))
-                            .frame(height: 2)
-                            .padding(.vertical, 1)
+                        if let currentPlayerRow, currentPlayerRow.rank > 5 {
+                            Rectangle()
+                                .fill(Color.primary.opacity(0.28))
+                                .frame(height: 2)
+                                .padding(.vertical, 1)
 
-                        standingsRow(currentPlayerRow, emphasized: true)
+                            standingsRow(currentPlayerRow, emphasized: true)
+                        }
+                    }
+                case .aroundYou:
+                    if aroundRows.isEmpty {
+                        Text("Set a league player name in Practice to enable Around You")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    } else {
+                        headerRow
+                        standingsRows(aroundRows)
                     }
                 }
-            case .aroundYou:
-                if aroundRows.isEmpty {
-                    Text("Set a league player name in Practice to enable Around You")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                } else {
-                    headerRow
-                    standingsRows(aroundRows)
-                }
             }
+            .id("standings-mode-content-\(mode.rawValue)")
+            .transition(.opacity)
         }
+        .animation(.easeInOut(duration: 1.0), value: mode.rawValue)
     }
 
     private var headerRow: some View {
@@ -340,6 +347,6 @@ private struct StatsPreview: View {
                 .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.75), value: showScore)
+        .animation(.easeInOut(duration: 1.0), value: showScore)
     }
 }
