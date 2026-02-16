@@ -251,6 +251,11 @@ actor PinballDataCache {
     }
 
     private func cachedData(for path: String) throws -> Data? {
+        if index.resources[path]?.missing == true {
+            try? fileManager.removeItem(at: fileURL(for: path))
+            return nil
+        }
+
         let url = fileURL(for: path)
         if fileManager.fileExists(atPath: url.path) {
             return try Data(contentsOf: url)
@@ -321,7 +326,7 @@ actor PinballDataCache {
         let removedPaths = updatedEvents.flatMap(\.removed)
         for removed in removedPaths {
             try? fileManager.removeItem(at: fileURL(for: removed))
-            index.resources.removeValue(forKey: removed)
+            index.resources[removed] = CacheIndex.Resource(path: removed, hash: nil, lastValidatedAt: now, missing: true)
         }
 
         try persistIndex()

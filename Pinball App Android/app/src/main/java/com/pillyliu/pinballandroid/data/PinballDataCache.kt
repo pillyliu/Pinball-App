@@ -234,7 +234,7 @@ object PinballDataCache {
             collectPaths(event.optJSONArray("removed"), removed)
             removed.forEach { path ->
                 deleteCached(path)
-                removeFromIndex(path)
+                upsertIndex(path = path, hash = null, missing = true)
             }
         }
 
@@ -372,6 +372,10 @@ object PinballDataCache {
     }
 
     private fun readCached(path: String): ByteArray? {
+        if (isMarkedMissingInIndex(path)) {
+            deleteCached(path)
+            return null
+        }
         val file = resourceFile(path)
         if (!file.exists()) {
             val context = appContext
@@ -428,14 +432,15 @@ object PinballDataCache {
         file.writeText(root.toString())
     }
 
-    private fun removeFromIndex(path: String) {
-        val context = appContext ?: return
+    private fun isMarkedMissingInIndex(path: String): Boolean {
+        val context = appContext ?: return false
         val file = indexFile(context)
-        if (!file.exists()) return
-        val root = JSONObject(file.readText())
-        val resources = root.optJSONObject("resources") ?: return
-        resources.remove(path)
-        file.writeText(root.toString())
+        if (!file.exists()) return false
+        return runCatching {
+            val root = JSONObject(file.readText())
+            val resources = root.optJSONObject("resources") ?: return@runCatching false
+            resources.optJSONObject(path)?.optBoolean("missing", false) == true
+        }.getOrDefault(false)
     }
 
     private fun readIndexState() {
