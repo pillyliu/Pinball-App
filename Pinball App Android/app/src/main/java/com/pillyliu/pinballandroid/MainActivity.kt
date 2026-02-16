@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,11 +52,13 @@ import com.pillyliu.pinballandroid.info.AboutScreen
 import com.pillyliu.pinballandroid.league.LeagueDestination
 import com.pillyliu.pinballandroid.league.LeagueHubScreen
 import com.pillyliu.pinballandroid.library.LibraryScreen
+import com.pillyliu.pinballandroid.practice.PracticeScreen
 import com.pillyliu.pinballandroid.standings.StandingsScreen
 import com.pillyliu.pinballandroid.stats.StatsScreen
 import com.pillyliu.pinballandroid.targets.TargetsScreen
 import com.pillyliu.pinballandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinballandroid.ui.PinballTheme
+import com.pillyliu.pinballandroid.ui.iosEdgeSwipeBack
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 
@@ -98,6 +101,7 @@ class MainActivity : ComponentActivity() {
 private enum class PinballTab {
     League,
     Library,
+    Practice,
     About,
 }
 
@@ -130,10 +134,18 @@ private fun PinballApp() {
                 modifier = Modifier.fillMaxSize(),
                 containerColor = MaterialTheme.colorScheme.background,
             ) { padding ->
-                Box(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .iosEdgeSwipeBack(
+                            enabled = selectedTab == PinballTab.League && leagueDestination != null,
+                            onBack = { leagueDestination = null },
+                        ),
+                ) {
                     val paddedForTabBar = contentPaddingWithExtra(padding, extraBottom = 74.dp)
                     when (selectedTab) {
                         PinballTab.About -> AboutScreen(contentPadding = paddedForTabBar)
+                        PinballTab.Practice -> PracticeScreen(contentPadding = paddedForTabBar)
                         PinballTab.League -> {
                             when (leagueDestination) {
                                 null -> LeagueHubScreen(
@@ -215,6 +227,14 @@ private fun PinballApp() {
                                     onClick = { selectedTab = PinballTab.Library },
                                     icon = { Icon(Icons.Outlined.AutoStories, contentDescription = "Library") },
                                     label = { Text("Library") },
+                                    alwaysShowLabel = false,
+                                    colors = tabItemColors,
+                                )
+                                NavigationBarItem(
+                                    selected = selectedTab == PinballTab.Practice,
+                                    onClick = { selectedTab = PinballTab.Practice },
+                                    icon = { Icon(Icons.Outlined.SportsEsports, contentDescription = "Practice") },
+                                    label = { Text("Practice") },
                                     alwaysShowLabel = false,
                                     colors = tabItemColors,
                                 )

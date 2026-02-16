@@ -366,7 +366,7 @@ private extension RulesheetRenderer {
               background: transparent;
             }
             body {
-              padding: 50px 16px calc(env(safe-area-inset-bottom) + 28px);
+              padding: 76px 16px calc(env(safe-area-inset-bottom) + 28px);
               font: -apple-system-body;
               -webkit-text-size-adjust: 100%;
               text-size-adjust: 100%;
@@ -383,6 +383,13 @@ private extension RulesheetRenderer {
             th, td { border: 1px solid var(--table-border); padding: 6px 8px; }
             img { max-width: 100%; height: auto; }
             hr { border: none; border-top: 1px solid var(--rule); }
+            .rulesheet-attribution {
+              display: block;
+              font-size: 0.78rem;
+              line-height: 1.35;
+              opacity: 0.78;
+              margin-bottom: 0.8rem;
+            }
           </style>
           <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
         </head>

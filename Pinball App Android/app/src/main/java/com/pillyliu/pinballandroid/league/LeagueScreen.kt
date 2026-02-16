@@ -12,10 +12,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import android.content.res.Configuration
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -40,6 +46,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinballandroid.data.PinballDataCache
@@ -92,6 +99,7 @@ fun LeagueHubScreen(
         androidx.compose.foundation.layout.BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val compactHeight = maxHeight < 730.dp
             val tabletMode = maxWidth >= 600.dp
+            val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
             val cardGap = if (compactHeight) 8.dp else 10.dp
             val maxRows = if (compactHeight) 4 else 5
             val titleSize = if (tabletMode) 20.sp else 19.sp
@@ -99,62 +107,107 @@ fun LeagueHubScreen(
             val miniLabelSize = if (tabletMode) 15.sp else 14.sp
             val miniHeaderSize = if (tabletMode) 14.sp else 13.sp
             val miniValueSize = if (tabletMode) 15.sp else 14.sp
+            val landscapeRowGap = if (compactHeight) 6.dp else 8.dp
 
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(cardGap),
-            ) {
-            LeagueCard(
-                destination = LeagueDestination.Stats,
-                modifier = Modifier.weight(1f),
-                onClick = { onOpenDestination(LeagueDestination.Stats) },
-                titleSize = titleSize,
-                subtitleSize = subtitleSize,
-            ) {
-                StatsMiniPreview(
-                    rows = previewState.statsRecentRows.take(maxRows),
-                    bankLabel = previewState.statsRecentBankLabel,
-                    playerLabel = previewState.statsPlayerLabel,
-                    showScore = showStatsScore,
-                    labelSize = miniLabelSize,
-                    headerSize = miniHeaderSize,
-                    valueSize = miniValueSize,
-                )
+            @Composable
+            fun DestinationCard(destination: LeagueDestination, modifier: Modifier = Modifier) {
+                LeagueCard(
+                    destination = destination,
+                    modifier = modifier,
+                    onClick = { onOpenDestination(destination) },
+                    titleSize = titleSize,
+                    subtitleSize = subtitleSize,
+                ) {
+                    when (destination) {
+                        LeagueDestination.Stats -> {
+                            StatsMiniPreview(
+                                rows = previewState.statsRecentRows.take(maxRows),
+                                bankLabel = previewState.statsRecentBankLabel,
+                                playerLabel = previewState.statsPlayerLabel,
+                                showScore = showStatsScore,
+                                labelSize = miniLabelSize,
+                                headerSize = miniHeaderSize,
+                                valueSize = miniValueSize,
+                            )
+                        }
+                        LeagueDestination.Standings -> {
+                            StandingsMiniPreview(
+                                seasonLabel = previewState.standingsSeasonLabel,
+                                rows = previewState.standingsTopRows.take(maxRows),
+                                labelSize = miniLabelSize,
+                                headerSize = miniHeaderSize,
+                                valueSize = miniValueSize,
+                            )
+                        }
+                        LeagueDestination.Targets -> {
+                            TargetsMiniPreview(
+                                rows = previewState.nextBankTargets.take(maxRows),
+                                bankLabel = previewState.nextBankLabel,
+                                metricIndex = targetMetricIndex,
+                                labelSize = miniLabelSize,
+                                headerSize = miniHeaderSize,
+                                valueSize = miniValueSize,
+                            )
+                        }
+                    }
+                }
             }
 
-            LeagueCard(
-                destination = LeagueDestination.Standings,
-                modifier = Modifier.weight(1f),
-                onClick = { onOpenDestination(LeagueDestination.Standings) },
-                titleSize = titleSize,
-                subtitleSize = subtitleSize,
-            ) {
-                StandingsMiniPreview(
-                    seasonLabel = previewState.standingsSeasonLabel,
-                    rows = previewState.standingsTopRows.take(maxRows),
-                    labelSize = miniLabelSize,
-                    headerSize = miniHeaderSize,
-                    valueSize = miniValueSize,
-                )
+            if (isLandscape) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(landscapeRowGap),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
+                        horizontalArrangement = Arrangement.spacedBy(cardGap),
+                    ) {
+                        DestinationCard(
+                            LeagueDestination.Stats,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                        )
+                        DestinationCard(
+                            LeagueDestination.Standings,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
+                        horizontalArrangement = Arrangement.spacedBy(cardGap),
+                    ) {
+                        DestinationCard(
+                            LeagueDestination.Targets,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                        )
+                        Spacer(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                        )
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(cardGap),
+                ) {
+                    DestinationCard(LeagueDestination.Stats, modifier = Modifier.weight(1f))
+                    DestinationCard(LeagueDestination.Standings, modifier = Modifier.weight(1f))
+                    DestinationCard(LeagueDestination.Targets, modifier = Modifier.weight(1f))
+                }
             }
-
-            LeagueCard(
-                destination = LeagueDestination.Targets,
-                modifier = Modifier.weight(1f),
-                onClick = { onOpenDestination(LeagueDestination.Targets) },
-                titleSize = titleSize,
-                subtitleSize = subtitleSize,
-            ) {
-                TargetsMiniPreview(
-                    rows = previewState.nextBankTargets.take(maxRows),
-                    bankLabel = previewState.nextBankLabel,
-                    metricIndex = targetMetricIndex,
-                    labelSize = miniLabelSize,
-                    headerSize = miniHeaderSize,
-                    valueSize = miniValueSize,
-                )
-            }
-        }
         }
     }
 }

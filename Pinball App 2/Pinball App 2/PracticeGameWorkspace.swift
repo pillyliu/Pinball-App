@@ -18,7 +18,7 @@ private enum PracticeGameSubview: String, CaseIterable, Identifiable {
 }
 
 struct PracticeGameWorkspace: View {
-    @ObservedObject var store: PracticeUpgradeStore
+    @ObservedObject var store: PracticeStore
     @Binding var selectedGameID: String
     var onGameViewed: ((String) -> Void)? = nil
 
@@ -27,6 +27,7 @@ struct PracticeGameWorkspace: View {
     @State private var showingScoreSheet = false
     @State private var saveBanner: String?
     @State private var activeVideoID: String?
+    @State private var gameSummaryDraft: String = ""
 
     private var selectedGame: PinballGame? {
         store.games.first(where: { $0.id == selectedGameID })
@@ -74,6 +75,8 @@ struct PracticeGameWorkspace: View {
                     .padding(12)
                     .appPanelStyle()
 
+                    gameSummaryCard
+
                     gameResourceCard
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -120,6 +123,7 @@ struct PracticeGameWorkspace: View {
             if !selectedGameID.isEmpty {
                 store.markGameBrowsed(gameID: selectedGameID)
                 onGameViewed?(selectedGameID)
+                gameSummaryDraft = store.gameSummaryNote(for: selectedGameID)
             }
         }
         .onChange(of: selectedGameID) { _, newValue in
@@ -127,6 +131,7 @@ struct PracticeGameWorkspace: View {
             if !newValue.isEmpty {
                 onGameViewed?(newValue)
             }
+            gameSummaryDraft = store.gameSummaryNote(for: newValue)
         }
         .sheet(item: $entryTask) { task in
             GameTaskEntrySheet(task: task, gameID: selectedGameID, store: store) { message in
@@ -138,6 +143,36 @@ struct PracticeGameWorkspace: View {
                 showSaveBanner("Score logged")
             }
         }
+    }
+
+    private var gameSummaryCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Game Note")
+                .font(.headline)
+            Text("Freeform summary of how this game is going.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            TextEditor(text: $gameSummaryDraft)
+                .frame(minHeight: 96)
+                .scrollContentBackground(.hidden)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .appControlStyle()
+
+            HStack {
+                Spacer()
+                Button("Save Note") {
+                    store.updateGameSummaryNote(gameID: selectedGameID, note: gameSummaryDraft)
+                    showSaveBanner("Game note saved")
+                }
+                .buttonStyle(.glass)
+                .disabled(selectedGameID.isEmpty)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .appPanelStyle()
     }
 
     private var screenshotSection: some View {
@@ -405,10 +440,10 @@ struct PracticeGameWorkspace: View {
                     Text("Target Scores")
                         .font(.footnote.weight(.semibold))
 
-                    if let summary = store.scoreSummary(for: selectedGameID) {
-                        statRow("High", formatScore(summary.p75), color: AppTheme.targetGreat)
-                        statRow("Main", formatScore(summary.median), color: AppTheme.targetMain)
-                        statRow("Floor", formatScore(summary.floor), color: AppTheme.targetFloor)
+                    if let targets = store.leagueTargetScores(for: selectedGameID) {
+                        statRow("2nd", formatScore(targets.great), color: AppTheme.targetGreat)
+                        statRow("4th", formatScore(targets.main), color: AppTheme.targetMain)
+                        statRow("8th", formatScore(targets.floor), color: AppTheme.targetFloor)
                     } else {
                         Text("No target data yet.")
                             .font(.footnote)
@@ -516,7 +551,7 @@ struct PracticeGameWorkspace: View {
 
 struct GameScoreEntrySheet: View {
     let gameID: String
-    @ObservedObject var store: PracticeUpgradeStore
+    @ObservedObject var store: PracticeStore
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -594,7 +629,7 @@ struct GameScoreEntrySheet: View {
 
 struct GameNoteEntrySheet: View {
     let gameID: String
-    @ObservedObject var store: PracticeUpgradeStore
+    @ObservedObject var store: PracticeStore
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -682,7 +717,7 @@ struct GameNoteEntrySheet: View {
 struct GameTaskEntrySheet: View {
     let task: StudyTaskKind
     let gameID: String
-    @ObservedObject var store: PracticeUpgradeStore
+    @ObservedObject var store: PracticeStore
     let onSaved: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss

@@ -49,7 +49,7 @@ struct ContentView: View {
                     Label("Library", systemImage: "books.vertical")
                 }
 
-            PracticeUpgradeTab()
+            PracticeScreen()
                 .tag(RootTab.practice)
                 .tabItem {
                     Label("Practice", systemImage: "figure.play")

@@ -3,18 +3,16 @@ package com.pillyliu.pinballandroid.library
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
-import android.content.res.Configuration
 import android.os.Bundle
 import android.view.MotionEvent
 import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
@@ -39,6 +37,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -51,6 +50,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -65,7 +65,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalViewConfiguration
@@ -87,10 +86,19 @@ import com.halilibo.richtext.ui.material3.Material3RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.data.downloadTextAllowMissing
+import com.pillyliu.pinballandroid.practice.LibraryActivityKind
+import com.pillyliu.pinballandroid.practice.LibraryActivityLog
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
+import com.pillyliu.pinballandroid.ui.iosEdgeSwipeBack
 import com.pillyliu.pinballandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinballandroid.ui.SectionTitle
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.material3.TextButton
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -103,6 +111,7 @@ internal fun LibraryDetail(
     onOpenPlayfield: (String) -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
     val detailScroll = rememberSaveable(game.slug, saver = androidx.compose.foundation.ScrollState.Saver) {
         androidx.compose.foundation.ScrollState(0)
     }
@@ -125,7 +134,10 @@ internal fun LibraryDetail(
         }
     }
 
-    AppScreen(contentPadding) {
+    AppScreen(
+        contentPadding = contentPadding,
+        modifier = Modifier.iosEdgeSwipeBack(enabled = true, onBack = onBack),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -178,7 +190,10 @@ internal fun LibraryDetail(
                     Text("No videos listed.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     activeVideoId?.let { id ->
-                        EmbeddedYouTubeView(videoId = id)
+                        EmbeddedYouTubeView(
+                            videoId = id,
+                            modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
+                        )
                     } ?: Text("Tap a video below to load player.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     BoxWithConstraints {
                         val tileWidth = (maxWidth - 10.dp) / 2
@@ -192,7 +207,10 @@ internal fun LibraryDetail(
                                             label = label,
                                             selected = activeVideoId == id,
                                             width = tileWidth,
-                                            onSelect = { activeVideoId = id },
+                                            onSelect = {
+                                                activeVideoId = id
+                                                LibraryActivityLog.log(context, game.slug, game.name, LibraryActivityKind.TapVideo, label)
+                                            },
                                         )
                                     }
                                     if (rowItems.size == 1) {
@@ -270,20 +288,10 @@ internal fun LibraryDetail(
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun EmbeddedYouTubeView(videoId: String) {
-    var loadedVideoId by rememberSaveable { mutableStateOf<String?>(null) }
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val landscapeByAspect = configuration.screenWidthDp.dp * (9f / 16f)
-    val landscapeMax = configuration.screenHeightDp.dp * 0.78f
-    val playerHeight = if (isLandscape) {
-        minOf(landscapeByAspect, landscapeMax).coerceAtLeast(300.dp)
-    } else {
-        220.dp
-    }
-
+private fun EmbeddedYouTubeView(videoId: String, modifier: Modifier = Modifier) {
+    var loadedVideoId by remember(videoId) { mutableStateOf<String?>(null) }
     AndroidView(
-        modifier = Modifier.fillMaxWidth().height(playerHeight),
+        modifier = modifier,
         factory = { context ->
             WebView(context).apply {
                 settings.javaScriptEnabled = true
@@ -293,21 +301,11 @@ private fun EmbeddedYouTubeView(videoId: String) {
                 settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                 settings.useWideViewPort = false
                 settings.loadWithOverviewMode = false
-                settings.userAgentString =
-                    "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 " +
-                        "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
                 setBackgroundColor(android.graphics.Color.BLACK)
                 webChromeClient = WebChromeClient()
                 webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                        val url = request?.url?.toString() ?: return false
-                        return openYoutubeInApp(context, url, fallbackVideoId = videoId)
-                    }
-
-                    override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                        val link = url ?: return false
-                        return openYoutubeInApp(context, link, fallbackVideoId = videoId)
-                    }
+                    override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean = false
+                    override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean = false
                 }
             }
         },
@@ -325,11 +323,30 @@ private fun EmbeddedYouTubeView(videoId: String) {
 }
 
 @Composable
-internal fun RulesheetScreen(contentPadding: PaddingValues, slug: String, onBack: () -> Unit) {
+internal fun RulesheetScreen(
+    contentPadding: PaddingValues,
+    slug: String,
+    onBack: () -> Unit,
+    practiceSavedRatio: Float? = null,
+    onSavePracticeRatio: ((Float) -> Unit)? = null,
+) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("rulesheet-progress-v1", android.content.Context.MODE_PRIVATE) }
     var status by rememberSaveable(slug) { mutableStateOf("loading") }
     var markdown by rememberSaveable(slug) { mutableStateOf("") }
     var chromeVisible by rememberSaveable(slug) { mutableStateOf(false) }
     var progressRatio by rememberSaveable(slug) { mutableStateOf(0f) }
+    var savedRatio by rememberSaveable(slug) { mutableStateOf(0f) }
+    var showResumePrompt by rememberSaveable(slug) { mutableStateOf(false) }
+    var evaluatedResumePrompt by rememberSaveable(slug) { mutableStateOf(false) }
+    var resumeTargetRatio by rememberSaveable(slug) { mutableStateOf<Float?>(null) }
+    var resumeRequestId by rememberSaveable(slug) { mutableIntStateOf(0) }
+
+    LaunchedEffect(slug, practiceSavedRatio) {
+        val key = "rulesheet-last-progress-$slug"
+        val stored = prefs.getFloat(key, 0f).coerceIn(0f, 1f)
+        savedRatio = (practiceSavedRatio ?: stored).coerceIn(0f, 1f)
+    }
 
     LaunchedEffect(slug) {
         if (status == "loaded" || status == "missing") return@LaunchedEffect
@@ -344,7 +361,7 @@ internal fun RulesheetScreen(contentPadding: PaddingValues, slug: String, onBack
         }
     }
 
-    AppScreen(contentPadding) {
+    AppScreen(contentPadding, horizontalPadding = 8.dp) {
         Box(
             modifier = Modifier.fillMaxSize(),
         ) {
@@ -354,12 +371,32 @@ internal fun RulesheetScreen(contentPadding: PaddingValues, slug: String, onBack
                     markdown,
                     Modifier.fillMaxSize(),
                     stateKey = "rulesheet-$slug",
+                    resumeRequestId = resumeRequestId,
+                    resumeTargetRatio = resumeTargetRatio,
                     onTap = { chromeVisible = !chromeVisible },
                     onProgressChange = { progressRatio = it },
                 )
             }
+            if (status == "loaded" && !evaluatedResumePrompt) {
+                evaluatedResumePrompt = true
+                if (savedRatio > 0.001f) {
+                    showResumePrompt = true
+                }
+            }
             if (status == "loaded") {
                 val percentText = "${(progressRatio.coerceIn(0f, 1f) * 100f).roundToInt()}%"
+                val savedPercent = (savedRatio.coerceIn(0f, 1f) * 100f).roundToInt()
+                val needsSave = savedPercent != (progressRatio.coerceIn(0f, 1f) * 100f).roundToInt()
+                val pulse = rememberInfiniteTransition(label = "rulesheetPercentPulse")
+                val pulseAlpha by pulse.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 0.5f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 1050),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                    label = "pulseAlpha",
+                )
                 Text(
                     text = percentText,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -368,15 +405,35 @@ internal fun RulesheetScreen(contentPadding: PaddingValues, slug: String, onBack
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(top = 12.dp, end = 12.dp)
+                        .clickable {
+                            val clamped = progressRatio.coerceIn(0f, 1f)
+                            savedRatio = clamped
+                            prefs.edit().putFloat("rulesheet-last-progress-$slug", clamped).apply()
+                            onSavePracticeRatio?.invoke(clamped)
+                        }
+                        .then(
+                            if (needsSave) Modifier else Modifier
+                        )
                         .background(
-                            MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.76f),
+                            if (needsSave) {
+                                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.76f)
+                            } else {
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.84f)
+                            },
                             RoundedCornerShape(999.dp),
                         )
                         .border(
                             width = 0.5.dp,
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+                            color = if (needsSave) {
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
+                            } else {
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.9f)
+                            },
                             shape = RoundedCornerShape(999.dp),
                         )
+                        .graphicsLayer {
+                            alpha = if (needsSave) pulseAlpha else 1f
+                        }
                         .padding(horizontal = 9.dp, vertical = 4.dp),
                 )
             }
@@ -391,6 +448,23 @@ internal fun RulesheetScreen(contentPadding: PaddingValues, slug: String, onBack
                 }
             }
         }
+    }
+    if (showResumePrompt) {
+        AlertDialog(
+            onDismissRequest = { showResumePrompt = false },
+            title = { Text("Return to last saved position?") },
+            text = { Text("Return to ${(savedRatio * 100f).roundToInt()}%?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    resumeTargetRatio = savedRatio
+                    resumeRequestId += 1
+                    showResumePrompt = false
+                }) { Text("Yes") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResumePrompt = false }) { Text("No") }
+            },
+        )
     }
 }
 
@@ -407,7 +481,12 @@ internal fun PlayfieldScreen(contentPadding: PaddingValues, title: String, image
         onDispose { bottomBarVisible.value = true }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .iosEdgeSwipeBack(enabled = true, onBack = onBack),
+    ) {
         ZoomablePlayfieldImage(
             imageUrls = imageUrls,
             title = title,
@@ -668,6 +747,8 @@ private fun MarkdownWebView(
     markdown: String,
     modifier: Modifier = Modifier,
     stateKey: String = "default",
+    resumeRequestId: Int = 0,
+    resumeTargetRatio: Float? = null,
     onTap: (() -> Unit)? = null,
     onProgressChange: (Float) -> Unit = {},
 ) {
@@ -679,6 +760,7 @@ private fun MarkdownWebView(
     val webViewState = rememberSaveable(stateKey, saver = bundleParcelSaver) { Bundle() }
     var savedScrollRatio by rememberSaveable(stateKey) { mutableStateOf(0f) }
     var loadedHash by remember(stateKey) { mutableStateOf<Int?>(null) }
+    var lastAppliedResumeRequestId by remember(stateKey) { mutableIntStateOf(-1) }
     AndroidView(
         modifier = modifier,
         factory = { context ->
@@ -763,7 +845,7 @@ private fun MarkdownWebView(
                         <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
                         <style>
                             html, body { margin:0; padding:0; background:transparent !important; color:$bodyColorHex !important; overflow-x:hidden !important; width:100%; }
-                            body { padding:14px; line-height:1.45; font-size:16px; box-sizing:border-box; }
+                            body { padding:14px 16px; line-height:1.45; font-size:17px; box-sizing:border-box; }
                             *, *:before, *:after { box-sizing:border-box; }
                             * { color:$bodyColorHex !important; background: transparent !important; }
                             p, li, dd, dt { color:$bodyColorHex !important; }
@@ -774,6 +856,13 @@ private fun MarkdownWebView(
                             table { border-collapse:collapse; width:100%; max-width:100%; table-layout:fixed; }
                             th, td { border:1px solid $tableBorderHex; padding:6px 8px; word-break:break-word; overflow-wrap:anywhere; }
                             img { max-width:100%; height:auto; display:block; }
+                            .rulesheet-attribution {
+                                display:block;
+                                font-size:0.78rem;
+                                line-height:1.35;
+                                opacity:0.78;
+                                margin-bottom:0.8rem;
+                            }
                         </style>
                     </head>
                     <body>
@@ -791,6 +880,19 @@ private fun MarkdownWebView(
                     webView.scrollTo(0, target)
                     onProgressChange(savedScrollRatio)
                 }
+            }
+            if (resumeTargetRatio != null && resumeRequestId != lastAppliedResumeRequestId) {
+                val clamped = resumeTargetRatio.coerceIn(0f, 1f)
+                savedScrollRatio = clamped
+                webView.post {
+                    val contentPx = (webView.contentHeight * webView.resources.displayMetrics.density).toInt()
+                    val maxScroll = (contentPx - webView.height).coerceAtLeast(0)
+                    val contextOffset = (24f * webView.resources.displayMetrics.density).toInt()
+                    val target = ((clamped * maxScroll).toInt() - contextOffset).coerceAtLeast(0)
+                    webView.scrollTo(0, target)
+                    onProgressChange(clamped)
+                }
+                lastAppliedResumeRequestId = resumeRequestId
             }
         },
         onRelease = { webView ->

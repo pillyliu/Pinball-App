@@ -1,5 +1,6 @@
 package com.pillyliu.pinballandroid.library
 
+import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,15 +14,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinballandroid.data.PinballDataCache
+import com.pillyliu.pinballandroid.practice.KEY_LIBRARY_LAST_VIEWED_SLUG
+import com.pillyliu.pinballandroid.practice.KEY_LIBRARY_LAST_VIEWED_TS
+import com.pillyliu.pinballandroid.practice.LibraryActivityKind
+import com.pillyliu.pinballandroid.practice.LibraryActivityLog
+import com.pillyliu.pinballandroid.practice.PRACTICE_PREFS
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.EmptyLabel
 import com.pillyliu.pinballandroid.ui.LocalBottomBarVisible
+import com.pillyliu.pinballandroid.ui.iosEdgeSwipeBack
+import androidx.compose.ui.platform.LocalContext
 import org.json.JSONArray
 
 @Composable
 internal fun LibraryScreen(contentPadding: PaddingValues) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE) }
     val bottomBarVisible = LocalBottomBarVisible.current
     var games by remember { mutableStateOf(emptyList<PinballGame>()) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -31,7 +42,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     var routeSlug by rememberSaveable { mutableStateOf<String?>(null) }
     var routeImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
 
-    BackHandler(enabled = routeKind != "list") {
+    val goBack: () -> Unit = {
         when (routeKind) {
             "detail" -> {
                 routeKind = "list"
@@ -45,6 +56,9 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                 routeImageUrl = null
             }
         }
+    }
+    BackHandler(enabled = routeKind != "list") {
+        goBack()
     }
 
     LaunchedEffect(Unit) {
@@ -63,7 +77,10 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
 
     val routeGame = routeSlug?.let { slug -> games.firstOrNull { it.slug == slug } }
 
-    when (routeKind) {
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier.iosEdgeSwipeBack(enabled = routeKind != "list", onBack = goBack),
+    ) {
+        when (routeKind) {
         "list" -> LibraryList(
             contentPadding = contentPadding,
             games = games,
@@ -76,6 +93,11 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
             onOpenGame = {
                 routeSlug = it.slug
                 routeKind = "detail"
+                LibraryActivityLog.log(context, it.slug, it.name, LibraryActivityKind.BrowseGame)
+                prefs.edit()
+                    .putString(KEY_LIBRARY_LAST_VIEWED_SLUG, it.slug)
+                    .putLong(KEY_LIBRARY_LAST_VIEWED_TS, System.currentTimeMillis())
+                    .apply()
             },
         )
 
@@ -106,8 +128,12 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                         routeSlug = null
                         routeImageUrl = null
                     },
-                    onOpenRulesheet = { routeKind = "rulesheet" },
+                onOpenRulesheet = {
+                    LibraryActivityLog.log(context, routeGame.slug, routeGame.name, LibraryActivityKind.OpenRulesheet)
+                    routeKind = "rulesheet"
+                },
                     onOpenPlayfield = { imageUrl ->
+                        LibraryActivityLog.log(context, routeGame.slug, routeGame.name, LibraryActivityKind.OpenPlayfield)
                         routeImageUrl = imageUrl
                         routeKind = "playfield"
                     },
@@ -188,8 +214,14 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                 onOpenGame = {
                     routeSlug = it.slug
                     routeKind = "detail"
+                    LibraryActivityLog.log(context, it.slug, it.name, LibraryActivityKind.BrowseGame)
+                    prefs.edit()
+                        .putString(KEY_LIBRARY_LAST_VIEWED_SLUG, it.slug)
+                        .putLong(KEY_LIBRARY_LAST_VIEWED_TS, System.currentTimeMillis())
+                        .apply()
                 },
             )
         }
+    }
     }
 }

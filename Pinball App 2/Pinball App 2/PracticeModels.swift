@@ -397,7 +397,7 @@ struct AnalyticsSettings: Codable {
     static let defaults = AnalyticsSettings(gapMode: .compressInactive, useMedian: true)
 }
 
-struct PracticeUpgradeState: Codable {
+struct PracticePersistedState: Codable {
     var studyEvents: [StudyProgressEvent]
     var videoProgressEntries: [VideoProgressEntry]
     var scoreEntries: [ScoreLogEntry]
@@ -409,6 +409,7 @@ struct PracticeUpgradeState: Codable {
     var analyticsSettings: AnalyticsSettings
     var rulesheetResumeOffsets: [String: Double]
     var videoResumeHints: [String: String]
+    var gameSummaryNotes: [String: String]
     var practiceSettings: PracticeSettings
 
     private enum CodingKeys: String, CodingKey {
@@ -423,6 +424,7 @@ struct PracticeUpgradeState: Codable {
         case analyticsSettings
         case rulesheetResumeOffsets
         case videoResumeHints
+        case gameSummaryNotes
         case practiceSettings
     }
 
@@ -438,6 +440,7 @@ struct PracticeUpgradeState: Codable {
         analyticsSettings: AnalyticsSettings,
         rulesheetResumeOffsets: [String: Double],
         videoResumeHints: [String: String],
+        gameSummaryNotes: [String: String],
         practiceSettings: PracticeSettings
     ) {
         self.studyEvents = studyEvents
@@ -451,6 +454,7 @@ struct PracticeUpgradeState: Codable {
         self.analyticsSettings = analyticsSettings
         self.rulesheetResumeOffsets = rulesheetResumeOffsets
         self.videoResumeHints = videoResumeHints
+        self.gameSummaryNotes = gameSummaryNotes
         self.practiceSettings = practiceSettings
     }
 
@@ -467,10 +471,11 @@ struct PracticeUpgradeState: Codable {
         analyticsSettings = try container.decodeIfPresent(AnalyticsSettings.self, forKey: .analyticsSettings) ?? .defaults
         rulesheetResumeOffsets = try container.decodeIfPresent([String: Double].self, forKey: .rulesheetResumeOffsets) ?? [:]
         videoResumeHints = try container.decodeIfPresent([String: String].self, forKey: .videoResumeHints) ?? [:]
+        gameSummaryNotes = try container.decodeIfPresent([String: String].self, forKey: .gameSummaryNotes) ?? [:]
         practiceSettings = try container.decodeIfPresent(PracticeSettings.self, forKey: .practiceSettings) ?? .defaults
     }
 
-    static let empty = PracticeUpgradeState(
+    static let empty = PracticePersistedState(
         studyEvents: [],
         videoProgressEntries: [],
         scoreEntries: [],
@@ -482,6 +487,7 @@ struct PracticeUpgradeState: Codable {
         analyticsSettings: .defaults,
         rulesheetResumeOffsets: [:],
         videoResumeHints: [:],
+        gameSummaryNotes: [:],
         practiceSettings: .defaults
     )
 }
@@ -493,6 +499,8 @@ struct ScoreSummary {
     let p25: Double
     let p75: Double
 }
+
+typealias PracticeUpgradeState = PracticePersistedState
 
 extension Array where Element == Double {
     func pinballPercentile(_ percentile: Double) -> Double? {
