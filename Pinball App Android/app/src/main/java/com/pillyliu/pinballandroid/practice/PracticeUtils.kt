@@ -1,6 +1,8 @@
 package com.pillyliu.pinballandroid.practice
 
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinballandroid.library.LibraryActivityEvent
+import com.pillyliu.pinballandroid.library.LibraryActivityKind
 import org.json.JSONArray
 import java.time.LocalDate
 import java.time.ZoneId

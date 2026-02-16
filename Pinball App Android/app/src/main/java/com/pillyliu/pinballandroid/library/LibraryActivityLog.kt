@@ -1,6 +1,7 @@
-package com.pillyliu.pinballandroid.practice
+package com.pillyliu.pinballandroid.library
 
 import android.content.Context
+import com.pillyliu.pinballandroid.practice.PRACTICE_PREFS
 import org.json.JSONArray
 import org.json.JSONObject
 

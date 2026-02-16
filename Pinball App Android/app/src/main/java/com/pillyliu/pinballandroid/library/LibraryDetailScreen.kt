@@ -86,8 +86,6 @@ import com.halilibo.richtext.ui.material3.Material3RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.data.downloadTextAllowMissing
-import com.pillyliu.pinballandroid.practice.LibraryActivityKind
-import com.pillyliu.pinballandroid.practice.LibraryActivityLog
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
 import com.pillyliu.pinballandroid.ui.iosEdgeSwipeBack
@@ -103,7 +101,7 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
-internal fun LibraryDetail(
+internal fun LibraryDetailScreen(
     contentPadding: PaddingValues,
     game: PinballGame,
     onBack: () -> Unit,

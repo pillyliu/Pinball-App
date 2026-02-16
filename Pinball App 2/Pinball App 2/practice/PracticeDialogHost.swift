@@ -51,7 +51,7 @@ extension PracticeScreen {
             }
         )
         .sheet(item: $quickSheet) { kind in
-            QuickEntrySheetView(
+            PracticeQuickEntryDialog(
                 kind: kind,
                 store: store,
                 selectedGameID: $selectedGameID,

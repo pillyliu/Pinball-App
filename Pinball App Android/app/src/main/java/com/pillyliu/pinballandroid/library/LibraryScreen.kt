@@ -19,8 +19,6 @@ import androidx.compose.ui.unit.dp
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.practice.KEY_LIBRARY_LAST_VIEWED_SLUG
 import com.pillyliu.pinballandroid.practice.KEY_LIBRARY_LAST_VIEWED_TS
-import com.pillyliu.pinballandroid.practice.LibraryActivityKind
-import com.pillyliu.pinballandroid.practice.LibraryActivityLog
 import com.pillyliu.pinballandroid.practice.PRACTICE_PREFS
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.EmptyLabel
@@ -120,7 +118,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                     }
                 }
             } else {
-                LibraryDetail(
+                LibraryDetailScreen(
                     contentPadding = contentPadding,
                     game = routeGame,
                     onBack = {

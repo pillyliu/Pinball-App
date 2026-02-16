@@ -16,6 +16,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinballandroid.library.LibraryActivityKind
+import com.pillyliu.pinballandroid.library.LibraryActivityLog
 import com.pillyliu.pinballandroid.ui.CardContainer
 import java.time.Instant
 import java.time.ZoneId
