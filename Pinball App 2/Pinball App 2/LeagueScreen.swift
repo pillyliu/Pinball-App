@@ -1,7 +1,7 @@
 import SwiftUI
 
-struct LeagueHubView: View {
-    @StateObject private var previewModel = LeagueHubPreviewModel()
+struct LeagueScreen: View {
+    @StateObject private var previewModel = LeaguePreviewModel()
 
     var body: some View {
         NavigationStack {
@@ -47,13 +47,13 @@ struct LeagueHubView: View {
     private func destinationView(for destination: LeagueDestination) -> some View {
         switch destination {
         case .stats:
-            StatsView(embeddedInNavigation: true)
+            StatsScreen(embeddedInNavigation: true)
                 .navigationBarTitleDisplayMode(.inline)
         case .standings:
-            StandingsView(embeddedInNavigation: true)
+            StandingsScreen(embeddedInNavigation: true)
                 .navigationBarTitleDisplayMode(.inline)
         case .targets:
-            LPLTargetsView(embeddedInNavigation: true)
+            TargetsScreen(embeddedInNavigation: true)
                 .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -73,5 +73,5 @@ struct LeagueHubView: View {
 
 
 #Preview {
-    LeagueHubView()
+    LeagueScreen()
 }

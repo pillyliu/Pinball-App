@@ -8,7 +8,7 @@
 import SwiftUI
 import Combine
 
-struct StatsView: View {
+struct StatsScreen: View {
     let embeddedInNavigation: Bool
 
     init(embeddedInNavigation: Bool = false) {
@@ -1041,5 +1041,5 @@ private func formatPoints(_ value: Double?) -> String {
 }
 
 #Preview {
-    StatsView()
+    StatsScreen()
 }

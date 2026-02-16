@@ -469,7 +469,7 @@ final class PinballGameInfoViewModel: ObservableObject {
 }
 
 @MainActor
-final class RulesheetViewModel: ObservableObject {
+final class RulesheetScreenModel: ObservableObject {
     @Published private(set) var status: LoadStatus = .idle
     @Published private(set) var markdownText: String?
 

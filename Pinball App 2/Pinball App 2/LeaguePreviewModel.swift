@@ -2,7 +2,7 @@ import SwiftUI
 import Combine
 
 @MainActor
-final class LeagueHubPreviewModel: ObservableObject {
+final class LeaguePreviewModel: ObservableObject {
     @Published private(set) var nextBankTargets: [LeagueTargetPreviewRow] = []
     @Published private(set) var nextBankLabel: String = "Next Bank"
 
@@ -362,7 +362,7 @@ final class LeagueHubPreviewModel: ObservableObject {
     private func mergeTargetsWithLibrary(targetRows: [LeagueTargetPreviewRow], libraryJSON: String?) -> [LeagueTargetPreviewRow] {
         guard let libraryJSON,
               let data = libraryJSON.data(using: .utf8),
-              let games = try? JSONDecoder().decode([LeagueHubLibraryGame].self, from: data) else {
+              let games = try? JSONDecoder().decode([LeagueLibraryGame].self, from: data) else {
             return targetRows
         }
 
@@ -489,7 +489,7 @@ private struct ParsedStatsRow {
     let sourceOrder: Int
 }
 
-private struct LeagueHubLibraryGame: Decodable {
+private struct LeagueLibraryGame: Decodable {
     let name: String
     let group: Int?
     let pos: Int?

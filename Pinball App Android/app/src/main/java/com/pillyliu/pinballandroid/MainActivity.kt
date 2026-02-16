@@ -50,7 +50,7 @@ import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.data.refreshRedactedPlayersFromCsv
 import com.pillyliu.pinballandroid.info.AboutScreen
 import com.pillyliu.pinballandroid.league.LeagueDestination
-import com.pillyliu.pinballandroid.league.LeagueHubScreen
+import com.pillyliu.pinballandroid.league.LeagueScreen
 import com.pillyliu.pinballandroid.library.LibraryScreen
 import com.pillyliu.pinballandroid.practice.PracticeScreen
 import com.pillyliu.pinballandroid.standings.StandingsScreen
@@ -148,7 +148,7 @@ private fun PinballApp() {
                         PinballTab.Practice -> PracticeScreen(contentPadding = paddedForTabBar)
                         PinballTab.League -> {
                             when (leagueDestination) {
-                                null -> LeagueHubScreen(
+                                null -> LeagueScreen(
                                     contentPadding = paddedForTabBar,
                                     onOpenDestination = { leagueDestination = it },
                                 )

@@ -8,7 +8,7 @@
 import SwiftUI
 import Combine
 
-struct StandingsView: View {
+struct StandingsScreen: View {
     let embeddedInNavigation: Bool
 
     init(embeddedInNavigation: Bool = false) {
@@ -532,5 +532,5 @@ private func formatRounded(_ value: Double) -> String {
 }
 
 #Preview {
-    StandingsView()
+    StandingsScreen()
 }

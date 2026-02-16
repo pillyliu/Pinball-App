@@ -3,7 +3,7 @@ import Combine
 
 struct LeagueCard: View {
     let destination: LeagueDestination
-    @ObservedObject var previewModel: LeagueHubPreviewModel
+    @ObservedObject var previewModel: LeaguePreviewModel
 
     @State private var targetMetricIndex: Int = 0
     @State private var standingsModeIndex: Int = 0

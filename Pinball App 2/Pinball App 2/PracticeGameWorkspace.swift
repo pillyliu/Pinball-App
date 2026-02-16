@@ -218,7 +218,7 @@ struct PracticeGameWorkspace: View {
 
                 HStack(spacing: 8) {
                     NavigationLink("Rulesheet") {
-                        RulesheetView(slug: game.slug, gameName: game.name)
+                        RulesheetScreen(slug: game.slug, gameName: game.name)
                     }
                     .buttonStyle(.glass)
 

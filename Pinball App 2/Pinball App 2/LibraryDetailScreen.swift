@@ -1,7 +1,7 @@
 import SwiftUI
 import WebKit
 
-struct PinballGameDetailView: View {
+struct LibraryDetailScreen: View {
     let game: PinballGame
     @StateObject private var viewModel: PinballGameInfoViewModel
     @State private var activeVideoID: String?
@@ -51,7 +51,7 @@ struct PinballGameDetailView: View {
 
             HStack(spacing: 8) {
                 NavigationLink("Rulesheet") {
-                    RulesheetView(slug: game.slug, gameName: game.name)
+                    RulesheetScreen(slug: game.slug, gameName: game.name)
                 }
                 .buttonStyle(.glass)
                 .simultaneousGesture(

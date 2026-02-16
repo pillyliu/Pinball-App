@@ -157,5 +157,3 @@ final class PracticeStore: ObservableObject {
         }
     }
 }
-
-typealias PracticeUpgradeStore = PracticeStore

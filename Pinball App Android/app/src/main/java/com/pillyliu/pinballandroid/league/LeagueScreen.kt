@@ -70,7 +70,7 @@ enum class LeagueDestination(val title: String, val subtitle: String, val icon: 
 }
 
 @Composable
-fun LeagueHubScreen(
+fun LeagueScreen(
     contentPadding: PaddingValues,
     onOpenDestination: (LeagueDestination) -> Unit,
 ) {

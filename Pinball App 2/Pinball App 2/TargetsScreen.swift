@@ -1,5 +1,5 @@
 //
-//  LPLTargetsView.swift
+//  TargetsScreen.swift
 //  Pinball App 2
 //
 //  Created by Codex on 2/5/26.
@@ -8,14 +8,14 @@
 import SwiftUI
 import Combine
 
-struct LPLTargetsView: View {
+struct TargetsScreen: View {
     let embeddedInNavigation: Bool
 
     init(embeddedInNavigation: Bool = false) {
         self.embeddedInNavigation = embeddedInNavigation
     }
 
-    @StateObject private var viewModel = LPLTargetsViewModel()
+    @StateObject private var viewModel = TargetsViewModel()
     @State private var tableAvailableWidth: CGFloat = 0
     @State private var viewportWidth: CGFloat = 0
     private let tableDividerHeight: CGFloat = 1
@@ -197,7 +197,7 @@ struct LPLTargetsView: View {
     private var topRightFilterMenu: some View {
         Menu {
             Section("Sort") {
-                ForEach(LPLTargetsSortMode.allCases) { mode in
+                ForEach(TargetsSortMode.allCases) { mode in
                     Button("Sort: \(mode.title)") { viewModel.sortMode = mode }
                 }
             }
@@ -244,13 +244,13 @@ struct LPLTargetsView: View {
 
     private var sortDropdownMenu: some View {
         Menu {
-            ForEach(LPLTargetsSortMode.allCases) { mode in
+            ForEach(TargetsSortMode.allCases) { mode in
                 Button("Sort: \(mode.title)") { viewModel.sortMode = mode }
             }
         } label: {
             ZStack {
                 HStack(spacing: AppLayout.dropdownContentSpacing) {
-                    Text("Sort: \(LPLTargetsSortMode.widestTitle)")
+                    Text("Sort: \(TargetsSortMode.widestTitle)")
                         .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
                         .lineLimit(1)
                     Spacer(minLength: 4)
@@ -326,7 +326,7 @@ struct LPLTargetsView: View {
                     ScrollView(.vertical) {
                         LazyVStack(spacing: 0) {
                             ForEach(Array(viewModel.rows.enumerated()), id: \.element.id) { index, row in
-                                LPLTargetsRowView(
+                                TargetsRowView(
                                     row: row,
                                     gameColumnWidth: gameColumnWidth,
                                     bankColumnWidth: adjustedBankColumnWidth,
@@ -359,11 +359,11 @@ struct LPLTargetsView: View {
 
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            LPLTargetsHeaderCell(title: "Game", width: gameColumnWidth, largeText: isLargeTablet)
-            LPLTargetsHeaderCell(title: "B", width: adjustedBankColumnWidth, alignment: .leading, largeText: isLargeTablet)
-            LPLTargetsHeaderCell(title: "2nd", width: adjustedScoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
-            LPLTargetsHeaderCell(title: "4th", width: adjustedScoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
-            LPLTargetsHeaderCell(title: "8th", width: adjustedScoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
+            TargetsHeaderCell(title: "Game", width: gameColumnWidth, largeText: isLargeTablet)
+            TargetsHeaderCell(title: "B", width: adjustedBankColumnWidth, alignment: .leading, largeText: isLargeTablet)
+            TargetsHeaderCell(title: "2nd", width: adjustedScoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
+            TargetsHeaderCell(title: "4th", width: adjustedScoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
+            TargetsHeaderCell(title: "8th", width: adjustedScoreColumnWidth, alignment: .leading, largeText: isLargeTablet)
         }
         .frame(height: isLargeTablet ? 40 : 34)
         .background(.thinMaterial)
@@ -382,7 +382,7 @@ struct LPLTargetsView: View {
     }
 }
 
-private struct LPLTargetsRowView: View {
+private struct TargetsRowView: View {
     let row: LPLTargetRow
     let gameColumnWidth: CGFloat
     let bankColumnWidth: CGFloat
@@ -421,7 +421,7 @@ private struct LPLTargetsRowView: View {
     }
 }
 
-private struct LPLTargetsHeaderCell: View {
+private struct TargetsHeaderCell: View {
     let title: String
     let width: CGFloat
     var alignment: Alignment = .leading
@@ -449,7 +449,7 @@ private struct LPLTargetRow: Identifiable {
     var id: String { target.id }
 }
 
-private enum LPLTargetsSortMode: String, CaseIterable, Identifiable {
+private enum TargetsSortMode: String, CaseIterable, Identifiable {
     case location
     case bank
     case alphabetical
@@ -473,11 +473,11 @@ private enum LPLTargetsSortMode: String, CaseIterable, Identifiable {
 }
 
 @MainActor
-private final class LPLTargetsViewModel: ObservableObject {
+private final class TargetsViewModel: ObservableObject {
     @Published private(set) var rows: [LPLTargetRow] = LPLTarget.rows.enumerated().map { index, target in
         LPLTargetRow(target: target, bank: nil, group: nil, pos: nil, libraryOrder: Int.max, fallbackOrder: index)
     }
-    @Published var sortMode: LPLTargetsSortMode = .location {
+    @Published var sortMode: TargetsSortMode = .location {
         didSet { applySortAndFilter() }
     }
     @Published var selectedBank: Int? {
@@ -709,5 +709,5 @@ private extension Int64 {
 }
 
 #Preview {
-    LPLTargetsView()
+    TargetsScreen()
 }

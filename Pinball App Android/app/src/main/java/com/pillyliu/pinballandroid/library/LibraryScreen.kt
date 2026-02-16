@@ -38,26 +38,26 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     var query by rememberSaveable { mutableStateOf("") }
     var sortOptionName by rememberSaveable { mutableStateOf(LibrarySortOption.LOCATION.name) }
     var selectedBank by rememberSaveable { mutableStateOf<Int?>(null) }
-    var routeKind by rememberSaveable { mutableStateOf("list") }
+    var routeKind by rememberSaveable { mutableStateOf(LibraryRouteKind.LIST) }
     var routeSlug by rememberSaveable { mutableStateOf<String?>(null) }
     var routeImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
 
     val goBack: () -> Unit = {
         when (routeKind) {
-            "detail" -> {
-                routeKind = "list"
+            LibraryRouteKind.DETAIL -> {
+                routeKind = LibraryRouteKind.LIST
                 routeSlug = null
                 routeImageUrl = null
             }
-            "rulesheet", "playfield" -> routeKind = "detail"
+            LibraryRouteKind.RULESHEET, LibraryRouteKind.PLAYFIELD -> routeKind = LibraryRouteKind.DETAIL
             else -> {
-                routeKind = "list"
+                routeKind = LibraryRouteKind.LIST
                 routeSlug = null
                 routeImageUrl = null
             }
         }
     }
-    BackHandler(enabled = routeKind != "list") {
+    BackHandler(enabled = routeKind != LibraryRouteKind.LIST) {
         goBack()
     }
 
@@ -70,7 +70,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
         }
     }
     LaunchedEffect(routeKind) {
-        if (routeKind != "playfield") {
+        if (routeKind != LibraryRouteKind.PLAYFIELD) {
             bottomBarVisible.value = true
         }
     }
@@ -78,10 +78,10 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     val routeGame = routeSlug?.let { slug -> games.firstOrNull { it.slug == slug } }
 
     androidx.compose.foundation.layout.Box(
-        modifier = Modifier.iosEdgeSwipeBack(enabled = routeKind != "list", onBack = goBack),
+        modifier = Modifier.iosEdgeSwipeBack(enabled = routeKind != LibraryRouteKind.LIST, onBack = goBack),
     ) {
         when (routeKind) {
-        "list" -> LibraryList(
+        LibraryRouteKind.LIST -> LibraryList(
             contentPadding = contentPadding,
             games = games,
             query = query,
@@ -92,7 +92,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
             onBankChange = { selectedBank = it },
             onOpenGame = {
                 routeSlug = it.slug
-                routeKind = "detail"
+                routeKind = LibraryRouteKind.DETAIL
                 LibraryActivityLog.log(context, it.slug, it.name, LibraryActivityKind.BrowseGame)
                 prefs.edit()
                     .putString(KEY_LIBRARY_LAST_VIEWED_SLUG, it.slug)
@@ -101,7 +101,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
             },
         )
 
-        "detail" -> {
+        LibraryRouteKind.DETAIL -> {
             if (routeGame == null) {
                 if (games.isEmpty()) {
                     AppScreen(contentPadding) { }
@@ -110,7 +110,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             EmptyLabel("Game not found.")
                             Button(onClick = {
-                                routeKind = "list"
+                                routeKind = LibraryRouteKind.LIST
                                 routeSlug = null
                                 routeImageUrl = null
                             }) {
@@ -124,24 +124,24 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                     contentPadding = contentPadding,
                     game = routeGame,
                     onBack = {
-                        routeKind = "list"
+                        routeKind = LibraryRouteKind.LIST
                         routeSlug = null
                         routeImageUrl = null
                     },
                 onOpenRulesheet = {
                     LibraryActivityLog.log(context, routeGame.slug, routeGame.name, LibraryActivityKind.OpenRulesheet)
-                    routeKind = "rulesheet"
+                    routeKind = LibraryRouteKind.RULESHEET
                 },
                     onOpenPlayfield = { imageUrl ->
                         LibraryActivityLog.log(context, routeGame.slug, routeGame.name, LibraryActivityKind.OpenPlayfield)
                         routeImageUrl = imageUrl
-                        routeKind = "playfield"
+                        routeKind = LibraryRouteKind.PLAYFIELD
                     },
                 )
             }
         }
 
-        "rulesheet" -> {
+        LibraryRouteKind.RULESHEET -> {
             if (routeGame == null) {
                 if (games.isEmpty()) {
                     AppScreen(contentPadding) { }
@@ -150,7 +150,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             EmptyLabel("Rulesheet game not found.")
                             Button(onClick = {
-                                routeKind = "list"
+                                routeKind = LibraryRouteKind.LIST
                                 routeSlug = null
                                 routeImageUrl = null
                             }) {
@@ -163,12 +163,12 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                 RulesheetScreen(
                     contentPadding = contentPadding,
                     slug = routeGame.slug,
-                    onBack = { routeKind = "detail" },
+                    onBack = { routeKind = LibraryRouteKind.DETAIL },
                 )
             }
         }
 
-        "playfield" -> {
+        LibraryRouteKind.PLAYFIELD -> {
             if (routeGame == null) {
                 if (games.isEmpty()) {
                     AppScreen(contentPadding) { }
@@ -177,7 +177,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             EmptyLabel("Playfield game not found.")
                             Button(onClick = {
-                                routeKind = "list"
+                                routeKind = LibraryRouteKind.LIST
                                 routeSlug = null
                                 routeImageUrl = null
                             }) {
@@ -196,32 +196,11 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                     contentPadding = contentPadding,
                     title = routeGame.name,
                     imageUrls = imageCandidates,
-                    onBack = { routeKind = "detail" },
+                    onBack = { routeKind = LibraryRouteKind.DETAIL },
                 )
             }
         }
 
-        else -> {
-            LibraryList(
-                contentPadding = contentPadding,
-                games = games,
-                query = query,
-                sortOptionName = sortOptionName,
-                selectedBank = selectedBank,
-                onQueryChange = { query = it },
-                onSortOptionChange = { sortOptionName = it },
-                onBankChange = { selectedBank = it },
-                onOpenGame = {
-                    routeSlug = it.slug
-                    routeKind = "detail"
-                    LibraryActivityLog.log(context, it.slug, it.name, LibraryActivityKind.BrowseGame)
-                    prefs.edit()
-                        .putString(KEY_LIBRARY_LAST_VIEWED_SLUG, it.slug)
-                        .putLong(KEY_LIBRARY_LAST_VIEWED_TS, System.currentTimeMillis())
-                        .apply()
-                },
-            )
-        }
     }
     }
 }

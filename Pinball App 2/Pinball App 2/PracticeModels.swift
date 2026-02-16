@@ -500,8 +500,6 @@ struct ScoreSummary {
     let p75: Double
 }
 
-typealias PracticeUpgradeState = PracticePersistedState
-
 extension Array where Element == Double {
     func pinballPercentile(_ percentile: Double) -> Double? {
         guard !isEmpty else { return nil }

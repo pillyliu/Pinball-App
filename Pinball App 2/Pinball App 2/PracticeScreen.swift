@@ -346,5 +346,3 @@ struct PracticeScreen: View {
 #Preview {
     PracticeScreen()
 }
-
-typealias PracticeUpgradeTab = PracticeScreen
