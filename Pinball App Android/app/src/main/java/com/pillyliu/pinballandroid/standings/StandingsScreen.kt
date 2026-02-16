@@ -7,18 +7,34 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -30,12 +46,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.data.parseCsv
+import com.pillyliu.pinballandroid.data.redactPlayerNameForDisplay
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
 import com.pillyliu.pinballandroid.ui.CompactDropdownFilter
 import com.pillyliu.pinballandroid.ui.EmptyLabel
 import com.pillyliu.pinballandroid.ui.FixedWidthTableCell
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlinx.coroutines.launch
 
 private const val CSV_URL = "https://pillyliu.com/pinball/data/LPL_Standings.csv"
 
@@ -50,7 +71,8 @@ private data class StandingsCsvRow(
 )
 
 private data class Standing(
-    val player: String,
+    val rawPlayer: String,
+    val displayPlayer: String,
     val seasonTotal: Double,
     val eligible: String,
     val nights: String,
@@ -73,19 +95,56 @@ fun StandingsScreen(contentPadding: PaddingValues) {
 
     var rows by remember { mutableStateOf(emptyList<StandingsCsvRow>()) }
     var error by remember { mutableStateOf<String?>(null) }
+    var dataUpdatedAtMs by remember { mutableStateOf<Long?>(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    var hasNewerData by remember { mutableStateOf(false) }
+    var initialLoadComplete by remember { mutableStateOf(false) }
     var selectedSeason by rememberSaveable { mutableStateOf<Int?>(null) }
+    val scope = rememberCoroutineScope()
+    val pulseTransition = rememberInfiniteTransition(label = "standingsRefreshPulse")
+    val pulseAlpha by pulseTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.35f,
+        animationSpec = infiniteRepeatable(animation = tween(650), repeatMode = RepeatMode.Reverse),
+        label = "standingsRefreshPulseAlpha",
+    )
+
+    fun refresh(force: Boolean) {
+        if (isRefreshing) return
+        scope.launch {
+            isRefreshing = true
+            try {
+                val cached = if (force) {
+                    PinballDataCache.forceRefreshText(CSV_URL)
+                } else {
+                    PinballDataCache.passthroughOrCachedText(CSV_URL)
+                }
+                rows = parseStandings(cached.text.orEmpty())
+                dataUpdatedAtMs = cached.updatedAtMs
+                val seasonsNow = rows.map { it.season }.toSet().sorted()
+                if (selectedSeason == null || selectedSeason !in seasonsNow) {
+                    selectedSeason = seasonsNow.maxOrNull()
+                }
+                error = null
+                if (dataUpdatedAtMs != null) {
+                    scope.launch {
+                        val remoteHasNewer = PinballDataCache.hasRemoteUpdate(CSV_URL)
+                        hasNewerData = remoteHasNewer
+                    }
+                } else {
+                    hasNewerData = false
+                }
+            } catch (t: Throwable) {
+                error = t.message ?: "Failed to load standings"
+            } finally {
+                isRefreshing = false
+                initialLoadComplete = true
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
-        try {
-            val cached = PinballDataCache.passthroughOrCachedText(CSV_URL)
-            rows = parseStandings(cached.text.orEmpty())
-            error = null
-            if (selectedSeason == null) {
-                selectedSeason = rows.map { it.season }.distinct().maxOrNull()
-            }
-        } catch (t: Throwable) {
-            error = t.message ?: "Failed to load standings"
-        }
+        refresh(false)
     }
 
     val seasons = rows.map { it.season }.toSet().sorted()
@@ -107,6 +166,35 @@ fun StandingsScreen(contentPadding: PaddingValues) {
             )
 
             error?.let { Text(it, color = Color.Red) }
+            dataUpdatedAtMs?.let { updatedAt ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = formatUpdatedAt(updatedAt),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp,
+                    )
+                    if (isRefreshing) {
+                        Spacer(Modifier.width(6.dp))
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(10.dp),
+                            strokeWidth = 1.5.dp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        IconButton(
+                            onClick = { refresh(true) },
+                            modifier = Modifier.size(20.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Refresh,
+                                contentDescription = "Refresh data",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (hasNewerData) pulseAlpha else 1f),
+                                modifier = Modifier.size(12.dp),
+                            )
+                        }
+                    }
+                }
+            }
 
             CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
                 BoxWithConstraints {
@@ -127,7 +215,9 @@ fun StandingsScreen(contentPadding: PaddingValues) {
                     ) {
                         Column {
                             HeaderRow(widths)
-                            if (standingRows.isEmpty()) {
+                            if (!initialLoadComplete && isRefreshing) {
+                                EmptyLabel("Loading data…")
+                            } else if (standingRows.isEmpty()) {
                                 EmptyLabel("No rows. Check data source or season selection.")
                             } else {
                                 Column(modifier = Modifier.verticalScroll(rememberScrollState()).fillMaxSize()) {
@@ -158,23 +248,28 @@ private fun HeaderRow(widths: StandingsWidths) {
 
 @Composable
 private fun StandingRow(rank: Int, standing: Standing, widths: StandingsWidths) {
-    val rankColor = when (rank) {
-        1 -> Color.Yellow
-        2 -> Color(0xFFDBDBDB)
-        3 -> Color(0xFFFFA948)
-        else -> Color.White
-    }
+    val rankColor = podiumRankColor(rank)
     Row(
         modifier = Modifier
-            .background(if (rank % 2 == 0) Color(0xFF0A0A0A) else Color(0xFF171717))
+            .background(if (rank % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerLow)
             .padding(vertical = 6.dp),
     ) {
-        FixedWidthTableCell(rank.toString(), widths.rank, color = rankColor)
-        FixedWidthTableCell(standing.player, widths.player, bold = rank <= 8)
+        FixedWidthTableCell(rank.toString(), widths.rank, color = rankColor, bold = rank <= 3)
+        FixedWidthTableCell(standing.displayPlayer, widths.player, bold = rank <= 8)
         FixedWidthTableCell(fmt(standing.seasonTotal), widths.points)
         FixedWidthTableCell(standing.eligible, widths.eligible)
         FixedWidthTableCell(standing.nights, widths.nights)
         standing.banks.forEach { FixedWidthTableCell(fmt(it), widths.bank) }
+    }
+}
+
+@Composable
+private fun podiumRankColor(rank: Int): Color {
+    return when (rank) {
+        1 -> Color(0xFFFFD83D)
+        2 -> Color(0xFF98A3B3)
+        3 -> Color(0xFFC1845B)
+        else -> MaterialTheme.colorScheme.onSurface
     }
 }
 
@@ -185,7 +280,8 @@ private fun buildStandings(rows: List<StandingsCsvRow>, selectedSeason: Int?): L
 
     val mapped = seasonRows.map {
         Standing(
-            player = it.player,
+            rawPlayer = it.player,
+            displayPlayer = redactPlayerNameForDisplay(it.player),
             seasonTotal = it.total,
             eligible = it.eligible,
             nights = it.nights,
@@ -196,7 +292,7 @@ private fun buildStandings(rows: List<StandingsCsvRow>, selectedSeason: Int?): L
     val hasRankForAll = seasonRows.all { it.rank != null }
     if (hasRankForAll) {
         val rankMap = seasonRows.associate { it.player to (it.rank ?: Int.MAX_VALUE) }
-        return mapped.sortedBy { rankMap[it.player] ?: Int.MAX_VALUE }
+        return mapped.sortedBy { rankMap[it.rawPlayer] ?: Int.MAX_VALUE }
     }
 
     return mapped.sortedByDescending { it.seasonTotal }
@@ -246,3 +342,7 @@ private fun coerceSeason(value: String): Int {
 }
 
 private fun fmt(value: Double): String = NumberFormat.getIntegerInstance().format(value.toLong())
+
+private fun formatUpdatedAt(epochMs: Long): String {
+    return SimpleDateFormat("M/d/yy h:mm a", Locale.getDefault()).format(Date(epochMs))
+}

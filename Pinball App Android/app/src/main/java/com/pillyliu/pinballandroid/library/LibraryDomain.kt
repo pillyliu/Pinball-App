@@ -12,10 +12,17 @@ internal val LIBRARY_CONTENT_BOTTOM_FILLER = 60.dp
 
 internal data class Video(val label: String?, val url: String?)
 internal data class LibraryGroupSection(val groupKey: Int?, val games: List<PinballGame>)
+internal enum class LibraryRouteKind {
+    LIST,
+    DETAIL,
+    RULESHEET,
+    PLAYFIELD,
+}
+
 internal enum class LibrarySortOption(val label: String) {
     LOCATION("Sort: Location"),
     BANK("Sort: Bank"),
-    ALPHABETICAL("Sort: Alphabetical"),
+    ALPHABETICAL("Sort: A-Z"),
 }
 
 internal data class PinballGame(

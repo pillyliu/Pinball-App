@@ -1,0 +1,57 @@
+default_platform(:android)
+
+def bump_patch_version(version_name)
+  parts = version_name.split(".")
+  unless parts.all? { |part| part.match?(/^\d+$/) }
+    UI.user_error!("versionName must be numeric dot format (for example 1.0.3), got #{version_name}")
+  end
+
+  parts[-1] = (parts[-1].to_i + 1).to_s
+  parts.join(".")
+end
+
+def bump_android_versions!(gradle_file)
+  gradle_path = File.expand_path(gradle_file, __dir__)
+  content = File.read(gradle_path)
+
+  code_match = content.match(/versionCode\s*=\s*(\d+)/)
+  name_match = content.match(/versionName\s*=\s*"([^"]+)"/)
+
+  UI.user_error!("Could not find versionCode in #{gradle_path}") unless code_match
+  UI.user_error!("Could not find versionName in #{gradle_path}") unless name_match
+
+  old_code = code_match[1].to_i
+  old_name = name_match[1]
+  new_code = old_code + 1
+  new_name = bump_patch_version(old_name)
+
+  updated = content.sub(/versionCode\s*=\s*\d+/, "versionCode = #{new_code}")
+  updated = updated.sub(/versionName\s*=\s*"[^"]+"/, "versionName = \"#{new_name}\"")
+  File.write(gradle_path, updated)
+
+  UI.message("Bumped versionCode: #{old_code} -> #{new_code}")
+  UI.message("Bumped versionName: #{old_name} -> #{new_name}")
+end
+
+platform :android do
+  desc "Run unit tests"
+  lane :test do
+    gradle(task: "test")
+  end
+
+  desc "Build release AAB"
+  lane :build_release do
+    gradle(task: "clean bundle", build_type: "Release")
+  end
+
+  desc "Upload release AAB to Google Play internal track"
+  lane :internal do
+    bump_android_versions!("../app/build.gradle.kts")
+    gradle(task: "clean bundle", build_type: "Release")
+    upload_to_play_store(
+      track: "internal",
+      release_status: "draft",
+      aab: "app/build/outputs/bundle/release/app-release.aab"
+    )
+  end
+end

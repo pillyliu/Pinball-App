@@ -1,5 +1,12 @@
 package com.pillyliu.pinballandroid.data
 
+import java.text.Normalizer
+import java.util.Locale
+
+private const val REDACTION_TOKEN_SALT = "pinball-app-redaction-v1"
+private const val REDACTED_PLAYERS_CSV_PATH = "/pinball/data/redacted_players.csv"
+@Volatile private var redactedPlayersNormalized: Set<String> = emptySet()
+
 fun parseCsv(text: String): List<List<String>> {
     val rows = mutableListOf<List<String>>()
     val row = mutableListOf<String>()
@@ -46,4 +53,60 @@ fun parseCsv(text: String): List<List<String>> {
     }
 
     return rows
+}
+
+fun redactPlayerNameForDisplay(raw: String): String {
+    val trimmed = raw.trim()
+    return if (shouldRedactPlayerName(trimmed)) "Redacted ${redactionToken(trimmed)}" else trimmed
+}
+
+suspend fun refreshRedactedPlayersFromCsv() {
+    try {
+        val result = PinballDataCache.loadText(REDACTED_PLAYERS_CSV_PATH, allowMissing = true)
+        redactedPlayersNormalized = parseRedactedPlayersCsv(result.text)
+    } catch (_: Throwable) {
+        // Keep prior values if CSV cannot be refreshed.
+    }
+}
+
+private fun shouldRedactPlayerName(raw: String): Boolean {
+    val normalized = normalizePlayerName(raw)
+    if (normalized.isBlank()) return false
+    return redactedPlayersNormalized.contains(normalized)
+}
+
+private fun normalizePlayerName(raw: String): String {
+    val folded = Normalizer.normalize(raw, Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "")
+    return folded
+        .trim()
+        .lowercase(Locale.US)
+        .split(Regex("\\s+"))
+        .filter { it.isNotBlank() }
+        .joinToString(" ")
+}
+
+private fun redactionToken(raw: String): String {
+    val normalized = normalizePlayerName(raw)
+    val bytes = java.security.MessageDigest.getInstance("SHA-256")
+        .digest("$REDACTION_TOKEN_SALT:$normalized".toByteArray(Charsets.UTF_8))
+    return bytes.take(3).joinToString("") { "%02X".format(it.toInt() and 0xFF) }
+}
+
+private fun parseRedactedPlayersCsv(text: String?): Set<String> {
+    if (text.isNullOrBlank()) return emptySet()
+    val rows = parseCsv(text)
+    if (rows.isEmpty()) return emptySet()
+
+    val header = rows.first().map { it.replace("\uFEFF", "").trim().lowercase() }
+    val hasHeader = header.contains("name") || header.contains("player") || header.contains("player_name")
+    val nameIndex = header.indexOfFirst { it == "name" || it == "player" || it == "player_name" }.let {
+        if (it >= 0) it else 0
+    }
+    val dataRows = if (hasHeader) rows.drop(1) else rows
+
+    return dataRows.mapNotNull { row ->
+        if (nameIndex >= row.size) return@mapNotNull null
+        val normalized = normalizePlayerName(row[nameIndex])
+        normalized.takeIf { it.isNotBlank() }
+    }.toSet()
 }

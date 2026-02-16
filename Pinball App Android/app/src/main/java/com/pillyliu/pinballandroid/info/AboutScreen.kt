@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -30,8 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinballandroid.R
 import com.pillyliu.pinballandroid.ui.AppScreen
-import com.pillyliu.pinballandroid.ui.ControlBg
-import com.pillyliu.pinballandroid.ui.ControlBorder
 import com.pillyliu.pinballandroid.ui.SectionTitle
 
 private const val WEBSITE_URL = "https://www.lansingpinleague.com/"
@@ -62,11 +61,11 @@ fun AboutScreen(contentPadding: PaddingValues) {
                 Text(
                     text = "Pinball in the Capital City",
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White.copy(alpha = 0.92f),
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = "The Lansing Pinball League is the Capital City's IFPA-endorsed pinball league, open to players of all skill levels. New players are always welcome. We're a friendly, casual group with everyone from first-timers to seasoned competitors.",
-                    color = Color.White.copy(alpha = 0.92f),
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = buildAnnotatedString {
@@ -84,7 +83,7 @@ fun AboutScreen(contentPadding: PaddingValues) {
                         pop()
                         append(", paid in cash.")
                     },
-                    color = Color.White.copy(alpha = 0.92f),
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = buildAnnotatedString {
@@ -102,7 +101,7 @@ fun AboutScreen(contentPadding: PaddingValues) {
                         pop()
                         append(".")
                     },
-                    color = Color.White.copy(alpha = 0.92f),
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
 
                 Row(
@@ -114,18 +113,18 @@ fun AboutScreen(contentPadding: PaddingValues) {
                     Button(
                         onClick = { uriHandler.openUri(WEBSITE_URL) },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = ControlBg),
-                        border = BorderStroke(1.dp, ControlBorder),
+                        colors = ButtonDefaults.filledTonalButtonColors(),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     ) {
-                        Text("lansingpinleague.com", color = Color.White)
+                        Text("lansingpinleague.com")
                     }
                     Button(
                         onClick = { uriHandler.openUri(FACEBOOK_URL) },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = ControlBg),
-                        border = BorderStroke(1.dp, ControlBorder),
+                        colors = ButtonDefaults.filledTonalButtonColors(),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     ) {
-                        Text("Facebook Group", color = Color.White)
+                        Text("Facebook Group")
                     }
                 }
             }
@@ -135,7 +134,7 @@ fun AboutScreen(contentPadding: PaddingValues) {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 2.dp),
-                color = Color.White.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
             )
         }
