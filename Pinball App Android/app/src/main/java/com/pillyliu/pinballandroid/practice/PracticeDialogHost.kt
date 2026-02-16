@@ -22,7 +22,7 @@ internal fun PracticeDialogHost(
     onOpenResetDialogChange: (Boolean) -> Unit,
 ) {
     if (openNamePrompt) {
-        PracticeNamePromptDialog(
+        PracticeNamePromptSheet(
             initialName = store.playerName,
             onSave = { name ->
                 store.updatePlayerName(name)
@@ -33,7 +33,7 @@ internal fun PracticeDialogHost(
     }
 
     if (openQuickEntry) {
-        QuickEntryDialog(
+        QuickEntrySheet(
             store = store,
             selectedGameSlug = selectedGameSlug,
             presetActivity = quickPresetActivity,
@@ -47,7 +47,7 @@ internal fun PracticeDialogHost(
     }
 
     if (openGroupDateDialog) {
-        GroupDashboardDateDialog(
+        GroupDashboardDateSheet(
             store = store,
             groupId = groupDateDialogGroupID,
             field = groupDateDialogField,

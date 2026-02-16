@@ -23,7 +23,7 @@ import kotlin.math.roundToInt
 private const val QUICK_GAME_KEY_PREFIX = "practice-quick-game-"
 
 @Composable
-internal fun QuickEntryDialog(
+internal fun QuickEntrySheet(
     store: PracticeStore,
     selectedGameSlug: String?,
     presetActivity: QuickActivity,

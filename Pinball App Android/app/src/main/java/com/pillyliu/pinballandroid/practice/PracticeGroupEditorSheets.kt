@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-internal fun GroupEditorScheduleDateDialog(
+internal fun GroupEditorScheduleDateSheet(
     field: GroupEditorDateField,
     initialSelectedDateMillis: Long,
     onSave: (Long, GroupEditorDateField) -> Unit,
@@ -50,7 +50,7 @@ internal fun GroupEditorScheduleDateDialog(
 }
 
 @Composable
-internal fun DeleteGroupConfirmDialog(
+internal fun DeleteGroupConfirmSheet(
     onConfirmDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -68,7 +68,7 @@ internal fun DeleteGroupConfirmDialog(
 }
 
 @Composable
-internal fun DeleteTitleConfirmDialog(
+internal fun DeleteTitleConfirmSheet(
     onConfirmDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {

@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct PracticeQuickEntryDialog: View {
+struct PracticeQuickEntrySheet: View {
     let kind: QuickEntrySheet
     @ObservedObject var store: PracticeStore
     @Binding var selectedGameID: String

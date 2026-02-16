@@ -219,7 +219,7 @@ internal fun GroupEditorScreen(
     }
 
     if (openScheduleDateDialog) {
-        GroupEditorScheduleDateDialog(
+        GroupEditorScheduleDateSheet(
             field = scheduleDateDialogField,
             initialSelectedDateMillis = scheduleDatePickerInitialMs,
             onSave = { selectedDate, field ->
@@ -243,7 +243,7 @@ internal fun GroupEditorScreen(
     }
 
     if (openDeleteGroupConfirm && editing != null) {
-        DeleteGroupConfirmDialog(
+        DeleteGroupConfirmSheet(
             onConfirmDelete = {
                 store.deleteGroup(editing.id)
                 openDeleteGroupConfirm = false
@@ -254,7 +254,7 @@ internal fun GroupEditorScreen(
     }
 
     if (pendingDeleteSlug != null) {
-        DeleteTitleConfirmDialog(
+        DeleteTitleConfirmSheet(
             onConfirmDelete = {
                 pendingDeleteSlug?.let { slug -> selected.remove(slug) }
                 pendingDeleteSlug = null

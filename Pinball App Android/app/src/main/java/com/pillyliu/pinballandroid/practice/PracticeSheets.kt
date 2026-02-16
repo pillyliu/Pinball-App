@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import java.util.Locale
 
 @Composable
-internal fun PracticeNamePromptDialog(
+internal fun PracticeNamePromptSheet(
     initialName: String,
     onSave: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -51,7 +51,7 @@ internal fun PracticeNamePromptDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun GroupDashboardDateDialog(
+internal fun GroupDashboardDateSheet(
     store: PracticeStore,
     groupId: String?,
     field: GroupDashboardDateField,

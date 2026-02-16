@@ -42,3 +42,6 @@ local.properties
 
 # Android fastlane local credentials
 Pinball App Android/fastlane/play-store-service-account.json
+
+# Local generated artifacts
+output/
