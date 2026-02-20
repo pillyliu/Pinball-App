@@ -6,7 +6,6 @@ source_updated_at: "2025-09-18T06:12:13.213Z"
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/jaws-rulesheet/8781">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
 
-
 <div class="pinball-rulesheet">
 
 ## Quick Links:
@@ -101,18 +100,18 @@ Summer has arrived in the small New England town of Amity, and threatening shark
 
 These modes are accessible by holding both flipper buttons during attract mode until a menu appears. The following options are available:
 
-- **Standard:**  
+- **Standard:**\
   See below for full rulesheet.
 - **Competition:**
-- **Shark Hunter**  
+- **Shark Hunter**\
   Allows you to play the Shark Hunter Video Mode as a standalone game, in exchange for “shark teeth” via Stern Insider. (Must be logged in with Insider to play.)
-- **4th of July Challenge**  
+- **4th of July Challenge**\
   Play the 4th of July mini-wizard mode as a standalone game, with unlimited ball save, in exchange for “shark teeth” via Stern Insider. (Must be logged in with Insider to play.)
-- **Jaws: The Revenge**  
+- **Jaws: The Revenge**\
   Play as the shark himself in an 8-bit throwback game within a game. Requires 10 “shark teeth” via Stern Insider to play.
-- **The Shark is Broken**  
+- **The Shark is Broken**\
   Chaotic single-ball / multiball hybrid mode roughly based on the filming of *Jaws* and how difficult the shark animatronic was to work with. Requires the topper and 10 “shark teeth” via Stern Insider to play.
-- **Competition Install**  
+- **Competition Install**\
   Not from the gameplay menu, but the following is changed if a Competition Install is performed from the utilities menu:
 
 ## <span id="heading--skillshots"></span>Skill Shots:

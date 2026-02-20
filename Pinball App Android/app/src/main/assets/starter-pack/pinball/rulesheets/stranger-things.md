@@ -1,11 +1,10 @@
 ---
 title: "Stranger Things Rulesheet"
-source: "https://tiltforums.com/t/stranger-things-rulesheet-wip/6093"
-source_updated_at: "2024-10-25T17:29:25.990Z"
+source: "https://tiltforums.com/t/stranger-things-rulesheet/6093"
+source_updated_at: "2026-02-19T12:51:16.676Z"
 ---
 
-<small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/stranger-things-rulesheet-wip/6093">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
+<small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/stranger-things-rulesheet/6093">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
 
 <div class="pinball-rulesheet">
 
@@ -218,7 +217,7 @@ The **[Send it Back](#heading--senditback)** and **[Light the Fire](#heading--li
 
 - Left orbit, Burn it Back loop, and right orbit are lit.
 - Scoring starts at 3M and increases +250k per shot (3M/3.25M/3.5M) with the fourth and final shot lit at the left standup/mystery lane for 3.75M after shooting the first three shots.
-- Depending on Dart’s current level (increased with the **[bumpers](#heading--superpops)**), the scoring from this mode will either start at 3M/4M/5M. (Each shot will still only increase by 250k)
+- Depending on Dart’s current level (increased with the **[bumpers](#heading--dart)**), the scoring from this mode will either start at 3M/4M/5M. (Each shot will still only increase by 250k)
 - **[+2 Drawings](#heading--drawings)** by shooting the lit shots preceding the left standup lane in the following order: Burn it Back, right orbit, left orbit.
 
 **Turn Up the Heat** (40 sec)
@@ -277,7 +276,7 @@ Spelling DEMODOG with direct shots to the standup targets (or the saucer for the
 
 ### <span id="heading--demogorgon"></span>Demogorgon Modes:
 
-Complete the drop targets to spell words and light Demogorgon Ready - each mode requires one more completion of the drop targets than the last. Once the drop targets are lowered and the purple arrow is strobing, shoot up the middle to start a Demogorgon Mode. Some are single ball and some are multiballs.  
+Complete the drop targets to spell words and light Demogorgon Ready - each mode requires one more completion of the drop targets than the last. Once the drop targets are lowered and the purple arrow is strobing, shoot up the middle to start a Demogorgon Mode. Some are single ball and some are multiballs.\
 (*Note - if you can sneak the ball behind the drops before all of them are down and register the center shot, all remaining drops will be spotted and the current word will be awarded*). All five Demogorgon Modes must be played in order to solidly light the **Demogorgon!** objective.
 
 During Demogorgon Modes, the action button flashes red, and pressing the button will use up the **Demogorgon Bomb**. Only one Demogorgon Bomb is given per game, and using it will kill the currently active Demogorgon for a reduced value. This also locks in the jackpot value during the two multiball Demogorgon Modes, and does not reduce the Super Jackpot value during those modes.
@@ -376,7 +375,7 @@ The mystery animation shows a 20-sided dice roll, with each side corresponding t
 12. **[Upside Down](#heading--upsidedown)**
 13. **[Multiball](#heading--tk)**
 14. Add Time
-15. Advance Dart (+3k **[bumpers](#heading--superpops)**)
+15. Advance Dart (+3k **[bumpers](#heading--dart)**)
 16. Light **[Demogorgon Ready](#heading--demogorgon)**
 17. Bulls@!t (apparently it’s just that, all switches score BS and some points)
 18. Light **[Demodog Attack](#heading--demodog)**

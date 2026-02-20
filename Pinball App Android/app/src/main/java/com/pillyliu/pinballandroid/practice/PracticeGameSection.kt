@@ -130,12 +130,11 @@ internal fun PracticeGameSection(
 
             PracticeGameSubview.Input -> {
                 Text("Task-Specific Logging", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                PracticeInputButton("Rulesheet") { onOpenQuickEntry(QuickActivity.Rulesheet, QuickEntryOrigin.Study) }
-                PracticeInputButton("Tutorial") { onOpenQuickEntry(QuickActivity.Tutorial, QuickEntryOrigin.Study) }
-                PracticeInputButton("Gameplay") { onOpenQuickEntry(QuickActivity.Gameplay, QuickEntryOrigin.Study) }
-                PracticeInputButton("Playfield") { onOpenQuickEntry(QuickActivity.Playfield, QuickEntryOrigin.Study) }
-                PracticeInputButton("Practice") { onOpenQuickEntry(QuickActivity.Practice, QuickEntryOrigin.Practice) }
-                PracticeInputButton("Mechanics") { onOpenQuickEntry(QuickActivity.Mechanics, QuickEntryOrigin.Mechanics) }
+                PracticeInputButton("View playfield image") { onOpenQuickEntry(QuickActivity.Playfield, QuickEntryOrigin.Study) }
+                PracticeInputButton("Read rulesheet") { onOpenQuickEntry(QuickActivity.Rulesheet, QuickEntryOrigin.Study) }
+                PracticeInputButton("Watch tutorial video(s)") { onOpenQuickEntry(QuickActivity.Tutorial, QuickEntryOrigin.Study) }
+                PracticeInputButton("Watch gameplay video(s)") { onOpenQuickEntry(QuickActivity.Gameplay, QuickEntryOrigin.Study) }
+                PracticeInputButton("Practice the game") { onOpenQuickEntry(QuickActivity.Practice, QuickEntryOrigin.Practice) }
                 PracticeInputButton("Log Score") { onOpenQuickEntry(QuickActivity.Score, QuickEntryOrigin.Score) }
             }
 

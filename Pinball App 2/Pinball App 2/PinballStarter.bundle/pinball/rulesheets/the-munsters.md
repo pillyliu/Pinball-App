@@ -1,11 +1,10 @@
 ---
 title: "The Munsters Rulesheet"
 source: "https://tiltforums.com/t/the-munsters-rulesheet/4781"
-source_updated_at: "2024-07-08T21:21:09.199Z"
+source_updated_at: "2026-02-19T12:52:28.829Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/the-munsters-rulesheet/4781">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -93,17 +92,17 @@ source_updated_at: "2024-07-08T21:21:09.199Z"
 
 These modes are accessible by holding both flipper buttons during attract mode until a menu appears. The following options are available:
 
-- **Standard:**  
+- **Standard:**\
   See below for full rulesheet.
-- **Competition:**  
+- **Competition:**\
   Same as *Standard* but with elements of randomness (ie. Dragula, Kitty) removed.
-- **Impossible:**  
+- **Impossible:**\
   Extra balls are disabled, game rules are set to “very hard”, and flippers cannot be held for over 2 seconds. For the best of the best players.
-- **Monster:**  
+- **Monster:**\
   Player 1 plays in impossible mode; everyone else plays with regular rules.
-- **Couch Potato Challenge:**  
+- **Couch Potato Challenge:**\
   Unique 2-ball multiball frenzy. Shoot shots to add balls and targets to keep them lit. Ends after 20 shots are made. High scores are kept across players.
-- **DJ Mixer**  
+- **DJ Mixer**\
   NOT a gameplay mode. This mode operates like a jukebox, allowing you to play the music featured in the machine, including a number of specific playlists.
 
 ## <span id="heading--skillshots"></span>Skill Shots
@@ -270,7 +269,7 @@ The scoop (or lower playfield VUK on Prem / LE) is lit at the start of the game 
 - Max Dragula (advances DRAGULA value to max and qualifies 5x Dragula instantly)
 - Light **[Kitty](#heading--kitty)** (this is the only Mystery Award in tournament mode)
 - Light **[Secret Mania](#heading--secret)**
-- Light **[Extra Ball](#heading--extraballs)** (at the scoop)
+- Light **[Extra Ball](#heading--extraball)** (at the scoop)
 - Light Special (at either outlane)
 
 ### <span id="heading--combos"></span>Combos

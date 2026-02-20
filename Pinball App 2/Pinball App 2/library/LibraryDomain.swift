@@ -356,25 +356,25 @@ final class PinballLibraryViewModel: ObservableObject {
 
     var sections: [PinballGroupSection] {
         var out: [PinballGroupSection] = []
-        let groupingKey: (PinballGame) -> Int? = {
+        let groupingKey: (PinballGame) -> (String?, Int?) = {
             switch sortOption {
             case .location:
-                return { $0.group }
+                return { (nil, $0.group) }
             case .bank:
-                return { $0.bank }
+                return { (nil, $0.bank) }
             case .alphabetical:
-                return { _ in nil }
+                return { _ in (nil, nil) }
             }
         }()
 
         for game in sortedFilteredGames {
-            let key = groupingKey(game)
-            if let last = out.last, last.groupKey == key {
+            let (locationKey, groupKey) = groupingKey(game)
+            if let last = out.last, last.locationKey == locationKey, last.groupKey == groupKey {
                 var mutable = last
                 mutable.games.append(game)
                 out[out.count - 1] = mutable
             } else {
-                out.append(PinballGroupSection(groupKey: key, games: [game]))
+                out.append(PinballGroupSection(locationKey: locationKey, groupKey: groupKey, games: [game]))
             }
         }
 
@@ -528,6 +528,7 @@ final class RulesheetScreenModel: ObservableObject {
     }
 }
 struct PinballGroupSection {
+    let locationKey: String?
     let groupKey: Int?
     var games: [PinballGame]
 }
@@ -557,6 +558,22 @@ struct PinballGame: Identifiable, Decodable {
         }
     }
 
+    enum CodingKeys: String, CodingKey {
+        case location
+        case group
+        case position
+        case bank
+        case name
+        case manufacturer
+        case year
+        case slug
+        case playfieldImageUrl
+        case playfieldLocal
+        case rulesheetUrl
+        case videos
+    }
+
+    let location: String?
     let group: Int?
     let pos: Int?
     let bank: Int?
@@ -568,6 +585,23 @@ struct PinballGame: Identifiable, Decodable {
     let playfieldLocal: String?
     let rulesheetUrl: String?
     let videos: [Video]
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        location = try container.decodeIfPresent(String.self, forKey: .location)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        group = try container.decodeIfPresent(Int.self, forKey: .group)
+        pos = try container.decodeIfPresent(Int.self, forKey: .position)
+        bank = try container.decodeIfPresent(Int.self, forKey: .bank)
+        name = try container.decode(String.self, forKey: .name)
+        manufacturer = try container.decodeIfPresent(String.self, forKey: .manufacturer)
+        year = try container.decodeIfPresent(Int.self, forKey: .year)
+        slug = try container.decode(String.self, forKey: .slug)
+        playfieldImageUrl = try container.decodeIfPresent(String.self, forKey: .playfieldImageUrl)
+        playfieldLocal = try container.decodeIfPresent(String.self, forKey: .playfieldLocal)
+        rulesheetUrl = try container.decodeIfPresent(String.self, forKey: .rulesheetUrl)
+        videos = try container.decodeIfPresent([Video].self, forKey: .videos) ?? []
+    }
 
     var id: String { slug }
 
@@ -612,8 +646,10 @@ struct PinballGame: Identifiable, Decodable {
 
     var locationText: String? {
         guard let group, let pos else { return nil }
-        let floor = (1...4).contains(group) ? "U" : "D"
-        return "\(floor):\(group):\(pos)"
+        if let location, !location.isEmpty {
+            return "📍 \(location):\(group):\(pos)"
+        }
+        return "📍 \(group):\(pos)"
     }
 
     var playfieldLocalURL: URL? {

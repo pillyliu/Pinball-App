@@ -1,11 +1,10 @@
 ---
 title: "Venom Rulesheet"
 source: "https://tiltforums.com/t/venom-rulesheet/8503"
-source_updated_at: "2025-08-05T14:17:30.984Z"
+source_updated_at: "2026-02-19T12:53:36.628Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/venom-rulesheet/8503">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -89,21 +88,21 @@ Designed by Brian Eddy with rules and software by Dwight Sullivan, ***Venom*** d
 
 These modes are accessible by holding both flipper buttons during attract mode until a menu appears. The following options are available:
 
-- **Standard:**  
+- **Standard:**\
   See below for full rulesheet.
-- **Competition:**  
+- **Competition:**\
   Same as *Standard* but with elements of randomness removed.
-- **Cooperative:**  
+- **Cooperative:**\
   All players are on the same team. All scores, completed **mini-modes**, and **XP** are shared between players.
-- **Team Play:**  
+- **Team Play:**\
   Adds the scores of two different sets of players for team play. The highest score wins.
-- **Impossible:**  
+- **Impossible:**\
   Extra balls are disabled, game rules are set to “very hard”, and flippers cannot be held for over 2 seconds. For the best of the best players.
-- **Monster:**  
+- **Monster:**\
   Player 1 plays in impossible mode; everyone else plays with regular rules.
-- **Challenge:**  
+- **Challenge:**\
   Practice defeating **Knull** at different levels and with different boxes on the grid completed.
-- **DJ Mixer**  
+- **DJ Mixer**\
   NOT a gameplay mode. This mode operates like a jukebox, allowing you to play the music featured in the machine, including a number of specific playlists.
 
 ## <span id="heading--hosts"></span>Host Selection / Skill Shots:
@@ -170,9 +169,9 @@ The mini-modes for each host are:
 
 Unlockable Characters' Mini Modes
 
-**Venomized Hulk** \| Right orbit - right loop \| Scoop - left orbit \| Center ramp - left ramp  
-**Venomized Captain America** \| Left ramp - right loop \| Left loop - right orbit \| Scoop - center ramp  
-**Venomized Wolverine** \| Center ramp - left loop \| Scoop - left orbit \|  
+**Venomized Hulk** \| Right orbit - right loop \| Scoop - left orbit \| Center ramp - left ramp\
+**Venomized Captain America** \| Left ramp - right loop \| Left loop - right orbit \| Scoop - center ramp\
+**Venomized Wolverine** \| Center ramp - left loop \| Scoop - left orbit \|\
 **Venomized Ghost Rider** \| Left loop - scoop \| Center ramp - left ramp \| Right orbit - left orbit
 
 “Default” hosts only need to complete one column of mini-modes to qualify their battle. “Unlockable” hosts need to complete two.
@@ -203,7 +202,7 @@ Each boss can also be defeated by bringing them into **[Mayhem Multiball](#headi
 
 Defeat all four minor bosses to qualify **[Hybrid](#heading--teamups)**.
 
-Defeat one minor boss (two for unlockable hosts) and level up to level 20 to qualify **[Grendel](#heading--boss)** as the next Battle Mode; defeat Grendel and level up to level 30 to enable the final fight against **[Knull](#heading--knull)**.
+Defeat one minor boss (two for unlockable hosts) and level up to level 20 to qualify **[Grendel](#heading--boss)** as the next Battle Mode; defeat Grendel and level up to level 30 to enable the final fight against **[Knull](#heading--boss)**.
 
 Failing a battle resets the mini-mode path needed to light the battle.
 

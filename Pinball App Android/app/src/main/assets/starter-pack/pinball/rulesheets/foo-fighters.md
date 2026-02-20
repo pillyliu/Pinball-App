@@ -1,11 +1,10 @@
 ---
 title: "Foo Fighters Rulesheet"
 source: "https://tiltforums.com/t/foo-fighters-rulesheet/8162"
-source_updated_at: "2025-08-03T07:17:05.080Z"
+source_updated_at: "2026-02-19T12:45:36.125Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/foo-fighters-rulesheet/8162">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -102,15 +101,15 @@ Jack Danger’s first full-fledged pinball machine. *****Foo Fighters***** is ba
 
 These modes are accessible by holding both flipper buttons during attract mode until a menu appears. The following options are available:
 
-- **Standard:**  
+- **Standard:**\
   See below for full rulesheet.
-- **Competition:**  
+- **Competition:**\
   Same as *Standard* but with radio mystery awards scored in a set order
-- **The Final Battle Challenge:**  
+- **The Final Battle Challenge:**\
   Play the **[Final Battle](#heading--final)** wizard mode on its own. High scores are kept across players.
-- **DJ Mixer**  
+- **DJ Mixer**\
   NOT a gameplay mode. This mode operates like a jukebox, allowing you to play the music featured in the machine, including a number of specific playlists.
-- **Competition Install**  
+- **Competition Install**\
   Not from the gameplay menu, but the following is changed if a Competition Install is performed from the utilities menu:
   - Overlord multiball difficulty set to MEDIUM (cannot spot targets with Overlord)
   - Playfield multiplier timer reduced
@@ -141,11 +140,11 @@ The overarching goal of *****Foo Fighters***** is to tour the US, find the citie
 
 Shoot white shots to spell V-A-N and light “Start Van Mode” at the left ramp. Only one white shot is needed to light the left ramp for the first mode, up to a maximum of three white shots. As the game progresses, less and less white shots are available. If the player drains without completing a van mode, the left ramp will be immediately lit to select another mode on the next ball.
 
-Each mode corresponds to a specific city and song and can be completed across multiple attempts, though completing a mode in one try scores more and is required to assemble the **[FooBot](#heading--foobot)**. Up to 14 shots are required to complete each mode: some shots give double progress, and 5 shots worth of progress are spotted for the first mode played during a game (the number of spotted shots decreases by 1 for each completed mode). Double progress shots will add double incremental points to the next mode shot.
+Each mode corresponds to a specific city and song and can be completed across multiple attempts, though completing a mode in one try scores more and is required to assemble the **[FooBot](#heading--foobotmb)**. Up to 14 shots are required to complete each mode: some shots give double progress, and 5 shots worth of progress are spotted for the first mode played during a game (the number of spotted shots decreases by 1 for each completed mode). Double progress shots will add double incremental points to the next mode shot.
 
 All modes are subject to the **[upgrades](#heading--mods)** that can be collected by shooting the MOD-ulator target. Shots can be spotted during van modes by pressing the action button if it has been qualified via the **[UFO captive ball](#heading--ufocaptiveball)**. All modes are timed for 50 seconds, but 3 seconds of time are added for each increment of progress made during the mode.
 
-Making the final shot in each mode - which is always at the Overlord - awards any Bomb Bonus you have waiting for you (from the Bomb van mod), and additional Time Bonus worth 1% of the mode total (including the bomb bonus, excluding extra points from **[2x or 3x playfield](#heading--pfx)**) x the number of seconds remaining. Scoring more than 50M in a van mode upgrades the **[FooBot left leg](#heading--foobot)** and increases the base jackpot value during **[Austin](#heading--austin)**.
+Making the final shot in each mode - which is always at the Overlord - awards any Bomb Bonus you have waiting for you (from the Bomb van mod), and additional Time Bonus worth 1% of the mode total (including the bomb bonus, excluding extra points from **[2x or 3x playfield](#heading--pfx)**) x the number of seconds remaining. Scoring more than 50M in a van mode upgrades the **[FooBot left leg](#heading--foobotmb)** and increases the base jackpot value during **[Austin](#heading--austin)**.
 
 Fully complete three van modes to enable the **[Austin](#heading--austin)** and **[D.C.](#heading--dc)** wizard modes. They can either be selected right away, or held off for later.
 
@@ -155,7 +154,7 @@ Fully complete three van modes to enable the **[Austin](#heading--austin)** and 
   - Award increment: 250k
   - 3x Value + 2x Progress Shot: Side Loop
 
-- **Roswell** (*Run*): The Foo Fighters (orange shot arrow on random shot) are trying to run away from the Overlord (green shot arrow). The Overlord will move towards the Foo Fighters - if he catches them you will lose mode progress so keep running!  
+- **Roswell** (*Run*): The Foo Fighters (orange shot arrow on random shot) are trying to run away from the Overlord (green shot arrow). The Overlord will move towards the Foo Fighters - if he catches them you will lose mode progress so keep running!\
   Possible pairs of lit shots are left crossover + side ramp, left ramp + right ramp, and side loop + right orbit. Within each pair, which one is green and which is orange is random each time. The green arrow will only move through these 6 shots, skipping the center spinner and Overlord shots.
 
   - Award starting value: 1.75M
@@ -240,7 +239,7 @@ Starting **Bot Frenzy** awards the **[right arm of the FooBot](#heading--foobotm
 
 Every time a **[mystery award](#heading--mystery)** is scored at the radio standup targets on the left side of the playfield, the radio dial on the LCD display will advance (it won’t advance if you fail to collect the mystery award in time). Once the dial has reached the correct frequency, as indicated by the black outline, **Supersonic Radio** mode will start. This usually takes about 6 mystery awards.
 
-For 50 seconds, all shots are lit gray to boost the value scored for pink shots during the mode. Shooting any gray shot will boost the radio signal and turn its insert pink, and shooting it again will score the built up value (and light the Sonic Radio targets to add 15 seconds of time). Boost all of the radio signals (ie. make every gray shot once) to light the Sonic Radio targets for the radio jackpot worth the total value of all shots.
+For 50 seconds, all shots are lit gray to boost the value scored for pink shots during the mode. Shooting any gray shot will boost the radio signal and turn its insert pink, and shooting it again will score the built up value (and light the Sonic Radio targets to add 15 seconds of time). Completing all the pink shots will relight all shots gray and allow you to continue boosting the values. Boost all of the radio signals (ie. make every gray shot once) to light the Sonic Radio targets for the radio jackpot worth the total value of all shots.
 
 The Supersonic Radio timer is indicated by the same radio dial you advanced to start the mode. The mode automatically ends if the dial reaches the left side.
 
@@ -289,11 +288,11 @@ The **[FooBot left arm](#heading--foobotmb)** is locked behind the Overlord mult
 
 **Pro:** Shoot the right ramp 5 times to get the Foo Fighters closer to Area 51, and eventually start Area 51 multiball. Subsequent multiballs require 9 shots to the right ramp. This multiball can be progressed towards and started during any **[Overlord Multiball](#heading--overlord)**.
 
-During multiball, all shots are lit for jackpot (750k), and the two bot targets flanking the right ramp (along with the right ramp itself) are lit to increase the jackpot value (by 750k). After collecting enough jackpots, shoot the right ramp followed by the UFO captive ball as a combo to score the super jackpot worth 1M + (750k per lit shot collected), which can continue to be increased by shooting other shots until it has been collected. Scoring the super jackpot enables the jackpots again and increases the jackpot value by 500k.
+During multiball, all shots are lit for jackpot (750k), and the two bot targets flanking the right ramp (along with the right ramp itself) are lit to increase the jackpot value (by 750k). After collecting 8 jackpots, shoot the right ramp followed by the UFO captive ball as a combo to score the super jackpot worth 1M + (750k per lit shot collected), which can continue to be increased by shooting other shots until it has been collected. Scoring the super jackpot enables the jackpots again and increases the jackpot value by 500k.
 
 **Prem/LE:** Shots to the right ramp divert the ball to the Area 51 mini-playfield. Complete the targets, then shoot the spinner, then the loop, and finally the secret files target at the back to start Area 51 Multiball. For the first Area 51 multiball, progress is spotted with each right ramp shot - subsequent multiballs require more hits to the upper playfield shots, and won’t spot progress. This multiball can be progressed towards and started during any **[Overlord Multiball](#heading--overlord)**.
 
-During multiball, all shots are lit to score jackpots and increase the super jackpot value; the jackpot value can be increased by 500k by making shots on the upper playfield. The super jackpot is scored the same way that the player started the multiball (upper playfield targets, then spinner, then loop, then secret files target) and can be collected at any time.
+During multiball, all shots are lit to score jackpots (750k) and increase the super jackpot value; the jackpot value can be increased by 500k by making shots on the upper playfield. After collecting 8 jackpots the upper playfield diverter will raise revealing the Secret Files target for the Super Jackpot.
 
 After draining out of Area 51 multiball on Prem / LE, “fresh jackpot(s)” worth the highest jackpot value scored can be collected at the secret files target on the upper playfield for 30 seconds.
 
@@ -307,7 +306,7 @@ The player can start **[combos](#heading--combotron)** by quickly making shots m
 
 Combotron Multiball starts by displaying and tallying up the best three combos that the player made prior to starting the multiball. The scores from them determine the jackpot value and the level that each shot starts at during the multiball.
 
-This 3-ball multiball is all about trying to keep combos lasting as long as possible. The lit combo shots score jackpots determined by the color that the player got them to. Hitting any lit shot advances the color of all shots the same way they do during normal play, starting at yellow and maxing out at red. Once a red jackpot has been scored, the Overlord will be lit to score the Combotron Jackpot, but subsequent red jackpots at unique shots will increase the jackpot multiplier up to 7x. Red jackpots can only be scored once, and all seven unique shots must be hit to light them again. The jackpot value is equal to 20% of the combined shot values from combos, including shot multipliers from **[FooBot parts](#heading--footbotmb)** but not including any other multipliers.
+This 3-ball multiball is all about trying to keep combos lasting as long as possible. The lit combo shots score jackpots determined by the color that the player got them to. Hitting any lit shot advances the color of all shots the same way they do during normal play, starting at yellow and maxing out at red. Once a red jackpot has been scored, the Overlord will be lit to score the Combotron Jackpot, but subsequent red jackpots at unique shots will increase the jackpot multiplier up to 7x. Red jackpots can only be scored once, and all seven unique shots must be hit to light them again. The jackpot value is equal to 20% of the combined shot values from combos, including shot multipliers from **[FooBot parts](#heading--foobotmb)** but not including any other multipliers.
 
 Starting Combotron multiball awards the **[FooBot chest](#heading--foobotmb)**. Upgrade it by scoring at least 25M during the multiball.
 
@@ -330,7 +329,7 @@ Each completion of the Sonic Radio targets enables a radio mystery award at the 
 - Upgrade any of the **[van mods](#heading--mods)** (if collected during a mode, the perk is automatically applied)
 - +3 spinner level
 - **[Spot band member combo](#heading--combotron)** (collect another band member combo to qualify again once scored)
-- **[Max UFO Button](#heading--ufo)** (instantly awards three uses of the action button)
+- **[Max UFO Button](#heading--ufocaptiveball)** (instantly awards three uses of the action button)
 - **[+1x Bonus X](#heading--bonus)**
 - Light **[ball save](#heading--botawards)** (at right outlane)
 - Light **[extra ball](#heading--extraballs)** (rare, percentage-based)
@@ -404,7 +403,7 @@ Shoot the 4 standup targets to destroy spider-bots with each unlit target shot, 
 
 - 1 set: Light **ball save** at the right outlane
 - 2 sets: Light **[MOD-ulator frenzy](#heading--modulator)** at the paddle target
-- 3 sets: Light **[bot frenzy](#heading--botfrenzy)** at the left ramp  
+- 3 sets: Light **[bot frenzy](#heading--botfrenzy)** at the left ramp\
   … then loop the last 3 awards.
 
 Certain rules take into account the bots that have been destroyed over the game. **[Extra ball](#heading--extraballs)** is lit at the Bot Award target after 10 and 30 bots have been destroyed, 50k is awarded in **[end-of-ball bonus](#heading--bonus)** per bot destroyed, and 1 second of ball save time is given at the start of **[bot frenzy](#heading--botfrenzy)** for every destroyed bot.
@@ -417,7 +416,7 @@ Collecting 10 lightning target hits starts a 30-second timed Super Lightning mod
 
 ### <span id="heading--rayguns"></span>Ray Gun Targets:
 
-Shatzing / alley passing either ray gun target will enable a 2x shot multiplier on the next shot made following the ray gun target completion - 4x if the player *immediately* shoots the ray gun target on the other side. This multiplier stacks with the permanent ones that can be earned from **[Foo-Bot parts](#heading--foobot)**, the timed **[playfield multiplier](#heading--pfx)**, and the 2x jackpot multiplier during **[Overlord Multiball modes](#heading--overlord)**. Shots spotted via the **[action button](#heading--ufocaptiveball)** are not subject to these multipliers.
+Shatzing / alley passing either ray gun target will enable a 2x shot multiplier on the next shot made following the ray gun target completion - 4x if the player *immediately* shoots the ray gun target on the other side. This multiplier stacks with the permanent ones that can be earned from **[Foo-Bot parts](#heading--foobotmb)**, the timed **[playfield multiplier](#heading--pfx)**, and the 2x jackpot multiplier during **[Overlord Multiball modes](#heading--overlord)**. Shots spotted via the **[action button](#heading--ufocaptiveball)** are not subject to these multipliers.
 
 If the left crossover shot is made with a shot multiplier active, they will also apply to the next upper flipper shot (either upper loop or side ramp).
 
@@ -450,9 +449,9 @@ All multiplied by the bonus X, built at the paddle target when drops are still a
 
 (Song: *Times Like These*)
 
-Complete 3 **[Van Modes](#heading--vanmodes)** to qualify this as an option on the Van Modes map. Either this mode or **[D.C.](#heading--dcminiwizardmode)** can be selected, the other wizard mode is then qualified after completing 6 Van Modes.
+Complete 3 **[Van Modes](#heading--vanmodes)** to qualify this as an option on the Van Modes map. Either this mode or **[D.C.](#heading--dc)** can be selected, the other wizard mode is then qualified after completing 6 Van Modes.
 
-The Foo Fighters are having a BBQ cookout when they are interrupted by the Overlord and his army of  
+The Foo Fighters are having a BBQ cookout when they are interrupted by the Overlord and his army of\
 Spider-Bots! For each van mode you managed to complete in one try, your starting jackpot value will be larger.
 
 Shoot the red shots to score jackpots determined by the player’s performance in the **van modes** (1.5M + 500k per van mode completed in one try) +50k per jackpot, and increase the value of the super jackpot, worth the jackpot total, by +1x. The super jackpot is collected at the blue shot, whose location can be changed by shooting the Overlord. Each super jackpot adds +100k value to the jackpots that follow it. Scoring a 5x super jackpot, by scoring 4 jackpots before the super jackpot, will add a ball; two more add-a-balls are awarded for the first 6x and 7x super jackpots.
@@ -461,7 +460,7 @@ Shoot the red shots to score jackpots determined by the player’s performance i
 
 (Song: *Holding Poison*)
 
-Complete 3 **[Van Modes](#heading--vanmodes)** to qualify this as an option on the Van Modes map. Either this mode or **[Austin](#heading--austinminiwizardmode)** can be selected, the other wizard mode is then qualified after completing 6 Van Modes.
+Complete 3 **[Van Modes](#heading--vanmodes)** to qualify this as an option on the Van Modes map. Either this mode or **[Austin](#heading--austin)** can be selected, the other wizard mode is then qualified after completing 6 Van Modes.
 
 The Foo Fighters’ van has been dismantled by Spider-Bots! Help the band get all the parts back from them to rebuild their van. **[Mod](#heading--mods)** out the van by shooting the MOD-ulator target to increase the base jackpot value for this multiball.
 
@@ -507,7 +506,7 @@ The jackpot value for this multiball starts at 3M, but each jackpot shot is incr
 
 Once all six unique **[band member combos](#heading--combotron)** have been scored, a shot to the left ramp will start Toy Time multiball. If the topper is installed, progress towards this multiball is maintained across games by default and it will be lit as soon as the last band member combo has been made. Otherwise, all six combos have to be scored within one game, and all six **[van modes](#heading--vanmodes)** must be completed as well, to qualify Toy Time multiball.
 
-This hectic 3-ball multiball involves qualifying, lighting, and scoring jackpots at each band member shot. Shoot a band member shot to lock the shot in, then light the jackpot there by collecting switch hits. Once the jackpot is lit, it can either be instantly scored, or other shots can be made to increase its value. Regardless of value, collecting the jackpot will add a ball. Collect a jackpot at all six band member shots to light a super jackpot at the FooBot target, worth the total score from all combined jackpots and instantly awarding or upgrading a **[FooBot part](#heading--foobot)** if all parts have been found.
+This hectic 3-ball multiball involves qualifying, lighting, and scoring jackpots at each band member shot. Shoot a band member shot to lock the shot in, then light the jackpot there by collecting switch hits. Once the jackpot is lit, it can either be instantly scored, or other shots can be made to increase its value. Regardless of value, collecting the jackpot will add a ball. Collect a jackpot at all six band member shots to light a super jackpot at the FooBot target, worth the total score from all combined jackpots and instantly awarding or upgrading a **[FooBot part](#heading--foobotmb)** if all parts have been found.
 
 During the multiball, a ball can be locked temporarily at the Overlord by hitting both targets surrounding him, then shooting the back targets. While the ball is locked, all switch hits count double towards lighting the next jackpot, and the jackpot increases from other shots are doubled as well.
 

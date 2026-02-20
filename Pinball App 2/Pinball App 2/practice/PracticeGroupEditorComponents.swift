@@ -122,9 +122,8 @@ struct GroupEditorScreen: View {
     @State private var selectedTemplateBank: Int = 0
     @State private var selectedDuplicateGroupID: UUID?
     @State private var showingTitleSelector = false
-    @State private var showingScheduleCalendar = false
-    @State private var editingScheduleField: GroupEditorDateField = .start
     @State private var createGroupPosition: Int = 1
+    @State private var inlineDateEditorField: GroupEditorDateField?
 
     private var editingGroup: CustomGameGroup? {
         guard let editingGroupID else { return nil }
@@ -335,13 +334,45 @@ struct GroupEditorScreen: View {
                         Spacer()
                         if hasStartDate {
                             Button {
-                                editingScheduleField = .start
-                                showingScheduleCalendar = true
+                                inlineDateEditorField = .start
                             } label: {
-                                Text(formatEditorScheduleDate(startDate))
+                                Text(formatEditorDate(startDate))
                                     .font(.caption2)
+                                    .foregroundStyle(.secondary)
                             }
-                            .buttonStyle(.glass)
+                            .buttonStyle(.plain)
+                            .popover(
+                                isPresented: Binding(
+                                    get: { inlineDateEditorField == .start },
+                                    set: { isPresented in
+                                        if !isPresented { inlineDateEditorField = nil }
+                                    }
+                                ),
+                                attachmentAnchor: .rect(.bounds)
+                            ) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
+                                        .datePickerStyle(.graphical)
+
+                                    HStack {
+                                        Button("Clear", role: .destructive) {
+                                            hasStartDate = false
+                                            inlineDateEditorField = nil
+                                        }
+                                        .buttonStyle(.glass)
+
+                                        Spacer()
+
+                                        Button("Done") {
+                                            inlineDateEditorField = nil
+                                        }
+                                        .buttonStyle(.glass)
+                                    }
+                                }
+                                .padding(12)
+                                .frame(minWidth: 320)
+                                .presentationCompactAdaptation(.popover)
+                            }
                         }
                     }
                     .padding(.horizontal, 10)
@@ -354,13 +385,45 @@ struct GroupEditorScreen: View {
                         Spacer()
                         if hasEndDate {
                             Button {
-                                editingScheduleField = .end
-                                showingScheduleCalendar = true
+                                inlineDateEditorField = .end
                             } label: {
-                                Text(formatEditorScheduleDate(endDate))
+                                Text(formatEditorDate(endDate))
                                     .font(.caption2)
+                                    .foregroundStyle(.secondary)
                             }
-                            .buttonStyle(.glass)
+                            .buttonStyle(.plain)
+                            .popover(
+                                isPresented: Binding(
+                                    get: { inlineDateEditorField == .end },
+                                    set: { isPresented in
+                                        if !isPresented { inlineDateEditorField = nil }
+                                    }
+                                ),
+                                attachmentAnchor: .rect(.bounds)
+                            ) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    DatePicker("End Date", selection: $endDate, displayedComponents: .date)
+                                        .datePickerStyle(.graphical)
+
+                                    HStack {
+                                        Button("Clear", role: .destructive) {
+                                            hasEndDate = false
+                                            inlineDateEditorField = nil
+                                        }
+                                        .buttonStyle(.glass)
+
+                                        Spacer()
+
+                                        Button("Done") {
+                                            inlineDateEditorField = nil
+                                        }
+                                        .buttonStyle(.glass)
+                                    }
+                                }
+                                .padding(12)
+                                .frame(minWidth: 320)
+                                .presentationCompactAdaptation(.popover)
+                            }
                         }
                     }
                     .padding(.horizontal, 10)
@@ -417,49 +480,6 @@ struct GroupEditorScreen: View {
                                 showingTitleSelector = false
                             }
                         }
-                }
-            }
-        }
-        .sheet(isPresented: $showingScheduleCalendar) {
-            NavigationStack {
-                VStack(alignment: .leading, spacing: 12) {
-                    DatePicker(
-                        editingScheduleField == .start ? "Start Date" : "End Date",
-                        selection: activeScheduleDateBinding,
-                        displayedComponents: .date
-                    )
-                    .datePickerStyle(.graphical)
-
-                    HStack {
-                        Button("Clear", role: .destructive) {
-                            if editingScheduleField == .start {
-                                hasStartDate = false
-                            } else {
-                                hasEndDate = false
-                            }
-                            showingScheduleCalendar = false
-                        }
-                        .buttonStyle(.glass)
-
-                        Spacer()
-
-                        Button("Save") {
-                            showingScheduleCalendar = false
-                        }
-                        .buttonStyle(.glass)
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(AppBackground())
-                .navigationTitle(editingScheduleField == .start ? "Set Start Date" : "Set End Date")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") {
-                            showingScheduleCalendar = false
-                        }
-                    }
                 }
             }
         }
@@ -596,18 +616,6 @@ struct GroupEditorScreen: View {
         pendingDeleteGameID = nil
     }
 
-    private func formatEditorScheduleDate(_ date: Date) -> String {
-        Self.editorScheduleDateFormatter.string(from: date)
-    }
-
-    private static let editorScheduleDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "MM/dd/yy"
-        return formatter
-    }()
-
     private func applyBankTemplate(bank: Int) {
         let games = store.games
             .filter { $0.bank == bank }
@@ -708,18 +716,18 @@ struct GroupEditorScreen: View {
         }
     }
 
-    private var activeScheduleDateBinding: Binding<Date> {
-        Binding(
-            get: { editingScheduleField == .start ? startDate : endDate },
-            set: { newValue in
-                if editingScheduleField == .start {
-                    startDate = newValue
-                } else {
-                    endDate = newValue
-                }
-            }
-        )
+    private func formatEditorDate(_ date: Date) -> String {
+        Self.editorDateFormatter.string(from: date)
     }
+
+    private static let editorDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MM/dd/yy"
+        return formatter
+    }()
+
 }
 
 struct GroupGameSelectionScreen: View {
@@ -861,4 +869,3 @@ struct SelectedGameReorderContainerDropDelegate: DropDelegate {
         return true
     }
 }
-

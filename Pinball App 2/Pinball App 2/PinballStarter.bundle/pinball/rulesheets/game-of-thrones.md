@@ -6,10 +6,9 @@ source_updated_at: "2024-10-27T20:49:29.977Z"
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/game-of-thrones-pinball-rulesheet/936">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
 
-
 <div class="pinball-rulesheet">
 
-## Game Information & Overview:
+## <span id="heading--gameinfo"></span>Game Information & Overview:
 
 - Manufacturer: Stern
 - Release Date: October 2015
@@ -19,7 +18,7 @@ source_updated_at: "2024-10-27T20:49:29.977Z"
 
 Thanks to captainbzarre for starting this thread!
 
-## Rules Overview:
+## <span id="heading--overview"></span>Rules Overview:
 
 A image version of the rulesheet can be found at <a href="http://i.imgur.com/P7tWVL8.jpg" rel="noopener nofollow ugc">http://i.imgur.com/P7tWVL8.jpg</a>.
 
@@ -31,39 +30,39 @@ As of recent code, you may now also replace your chosen House’s Action Button 
 
 These powers are:
 
-- **Stark:**  
-  **Persistent:** Adds 10 million to the base value of all Winter is Coming Hurry-Ups. This can make Winter Has Come particularly valuable if the player is skilled enough, along with increasing the potential scoring of the Hurry-Ups through combos, but otherwise doesn’t have many practical uses.  
+- **Stark:**\
+  **Persistent:** Adds 10 million to the base value of all Winter is Coming Hurry-Ups. This can make Winter Has Come particularly valuable if the player is skilled enough, along with increasing the potential scoring of the Hurry-Ups through combos, but otherwise doesn’t have many practical uses.\
   **Action Button -** *Direwolf* … Ghost to the rescue: activating it will immediately complete the house mode you are playing. If you’ve stacked two modes, it will only complete one of the two modes: the house that is listed on top during mode selection screen will be the one that gets completed by Direwolf. The “top” house will correspond with the house displayed on the left of DMD during the stacked modes. Direwolf only awards 5 million points in lieu of any points that would be scored in the mode, so it’s best used as a way to ensure you reach HOTK or Iron Throne sooner.
 
-- **Baratheon:**  
-  **Persistent:** Awards 2 advances towards Battle for the Wall Multiball immediately at the start of the game, and increases Jackpot values during Wall MB. Each completion of drops (presumably during single-ball play only) also advances toward Wall MB.  
+- **Baratheon:**\
+  **Persistent:** Awards 2 advances towards Battle for the Wall Multiball immediately at the start of the game, and increases Jackpot values during Wall MB. Each completion of drops (presumably during single-ball play only) also advances toward Wall MB.\
   **Action Button:** *Lord of Light*… You’ve got the Red Woman on speed dial: get an instant timed outlane ball-save on both outlanes. Timer looks like it lasts only a few seconds after hitting your next switch.
 
-- **Lannister:**  
-  **Persistent:** Shooting gold targets will award around 1.5x the gold you’d obtain otherwise with other houses. 500 gold is also given at the start of the game. Some of the Mystery awards at high amounts of gold can be worth decent amounts, particularly when stacked with mixed multipliers, and you’ll be hitting the gold targets by accident throughout gameplay anyway. More importantly, as Lannister, you can now spend your gold on playfield multipliers.  
-  **Action Button:** *Golden Playfield X*… It pays to be rich: you can instantaneously buy your next PFx level without hitting the battering ram. The PFx level cost = N PFx times 600 gold. So 2x PFx costs 1,200 gold, 3x PFx costs 1,800 gold, etc. You cannot purchase a PFx level that you have not yet qualified from Sword collects.  
+- **Lannister:**\
+  **Persistent:** Shooting gold targets will award around 1.5x the gold you’d obtain otherwise with other houses. 500 gold is also given at the start of the game. Some of the Mystery awards at high amounts of gold can be worth decent amounts, particularly when stacked with mixed multipliers, and you’ll be hitting the gold targets by accident throughout gameplay anyway. More importantly, as Lannister, you can now spend your gold on playfield multipliers.\
+  **Action Button:** *Golden Playfield X*… It pays to be rich: you can instantaneously buy your next PFx level without hitting the battering ram. The PFx level cost = N PFx times 600 gold. So 2x PFx costs 1,200 gold, 3x PFx costs 1,800 gold, etc. You cannot purchase a PFx level that you have not yet qualified from Sword collects.\
   Note: The Golden PFx ability is *not* limited to once per ball. However, there is overall cap of 8 uses *throughout your game*, so use this wisely!
 
-- **Greyjoy:**  
-  **Persistent:** Gain the persistent powers of other Houses when you complete their House mode. These powers stack as you complete more Houses. As a drawback, each House battle adds more shots required and you may only battle one House at a time. Additionally, the game begins with House Greyjoy completed.  
+- **Greyjoy:**\
+  **Persistent:** Gain the persistent powers of other Houses when you complete their House mode. These powers stack as you complete more Houses. As a drawback, each House battle adds more shots required and you may only battle one House at a time. Additionally, the game begins with House Greyjoy completed.\
   **Action Button:** *Plunder*… Pay the Iron Price: Greyjoy has no initial Action Button ability, but the *most recent* house that you defeated becomes your Action ability. A newly Plundered Action ability may be used during the same ball as a prior Plundered Action you already activated.
 
-- **Tyrell:**  
-  **Persistent:** One inlane is always lit to increase the combo multiplier. Lit inlane toggles via lane-change. Tyrell’s power may seem small, but it means a LOT - especially during modes.  
-  **Action Button:** *Iron Bank* … Trading multipliers for points with the Braavosi bank: same concept as the original code Iron Bank, but with increasing exponential points based on the combination of PFx and ComboX levels that are running when you cash it in. Can be worth up to approx 300M max point value, apparently. As before, cashing in Iron Bank eliminates your active PFx and ComboX.  
+- **Tyrell:**\
+  **Persistent:** One inlane is always lit to increase the combo multiplier. Lit inlane toggles via lane-change. Tyrell’s power may seem small, but it means a LOT - especially during modes.\
+  **Action Button:** *Iron Bank* … Trading multipliers for points with the Braavosi bank: same concept as the original code Iron Bank, but with increasing exponential points based on the combination of PFx and ComboX levels that are running when you cash it in. Can be worth up to approx 300M max point value, apparently. As before, cashing in Iron Bank eliminates your active PFx and ComboX.\
   Note: all other non-Tyrell houses that used to have Iron Bank no longer have Iron Bank ability.
 
-- **Martell:**  
-  **Persistent:** None.  
+- **Martell:**\
+  **Persistent:** None.\
   **Action Button:** *Add-A-Ball* … During any Multiball, press the action button to obtain an add-a-ball.
 
-- **Targaryen** (you can now play as Targaryen!)  
-  **Persistent:** Similar to Greyjoy, the Targaryen mode is immediately spotted as complete – house completion without playing any of the three levels of Targaryen.  
+- **Targaryen** (you can now play as Targaryen!)\
+  **Persistent:** Similar to Greyjoy, the Targaryen mode is immediately spotted as complete – house completion without playing any of the three levels of Targaryen.\
   **Action Button:** *Freeze Timers*… Even timers bend the knee to Khaleesi: immediately pause all actively running timers (not including ball-save timers) for 15 seconds. Any timers that start during the Freeze period will start out as paused, and then begin their count-down only after Freeze has expired.
 
-Summary of new additional persistent house benefits from post-1.34 code (not action button-related):  
-Lannister: when you hit the standups, they give 143% more gold than previous code.  
-Baratheon: completing the drop target bank advances progress toward Wall MB.  
+Summary of new additional persistent house benefits from post-1.34 code (not action button-related):\
+Lannister: when you hit the standups, they give 143% more gold than previous code.\
+Baratheon: completing the drop target bank advances progress toward Wall MB.\
 Targaryen: (you can now choose to play as Targaryen!) it immediately and completely spots Targaryen house completion without playing any of the three levels of Targaryen.
 
 **Shots**
@@ -74,8 +73,8 @@ Left Drop Target 3-Bank: A bank of drop targets that, when completed, lights Lor
 
 Left Loop: A loop half with a spinner. Can be backhanded from the left flipper. Qualifies House Greyjoy at the left ramp after three completions. On the Premium / LE models, an issue with the gates near the bumpers will often result in obtaining two shots to the left loop.
 
-\[Pro\] Dragon: A lane that has a kicker target at the end and a post to trap the ball if needed. Used as the Mystery and Extra Ball shots, and to start Battle at the Wall Multiball. Qualifies House Targaryen at the left ramp after three completions.  
--or-  
+\[Pro\] Dragon: A lane that has a kicker target at the end and a post to trap the ball if needed. Used as the Mystery and Extra Ball shots, and to start Battle at the Wall Multiball. Qualifies House Targaryen at the left ramp after three completions.\
+-or-\
 \[Premium/LE\] Castle Black: A lane (longer than the Dragon shot) that has a kicker target at the end. Used to advance towards Battle at the Wall Multiball. Qualifies House Targaryen at the left ramp after three completions.
 
 Left Ramp: A ramp that arcs around the right half of the playfield and feeds the right flipper. Can be shot from both flippers from a cradle, but usually is shot from the right flipper (backhands tend to occur more often on the Premium / LE model, however). Locks balls for Blackwater Multiball, starts Hand of the King & Iron Throne wizard modes, and starts House Battles. Qualifies House Lannister after three completions… meaning that if you’ve selected a house that isn’t Lannister, starting Blackwater Multiball without having made the left ramp prior will always allow you to choose a House Battle to stack up with the Multiball.
@@ -90,10 +89,10 @@ Right Target 2-Bank: A bank of touch targets that light locks for Blackwater Mul
 
 All versions allow for a soft plunge and a hard plunge. Playfield validation occurs on a rollover hit.
 
-\[Pro\]  
+\[Pro\]\
 Skill Shot: Hard plunge into the lit lane to collect the skill shot award of (500k x Ball \#) and 1 bonus X.
 
-\[Premium/LE\]  
+\[Premium/LE\]\
 Plunge options: There is no skill shot, but a hard plunge will feed the upper playfield once per ball.
 
 Bonus X: Complete the two top lanes to increase the bonus multiplier. Bonus X can also be awarded in the pop bumpers or as a Mystery Award. \[Pro\] Top lane completions also advance to the Wall Multiball. Bonus X caps out at 20x.
@@ -162,7 +161,7 @@ A list with values/bonuses seen on version 1.26 is being worked on. Known values
 - Light 3x Super Jackpot - 4750 Gold
 - Biggest (25M) Points - 6000 Gold
 
-Specials: 25 million  
+Specials: 25 million\
 Extra Balls: 15 million; collected at the Dragon \[Pro\] or Right Loop \[Premium/LE\].
 
 Winter is Coming: Once a house is lit, the shot you made to advance to it “ices over”. Complete any combination of three “iced over” shots or target banks (does not necessarily have to be the same shot) to start the mode. During the mode, the last “iced over” shot will flash and no other progress (other than locks, lighting outlanes, and multiball starts) can be made. Shoot the flashing white shot to collect the hurry up value. Collect four hurry-up values to begin the Winter Has Come mini-wizard mode. Each of the seven shots can be collected (both target banks, both ramps, both loops, and the dragon). *Warning: if your third Blackwater lock is lit and you start Winter is Coming on the center ramp, multiball will start without the option to choose House modes to stack into it! One possible workaround strategy is to just get the center ramp hurryup out of the way before locking balls. This is by design and is not a bug.*
@@ -179,10 +178,10 @@ Swords: Completing any house mode (or a pop bumper award) lights the right ramp 
 
 **Blackwater Multiball**: Shoot the two standup targets to the right to light lock at the left ramp. You must lock a ball prior to lighting your next lock. Lock 3 balls to begin the multiball. During multiball, complete the five major shots to collect Jackpots and light the Super Jackpot at the battering ram. The Super Jackpot stays lit for 20 seconds and can be collected as many times as you hit the ram, which also counts for playfield multiplier increases. The Super Jackpot is worth ((6 \* SJP level \* jackpot amount) + SJP BASE AMOUNT) \* playfield multiplier. When the Super Jackpot times out with the multiball still running, the Jackpots re-light and need to be collected twice, but the second shot and the Super Jackpot are worth double. Timing out subsequent Super Jackpots will add another shot required for completion at 1x higher multiplier, and make the Super worth 1x more. Locks for the first multiball only require one hit to either green target; 2nd BWMB locks require both individual targets to be hit; 3rd+ BWMB requires completing both targets on a timer after the first target is hit.
 
-**Wall Multiball**:  
-\[Pro\] Completing the top lanes 6 times enables Wall Multiball. Shoot the dragon to begin the multiball.  
-\[Premium/LE\] Shooting Castle Black 6 times enables Wall Multiball. Shoot the right loop to begin the multiball.  
-\[Both\] Completing the Baratheon drop targets, while playing *as* House Baratheon, also spots one advancement toward Wall.  
+**Wall Multiball**:\
+\[Pro\] Completing the top lanes 6 times enables Wall Multiball. Shoot the dragon to begin the multiball.\
+\[Premium/LE\] Shooting Castle Black 6 times enables Wall Multiball. Shoot the right loop to begin the multiball.\
+\[Both\] Completing the Baratheon drop targets, while playing *as* House Baratheon, also spots one advancement toward Wall.\
 Once the 3-ball multiball begins, shoot 3 ramp shots to collect Jackpots and light the Super Jackpot on the Dragon. The Jackpots will then be lit on the loops. Shooting 3 loops lights the Dragon again for a Super Jackpot, and Jackpots return to the ramps. Baratheon’s powerup increases the value of the Jackpot and Super Jackpot, and used to be a viable house for high scores via Wall MB, but later code revisions decreased the points from Wall MB significantly. Further Wall multiballs require 11 top lane completions/Castle Black shots.
 
 Add-A-Ball: An Add-A-Ball is available for all multiball modes. Add-A-Ball is added to the pop bumper awards, and can be cycled into randomly (there is no way to favor it as an award). This can only work once per multiball. This is separate from House Martell’s Add-A-Ball, and whether that has been used or not has no apparent influence on the bumper Add-A-Ball.
@@ -224,7 +223,7 @@ It is possible to stack Winter Has Come with Wall or Blackwater multiball. To ac
 
 **Hand of the King Mini Wizard Mode:**
 
-Completing four houses while not currently challenging a house will light HOTK.  
+Completing four houses while not currently challenging a house will light HOTK.\
 The houses that you take into HOTK wizard mode can be important. Each house brings with it an attribute that will make it easier or more difficult to get through the mode. They are as follows:
 
 - **Stark**: Bonus round - 20 Seconds of free shooting after a completed set (lights up random shots for points; you may not want to go for these, it’s a waste of time and it could end HOTK prematurely)

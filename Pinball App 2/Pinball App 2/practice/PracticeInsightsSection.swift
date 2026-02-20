@@ -150,10 +150,11 @@ struct PracticeInsightsSectionView: View {
 
     private var insightsGameDropdown: some View {
         Menu {
-            if games.isEmpty {
+            let gameOptions = orderedGamesForDropdown(games, limit: 41)
+            if gameOptions.isEmpty {
                 Text("No game data")
             } else {
-                ForEach(games.prefix(41)) { game in
+                ForEach(gameOptions) { game in
                     Button(game.name) {
                         selectedGameID = game.id
                     }

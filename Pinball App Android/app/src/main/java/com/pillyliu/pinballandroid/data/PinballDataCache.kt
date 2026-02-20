@@ -152,11 +152,6 @@ object PinballDataCache {
             // Metadata refresh is best effort and should not block direct fetch attempts.
         }
 
-        if (allowMissing && manifestFiles[path] == null) {
-            upsertIndex(path = path, hash = null, missing = true)
-            return CachedBytesResult(bytes = null, isMissing = true)
-        }
-
         val url = "$BASE_URL$path"
         return try {
             val conn = (URL(url).openConnection() as HttpURLConnection).apply {
@@ -373,6 +368,18 @@ object PinballDataCache {
 
     private fun readCached(path: String): ByteArray? {
         if (isMarkedMissingInIndex(path)) {
+            val context = appContext
+            if (context != null && path.startsWith("/pinball/")) {
+                val assetPath = "starter-pack${path}"
+                try {
+                    val bytes = context.assets.open(assetPath).use { it.readBytes() }
+                    writeCached(path, bytes)
+                    upsertIndex(path = path, hash = manifestFiles[path], missing = false)
+                    return bytes
+                } catch (_: Throwable) {
+                    // Fall through to keep missing marker behavior for non-seeded assets.
+                }
+            }
             deleteCached(path)
             return null
         }

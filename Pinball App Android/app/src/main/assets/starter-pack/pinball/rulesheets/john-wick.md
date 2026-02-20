@@ -1,11 +1,10 @@
 ---
 title: "John Wick Rulesheet"
 source: "https://tiltforums.com/t/john-wick-rulesheet/8956"
-source_updated_at: "2025-12-19T06:22:24.428Z"
+source_updated_at: "2026-02-01T13:31:29.167Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/john-wick-rulesheet/8956">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -85,12 +84,12 @@ Following the death of his beloved pet dog Daisy at the hands of a Russian crime
 
 These modes are accessible by holding both flipper buttons during attract mode until a menu appears. The following options are available:
 
-- **Standard:**  
+- **Standard:**\
   See below for full rulesheet.
 - **Competition:**
-- **DJ Mixer**  
+- **DJ Mixer**\
   NOT a gameplay mode. This mode operates like a jukebox, allowing you to play the music featured in the machine, including a number of specific playlists.
-- **Competition Install**  
+- **Competition Install**\
   Not from the gameplay menu, but the following is changed if a Competition Install is performed from the utilities menu:
 
 ## <span id="heading--skillshots"></span>Skill Shots:
@@ -187,7 +186,7 @@ There are four different Car Chase Multiballs. The game starts with **helipad sh
 - **Helipad Showdown** (1): Shoot red shots to collect showdown awards and increase the jackpot awarded by hitting the car. Either a single, 2x, 3x, or 4x jackpot can be awarded based on how many “car” inserts are lit (1 additional shot is needed to light each jackpot, so 9 shots are needed for a 4x jackpot). After four jackpots have been scored, the car can be hit for a super (5x) jackpot, and the left orbit can be shot for a 2x super jackpot.
 - **Taxicab Chase** (2): Starts with a 15-second timed hurry-up to hit the car and lock in the hurry-up jackpot value (starting at the built car jackpot award). Shoot sets of lit chase awards to increase (and light) the jackpot at the car; the jackpot multiplier increases with each subsequent jackpot scored, and each jackpot requires one more award to light. After collecting four jackpots, the left orbit lights for a super (5x) jackpot, which can be further increased by bashing the car.
 - **Motorcycle Pursuit** (3): Pursuit awards are lit at the Dance Floor and either “left-side” shots (administration, left orbit, and left ramp), or “right-side” shots (center ramp, right orbit, and right ramp). Each shot made increases the car jackpot multiplier up to 4x. Hit the car to switch sides, relight the other side’s shots, and score a jackpot if at least one pursuit award was collected. After collecting four jackpots, hit the Continental for a super jackpot. On the Premium/LE, the car will block the Continental; bash it to move it out of the way for a few seconds.
-- **Bagarre a Letoile** (4): Shoot any ramp to light the car for jackpots, and the orbits to increase the jackpot multiplier up to 4x & collect awards. The jackpot must be relit each time it has been scored. After collecting four jackpots, the car is lit to collect four super (5x) jackpots.
+- **Bagarre a L’Étoile** (4): Shoot any ramp to light the car for jackpots, and the orbits to increase the jackpot multiplier up to 4x & collect awards. The jackpot must be relit each time it has been scored. After collecting four jackpots, the car is lit to collect four super (5x) jackpots.
 
 ### <span id="heading--excommunicado"></span>Excommunicado Multiball:
 

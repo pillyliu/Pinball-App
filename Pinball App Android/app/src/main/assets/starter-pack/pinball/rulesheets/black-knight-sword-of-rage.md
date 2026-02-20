@@ -1,11 +1,10 @@
 ---
 title: "Black Knight: Sword of Rage Rulesheet"
 source: "https://tiltforums.com/t/black-knight-sword-of-rage-rulesheet/5210"
-source_updated_at: "2023-10-21T19:17:40.414Z"
+source_updated_at: "2026-02-19T12:07:44.288Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/black-knight-sword-of-rage-rulesheet/5210">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -76,8 +75,8 @@ Revenge is sweet. The Black Knight has once again returned, and this time he’s
 </thead>
 <tbody>
 <tr>
-<td><img src="https://sternpinball.com/wp-content/uploads/2019/03/BlackKnight-Premium-Playfield-01a-781x1536.webp" width="254" height="500" /></td>
-<td><img src="https://sternpinball.com/wp-content/uploads/2019/03/BlackKnight-Pro-Playfield-01a-781x1536.webp" width="254" height="500" /></td>
+<td><img src="https://sternpinball.com/wp-content/uploads/2019/03/BlackKnight-Premium-Playfield-01a-781x1536.webp" role="presentation" width="254" height="500" /></td>
+<td><img src="https://sternpinball.com/wp-content/uploads/2019/03/BlackKnight-Pro-Playfield-01a-781x1536.webp" role="presentation" width="254" height="500" /></td>
 </tr>
 </tbody>
 </table>
@@ -102,7 +101,7 @@ Modes in progress carry over from ball to ball. Time is automatically added if t
 Successfully complete a battle to light **[extra ball](#heading--extraballs)** at the saucer behind the shield. Win all five battles to qualify the final battle, **[Black Castle](#heading--blackcastle)**.
 
 - **Mud Bog** (Green): 5 shots are lit (left spinner lane, left orbit, left ramp, “light lock” target, right orbit) to defeat the Hydra. Shooting any shot “locks” the shot in and starts a timer. Shoot the shot again to score more points, cut off one of the Hydra heads, and eliminate the shot from the mode. A **[KNIGHT letter](#heading--knight)** is awarded after cutting off the 2nd head, and the mode is completed upon cutting off four heads. Upgrading the mode with **[Power](#heading--rage)** allows every shot to both seal and cut off a Hydra head.
-- **Molten Fire** (Orange): All 7 major shots are lit to harm the Magma Beast; once all shots have been made, they will relight. A **[KNIGHT letter](#heading--knight)** is awarded after completing 3 shots, and the mode ends after completing all 8 shots. Upgrading the mode with **[Power](#heading--power)** makes all shots that haven’t been completed permanent, so you can loop one shot for a fast completion.
+- **Molten Fire** (Orange): All 7 major shots are lit to harm the Magma Beast; once all shots have been made, they will relight. A **[KNIGHT letter](#heading--knight)** is awarded after completing 3 shots, and the mode ends after completing all 8 shots. Upgrading the mode with **[Power](#heading--rage)** makes all shots that haven’t been completed permanent, so you can loop one shot for a fast completion.
 - **Burning Sands** (Yellow): A set of three shots representing the Sandworm roves from left to right, across the 7 major shots. Shoot one of the three shots to lock in the three-shot set for a few seconds, after which they will start moving again. A **[KNIGHT letter](#heading--knight)** is awarded at 3 successful shots to the Sandworm (or one complete set), and the mode is completed upon making 6 successful shots (or two sets). Upgrading the mode with **[Power](#heading--rage)** automatically lights the three center shots for damage.
 - **Wicked Cavern** (Red): Defeat the Hell Hand by alternating between the left and right sides of the playfield. One shot starts randomly lit out of the 4 shots on the left side; shooting this shot will randomly light one of the 4 shots on the right side. Repeat four times, with an additional random shot in the group added per cycle. A **[KNIGHT letter](#heading--knight)** is awarded upon completing 3 shots, and the mode is completed after 8 shots. Upgrading the mode with **[Power](#heading--rage)** automatically lights all four shots.
 - **Deep Freeze** (Blue): 3 shots are lit in blue (left spinner lane, ramp, right orbit). Shooting a blue shot freezes a Lich and turns the shot red. Shooting a red shot awards more points and defeats the Lich at that shot and any other red shots that are lit. Once a Lich is defeated, another blue shot will be lit to qualify another Lich. A **[KNIGHT letter](#heading--knight)** is awarded after the 2nd defeated Lich, and the mode is completed upon defeating 4 Lich Lords. Upgrading the mode with **[Power](#heading--rage)** enables one-shot Lich kills.
@@ -199,7 +198,7 @@ Extra balls can be lit at the saucer behind the Black Knight’s shield by:
 Bonus is determined by:
 
 - Base bonus (switch hits)
-- **[Super Modes](#headed--supers)** started (+25k per mode)
+- **[Super Modes](#heading--supers)** started (+25k per mode)
 - **[U-Turns](#heading--uturns)** collected
 
 All multiplied by the bonus multiplier, which increases with each completion of the **[WAR lanes](#heading--war)**.

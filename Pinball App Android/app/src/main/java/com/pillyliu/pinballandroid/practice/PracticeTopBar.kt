@@ -40,6 +40,7 @@ internal fun PracticeTopBar(
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
+    val orderedGames = orderedGamesForDropdown(games)
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (route != PracticeRoute.Home) {
             IconButton(onClick = onBack) {
@@ -81,7 +82,7 @@ internal fun PracticeTopBar(
                     expanded = gamePickerExpanded,
                     onDismissRequest = { onGamePickerExpandedChange(false) },
                 ) {
-                    games.forEach { game ->
+                    orderedGames.forEach { game ->
                         DropdownMenuItem(
                             text = { Text(game.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             onClick = {

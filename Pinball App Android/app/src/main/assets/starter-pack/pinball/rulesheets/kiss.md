@@ -6,10 +6,9 @@ source_updated_at: "2024-10-25T18:31:35.832Z"
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/kiss-wiki-rulesheet/732">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
 
-
 <div class="pinball-rulesheet">
 
-## Game Information & Overview:
+## <span id="heading--gameinfo"></span>Game Information & Overview:
 
 - Manufacturer: Stern
 - Release Date: May 2015
@@ -17,7 +16,7 @@ source_updated_at: "2024-10-25T18:31:35.832Z"
   - *Edit the Code revision, if applicable, when you make changes*
 - Original Wiki Rulesheet hosted on [Tilt Forums](//tiltforums.com/t/kiss-wiki-rulesheet/732)
 
-## Rules Overview:
+## <span id="heading--overview"></span>Rules Overview:
 
 **Choosing Songs (Modes):** At the start of a ball, you are be able to choose a song. You will always be able to choose at the start of the game. You must complete a song before you can select another one (mode progress carries over ball to ball).
 
@@ -74,7 +73,7 @@ source_updated_at: "2024-10-25T18:31:35.832Z"
 
 There are also 2 playfield multipliers in the current version as well:
 
-*Playfield Multiplier:* Completing a song will start an untimed 2x/3x/5x/10x playfield scoring that lasts until the end of the ball (on default settings). For each song completed, the playfield multiplier awarded increments one step.  
+*Playfield Multiplier:* Completing a song will start an untimed 2x/3x/5x/10x playfield scoring that lasts until the end of the ball (on default settings). For each song completed, the playfield multiplier awarded increments one step.\
 *Demon Playfield Multiplier:* Locking 1/2 balls back in the Demon during Demon Multiball (see below) awards 2x/3x playfield for 20 seconds.
 
 The Playfield Multipliers stack *additively* with each other: having 5x Playfield and 2x Demon awards 7x Playfield, and visually, having both 2x and 3x inserts lit means you’re currently at 5x Song Multiplier. Shot and Playfield Multipliers stack *multiplicatively* with each other: having 3x Playfield and 2x Shot Multipliers awards 6x the scoring on that shot. A maximum of 52x scoring can be achieved on a single shot (13x Playfield, 2x Shot, 2x Combo)!
@@ -113,8 +112,8 @@ Qualifying the second Demon Multiball does not allow for lock stacking, and the 
 
 **Love Gun Multiball:** Qualify Love Gun by getting enough STAR target hits in the Starchild mini-playfield. Settings can be adjusted on how much progress you get per hit, but subsequent LGMB will always take more hits than the prior one. Once you’ve filled up the progress bar, LGMB is qualified, the R ramp’s purple insert is lit, and it can be started via a R ramp shot or a lucky bounce into the Starchild playfield saucer.
 
-Now LGMB starts as a 2-ball multiball with different behaviors between the Pro and Prem/LE versions:  
-Prem/LE: one ball held captive in the Starchild area behind the drop target. Shoot the Starchild drop target to collect a Love Gun Hurryup award, set your LGMB jackpot value, and add a third ball into play. If you don’t hit the drop target/captive ball by the time the Hurry-Up decreases to its minimum value, then your LGMB will remaind a 2-ball affair.  
+Now LGMB starts as a 2-ball multiball with different behaviors between the Pro and Prem/LE versions:\
+Prem/LE: one ball held captive in the Starchild area behind the drop target. Shoot the Starchild drop target to collect a Love Gun Hurryup award, set your LGMB jackpot value, and add a third ball into play. If you don’t hit the drop target/captive ball by the time the Hurry-Up decreases to its minimum value, then your LGMB will remaind a 2-ball affair.\
 Pro: (More difficult than the Prem/LE) whether LGMB is started at the R ramp or the saucer, there will be 2 balls in play during the Hurry-Up phase described above. You must hit one of the STAR standups to collect the Hurry-Up and get your third ball added into play.
 
 Apparently, Optimus Prime is a KISS fan: After the initial Hurry-Up phase, all shots are lit for a Jackpot. Shoot one, and that shot is now the only shot lit for a Double Jackpot. Complete all of the Jackpot/Double Jackpot shots to light the right ramp for a Triple Jackpot. Shoot the right ramp to light a Super Jackpot at the Starchild shot. Hitting any STAR target will score this massive Super Jackpot (50M base value). Collecting the Super Jackpot will also light the Starchild insert solid for Rock City.
@@ -123,9 +122,9 @@ Apparently, Optimus Prime is a KISS fan: After the initial Hurry-Up phase, all s
 
 **Wizard Modes:** The other Wizard modes are lit at the scoop after collecting all the band member inserts flashing (KISS Army) or solid (Rock City). Collect the inserts by:
 
-\-**Spaceman:** Collect six instruments and the insert will begin flashing. Collect 12 instruments to light solidly.  
--**Starchild:** Start Love Gun Multiball and the insert will begin flashing. Collect the Super Jackpot to light it solidly.  
--**Demon:** Start Demon Multiball and the insert will begin flashing. Collect the Double Super Jackpot to light the insert solidly.  
+\-**Spaceman:** Collect six instruments and the insert will begin flashing. Collect 12 instruments to light solidly.\
+-**Starchild:** Start Love Gun Multiball and the insert will begin flashing. Collect the Super Jackpot to light it solidly.\
+-**Demon:** Start Demon Multiball and the insert will begin flashing. Collect the Double Super Jackpot to light the insert solidly.\
 -**Catman:** Light four bumpers to make the insert begin flashing. Light all four bumpers purple to light solidly.
 
 **KISS Army Wizard Mode:** Apparently, copying one version of Optimus Prime MB wasn’t enough. So here’s the Decepticon version of it, just worth a bunch more points. After collecting all four inserts flashing, KISS Army is lit at the scoop. Shoot it to begin KISS Army Multiball. Lit shots score very lucrative values. All shots besides the Demon are initially lit for a jackpot. After hitting a shot, the Demon shot will be lit for a Double Jackpot. Hitting the Demon shot will then relight the other shots that have not been hit. Completing all the shots and double jacks then lights the Demon shot again for a nice super jackpot worth the sum of your double jacks collected. Use lit Mystery at scoop for Add-a-ball also works during this multiball.

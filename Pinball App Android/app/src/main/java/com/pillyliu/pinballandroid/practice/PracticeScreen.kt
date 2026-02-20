@@ -72,7 +72,7 @@ fun PracticeScreen(contentPadding: PaddingValues) {
         }
         uiState.insightsOpponentName = store.comparisonPlayerName
         if (uiState.selectedGameSlug == null) {
-            uiState.selectedGameSlug = store.resumeSlugFromLibraryOrPractice() ?: store.games.firstOrNull()?.slug
+            uiState.selectedGameSlug = store.resumeSlugFromLibraryOrPractice() ?: orderedGamesForDropdown(store.games).firstOrNull()?.slug
         }
     }
 
@@ -190,8 +190,8 @@ fun PracticeScreen(contentPadding: PaddingValues) {
                 onActiveGameVideoIdChange = { updated -> uiState.activeGameVideoId = updated },
                 resumeOtherExpanded = uiState.resumeOtherExpanded,
                 onResumeOtherExpandedChange = { expanded -> uiState.resumeOtherExpanded = expanded },
-                onOpenQuickEntry = { activity, origin ->
-                    uiState.openQuickEntryFor(activity, origin)
+                onOpenQuickEntry = { activity, origin, fromGameView ->
+                    uiState.openQuickEntryFor(activity, origin, fromGameView)
                 },
                 onOpenGroupDashboard = { uiState.navigateTo(PracticeRoute.GroupDashboard) },
                 onOpenJournal = { uiState.navigateTo(PracticeRoute.Journal) },
@@ -255,11 +255,13 @@ fun PracticeScreen(contentPadding: PaddingValues) {
         store = store,
         openNamePrompt = uiState.openNamePrompt,
         onOpenNamePromptChange = { open -> uiState.openNamePrompt = open },
+        onImportStatusChange = { status -> uiState.importStatus = status },
         openQuickEntry = uiState.openQuickEntry,
         onOpenQuickEntryChange = { open -> uiState.openQuickEntry = open },
         selectedGameSlug = uiState.selectedGameSlug,
         quickPresetActivity = uiState.quickPresetActivity,
         quickEntryOrigin = uiState.quickEntryOrigin,
+        quickEntryFromGameView = uiState.quickEntryFromGameView,
         onQuickSave = { slug ->
             uiState.selectedGameSlug = slug
             store.markPracticeViewedGame(slug)

@@ -94,7 +94,7 @@ struct PracticeGameWorkspace: View {
                         if store.games.isEmpty {
                             Text("No game data").tag("")
                         } else {
-                            ForEach(store.games.prefix(41)) { game in
+                            ForEach(orderedGamesForDropdown(store.games, limit: 41)) { game in
                                 Text(game.name).tag(game.id)
                             }
                         }
@@ -117,7 +117,7 @@ struct PracticeGameWorkspace: View {
         }
         .animation(.easeInOut(duration: 0.25), value: saveBanner)
         .onAppear {
-            if selectedGameID.isEmpty, let first = store.games.first {
+            if selectedGameID.isEmpty, let first = orderedGamesForDropdown(store.games).first {
                 selectedGameID = first.id
             }
             if !selectedGameID.isEmpty {
@@ -134,14 +134,25 @@ struct PracticeGameWorkspace: View {
             gameSummaryDraft = store.gameSummaryNote(for: newValue)
         }
         .sheet(item: $entryTask) { task in
-            GameTaskEntrySheet(task: task, gameID: selectedGameID, store: store) { message in
-                showSaveBanner(message)
-            }
+            GameTaskEntrySheet(
+                task: task,
+                gameID: selectedGameID,
+                store: store,
+                onSaved: { message in
+                    showSaveBanner(message)
+                }
+            )
+            .practiceEntrySheetStyle()
         }
         .sheet(isPresented: $showingScoreSheet) {
-            GameScoreEntrySheet(gameID: selectedGameID, store: store) {
-                showSaveBanner("Score logged")
-            }
+            GameScoreEntrySheet(
+                gameID: selectedGameID,
+                store: store,
+                onSaved: {
+                    showSaveBanner("Score logged")
+                }
+            )
+            .practiceEntrySheetStyle()
         }
     }
 
@@ -564,37 +575,41 @@ struct GameScoreEntrySheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppBackground()
-                VStack(alignment: .leading, spacing: 12) {
-                    TextField("Score", text: $scoreText)
-                        .keyboardType(.numbersAndPunctuation)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .appControlStyle()
-
-                    Picker("Context", selection: $scoreContext) {
-                        ForEach(ScoreContext.allCases) { context in
-                            Text(context.label).tag(context)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-
-                    if scoreContext == .tournament {
-                        TextField("Tournament name", text: $tournamentName)
+                Color.clear.ignoresSafeArea()
+                PracticeEntryGlassCard(maxHeight: 420) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        TextField("Score", text: $scoreText)
+                            .keyboardType(.numberPad)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 8)
                             .appControlStyle()
-                    }
 
-                    if let validationMessage {
-                        Text(validationMessage)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
+                        Picker("Context", selection: $scoreContext) {
+                            ForEach(ScoreContext.allCases) { context in
+                                Text(context.label).tag(context)
+                            }
+                        }
+                        .pickerStyle(.segmented)
 
-                    Spacer()
+                        if scoreContext == .tournament {
+                            TextField("Tournament name", text: $tournamentName)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .appControlStyle()
+                        }
+
+                        if let validationMessage {
+                            Text(validationMessage)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(14)
                 }
-                .padding(14)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
             }
             .navigationTitle("Log Score")
             .navigationBarTitleDisplayMode(.inline)
@@ -642,42 +657,46 @@ struct GameNoteEntrySheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppBackground()
-                VStack(alignment: .leading, spacing: 12) {
-                    Picker("Category", selection: $category) {
-                        ForEach(noteCategories) { option in
-                            Text(option.label).tag(option)
+                Color.clear.ignoresSafeArea()
+                PracticeEntryGlassCard(maxHeight: 460) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Picker("Category", selection: $category) {
+                            ForEach(noteCategories) { option in
+                                Text(option.label).tag(option)
+                            }
                         }
+                        .pickerStyle(.menu)
+
+                        TextField("Optional detail (mode/shot/skill)", text: $detail)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .appControlStyle()
+
+                        TextField("Note", text: $note, axis: .vertical)
+                            .lineLimit(3...6)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .appControlStyle()
+
+                        let detectedTags = store.detectedMechanicsTags(in: "\(detail) \(note)")
+                        if !detectedTags.isEmpty {
+                            Text("Detected mechanics: \(detectedTags.joined(separator: ", "))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if let validationMessage {
+                            Text(validationMessage)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+
+                        Spacer()
                     }
-                    .pickerStyle(.menu)
-
-                    TextField("Optional detail (mode/shot/skill)", text: $detail)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .appControlStyle()
-
-                    TextField("Note", text: $note, axis: .vertical)
-                        .lineLimit(3...6)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .appControlStyle()
-
-                    let detectedTags = store.detectedMechanicsTags(in: "\(detail) \(note)")
-                    if !detectedTags.isEmpty {
-                        Text("Detected mechanics: \(detectedTags.joined(separator: ", "))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    if let validationMessage {
-                        Text(validationMessage)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
-
-                    Spacer()
+                    .padding(14)
                 }
-                .padding(14)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
             }
             .navigationTitle("Add Note")
             .navigationBarTitleDisplayMode(.inline)
@@ -734,69 +753,72 @@ struct GameTaskEntrySheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppBackground()
+                Color.clear.ignoresSafeArea()
+                PracticeEntryGlassCard {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 14) {
+                            sectionCard("Task") {
+                                Text(task.label)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.primary)
+                            }
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        sectionCard("Task") {
-                            Text(task.label)
-                                .font(.subheadline)
-                                .foregroundStyle(.primary)
-                        }
-
-                        sectionCard("Details") {
-                            switch task {
-                            case .rulesheet:
-                                sliderRow(title: "Rulesheet progress", value: $rulesheetProgress)
-                                styledTextField("Optional note", text: $noteText, axis: .vertical)
-                            case .tutorialVideo, .gameplayVideo:
-                                Picker("Input mode", selection: $videoKind) {
-                                    ForEach(VideoProgressInputKind.allCases) { kind in
-                                        Text(kind.label).tag(kind)
+                            sectionCard("Details") {
+                                switch task {
+                                case .rulesheet:
+                                    sliderRow(title: "Rulesheet progress", value: $rulesheetProgress)
+                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
+                                case .tutorialVideo, .gameplayVideo:
+                                    Picker("Input mode", selection: $videoKind) {
+                                        ForEach(VideoProgressInputKind.allCases) { kind in
+                                            Text(kind.label).tag(kind)
+                                        }
                                     }
-                                }
-                                .pickerStyle(.segmented)
+                                    .pickerStyle(.segmented)
 
-                                if videoKind == .clock {
-                                    styledTextField(
-                                        "mm:ss (example: 12:45)",
-                                        text: $videoValue,
-                                        keyboard: .numbersAndPunctuation
-                                    )
-                                } else {
-                                    sliderRow(title: "Percent watched", value: $videoPercent)
-                                }
-
-                                styledTextField("Optional note", text: $noteText, axis: .vertical)
-                            case .playfield:
-                                Text("Logs a timestamped playfield review.")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                                styledTextField("Optional note", text: $noteText, axis: .vertical)
-                            case .practice:
-                                styledTextField("Practice minutes (optional)", text: $practiceMinutes, keyboard: .numberPad)
-                                Picker("Practice note type", selection: $practiceCategory) {
-                                    ForEach(noteCategories) { option in
-                                        Text(option.label).tag(option)
+                                    if videoKind == .clock {
+                                        styledTextField(
+                                            "mm:ss (example: 12:45)",
+                                            text: $videoValue,
+                                            keyboard: .numbersAndPunctuation
+                                        )
+                                    } else {
+                                        sliderRow(title: "Percent watched", value: $videoPercent)
                                     }
+
+                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
+                                case .playfield:
+                                    Text("Logs a timestamped playfield review.")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
+                                case .practice:
+                                    styledTextField("Practice minutes (optional)", text: $practiceMinutes, keyboard: .numberPad)
+                                    Picker("Practice note type", selection: $practiceCategory) {
+                                        ForEach(noteCategories) { option in
+                                            Text(option.label).tag(option)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
                                 }
-                                .pickerStyle(.menu)
-                                styledTextField("Optional note", text: $noteText, axis: .vertical)
+                            }
+
+                            if let validationMessage {
+                                sectionCard("Validation") {
+                                    Text(validationMessage)
+                                        .font(.footnote)
+                                        .foregroundStyle(.red)
+                                }
                             }
                         }
-
-                        if let validationMessage {
-                            sectionCard("Validation") {
-                                Text(validationMessage)
-                                    .font(.footnote)
-                                    .foregroundStyle(.red)
-                            }
-                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
             }
             .navigationTitle("Add Entry")
             .navigationBarTitleDisplayMode(.inline)

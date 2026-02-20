@@ -10,7 +10,7 @@ import org.json.JSONObject
 internal const val LIBRARY_URL = "https://pillyliu.com/pinball/data/pinball_library.json"
 internal val LIBRARY_CONTENT_BOTTOM_FILLER = 60.dp
 
-internal data class Video(val label: String?, val url: String?)
+internal data class Video(val kind: String?, val label: String?, val url: String?)
 internal data class LibraryGroupSection(val groupKey: Int?, val games: List<PinballGame>)
 internal enum class LibraryRouteKind {
     LIST,
@@ -26,8 +26,9 @@ internal enum class LibrarySortOption(val label: String) {
 }
 
 internal data class PinballGame(
+    val location: String?,
     val group: Int?,
-    val pos: Int?,
+    val position: Int?,
     val bank: Int?,
     val name: String,
     val manufacturer: String?,
@@ -60,19 +61,19 @@ internal fun sortLibraryGames(games: List<PinballGame>, option: LibrarySortOptio
     return when (option) {
         LibrarySortOption.LOCATION -> games.sortedWith(
             compareBy<PinballGame> { it.group ?: Int.MAX_VALUE }
-                .thenBy { it.pos ?: Int.MAX_VALUE }
+                .thenBy { it.position ?: Int.MAX_VALUE }
                 .thenBy { it.name.lowercase() },
         )
         LibrarySortOption.BANK -> games.sortedWith(
             compareBy<PinballGame> { it.bank ?: Int.MAX_VALUE }
                 .thenBy { it.group ?: Int.MAX_VALUE }
-                .thenBy { it.pos ?: Int.MAX_VALUE }
+                .thenBy { it.position ?: Int.MAX_VALUE }
                 .thenBy { it.name.lowercase() },
         )
         LibrarySortOption.ALPHABETICAL -> games.sortedWith(
             compareBy<PinballGame> { it.name.lowercase() }
                 .thenBy { it.group ?: Int.MAX_VALUE }
-                .thenBy { it.pos ?: Int.MAX_VALUE },
+                .thenBy { it.position ?: Int.MAX_VALUE },
         )
     }
 }
@@ -85,8 +86,9 @@ internal fun parseGames(array: JSONArray): List<PinballGame> {
         if (name.isBlank() || slug.isBlank()) return@mapNotNull null
 
         PinballGame(
+            location = obj.optStringOrNull("location")?.trim(),
             group = obj.optIntOrNull("group"),
-            pos = obj.optIntOrNull("pos"),
+            position = obj.optIntOrNull("position"),
             bank = obj.optIntOrNull("bank"),
             name = name,
             manufacturer = obj.optStringOrNull("manufacturer"),
@@ -97,7 +99,13 @@ internal fun parseGames(array: JSONArray): List<PinballGame> {
             rulesheetUrl = obj.optStringOrNull("rulesheetUrl"),
             videos = obj.optJSONArray("videos")?.let { vids ->
                 (0 until vids.length()).mapNotNull { idx ->
-                    vids.optJSONObject(idx)?.let { v -> Video(v.optStringOrNull("label"), v.optStringOrNull("url")) }
+                    vids.optJSONObject(idx)?.let { v ->
+                        Video(
+                            kind = v.optStringOrNull("kind"),
+                            label = v.optStringOrNull("label"),
+                            url = v.optStringOrNull("url"),
+                        )
+                    }
                 }
             } ?: emptyList(),
         )
@@ -126,9 +134,12 @@ internal fun PinballGame.locationBankLine(): String {
 
 private fun PinballGame.locationText(): String? {
     val g = group ?: return null
-    val p = pos ?: return null
-    val floor = if (g in 1..4) "U" else "D"
-    return "$floor:$g:$p"
+    val p = position ?: return null
+    return if (!location.isNullOrBlank()) {
+        "📍 $location:$g:$p"
+    } else {
+        "📍 $g:$p"
+    }
 }
 
 internal fun PinballGame.resolve(pathOrUrl: String?): String? {

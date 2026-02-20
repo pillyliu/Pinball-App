@@ -6,7 +6,6 @@ source_updated_at: "2025-11-02T18:58:53.062Z"
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/star-trek-wiki/456">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
 
-
 <div class="pinball-rulesheet">
 
 ## <a href="#p-2306-table-of-contents-1" id="p-2306-table-of-contents-1" class="anchor"></a>Table of contents
@@ -74,7 +73,7 @@ source_updated_at: "2025-11-02T18:58:53.062Z"
 
 ## <span id="heading--modes"></span>Modes
 
-**General Mode Strategy**  
+**General Mode Strategy**\
 Shoot the matching colored shots for the modes to earn points and advance. Combos will double points that would’ve been earned. Once you hit one mode shot, you can shoot the ‘Away Team’ shot (under the upper flipper), which adds 20 seconds and changes the primary objective of the mode to some specific shots. Usually, it’s a pretty good idea to do so as the shots become much more valuable.
 
 When a mode ends, start another mode (or restart the mode) by shooting the Mission Start (far left eject hole) or the Away Team (under the upper flipper) shots and then choosing a mode.
@@ -93,7 +92,7 @@ Level II modes may only be started after completing their respective Level I (or
 
 Level III modes may only be started after completing their respective Level II mode. Level III modes operate similarly to Level II modes, but with improved scoring. Completing a Level III mode will light one particular shot on the playfield for double scoring for the rest of the game. In this case, the combo arrow for the shot lights permanently, effectively replacing 2x combo scoring.
 
-## Mode Scoring
+## <span id="heading--modescoring"></span>Mode Scoring
 
 Each shot in a mode has a base value of 100K x level + shot bonus + streak bonus + 30K x shots made in the current mode. The shot bonus and streak bonus both start at 0, and each shot made increases the shot bonus by 5K and the streak bonus by 10K. On the first attempt at each level II or level III mode, the increase is multiplied by the level. The shot bonus carries over throughout the entire game, while the streak bonus resets at the end of each ball.
 
@@ -108,12 +107,12 @@ For example, suppose a player starts a new game, starts a level I mode, makes 2 
 
 ## <span id="heading--modepd"></span>Prime Directive
 
-**Level I:**  
-30-second timer. All shots light blue and un-light when hit. Un-lighting five shots relights all shots; after a short timer, shots will also relight if no mode shot has been completed.  
+**Level I:**\
+30-second timer. All shots light blue and un-light when hit. Un-lighting five shots relights all shots; after a short timer, shots will also relight if no mode shot has been completed.\
 Bronze – 3 shots, Silver – 6 shots, Gold – 9 shots
 
-**With Galactic Away Team:**  
-Top (bonus X) lanes will light and must be turned off; right orbit; left orbit  
+**With Galactic Away Team:**\
+Top (bonus X) lanes will light and must be turned off; right orbit; left orbit\
 Final shot is doubled at right ramp.
 
 <div class="md-table">
@@ -124,7 +123,7 @@ Final shot is doubled at right ramp.
 
 </div>
 
-**Level II:**  
+**Level II:**\
 30-second timer. All shots light blue with one shot lighting multi-color. Finish all shots to complete. Shooting multi-color will un-light that shot and move the multi-color to a different shot.
 
 <div class="md-table">
@@ -136,7 +135,7 @@ Final shot is doubled at right ramp.
 
 </div>
 
-**Level III:**  
+**Level III:**\
 30-second timer. All shots light blue with one shot lighting multi-color. Finish all shots to complete. Shooting multi-color will un-light that shot and move the multi-color to a different shot.
 
 <div class="md-table">
@@ -147,15 +146,15 @@ Final shot is doubled at right ramp.
 
 </div>
 
-**Level 3 Completion:**  
+**Level 3 Completion:**\
 2X on the Left scoop for the remainder of the game.
 
 ## <span id="heading--modesj"></span>Space Jump:
 
-**Level I:**  
+**Level I:**\
 30-second timer. Four shots (both orbits, left ramp, right ramp) light yellow. Shooting a lit arrow un-lights the shot and one other shot, but will always re-light a combo. All shots re-light after a small timer elapses if no shots are made.
 
-**With Galactic Away Team**  
+**With Galactic Away Team**\
 Vengeance drop target. Hitting the target will advance one medal rank if not at gold and end mode.
 
 Final shot is doubled at the Vengeance.
@@ -168,7 +167,7 @@ Final shot is doubled at the Vengeance.
 
 </div>
 
-**Level II:**  
+**Level II:**\
 30-second timer. Similar to level I, but only one shot will ever be lit multi-color at a time, and it will always be a combo from the previous shot.
 
 <div class="md-table">
@@ -180,7 +179,7 @@ Final shot is doubled at the Vengeance.
 
 </div>
 
-**Level III:**  
+**Level III:**\
 30-second timer. Similar to level I, but only one shot will ever be lit multi-color at a time, and it will always be a combo from the previous shot.
 
 <div class="md-table">
@@ -191,16 +190,16 @@ Final shot is doubled at the Vengeance.
 
 </div>
 
-**Level 3 Completion:**  
+**Level 3 Completion:**\
 2X on the Right Orbit for the remainder of the game.
 
 ## <span id="heading--modeste"></span>Save the Enterprise:
 
-**Level I:**  
+**Level I:**\
 30-second timer. Three random adjacent shots light. Shoot any one to move to three new random adjacent shots (other shots unlight).
 
-**With Galactic Away Team:**  
-Warp ramp & left orbit.  
+**With Galactic Away Team:**\
+Warp ramp & left orbit.\
 Final shot is 4x at both orbits.
 
 <div class="md-table">
@@ -211,10 +210,10 @@ Final shot is 4x at both orbits.
 
 </div>
 
-**Level II:**  
-Only 2 random shots light; one shot is 2x.  
-This mode is not timed.  
-Hitting a shot unlights both and lights 2 new random shots.  
+**Level II:**\
+Only 2 random shots light; one shot is 2x.\
+This mode is not timed.\
+Hitting a shot unlights both and lights 2 new random shots.\
 Complete 6 shots to finish the mode.
 
 <div class="md-table">
@@ -226,10 +225,10 @@ Complete 6 shots to finish the mode.
 
 </div>
 
-**Level III:**  
-Only 1 random shot lights.  
-This mode is not timed.  
-Hitting the lit shot lights a different random shot and lights the Warp ramp for a 2x shot. The Warp ramp remains lit until hit. Once hit, another mode shot must be made to relight.  
+**Level III:**\
+Only 1 random shot lights.\
+This mode is not timed.\
+Hitting the lit shot lights a different random shot and lights the Warp ramp for a 2x shot. The Warp ramp remains lit until hit. Once hit, another mode shot must be made to relight.\
 Complete 8 shots to finish the mode.
 
 <div class="md-table">
@@ -240,16 +239,16 @@ Complete 8 shots to finish the mode.
 
 </div>
 
-**Level 3 Completion:**  
+**Level 3 Completion:**\
 2X on the Right Ramp for the remainder of the game.
 
 ## <span id="heading--moden"></span>Nero:
 
-**Level I:**  
+**Level I:**\
 30-second timer. Five shots light purple (all except scoop & warp ramp). Shooting a lit shot un-lights it. Re-light all five shots by either un-lighting all, or allowing a short timer to elapse.
 
-**With Galactic Away Team:**  
-Red Matter standups. Hit a standup to unlight. Unlighting all standups re-lights all standups.  
+**With Galactic Away Team:**\
+Red Matter standups. Hit a standup to unlight. Unlighting all standups re-lights all standups.\
 Final shot is doubled at Black Hole target.
 
 <div class="md-table">
@@ -261,7 +260,7 @@ Final shot is doubled at Black Hole target.
 
 </div>
 
-**Level II:**  
+**Level II:**\
 This mode is not timed. Left scoop (multi-color) and left orbit represent the Left Romulan attacker (on the screen). Left ramp (multi-color) and Vengeance represent the Center Romulan attacker. Right ramp (multi-color) and right orbit represent the Right Romulan attacker. Defeat 10 attackers to complete. Attackers re-light after a short time. Extra points are awarded for defeating three attackers before any re-light.
 
 <div class="md-table">
@@ -273,10 +272,10 @@ This mode is not timed. Left scoop (multi-color) and left orbit represent the Le
 
 </div>
 
-**Level III:**  
-Only 2 shots light (the orbits).  
-55-second timer.  
-Flipping the left flipper will move the left orbit shot one shot to the right every flip, looping back around to the far left. Flipping the right flipper will move the right orbit shot one shot to the left every flip, looping back around to the far right. The mode shot will be 2x only when both shots overlap at the same shot.  
+**Level III:**\
+Only 2 shots light (the orbits).\
+55-second timer.\
+Flipping the left flipper will move the left orbit shot one shot to the right every flip, looping back around to the far left. Flipping the right flipper will move the right orbit shot one shot to the left every flip, looping back around to the far right. The mode shot will be 2x only when both shots overlap at the same shot.\
 Compete 5 shots to finish the mode. If the timer ends, progress will be saved.
 
 <div class="md-table">
@@ -287,16 +286,16 @@ Compete 5 shots to finish the mode. If the timer ends, progress will be saved.
 
 </div>
 
-**Level 3 Completion:**  
+**Level 3 Completion:**\
 2X on the Left Orbit for the remainder of the game.
 
 ## <span id="heading--modedtd"></span>Destroy the Drill:
 
-**Level I:**  
+**Level I:**\
 30-second timer. Lit shots “fan” from left to right as time elapses. Shooting a lit shot reverses the fan by 1 unit.
 
-**With Galactic Away Team:**  
-Left eject hole and left spinner/orbit are lit; additional points are awarded for each spin of the spinner (75k per spin!).  
+**With Galactic Away Team:**\
+Left eject hole and left spinner/orbit are lit; additional points are awarded for each spin of the spinner (75k per spin!).\
 Final shot is 4x at the left eject hole.
 
 <div class="md-table">
@@ -307,10 +306,10 @@ Final shot is 4x at the left eject hole.
 
 </div>
 
-**Level II:**  
-Only 1 shot lights (left eject hole) at the beginning.  
-This mode is not timed.  
-Shots will light one at a time moving left to right until all shots are lit; the leading shot will flash for 2x. Once all shots are lit, they will unlight one at a time moving left to right until only the right orbit remains. Then shots will light one at a time moving right to left until all shots are lit. Finally, shots will unlight one at a time moving right to left until only the left eject hole remains. This pattern will repeat. Shots that have been made will light solid and will not light for 2x; mode shots still available will be flashing.  
+**Level II:**\
+Only 1 shot lights (left eject hole) at the beginning.\
+This mode is not timed.\
+Shots will light one at a time moving left to right until all shots are lit; the leading shot will flash for 2x. Once all shots are lit, they will unlight one at a time moving left to right until only the right orbit remains. Then shots will light one at a time moving right to left until all shots are lit. Finally, shots will unlight one at a time moving right to left until only the left eject hole remains. This pattern will repeat. Shots that have been made will light solid and will not light for 2x; mode shots still available will be flashing.\
 Complete 6 different shots to finish the mode.
 
 <div class="md-table">
@@ -322,10 +321,10 @@ Complete 6 different shots to finish the mode.
 
 </div>
 
-**Level III:**  
-Only 3 shots light (left eject hole, Vengeance, and right orbit) at the beginning with the Vengeance shot flashing for 2x.  
-55-second timer.  
-During the mode, a fourth shot will rove back and forth starting from the Vengeance. When it overlaps one of the other three shots, that shot is 2x.  
+**Level III:**\
+Only 3 shots light (left eject hole, Vengeance, and right orbit) at the beginning with the Vengeance shot flashing for 2x.\
+55-second timer.\
+During the mode, a fourth shot will rove back and forth starting from the Vengeance. When it overlaps one of the other three shots, that shot is 2x.\
 Complete 7 shots to finish the mode. If the timer ends, progress will be saved.
 
 <div class="md-table">
@@ -336,16 +335,16 @@ Complete 7 shots to finish the mode. If the timer ends, progress will be saved.
 
 </div>
 
-**Level 3 Completion:**  
+**Level 3 Completion:**\
 2X on the Warp Ramp for the remainder of the game.
 
 ## <span id="heading--modekb"></span>Klingon Battle:
 
-**Level I:**  
+**Level I:**\
 30-second timer. Five shots (all except left eject hole & Vengeance) are lit. After the first mode shot, shooting a lit shot unlights it; after the next mode shot, the previously unlit shot will relight so that subsequently four shots are always lit.
 
-**With Galactic Away Team:**  
-Left/right ramps (must alternate after first).  
+**With Galactic Away Team:**\
+Left/right ramps (must alternate after first).\
 Final shot is 4x at the left ramp.
 
 <div class="md-table">
@@ -356,7 +355,7 @@ Final shot is 4x at the left ramp.
 
 </div>
 
-**Level II:**  
+**Level II:**\
 This mode is not timed. Left ramp begins lit, with the lit shot spreading simultaneously left and right. The multi-color arrow moves every time a new shot lights. The sequence begins again every time a shot is hit, or after a short time if no shots are hit. (Note: You can achieve perfect medal progress by repeating the Left Ramp, but you will sacrifice some points because it avoids any 2x combos).
 
 <div class="md-table">
@@ -368,7 +367,7 @@ This mode is not timed. Left ramp begins lit, with the lit shot spreading simult
 
 </div>
 
-**Level III:**  
+**Level III:**\
 45-second timer. Shots are lit in a random order and un-light when hit. After the first shot is made, up to three shots can be lit at a time, but only one will be multi-color. Make ten shots to finish.
 
 <div class="md-table">
@@ -379,20 +378,20 @@ This mode is not timed. Left ramp begins lit, with the lit shot spreading simult
 
 </div>
 
-**Level 3 Completion:**  
+**Level 3 Completion:**\
 2X on the Left Ramp for the remainder of the game.
 
 ## <span id="heading--medals"></span>Medals
 
 Medals (and points) are awarded for how well you play each mode (bronze/silver/gold). After completing all modes a “medal bonus collect/jackpot” is awarded when you start the mini wizard mode. This value can be doubled if 2x is running. Medals accrue and are never replaced, thus earning a Silver Medal also leaves you holding a Bronze.
 
-The first bronze medal is worth 250k, with each subsequent bronze worth +125k more.  
-The first silver medal is worth 450k, with each subsequent silver worth +175k more.  
+The first bronze medal is worth 250k, with each subsequent bronze worth +125k more.\
+The first silver medal is worth 450k, with each subsequent silver worth +175k more.\
 The first gold medal is worth 1000k, with each subsequent gold worth +275k more.
 
-For All Level One modes:  
-To earn bronze, you need three shots.  
-To earn silver, you need six shots.  
+For All Level One modes:\
+To earn bronze, you need three shots.\
+To earn silver, you need six shots.\
 To earn gold, you need nine shots.
 
 Unless you make the Galactic Away Team shot. In GAT, there are fewer shots available that are worth more points.
@@ -403,12 +402,12 @@ Medal values double if you combo into the shot that gives you the medal. For exa
 
 Level Two and Three modes: Now things start to get real. To medal, you can’t just make any shots. You need to make the correct, better shots that are indicated by the multi-color arrows. Making incorrect shots may lock you out of better medals.
 
-Special Case <span class="hashtag-raw">\#2:</span> Klingon Multiball  
+Special Case <span class="hashtag-raw">\#2:</span> Klingon Multiball\
 If you collect the Double Super Jackpot you will also receive a single, gold medal.
 
 ## <span id="heading--captainschair"></span>Captain's Chair and Level 3 Completion
 
-**Captain’s Chair:**  
+**Captain’s Chair:**\
 Completing three same-level modes in a line enables the Captain’s Chair.
 
 <div class="md-table">
@@ -423,7 +422,7 @@ Completing three same-level modes in a line enables the Captain’s Chair.
 
 Captain’s Chair remains live until completed, it remains active across balls. You can only get Captain’s Chair once per rack, but if you finish two at the same time, you will get both awards.
 
-**Level 3 Completion:**  
+**Level 3 Completion:**\
 Completing the Level 3 Mode of any of the 6 Modes will award a 2X Shot Multiplier for the remainder of the game.
 
 <div class="md-table">

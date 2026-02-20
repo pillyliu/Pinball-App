@@ -1,11 +1,10 @@
 ---
 title: "Star Wars (Stern) Rulesheet"
 source: "https://tiltforums.com/t/star-wars-stern-rulesheet/2812"
-source_updated_at: "2025-09-23T17:51:47.296Z"
+source_updated_at: "2026-02-19T12:50:41.673Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/star-wars-stern-rulesheet/2812">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -74,7 +73,7 @@ source_updated_at: "2025-09-23T17:51:47.296Z"
 At the start of the first ball, *Star Wars* allows you to choose a character. Each character has special benefits that help you out through gameplay. Also, depending on the character you choose to play as, certain **[planet modes](#heading--planets)** may not be accessible. The selectable characters are:
 
 - **Luke** (Doubled scoring during **[Lightsaber Duel](#heading--duel)**)
-- **Leia** (Adds 3x to the **[shot multiplier](#heading--shotx)** during any **[final planet mode](#heading--planet)**)
+- **Leia** (Adds 3x to the **[shot multiplier](#heading--shotx)** during any **[final planet mode](#heading--planets)**)
 - **R2-D2** (Easier **[shot multipliers](#heading--shotx)** - fewer target hits, and multipliers last longer)
 - **Han Solo** (Doubled scoring during **[Escape from Boba Fett](#heading--boba)**)
 
@@ -91,7 +90,7 @@ Four shots on the playfield correspond to different planets; shoot any of the fo
 
 If a mode isn’t already active, shooting any qualified planet’s shot will allow you to choose a mode, or pass if you desire. Two modes from different planets can be played at once, but each planet’s final multiball mode must be played on its own. Modes do not time out, although many of them are based around short hurry-ups. For each of the final multiball modes, the number of balls is equal to the number of modes for that planet you had to play +1. Complete the FORCE targets, then hold the action button, to add a ball once per final multiball; this can be carried over into other multiballs if not used.
 
-Winning two missions lights the left ramp for **[extra ball](#heading--extraballs)**. Attempting all four final multiball modes is required to qualify the final wizard mode, **[Jedi Multiball](#heading--wizard)**. After a mode is completed, it can only be played again after the wizard mode has ended.
+Winning two missions lights the left ramp for **[extra ball](#heading--extraball)**. Attempting all four final multiball modes is required to qualify the final wizard mode, **[Jedi Multiball](#heading--wizard)**. After a mode is completed, it can only be played again after the wizard mode has ended.
 
 - **Death Star**: Shoot the left mini-loop to light these modes.
 
@@ -152,7 +151,7 @@ The red arrows in front of certain targets on the playfield, as well as the LCD 
 
 TIE Fighter Multiball is a 3-ball Multiball where all major shots are lit for Jackpots worth 750k. Once all Jackpots are collected, shoot the left ramp for a Super Jackpot that can be built up by shooting the flashing red 3-bank Targets. The Super Jackpot is worth 4M + 100k for every advance. Scoring from this multiball is relatively low, and it should primarily be used as backup during any **[final planet multiball](#heading--planets)**.
 
-TIE Fighters also count up to other awards throughout the game. Defeating 80 TIE Fighters lights the **[extra ball](#heading--extraballs)**, which can also be lit after defeating enough advanced TIE fighters on the center LCD screen. 100 TIE Fighters have to be defeated to qualify **[Jedi Multiball](#heading--wizard)**.
+TIE Fighters also count up to other awards throughout the game. Defeating 80 TIE Fighters lights the **[extra ball](#heading--extraball)**, which can also be lit after defeating enough advanced TIE fighters on the center LCD screen. 100 TIE Fighters have to be defeated to qualify **[Jedi Multiball](#heading--wizard)**.
 
 ### <span id="heading--hyperspace"></span>Hyperspace Hurry-Up & Hyperspace Multiball:
 

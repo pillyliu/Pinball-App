@@ -27,15 +27,27 @@ extension PracticeScreen {
             },
             showingNamePrompt: showingNamePrompt,
             firstNamePromptValue: $firstNamePromptValue,
+            importLplStatsOnNameSave: $importLplStatsOnNameSave,
             onNotNow: {
                 practiceNamePrompted = true
                 showingNamePrompt = false
             },
-            onSaveName: { trimmedName in
+            onSaveName: { trimmedName, shouldImportLplStats in
                 playerName = trimmedName
                 store.updatePracticeSettings(playerName: trimmedName)
                 practiceNamePrompted = true
                 showingNamePrompt = false
+                guard shouldImportLplStats else { return }
+                Task {
+                    let normalizedInput = store.normalizeHumanName(trimmedName)
+                    let players = await store.availableLeaguePlayers()
+                    guard let matchedPlayer = players.first(where: {
+                        store.normalizeHumanName($0) == normalizedInput
+                    }) else { return }
+                    leaguePlayerName = matchedPlayer
+                    store.updateLeagueSettings(playerName: matchedPlayer, csvAutoFillEnabled: true)
+                    _ = await store.importLeagueScoresFromCSV()
+                }
             }
         )
         .toolbar(.hidden, for: .navigationBar)
@@ -47,7 +59,7 @@ extension PracticeScreen {
                     }
                     .onChange(of: geo.size.height) { _, newHeight in
                         viewportHeight = newHeight
-                    }
+                }
             }
         )
         .sheet(item: $quickSheet) { kind in
@@ -62,6 +74,7 @@ extension PracticeScreen {
                     markPracticeGameViewed(gameID)
                 }
             )
+            .practiceEntrySheetStyle()
         }
     }
 
@@ -109,6 +122,9 @@ extension PracticeScreen {
                         editingGroupID = nil
                     }
                 }
+                .practiceEntrySheetStyle()
+                .presentationBackground(.ultraThinMaterial)
+                .presentationDetents([.large])
             }
             .sheet(isPresented: $openCurrentGroupDateEditor) {
                 NavigationStack {
@@ -118,7 +134,7 @@ extension PracticeScreen {
                             selection: $currentGroupDateEditorValue,
                             displayedComponents: .date
                         )
-                        .datePickerStyle(.graphical)
+                        .datePickerStyle(.compact)
 
                         HStack {
                             Button("Clear", role: .destructive) {
@@ -167,6 +183,8 @@ extension PracticeScreen {
                         }
                     }
                 }
+                .practiceEntrySheetStyle()
+                .presentationBackground(.ultraThinMaterial)
             }
             .task {
                 await store.loadIfNeeded()
@@ -176,6 +194,7 @@ extension PracticeScreen {
                 let trimmedName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
                 if trimmedName.isEmpty {
                     firstNamePromptValue = ""
+                    importLplStatsOnNameSave = true
                     showingNamePrompt = true
                 }
             }

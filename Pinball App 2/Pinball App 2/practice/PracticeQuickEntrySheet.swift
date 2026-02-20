@@ -43,123 +43,128 @@ struct PracticeQuickEntrySheet: View {
     }
 
     var body: some View {
+        let gameOptions = orderedGamesForDropdown(store.games, limit: 41)
         NavigationStack {
             ZStack {
-                AppBackground()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Picker("Game", selection: $selectedGameID) {
-                            if kind == .mechanics {
-                                Text("None").tag("")
-                            }
-                            if store.games.isEmpty {
-                                Text("No game data").tag("")
-                            } else {
-                                ForEach(store.games.prefix(41)) { game in
-                                    Text(game.name).tag(game.id)
+                Color.clear.ignoresSafeArea()
+                PracticeEntryGlassCard {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Picker("Game", selection: $selectedGameID) {
+                                if kind == .mechanics {
+                                    Text("None").tag("")
                                 }
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .onChange(of: store.games.count) { _, _ in
-                            if selectedGameID.isEmpty, let first = store.games.first {
-                                selectedGameID = first.id
-                            }
-                        }
-
-                        if showsActivityPicker {
-                            Picker("Activity", selection: $selectedActivity) {
-                                ForEach(availableActivities) { activity in
-                                    Text(activity.label).tag(activity)
+                                if store.games.isEmpty {
+                                    Text("No game data").tag("")
+                                } else {
+                                    ForEach(gameOptions) { game in
+                                        Text(game.name).tag(game.id)
+                                    }
                                 }
                             }
                             .pickerStyle(.menu)
-                        }
-
-                        sectionCard("Details") {
-                            switch selectedActivity {
-                            case .score:
-                                styledTextField("Score", text: $scoreText, keyboard: .numbersAndPunctuation)
-
-                                Picker("Context", selection: $scoreContext) {
-                                    ForEach(ScoreContext.allCases) { context in
-                                        Text(context.label).tag(context)
-                                    }
-                                }
-                                .pickerStyle(.segmented)
-
-                                if scoreContext == .tournament {
-                                    styledTextField("Tournament name", text: $tournamentName)
-                                }
-                            case .rulesheet:
-                                sliderRow(title: "Rulesheet progress", value: $rulesheetProgress)
-                                styledTextField("Optional note", text: $noteText, axis: .vertical)
-                            case .tutorialVideo, .gameplayVideo:
-                                Picker("Input mode", selection: $videoKind) {
-                                    ForEach(VideoProgressInputKind.allCases) { kind in
-                                        Text(kind.label).tag(kind)
-                                    }
-                                }
-                                .pickerStyle(.segmented)
-
-                                if videoKind == .clock {
-                                    styledTextField("mm:ss (example: 12:45)", text: $videoValue, keyboard: .numbersAndPunctuation)
-                                } else {
-                                    sliderRow(title: "Percent watched", value: $videoPercent)
-                                }
-
-                                styledTextField("Optional note", text: $noteText, axis: .vertical)
-                            case .playfield:
-                                Text("Logs a timestamped playfield review.")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                                styledTextField("Optional note", text: $noteText, axis: .vertical)
-                            case .practice:
-                                styledTextField("Practice minutes (optional)", text: $practiceMinutes, keyboard: .numberPad)
-                                Picker("Practice note type", selection: $practiceCategory) {
-                                    ForEach(noteCategories) { option in
-                                        Text(option.label).tag(option)
-                                    }
-                                }
-                                .pickerStyle(.menu)
-                                styledTextField("Optional note", text: $noteText, axis: .vertical)
-                            case .mechanics:
-                                Picker("Skill", selection: $mechanicsSkill) {
-                                    ForEach(store.allTrackedMechanicsSkills(), id: \.self) { skill in
-                                        Text(skill).tag(skill)
-                                    }
-                                }
-                                .pickerStyle(.menu)
-
-                                HStack {
-                                    Text("Competency")
-                                    Spacer()
-                                    Text("\(Int(mechanicsCompetency))/5")
-                                        .foregroundStyle(.secondary)
-                                }
-                                Slider(value: $mechanicsCompetency, in: 1...5, step: 1)
-
-                                styledTextField("Mechanics note", text: $mechanicsNote, axis: .vertical)
-
-                                let detected = store.detectedMechanicsTags(in: mechanicsNote)
-                                if !detected.isEmpty {
-                                    Text("Detected tags: \(detected.joined(separator: ", "))")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                            .onChange(of: store.games.count) { _, _ in
+                                if selectedGameID.isEmpty, let first = orderedGamesForDropdown(store.games).first {
+                                    selectedGameID = first.id
                                 }
                             }
-                        }
 
-                        if let validationMessage {
-                            Text(validationMessage)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                        }
+                            if showsActivityPicker {
+                                Picker("Activity", selection: $selectedActivity) {
+                                    ForEach(availableActivities) { activity in
+                                        Text(activity.label).tag(activity)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                            }
 
-                        Spacer(minLength: 0)
+                            sectionCard("Details") {
+                                switch selectedActivity {
+                                case .score:
+                                    styledTextField("Score", text: $scoreText, keyboard: .numberPad)
+
+                                    Picker("Context", selection: $scoreContext) {
+                                        ForEach(ScoreContext.allCases) { context in
+                                            Text(context.label).tag(context)
+                                        }
+                                    }
+                                    .pickerStyle(.segmented)
+
+                                    if scoreContext == .tournament {
+                                        styledTextField("Tournament name", text: $tournamentName)
+                                    }
+                                case .rulesheet:
+                                    sliderRow(title: "Rulesheet progress", value: $rulesheetProgress)
+                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
+                                case .tutorialVideo, .gameplayVideo:
+                                    Picker("Input mode", selection: $videoKind) {
+                                        ForEach(VideoProgressInputKind.allCases) { kind in
+                                            Text(kind.label).tag(kind)
+                                        }
+                                    }
+                                    .pickerStyle(.segmented)
+
+                                    if videoKind == .clock {
+                                        styledTextField("mm:ss (example: 12:45)", text: $videoValue, keyboard: .numbersAndPunctuation)
+                                    } else {
+                                        sliderRow(title: "Percent watched", value: $videoPercent)
+                                    }
+
+                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
+                                case .playfield:
+                                    Text("Logs a timestamped playfield review.")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
+                                case .practice:
+                                    styledTextField("Practice minutes (optional)", text: $practiceMinutes, keyboard: .numberPad)
+                                    Picker("Practice note type", selection: $practiceCategory) {
+                                        ForEach(noteCategories) { option in
+                                            Text(option.label).tag(option)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
+                                case .mechanics:
+                                    Picker("Skill", selection: $mechanicsSkill) {
+                                        ForEach(store.allTrackedMechanicsSkills(), id: \.self) { skill in
+                                            Text(skill).tag(skill)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+
+                                    HStack {
+                                        Text("Competency")
+                                        Spacer()
+                                        Text("\(Int(mechanicsCompetency))/5")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Slider(value: $mechanicsCompetency, in: 1...5, step: 1)
+
+                                    styledTextField("Mechanics note", text: $mechanicsNote, axis: .vertical)
+
+                                    let detected = store.detectedMechanicsTags(in: mechanicsNote)
+                                    if !detected.isEmpty {
+                                        Text("Detected tags: \(detected.joined(separator: ", "))")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+
+                            if let validationMessage {
+                                Text(validationMessage)
+                                    .font(.footnote)
+                                    .foregroundStyle(.red)
+                            }
+
+                            Spacer(minLength: 0)
+                        }
+                        .padding(14)
                     }
-                    .padding(14)
                 }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
             }
             .navigationTitle(kind.title)
             .navigationBarTitleDisplayMode(.inline)
@@ -179,7 +184,7 @@ struct PracticeQuickEntrySheet: View {
             }
             .onAppear {
                 selectedActivity = kind.defaultActivity
-                if selectedGameID.isEmpty, kind != .mechanics, let first = store.games.first {
+                if selectedGameID.isEmpty, kind != .mechanics, let first = orderedGamesForDropdown(store.games).first {
                     selectedGameID = first.id
                 }
                 if mechanicsSkill.isEmpty {
@@ -314,7 +319,7 @@ struct PracticeQuickEntrySheet: View {
             let composed = rawNote.isEmpty
                 ? "\(prefix) competency \(Int(mechanicsCompetency))/5."
                 : "\(prefix) competency \(Int(mechanicsCompetency))/5. \(rawNote)"
-            let targetGameID = selectedGameID.isEmpty ? (store.games.first?.id ?? "") : selectedGameID
+            let targetGameID = selectedGameID.isEmpty ? (orderedGamesForDropdown(store.games).first?.id ?? "") : selectedGameID
             guard !targetGameID.isEmpty else {
                 validationMessage = "Add at least one game in the library before logging mechanics."
                 return nil

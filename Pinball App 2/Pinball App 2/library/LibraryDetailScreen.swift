@@ -151,9 +151,13 @@ struct LibraryDetailScreen: View {
                   let id = PinballGame.youtubeID(from: rawURL) else {
                 return nil
             }
+            let fallbackLabel = video.kind?
+                .replacingOccurrences(of: "_", with: " ")
+                .capitalized
+            let label = video.label ?? fallbackLabel ?? "Video"
             return PinballGame.PlayableVideo(
                 id: id,
-                label: video.label ?? "Video"
+                label: label
             )
         }
 

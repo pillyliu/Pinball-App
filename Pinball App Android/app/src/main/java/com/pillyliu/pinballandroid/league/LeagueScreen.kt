@@ -847,8 +847,12 @@ private fun mergeTargetsWithLibrary(targetRows: List<TargetPreviewRow>, libraryJ
         (0 until array.length()).map { index ->
             val item = array.getJSONObject(index)
             val group = item.optInt("group").takeIf { it > 0 }
-            val pos = item.optInt("pos").takeIf { it > 0 }
-            val weightedOrder = if (group != null && pos != null) (group * 1000) + pos else 100_000 + index
+            val position = item.optInt("position").takeIf { it > 0 }
+            val weightedOrder = if (group != null && position != null) {
+                (group * 1000) + position
+            } else {
+                100_000 + index
+            }
             LibraryLookup(
                 normalizedName = normalizeMachineName(item.optString("name")),
                 bank = item.optInt("bank").takeIf { it > 0 },

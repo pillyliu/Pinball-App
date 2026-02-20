@@ -79,7 +79,6 @@ internal class PracticeStore(private val context: Context) {
         loadState()
         loadGames()
         loadLeagueTargets()
-        ensureDefaultGroupIfNeeded()
     }
 
     fun updatePlayerName(name: String) {
@@ -295,7 +294,6 @@ internal class PracticeStore(private val context: Context) {
         applyPersistedState(emptyPracticePersistedState())
         LibraryActivityLog.clear(context)
         clearPracticeState(prefs, PRACTICE_STATE_KEY)
-        ensureDefaultGroupIfNeeded()
         saveState()
     }
 
@@ -307,13 +305,6 @@ internal class PracticeStore(private val context: Context) {
 
     private suspend fun loadGames() {
         games = loadPracticeGamesFromLibrary()
-    }
-
-    private fun ensureDefaultGroupIfNeeded() {
-        if (groups.isNotEmpty()) return
-        val defaultGroup = defaultPracticeGroupForGames(games) ?: return
-        groups = listOf(defaultGroup)
-        selectedGroupID = defaultGroup.id
     }
 
     private fun saveState() {

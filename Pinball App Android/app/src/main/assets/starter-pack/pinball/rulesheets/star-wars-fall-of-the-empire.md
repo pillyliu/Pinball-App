@@ -1,11 +1,10 @@
 ---
 title: "Star Wars: Fall of the Empire Rulesheet"
 source: "https://tiltforums.com/t/star-wars-fall-of-the-empire-rulesheet/9872"
-source_updated_at: "2026-01-16T14:59:34.046Z"
+source_updated_at: "2026-02-04T00:24:48.615Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/star-wars-fall-of-the-empire-rulesheet/9872">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -36,6 +35,7 @@ source_updated_at: "2026-01-16T14:59:34.046Z"
 - [Wizard Modes](#heading--wizard)
   - [Not a Jedi Yet (Mini-Wizard Mode)](#heading--father)
   - [Sarlacc Escape (Mini-Wizard Mode)](#heading--sarlacc)
+  - [Never Tell Me The Odds (Mini-Wizard Mode)](#heading--odds)
   - [Dark Side Multiball (Mini-Wizard Mode)](#heading--darkside)
   - [Jedi Master (Wizard Mode)](#heading--master)
 
@@ -48,7 +48,7 @@ source_updated_at: "2026-01-16T14:59:34.046Z"
 - Display and Animations:
 - Sound Design: Jerry Thompson, Bob Baffy
 - Release Date: September 2025
-- Wiki Rulesheet based on Code Rev: 0.89
+- Wiki Rulesheet based on Code Rev: 0.90
   - *Edit the Code revision, if applicable, when you make changes*
 - Original Wiki Rulesheet hosted on [Tilt Forums](https://tiltforums.com/t/star-wars-fall-of-the-empire-rulesheet/9872)
 
@@ -58,7 +58,7 @@ source_updated_at: "2026-01-16T14:59:34.046Z"
 
 # <span id="heading--skillshots"></span>Skill Shots:
 
-Plunge the ball and hit any flashing shot to score a Skill Shot. If the shot is made within only 3 switch hits, a Super Skill Shot worth 2x the value will be scored. At 6 switch hits, the skill shot turns off. The skill shot award starts at 1M and increases by 1M per skill shot. Skill shot opportunities are given at the start of every ball, after locking balls for **[death star multiball](#heading--deathstar)** (with physical locks enabled), and if the player has successfully saved the ball using the **[JEDI ball save](#heading--jedi)**.
+Plunge the ball and hit any flashing shot to score a Skill Shot. If the shot is made within only 3 switch hits, a Super Skill Shot worth 2x the value will be scored. At 6 switch hits, the skill shot turns off. The skill shot award starts at 1M and increases by 1M per skill shot. Skill shot opportunities are given at the start of every ball, after locking balls for **[death star multiball](#heading--deathstar)** (with physical locks enabled), and if the player has successfully saved the ball by sending it to the plunger using the **[JEDI ball save](#heading--jedi)** (Prem / LE only)
 
 Each skill shot also gives a unique perk different for each shot made:
 
@@ -98,22 +98,23 @@ The characters also provide different perks, giving each mission some more uniqu
 - **Leia**: Prioritizes the Luke VUK and Han center ramp as build shots. Right ramp scores 2x its normal mode value. Missions: **Jailbreak** (green), **Trash Compactor** (yellow), **Rescuing Han** (orange)
 - **Obi-Wan**: Any time the Luke VUK or Obi-Wan right orbit are lit blue, they will score 2x their normal mode value. Missions: **Ben Meets Luke** (green), **The Message** (yellow), **Duel with Darth Vader** (orange)
 
-Complete two missions to light **[extra ball](#heading--extraballs)**.
+Complete missions to light **[extra ball](#heading--extraballs)** (defaults to two, can lower to one based on percentaging).
 
 Play one mission for four different characters to light the left scoop for **[Not a Jedi Yet](#heading--father)** mini-wizard mode.
 
 ## <span id="heading--falcon"></span>Falcon Features & Lightspeed Escape:
 
-Shoot the center ramp when the engines under the Millennium Falcon are lit to start Falcon Features. For the first mode, Lightspeed Escape, the center ramp will always give progress towards starting the mode, but afterwards, the player must shoot the right ramp to qualify the center ramp for progress, or hit the target under the center ramp to raise it and enable progress (Prem / LE only).
+Shoot the center ramp when the engines under the Millennium Falcon are lit to start Falcon Features. For the first mode, **Lightspeed** Escape, the center ramp will always give progress towards starting the mode, but afterwards, the player must shoot the right ramp to qualify the center ramp for progress, or hit the target under the center ramp to raise it and enable progress (Prem / LE only). Hitting the right ramp followed by the center ramp as a combo will award +2 Falcon advances if the engines are lit.
 
-There are four Falcon Features that can be started and are always played in the following order:
+There are five Falcon Features that can be started and are always played in the following order:
 
 - **Lightspeed Escape / Lightspeed Multiball**: The center ramp will start Lightspeed Multiball, or other shots can be made to increase the jackpot before shooting it. During the multiball, hit 3 lit shots to score jackpots and eventually light a looping super jackpot that can be scored with repeated shots to the center jump ramp on a time limit. Completing all seven lit shots will relight the jackpots with 1 more jackpot required to light the super jackpot. The jackpot starts at 500k + 250k for each build shot + 50k for each multiball jackpot, and the super jackpot is worth 5x the current jackpot value.
 - **That’s No Moon**: Search for Alderaan by shooting the lit shots, lit 3 at a time in close proximity to each other, in the following order: right ramp, Luke VUK, Sarlacc pit, Death Star ramp. The outer shots of each set score 1x while the center shots of each set score 2x. A time bonus worth 500k x seconds remaining in the mode is scored alongside the final shot of the mode.
 - **Dogfight**: This mode is about alternating the center and right ramp shots. Shoot the center ramp to start the dogfight and then hit the right ramp to score a TIE fighter award. Keep comboing the two ramps before time runs out for more and more points, with combos into the right ramp scoring 2x the TIE fighter award.
+- **[Never Tell Me The Odds](#heading--odds)**: Mini-wizard mode. See the linked section for details.
 - **Welcome to Cloud City**: An orbit looping mode. The left and right orbits are lit to start timers where the orbits can be shot again for multiplied values. After hitting lit shots at both orbits, the center ramp will light to collect their combined totals and complete the mode.
 
-Completing the first Falcon Feature of a game will light **[extra ball](#heading--extraballs)**. This rule does not apply to **Lightspeed Escape** as there is no way to “complete” it. For **Dogfight**, completion entails collecting three TIE fighter awards.
+Completing the first Falcon Feature of a game will light **[extra ball](#heading--extraballs)**. This rule does not apply to **Lightspeed Escape** as there is no way to “complete” it, or **Never Tell Me The Odds** as it is a mini-wizard mode. For **Dogfight**, completion entails collecting three TIE fighter awards.
 
 ## <span id="heading--jabba"></span>Jabba Events:
 
@@ -144,10 +145,10 @@ The modes and how they start are listed below:
 - Left scoop: **Lord Vader Arrives** - 3 shots
 - Left or right orbit: **Emperor’s Guidance** - 3 shots
 - Luke VUK: **Family Reunion** - 5 shots
-- Death Star ramp: **Death Star II Plans** - 3 shots
-- Sarlacc pit: **Bounty Hunters** - 3 shots
+- Death Star ramp: **Death Star II Plans** - 6 shots
+- Sarlacc pit: **Bounty Hunters** - 4 shots
 - Stormtrooper target: **Lack of Faith** - 5 shots
-- Return lanes: **Emperor’s Orders** - 3 shots
+- Return lanes: **Emperor’s Orders** - 4 shots
 
 Once any mode has been completed, **Dark Side Scoring** will activate for the rest of the ball. This is a roving shot feature where one purple shot is lit at a time to collect 5% of the points scored in all successfully completed Vader modes, which moves to a random shot each time it is collected. Awards are also lit once enough dark side scoring shots have been made, and the awards reset once dark side multiball is played:
 
@@ -179,7 +180,7 @@ Once the player exits Battle of Hoth multiball, they will have one last chance t
 Shoot the Death Star ramp to open up the lock at the toy, then shoot the ramp again to lock a ball there. Once three balls are locked, Death Star Multiball will begin by releasing the locked balls towards the flippers.
 
 - **Death Star Multiball**: All shots are lit to score jackpots; if a jackpot is made, the shot where it was scored will unlight until a different shot is made. After scoring 14 jackpots, all jackpots will turn off and the Death Star ramp will be the only shot lit. Shoot the ramp to open up the toy, lighting it for super jackpot. Before scoring the super jackpot, the other jackpots will relight for 30 seconds when the ramp shot is made: hitting 3 of these jackpots increases the super jackpot multiplier to 2x, then 3x after 7 jackpots are made (all subject to progression increases from **[rebel combos](#heading--combos)**). After scoring the super jackpot, ball save will start up again, a ball will be added, and victory laps will start; hit the flashing shots for victory laps, then hit the Death Star to score a victory super jackpot and relight the other shots at increased values.
-- **Death Star II Multiball**: *not implemented on 0.89*
+- **Death Star II Multiball**: *not implemented on 0.90*
 
 # <span id="heading--other"></span>Other Scoring:
 
@@ -261,6 +262,8 @@ Extra balls can be lit by…
 
 There are two extra ball shots - the Luke VUK and the right ramp. The slingshots alternate which shot is lit for extra ball. If 2 extra balls are lit, both shots will be lit to collect them.
 
+25M is awarded for extra balls if no more can be earned. The compensation award can be multiplied by **[ion cannon](#heading--shotx)** shot multipliers.
+
 ## <span id="heading--bonus"></span>End-of-Ball Bonus:
 
 Bonus is determined by the following:
@@ -298,6 +301,16 @@ Start this multiball mini-wizard mode by playing all three **[Jabba Events](#hea
 Collect switch hits to light the jackpot at the Sarlacc Pit ramp; when the jackpot is lit, shoot the flashing arrow shots to increase the jackpot multiplier. The jackpot is scored once for every spin in the ramp but on competition mode, will cap out at 50 spins. Scoring the jackpot adds a ball and returns to the switch frenzy phase.
 
 After scoring four jackpots, shoot the left scoop to score a hurry-up super jackpot worth the jackpot total and complete the mini-wizard mode.
+
+## <span id="heading--odds"></span>Never Tell Me The Odds (Mini-Wizard Mode):
+
+Start this multiball mini-wizard mode by playing the first three **[Falcon Features](#heading--falcon)**. This mode is the fourth Falcon Feature and starts as those modes did; right ramp shots will eventually light the engines under the Falcon, meaning every center ramp shot will award a Falcon advance & advancing enough times will start the mode. Never Tell Me The Odds can only start when no other modes are running.
+
+Han has to pilot Leia and C-3P0 through an asteroid field on their way to Cloud City. Starting as a 3-ball multiball with all scoring multiplied by balls in play, all shots start out lit white to increase the jackpot value and value per white shot. Hitting the first white shot will light the same shot that was just made for jackpot, but subsequent white shots made will turn red representing the asteroids the crew has to avoid. Hitting a red shot will reset the white shot value and jackpot value, alongside unlighting the jackpot if it is currently lit. The lit shots (white shots, jackpots, and asteroids) rotate one to the right with every FORCE target hit. Balls are added to the multiball for each of the first three jackpots scored; once the fourth jackpot is scored the balls will drain and the second phase of the mode will start.
+
+After the cutscene plays, all balls that were active during the first part of the mode will return to play alongside one additional ball. The player must now light all shots red by hitting them once, but hitting them again while red will turn them back to white forcing them to be hit again. As soon as 6 of the 8 major shots are lit red, the two shots that haven’t been made yet will light to score a jackpot based on the white shot award built in phase 1. Scoring either jackpot will light the center ramp for a last-ditch attempt to escape; on the Pro the shot is available on 5-second intervals, while on Prem / LE the center ramp raises and lowers and a shot must be made to the full ramp to complete the mode.
+
+If the player drains down to 1 ball at any time during the mode, they will have 10 seconds left to try and add a ball (during phase 1) or complete the mode (in phase 2). Adding a ball will keep the multiball and the mode going. As soon as time runs out or the player makes the final center ramp shot, the mode ends.
 
 ## <span id="heading--darkside"></span>Dark Side Multiball (Mini-Wizard Mode):
 

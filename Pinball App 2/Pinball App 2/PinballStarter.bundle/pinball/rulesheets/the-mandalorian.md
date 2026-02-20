@@ -1,15 +1,14 @@
 ---
 title: "The Mandalorian Rulesheet"
 source: "https://tiltforums.com/t/the-mandalorian-rulesheet/7056"
-source_updated_at: "2023-11-14T16:19:21.950Z"
+source_updated_at: "2026-02-01T15:08:30.687Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/the-mandalorian-rulesheet/7056">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
 
-
 <div class="pinball-rulesheet">
 
-## <a href="#table-of-contents-1" id="table-of-contents-1" class="anchor"></a>Table of contents
+## <a href="#p-80607-table-of-contents-1" id="p-80607-table-of-contents-1" class="anchor"></a>Table of contents
 
 - [Game Information](#heading--gameinfo)
 - [Layout](#heading--layout)
@@ -108,8 +107,8 @@ In this action-packed pinball quest, players are transported to a galaxy far, fa
 </thead>
 <tbody>
 <tr>
-<td><img src="https://sternpinball.com/wp-content/uploads/2021/05/Mandalorian-Premium-Playfield-01-knnfad-scaled-917x1536.webp" width="298" height="500" /></td>
-<td><img src="https://sternpinball.com/wp-content/uploads/2021/05/Mandalorian-Pro-Playfield-01-afkjhadf-scaled-917x1536.webp" width="298" height="500" /></td>
+<td><img src="https://sternpinball.com/wp-content/uploads/2021/05/Mandalorian-Premium-Playfield-01-knnfad-scaled-917x1536.webp" role="presentation" width="298" height="500" /></td>
+<td><img src="https://sternpinball.com/wp-content/uploads/2021/05/Mandalorian-Pro-Playfield-01-afkjhadf-scaled-917x1536.webp" role="presentation" width="298" height="500" /></td>
 </tr>
 </tbody>
 </table>
@@ -120,15 +119,15 @@ In this action-packed pinball quest, players are transported to a galaxy far, fa
 
 These modes are accessible by holding both flipper buttons during attract mode until a menu appears. The following options are available:
 
-- **Standard:**  
+- **Standard:**\
   See below for full rulesheet.
-- **Competition:**  
+- **Competition:**\
   Same as *Standard* but with elements of randomness removed and extra balls turned off. This also disables the Child mystery award.
-- **Cooperation:**  
+- **Cooperation:**\
   Shared progress between 2 to 4 players.
-- **Team Play:**  
+- **Team Play:**\
   2 vs. 2 players, 3 vs. 1 player or 2 vs. 1 player.
-- **Impossible Play:**  
+- **Impossible Play:**\
   Game set to *Very Hard*:
   - No ball save or extra balls (cannot purchase them from the Foundry).
   - Multiballs harder to light.
@@ -136,11 +135,11 @@ These modes are accessible by holding both flipper buttons during attract mode u
   - Slightly less Beskar awarded.
   - Unable to purchase Armor from the Foundry.
   - ~2.5 seconds of hold time per flip before flipper releases. Hold time recharges when flippers are not flipped. Does *not* affect the mini playfield flippers. (Think: party game.)
-- **Monster Play:**  
+- **Monster Play:**\
   In a multiplayer game, player one is the “Monster” and plays with *Impossible Play* rules. All other players are set to Standard Play.
-- **Challenge Mode:**  
+- **Challenge Mode:**\
   In the Challenge mode, you directly play the the “You Have What I Want” wizard mode.
-- **DJ Mixer:**  
+- **DJ Mixer:**\
   Typical jukebox feature as seen in most modern Sterns, allowing you to play the music featured in the machine, including a number of specific playlists.
 
 ## <span id="heading--skillshots"></span>Skill Shots
@@ -287,7 +286,7 @@ Bonus awards are given out if the player pushes their luck and continues the Amb
 - 2 Ambush restarts - **[Flamethrower](#heading--equipment)**
 - 3, 4, 5 Ambush restarts - **[+1x Playfield](#heading--pfx)**
 
-With all multipliers active, the max Ambush value is 720M! <a href="https://youtu.be/Ew_P40Fq4EA?t=209" rel="noopener nofollow ugc"><img src="//tiltforums.com/images/emoji/google/arrow_forward.png?v=12" title=":arrow_forward:" class="emoji only-emoji" loading="lazy" width="20" height="20" alt=":arrow_forward:" /></a>
+With all multipliers active, the max Ambush value is 720M! <a href="https://youtu.be/Ew_P40Fq4EA?t=209" rel="noopener nofollow ugc"><img src="https://tiltforums.com/images/emoji/google/arrow_forward.png?v=12" title=":arrow_forward:" class="emoji only-emoji" loading="lazy" width="20" height="20" alt=":arrow_forward:" /></a>
 
 ### <span id="heading--child"></span>The Child Mystery Award
 

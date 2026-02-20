@@ -1,11 +1,10 @@
 ---
 title: "James Bond 007 Rulesheet"
-source: "https://tiltforums.com/t/stern-james-bond-rulesheet/7893"
-source_updated_at: "2025-08-22T05:13:12.644Z"
+source: "https://tiltforums.com/t/james-bond-007-rulesheet/7893"
+source_updated_at: "2026-02-19T12:48:55.401Z"
 ---
 
-<small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/stern-james-bond-rulesheet/7893">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
+<small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/james-bond-007-rulesheet/7893">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
 
 <div class="pinball-rulesheet">
 
@@ -28,7 +27,7 @@ source_updated_at: "2025-08-22T05:13:12.644Z"
   - [Smart Missiles](#heading--missiles)
   - [Combos](#heading--combos)
   - [Outlane Ball Save](#heading--ballsave)
-  - [Extra Balls](#heading--ebs)
+  - [Extra Balls](#heading--extraballs)
   - [End-of-Ball Bonus](#heading--bonus)
 - [Wizard Modes](#heading--wizard)
   - [“Bond… James Bond” Multiball (Mini-Wizard Mode)](#heading--miniwizard1)
@@ -302,7 +301,7 @@ Every even-numbered completion of the BOND return lanes lights the left scoop fo
 - **[Bond Women Multiplier](#heading--pfx)** Lit (the next highest up the ladder, from left to right)
 - **[Dragon Tank](#heading--ballsave)** Lit (next shot to target lights ball save)
 - Light **Outlane Ball Save** (at left outlane)
-- Light **[Extra Ball](#heading--ebs)**
+- Light **[Extra Ball](#heading--extraballs)**
 - **[Bonus Multiplier +1x](#heading--bonus)**
 - 007 Points (7,007,000)
 

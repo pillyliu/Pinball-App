@@ -12,6 +12,7 @@ struct PracticeHomeCardSection: View {
     let onQuickEntry: (QuickEntrySheet) -> Void
 
     var body: some View {
+        let orderedAllGames = orderedGamesForDropdown(allGames)
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 8) {
                 if let game = resumeGame {
@@ -23,9 +24,10 @@ struct PracticeHomeCardSection: View {
                             resumeChip(game.name)
                         }
                         .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                         Menu {
-                            ForEach(allGames) { listGame in
+                            ForEach(orderedAllGames) { listGame in
                                 Button(listGame.name) {
                                     onPickGame(listGame.id)
                                 }
@@ -34,6 +36,7 @@ struct PracticeHomeCardSection: View {
                             resumeChip("Game List", showsChevron: true)
                         }
                         .buttonStyle(.plain)
+                        .fixedSize(horizontal: true, vertical: false)
                     }
                 }
             }
@@ -117,6 +120,8 @@ struct PracticeHomeCardSection: View {
         HStack(spacing: 4) {
             Text(text)
                 .font(.caption)
+                .lineLimit(1)
+                .truncationMode(.tail)
             if showsChevron {
                 Image(systemName: "chevron.down")
                     .font(.caption2.weight(.semibold))
@@ -145,13 +150,20 @@ struct PracticeHomeCardSection: View {
 
 struct PracticeWelcomeOverlay: View {
     @Binding var firstNamePromptValue: String
+    @Binding var importLplStatsOnSave: Bool
     let onNotNow: () -> Void
-    let onSave: (String) -> Void
+    let onSave: (String, Bool) -> Void
+
+    private func submit() {
+        let trimmed = firstNamePromptValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        onSave(trimmed, importLplStatsOnSave)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Welcome to Practice")
-                .font(.headline)
+                .font(.title3.weight(.bold))
 
             Text("Enter your player name to get started.")
                 .font(.footnote)
@@ -160,9 +172,14 @@ struct PracticeWelcomeOverlay: View {
             TextField("Player name", text: $firstNamePromptValue)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
+                .submitLabel(.done)
+                .onSubmit { submit() }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .appControlStyle()
+
+            Toggle("Import LPL stats", isOn: $importLplStatsOnSave)
+                .font(.subheadline.weight(.semibold))
 
             VStack(alignment: .leading, spacing: 8) {
                 overlaySectionRow("Home", detail: "Return to game, quick entry, active groups")
@@ -180,9 +197,7 @@ struct PracticeWelcomeOverlay: View {
                 Spacer()
 
                 Button("Save") {
-                    let trimmed = firstNamePromptValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmed.isEmpty else { return }
-                    onSave(trimmed)
+                    submit()
                 }
                 .buttonStyle(.glass)
                 .disabled(firstNamePromptValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -190,7 +205,12 @@ struct PracticeWelcomeOverlay: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .appPanelStyle()
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.white.opacity(0.28), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.18), radius: 20, x: 0, y: 10)
     }
 
     private func overlaySectionRow(_ title: String, detail: String) -> some View {

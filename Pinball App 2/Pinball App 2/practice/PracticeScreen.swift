@@ -39,6 +39,7 @@ struct PracticeScreen: View {
     @State var cloudSyncEnabled = false
     @State var showingNamePrompt = false
     @State var firstNamePromptValue: String = ""
+    @State var importLplStatsOnNameSave = true
     @State var showingResetJournalPrompt = false
     @State var resetJournalConfirmationText: String = ""
     @State var headToHead: HeadToHeadComparison?
@@ -53,6 +54,7 @@ struct PracticeScreen: View {
     }
 
     var resumeGame: PinballGame? {
+        let orderedGames = orderedGamesForDropdown(store.games)
         let libraryID = appNavigation.lastViewedLibraryGameID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let practiceID = practiceLastViewedGameID.trimmingCharacters(in: .whitespacesAndNewlines)
         let candidateID: String
@@ -62,14 +64,14 @@ struct PracticeScreen: View {
             candidateID = practiceID.isEmpty ? libraryID : practiceID
         }
         if !candidateID.isEmpty,
-           let match = store.games.first(where: { $0.id == candidateID }) {
+           let match = orderedGames.first(where: { $0.id == candidateID }) {
             return match
         }
         return defaultPracticeGame
     }
 
     var defaultPracticeGame: PinballGame? {
-        return store.games.first
+        return orderedGamesForDropdown(store.games).first
     }
 
     var selectedGroup: CustomGameGroup? {
@@ -202,6 +204,7 @@ struct PracticeScreen: View {
         }
     }
     func openQuickEntry(_ sheet: QuickEntrySheet) {
+        let orderedGames = orderedGamesForDropdown(store.games)
         let remembered = rememberedQuickEntryGame(for: sheet)
         if sheet == .mechanics {
             selectedGameID = remembered
@@ -209,7 +212,7 @@ struct PracticeScreen: View {
             selectedGameID = remembered
         } else if !selectedGameID.isEmpty {
             // keep current selection
-        } else if let first = store.games.first {
+        } else if let first = orderedGames.first {
             selectedGameID = first.id
         }
         quickSheet = sheet

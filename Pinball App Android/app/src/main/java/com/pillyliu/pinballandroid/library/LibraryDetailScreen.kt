@@ -183,7 +183,12 @@ internal fun LibraryDetailScreen(
 
             CardContainer {
                 SectionTitle("Videos")
-                val playableVideos = game.videos.mapNotNull { v -> youtubeId(v.url)?.let { it to (v.label ?: "Video") } }
+                val playableVideos = game.videos.mapNotNull { v ->
+                    youtubeId(v.url)?.let { id ->
+                        val fallback = v.kind?.replaceFirstChar { c -> c.titlecase() } ?: "Video"
+                        id to (v.label ?: fallback)
+                    }
+                }
                 if (playableVideos.isEmpty()) {
                     Text("No videos listed.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {

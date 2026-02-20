@@ -440,9 +440,10 @@ private struct TargetsHeaderCell: View {
 
 private struct LPLTargetRow: Identifiable {
     let target: LPLTarget
+    let location: String?
     let bank: Int?
     let group: Int?
-    let pos: Int?
+    let position: Int?
     let libraryOrder: Int
     let fallbackOrder: Int
 
@@ -475,7 +476,7 @@ private enum TargetsSortMode: String, CaseIterable, Identifiable {
 @MainActor
 private final class TargetsViewModel: ObservableObject {
     @Published private(set) var rows: [LPLTargetRow] = LPLTarget.rows.enumerated().map { index, target in
-        LPLTargetRow(target: target, bank: nil, group: nil, pos: nil, libraryOrder: Int.max, fallbackOrder: index)
+        LPLTargetRow(target: target, location: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: index)
     }
     @Published var sortMode: TargetsSortMode = .location {
         didSet { applySortAndFilter() }
@@ -487,7 +488,7 @@ private final class TargetsViewModel: ObservableObject {
 
     private var didLoad = false
     private var allRows: [LPLTargetRow] = LPLTarget.rows.enumerated().map { index, target in
-        LPLTargetRow(target: target, bank: nil, group: nil, pos: nil, libraryOrder: Int.max, fallbackOrder: index)
+        LPLTargetRow(target: target, location: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: index)
     }
 
     private static let libraryPath = "/pinball/data/pinball_library.json"
@@ -527,8 +528,8 @@ private final class TargetsViewModel: ObservableObject {
     }
 
     private func mergeTargetsWithLibrary(libraryGames: [LibraryGame]) -> [LPLTargetRow] {
-        let normalizedLibrary: [(index: Int, normalized: String, bank: Int?, group: Int?, pos: Int?)] = libraryGames.enumerated().map { index, game in
-            (index, normalize(game.name), game.bank, game.group, game.pos)
+        let normalizedLibrary: [(index: Int, normalized: String, location: String?, bank: Int?, group: Int?, position: Int?)] = libraryGames.enumerated().map { index, game in
+            (index, normalize(game.name), game.location, game.bank, game.group, game.position)
         }
 
         return LPLTarget.rows.enumerated().map { fallbackIndex, target in
@@ -539,9 +540,10 @@ private final class TargetsViewModel: ObservableObject {
             if let exact = normalizedLibrary.first(where: { candidateKeys.contains($0.normalized) }) {
                 return LPLTargetRow(
                     target: target,
+                    location: exact.location,
                     bank: exact.bank,
                     group: exact.group,
-                    pos: exact.pos,
+                    position: exact.position,
                     libraryOrder: exact.index,
                     fallbackOrder: fallbackIndex
                 )
@@ -554,15 +556,16 @@ private final class TargetsViewModel: ObservableObject {
             }) {
                 return LPLTargetRow(
                     target: target,
+                    location: loose.location,
                     bank: loose.bank,
                     group: loose.group,
-                    pos: loose.pos,
+                    position: loose.position,
                     libraryOrder: loose.index,
                     fallbackOrder: fallbackIndex
                 )
             }
 
-            return LPLTargetRow(target: target, bank: nil, group: nil, pos: nil, libraryOrder: Int.max, fallbackOrder: fallbackIndex)
+            return LPLTargetRow(target: target, location: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: fallbackIndex)
         }
     }
 
@@ -571,7 +574,7 @@ private final class TargetsViewModel: ObservableObject {
         case .location:
             allRows.sorted {
                 byOptionalAscending($0.group, $1.group)
-                    ?? byOptionalAscending($0.pos, $1.pos)
+                    ?? byOptionalAscending($0.position, $1.position)
                     ?? byAscending($0.libraryOrder, $1.libraryOrder)
                     ?? byAscending($0.fallbackOrder, $1.fallbackOrder)
                     ?? false
@@ -580,7 +583,7 @@ private final class TargetsViewModel: ObservableObject {
             allRows.sorted {
                 byOptionalAscending($0.bank, $1.bank)
                     ?? byOptionalAscending($0.group, $1.group)
-                    ?? byOptionalAscending($0.pos, $1.pos)
+                    ?? byOptionalAscending($0.position, $1.position)
                     ?? byAscending($0.target.game.lowercased(), $1.target.game.lowercased())
                     ?? byAscending($0.libraryOrder, $1.libraryOrder)
                     ?? byAscending($0.fallbackOrder, $1.fallbackOrder)
@@ -590,7 +593,7 @@ private final class TargetsViewModel: ObservableObject {
             allRows.sorted {
                 byAscending($0.target.game.lowercased(), $1.target.game.lowercased())
                     ?? byOptionalAscending($0.group, $1.group)
-                    ?? byOptionalAscending($0.pos, $1.pos)
+                    ?? byOptionalAscending($0.position, $1.position)
                     ?? byAscending($0.libraryOrder, $1.libraryOrder)
                     ?? byAscending($0.fallbackOrder, $1.fallbackOrder)
                     ?? false
@@ -645,10 +648,30 @@ private final class TargetsViewModel: ObservableObject {
 }
 
 private struct LibraryGame: Decodable {
+    enum CodingKeys: String, CodingKey {
+        case name
+        case location
+        case group
+        case position
+        case bank
+    }
+
     let name: String
+    let location: String?
     let group: Int?
-    let pos: Int?
+    let position: Int?
     let bank: Int?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        location = try container.decodeIfPresent(String.self, forKey: .location)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        group = try container.decodeIfPresent(Int.self, forKey: .group)
+        position = try container.decodeIfPresent(Int.self, forKey: .position)
+        bank = try container.decodeIfPresent(Int.self, forKey: .bank)
+    }
+
 }
 
 private struct LPLTarget: Identifiable {

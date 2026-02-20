@@ -69,8 +69,13 @@ extension PracticeScreen {
             onTogglePriority: { groupID, isPriority in
                 store.updateGroup(id: groupID, isPriority: isPriority)
             },
-            onOpenDateEditor: { groupID, field in
-                openCurrentGroupDateEditor(for: groupID, field: field)
+            onUpdateGroupDate: { groupID, field, date in
+                switch field {
+                case .start:
+                    store.updateGroup(id: groupID, replaceStartDate: true, startDate: date)
+                case .end:
+                    store.updateGroup(id: groupID, replaceEndDate: true, endDate: date)
+                }
             },
             dashboardScoreForGroup: { group in
                 store.groupDashboardScore(for: group)
@@ -147,7 +152,7 @@ extension PracticeScreen {
             },
             maxHistoryHeight: mechanicsHistoryMaxHeight(),
             onLogMechanicsSession: { skill, comfort, note in
-                let targetGameID = selectedGameID.isEmpty ? (store.games.first?.id ?? "") : selectedGameID
+                let targetGameID = selectedGameID.isEmpty ? (orderedGamesForDropdown(store.games).first?.id ?? "") : selectedGameID
                 guard !targetGameID.isEmpty else { return }
 
                 let prefix = skill.isEmpty ? "#mechanics" : "#\(skill.replacingOccurrences(of: " ", with: ""))"

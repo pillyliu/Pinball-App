@@ -29,16 +29,17 @@ internal fun PracticeInsightsSection(
     isLoadingHeadToHead: Boolean,
     onRefreshHeadToHead: () -> Unit,
 ) {
+    val orderedGames = orderedGamesForDropdown(store.games)
     val game = selectedGameSlug?.let { slug ->
-        store.games.firstOrNull { it.slug == slug }
-    } ?: store.games.firstOrNull()?.also { onSelectGameSlug(it.slug) }
+        orderedGames.firstOrNull { it.slug == slug }
+    } ?: orderedGames.firstOrNull()?.also { onSelectGameSlug(it.slug) }
 
     if (game == null) {
         Text("No game data.")
         return
     }
 
-    val insightsGames = store.games.take(41)
+    val insightsGames = orderedGames.take(41)
     InsightsMenuDropdown(
         selectedLabel = store.gameName(game.slug),
         options = insightsGames.map { it.slug to store.gameName(it.slug) },

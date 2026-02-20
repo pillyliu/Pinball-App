@@ -28,6 +28,7 @@ internal fun QuickEntrySheet(
     selectedGameSlug: String?,
     presetActivity: QuickActivity,
     origin: QuickEntryOrigin,
+    fromGameView: Boolean,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,
 ) {
@@ -38,15 +39,20 @@ internal fun QuickEntrySheet(
         listOf(QuickActivity.Rulesheet, QuickActivity.Tutorial, QuickActivity.Gameplay, QuickActivity.Playfield)
     }
     val fixedModeForOrigin = when (origin) {
+        QuickEntryOrigin.Study -> if (fromGameView) presetActivity else null
         QuickEntryOrigin.Score -> QuickActivity.Score
-        QuickEntryOrigin.Study -> null
         QuickEntryOrigin.Practice -> QuickActivity.Practice
         QuickEntryOrigin.Mechanics -> QuickActivity.Mechanics
     }
-    val showActivityDropdown = origin == QuickEntryOrigin.Study
-    var gameSlug by remember(origin, selectedGameSlug) {
+    val showActivityDropdown = origin == QuickEntryOrigin.Study && !fromGameView
+    var gameSlug by remember(origin, selectedGameSlug, fromGameView) {
         val saved = prefs.getString("$QUICK_GAME_KEY_PREFIX${origin.keySuffix}", null)
-        mutableStateOf(saved ?: selectedGameSlug ?: store.games.firstOrNull()?.slug.orEmpty())
+        val initial = when {
+            fromGameView -> selectedGameSlug.orEmpty()
+            origin == QuickEntryOrigin.Mechanics -> ""
+            else -> saved ?: selectedGameSlug ?: orderedGamesForDropdown(store.games).firstOrNull()?.slug.orEmpty()
+        }
+        mutableStateOf(initial)
     }
     var scoreText by remember { mutableStateOf("") }
     var scoreContext by remember { mutableStateOf("practice") }
@@ -61,20 +67,25 @@ internal fun QuickEntrySheet(
     var mechanicsSkill by remember { mutableStateOf("Drop Catch") }
     var mechanicsCompetency by remember { mutableStateOf(3f) }
     var validation by remember { mutableStateOf<String?>(null) }
-    val gameOptions = remember(store.games) { store.games.take(41) }
+    val gameOptions = remember(store.games) { orderedGamesForDropdown(store.games, limit = 41) }
     val mechanicsSkills = store.allTrackedMechanicsSkills()
     LaunchedEffect(mechanicsSkills) {
         if (mechanicsSkills.isNotEmpty() && !mechanicsSkills.contains(mechanicsSkill)) {
             mechanicsSkill = mechanicsSkills.first()
         }
     }
-    LaunchedEffect(origin, presetActivity) {
+    LaunchedEffect(origin, presetActivity, fromGameView) {
         if (showActivityDropdown) {
             if (mode !in studyActivities) {
                 mode = QuickActivity.Rulesheet
             }
         } else if (fixedModeForOrigin != null) {
             mode = fixedModeForOrigin
+        }
+    }
+    LaunchedEffect(fromGameView, selectedGameSlug) {
+        if (fromGameView) {
+            gameSlug = selectedGameSlug.orEmpty()
         }
     }
     LaunchedEffect(mode, gameOptions) {
@@ -95,28 +106,30 @@ internal fun QuickEntrySheet(
         title = { Text("Quick Entry") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SimpleMenuDropdown(
-                    title = "Game",
-                    options = if (mode == QuickActivity.Mechanics) {
-                        listOf("None") + gameOptions.map { it.slug }
-                    } else {
-                        gameOptions.map { it.slug }
-                    },
-                    selected = if (mode == QuickActivity.Mechanics && gameSlug.isBlank()) "None" else gameSlug,
-                    selectedLabel = if (mode == QuickActivity.Mechanics && gameSlug.isBlank()) {
-                        "None"
-                    } else {
-                        gameOptions.firstOrNull { it.slug == gameSlug }?.name ?: gameSlug
-                    },
-                    onSelect = { gameSlug = it },
-                    formatOptionLabel = { option ->
-                        if (option == "None") {
+                if (!fromGameView) {
+                    SimpleMenuDropdown(
+                        title = "Game",
+                        options = if (mode == QuickActivity.Mechanics) {
+                            listOf("None") + gameOptions.map { it.slug }
+                        } else {
+                            gameOptions.map { it.slug }
+                        },
+                        selected = if (mode == QuickActivity.Mechanics && gameSlug.isBlank()) "None" else gameSlug,
+                        selectedLabel = if (mode == QuickActivity.Mechanics && gameSlug.isBlank()) {
                             "None"
                         } else {
-                            gameOptions.firstOrNull { it.slug == option }?.name ?: option
-                        }
-                    },
-                )
+                            gameOptions.firstOrNull { it.slug == gameSlug }?.name ?: gameSlug
+                        },
+                        onSelect = { gameSlug = it },
+                        formatOptionLabel = { option ->
+                            if (option == "None") {
+                                "None"
+                            } else {
+                                gameOptions.firstOrNull { it.slug == option }?.name ?: option
+                            }
+                        },
+                    )
+                }
                 if (showActivityDropdown) {
                     SimpleMenuDropdown(
                         title = "Activity",

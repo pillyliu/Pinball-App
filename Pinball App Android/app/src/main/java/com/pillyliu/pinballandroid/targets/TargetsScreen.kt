@@ -47,18 +47,20 @@ private const val LIBRARY_URL = "https://pillyliu.com/pinball/data/pinball_libra
 private data class LPLTarget(val game: String, val great: Long, val main: Long, val floor: Long)
 private data class TargetRow(
     val target: LPLTarget,
+    val location: String?,
     val bank: Int?,
     val group: Int?,
-    val pos: Int?,
+    val position: Int?,
     val libraryOrder: Int,
     val fallbackOrder: Int,
 )
 private data class LibraryLookup(
     val index: Int,
     val normalizedName: String,
+    val location: String?,
     val bank: Int?,
     val group: Int?,
-    val pos: Int?,
+    val position: Int?,
 )
 
 private enum class TargetSortOption(val label: String) {
@@ -75,7 +77,7 @@ fun TargetsScreen(contentPadding: PaddingValues) {
     var rows by remember {
         mutableStateOf(
             lplTargets.mapIndexed { idx, t ->
-                TargetRow(t, null, null, null, Int.MAX_VALUE, idx)
+                TargetRow(t, null, null, null, null, Int.MAX_VALUE, idx)
             },
         )
     }
@@ -98,9 +100,10 @@ fun TargetsScreen(contentPadding: PaddingValues) {
                 LibraryLookup(
                     index = index,
                     normalizedName = normalize(item.optString("name")),
+                    location = item.optString("location").takeIf { it.isNotBlank() }?.trim(),
                     bank = item.optInt("bank").takeIf { it > 0 },
                     group = item.optInt("group").takeIf { it > 0 },
-                    pos = item.optInt("pos").takeIf { it > 0 },
+                    position = item.optInt("position").takeIf { it > 0 },
                 )
             }
 
@@ -115,9 +118,9 @@ fun TargetsScreen(contentPadding: PaddingValues) {
                 val chosen = exact ?: loose
 
                 if (chosen != null) {
-                    TargetRow(target, chosen.bank, chosen.group, chosen.pos, chosen.index, fallbackIndex)
+                    TargetRow(target, chosen.location, chosen.bank, chosen.group, chosen.position, chosen.index, fallbackIndex)
                 } else {
-                    TargetRow(target, null, null, null, Int.MAX_VALUE, fallbackIndex)
+                    TargetRow(target, null, null, null, null, Int.MAX_VALUE, fallbackIndex)
                 }
             }
 
@@ -261,14 +264,14 @@ private fun sortRows(rows: List<TargetRow>, option: TargetSortOption): List<Targ
     return when (option) {
         TargetSortOption.LOCATION -> rows.sortedWith(
             compareBy<TargetRow> { it.group ?: Int.MAX_VALUE }
-                .thenBy { it.pos ?: Int.MAX_VALUE }
+                .thenBy { it.position ?: Int.MAX_VALUE }
                 .thenBy { it.libraryOrder }
                 .thenBy { it.fallbackOrder },
         )
         TargetSortOption.BANK -> rows.sortedWith(
             compareBy<TargetRow> { it.bank ?: Int.MAX_VALUE }
                 .thenBy { it.group ?: Int.MAX_VALUE }
-                .thenBy { it.pos ?: Int.MAX_VALUE }
+                .thenBy { it.position ?: Int.MAX_VALUE }
                 .thenBy { it.target.game.lowercase() }
                 .thenBy { it.libraryOrder }
                 .thenBy { it.fallbackOrder },
@@ -276,7 +279,7 @@ private fun sortRows(rows: List<TargetRow>, option: TargetSortOption): List<Targ
         TargetSortOption.ALPHABETICAL -> rows.sortedWith(
             compareBy<TargetRow> { it.target.game.lowercase() }
                 .thenBy { it.group ?: Int.MAX_VALUE }
-                .thenBy { it.pos ?: Int.MAX_VALUE }
+                .thenBy { it.position ?: Int.MAX_VALUE }
                 .thenBy { it.libraryOrder }
                 .thenBy { it.fallbackOrder },
         )

@@ -372,8 +372,8 @@ final class LeaguePreviewModel: ObservableObject {
 
         let normalizedLibrary: [(normalizedName: String, bank: Int?, order: Int)] = games.enumerated().map { index, game in
             let weightedOrder: Int
-            if let group = game.group, let pos = game.pos {
-                weightedOrder = (group * 1000) + pos
+            if let group = game.group, let position = game.position {
+                weightedOrder = (group * 1000) + position
             } else {
                 weightedOrder = 100_000 + index
             }
@@ -504,8 +504,28 @@ private struct ParsedStatsRow {
 }
 
 private struct LeagueLibraryGame: Decodable {
+    enum CodingKeys: String, CodingKey {
+        case name
+        case location
+        case group
+        case position
+        case bank
+    }
+
     let name: String
+    let location: String?
     let group: Int?
-    let pos: Int?
+    let position: Int?
     let bank: Int?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        location = try container.decodeIfPresent(String.self, forKey: .location)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        group = try container.decodeIfPresent(Int.self, forKey: .group)
+        position = try container.decodeIfPresent(Int.self, forKey: .position)
+        bank = try container.decodeIfPresent(Int.self, forKey: .bank)
+    }
+
 }

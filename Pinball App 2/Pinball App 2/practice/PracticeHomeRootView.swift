@@ -17,8 +17,9 @@ struct PracticeHomeRootView: View {
 
     let showingNamePrompt: Bool
     @Binding var firstNamePromptValue: String
+    @Binding var importLplStatsOnNameSave: Bool
     let onNotNow: () -> Void
-    let onSaveName: (String) -> Void
+    let onSaveName: (String, Bool) -> Void
 
     var body: some View {
         ZStack {
@@ -73,6 +74,7 @@ struct PracticeHomeRootView: View {
 
                 PracticeWelcomeOverlay(
                     firstNamePromptValue: $firstNamePromptValue,
+                    importLplStatsOnSave: $importLplStatsOnNameSave,
                     onNotNow: onNotNow,
                     onSave: onSaveName
                 )

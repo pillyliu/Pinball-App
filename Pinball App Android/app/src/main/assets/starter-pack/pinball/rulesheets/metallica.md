@@ -1,11 +1,10 @@
 ---
 title: "Metallica Rulesheet"
 source: "https://tiltforums.com/t/metallica-rulesheet/228"
-source_updated_at: "2025-09-12T05:36:05.769Z"
+source_updated_at: "2026-02-19T12:23:38.681Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/metallica-rulesheet/228">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -92,7 +91,7 @@ Remastered rulesheet can be found on Stern’s website: <a href="https://sternpi
 
 Plunge for the flashing rollover to score a skill shot value of 200k. The skill shot value increases by 50,000 for each skill shot made, and plunging for the right rollover awards 2x the skill shot value.
 
-**Super Skill Shot**  
+**Super Skill Shot**\
 Holding the left flipper disables the orbit up-post and activates the super skill shot which can be collected by shooting any major shot (including the scoop, the captive ball, the Snake, and Sparky). This typically awards 2x the value of the standard skill shot & increases their value by 100k, but there are bonus awards for making certain lanes as super skill shots:
 
 - **Dead End Target:** Immediately qualifies [**2x Playfield**](#heading--fuel2x).
@@ -104,7 +103,7 @@ Holding the left flipper disables the orbit up-post and activates the super skil
 
 These are the game’s main single-ball modes, which have the potential for huge scores if players are willing to put up with the risk of keeping the ball alive. Crank It Up lights at the scoop after collecting 12 of each **[item](#heading--items)** +1 per Crank It Up played during the same game. A **[fifth Crank It Up mode](#heading--eotl)** awaits players who make it through all four.
 
-### Collecting Items
+### <span id="heading--items"></span>Collecting Items
 
 To light the scoop for **[Crank It Up](#heading--info)**, 12 (+1 per subsequent mode) of the four items must be collected:
 
@@ -115,7 +114,7 @@ To light the scoop for **[Crank It Up](#heading--info)**, 12 (+1 per subsequent 
 
 There are two ways to collect the former three items - either by making direct shots to their corresponding feature on the playfield, *or* by shooting the corresponding insert at any of the five major shots. The inserts light by shooting their respective features, and the red spider arrow determines which shot the insert will be placed on. If all three inserts are on a single shot, the next shot made there will start a **[Coffin Hurry-Up](#heading--seek)**. Coffins, however, can only be collected by making direct shots to the captive ball. The left inlanes light the captive ball for 2 hits for a limited time.
 
-Crank It Up lights at the scoop as soon as the required items have been collected and the player has returned to single-ball play, indicated by a unique sound and the 4 item inserts above the flippers pulsing.  
+Crank It Up lights at the scoop as soon as the required items have been collected and the player has returned to single-ball play, indicated by a unique sound and the 4 item inserts above the flippers pulsing.\
 Shoot the scoop, and then choose from any of the four Crank It Up modes (that haven’t been played yet) using the flipper buttons - or a relatively low value of points (5M + 1M per subsequent mode) instead of starting it.
 
 ### <span id="heading--info"></span>Mode Information
@@ -147,12 +146,12 @@ All **[side modes](#heading--modes)** can be started or brought into Multiball m
 
 *Song: Creeping Death*
 
-**Starting Multiball**  
+**Starting Multiball**\
 Shoot Sparky 10 times to light **[electric chair inserts](#heading--items)** at the major shots and start Electric Chair Multiball. Shots to either side of Sparky score 1 hit, while shots to the target in between them score 2 hits instead. When one shot is remaining, Sparky will taunt you and all three inserts will strobe. Shoot Sparky once more to start multiball and check out the great introduction animation & light show. Starting Electric Chair Multiball also automatically gives credit for the electric chair requirement for **Crank It Up**.
 
 Subsequent Electric Chair Multiball attempts require two more Sparky hits than the last.
 
-**During Multiball**  
+**During Multiball**\
 Fill Sparky’s power meter by hitting lit jackpot shots. The jackpot shots are the flashing electric chair inserts on the left and right orbits, and the Sparky shot. The base jackpot value starts at 275k (need info on increments). Once the power meter is completely full, shoot Sparky for a 1.5M Super Jackpot that increases by 100k per Super Jackpot collected.
 
 Each Super Jackpot collected electrocutes one of seven Sparky characters seen on the progress bar at the bottom of the DMD display. There is a progress bar for each Sparky character. As soon as the seventh Sparky has been electrocuted, the orbits, ramps, and Sparky are all lit for super jackpots valued at a max of 2M for the remainder of the current multiball, and for every subsequent Electric Chair Multiball during the game.
@@ -161,12 +160,12 @@ Each Super Jackpot collected electrocutes one of seven Sparky characters seen on
 
 *Song: Master of Puppets*
 
-**Starting Multiball**  
+**Starting Multiball**\
 Each shot to the inline drop targets increases your **[bonus multiplier](#heading--bonus)** and lights a **[grave marker insert](#heading--items)** at a random shot. Once all 3 drop targets have been knocked down, shoot the grave marker target behind them to start multiball.
 
 Subsequent Grave Marker Multiball attempts require one more grave marker target hit than the last.
 
-**During Multiball**  
+**During Multiball**\
 All five major shots are lit for jackpots that start at 216k and increase with every lit grave marker shot. Shooting the grave marker target itself spots a jackpot that hasn’t been collected yet (from left to right) if one isn’t available there. Each jackpot also collects a **[grave marker](#heading--items)**.
 
 Once you have made all five jackpots, the grave marker will strobe for double jackpot. Scoring the double jackpot will cause the magnet to hold the ball for 20 seconds. Each jackpot collected while the ball is held on the magnet adds to the value of the Super Jackpot that can be scored by knocking the ball off the magnet, which starts at 1M. After the Super Jackpot has been collected, the number of jackpots required to qualify subsequent double jackpots increases by 1 for the rest of the multiball.
@@ -175,12 +174,12 @@ Once you have made all five jackpots, the grave marker will strobe for double ja
 
 *Song: Sad but True*
 
-**Starting Multiball**  
+**Starting Multiball**\
 Shoot the Snake when lit to spot letters in SNAKE. The Snake unlights once a letter has been collected, and can be relit by shooting any shot with a lit **[Snake insert](#heading--items)** - three of these inserts light each time you shoot the Snake. Once SNAKE has been completed, the next shot to the Snake will start 2-ball multiball.
 
 The Snake must be lit once per letter for subsequent Snake Multiball attempts.
 
-**During Multiball**  
+**During Multiball**\
 Jackpots are lit at all major shots and the Snake itself. Each jackpot collected adds its value to the super jackpot, and adds a +1x multiplier to the “Snake Combo”, which is required to score the super jackpot. The Snake Combo value maxes at 3x.
 
 The “Snake Combo” is collected by shooting either the left ramp or right orbit, followed by quickly shooting the Snake. Making any other shot before the Snake cancels this combo out and will require the combo to be started again. Once the Snake Combo has been collected, the multiplier will reset to 1x.
@@ -189,10 +188,10 @@ The “Snake Combo” is collected by shooting either the left ramp or right orb
 
 *Song: For Whom the Bell Tolls*
 
-**Starting Multiball**  
+**Starting Multiball**\
 Every shot to the captive ball collects **[coffins](#heading--items)** and counts down towards locking a ball - virtually on the Pro, physically (via the magnet) on Prem / LE. 5 captive ball hits are required to light the first lock, and 10 hits are required to light each subsequent lock. Casket Multiball locks can not be collected while in multiball on default settings, though progress can be made towards qualifying each lock regardless. As soon as the third ball is locked, Casket Multiball begins.
 
-**During Multiball**  
+**During Multiball**\
 Casket Multiball is unique among the multiball modes in ***Metallica*** as it primarily serves as a vehicle for bringing in one additional **[multiball mode](#heading--multiballs)** and as many **[side modes](#heading--modes)** as you can. The only jackpots available during this multiball are scored by alternating between the flashing red arrows and the captive ball. Collecting 5 captive ball jackpots scores a Super Jackpot in place of the normal jackpot value, worth the total of the prior collected jackpots.
 
 Experiment with figuring out which modes and multiballs to start during Casket Multiball. **[Seek & Destroy](#heading--seek)** is a very good contender for stacking as the mode uses the same shot pattern as Casket Multiball.

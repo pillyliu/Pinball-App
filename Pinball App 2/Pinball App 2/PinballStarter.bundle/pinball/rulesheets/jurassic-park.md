@@ -1,11 +1,10 @@
 ---
 title: "Stern Jurassic Park Rulesheet"
 source: "https://tiltforums.com/t/stern-jurassic-park-rulesheet/5644"
-source_updated_at: "2025-11-29T20:14:02.663Z"
+source_updated_at: "2026-02-19T12:49:31.067Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/stern-jurassic-park-rulesheet/5644">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -361,10 +360,10 @@ Completing any Control Room mode awards a **[Fossil](#heading--fossils)** and a 
 
 - **Virus Attack**: Shoot any lit shot (3M, 4M, & 5M for all subsequent shots) to light the Control Room for 10M + the total of the shot values collected prior, a total of three times. Making the third shot to the Control Room finishes the mode and awards a **[Fossil](#heading--fossils)**.
 - **Restore Power**: Shoot the spinner for 3M, which lights all other shots. Then shoot all other seven lit shots to collect a value per shot equaling 3M +50K/spin during the mode, multiplied by the number of shots that have been made (excluding the initial spinner shot). The final shot finishes the mode, and awards 1M x seconds remaining along with a **[Fossil](#heading--fossils)**.
-- **System Boot**: Shoot one of three initial blue-lit shots (Left Ramp / Helipad / Spinner) to light a new set of shots and then shoot one to complete the combo and flip a switch *(difficulty of the shot determines the value)*. The combo shots and their scoring are as follows.  
-  Left Ramp (5M) → Right Ramp (8M) / Helipad (12M) / Right Orbit (15M)  
-  Helipad (7M) → Left Ramp (6M) / Spinner (8M) / Control Room (15M) / Raptor Pit (20M)  
-  Spinner (9M) → Supply Drop (15M) / Loop (20M) / Raptor Tower (25M)  
+- **System Boot**: Shoot one of three initial blue-lit shots (Left Ramp / Helipad / Spinner) to light a new set of shots and then shoot one to complete the combo and flip a switch *(difficulty of the shot determines the value)*. The combo shots and their scoring are as follows.\
+  Left Ramp (5M) → Right Ramp (8M) / Helipad (12M) / Right Orbit (15M)\
+  Helipad (7M) → Left Ramp (6M) / Spinner (8M) / Control Room (15M) / Raptor Pit (20M)\
+  Spinner (9M) → Supply Drop (15M) / Loop (20M) / Raptor Tower (25M)\
   Complete all three sets of combos to light the final shot at the control room. The final shot value is the sum of all of the 2nd shots of each combo + the time bonus (1M x seconds remaining) & awards a **[Fossil](#heading--fossils)**.
 
 ### <span id="heading--controlroominvalid"></span>Invalid Frenzy:
@@ -381,13 +380,13 @@ Hitting any switch in the raptor pen will build towards an add-a-ball, with addi
 
 ### <span id="heading--chaosmb"></span>Chaos Multiball:
 
-Five shots are marked with letters in the word CHAOS. Each letter must be collected in sequential order to light the pops target for Chaos Multiball. On subsequent attempts, two completions of CHAOS will be required to light Chaos Multiball; other awards, such as points or lighting **[Control Room](#heading--controlroommodes)**, will be substituted for the first spelling of CHAOS. You can also collect letters in CHAOS off of **[Supply Drop](#heading--supplydrop)**, or complete CHAOS in one shot off of a successful **[Smart Missile](#heading--smartmissile)** award.
+Five shots are marked with letters in the word CHAOS. Each letter must be collected in sequential order to light the pops target for Chaos Multiball. On subsequent attempts, two completions of CHAOS will be required to light Chaos Multiball; other awards, such as points or lighting **[Control Room](#heading--controlroom)**, will be substituted for the first spelling of CHAOS. You can also collect letters in CHAOS off of **[Supply Drop](#heading--supplydrop)**, or complete CHAOS in one shot off of a successful **[Smart Missile](#heading--smartmissile)** award.
 
-**Phase 1**  
+**Phase 1**\
 At the start of this 3-ball Multiball, Jackpots will be lit on all shots on one half of the playfield, depending on the direction of the truck, and each jackpot shot won’t be made available again until a super jackpot has been collected or the truck has been hit. Hit the truck to switch sides and light all the other side’s jackpots, including the shots you’d previously hit. The more jackpots you collect on one side before switching, the more they’re worth - and they will continue to increase the super jackpot value. The first super jackpot is lit at the amber target after collecting 1 jackpot, with 2 jackpots required to light the second and third super jackpots and 3 jackpots to light the fourth and fifth super jackpots. If a maximum of 1 jackpot is remaining lit, a lit super jackpot can also be collected at the truck (full turn). Each super jackpot awards the sum total of the jackpots collected between each super jackpot, and awards one letter in CHAOS (shown on the display and as solidly lit CHAOS inserts on the playfield).
 
-**Phase 2**  
-Collect all 5 super jackpots across Chaos Multiball attempts to light the five letter shots for jackpots, which can be shot in any order. Each letter is worth the *base* value earned when collecting that letter’s super jackpot in phase 1.  
+**Phase 2**\
+Collect all 5 super jackpots across Chaos Multiball attempts to light the five letter shots for jackpots, which can be shot in any order. Each letter is worth the *base* value earned when collecting that letter’s super jackpot in phase 1.\
 Scoring at least one of these letters will award you with a **[Fossil](#heading--fossils)** at the end of the multiball. After the five CHAOS letters have been scored, the pop bumper target will be lit to score the Chaos Hurry-Up, worth the combined value of all the CHAOS letters. If the Truck is facing the left, this value will be doubled. Collecting this Hurry-Up will restart the multiball back to phase 1.
 
 Hitting the pop bumpers enough times (10 for the first add-a-ball) will immediately launch another ball into play with a short ball saver. Each add-a-ball requires 10 more pops than the last. While **supply drops** won’t award add-a-balls during this mode, it is possible to claim one during the grace period after Chaos Multiball ends.
@@ -434,7 +433,7 @@ There are six possible choices, shown on the display in this order:
   - **[Raptor Multiball](#heading--raptormb)** - Immediately starts Raptor Tri-Ball. This also counts as having gone through the regular sequence of lighting it, meaning you’ll start over at the next difficulty for the next attempt.
   - **[Extra Ball](#heading--ebs)** - Immediately awards an extra ball.
   - **[Fossil](#heading--fossils)** - Spots a “wildcard” Fossil.
-  - **[Super Escape](#heading--escape)** - For the remainder of the ball, “Light Escape” no longer needs to be qualified using the pops switch.
+  - **[Super Escape](#heading--outlanes)** - For the remainder of the ball, “Light Escape” no longer needs to be qualified using the pops switch.
 
 - **Choice 5** -
 
@@ -480,7 +479,7 @@ Side ramp shots also count-up towards various awards throughout the course of th
 
 - 5: 3M
 - 10: 5M
-- 15: Light **[Control Room](#heading--controlroommodes)**
+- 15: Light **[Control Room](#heading--controlroom)**
 - 20: 15M
 - 25: Wildcard **[Fossil](#heading--fossils)**
 - 35, 45, 55, etc.: 15M
@@ -589,7 +588,7 @@ There are 6 unique shots that can be shot in **any** order to award 2/3/4/5/6-wa
 - Left Ramp
 - Right Ramp
 
-Combo is logic is the same as for **[DNA Combos](#heading--dna)**, but they are handled separately (breaking a DNA combo will not break the 6-way combo)  
+Combo is logic is the same as for **[DNA Combos](#heading--dna)**, but they are handled separately (breaking a DNA combo will not break the 6-way combo)\
 The red flasher on the right side of the playfield will light up to indicate that a 2-way combo has been hit. It will then stay on until the 6-way combo is completed or broken.
 
 The base value for a 2-way combo starts at 250K (+50K for each **[DNA Combo](#heading--dna)**)
@@ -659,10 +658,10 @@ Then multiply by Bonus X, if applicable, earned from either Super Predators or c
 |  | Complete your 1st **[T-Rex Event](#heading--trexevents)** | Complete your 2nd **[T-Rex Event](#heading--trexevents)** | Complete your 3rd **[T-Rex Event](#heading--trexevents)** | Win **[Museum Mayhem](#heading--miniwizardmodesmuseummayhem)** |
 |  | ────────── | ────────── | ────────── | ────────── |
 |  |  | **Gallimimus** | **Triceratops** | **Pteranodon** |
-|  |  | Complete your 1st **[Control Room mode](#heading--controlroommodes)** | Complete your 2nd **[Control Room mode](#heading--controlroommodes)** | Win **[Visitor’s Center](#heading--miniwizardmodesvisitorcenter)** |
+|  |  | Complete your 1st **[Control Room mode](#heading--controlroom)** | Complete your 2nd **[Control Room mode](#heading--controlroom)** | Win **[Visitor’s Center](#heading--miniwizardmodesvisitorcenter)** |
 |  | ────────── | ────────── | ────────── | ────────── |
 |  | **Ankylosaurus** | **Spinosaurus** | **Dilophosaurus** | **Stegosaurus** |
-|  | Collect a **[Raptor Super Jackpot](#heading--raptormb)** | Collect a **[letter jackpot in phase 2 of CHAOS multiball](#heading--chaosmb)** | Complete your 3rd **[Control Room mode](#heading--controlroommodes)** | Win **[Secure Control Room](#heading--miniwizardmodessecurecontrolroom)** |
+|  | Collect a **[Raptor Super Jackpot](#heading--raptormb)** | Collect a **[letter jackpot in phase 2 of CHAOS multiball](#heading--chaosmb)** | Complete your 3rd **[Control Room mode](#heading--controlroom)** | Win **[Secure Control Room](#heading--miniwizardmodessecurecontrolroom)** |
 |  | ────────── | ────────── | ────────── | ────────── |
 | **Set Award** | 20M and **[+10x Pteranodon Multiplier](#heading--pteranodon)** (one time only) | 35M and **[Extra Ball](#heading--ebs)** | 100M and **[+10x Amber Bonus](#heading--amberbonus)** (one time only) | 250M and +10 **[Rescues](#heading--rescues)** |
 
@@ -713,7 +712,7 @@ After defeating both raptors this way, the truck will light for 10M. Making the 
 
 ### <span id="heading--miniwizardmodessecurecontrolroom"></span>Secure Control Room:
 
-After playing all three **[Control Room modes](#heading--controlroommodes)**, shoot the control room shot again to begin Secure Control Room.
+After playing all three **[Control Room modes](#heading--controlroom)**, shoot the control room shot again to begin Secure Control Room.
 
 In this single-ball mini-wizard mode, raptors are peeking inside the control room, and they want in! The mode begins with one shot lit for a hurry-up. Collecting it will start a new hurry-up on a different shot, with a higher value than the prior one. Repeat until you’ve collected a hurry-up from all major shots to light the control room lane for the sum total of all hurry-up collects, finishing the mode and awarding the Stegosaurus **[Fossil](#heading--fossils)**.
 

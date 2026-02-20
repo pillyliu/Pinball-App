@@ -1,11 +1,10 @@
 ---
 title: "Elvira’s House of Horrors Rulesheet"
-source: "https://tiltforums.com/t/elvira-s-house-of-horrors-rulesheet-wip/5815"
+source: "https://tiltforums.com/t/elvira-s-house-of-horrors-rulesheet/5815"
 source_updated_at: "2025-11-24T00:36:54.523Z"
 ---
 
-<small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/elvira-s-house-of-horrors-rulesheet-wip/5815">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
+<small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/elvira-s-house-of-horrors-rulesheet/5815">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
 
 <div class="pinball-rulesheet">
 
@@ -34,7 +33,7 @@ source_updated_at: "2025-11-24T00:36:54.523Z"
   - [End of Ball Bonus](#heading--bonus)
 - [Wild Market Value (Wizard Mode)](#heading--wildmarket)
 
-## Game Information & Overview:
+## <span id="heading--gameinfo"></span>Game Information & Overview:
 
 - Designer: Dennis Nordman
 - Code/Rules: Lyman Sheats (*prior to 1.00*),
@@ -48,7 +47,7 @@ source_updated_at: "2025-11-24T00:36:54.523Z"
 
 The mistress of the dark returns in ***Elvira’s House of Horrors***, released by Stern Pinball at the end of 2019. Characters from 26 of the most infamous horror B-movies of all time have invaded a haunted house, and are wreaking havoc that can only be stopped by putting the characters back in the movies where they came from. You’ll also have to put up with Deadheads, Gar-Goils, and other creatures on your quest to clear the house.
 
-## <span id="heading--layout"></span> Layout
+## <span id="heading--layout"></span>Layout
 
 ### Premium:
 
@@ -160,7 +159,7 @@ The third Deadhead will light Super Head Shot at the Crypt as the final shot, wh
 
 Defeated Deadheads score 250k in end of ball bonus.
 
-## <span id="heading--freakfryer"></span> Freak Fryer & Gappa Angry!
+## <span id="heading--freakfryer"></span>Freak Fryer & Gappa Angry!
 
 Every switch hit counts towards the Freak Fryer. Reaching level 1 requires 150 switch hits and awards 1 million points, with each subsequent level requiring 25 more switch hits than the previous level and awarding 500k more:
 
@@ -235,7 +234,7 @@ Collect all the junk to qualify Phone-A-Fiend multiball.
 
 This is a 2-ball Multiball. Two Jackpots are lit at random shots, and a hit to any of the Trunk Targets will change the location of the lit Jackpots. Making the targets will also light the left ramp to collect a Super Jackpot and 1 - 3 (a random amount in this range) of a random piece of Junk. This Multiball can be brought into any other mode.
 
-## <span id="heading--junkphone"></span> Phone-A-Fiend Multiball
+## <span id="heading--junkphone"></span>Phone-A-Fiend Multiball
 
 Phone-A-Fiend Multiball is qualified by collecting at least one of all the Junk in the Trunk. Start the multiball by locking two balls in the Trunk as you did before.
 

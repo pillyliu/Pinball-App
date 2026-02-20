@@ -16,6 +16,7 @@ internal class PracticeScreenState(initialJournalFilter: JournalFilter) {
     var gameSubview by mutableStateOf(PracticeGameSubview.Summary)
     var quickPresetActivity by mutableStateOf(QuickActivity.Score)
     var quickEntryOrigin by mutableStateOf(QuickEntryOrigin.Score)
+    var quickEntryFromGameView by mutableStateOf(false)
     var editingGroupID by mutableStateOf<String?>(null)
     var openQuickEntry by mutableStateOf(false)
     var openResetDialog by mutableStateOf(false)
@@ -38,9 +39,14 @@ internal class PracticeScreenState(initialJournalFilter: JournalFilter) {
     var activeGameVideoId by mutableStateOf<String?>(null)
     val routeHistory = mutableStateListOf<PracticeRoute>()
 
-    fun openQuickEntryFor(activity: QuickActivity, origin: QuickEntryOrigin = quickEntryOrigin) {
+    fun openQuickEntryFor(
+        activity: QuickActivity,
+        origin: QuickEntryOrigin = quickEntryOrigin,
+        fromGameView: Boolean = false,
+    ) {
         quickPresetActivity = activity
         quickEntryOrigin = origin
+        quickEntryFromGameView = fromGameView
         openQuickEntry = true
     }
 

@@ -1,11 +1,10 @@
 ---
 title: "Dungeons & Dragons: The Tyrant's Eye Rulesheet"
 source: "https://tiltforums.com/t/dungeons-dragons-the-tyrants-eye-rulesheet/9267"
-source_updated_at: "2026-01-29T22:10:47.626Z"
+source_updated_at: "2026-02-19T12:11:38.323Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/dungeons-dragons-the-tyrants-eye-rulesheet/9267">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -73,7 +72,31 @@ source_updated_at: "2026-01-29T22:10:47.626Z"
 
 ## Pro
 
+<div class="lightbox-wrapper">
+
+<a href="https://tiltforums.com/uploads/default/original/2X/e/e3950c1a877ac15d3f34ea10f99e9a3794118ff8.jpeg" class="lightbox" data-download-href="https://tiltforums.com/uploads/default/e3950c1a877ac15d3f34ea10f99e9a3794118ff8" title="DungeonProTopPlayfield-adfkjehfa3-scaled"><img src="https://tiltforums.com/uploads/default/optimized/2X/e/e3950c1a877ac15d3f34ea10f99e9a3794118ff8_2_257x500.jpeg" data-base62-sha1="wthIwrbOa9zAjrpaoYAb9dF0Hj2" srcset="https://tiltforums.com/uploads/default/optimized/2X/e/e3950c1a877ac15d3f34ea10f99e9a3794118ff8_2_257x500.jpeg, https://tiltforums.com/uploads/default/optimized/2X/e/e3950c1a877ac15d3f34ea10f99e9a3794118ff8_2_385x750.jpeg 1.5x, https://tiltforums.com/uploads/default/optimized/2X/e/e3950c1a877ac15d3f34ea10f99e9a3794118ff8_2_514x1000.jpeg 2x" data-dominant-color="7C7B82" width="257" height="500" alt="DungeonProTopPlayfield-adfkjehfa3-scaled" /></a>
+
+<div class="meta">
+
+<img src="data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iZmEgZC1pY29uIGQtaWNvbi1mYXItaW1hZ2Ugc3ZnLWljb24iIGFyaWEtaGlkZGVuPSJ0cnVlIj48dXNlIGhyZWY9IiNmYXItaW1hZ2UiIC8+PC9zdmc+" class="fa d-icon d-icon-far-image svg-icon" /><span class="filename">DungeonProTopPlayfield-adfkjehfa3-scaled</span><span class="informations">1319×2560 457 KB</span><img src="data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iZmEgZC1pY29uIGQtaWNvbi1kaXNjb3Vyc2UtZXhwYW5kIHN2Zy1pY29uIiBhcmlhLWhpZGRlbj0idHJ1ZSI+PHVzZSBocmVmPSIjZGlzY291cnNlLWV4cGFuZCIgLz48L3N2Zz4=" class="fa d-icon d-icon-discourse-expand svg-icon" />
+
+</div>
+
+</div>
+
 ## Premium/LE
+
+<div class="lightbox-wrapper">
+
+<a href="https://tiltforums.com/uploads/default/original/2X/5/5a07ebfbcdef1eb7c4ae62bb15aafddcfcc3796d.jpeg" class="lightbox" data-download-href="https://tiltforums.com/uploads/default/5a07ebfbcdef1eb7c4ae62bb15aafddcfcc3796d" title="DungeonPremiumTopPlayfield-adfkjehfa3-scaled"><img src="https://tiltforums.com/uploads/default/optimized/2X/5/5a07ebfbcdef1eb7c4ae62bb15aafddcfcc3796d_2_257x500.jpeg" data-base62-sha1="cQrWzAvF7AtpEtZy2FHETIf6lWd" srcset="https://tiltforums.com/uploads/default/optimized/2X/5/5a07ebfbcdef1eb7c4ae62bb15aafddcfcc3796d_2_257x500.jpeg, https://tiltforums.com/uploads/default/optimized/2X/5/5a07ebfbcdef1eb7c4ae62bb15aafddcfcc3796d_2_385x750.jpeg 1.5x, https://tiltforums.com/uploads/default/optimized/2X/5/5a07ebfbcdef1eb7c4ae62bb15aafddcfcc3796d_2_514x1000.jpeg 2x" data-dominant-color="7B797B" width="257" height="500" alt="DungeonPremiumTopPlayfield-adfkjehfa3-scaled" /></a>
+
+<div class="meta">
+
+<img src="data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iZmEgZC1pY29uIGQtaWNvbi1mYXItaW1hZ2Ugc3ZnLWljb24iIGFyaWEtaGlkZGVuPSJ0cnVlIj48dXNlIGhyZWY9IiNmYXItaW1hZ2UiIC8+PC9zdmc+" class="fa d-icon d-icon-far-image svg-icon" /><span class="filename">DungeonPremiumTopPlayfield-adfkjehfa3-scaled</span><span class="informations">1319×2560 471 KB</span><img src="data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iZmEgZC1pY29uIGQtaWNvbi1kaXNjb3Vyc2UtZXhwYW5kIHN2Zy1pY29uIiBhcmlhLWhpZGRlbj0idHJ1ZSI+PHVzZSBocmVmPSIjZGlzY291cnNlLWV4cGFuZCIgLz48L3N2Zz4=" class="fa d-icon d-icon-discourse-expand svg-icon" />
+
+</div>
+
+</div>
 
 Playfield features exclusive to the Premium/LE models include:
 
@@ -149,6 +172,18 @@ For the cooperative game mode, each player’s party members are level and item 
 The skill shot value is 2M x a multiplier equal to the ball it was collected on (extra balls add +1x to the multiplier). The super and MXV skill shots start at 6M.
 
 # <span id="heading--map"></span>The Campaign Map:
+
+<div class="lightbox-wrapper">
+
+<a href="https://tiltforums.com/uploads/default/original/2X/9/962f1639aa6dcc5d0c00ff440dbef38d8e06a911.png" class="lightbox" data-download-href="https://tiltforums.com/uploads/default/962f1639aa6dcc5d0c00ff440dbef38d8e06a911" title="MAP"><img src="https://tiltforums.com/uploads/default/optimized/2X/9/962f1639aa6dcc5d0c00ff440dbef38d8e06a911_2_517x373.png" data-base62-sha1="lqAvdRYMoi5ojXd3xUmpaXPZ0Od" srcset="https://tiltforums.com/uploads/default/optimized/2X/9/962f1639aa6dcc5d0c00ff440dbef38d8e06a911_2_517x373.png, https://tiltforums.com/uploads/default/optimized/2X/9/962f1639aa6dcc5d0c00ff440dbef38d8e06a911_2_775x559.png 1.5x, https://tiltforums.com/uploads/default/original/2X/9/962f1639aa6dcc5d0c00ff440dbef38d8e06a911.png 2x" data-dominant-color="A8947A" width="517" height="373" alt="MAP" /></a>
+
+<div class="meta">
+
+<img src="data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iZmEgZC1pY29uIGQtaWNvbi1mYXItaW1hZ2Ugc3ZnLWljb24iIGFyaWEtaGlkZGVuPSJ0cnVlIj48dXNlIGhyZWY9IiNmYXItaW1hZ2UiIC8+PC9zdmc+" class="fa d-icon d-icon-far-image svg-icon" /><span class="filename">MAP</span><span class="informations">895×647 940 KB</span><img src="data:image/svg+xml;base64,PHN2ZyBjbGFzcz0iZmEgZC1pY29uIGQtaWNvbi1kaXNjb3Vyc2UtZXhwYW5kIHN2Zy1pY29uIiBhcmlhLWhpZGRlbj0idHJ1ZSI+PHVzZSBocmVmPSIjZGlzY291cnNlLWV4cGFuZCIgLz48L3N2Zz4=" class="fa d-icon d-icon-discourse-expand svg-icon" />
+
+</div>
+
+</div>
 
 The overall campaign progress and the party’s location are represented by the map of Mid-West Faerûn from the Forgotten Realms setting and the inserts on the playfield located between the slings. The player selects a starting location for their party at the beginning of a new campaign by pressing the left flipper button to cycle through the location options while selecting their **[character/class](#heading--class)**. Players can choose to start in Greenest, Westgate, Arabel, or Kobold Town, with the corresponding city insert flashing yellow on the map.
 
@@ -298,7 +333,7 @@ Travel Destination Options: Dragonspear Castle, Darkhold, Kobold Town
 
 ## <span id="heading--travel"></span>Traveling Between Locations:
 
-The player starts the game in travel mode, with the party moving to the location that they pressed with the left flipper at the start of the game. During travel mode, some shots are lit with blue arrows. Shots will randomly spawn **[enemies](#heading--battles)**, with more difficult ones spawning in the Underdark if the player is headed to **[Dragonspear Castle](#heading--dragonspear)** or **[Gauntlgrym](#heading--gauntlgrym)**. The enemy difficulty increases for players who are past level 7. Hitting three blue shots, killing all enemies in the battle, or draining will exit travel mode and put the party in the new location.
+The player starts the game in travel mode, with the party moving to the location that they pressed with the left flipper at the start of the game. During travel mode, some shots are lit with blue arrows. Shots will randomly spawn **[enemies](#heading--battles)**, with more difficult ones spawning in the Underdark if the player is headed to **[Dragonspear Castle](#heading--dragonspear)** or **[Gauntlgrym](#heading--gauntlgrym)**. The enemy difficulty increases for players who are past level 7. Hitting three blue shots, killing all enemies in the battle, entering the Dungeon Crawl, or draining will exit travel mode and put the party in the new location.
 
 Once the player reaches the city, they can re-enter travel mode by a shooting yellow “choose action” shot (the same way they would start a **[location mode](#heading--map)**), and selecting the city they want to travel to.
 
@@ -326,7 +361,7 @@ To deal long-ranged damage, hold the **action button**. A blue arrow shot will b
 
 ## <span id="heading--stealth"></span>Stealth Missions:
 
-Stealth missions are a special type of mode that requires performing certain actions with a stealth meter. Stealth mechanics are used in the following quests: **[Spy on Puck](#heading--kobold)** (Purple 2), phase 1 of **Mystery at the Bottom of the Mine** (Kobold Town Dungeon), and phase 1 of **[Rescue the King](#heading--wizardrescue)**.
+Stealth missions are a special type of mode that requires performing certain actions with a stealth meter. Stealth mechanics are used in the following quests: **[Spy on Puck](#heading--koboldtown)** (Purple 2), phase 1 of **Mystery at the Bottom of the Mine** (Kobold Town Dungeon), and phase 1 of **[Rescue the King](#heading--wizardrescue)**.
 
 The meter starts at 100% stealth and decreases each time the ball hits a sling. The decrease amount per sling hit varies by class. From highest to lowest is the Barbarian, Cleric, Paladin, Wizard/Bard, Ranger, then Rogue with the least reduction per sling hit.
 
@@ -375,7 +410,7 @@ Draining down to one ball ends the Town Celebration Multiball. After completing 
 
 ## <span id="heading--cube"></span>Gelatinous Cube Multiball:
 
-Shoot the left orbit to lower the ramp at its entrance, then shoot the left ramp. This must be repeated 1-4 times, with the same ball, before it will be held at the gelatinous cube magnet.  
+Shoot the left orbit to lower the ramp at its entrance, then shoot the left ramp. This must be repeated 1-4 times, with the same ball, before it will be held at the gelatinous cube magnet.\
 The amount of shots required can be set by the operator and defaults to medium:
 
 - Easy: 1 shot

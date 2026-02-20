@@ -1,17 +1,21 @@
 package com.pillyliu.pinballandroid.practice
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun PracticeDialogHost(
     store: PracticeStore,
     openNamePrompt: Boolean,
     onOpenNamePromptChange: (Boolean) -> Unit,
+    onImportStatusChange: (String) -> Unit,
     openQuickEntry: Boolean,
     onOpenQuickEntryChange: (Boolean) -> Unit,
     selectedGameSlug: String?,
     quickPresetActivity: QuickActivity,
     quickEntryOrigin: QuickEntryOrigin,
+    quickEntryFromGameView: Boolean,
     onQuickSave: (String) -> Unit,
     openGroupDateDialog: Boolean,
     onOpenGroupDateDialogChange: (Boolean) -> Unit,
@@ -21,12 +25,24 @@ internal fun PracticeDialogHost(
     openResetDialog: Boolean,
     onOpenResetDialogChange: (Boolean) -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
+
     if (openNamePrompt) {
         PracticeNamePromptSheet(
             initialName = store.playerName,
-            onSave = { name ->
+            onSave = { name, shouldImportLpl ->
                 store.updatePlayerName(name)
                 onOpenNamePromptChange(false)
+                if (!shouldImportLpl) return@PracticeNamePromptSheet
+                scope.launch {
+                    val normalizedInput = normalizeHumanName(name)
+                    val matchedPlayer = store.availableLeaguePlayers().firstOrNull { candidate ->
+                        normalizeHumanName(candidate) == normalizedInput
+                    } ?: return@launch
+                    store.updateLeaguePlayerName(matchedPlayer)
+                    val importStatus = store.importLeagueScoresFromCsv()
+                    onImportStatusChange(importStatus)
+                }
             },
             onDismiss = { onOpenNamePromptChange(false) },
         )
@@ -38,6 +54,7 @@ internal fun PracticeDialogHost(
             selectedGameSlug = selectedGameSlug,
             presetActivity = quickPresetActivity,
             origin = quickEntryOrigin,
+            fromGameView = quickEntryFromGameView,
             onDismiss = { onOpenQuickEntryChange(false) },
             onSave = { slug ->
                 onQuickSave(slug)

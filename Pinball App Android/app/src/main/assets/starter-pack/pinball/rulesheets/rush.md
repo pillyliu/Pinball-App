@@ -1,11 +1,10 @@
 ---
 title: "Stern Rush Rulesheet"
 source: "https://tiltforums.com/t/stern-rush-rulesheet/7409"
-source_updated_at: "2026-01-13T13:42:02.907Z"
+source_updated_at: "2026-02-19T12:54:51.474Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/stern-rush-rulesheet/7409">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -96,13 +95,13 @@ John Borg returns to designing band-themed pinball machines with ***Rush***, rel
 
 These modes are accessible by holding both flipper buttons during attract mode until a menu appears. The following options are available:
 
-- **Standard:**  
+- **Standard:**\
   See below for full rulesheet.
-- **Competition:**  
+- **Competition:**\
   Same as *Standard* but with elements of randomness removed.
-- **Challenge:**  
+- **Challenge:**\
   Play either Cygnus X-1 book or the final 2112 wizard mode as a challenge mode. Scores for challenge modes are kept separately from standard high scores.
-- **DJ Mixer**  
+- **DJ Mixer**\
   NOT a gameplay mode. This mode operates like a jukebox, allowing you to play the music featured in the machine, including a number of specific playlists.
 
 ## <span id="heading--skillshots"></span>Skill Shots:
@@ -191,7 +190,7 @@ Play all 6 multiball modes in a single game to qualify **[Cygnus X-1: Book 1 - T
 
 ### <span id="heading--timemachinemb"></span>Time Machine Multiballs:
 
-Power up the Time Machine portal ramp by shooting the ramp that passes through it 3 times +6 per multiball -1 per **[decade](#heading--years)**, then shoot it once more to start one of its three multiball modes, each with their own rules.
+Power up the Time Machine portal ramp by shooting the ramp that passes through it 3 times +6 per multiball -1 per **[decade](#heading--upgrades)**, then shoot it once more to start one of its three multiball modes, each with their own rules.
 
 The dead end shot changes which multiball is lit. Each multiball is played with 2 balls, though upgrading the time machine by collecting **[years](#heading--upgrades)** can add more balls to these modes.
 
@@ -204,18 +203,18 @@ The dead end shot changes which multiball is lit. Each multiball is played with 
 Shoot the “LIGHT LOCK” standup targets near the right ramp to light the lock at the top scoop. The second lock can be collected at either the top scoop, starting multiball with higher jackpot values, or the bottom scoop. (This process becomes more difficult each time the multiball is started; first activation requires just the targets, second requires the targets and the ramp, etc.) By default, this multiball starts with 2 balls. Collecting 30 **[years](#heading--upgrades)** upgrades this to a 3-ball multiball, and balls can be added via the **Weapon** and mystery award.
 
 - **During Multiball:** All major shots are lit in different colors (blue, green, yellow, orange, red), corresponding to 1x, 2x, 3x, 4x, or 5x timed jackpots, respectively. The higher the multiplier, the quicker the jackpots will time out. Hitting any jackpot will also increase their base value (starting at 750k) and re-light two shots with random jackpot colors. If all jackpots time out, the jackpot base value is reset and all shots relight. Score 15 jackpots in a single multiball attempt, then shoot the Time Machine for a Super Jackpot worth the total of the collected jackpot values & +5 **[years](#heading--upgrades)**. This will also start **One Little Victory Laps**.
-- **One Little Victory Laps:** After scoring the Super Jackpot, 6-ball multiball will begin and the upper flipper shots will be lit for victory laps. Collect one to light a super jackpot at a roving shot, whose multiplier increases for each unique physical shot that the super jackpot has been collected at. Each super jackpot requires one more victory jackpot to light. At this time, balls can be added by using the **[Weapon](#heading--albums)** if the *Vapor Trails* album has been qualified.
+- **One Little Victory Laps:** After scoring the Super Jackpot, 6-ball multiball will begin and the upper flipper shots will be lit for victory laps. Collect one to light a super jackpot at a roving shot, whose multiplier increases for each unique physical shot that the super jackpot has been collected at. Each super jackpot requires one more victory jackpot to light. At this time, balls can be added by using the **[Weapon](#heading--combojp)** if the *Vapor Trails* album has been qualified.
 
 ### <span id="heading--headlongmb"></span>Headlong Flight Multiball:
 
-Advance the **[Drum Clock](#heading--drumclock)** to midnight, then shoot the right orbit to start Headlong Flight Multiball. This multiball can be started at any time once it has been lit, and thus can be stacked with other multiballs. Once this multiball starts, however, the usual stacking rules apply. Balls can be added by using the **[Weapon](#heading--albums)** if the *Clockwork Angels* album has been qualified.
+Advance the **[Drum Clock](#heading--drumclock)** to midnight, then shoot the right orbit to start Headlong Flight Multiball. This multiball can be started at any time once it has been lit, and thus can be stacked with other multiballs. Once this multiball starts, however, the usual stacking rules apply. Balls can be added by using the **[Weapon](#heading--combojp)** if the *Clockwork Angels* album has been qualified.
 
 - **During Multiball:** Jackpots can be scored at the upper loop and side ramp for 1 million x the current clock hour, which starts at 12 o’ clock and counts backward by 1 hour every few seconds. Combo the upper loop into the side ramp (whether or not the upper loop has been collected) for Super Jackpot worth 3x the jackpot value & +5 **[years](#heading--upgrades)**. The right ramp is also lit as a jackpot and, if collected, will relight both side shots and set the clock back to 12.
 - **Mega / Ultra Jackpot:** If you hit both side shots, the right ramp will instead light for a Mega Jackpot or Ultra Jackpot based on the sum of the values obtained from the two side shots made. Mega = no Super Jackpot scored; Ultra = Super Jackpot was scored. This also scores the current clock hour x 2 million (x 4 million for Ultra Jackpot).
 
 ### <span id="heading--freewillmb"></span>Freewill Multiball:
 
-Collect all three **Instruments** by completing the drop target bank, then shoot the instrument lane to start Freewill Multiball (and lock a ball on Prem / LE; jackpots can be increased by hitting the captive ball on this model). Balls can be added by using the **[Weapon](#heading--albums)** if the *Permanent Waves* album has been qualified.
+Collect all three **Instruments** by completing the drop target bank, then shoot the instrument lane to start Freewill Multiball (and lock a ball on Prem / LE; jackpots can be increased by hitting the captive ball on this model). Balls can be added by using the **[Weapon](#heading--combojp)** if the *Permanent Waves* album has been qualified.
 
 - **During Multiball**: (On Premium / LE models, the mode starts by locking the ball at the instrument lane, and repeatedly shooting the ball increases the base jackpot values. This phase ends and multiball starts after 20 seconds). All shots are constantly lit for jackpot, but once a shot is made, it must be collected again to score a super jackpot and light the other jackpots outside of the shot you just made. Every 3 unique super jackpots adds +5 **[years](#heading--upgrades)**. Jackpots start at 750,000 and increment by 750,000 per Freewill Multiball played; each jackpot boosts the value of the next by 250,000.
 - **Instrument Lane 2x Scoring & Add-A-Ball**: Balls can be locked for 20 seconds during Freewill Multiball by shooting the standup target twice + 1 per lock. While a ball is locked, a ball is added and jackpot scores are doubled, or you can keep hitting the standup target / captive ball during this time to increase your jackpot values. Once the ball is released, repeated shots to the standup target will relight the lock (and thus the add-a-ball). Max of 3 add-a-balls per Freewill Multiball.
@@ -232,7 +231,7 @@ Complete the instrument drop targets to *collect* instruments and qualify **[Fre
 
 Shooting the instrument dead-end stand-up target will *activate* the current instrument’s perk as well as any other instrument that had been *collected* but not yet *activated*. The timer for each *activated* instrument perk starts at 60 seconds and resets if another instrument is *activated* before the timer expires:
 
-- Bass - **Combos** score 2x and can be collected during multiball modes. On default settings, combos do not qualify **[albums](#heading--albums)** during multiball, just score points that are added into the **Combo Jackpot**.
+- Bass - **Combos** score 2x and can be collected during multiball modes. On default settings, combos do not qualify **[albums](#heading--combojp)** during multiball, just score points that are added into the **Combo Jackpot**.
 - Guitar - +1x multiplier for spinner shots.
 - Drumsticks - All bumper hits count 2x minutes, score 2x, and advance the clock during ball save of **[multiball modes](#heading--multiballs)**. **[Drum Bonus](#heading--drumclock)** is doubled.
 
@@ -278,7 +277,7 @@ The combos, and their corresponding albums & song modes, are:
 | Rush | Left Orbit | Inner Loop | Side Ramp | **[Working Man](#heading--planets)** |
 | Fly by Night | Left Orbit | Side Ramp | Dead End / VUK | **[Fly By Night](#heading--timemachinemb)** |
 | Snakes & Arrows | Dead End / VUK | Left Orbit | Side Loop | **[Far Cry](#heading--farcrymb)** |
-| Vapor Trails | Dead End / VUK | Left Orbit | Side Ramp | **[One Little Victory](#heading--victory)** |
+| Vapor Trails | Dead End / VUK | Left Orbit | Side Ramp | **[One Little Victory](#heading--farcrymb)** |
 | Power Windows | Spinner | Inner Loop | Inner Loop | **[The Big Money](#heading--planets)** |
 | Permanent Waves | Spinner | Inner Loop | Side Ramp | **[Freewill](#heading--freewillmb)**, **[The Spirit of Radio](#heading--planets)** |
 | Clockwork Angels | Spinner | Side Ramp | Dead End / VUK | **[Headlong Flight](#heading--headlongmb)** |
@@ -317,7 +316,7 @@ While no **[wizard mode](#heading--wizard)** is running, 5 shots to either ramp 
 
 Note that shooting the left orbit followed by the side ramp as a combo counts as +2 ramps towards the count-up.
 
-Getting to **[2092](#heading--years)** causes all ramp shots for the remainder of the ball to count double towards these awards.
+Getting to **[2092](#heading--upgrades)** causes all ramp shots for the remainder of the ball to count double towards these awards.
 
 ### <span id="heading--bastille"></span>RUSH Targets & Bastille Day Hurry-Up:
 
@@ -367,7 +366,7 @@ There are two locations where extra balls can be collected - the under-flipper s
 Available extra balls:
 
 - Make a percentage-based number of **[ramp shots](#heading--ramps)** (starts at 8, minimum is 4)
-- Collect 5 **[albums](#heading--albums)**
+- Collect 5 **[albums](#heading--combojp)**
 - Upgrade the time machine to **[year 2062](#heading--upgrades)**
 - **[Topper mystery award](#heading--mystery)**
 
@@ -434,7 +433,7 @@ Jackpot values for the mode are determined by:
 
 - Base jackpot (used for victory laps) = 1M + 1.5M x total **[Headlong Flight MB](#heading--headlongmb)** Super & Mega Jackpots
 - Yellow Planet jackpots = 1M + 1.5M x total **[Freewill MB](#heading--freewillmb)** Super Jackpots
-- Blue Planet jackpots = 1M + 2M x total **[Far Cry MB](#heading--farcrymb)** Super Jackpots + 3M x total **[One Little Victory Laps](#heading--victory)** Super Jackpots
+- Blue Planet jackpots = 1M + 2M x total **[Far Cry MB](#heading--farcrymb)** Super Jackpots + 3M x total **[One Little Victory Laps](#heading--farcrymb)** Super Jackpots
 - Purple Planet jackpots = 1M + 1M x **[Red Barchetta MB](#heading--timemachinemb)** Super Jackpots + 2M x **Fly by Night MB** Super Jackpots + 3M x **Subdivisions MB** Super Jackpots
 
 Each planet is started by shooting an initial shot, can only be played once per wizard mode, and must be completed by making enough shots on the current planet:
@@ -483,5 +482,9 @@ Following the Overture, there are six phases of 2112 to play through. Each phase
 </div>
 
 The mode ends if time runs out during any phase without having made the required shots, or if all balls have drained.
+
+### <span id="heading--strategies"></span>Strategies:
+
+### <span id="heading--faq"></span>FAQ:
 
 </div>

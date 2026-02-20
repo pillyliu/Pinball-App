@@ -17,7 +17,7 @@ internal data class PracticeRouteContentContext(
     val onActiveGameVideoIdChange: (String?) -> Unit,
     val resumeOtherExpanded: Boolean,
     val onResumeOtherExpandedChange: (Boolean) -> Unit,
-    val onOpenQuickEntry: (QuickActivity, QuickEntryOrigin) -> Unit,
+    val onOpenQuickEntry: (QuickActivity, QuickEntryOrigin, Boolean) -> Unit,
     val onOpenGroupDashboard: () -> Unit,
     val onOpenJournal: () -> Unit,
     val onOpenInsights: () -> Unit,
@@ -68,7 +68,9 @@ internal fun PracticeScreenRouteContent(
                     store.markPracticeViewedGame(slug)
                     context.onOpenGameRoute()
                 },
-                onOpenQuickEntry = context.onOpenQuickEntry,
+                onOpenQuickEntry = { activity, origin ->
+                    context.onOpenQuickEntry(activity, origin, false)
+                },
                 onOpenGroupDashboard = context.onOpenGroupDashboard,
                 onOpenJournal = context.onOpenJournal,
                 onOpenInsights = context.onOpenInsights,
@@ -86,7 +88,9 @@ internal fun PracticeScreenRouteContent(
                 onGameSummaryDraftChange = context.onGameSummaryDraftChange,
                 activeGameVideoId = context.activeGameVideoId,
                 onActiveGameVideoIdChange = context.onActiveGameVideoIdChange,
-                onOpenQuickEntry = context.onOpenQuickEntry,
+                onOpenQuickEntry = { activity, origin ->
+                    context.onOpenQuickEntry(activity, origin, true)
+                },
                 onOpenRulesheet = context.onOpenRulesheet,
                 onOpenPlayfield = context.onOpenPlayfield,
             )

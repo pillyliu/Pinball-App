@@ -1,11 +1,10 @@
 ---
 title: "Avengers: Infinity Quest Rulesheet"
 source: "https://tiltforums.com/t/avengers-infinity-quest-rulesheet/6740"
-source_updated_at: "2023-11-14T16:21:14.777Z"
+source_updated_at: "2026-02-19T12:06:12.082Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/avengers-infinity-quest-rulesheet/6740">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -19,7 +18,7 @@ source_updated_at: "2023-11-14T16:21:14.777Z"
 - [Skill Shots](#heading--skillshots)
 - [Gem Quests](#heading--gemquests)
   - [Gem Quest Details](#heading--gemdetails)
-  - [Portal Locks & Victory Laps](#heading--portalvictory)
+  - [Portal Locks & Victory Laps](#heading--portallock)
   - [Placing and Changing Gems](#heading--gemplacing)
 - [Avengers Assemble](#heading--assemble)
   - [Mini-Wizard Modes](#heading--assemblemodes)
@@ -42,7 +41,7 @@ source_updated_at: "2023-11-14T16:21:14.777Z"
   - [Hawkeye Challenge](#heading--hawkeyechallenge)
   - [Shield Bonus](#heading--shieldbonus)
   - [Captain Marvel Count-Up](#heading--marvelcountup)
-    - [Binary Hurry-Up](#heading--marvelbinary)
+    - [Binary Hurry-Up](#heading--binary)
   - [Mystery](#heading--mystery)
   - [Extra Balls](#heading--extraballs)
   - [End-of-Ball Bonus](#heading--funwithbonus)
@@ -100,8 +99,8 @@ source_updated_at: "2023-11-14T16:21:14.777Z"
 </thead>
 <tbody>
 <tr>
-<td><img src="https://sternpinball.com/wp-content/uploads/2020/08/Avengers-Premium-Playfield-elfnasd-scaled-821x1536.webp" width="267" height="500" /></td>
-<td><img src="https://sternpinball.com/wp-content/uploads/2020/08/Avengers-Pro-Playfield-4gakjda-scaled-821x1536.webp" width="267" height="500" /></td>
+<td><img src="https://sternpinball.com/wp-content/uploads/2020/08/Avengers-Premium-Playfield-elfnasd-scaled-821x1536.webp" role="presentation" width="267" height="500" /></td>
+<td><img src="https://sternpinball.com/wp-content/uploads/2020/08/Avengers-Pro-Playfield-4gakjda-scaled-821x1536.webp" role="presentation" width="267" height="500" /></td>
 </tr>
 </tbody>
 </table>
@@ -112,13 +111,13 @@ source_updated_at: "2023-11-14T16:21:14.777Z"
 
 These modes are accessible by holding both flipper buttons during attract mode until a menu appears. The following options are available:
 
-- **Standard:**  
+- **Standard:**\
   See below for full rulesheet.
-- **Competition:**  
+- **Competition:**\
   Same as *Standard* but with elements of randomness removed.
-- **Challenge:**  
+- **Challenge:**\
   In this challenge mode you play an easier, modified version of the **Black Order Battle Royale** mode.
-- **DJ Mixer**  
+- **DJ Mixer**\
   NOT a gameplay mode. This mode operates like a Jukebox, allowing you to play the music featured in the machine, including a number of specific playlists (All songs, Infinity Gauntlet, Wizard Favorites).
 
 ## <span id="heading--skillshots"></span>Skill Shots:
@@ -127,8 +126,8 @@ All Skill Shots award points and additional ball-save time. Super & Secret Skill
 
 - **Skill Shot:** Plunge the ball softly into the top rollover near the pop bumpers to score the skill shot, worth 250k + 100k per successful skill shot + 3 seconds of ball save.
 - **Super Skill Shot:** Full plunge then shoot the Avengers Tower for 1m + 150k per successful skill shot + 5 seconds of ball save. The first super skill shot during a game lights **[Mystery](#heading--mystery)**.
-- **Secret Skill Shot 1:** Plunge the ball with medium strength such that it rolls backward down the upper loop. Worth 3m + 200k per successful skill shot + 10 seconds of ball save + instantly lights one **[Portal Lock](#heading--portalvictory)**.
-- **Secret Skill Shot 2:** Full plunge and shoot the center drop target to collect 3m + 200k per skill shot + 10 seconds of ball save + the currently flashing **[grid square](#computergrid)**.
+- **Secret Skill Shot 1:** Plunge the ball with medium strength such that it rolls backward down the upper loop. Worth 3m + 200k per successful skill shot + 10 seconds of ball save + instantly lights one **[Portal Lock](#heading--portallock)**.
+- **Secret Skill Shot 2:** Full plunge and shoot the center drop target to collect 3m + 200k per skill shot + 10 seconds of ball save + the currently flashing **[grid square](#heading--computergrid)**.
 
 ## <span id="heading--gemquests"></span>Gem Quests:
 
@@ -150,7 +149,7 @@ Either **[Multiball](#heading--multiball)** and any timed **[Super Modes](#headi
 
 Prior to starting a **[Gem Quest](#heading--gemquests)**, up to 2 **Portal Locks** can be qualified and collected at the disc through:
 
-- **[Secret Skill Shot](#heading--skillshots)** <span class="hashtag">\#1</span>
+- **[Secret Skill Shot](#heading--skillshots)** <span class="hashtag-raw">\#1</span>
 - 4, 10, 20, etc. **[Combos](#heading--combos)**
 - 1st **[Hawkeye Challenge](#heading--hawkeyechallenge)**
 - **[Computer Grid award](#heading--computergrid)**
@@ -163,7 +162,7 @@ If you complete a **[Gem Quest](#heading--gemquests)**, **Collect Gem** will lig
 
 The perks for each Gem are:
 
-#### <a href="#mind-gem-1" id="mind-gem-1" class="anchor"></a>Mind Gem
+#### <a href="#p-77966-mind-gem-1" id="p-77966-mind-gem-1" class="anchor"></a>Mind Gem
 
 Action button collects shots.
 
@@ -176,7 +175,7 @@ Action button collects shots.
   - Drop targets: 3 uses that allow the player to change the lit **[grid square](#heading--computergrid)** at will. (If the computer cannot be advanced because you are in a wizard mode, it will act as hitting all the drops down.)
   - Captain Marvel: 3 uses that spots the shot. Also counts 1 ramp or 10 spins to the **[count-up award](#heading--marvelcountup)**.
 
-#### <a href="#power-gem-2" id="power-gem-2" class="anchor"></a>Power Gem
+#### <a href="#p-77966-power-gem-2" id="p-77966-power-gem-2" class="anchor"></a>Power Gem
 
 Easier to level up Avengers. Avenger progress carries between balls and wizard modes.
 
@@ -187,7 +186,7 @@ Easier to level up Avengers. Avenger progress carries between balls and wizard m
   - Drop targets: The next 3 drop target completions will award 2 **[grid squares](#heading--computergrid)**.
   - Captain Marvel: Every ramp or spinner hit towards one of the **[count-up awards](#heading--marvelcountup)** is doubled in progression.
 
-#### <a href="#space-gem-3" id="space-gem-3" class="anchor"></a>Space Gem
+#### <a href="#p-77966-space-gem-3" id="p-77966-space-gem-3" class="anchor"></a>Space Gem
 
 Easier to change Gems. Shoot shot, move Gems.
 
@@ -202,7 +201,7 @@ Easier to change Gems. Shoot shot, move Gems.
   - Drop targets: 1 use. Recharge after collecting the next **[computer grid](#heading--computergrid)** award.
   - Captain Marvel: 1 use. Recharge at the next **[count-up award](#heading--marvelcountup)**.
 
-#### <a href="#time-gem-4" id="time-gem-4" class="anchor"></a>Time Gem
+#### <a href="#p-77966-time-gem-4" id="p-77966-time-gem-4" class="anchor"></a>Time Gem
 
 Add Time to Time Bank. Increased ball save timers.
 
@@ -217,7 +216,7 @@ Add Time to Time Bank. Increased ball save timers.
   - Drop targets: 10 seconds.
   - Captain Marvel: 10 seconds.
 
-#### <a href="#reality-gem-5" id="reality-gem-5" class="anchor"></a>Reality Gem
+#### <a href="#p-77966-reality-gem-5" id="p-77966-reality-gem-5" class="anchor"></a>Reality Gem
 
 Shot multiplier.
 
@@ -231,7 +230,7 @@ Shot multiplier.
   - Drop targets: 2x multiplier. Award **[Computer Grid](#heading--computergrid)** awards for hitting 2 of 3 targets (3 times only).
   - Captain Marvel: 2x multiplier.
 
-#### <a href="#soul-gem-6" id="soul-gem-6" class="anchor"></a>Soul Gem
+#### <a href="#p-77966-soul-gem-6" id="p-77966-soul-gem-6" class="anchor"></a>Soul Gem
 
 Soul Gem Jackpot enabled. Failed Gem Quests can be replayed. **Black Order Multiball** extended.
 
@@ -280,7 +279,7 @@ The six required Avengers, listed from the left to right side of the playfield, 
     - Level 1: 3 seconds added to **[Combo](#heading--combos)** timer.
     - Level 2: 2x right orbit multiplier.
 
-### <a href="#assemble-avengers-requirements-7" id="assemble-avengers-requirements-7" class="anchor"></a>Assemble Avengers Requirements:
+### <a href="#p-77966-assemble-avengers-requirements-7" id="p-77966-assemble-avengers-requirements-7" class="anchor"></a>Assemble Avengers Requirements:
 
 <div class="md-table">
 
@@ -295,7 +294,7 @@ The six required Avengers, listed from the left to right side of the playfield, 
 
 </div>
 
-### <a href="#level-up-requirements-8" id="level-up-requirements-8" class="anchor"></a>Level Up Requirements:
+### <a href="#p-77966-level-up-requirements-8" id="p-77966-level-up-requirements-8" class="anchor"></a>Level Up Requirements:
 
 <div class="md-table">
 
@@ -516,7 +515,7 @@ Quick, two-shot hurry-up starting at 5 million points. Shoot the left ramp or Ca
 Mystery can be lit at the Ant-Man shot in several ways, either from enough shots to **[Captain Marvel](#heading--marvelcountup)** or after successfully making the first **[Super Skill Shot](#heading--skillshots)** in a game. Possible awards are:
 
 - Max Time Bank (at 30 secs)
-- Add-A-Ball (once per *[Multiball](#heading--multiballs)*)
+- Add-A-Ball (once per *[Multiball](#heading--multiball)*)
 - Spot Soul Gem Shot (during **[Soul Gem Quest](#heading--soulgemquest)**)
 - Spot 3 STRANGE Letters
 - Collect **[Avenger](#heading--assemble)** (once per game, if you have 5 out of 6 Avengers, this will almost always be awarded for you)
@@ -575,7 +574,7 @@ If two balls drain before scoring the 6th final jackpot, the gauntlet ramp will 
 
 ## <span id="heading--trophies"></span>Trophies:
 
-Trophies are the game’s achievement system for various gameplay goals - completing any **[Gem Quest](#heading--gemquests)**, **[multiball](#heading--multiballs)**, **[count-up feature](#heading--otherfeatures)**, **[super mode](#heading--supermodes)**, or **[mini-wizard mode](#heading--assemblemodes)**. These are awarded at Bronze, Silver, or Gold levels. Trophies increase the **[Combo](#heading--combos)** values and add up in **[bonus](#heading--funwithbonus)**, but above all, collecting 24 out of the game’s 32 trophies is the only way to access the game’s true wizard mode, **[Trophy Mania](#heading--trophymania)**.
+Trophies are the game’s achievement system for various gameplay goals - completing any **[Gem Quest](#heading--gemquests)**, **[multiball](#heading--multiball)**, **[count-up feature](#heading--otherfeatures)**, **[super mode](#heading--supermodes)**, or **[mini-wizard mode](#heading--assemblemodes)**. These are awarded at Bronze, Silver, or Gold levels. Trophies increase the **[Combo](#heading--combos)** values and add up in **[bonus](#heading--funwithbonus)**, but above all, collecting 24 out of the game’s 32 trophies is the only way to access the game’s true wizard mode, **[Trophy Mania](#heading--trophymania)**.
 
 Hard Mode can be enabled in the settings. This disables 8 of the 32 trophies, but all scoring during Trophy Mania will be tripled if you reach it!
 

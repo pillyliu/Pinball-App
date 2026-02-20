@@ -1,11 +1,10 @@
 ---
 title: "Deadpool Rulesheet"
 source: "https://tiltforums.com/t/deadpool-rulesheet/4311"
-source_updated_at: "2025-12-19T00:32:34.740Z"
+source_updated_at: "2026-02-19T12:09:57.630Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/deadpool-rulesheet/4311">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -114,7 +113,7 @@ After playing Sauron Multiball, the three battles must be played again, but this
 
 ### <span id="heading--teamups"></span>Team-Ups:
 
-During normal single-ball play, with *no* major modes running, shooting any shot with a “Team-Up!” icon in front of it twice (+1 if the team-up has already been used during a game) will qualify their corresponding character’s Team-Up ability and cause them to deal damage during any **[battle](#heading--battles)**:
+During normal single-ball play, with *no* major modes running, shooting any shot with a “Team-Up!” icon in front of it twice (+1 if the team-up has already been used during a game) will qualify their corresponding character’s Team-Up ability and cause them to deal damage during any **[battle](#heading--battle)**:
 
 - **Dazzler**: Shoot the left orbit to qualify. Increases Deadpool’s health bar and adds more time.
 - **Colossus**: Shoot the U-Turn to qualify. Doubles all points during the Battle.
@@ -125,7 +124,7 @@ During normal single-ball play, with *no* major modes running, shooting any shot
 
 Shoot the right orbit to advance the chimichanga truck and light **[chimichangas](#heading--items)** (in orange) at all major shots. Only one shot is needed to fully advance the truck the first time; subsequent Quests require one more right orbit shot. Collecting 3 (+1 per Quest, to a max of 8) chimichangas completes your punch card and lights Quest at the scoop. Note that if you have Quest and Battle lit at the scoop, you don’t *have* to select a Quest - you can select a Battle instead if you want to.
 
-During both quests, Deadpool travels back in time to acquire an artifact from a prehistoric creature. Both quests have completion criteria; once the requirements of the quest have been satisfied, shoot the scoop to finish the quest and earn a large Mode Jackpot bonus (a percentage of all points scored during the quest!). Both quests save progress if failed. Similarly to **[Battles](#heading--battles)**, if you drain with the final shot of a quest lit, you get credit for completing the quest, but you obviously miss out on the Mode Jackpot.
+During both quests, Deadpool travels back in time to acquire an artifact from a prehistoric creature. Both quests have completion criteria; once the requirements of the quest have been satisfied, shoot the scoop to finish the quest and earn a large Mode Jackpot bonus (a percentage of all points scored during the quest!). Both quests save progress if failed. Similarly to **[Battles](#heading--battle)**, if you drain with the final shot of a quest lit, you get credit for completing the quest, but you obviously miss out on the Mode Jackpot.
 
 Winning both Quests and playing **[Sauron Multiball](#heading--sauron)** lights the scoop to battle the **[Megakrakolodonus Rex](#heading--questwizard)**.
 
@@ -134,7 +133,7 @@ Winning both Quests and playing **[Sauron Multiball](#heading--sauron)** lights 
 
 ## <span id="heading--lildp"></span>Lil' Deadpool:
 
-Expose the Lil’ Deadpool stand-up target by shooting the OOF drop target bank in front of it, then shoot it 2 times (+1 per mode) to start a Lil’ Deadpool mode (indicated by the fully green insert). Hitting the standup when the large insert is green will physically lock the ball behind the drop target bank. After a Lil’ Deadpool mode is played, complete a **[Battle](#heading--battles)** or **[Quest](#heading--quests)** to qualify the lock procedure for the next Lil’ Deadpool mode.
+Expose the Lil’ Deadpool stand-up target by shooting the OOF drop target bank in front of it, then shoot it 2 times (+1 per mode) to start a Lil’ Deadpool mode (indicated by the fully green insert). Hitting the standup when the large insert is green will physically lock the ball behind the drop target bank. After a Lil’ Deadpool mode is played, complete a **[Battle](#heading--battle)** or **[Quest](#heading--quests)** to qualify the lock procedure for the next Lil’ Deadpool mode.
 
 The Lil’ Deadpool modes are always awarded in this order, and can be activated during normal play or Battles, but not during Quests or any **[multiball](#heading--multiball)** modes:
 
@@ -190,8 +189,8 @@ Making two shots (+2 for each qualification) all the way through the u-turn to t
 
 45-second timed spinner mode, lit after 4 (+1) center loop shots, which starts by shooting the flashing center loop. Spinners award an increasing value per spin, bumpers increase it. Other features can still be started when this mode is active, and the mode can also start during other features.
 
-During BERSERKER RAGE mode, the lit **[BOOM button](#heading--boom)** awards the BERSERKER BOOM value in addition to collecting the highest value lit shot on the playfield as normal.  
-And when the BOOM button is lit for a Super BOOM, the BOOM button will award 4X BERSERKER BOOM value in addition to collecting all of the lit shots on the playfield as normal.  
+During BERSERKER RAGE mode, the lit **[BOOM button](#heading--boom)** awards the BERSERKER BOOM value in addition to collecting the highest value lit shot on the playfield as normal.\
+And when the BOOM button is lit for a Super BOOM, the BOOM button will award 4X BERSERKER BOOM value in addition to collecting all of the lit shots on the playfield as normal.\
 What is the “BERSERKER BOOM” value? Well, it’s the maximum spin session value awarded during the current BERSERKER RAGE mode.
 
 This feature was added to the game in July 2024 as a nod to the release of the movie Deadpool & Wolverine. More speech for Wolverine was also added to the mode.
@@ -206,7 +205,7 @@ Playfield X can be boosted temporarily by rebounding off the SNIKT standup targe
 
 The DEADPOOL targets score awards when they are completed, either by themselves or as a complete set.
 
-- Completing DEAD lights **[Battle](#heading--battles)** at the scoop if one isn’t lit.
+- Completing DEAD lights **[Battle](#heading--battle)** at the scoop if one isn’t lit.
 - Completing POOL lights the lock for **[Ninja Multiball](#heading--ninjamb)** at the right katana ramp if it isn’t lit.
 - Completing DEADPOOL lights **[Mystery](#heading--mystery)** at the scoop.
 - Every 3 completions of DEADPOOL lights the left outlane for Regeneration ball save.

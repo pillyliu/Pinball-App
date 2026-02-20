@@ -1,11 +1,10 @@
 ---
 title: "Stern Godzilla Rulesheet"
 source: "https://tiltforums.com/t/stern-godzilla-rulesheet/7210"
-source_updated_at: "2025-12-26T22:05:00.296Z"
+source_updated_at: "2026-02-19T12:46:42.388Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/stern-godzilla-rulesheet/7210">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -135,7 +134,7 @@ The Xiliens plan to wipe out the populations of four major cities by summoning m
 
 Each city has four major objectives: **[Kaiju Battles (RAID)](#heading--raid)**, **[Tesla Strike (POWER)](#heading--power)**, **[Bridge Attack Multiball (BRIDGE)](#heading--bridgemb)**, and **[Tank Attack Multiball (TANKS)](#heading--tankmb)**. These objectives can only be accomplished once per city; completing any of them - or just attempting a **Kaiju Battle** - will light the **[Destruction Jackpot](#heading--destructionjp)** at the building and allow the player to **[change cities](#heading--cityselect)** by shooting the scoop.
 
-The player doesn’t need to complete each feature in a city to move on, though they will miss out on perks for having *[conquered cities](#heading--cityselect)*; and once the latter three objectives have been played out, the player can repeatedly shoot the shots that started them for **[Annihilation Bonus](#heading--annihilationbonus)** points. These act as “victory laps” of sorts, and add up into **[Carnage Bonus](#heading--carnage)**, awarded after changing cities.
+The player doesn’t need to complete each feature in a city to move on, though they will miss out on perks for having *[conquered cities](#heading--cityselect)*; and once the latter three objectives have been played out, the player can repeatedly shoot the shots that started them for **[Annihilation Bonus](#heading--annihilationbonus)** points. These act as “victory laps” of sorts, and add up into **[Carnage Bonus](#heading--annihilationbonus)**, awarded after changing cities.
 
 Play all four of the listed objectives in a single game, across multiple different cities, to light the scoop for **[Planet X Multiball](#heading--planetx)**.
 
@@ -153,26 +152,26 @@ Progress is saved between battle attempts, but the shot value resets, and the ti
 
 #### <span id="heading--tier1"></span>Tier 1:
 
-**Ebirah**  
+**Ebirah**\
 Collect 15 spins from the left and right spinners each, and 40 spins from the center spinner. Each completed spinner scores 5M + 5M per spinner. After completing all three spinners, shoot the pop bumper for the final blow, worth 25M.
 
-**Titanosaurus**  
+**Titanosaurus**\
 Shoot five flashing targets - the three powerline targets from left to right, then the Maser Cannon, and lastly, the Magna-Grab captive ball. The first target scores 4M, then 7M, 10M, 15M, and final shot is 20M. Each shot to the Mechagodzilla targets during this battle scores 1M and adds 500K to the next shot.
 
-**Gigan**  
+**Gigan**\
 Make eight left or right ramp shots in any combination. Ramp shots award 1M + 500k per shot, and shooting the opposite ramp as a combo scores double (note that looping one ramp does *not* count as a combo). The final blow, if made as a combo, scores 4x the value (or 2x if it wasn’t made as a combo).
 
-**Megalon**  
+**Megalon**\
 A random flashing purple shot will light for about 10 seconds. Hitting the flashing shot before it times out will award 4M + (points per switch hit) + 1x per lit shot, to a max of 5x, and light a new, different flashing shot; 7 shots must be made this way to win the battle. Failing to hit the flashing shot before time expires will allow Megalon to hide; while in hiding, shooting either ramp will return Megalon to fighting mode and light a combo shot to attack him. Timing out Megalon while he is hiding underground will result in him spawning at a random shot. Final blow scores the value of a normal shot + 10M.
 
 #### <span id="heading--tier2"></span>Tier 2:
 
-**Godzilla, Rodan & Anguirus VS King Ghidorah**  
+**Godzilla, Rodan & Anguirus VS King Ghidorah**\
 75 seconds. Take down King Ghidorah by shooting the flashing shots - the left ramp, building, center spinner, right ramp, and big loop - three times each. Shots start at 400k and increase by 150k per shot. All shots start green and award 1x, then yellow for 2x, and finally red for 4x. Collecting a red shot qualifies the scoop for **Fight or Flee** if it isn’t lit, and adds a multiplier to the jackpot value that can be collected for fleeing at the scoop - which starts at 16M.
 
 During Fight or Flee, pressing the left flipper for “Fight” adds 35 seconds (less time on subsequent selections of Fight), resets the shot colors (but not the shot value), and allows you to continue increasing the value for winning the battle and its multiplier; while pressing the right flipper for “Flee” allows you to collect the multiplied value + 200k x seconds remaining and end the battle. The mode ends if the player drains while the mode is running, the timer runs out, or if they select Flee.
 
-**Godzilla & Jet Jaguar VS Megalon & Gigan**  
+**Godzilla & Jet Jaguar VS Megalon & Gigan**\
 3-ball multiball mode, albeit lower scoring than the massive jackpots that can be collected in the other Tier 2 battles. Two shots are lit for 30 seconds each to collect jackpots starting at 3M and increasing by 500K per Super Jackpot:
 
 - Building & right spinner
@@ -181,7 +180,7 @@ During Fight or Flee, pressing the left flipper for “Fight” adds 35 seconds 
 
 After each jackpot, shoot the right spinner for a Super Jackpot worth the jackpot value + a multiplier that increases by 1x per Super Jackpot to a max of 4x - until one of the jackpots times out and the multiplier resets. Each Super Jackpot also advances +1 arrow towards **[Godzilla Power-Up](#heading--powerups)**.
 
-**Godzilla & Anguirus VS King Ghidorah & Gigan**  
+**Godzilla & Anguirus VS King Ghidorah & Gigan**\
 75 seconds. Score 40 switch hits to light the major shots for 7.5M each, then shoot them again to increase the jackpot multiplier for each shot. Shoot the building at any time while the mode is running to activate **Fight or Flee**. Each switch hit adds 35K to the jackpot, and each lit shot adds 350K to the jackpot, which starts at 1M. The five shots can only be relit after being collected by choosing “Fight”, and will require another 40 switch hits to light.
 
 During Fight or Flee, pressing the left flipper for “Fight” adds 35 seconds (less time on subsequent selections of Fight) and allows you to continue increasing the value for winning the battle and its multiplier; while pressing the right flipper for “Flee” allows you to collect the multiplied value + 200K x seconds remaining and end the battle. The mode also ends if the player drains while the mode is running or the timer runs out.
@@ -252,7 +251,7 @@ When you complete the following in a City, an **Annihilation Bonus** will be lit
 - **[Bridge Attack Multiball](#heading--bridgemb)**, hitting switches will pulse the Attack Bridge insert
 - **[Tank Attack Multiball](#heading--tankmb)**, a single pulsing Tank Shot
 
-Annihilation Bonuses are boosted by +1% for every **[Destruction Jackpot](#heading--destructionjp)** collected, are boosted by +1% for *[conquering](#heading--cityselect)* Tokyo, and are also boosted by 1% as the 2nd **[Imposter Battle](#heading--magnagrab)** award. Each Annihilation Bonus is added into the **[Carnage Bonus](#heading--carnage)** value, and has a base value of 1M. If multiple Annihilation Bonuses are lit at once, their scoring will be given a +1x multiplier, up to 3x for having all three lit on the same ball.
+Annihilation Bonuses are boosted by +1% for every **[Destruction Jackpot](#heading--destructionjp)** collected, are boosted by +1% for *[conquering](#heading--cityselect)* Tokyo, and are also boosted by 1% as the 2nd **[Imposter Battle](#heading--magnagrab)** award. Each Annihilation Bonus is added into the **[Carnage Bonus](#heading--annihilationbonus)** value, and has a base value of 1M. If multiple Annihilation Bonuses are lit at once, their scoring will be given a +1x multiplier, up to 3x for having all three lit on the same ball.
 
 Once the player leaves a City, they will score the **Carnage Bonus**. This is determined by adding up:
 
@@ -263,7 +262,7 @@ Once the player leaves a City, they will score the **Carnage Bonus**. This is de
 
 ### <span id="heading--cityselect"></span>City Select:
 
-After **[playing a Kaiju Battle](#heading--raid)**, the right scoop will light for **City Select** and allow you to change your current City and collect the **[Carnage Bonus](#heading--annihilation)**, or stay in the current one. If you choose to stay, you must play one of the other three **[city objectives](#heading--monstermonitor)** to relight City Select. The game always begins in Tokyo; New York, London, and Paris are also available. Changing Cities also lights the left spinner to advance towards starting **[Monster Rampage](#heading--monsterrampage)**.
+After **[playing a Kaiju Battle](#heading--raid)**, the right scoop will light for **City Select** and allow you to change your current City and collect the **[Carnage Bonus](#heading--annihilationbonus)**, or stay in the current one. If you choose to stay, you must play one of the other three **[city objectives](#heading--monstermonitor)** to relight City Select. The game always begins in Tokyo; New York, London, and Paris are also available. Changing Cities also lights the left spinner to advance towards starting **[Monster Rampage](#heading--monsterrampage)**.
 
 The purpose of City Select is to determine whether you want to continue playing for a potentially larger Carnage Bonus by playing out the current city, or if you want to complete cities quickly to get to **[Planet X](#heading--planetx)**. **[Kaiju Battles](#heading--raid)** are locked to the City they have been selected in, and changing cities before completing their respective battle will permanently forfeit the city. The four city objectives can only be played once per city, and the city must be changed to re-qualify them.
 
@@ -485,7 +484,7 @@ Shoot the upper loop from the upper flipper to score 500K (+15K per loop), with 
 Reaching consecutive loop shot thresholds awards certain perks the first time they are reached during a game:
 
 - 3 consecutive loops: +1 **[Godzilla Power-Up](#heading--powerups)**
-- 6 consecutive loops: Light **[Ally](#heading--ally)**
+- 6 consecutive loops: Light **[Ally](#heading--allies)**
 - 10 consecutive loops: +3 **[Godzilla Power-Up](#heading--powerups)**
 
 Awards are also given after scoring enough loops during the course of an entire game:
@@ -549,7 +548,7 @@ Collect mystery awards at the Maser Cannon standup target when flashing. Qualify
 - Light **[Destruction Jackpot](#heading--destructionjp)**
 - Light Inlanes
 - Light **[Kaiju Battle](#heading--raid)**
-- Spot **[Powerline](#heading--powerlineattack)**
+- Spot **[Powerline](#heading--power)**
 - Spot **[Bridge Attack](#heading--bridgemb)**
 - Spot **[Tank](#heading--tankmb)**
 - Start **[Mechagodzilla Battle](#heading--mechamb)** (activates the Neo Barrier, only available once per game)
@@ -673,7 +672,7 @@ Planet X is qualified as a **[City Select](#heading--cityselect)** option by ach
 - Starting **[Bridge Attack Multiball](#heading--bridgemb)**
 - Starting **[Tank Attack Multiball](#heading--tankmb)**
 
-Choosing to head to Planet X when qualified will award the **Earth Bonus**, awarding 25% of the total **[Carnage Bonus](#heading--carnage)** awarded from each City x the number of Cities visited (up to 4x). The mini-wizard mode, **Planet X Multiball**, will then start. This is a 3-ball multiball with balls added at each major phase; it can also be played as a single-ball mode, but will end if the ball drains.
+Choosing to head to Planet X when qualified will award the **Earth Bonus**, awarding 25% of the total **[Carnage Bonus](#heading--annihilationbonus)** awarded from each City x the number of Cities visited (up to 4x). The mini-wizard mode, **Planet X Multiball**, will then start. This is a 3-ball multiball with balls added at each major phase; it can also be played as a single-ball mode, but will end if the ball drains.
 
 Defeat the Xiliens once and for all by making the following sets of shots in order:
 

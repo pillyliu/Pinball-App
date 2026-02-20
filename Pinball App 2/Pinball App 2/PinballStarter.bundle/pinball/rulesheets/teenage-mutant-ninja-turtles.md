@@ -1,11 +1,10 @@
 ---
 title: "Stern TMNT Rulesheet"
 source: "https://tiltforums.com/t/stern-tmnt-rulesheet/6599"
-source_updated_at: "2023-08-08T23:33:02.872Z"
+source_updated_at: "2026-02-19T12:51:53.239Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/stern-tmnt-rulesheet/6599">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -90,8 +89,8 @@ Based on the '80s and ‘90s cartoon version of the long-running franchise, each
 </thead>
 <tbody>
 <tr>
-<td><img src="https://sternpinball.com/wp-content/uploads/2020/05/TMNT-Premium-Playfield_New_Decal-98ahdf-650x1024.webp" width="317" height="500" /></td>
-<td><img src="https://sternpinball.com/wp-content/uploads/2020/05/TMNT-Pro-Playfield_New_Decal-387ufafd-640x1024.webp" width="312" height="500" /></td>
+<td><img src="https://sternpinball.com/wp-content/uploads/2020/05/TMNT-Premium-Playfield_New_Decal-98ahdf-650x1024.webp" role="presentation" width="317" height="500" /></td>
+<td><img src="https://sternpinball.com/wp-content/uploads/2020/05/TMNT-Pro-Playfield_New_Decal-387ufafd-640x1024.webp" role="presentation" width="312" height="500" /></td>
 </tr>
 </tbody>
 </table>
@@ -102,29 +101,29 @@ Based on the '80s and ‘90s cartoon version of the long-running franchise, each
 
 These modes are accessible by holding both flipper buttons during attract mode until a menu appears. The following options are available:
 
-- **Standard**  
+- **Standard**\
   See below for full rulesheet.
-- **Competition**  
+- **Competition**\
   Same as *Standard* but with elements of randomness removed.
-- **Cooperation**  
+- **Cooperation**\
   Shared progress between all players. Also includes a unique, shared [**Weapon Hurry-Up**](#heading--whu) feature.
-- **Cooperation and Competition**  
+- **Cooperation and Competition**\
   Same as *Cooperation* but with elements of randomness removed.
-- **Impossible Play:**  
+- **Impossible Play:**\
   Game set to *Very Hard*:
   - No ball save or extra balls.
   - Multiballs harder to light.
   - Multiball ball save shortened.
   - ~2.5 seconds of hold time per flip before flipper releases. Hold time recharges when flippers are not flipped.
-- **Monster Play:**  
+- **Monster Play:**\
   In a multiplayer game, player one is the “Monster” and plays with *Impossible Play* rules. All other players are set to Standard Play.
-- **Team Play 2 VS 1, 2 VS 2, or 3 VS 1**  
+- **Team Play 2 VS 1, 2 VS 2, or 3 VS 1**\
   Each team combines their points, but they DO NOT share progress.
-- **Final Battle Challenge**  
+- **Final Battle Challenge**\
   In this challenge mode you play the final episode: Portal in the Park/Final Battle. The scores for Final Battle Challenge are kept on a separate leaderboard. The rules appear to be mostly identical to those in a standard game but possibly with a more generous ball save timer. See below for full episode details.
-- **Half Shell Challenge:**  
+- **Half Shell Challenge:**\
   In this challenge mode, you attempt to get each of the turtles back to the LAIR one at a time by shooting 3 lit (whatever color the current turtle is) shots. Shooting 2 green shots will spot the leftmost lit shot. After collecting the 3 lit shots, all 4 Turtle Shots will light, shoot any one to finish that turtle and move onto the next one. Once you’ve completed Michelangelo, the mode is over. There is a timer that tracks how long it takes to complete this challenge and a high score table to go along with it.
-- **DJ Mixer**  
+- **DJ Mixer**\
   NOT a gameplay mode. This mode operates like a Jukebox, allowing you to play the music featured in the machine, including a number of specific playlists.
 
 ## <span id="heading--turtleselect"></span>Turtle Select and Levels:
@@ -138,7 +137,7 @@ At the beginning of the game, you select one of the 4 turtles. Each turtle has t
 | **Leonardo** (Well-Trained Leader) | Lair | Light **[Training](#heading--training)** | +10 Seconds to All Timers | 2x **[Weapon Hurry-Up](#heading--whu)** | 2x **[Team-Up Multiball](#heading--tumb)** and Pizza Party (Victory Laps) |
 | **Raphael** (Cool But Rude Bruiser) | Left Ramp | Light **[Start Episode](#heading--episodes)** | 2x **[Krang Kombo](#heading--krangkombo)** | Increase **[Playfield Multiplier](#heading--2x)** (to 3x) | 3x **[Episode](#heading--episodes)** scoring (shots and completion bonus) |
 | **Michelangelo** (Pizza-Loving Party Dude) | Pizza Parlor | Light **[Battle Again](#heading--battleagain)** & +5 **[Pizza Slices](#heading--pizza)** | 2x **[April Hurry-Up](#heading--april)** | 2x **[Pizza Eating Contest](#heading--pizza)** | 3x **[Ninja Pizza Multiball](#heading--npmb)** |
-| **Donatello** (Glider-Flying Tech Wiz) | Center Ramp | Light **[Turtle Power Multiball](#heading--tpmb)** | 2x **[1-2-3 Foot](#heading--123foot)** | +10 Seconds to All Ball Saves | 3x **[Turtle Power Multiball](#heading--tpmb)** |
+| **Donatello** (Glider-Flying Tech Wiz) | Center Ramp | Light **[Turtle Power Multiball](#heading--tpmb)** | 2x **[1-2-3 Foot](#heading--foot123)** | +10 Seconds to All Ball Saves | 3x **[Turtle Power Multiball](#heading--tpmb)** |
 
 </div>
 
@@ -155,21 +154,21 @@ Shredder has devised a cross-dimensional device that could spell doom for the Tu
 
 There are eight **Episodes** that can be started during the game, each corresponding to a different villain; most can be played in any order though some can only be played after an earlier episode has been played, whether won or lost.
 
-**Lighting and Starting an Episode**  
+**Lighting and Starting an Episode**\
 Light Start Episode by shooting the left and right ramps, then shoot the pizza parlor to start the episode. Each episode has an insert on the playfield that flashes when it is the next one to start, and this insert can be changed via the Dimension X standup targets (left target goes up the icon list on the display’s far-right column, and the right target goes down the list). Starting an episode re-enables the **[LAIR](#heading--training)** and **[APRIL](#heading--april)** targets if they are locked out (cycling the letter inserts), and completing an episode adds a specific perk to the **[Team-Up Multiball](#heading--tumb)** mini-wizard mode.
 
 - Start 2 episodes: lights an **[extra ball](#heading--extraballs)**
 - Play 4 episodes: Lights **[Team-Up Multiball](#heading--tumb)** at the left ramp
 - Play 8 episodes: Lights **[Final Battle](#heading--finalbattle)** at the left ramp
 
-**General Episode Information:**  
+**General Episode Information:**\
 Episodes are typically timed, starting with 30 seconds and adding time by shooting certain lit episode shots. In order to complete an episode, you need to shoot a certain set of shots to light the **Turtle Shots,** shooting one of these multi-color flashing shots will award the **Completion Bonus** and complete the episode. Completed episode icons will have a green bar next to them on the display. Played episodes display in color. Unplayed episodes are grayed out.
 
 When you start an episode you are awarded **Episode Start Points**. For episodes 1 through 6 this value starts at 275k and increases by 25k for every episode you’ve played; for episodes 7 and 8 this value seems to be boosted by 100k (375k).
 
-#### <span id="heading--tsvp"></span>
+#### 
 
-**Episode Scoring:**  
+**Episode Scoring:**\
 While each episode has its own unique rules, lit shots, and scoring quirks; there is a **Typical Shot Value Progression (TSVP™)** that starts at 100k, and increases by 10k, then by 10.5k, 11k, 11.5k, etc. Some episodes include exceptions to the TSVP™ as noted below. In addition, there is an **Episode Completion Shot Increase** of +25k for each episode completed, so 25k is added to a shot’s base value before applying any multiplier. This appears to also apply to other episode shots that do not follow the TSVP™, though there is at least one exception.
 
 *(The Max base episode totals listed below include the Episode Start Points, the value of most episode shots and the Completion Bonus, but do not include **[Playfield Multipliers](#heading--2x)**, **[Training-related 10-30% scoring boosts](#heading--training)**, Episode Start Points for episodes that have been played, or the Episode Completion Shot Increase for any completed episodes. So these episodes can end up scoring significantly higher when stacking those things alongside them. They are primarily included to show the relative value of individual episodes.)*
@@ -182,6 +181,7 @@ While each episode has its own unique rules, lit shots, and scoring quirks; ther
 - Completion Bonus: 1M
 - Max base episode total: 2.035M
 
+<span id="heading--tsvp"></span>
 All major shots (Left Orbit, Left Ramp, Krang Loop, Center Ramp, Right Ramp, Right Orbit) are lit and unlight when shot. Shoot 3 lit shots to light the Turtle Shots, though you can shoot all 6 lit shots if 2 of your first 3 shots are the Left Ramp and the Center Ramp, this will leave 3 non-Turtle Shots available while the Turtle Shots are also lit to complete the episode. The shot values follow the **[TSVP™](#heading--tsvp)**.
 
 ### Episode 2: Window Shopping
@@ -311,7 +311,7 @@ Defeat 6 Foot Soldiers to light Mondo Jackpot at the Krang Loop - repeated shots
 
 </div>
 
-### <span id="heading--mondo_y_grande"></span>Mondo Jackpots and Jackpoto Grande Values:
+### Mondo Jackpots and Jackpoto Grande Values:
 
 In both of the main multiballs, Mondo Jackpots and Jackpoto Grande/Super Jackpot are available. Mondo Jackpot is lit (white) at the Upper Loop by shooting enough shots (4 green shots for TPMB and defeating 6 Foot Soldiers for NPMB) and Jackpoto Grande/Super Jackpot is lit at the under-flipper shot by collecting a Mondo Jackpot. Collecting a Mondo Jackpot will also light a Double Mondo Jackpot (blue), collecting a Double Mondo Jackpot will light a Triple Mondo Jackpot (red). Both Double and Triple Mondo Jackpots are on a timer and will time out if not hit.
 
@@ -333,7 +333,7 @@ Each hit to an individual pop bumper will change which Pict-O-Pops award that po
 
 Possible awards include:
 
-- Add-A-Ball (during **[multiball](#heading--multiballmodes)**)
+- Add-A-Ball (during **[multiball](#heading--multiballs)**)
 - “Big Points” (100k)
 - “Really Big Points” (300k)
 - Start **[April Hurry-Up](#heading--april)**
@@ -404,7 +404,7 @@ On the Prem/LE, by using the player-controlled diverter, you can shoot the Left 
 
 ### <span id="heading--battleagain"></span>Battle Again:
 
-Every odd-numbered APRIL target completion lights one of the outlanes for “Battle Again” ball save. If “Battle Again” is already lit when a completion would normally award it, it will instead start an **[April Hurry-Up](#heading--april)**. The lit outlane will alternate with slingshot hits (Game Adjustment <span class="hashtag">\#18</span> can instead allow the lit outlane to alternate with the flipper buttons). If the APRIL Target isn’t enabled, it must be re-enabled by starting an **[episode](#heading--episodes)**.
+Every odd-numbered APRIL target completion lights one of the outlanes for “Battle Again” ball save. If “Battle Again” is already lit when a completion would normally award it, it will instead start an **[April Hurry-Up](#heading--april)**. The lit outlane will alternate with slingshot hits (Game Adjustment <span class="hashtag-raw">\#18</span> can instead allow the lit outlane to alternate with the flipper buttons). If the APRIL Target isn’t enabled, it must be re-enabled by starting an **[episode](#heading--episodes)**.
 
 ### <span id="heading--april"></span>April Hurry-Up:
 
@@ -469,7 +469,7 @@ Ball save is active for 20 seconds (by default). 6 shots will be lit to defeat �
 
   - By timing out your Rescue Hurry-Ups and continuing to defeat Bad Guys, you can start scoring pretty good points, as long as you keep the multiball going. A full set of Bad Guys is worth 1.975m the first time, 2nd time: 3.275m, 3rd: 4.575m, 4th: 5.325m, 5th and on: around 5.5m+.
 
-- **Weapons (spot Bad Guy shots)**  
+- **Weapons (spot Bad Guy shots)**\
   Shooting either orbit or the Center Ramp, whether lit for a Bad Guy or not, will light the weapon insert on that shot on a timer. Lit weapon shots will spot one of the Bad Guy shots, it can spot the Bebop and Rocksteady shots or Foot Soliders, and it appears that it may choose whichever shot is a lower value.
 
 Completing all 3 Rescue Hurry-Ups will start *Pizza Party* (Victory Laps) and, if needed, award one of 6 requirements for the final **[Cowabunga](#heading--cowabunga)** wizard mode (in the order listed in the section, from top to bottom, and not including Final Battle).

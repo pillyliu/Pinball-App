@@ -10,13 +10,15 @@ struct PracticeGroupDashboardSectionView: View {
     let onOpenEditSelectedGroup: () -> Void
     let onSelectGroup: (UUID) -> Void
     let onTogglePriority: (UUID, Bool) -> Void
-    let onOpenDateEditor: (UUID, GroupEditorDateField) -> Void
+    let onUpdateGroupDate: (UUID, GroupEditorDateField, Date?) -> Void
 
     let dashboardScoreForGroup: (CustomGameGroup) -> GroupDashboardScore
     let recommendedGameForGroup: (CustomGameGroup) -> PinballGame?
     let groupProgressForGroup: (CustomGameGroup) -> [GroupProgressSnapshot]
     let onOpenGame: (String) -> Void
     let onRemoveGameFromGroup: (String, UUID) -> Void
+    @State private var inlineDateEditorGroupID: UUID?
+    @State private var inlineDateEditorField: GroupEditorDateField?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -191,7 +193,8 @@ struct PracticeGroupDashboardSectionView: View {
                             .frame(width: 54, alignment: .center)
 
                             Button {
-                                onOpenDateEditor(group.id, .start)
+                                inlineDateEditorGroupID = group.id
+                                inlineDateEditorField = .start
                             } label: {
                                 Text(formattedDashboardDate(group.startDate))
                                     .font(.caption2)
@@ -199,9 +202,24 @@ struct PracticeGroupDashboardSectionView: View {
                             }
                             .buttonStyle(.plain)
                             .frame(width: 78, alignment: .center)
+                            .popover(
+                                isPresented: Binding(
+                                    get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .start },
+                                    set: { isPresented in
+                                        if !isPresented {
+                                            inlineDateEditorGroupID = nil
+                                            inlineDateEditorField = nil
+                                        }
+                                    }
+                                ),
+                                attachmentAnchor: .rect(.bounds)
+                            ) {
+                                popoverCalendar(for: group, field: .start)
+                            }
 
                             Button {
-                                onOpenDateEditor(group.id, .end)
+                                inlineDateEditorGroupID = group.id
+                                inlineDateEditorField = .end
                             } label: {
                                 Text(formattedDashboardDate(group.endDate))
                                     .font(.caption2)
@@ -209,6 +227,20 @@ struct PracticeGroupDashboardSectionView: View {
                             }
                             .buttonStyle(.plain)
                             .frame(width: 78, alignment: .center)
+                            .popover(
+                                isPresented: Binding(
+                                    get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .end },
+                                    set: { isPresented in
+                                        if !isPresented {
+                                            inlineDateEditorGroupID = nil
+                                            inlineDateEditorField = nil
+                                        }
+                                    }
+                                ),
+                                attachmentAnchor: .rect(.bounds)
+                            ) {
+                                popoverCalendar(for: group, field: .end)
+                            }
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -219,6 +251,46 @@ struct PracticeGroupDashboardSectionView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .appPanelStyle()
+    }
+
+    @ViewBuilder
+    private func popoverCalendar(for group: CustomGameGroup, field: GroupEditorDateField) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            DatePicker(
+                field == .start ? "Start Date" : "End Date",
+                selection: Binding(
+                    get: {
+                        switch field {
+                        case .start: return group.startDate ?? Date()
+                        case .end: return group.endDate ?? Date()
+                        }
+                    },
+                    set: { onUpdateGroupDate(group.id, field, $0) }
+                ),
+                displayedComponents: .date
+            )
+            .datePickerStyle(.graphical)
+
+            HStack {
+                Button("Clear", role: .destructive) {
+                    onUpdateGroupDate(group.id, field, nil)
+                    inlineDateEditorGroupID = nil
+                    inlineDateEditorField = nil
+                }
+                .buttonStyle(.glass)
+
+                Spacer()
+
+                Button("Done") {
+                    inlineDateEditorGroupID = nil
+                    inlineDateEditorField = nil
+                }
+                .buttonStyle(.glass)
+            }
+        }
+        .padding(12)
+        .frame(minWidth: 320)
+        .presentationCompactAdaptation(.popover)
     }
 
     private func formattedDashboardDate(_ date: Date?) -> String {

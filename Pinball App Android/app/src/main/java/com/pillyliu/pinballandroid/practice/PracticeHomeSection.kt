@@ -37,22 +37,31 @@ internal fun PracticeHomeSection(
     onOpenInsights: () -> Unit,
     onOpenMechanics: () -> Unit,
 ) {
+    val orderedGames = orderedGamesForDropdown(store.games)
     CardContainer {
         HomeSectionTitle("Resume")
         val resumeSlug = store.resumeSlugFromLibraryOrPractice()
-        val resumeGame = store.games.firstOrNull { it.slug == resumeSlug } ?: store.games.firstOrNull()
+        val resumeGame = orderedGames.firstOrNull { it.slug == resumeSlug } ?: orderedGames.firstOrNull()
         if (resumeGame != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { onOpenGame(resumeGame.slug) }) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                OutlinedButton(
+                    onClick = { onOpenGame(resumeGame.slug) },
+                    modifier = Modifier.weight(1f),
+                ) {
                     Text(resumeGame.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Box {
-                    OutlinedButton(onClick = { onResumeOtherExpandedChange(true) }) { Text("Game List") }
+                    OutlinedButton(onClick = { onResumeOtherExpandedChange(true) }) {
+                        Text("Game List", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                     DropdownMenu(
                         expanded = resumeOtherExpanded,
                         onDismissRequest = { onResumeOtherExpandedChange(false) },
                     ) {
-                        store.games.forEach { listGame ->
+                        orderedGames.forEach { listGame ->
                             DropdownMenuItem(
                                 text = { Text(listGame.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                 onClick = {

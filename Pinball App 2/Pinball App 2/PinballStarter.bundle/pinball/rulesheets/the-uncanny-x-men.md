@@ -1,11 +1,10 @@
 ---
 title: "The Uncanny X-Men Rulesheet"
 source: "https://tiltforums.com/t/the-uncanny-x-men-rulesheet/9100"
-source_updated_at: "2026-01-30T00:30:38.141Z"
+source_updated_at: "2026-02-19T12:53:02.161Z"
 ---
 
 <small class="rulesheet-attribution">Source: Tilt Forums community rulesheet | Original thread: <a href="https://tiltforums.com/t/the-uncanny-x-men-rulesheet/9100">link</a> | License: CC BY-NC-SA 3.0 | Reformatted for readability and mobile use.</small>
-
 
 <div class="pinball-rulesheet">
 
@@ -19,8 +18,9 @@ source_updated_at: "2026-01-30T00:30:38.141Z"
 - [Modes of Play](#heading--modesofplay)
 - [Skill Shots](#heading--skillshots)
 - [Missions](#heading--missions)
-  - [The Future](#heading--future)
-  - [Escape Nimrod](#heading--nimrod)
+  - [The Future: Sentinel Mode](#heading--sentinelfuture)
+  - [The Future: Escape Nimrod Mode](#heading--nimrod)
+- [Non-Mission Perks](#heading--perks)
 - [Multiballs](#heading--multiballs)
   - [Sentinel Multiball](#heading--sentinel)
   - [Save the City Multiball](#heading--city)
@@ -39,6 +39,7 @@ source_updated_at: "2026-01-30T00:30:38.141Z"
   - [End-of-Ball Bonus](#heading--bonus)
 - [Wizard Modes](#heading--wizard)
   - [Save Senator Kelly (Mini-Wizard Mode)](#heading--senator)
+  - [Master Mold (Placeholder)](#heading--master)
 
 ## <span id="heading--gameinfo"></span>Game Information & Overview:
 
@@ -105,7 +106,7 @@ There are four skill shots available at the start of each ball:
 
 Hit the lit white shots, then hit any blue shot to start the next mission - the first one lights after just one white shot, but more are needed for every mission completed. Missions can be started at any ramp with a blue arrow: either the midtown center ramp or subway right loop. The corner four missions are easier to complete than the four in between them.
 
-Completing any mission will start **[the future](#heading--future)**, so long as any **[multiball](#heading--multiballs)** mode isn’t running; if one is, the center ramp will light after the stack to start the future instead. Defeating 6 Sentinels during this timed challenge lights the center ramp to return to the past and award a perk unique to the X-Men member that the mode focused on, active during both past and future gameplay modes. The respective X-Men members are listed next to each mission name.
+Completing any mission will start **[the Future](#heading--future)**, so long as any **[multiball](#heading--multiballs)** mode isn’t running; if one is, the center ramp will light after the stack to start the future instead. Defeating 6 Sentinels during this timed challenge lights the center ramp to return to the past and award a perk unique to the X-Men member that the mode focused on, active during both past and future gameplay modes. The respective X-Men members are listed next to each mission name.
 
 Before starting a mission, getting the **[danger room](#heading--danger)** to level 1 (green) will double all mission scoring. The danger room progress carries over from ball to ball until level 1 is reached.
 
@@ -113,63 +114,76 @@ Before starting a mission, getting the **[danger room](#heading--danger)** to le
 
 Modes are listed clockwise.
 
-**Tier 1s / Easy Missions**:
+**Tier 1: Easy Missions**:
 
 - **Rescue the Innocent** (*Bishop*): 6 red shots to rescue each innocent citizen - they light in an order that allows combos to be made. Bishop pop bumper increases the multiplier for each shot up to 5x. Perfect - score at least one shot worth 5x.
 - **Bitter Rivalry** (*Wolverine*): 4 random shots are lit, 3 yellow and 1 blue. Hit four shots to defeat Sabretooth. Blue shots score more. The lit shots are reshuffled after each shot made. Perfect - hit nothing but blue shots.
 - **Smuggled Cargo** (*Gambit*): 7 blue shots to recover the cargo. Blinking purple arrows score double damage & progress (they move from left to right) and right bumper adds 200k to the next shot award. Perfect - hit nothing but purple shots (5 shots to finish total).
 - **Stopping a Juggernaut** (*Professor X*): Alternate between red shots and targets (X-Jet orbit, Beast’s lab, X-Mansion ball save target) to defeat Juggernaut. Five shots are required to complete the mode. Perfect - complete the mode with more than 25 seconds remaining.
 
-**Tier 2s / Challenging Missions**:
+**Tier 2: Challenging Missions**:
 
-- **Sentinel Facility Raid** (*Rogue*): Shots move from left to right. Make a shot to defeat the moving Sentinels on the assembly line and destroy 1 **sentinel** towards lighting **[berzerker multiball](#heading--berzerker)**. Sentinel target hits stop them from moving for a few seconds, and 8 shots will complete the mode. Perfect - hit nothing but the farthest lit shots (to the left) in the wave (?)
+- **Sentinel Facility Raid** (*Rogue*): Shots move from left to right. Make a shot to defeat the moving Sentinels on the assembly line and destroy 1 **sentinel** towards lighting **[berzerker multiball](#heading--berserker)**. Sentinel target hits stop them from moving for a few seconds, and 8 shots will complete the mode. Perfect - hit nothing but the farthest lit shots (to the left) in the wave (?)
 - **A Fiery Assault** (*Storm*): All shots are initially lit red. Shoot a red shot to extinguish Pyro’s flames and turn the shot blue. Shoot a blue shot to damage him and unlight the shot. 3 blue shots to finish. Perfect - collect all red shots before collecting 3 blue shots.
 - **Mayhem in Midtown** (*Colossus*): Hit the targets in between shots to light the two shots flanking the target yellow. Hitting the targets enough times lights red shots for 2x progression. 5 yellow shots to complete. Perfect - light all shots red and collect at least one red shot at each set.
 - **Genosha Under Siege** (*Magneto*): Red shots defeat Magneto, and green shots defeat Toad for bonus scores (but move to a different shot every 5 seconds or when a bumper is hit). Green shots are worth 2x red shots. Perfect - hit nothing but green shots.
 
 ## <span id="heading--future"></span>The Future & X-Men Perks:
 
-The Future is a 40-second timed mode with ball save lasting for its first 10 seconds, which starts when any **[easy mission](#heading--missions)** has been completed and the player isn’t in a **[multiball mode](#heading--multiballs)**. If the player has completed a mode while in a multiball, the center ramp will light to start The Future. The game will always attempt to hold the ball when The Future starts.
+Successfully completing any of the 8 missions will start one of the two versions of the Future, which are timed mini-modes. Successfully completing the Future earns a “perk” specific to the character and mission.
 
-In the future, **Sentinels** have taken over and other modes cannot be started. The player must destroy the Sentinels by shooting the shots they have spawned in front of; shots to the giant sentinel head increase the value for defeating each individual sentinel (in the order white - green - yellow - red, +1x per color change). Each Sentinel occupies 1 shot, and once defeated, another shot must be made to relight the previously destroyed Sentinel. Destroying 35 Sentinels over the course of the game will light the uptown ramp to start **[berzerker multiball](#heading--berzerker)**.
+#### <span id="heading--sentinelfuture"></span>The Future: Sentinel Mode
 
-Once 6 sentinels have been defeated, the midtown (center) and subway (right loop) ramps will light to escape the future and award whatever **perk** was qualified from completing a mission in the past before returning there. If the player runs out of time, fails to defeat enough sentinels, or fails to escape, the player will return to the past without the perk being awarded.
+Completing any **[easy mission](#heading--missions)** starts a 40-second timed mode with ball save lasting for its first 10 seconds. If you complete the mission while in a multiball, the center ramp will light to start the Future when the multiball is finished. The game will always attempt to hold the ball when The Future starts.
+
+In the Future, **Sentinels** have taken over and other modes cannot be started. The player must destroy the Sentinels by shooting the shots they have spawned in front of; shots to the giant sentinel head increase the value for defeating each individual sentinel (in the order white - green - yellow - red, +1x per color change). Each Sentinel occupies 1 shot, and once defeated, another shot must be made to relight the previously destroyed Sentinel. Destroying 35 Sentinels over the course of the game will light the uptown ramp to start **[berzerker multiball](#heading--berserker)**.
+
+Once 6 sentinels have been defeated, the midtown (center) and subway (right loop) ramps will light to escape the future and award whichever **perk** corresponds to the just-completed mission, before returning the player to the past. If the player runs out of time, fails to defeat enough sentinels, or fails to escape, the player will return to the past without the perk being awarded.
 
 Before starting the future, getting the **[danger room](#heading--danger)** to level 2 or 3 will help with the mode. Level 2 (yellow) makes the mode require one less sentinel to defeat before lighting the center ramp to escape. Level 3 (red) will make all sentinels count double, rewarding 2x their corresponding value and 2 sentinels towards lighting the escape.
 
-The **perks** are dependent on what mission was completed prior to starting The Future. There are also four perks earned through other methods besides completing missions, and are awarded instantly without having to complete The Future.
-
 <div class="md-table">
 
-| **Member** | **Requirement** | **Perk Description** |
+| **Character** | **Requirement** | **Perk Description** |
 |----|----|----|
-| **Beast** | Advance **[Beast’s Lab](#heading--beast)** to level 3 | Beast’s Lab awards can now be earned in the future. |
 | **Bishop** | Complete **[Rescue the Innocent](#heading--missions)** and escape **the future** | Less left bumper hits are required to light **[Bishop](#heading--bishop)** uses. |
-| **Cyclops** | Complete 3 **[Danger Room](#heading--danger)** levels in one game | Increases the **[combo](#heading--combos)** timers. |
 | **Gambit** | Complete **[Smuggled Cargo](#heading--missions)** and escape **the future** | Hitting the lit **[Gambit bumper](#heading--gambit)** now multiplies the next shot by 3x rather than 2x. |
-| **Jean Grey** | 10 **[X-Mansion ball save](#heading--outlaneballsave)** target hits | Right outlane ball save rule can be advanced during the future. The next level 2 **[Beast’s lab award](#heading--beast)** will always be “Light X-Mansion Ball Save”. |
-| **Nightcrawler** | Hit purple Nightcrawler targets 20 times | Purple targets now count towards destroying Sentinels in the future. |
 | **Professor X** | Complete **[Stopping a Juggernaut](#heading--missions)** and escape **the future** | The **[danger room](#heading--danger)** can now be advanced and affects scoring in the future. A ball save is now given for entering the danger room once per ball. |
 | **Wolverine** | Complete **[Bitter Rivalry](#heading--missions)** and escape **the future** | All ball save timers during single-ball play, past and future, are extended. First shot to a Sentinel during **[Sentinel Multiball](#heading--sentinel)** deals bonus damage. |
 
 </div>
 
-### <span id="heading--nimrod"></span>Escape Nimrod:
+#### <span id="heading--nimrod"></span>The Future: Escape Nimrod Mode
 
 Escape Nimrod is a 35-second timed mode with ball save lasting for its first 10 seconds, which starts when any **[challenging mission](#heading--missions)** has been completed and the player isn’t in a **[multiball mode](#heading--multiballs)**. If the player has completed a mode while in a multiball, the center ramp will light to start Escape Nimrod. The game will always attempt to hold the ball when Escape Nimrod starts. **[Bishop](#heading--bishop)**’s action button rule is disabled during Escape Nimrod.
 
-Nimrod is the most technologically advanced Sentinel out there and is incapable of being defeated via normal means. The only option is to escape by shooting one red shot within each set of three. Each red shot made scores a bonus based on the time remaining during the mode. After making 3 red shots, the center ramp and subway ramp will light on a new 10-second timer to complete the mode, defeat 4 **[sentinels](#heading--berserker)**, and award whatever **perk** was qualified from completing a mission in the past before returning there. If the player runs out of time or drains, the player will return to the past without the perk being awarded.
+Nimrod is the most technologically advanced Sentinel out there and is incapable of being defeated via normal means. Three red shots are lit, randomly selected from the major ramp shots in the game. Shoot all three red shots within the alotted time. Each red shot made scores a bonus based on the time remaining during the mode. After making 3 red shots, the center ramp and subway ramp will light (blue) on a new 10-second timer to complete the mode, which will award the **perk** corresponding to the just-completed mission, plus 4 defeated **[sentinels](#heading--berserker)**, and then return the player to the past. If the player runs out of time or drains, the player will return to the past without the perk being awarded.
 
 The **perks** are dependent on what mission was completed prior to starting Escape Nimrod.
 
 <div class="md-table">
 
-| **Member** | **Requirement** | **Perk Description** |
+| **Character** | **Requirement** | **Perk Description** |
 |----|----|----|
 | **Colossus** | Complete **[Mayhem in Midtown](#heading--missions)** and **escape Nimrod** | All **[multiball](#heading--multiballs)** ball saves are extended. |
 | **Magneto** | Complete **[Genosha Under Siege](#heading--missions)** and **escape Nimrod** | All game timers are extended by +10 seconds. |
 | **Rogue** | Complete **[Sentinel Facility Raid](#heading--missions)** and **escape Nimrod** | **Add-a-ball** is available by holding the action button during any **[multiball mode](#heading--multiballs)**, once per ball. Danger room spinner pauses timer for 7 seconds during Escape Nimrod. |
 | **Storm** | Complete **[A Fiery Assault](#heading--missions)** and **escape Nimrod** | Bonus damage to all other Sentinels is now dealt with each lit sentinel shot during **[Sentinel Multiball](#heading--sentinel)**. Sentinel Multiball will be extended the next time it is played. |
+
+</div>
+
+## <span id="heading--perks"></span>Non-Mission Perks:
+
+There are also four perks earned through other methods besides completing missions, each of which is awarded instantly upon completing the applicable requirement.
+
+<div class="md-table">
+
+| **Character** | **Requirement** | **Perk Description** |
+|----|----|----|
+| **Beast** | Advance **[Beast’s Lab](#heading--beast)** to level 3 | Beast’s Lab awards can now be earned in the future. |
+| **Cyclops** | Complete 3 **[Danger Room](#heading--danger)** levels in one game | Increases the **[combo](#heading--combos)** timers. |
+| **Jean Grey** | 10 **[X-Mansion ball save](#heading--outlaneballsave)** target hits | Right outlane ball save rule can be advanced during the future. The next level 2 **[Beast’s lab award](#heading--beast)** will always be “Light X-Mansion Ball Save”. |
+| **Nightcrawler** | Hit purple Nightcrawler targets 20 times | Purple targets now count towards destroying Sentinels in the future. |
 
 </div>
 
@@ -187,7 +201,7 @@ Leveling up the **[danger room](#heading--danger)** before or during any multiba
 
 Hit the giant sentinel 3 times (+2 per multi) to spawn it. While the giant sentinel is active, decrease its integrity with more direct hits to it. Eventually, it’s mouth will open up; defeat the giant sentinel by hitting it enough times to start the multiball. Making a **[Fastball Special](#heading--fastball)** combo will advance the Sentinel to its next stage immediately.
 
-During the multiball, all major shots start lit to score jackpots at 1x value (lit yellow). The jackpots can be relit at an increased multiplier by shooting the **danger room** exit ramp (orange for 2x, and red for 3x); and if a shot isn’t lit for jackpot, it will instead kill 1 **sentinel** towards lighting **[berzerker multiball](#heading--berzerker)**.
+During the multiball, all major shots start lit to score jackpots at 1x value (lit yellow). The jackpots can be relit at an increased multiplier by shooting the **danger room** exit ramp (orange for 2x, and red for 3x); and if a shot isn’t lit for jackpot, it will instead kill 1 **sentinel** towards lighting **[berzerker multiball](#heading--berserker)**.
 
 After four jackpots have been scored, the super jackpot, worth the total of all jackpots collected during the previous wave, can be scored at the sentinel head (multiplied by 2x with a shot to the open mouth). The super jackpot value resets once scored and more jackpots are required to light subsequent super jackpots, to a maximum of six.
 
@@ -198,9 +212,9 @@ Two **[perks](#heading--missions)** help with scoring during this multiball:
 
 ### <span id="heading--city"></span>Save the City Multiball:
 
-The playfield’s six shots all have a unique “level” that are advanced by hitting them multiple times. They reach the first level with three shots, and as soon as all shots reach the same level, the midtown (center) and subway (right loop) ramps will be lit to start Save the City.
+Hitting each of the six primary ramp/loop shots on the playfield (X-Jet, Downtown, Uptown, Midtown, Subway and Highway) three times qualifies Save the City multiball. The Midtown (center) and Subway (right loop) ramps will then be lit to start the multiball. Progress towards Save the City Multiball is shown in the upper right corner of the display screen, where one-third of a ramp’s name will turn green with each shot made.
 
-There are five areas of the city that can be lit for jackpot (7M + the shot value from their current level + any increases from qualifying shots) via enough hits to their corresponding shots, listed in the UI:
+During Save the City multiball, there are five areas of the city that can be lit for jackpot (7M + the shot value from their current level + any increases from qualifying shots) via enough hits to their corresponding shots, listed in the UI:
 
 - Downtown (left) loop - loops (X-jet and left loop)
 - Uptown (left) ramp - ramps (left ramp, center ramp, right loop, and right ramp)
@@ -344,5 +358,9 @@ Light the center ramp and subway ramp to start this mode after completing all 8 
 Save the Senator from Mystique with the help of Cerebro. This single-ball mini-wizard mode starts with 40 seconds of ball save and 2 green shots lit. Hitting both green shots will light all three Cerebro shots (uptown, highway, and danger room exit ramps) to advance to the next phase. 3 yellow shots are lit in the second phase, and 4 orange shots are lit during the third phase. During the final phase, all six major shots are lit red and a 60-second timer starts; the player must clear the six shots and shoot Cerebro before time runs out to capture Mystique and complete the mode.
 
 **[Combos](#heading--combos)** play a vital role in this mode’s scoring. The highest combo multiplier obtained during the mode multiplies the rest of the scoring by the number of the multiplier (for instance, if a 4-way combo was made, all scoring would be multiplied by 4x for the remainder of the mode). Combos don’t advance towards other objectives during this mode.
+
+### <span id="heading--master"></span>Master Mold (Placeholder)
+
+*Master Mold will appear in a later code update*
 
 </div>
