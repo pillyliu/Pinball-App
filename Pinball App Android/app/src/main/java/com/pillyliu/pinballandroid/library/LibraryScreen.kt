@@ -26,7 +26,6 @@ import com.pillyliu.pinballandroid.ui.EmptyLabel
 import com.pillyliu.pinballandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinballandroid.ui.iosEdgeSwipeBack
 import androidx.compose.ui.platform.LocalContext
-import org.json.JSONArray
 
 @Composable
 internal fun LibraryScreen(contentPadding: PaddingValues) {
@@ -34,8 +33,10 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     val prefs = remember { context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE) }
     val bottomBarVisible = LocalBottomBarVisible.current
     var games by remember { mutableStateOf(emptyList<PinballGame>()) }
+    var sources by remember { mutableStateOf(emptyList<LibrarySource>()) }
+    var selectedSourceId by rememberSaveable { mutableStateOf("the-avenue") }
     var query by rememberSaveable { mutableStateOf("") }
-    var sortOptionName by rememberSaveable { mutableStateOf(LibrarySortOption.LOCATION.name) }
+    var sortOptionName by rememberSaveable { mutableStateOf(LibrarySortOption.AREA.name) }
     var selectedBank by rememberSaveable { mutableStateOf<Int?>(null) }
     var routeKind by rememberSaveable { mutableStateOf(LibraryRouteKind.LIST) }
     var routeSlug by rememberSaveable { mutableStateOf<String?>(null) }
@@ -63,9 +64,24 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     LaunchedEffect(Unit) {
         try {
             val cached = PinballDataCache.passthroughOrCachedText(LIBRARY_URL)
-            games = parseGames(JSONArray(cached.text.orEmpty()))
+            val parsed = parseLibraryPayload(cached.text.orEmpty())
+            games = parsed.games
+            sources = parsed.sources
+            val chosenSource = parsed.sources.firstOrNull { it.id == selectedSourceId } ?: parsed.sources.firstOrNull()
+            if (chosenSource != null) {
+                selectedSourceId = chosenSource.id
+                val sourceGames = parsed.games.filter { it.sourceId == chosenSource.id }
+                val options = sortOptionsForSource(chosenSource, sourceGames)
+                if (options.none { it.name == sortOptionName }) {
+                    sortOptionName = (chosenSource.defaultSortOption.takeIf { options.contains(it) } ?: options.first()).name
+                }
+                if (chosenSource.type != LibrarySourceType.VENUE || sourceGames.none { (it.bank ?: 0) > 0 }) {
+                    selectedBank = null
+                }
+            }
         } catch (t: Throwable) {
             games = emptyList()
+            sources = emptyList()
         }
     }
     LaunchedEffect(routeKind) {
@@ -83,9 +99,21 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
         LibraryRouteKind.LIST -> LibraryList(
             contentPadding = contentPadding,
             games = games,
+            sources = sources,
+            selectedSourceId = selectedSourceId,
             query = query,
             sortOptionName = sortOptionName,
             selectedBank = selectedBank,
+            onSourceChange = { sourceId ->
+                selectedSourceId = sourceId
+                val source = sources.firstOrNull { it.id == sourceId }
+                if (source != null) {
+                    val sourceGames = games.filter { it.sourceId == source.id }
+                    val options = sortOptionsForSource(source, sourceGames)
+                    sortOptionName = (source.defaultSortOption.takeIf { options.contains(it) } ?: options.first()).name
+                }
+                selectedBank = null
+            },
             onQueryChange = { query = it },
             onSortOptionChange = { sortOptionName = it },
             onBankChange = { selectedBank = it },

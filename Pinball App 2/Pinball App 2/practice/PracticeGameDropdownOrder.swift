@@ -2,10 +2,19 @@ import Foundation
 
 func orderedGamesForDropdown(_ games: [PinballGame], limit: Int? = nil) -> [PinballGame] {
     let ordered = games.sorted { lhs, rhs in
+        if lhs.sourceType != rhs.sourceType {
+            return lhs.sourceType == .venue
+        }
+        if let cmp = compareOptionalIntAscending(lhs.areaOrder, rhs.areaOrder), cmp != .orderedSame {
+            return cmp == .orderedAscending
+        }
         if let cmp = compareOptionalIntAscending(lhs.group, rhs.group), cmp != .orderedSame {
             return cmp == .orderedAscending
         }
         if let cmp = compareOptionalIntAscending(lhs.pos, rhs.pos), cmp != .orderedSame {
+            return cmp == .orderedAscending
+        }
+        if let cmp = compareOptionalIntAscending(lhs.year, rhs.year), cmp != .orderedSame {
             return cmp == .orderedAscending
         }
         return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
@@ -27,4 +36,3 @@ private func compareOptionalIntAscending(_ lhs: Int?, _ rhs: Int?) -> Comparison
         return .orderedSame
     }
 }
-

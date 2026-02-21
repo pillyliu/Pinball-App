@@ -61,9 +61,12 @@ import com.pillyliu.pinballandroid.ui.CompactDropdownFilter
 internal fun LibraryList(
     contentPadding: PaddingValues,
     games: List<PinballGame>,
+    sources: List<LibrarySource>,
+    selectedSourceId: String,
     query: String,
     sortOptionName: String,
     selectedBank: Int?,
+    onSourceChange: (String) -> Unit,
     onQueryChange: (String) -> Unit,
     onSortOptionChange: (String) -> Unit,
     onBankChange: (Int?) -> Unit,
@@ -75,26 +78,44 @@ internal fun LibraryList(
     val searchControlMinHeight = if (isLandscape) 48.dp else 48.dp
     val searchContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val searchTextStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = searchFontSize)
-    val sortOption = remember(sortOptionName) {
-        LibrarySortOption.entries.firstOrNull { it.name == sortOptionName } ?: LibrarySortOption.LOCATION
+    val selectedSource = remember(sources, selectedSourceId) {
+        sources.firstOrNull { it.id == selectedSourceId } ?: sources.firstOrNull()
+    }
+    val sourceScopedGames = remember(games, selectedSource?.id) {
+        val sid = selectedSource?.id
+        if (sid == null) games else games.filter { it.sourceId == sid }
+    }
+    val sortOptions = remember(selectedSource, sourceScopedGames) {
+        selectedSource?.let { sortOptionsForSource(it, sourceScopedGames) }
+            ?: listOf(LibrarySortOption.AREA, LibrarySortOption.ALPHABETICAL)
+    }
+    val fallbackSort = remember(selectedSource, sortOptions) {
+        selectedSource?.defaultSortOption?.takeIf { sortOptions.contains(it) } ?: sortOptions.first()
+    }
+    val sortOption = remember(sortOptionName, sortOptions, fallbackSort) {
+        LibrarySortOption.entries.firstOrNull { it.name == sortOptionName }
+            ?.takeIf { sortOptions.contains(it) }
+            ?: fallbackSort
     }
     var showFilterSheet by remember { mutableStateOf(false) }
-    val bankOptions = games.mapNotNull { it.bank }.toSet().sorted()
-    val filtered = games.filter { game ->
+    val supportsBankFilter = selectedSource?.type == LibrarySourceType.VENUE && sourceScopedGames.any { (it.bank ?: 0) > 0 }
+    val effectiveSelectedBank = if (supportsBankFilter) selectedBank else null
+    val bankOptions = sourceScopedGames.mapNotNull { it.bank }.filter { it > 0 }.toSet().sorted()
+    val filtered = sourceScopedGames.filter { game ->
         val q = query.trim().lowercase()
         val queryMatch = if (q.isBlank()) true else {
             "${game.name} ${game.manufacturer.orEmpty()} ${game.year?.toString().orEmpty()}".lowercase().contains(q)
         }
-        val bankMatch = selectedBank == null || game.bank == selectedBank
+        val bankMatch = effectiveSelectedBank == null || game.bank == effectiveSelectedBank
         queryMatch && bankMatch
     }
     val sortedGames = remember(filtered, sortOption) { sortLibraryGames(filtered, sortOption) }
-    val showGroupedView = selectedBank == null && (sortOption == LibrarySortOption.LOCATION || sortOption == LibrarySortOption.BANK)
+    val showGroupedView = effectiveSelectedBank == null && (sortOption == LibrarySortOption.AREA || sortOption == LibrarySortOption.BANK)
     val groupedSections = remember(sortedGames, sortOption) {
         when (sortOption) {
-            LibrarySortOption.LOCATION -> buildSections(sortedGames) { it.group }
+            LibrarySortOption.AREA -> buildSections(sortedGames) { it.group }
             LibrarySortOption.BANK -> buildSections(sortedGames) { it.bank }
-            LibrarySortOption.ALPHABETICAL -> emptyList()
+            LibrarySortOption.ALPHABETICAL, LibrarySortOption.YEAR -> emptyList()
         }
     }
 
@@ -191,11 +212,25 @@ internal fun LibraryList(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text("Library filters", style = MaterialTheme.typography.titleSmall)
+                if (sources.isNotEmpty()) {
+                    CompactDropdownFilter(
+                        selectedText = selectedSource?.name ?: "Library",
+                        options = sources.map { it.name },
+                        onSelect = { selected ->
+                            val source = sources.firstOrNull { it.name == selected } ?: return@CompactDropdownFilter
+                            onSourceChange(source.id)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        minHeight = 38.dp,
+                        textSize = 12.sp,
+                        itemTextSize = 12.sp,
+                    )
+                }
                 CompactDropdownFilter(
                     selectedText = sortOption.label,
-                    options = LibrarySortOption.entries.map { it.label },
+                    options = sortOptions.map { it.label },
                     onSelect = { selected ->
-                        val option = LibrarySortOption.entries.firstOrNull { it.label == selected } ?: LibrarySortOption.LOCATION
+                        val option = sortOptions.firstOrNull { it.label == selected } ?: fallbackSort
                         onSortOptionChange(option.name)
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -203,18 +238,20 @@ internal fun LibraryList(
                     textSize = 12.sp,
                     itemTextSize = 12.sp,
                 )
-                CompactDropdownFilter(
-                    selectedText = selectedBank?.let { "Bank $it" } ?: "All banks",
-                    options = listOf("All banks") + bankOptions.map { "Bank $it" },
-                    onSelect = { selected ->
-                        val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
-                        onBankChange(bank)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    minHeight = 38.dp,
-                    textSize = 12.sp,
-                    itemTextSize = 12.sp,
-                )
+                if (supportsBankFilter) {
+                    CompactDropdownFilter(
+                        selectedText = effectiveSelectedBank?.let { "Bank $it" } ?: "All banks",
+                        options = listOf("All banks") + bankOptions.map { "Bank $it" },
+                        onSelect = { selected ->
+                            val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
+                            onBankChange(bank)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        minHeight = 38.dp,
+                        textSize = 12.sp,
+                        itemTextSize = 12.sp,
+                    )
+                }
                 TextButton(onClick = { showFilterSheet = false }, modifier = Modifier.align(Alignment.End)) {
                     Text("Done")
                 }

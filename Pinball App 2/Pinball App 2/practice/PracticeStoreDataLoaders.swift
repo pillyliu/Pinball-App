@@ -11,8 +11,13 @@ extension PracticeStore {
                   let data = text.data(using: .utf8) else {
                 throw URLError(.cannotDecodeRawData)
             }
-            let loaded = try JSONDecoder().decode([PinballGame].self, from: data)
-            games = loaded
+            let payload = try decodeLibraryPayload(data: data)
+            let selectedSource = payload.sources.first(where: { $0.type == .venue }) ?? payload.sources.first
+            if let selectedSource {
+                games = payload.games.filter { $0.sourceId == selectedSource.id }
+            } else {
+                games = payload.games
+            }
         } catch {
             games = []
             lastErrorMessage = "Failed to load library for practice upgrade: \(error.localizedDescription)"

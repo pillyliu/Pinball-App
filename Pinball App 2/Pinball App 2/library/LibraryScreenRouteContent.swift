@@ -1,9 +1,25 @@
 import SwiftUI
 
 extension LibraryScreen {
+    var sourceMenuSection: some View {
+        Group {
+            if !viewModel.sources.isEmpty {
+                Section("Library") {
+                    ForEach(viewModel.sources) { source in
+                        Button {
+                            viewModel.selectSource(source.id)
+                        } label: {
+                            selectableMenuLabel(source.name, isSelected: viewModel.selectedSource?.id == source.id)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     var sortMenuSection: some View {
         Section("Sort") {
-            ForEach(PinballLibrarySortOption.allCases) { option in
+            ForEach(viewModel.sortOptions) { option in
                 Button {
                     viewModel.sortOption = option
                 } label: {
@@ -14,20 +30,32 @@ extension LibraryScreen {
     }
 
     var bankMenuSection: some View {
-        Section("Bank") {
-            Button {
-                viewModel.selectedBank = nil
-            } label: {
-                selectableMenuLabel("All banks", isSelected: viewModel.selectedBank == nil)
-            }
+        Group {
+            if viewModel.supportsBankFilter {
+                Section("Bank") {
+                    Button {
+                        viewModel.selectedBank = nil
+                    } label: {
+                        selectableMenuLabel("All banks", isSelected: viewModel.selectedBank == nil)
+                    }
 
-            ForEach(viewModel.bankOptions, id: \.self) { bank in
-                Button {
-                    viewModel.selectedBank = bank
-                } label: {
-                    selectableMenuLabel("Bank \(bank)", isSelected: viewModel.selectedBank == bank)
+                    ForEach(viewModel.bankOptions, id: \.self) { bank in
+                        Button {
+                            viewModel.selectedBank = bank
+                        } label: {
+                            selectableMenuLabel("Bank \(bank)", isSelected: viewModel.selectedBank == bank)
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    var filterMenuSections: some View {
+        Group {
+            sourceMenuSection
+            sortMenuSection
+            bankMenuSection
         }
     }
 

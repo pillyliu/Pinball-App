@@ -81,8 +81,7 @@ struct LibraryScreen: View {
                     }
 
                     Menu {
-                        sortMenuSection
-                        bankMenuSection
+                        filterMenuSections
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                     }

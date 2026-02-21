@@ -2,16 +2,23 @@ package com.pillyliu.pinballandroid.practice
 
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.library.LIBRARY_URL
+import com.pillyliu.pinballandroid.library.LibrarySourceType
 import com.pillyliu.pinballandroid.library.PinballGame
-import com.pillyliu.pinballandroid.library.parseGames
+import com.pillyliu.pinballandroid.library.parseLibraryPayload
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 
 internal suspend fun loadPracticeGamesFromLibrary(): List<PinballGame> = withContext(Dispatchers.IO) {
     try {
         val cached = PinballDataCache.passthroughOrCachedText(LIBRARY_URL)
-        parseGames(JSONArray(cached.text.orEmpty()))
+        val parsed = parseLibraryPayload(cached.text.orEmpty())
+        val selectedSource = parsed.sources.firstOrNull { it.type == LibrarySourceType.VENUE }
+            ?: parsed.sources.firstOrNull()
+        if (selectedSource == null) {
+            parsed.games
+        } else {
+            parsed.games.filter { it.sourceId == selectedSource.id }
+        }
     } catch (_: Throwable) {
         emptyList()
     }

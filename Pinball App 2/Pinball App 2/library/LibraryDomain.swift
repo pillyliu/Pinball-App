@@ -260,21 +260,44 @@ enum LoadStatus {
     case error
 }
 
+enum PinballLibrarySourceType: String, CaseIterable {
+    case venue
+    case category
+}
+
+struct PinballLibrarySource: Identifiable {
+    let id: String
+    let name: String
+    let type: PinballLibrarySourceType
+
+    var defaultSortOption: PinballLibrarySortOption {
+        switch type {
+        case .venue:
+            return .area
+        case .category:
+            return .year
+        }
+    }
+}
+
 enum PinballLibrarySortOption: String, CaseIterable, Identifiable {
-    case location
+    case area
     case bank
     case alphabetical
+    case year
 
     var id: String { rawValue }
 
     var menuLabel: String {
         switch self {
-        case .location:
+        case .area:
             return "Sort: Area"
         case .bank:
             return "Sort: Bank"
         case .alphabetical:
             return "Sort: A-Z"
+        case .year:
+            return "Sort: Year"
         }
     }
 }
@@ -282,8 +305,10 @@ enum PinballLibrarySortOption: String, CaseIterable, Identifiable {
 @MainActor
 final class PinballLibraryViewModel: ObservableObject {
     @Published private(set) var games: [PinballGame] = []
+    @Published private(set) var sources: [PinballLibrarySource] = []
+    @Published var selectedSourceID: String = "the-avenue"
     @Published var query: String = ""
-    @Published var sortOption: PinballLibrarySortOption = .location
+    @Published var sortOption: PinballLibrarySortOption = .area
     @Published var selectedBank: Int?
     @Published private(set) var errorMessage: String?
     @Published private(set) var isLoading: Bool = false
@@ -291,8 +316,40 @@ final class PinballLibraryViewModel: ObservableObject {
     private var didLoad = false
     private static let libraryPath = "/pinball/data/pinball_library.json"
 
+    var selectedSource: PinballLibrarySource? {
+        sources.first(where: { $0.id == selectedSourceID }) ?? sources.first
+    }
+
+    var sourceScopedGames: [PinballGame] {
+        guard let selectedSource else { return games }
+        return games.filter { $0.sourceId == selectedSource.id }
+    }
+
+    var sortOptions: [PinballLibrarySortOption] {
+        guard let selectedSource else {
+            return [.area, .alphabetical]
+        }
+        switch selectedSource.type {
+        case .category:
+            return [.year, .alphabetical]
+        case .venue:
+            let hasBank = sourceScopedGames.contains { ($0.bank ?? 0) > 0 }
+            var options: [PinballLibrarySortOption] = [.area]
+            if hasBank { options.append(.bank) }
+            options.append(.alphabetical)
+            options.append(.year)
+            return options
+        }
+    }
+
+    var supportsBankFilter: Bool {
+        guard let selectedSource else { return false }
+        return selectedSource.type == .venue && sourceScopedGames.contains { ($0.bank ?? 0) > 0 }
+    }
+
     var bankOptions: [Int] {
-        Array(Set(games.compactMap(\.bank))).sorted()
+        if !supportsBankFilter { return [] }
+        return Array(Set(sourceScopedGames.compactMap(\.bank).filter { $0 > 0 })).sorted()
     }
 
     var selectedBankLabel: String {
@@ -308,8 +365,9 @@ final class PinballLibraryViewModel: ObservableObject {
 
     var filteredGames: [PinballGame] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let effectiveBank = supportsBankFilter ? selectedBank : nil
 
-        return games.filter { game in
+        return sourceScopedGames.filter { game in
             let matchesQuery: Bool
             if trimmed.isEmpty {
                 matchesQuery = true
@@ -318,16 +376,17 @@ final class PinballLibraryViewModel: ObservableObject {
                 matchesQuery = haystack.contains(trimmed)
             }
 
-            let matchesBank = selectedBank == nil || game.bank == selectedBank
+            let matchesBank = effectiveBank == nil || game.bank == effectiveBank
             return matchesQuery && matchesBank
         }
     }
 
     var sortedFilteredGames: [PinballGame] {
         switch sortOption {
-        case .location:
+        case .area:
             return filteredGames.sorted {
-                byOptionalAscending($0.group, $1.group)
+                byOptionalAscending($0.areaOrder, $1.areaOrder)
+                    ?? byOptionalAscending($0.group, $1.group)
                     ?? byOptionalAscending($0.pos, $1.pos)
                     ?? byAscending($0.name.lowercased(), $1.name.lowercased())
                     ?? false
@@ -347,22 +406,29 @@ final class PinballLibraryViewModel: ObservableObject {
                     ?? byOptionalAscending($0.pos, $1.pos)
                     ?? false
             }
+        case .year:
+            return filteredGames.sorted {
+                byOptionalAscending($0.year, $1.year)
+                    ?? byAscending($0.name.lowercased(), $1.name.lowercased())
+                    ?? false
+            }
         }
     }
 
     var showGroupedView: Bool {
-        selectedBank == nil && (sortOption == .location || sortOption == .bank)
+        let effectiveBank = supportsBankFilter ? selectedBank : nil
+        return effectiveBank == nil && (sortOption == .area || sortOption == .bank)
     }
 
     var sections: [PinballGroupSection] {
         var out: [PinballGroupSection] = []
         let groupingKey: (PinballGame) -> (String?, Int?) = {
             switch sortOption {
-            case .location:
+            case .area:
                 return { (nil, $0.group) }
             case .bank:
                 return { (nil, $0.bank) }
-            case .alphabetical:
+            case .alphabetical, .year:
                 return { _ in (nil, nil) }
             }
         }()
@@ -405,6 +471,20 @@ final class PinballLibraryViewModel: ObservableObject {
         await loadGames()
     }
 
+    func selectSource(_ sourceID: String) {
+        selectedSourceID = sourceID
+        if let selectedSource {
+            let options = sortOptions
+            if !options.contains(sortOption) {
+                sortOption = selectedSource.defaultSortOption
+                if !options.contains(sortOption), let first = options.first {
+                    sortOption = first
+                }
+            }
+        }
+        selectedBank = nil
+    }
+
     private func loadGames() async {
         isLoading = true
         defer { isLoading = false }
@@ -416,11 +496,26 @@ final class PinballLibraryViewModel: ObservableObject {
                 throw URLError(.cannotDecodeRawData)
             }
 
-            let decoder = JSONDecoder()
-            games = try decoder.decode([PinballGame].self, from: data)
+            let payload = try decodeLibraryPayload(data: data)
+            games = payload.games
+            sources = payload.sources
+            if let selected = sources.first(where: { $0.id == selectedSourceID }) ?? sources.first {
+                selectedSourceID = selected.id
+                let options = sortOptions
+                if !options.contains(sortOption) {
+                    sortOption = selected.defaultSortOption
+                    if !options.contains(sortOption), let first = options.first {
+                        sortOption = first
+                    }
+                }
+                if !supportsBankFilter {
+                    selectedBank = nil
+                }
+            }
             errorMessage = nil
         } catch {
             games = []
+            sources = []
             errorMessage = "Failed to load pinball library: \(error.localizedDescription)"
         }
     }
@@ -527,6 +622,83 @@ final class RulesheetScreenModel: ObservableObject {
         return text + "\n\n\u{00A0}\n\n\u{00A0}\n"
     }
 }
+struct PinballLibraryPayload {
+    let games: [PinballGame]
+    let sources: [PinballLibrarySource]
+}
+
+private struct PinballLibraryRoot: Decodable {
+    let games: [PinballGame]?
+    let items: [PinballGame]?
+    let sources: [PinballLibrarySourcePayload]?
+}
+
+private struct PinballLibrarySourcePayload: Decodable {
+    let id: String
+    let name: String?
+    let type: String?
+}
+
+func decodeLibraryPayload(data: Data) throws -> PinballLibraryPayload {
+    let decoder = JSONDecoder()
+
+    if let root = try? decoder.decode(PinballLibraryRoot.self, from: data) {
+        let games = root.games ?? root.items ?? []
+        let decodedSources = (root.sources ?? []).map {
+            PinballLibrarySource(
+                id: $0.id,
+                name: ($0.name?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 } ?? $0.id,
+                type: parseSourceType($0.type),
+            )
+        }
+        let sources = decodedSources.isEmpty ? inferSources(from: games) : decodedSources
+        return PinballLibraryPayload(games: games, sources: sources)
+    }
+
+    let games = try decoder.decode([PinballGame].self, from: data)
+    let sources = inferSources(from: games)
+    return PinballLibraryPayload(games: games, sources: sources)
+}
+
+private func inferSources(from games: [PinballGame]) -> [PinballLibrarySource] {
+    var seen: [PinballLibrarySource] = []
+    var ids = Set<String>()
+    for game in games {
+        if ids.contains(game.sourceId) { continue }
+        ids.insert(game.sourceId)
+        seen.append(PinballLibrarySource(id: game.sourceId, name: game.sourceName, type: game.sourceType))
+    }
+    if seen.isEmpty {
+        seen.append(PinballLibrarySource(id: "the-avenue", name: "The Avenue", type: .venue))
+    }
+    return seen
+}
+
+private func parseSourceType(_ raw: String?) -> PinballLibrarySourceType {
+    let normalized = raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    if normalized == "category" || normalized == "manufacturer" {
+        return .category
+    }
+    return .venue
+}
+
+private func slugifySourceID(_ value: String) -> String {
+    let lower = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    if lower.isEmpty { return "the-avenue" }
+    let mapped = lower
+        .replacingOccurrences(of: "&", with: "and")
+        .replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
+        .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+    return mapped.isEmpty ? "the-avenue" : mapped
+}
+
+private func normalizedOptionalString(_ value: String?) -> String? {
+    guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+        return nil
+    }
+    return trimmed
+}
+
 struct PinballGroupSection {
     let locationKey: String?
     let groupKey: Int?
@@ -559,7 +731,15 @@ struct PinballGame: Identifiable, Decodable {
     }
 
     enum CodingKeys: String, CodingKey {
+        case libraryId
+        case sourceId
+        case libraryName
+        case sourceName
+        case libraryType
+        case sourceType
+        case venueName
         case area
+        case areaOrder
         case location
         case group
         case position
@@ -574,7 +754,11 @@ struct PinballGame: Identifiable, Decodable {
         case videos
     }
 
+    let sourceId: String
+    let sourceName: String
+    let sourceType: PinballLibrarySourceType
     let area: String?
+    let areaOrder: Int?
     let group: Int?
     let pos: Int?
     let bank: Int?
@@ -589,10 +773,26 @@ struct PinballGame: Identifiable, Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        let parsedType = parseSourceType(
+            try container.decodeIfPresent(String.self, forKey: .libraryType) ??
+                container.decodeIfPresent(String.self, forKey: .sourceType)
+        )
+        sourceType = parsedType
+        let decodedSourceName = normalizedOptionalString(
+            try container.decodeIfPresent(String.self, forKey: .libraryName) ??
+                container.decodeIfPresent(String.self, forKey: .sourceName) ??
+                container.decodeIfPresent(String.self, forKey: .venueName)
+        )
+        sourceName = decodedSourceName ?? "The Avenue"
+        sourceId = normalizedOptionalString(
+            try container.decodeIfPresent(String.self, forKey: .libraryId) ??
+                container.decodeIfPresent(String.self, forKey: .sourceId)
+        ) ?? slugifySourceID(sourceName)
         area = (
             try container.decodeIfPresent(String.self, forKey: .area) ??
                 container.decodeIfPresent(String.self, forKey: .location)
             )?.trimmingCharacters(in: .whitespacesAndNewlines)
+        areaOrder = try container.decodeIfPresent(Int.self, forKey: .areaOrder)
         group = try container.decodeIfPresent(Int.self, forKey: .group)
         pos = try container.decodeIfPresent(Int.self, forKey: .position)
         bank = try container.decodeIfPresent(Int.self, forKey: .bank)
