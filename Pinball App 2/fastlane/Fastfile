@@ -61,8 +61,16 @@ platform :ios do
       export_method: "app-store"
     )
 
+    submit_for_review = options[:submit_for_review].to_s.downcase == "true"
+    automatic_release = options[:automatic_release].to_s.downcase == "true"
+
     upload_to_app_store(
-      api_key: api_key
+      api_key: api_key,
+      force: true,
+      skip_screenshots: true,
+      skip_metadata: true,
+      submit_for_review: submit_for_review,
+      automatic_release: automatic_release
     )
   end
 end
