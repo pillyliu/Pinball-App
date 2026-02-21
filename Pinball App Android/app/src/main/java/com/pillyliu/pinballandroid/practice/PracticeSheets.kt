@@ -122,7 +122,11 @@ internal fun GroupDashboardDateSheet(
     initialSelectedDateMillis: Long?,
     onDismiss: () -> Unit,
 ) {
-    val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialSelectedDateMillis ?: System.currentTimeMillis())
+    val pickerState = rememberDatePickerState(
+        initialSelectedDateMillis = localDisplayMillisToDatePickerUtcMillis(
+            initialSelectedDateMillis ?: System.currentTimeMillis(),
+        ),
+    )
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -131,9 +135,9 @@ internal fun GroupDashboardDateSheet(
                 if (group != null) {
                     val selectedMillis = pickerState.selectedDateMillis
                     val updated = if (field == GroupDashboardDateField.Start) {
-                        group.copy(startDateMs = selectedMillis)
+                        group.copy(startDateMs = selectedMillis?.let(::datePickerUtcMillisToLocalDisplayMillis))
                     } else {
-                        group.copy(endDateMs = selectedMillis)
+                        group.copy(endDateMs = selectedMillis?.let(::datePickerUtcMillisToLocalDisplayMillis))
                     }
                     store.updateGroup(updated)
                 }

@@ -23,14 +23,14 @@ internal fun GroupEditorScheduleDateSheet(
     onDismiss: () -> Unit,
 ) {
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = initialSelectedDateMillis,
+        initialSelectedDateMillis = localDisplayMillisToDatePickerUtcMillis(initialSelectedDateMillis),
     )
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = {
                 datePickerState.selectedDateMillis?.let { selectedDate ->
-                    onSave(selectedDate, field)
+                    onSave(datePickerUtcMillisToLocalDisplayMillis(selectedDate), field)
                 }
                 onDismiss()
             }) { Text("Save") }

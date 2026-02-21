@@ -43,16 +43,36 @@ extension PracticeStore {
         saveState()
     }
 
-    func addManualVideoProgress(gameID: String, action: JournalActionType, kind: VideoProgressInputKind, value: String, note: String? = nil) {
+    func addManualVideoProgress(
+        gameID: String,
+        action: JournalActionType,
+        kind: VideoProgressInputKind,
+        value: String,
+        progressPercent: Int? = nil,
+        note: String? = nil
+    ) {
         let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNote = note?.trimmingCharacters(in: .whitespacesAndNewlines)
         let entry = VideoProgressEntry(gameID: gameID, kind: kind, value: trimmedValue)
+        let normalizedProgress = progressPercent.map { min(max($0, 0), 100) }
+        let task: StudyTaskKind = action == .gameplayWatch ? .gameplayVideo : .tutorialVideo
+
         state.videoProgressEntries.append(entry)
+        if let normalizedProgress {
+            state.studyEvents.append(
+                StudyProgressEvent(
+                    gameID: gameID,
+                    task: task,
+                    progressPercent: normalizedProgress
+                )
+            )
+        }
         state.journalEntries.append(
             JournalEntry(
                 gameID: gameID,
                 action: action,
-                task: action == .gameplayWatch ? .gameplayVideo : .tutorialVideo,
+                task: task,
+                progressPercent: normalizedProgress,
                 videoKind: kind,
                 videoValue: trimmedValue,
                 note: (trimmedNote?.isEmpty == true) ? nil : trimmedNote

@@ -3,7 +3,7 @@ package com.pillyliu.pinballandroid.practice
 import com.pillyliu.pinballandroid.library.PinballGame
 
 internal fun activeGroupsFromList(groups: List<PracticeGroup>): List<PracticeGroup> =
-    groups.filter { it.isActive }
+    groups.filter { it.isActive && !it.isArchived }
 
 internal fun groupGamesFromList(group: PracticeGroup, games: List<PinballGame>): List<PinballGame> {
     val map = games.associateBy { it.slug }

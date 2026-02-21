@@ -10,7 +10,7 @@ extension PracticeScreen {
             },
             resumeGame: resumeGame,
             allGames: store.games,
-            activeGroups: store.state.customGroups.filter(\.isActive),
+            activeGroups: store.state.customGroups.filter { $0.isActive && !$0.isArchived },
             selectedGroupID: selectedGroup?.id,
             groupGames: { group in
                 store.groupGames(for: group)

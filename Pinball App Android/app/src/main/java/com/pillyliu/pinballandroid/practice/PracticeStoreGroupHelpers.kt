@@ -17,8 +17,9 @@ internal fun selectCurrentGroup(
 ): PracticeGroup? {
     val selected = selectedGroupID?.let { id -> groups.firstOrNull { it.id == id } }
     if (selected != null) return selected
-    return groups.firstOrNull { it.isActive && it.isPriority }
-        ?: groups.firstOrNull { it.isActive }
+    return groups.firstOrNull { !it.isArchived && it.isActive && it.isPriority }
+        ?: groups.firstOrNull { !it.isArchived && it.isActive }
+        ?: groups.firstOrNull { !it.isArchived }
         ?: groups.firstOrNull()
 }
 
@@ -32,6 +33,7 @@ internal fun createGroupInList(
     type: String,
     startDateMs: Long?,
     endDateMs: Long?,
+    isArchived: Boolean,
     insertAt: Int?,
     nowMs: Long,
 ): GroupCreateResult? {
@@ -44,8 +46,9 @@ internal fun createGroupInList(
         gameSlugs = gameSlugs.distinct(),
         type = type,
         isActive = isActive,
+        isArchived = isArchived,
         isPriority = isPriority,
-        startDateMs = startDateMs,
+        startDateMs = startDateMs ?: nowMs,
         endDateMs = endDateMs,
     )
     val base = if (isPriority) {
@@ -107,4 +110,45 @@ internal fun deleteGroupFromList(
         selectedGroupID
     }
     return GroupDeleteResult(groups = nextGroups, selectedGroupID = nextSelected)
+}
+
+internal fun autoArchiveExpiredGroups(
+    groups: List<PracticeGroup>,
+    nowMs: Long = System.currentTimeMillis(),
+): List<PracticeGroup> {
+    var changed = false
+    val updated = groups.map { group ->
+        val endMs = group.endDateMs
+        if (group.isArchived || endMs == null) return@map group
+        val archiveAt = startOfDayMillis(endMs) + DAY_MS
+        if (nowMs >= archiveAt) {
+            changed = true
+            group.copy(isArchived = true, isActive = false, isPriority = false)
+        } else {
+            group
+        }
+    }
+    return if (changed) updated else groups
+}
+
+internal fun activeGroupForGame(
+    groups: List<PracticeGroup>,
+    gameSlug: String,
+): PracticeGroup? {
+    val matches = groups.withIndex().filter { (_, group) ->
+        !group.isArchived && group.isActive && group.gameSlugs.contains(gameSlug)
+    }
+    if (matches.isEmpty()) return null
+    return matches.firstOrNull { it.value.isPriority }?.value ?: matches.first().value
+}
+
+private const val DAY_MS: Long = 24L * 60L * 60L * 1000L
+
+private fun startOfDayMillis(timestampMs: Long): Long {
+    val calendar = java.util.Calendar.getInstance().apply { timeInMillis = timestampMs }
+    calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+    calendar.set(java.util.Calendar.MINUTE, 0)
+    calendar.set(java.util.Calendar.SECOND, 0)
+    calendar.set(java.util.Calendar.MILLISECOND, 0)
+    return calendar.timeInMillis
 }

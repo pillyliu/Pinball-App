@@ -2,6 +2,7 @@ package com.pillyliu.pinballandroid.practice
 
 import android.content.Context
 import androidx.activity.compose.BackHandler
+import androidx.core.content.edit
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -105,7 +106,7 @@ fun PracticeScreen(contentPadding: PaddingValues) {
     }
 
     LaunchedEffect(uiState.journalFilter) {
-        prefs.edit().putString(KEY_PRACTICE_JOURNAL_FILTER, uiState.journalFilter.name).apply()
+        prefs.edit { putString(KEY_PRACTICE_JOURNAL_FILTER, uiState.journalFilter.name) }
     }
 
     when (uiState.route) {

@@ -118,6 +118,8 @@ internal fun GroupEditorStatusCard(
     onIsActiveChange: (Boolean) -> Unit,
     isPriority: Boolean,
     onIsPriorityChange: (Boolean) -> Unit,
+    isArchived: Boolean,
+    onIsArchivedChange: (Boolean) -> Unit,
     groupType: String,
     onGroupTypeChange: (String) -> Unit,
     isEditing: Boolean,
@@ -193,6 +195,10 @@ internal fun GroupEditorStatusCard(
                     Text(formatShortDate(endDateMsValue), style = MaterialTheme.typography.labelSmall)
                 }
             }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Archived", modifier = Modifier.weight(1f))
+            Switch(checked = isArchived, onCheckedChange = onIsArchivedChange)
         }
         validationMessage?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)

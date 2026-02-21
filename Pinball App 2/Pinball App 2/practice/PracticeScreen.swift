@@ -247,7 +247,7 @@ struct PracticeScreen: View {
         practiceLastViewedGameTS = Date().timeIntervalSince1970
     }
     func openGroupEditorForSelection() {
-        let selectedID = selectedGroup?.id ?? store.state.customGroups.first?.id
+        let selectedID = store.state.practiceSettings.selectedGroupID ?? store.state.customGroups.first?.id
         guard let selectedID else { return }
         store.setSelectedGroup(id: selectedID)
         editingGroupID = selectedID

@@ -33,6 +33,7 @@ internal fun buildPracticeStateJson(state: PracticePersistedState): String {
                 put("gameSlugs", JSONArray(group.gameSlugs))
                 put("type", group.type)
                 put("isActive", group.isActive)
+                put("isArchived", group.isArchived)
                 put("isPriority", group.isPriority)
                 put("startDateMs", group.startDateMs)
                 put("endDateMs", group.endDateMs)
@@ -107,6 +108,7 @@ internal fun parsePracticeStateJson(raw: String): PracticePersistedState? {
                             gameSlugs = obj.optJSONArray("gameSlugs")?.toStringList() ?: emptyList(),
                             type = obj.optString("type", "custom"),
                             isActive = obj.optBoolean("isActive", true),
+                            isArchived = obj.optBoolean("isArchived", false),
                             isPriority = obj.optBoolean("isPriority", false),
                             startDateMs = obj.optLong("startDateMs").takeIf { it > 0 },
                             endDateMs = obj.optLong("endDateMs").takeIf { it > 0 },

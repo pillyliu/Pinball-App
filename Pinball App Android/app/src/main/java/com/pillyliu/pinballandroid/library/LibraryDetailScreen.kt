@@ -9,6 +9,8 @@ import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.core.content.edit
+import androidx.core.graphics.get
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
@@ -411,7 +413,7 @@ internal fun RulesheetScreen(
                         .clickable {
                             val clamped = progressRatio.coerceIn(0f, 1f)
                             savedRatio = clamped
-                            prefs.edit().putFloat("rulesheet-last-progress-$slug", clamped).apply()
+                            prefs.edit { putFloat("rulesheet-last-progress-$slug", clamped) }
                             onSavePracticeRatio?.invoke(clamped)
                         }
                         .then(
@@ -562,7 +564,7 @@ private fun sampleTopCenterLuma(bitmap: Bitmap): Double {
     var count = 0
     for (y in 0 until bottom step stepY) {
         for (x in left until right step stepX) {
-            total += ColorUtils.calculateLuminance(bitmap.getPixel(x, y))
+            total += ColorUtils.calculateLuminance(bitmap[x, y])
             count++
         }
     }
@@ -792,6 +794,7 @@ private fun MarkdownWebView(
                                     hitType == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE
                                 if (!isLinkTap) {
                                     onTap?.invoke()
+                                    view.performClick()
                                 }
                             }
                         }

@@ -22,11 +22,9 @@ import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -154,37 +152,25 @@ private fun PinballApp() {
                                 )
                                 LeagueDestination.Stats -> Box(modifier = Modifier.fillMaxSize()) {
                                     StatsScreen(
-                                        contentPadding = contentPaddingWithExtra(padding, extraTop = 44.dp, extraBottom = 74.dp),
+                                        contentPadding = contentPaddingWithExtra(padding, extraBottom = 74.dp),
+                                        onBack = { leagueDestination = null },
                                     )
                                 }
                                 LeagueDestination.Standings -> Box(modifier = Modifier.fillMaxSize()) {
                                     StandingsScreen(
-                                        contentPadding = contentPaddingWithExtra(padding, extraTop = 44.dp, extraBottom = 74.dp),
+                                        contentPadding = contentPaddingWithExtra(padding, extraBottom = 74.dp),
+                                        onBack = { leagueDestination = null },
                                     )
                                 }
                                 LeagueDestination.Targets -> Box(modifier = Modifier.fillMaxSize()) {
                                     TargetsScreen(
-                                        contentPadding = contentPaddingWithExtra(padding, extraTop = 44.dp, extraBottom = 74.dp),
+                                        contentPadding = contentPaddingWithExtra(padding, extraBottom = 74.dp),
+                                        onBack = { leagueDestination = null },
                                     )
                                 }
                             }
                         }
                         PinballTab.Library -> LibraryScreen(contentPadding = padding)
-                    }
-
-                    if (selectedTab == PinballTab.League && leagueDestination != null) {
-                        IconButton(
-                            onClick = { leagueDestination = null },
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .padding(start = 16.dp, top = padding.calculateTopPadding() + 6.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.ChevronLeft,
-                                contentDescription = "Back to League",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
                     }
 
                     if (bottomBarVisible.value) {

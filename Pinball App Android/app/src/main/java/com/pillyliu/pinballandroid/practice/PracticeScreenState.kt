@@ -51,6 +51,9 @@ internal class PracticeScreenState(initialJournalFilter: JournalFilter) {
     }
 
     fun navigateTo(target: PracticeRoute) {
+        if (target == PracticeRoute.Game) {
+            gameSubview = PracticeGameSubview.Summary
+        }
         if (target == route) return
         routeHistory.add(route)
         route = target

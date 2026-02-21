@@ -135,7 +135,7 @@ internal fun PracticeScreenRouteContent(
                     store.markPracticeViewedGame(slug)
                     context.onOpenGameRoute()
                 },
-                timelineModifier = context.journalTimelineModifier,
+                modifier = context.journalTimelineModifier,
             )
         }
 

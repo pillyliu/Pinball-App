@@ -27,16 +27,19 @@ internal fun QuickEntryModeFields(
     onRulesheetProgressChange: (Float) -> Unit,
     videoInputKind: String,
     onVideoInputKindChange: (String) -> Unit,
-    videoValue: String,
-    onVideoValueChange: (String) -> Unit,
+    videoSourceOptions: List<String>,
+    selectedVideoSource: String,
+    onSelectedVideoSourceChange: (String) -> Unit,
+    videoWatchedTime: String,
+    onVideoWatchedTimeChange: (String) -> Unit,
+    videoTotalTime: String,
+    onVideoTotalTimeChange: (String) -> Unit,
     videoPercent: Float,
     onVideoPercentChange: (Float) -> Unit,
     practiceMinutes: String,
     onPracticeMinutesChange: (String) -> Unit,
     noteText: String,
     onNoteTextChange: (String) -> Unit,
-    noteType: String,
-    onNoteTypeChange: (String) -> Unit,
     mechanicsSkill: String,
     onMechanicsSkillChange: (String) -> Unit,
     mechanicsSkills: List<String>,
@@ -89,6 +92,12 @@ internal fun QuickEntryModeFields(
 
         QuickActivity.Tutorial, QuickActivity.Gameplay -> {
             SimpleMenuDropdown(
+                title = "Video",
+                options = videoSourceOptions,
+                selected = selectedVideoSource,
+                onSelect = onSelectedVideoSourceChange,
+            )
+            SimpleMenuDropdown(
                 title = "Input mode",
                 options = listOf("clock", "percent"),
                 selected = videoInputKind,
@@ -96,9 +105,15 @@ internal fun QuickEntryModeFields(
             )
             if (videoInputKind == "clock") {
                 OutlinedTextField(
-                    value = videoValue,
-                    onValueChange = onVideoValueChange,
-                    label = { Text("mm:ss") },
+                    value = videoWatchedTime,
+                    onValueChange = onVideoWatchedTimeChange,
+                    label = { Text("Amount watched (hh:mm:ss)") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = videoTotalTime,
+                    onValueChange = onVideoTotalTimeChange,
+                    label = { Text("Total length (hh:mm:ss)") },
                     modifier = Modifier.fillMaxWidth(),
                 )
             } else {
@@ -137,12 +152,6 @@ internal fun QuickEntryModeFields(
                 onValueChange = onPracticeMinutesChange,
                 label = { Text("Practice minutes (optional)") },
                 modifier = Modifier.fillMaxWidth(),
-            )
-            SimpleMenuDropdown(
-                title = "Practice note type",
-                options = listOf("general", "shots", "modes", "multiball", "strategy"),
-                selected = noteType,
-                onSelect = onNoteTypeChange,
             )
             OutlinedTextField(
                 value = noteText,

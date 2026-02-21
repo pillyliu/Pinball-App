@@ -440,7 +440,7 @@ private struct TargetsHeaderCell: View {
 
 private struct LPLTargetRow: Identifiable {
     let target: LPLTarget
-    let location: String?
+    let area: String?
     let bank: Int?
     let group: Int?
     let position: Int?
@@ -460,7 +460,7 @@ private enum TargetsSortMode: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .location:
-            return "Location"
+            return "Area"
         case .bank:
             return "Bank"
         case .alphabetical:
@@ -476,7 +476,7 @@ private enum TargetsSortMode: String, CaseIterable, Identifiable {
 @MainActor
 private final class TargetsViewModel: ObservableObject {
     @Published private(set) var rows: [LPLTargetRow] = LPLTarget.rows.enumerated().map { index, target in
-        LPLTargetRow(target: target, location: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: index)
+        LPLTargetRow(target: target, area: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: index)
     }
     @Published var sortMode: TargetsSortMode = .location {
         didSet { applySortAndFilter() }
@@ -488,7 +488,7 @@ private final class TargetsViewModel: ObservableObject {
 
     private var didLoad = false
     private var allRows: [LPLTargetRow] = LPLTarget.rows.enumerated().map { index, target in
-        LPLTargetRow(target: target, location: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: index)
+        LPLTargetRow(target: target, area: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: index)
     }
 
     private static let libraryPath = "/pinball/data/pinball_library.json"
@@ -528,8 +528,8 @@ private final class TargetsViewModel: ObservableObject {
     }
 
     private func mergeTargetsWithLibrary(libraryGames: [LibraryGame]) -> [LPLTargetRow] {
-        let normalizedLibrary: [(index: Int, normalized: String, location: String?, bank: Int?, group: Int?, position: Int?)] = libraryGames.enumerated().map { index, game in
-            (index, normalize(game.name), game.location, game.bank, game.group, game.position)
+        let normalizedLibrary: [(index: Int, normalized: String, area: String?, bank: Int?, group: Int?, position: Int?)] = libraryGames.enumerated().map { index, game in
+            (index, normalize(game.name), game.area, game.bank, game.group, game.position)
         }
 
         return LPLTarget.rows.enumerated().map { fallbackIndex, target in
@@ -540,7 +540,7 @@ private final class TargetsViewModel: ObservableObject {
             if let exact = normalizedLibrary.first(where: { candidateKeys.contains($0.normalized) }) {
                 return LPLTargetRow(
                     target: target,
-                    location: exact.location,
+                    area: exact.area,
                     bank: exact.bank,
                     group: exact.group,
                     position: exact.position,
@@ -556,7 +556,7 @@ private final class TargetsViewModel: ObservableObject {
             }) {
                 return LPLTargetRow(
                     target: target,
-                    location: loose.location,
+                    area: loose.area,
                     bank: loose.bank,
                     group: loose.group,
                     position: loose.position,
@@ -565,7 +565,7 @@ private final class TargetsViewModel: ObservableObject {
                 )
             }
 
-            return LPLTargetRow(target: target, location: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: fallbackIndex)
+            return LPLTargetRow(target: target, area: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: fallbackIndex)
         }
     }
 
@@ -650,6 +650,7 @@ private final class TargetsViewModel: ObservableObject {
 private struct LibraryGame: Decodable {
     enum CodingKeys: String, CodingKey {
         case name
+        case area
         case location
         case group
         case position
@@ -657,7 +658,7 @@ private struct LibraryGame: Decodable {
     }
 
     let name: String
-    let location: String?
+    let area: String?
     let group: Int?
     let position: Int?
     let bank: Int?
@@ -665,8 +666,10 @@ private struct LibraryGame: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         name = try container.decode(String.self, forKey: .name)
-        location = try container.decodeIfPresent(String.self, forKey: .location)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        area = (
+            try container.decodeIfPresent(String.self, forKey: .area) ??
+                container.decodeIfPresent(String.self, forKey: .location)
+            )?.trimmingCharacters(in: .whitespacesAndNewlines)
         group = try container.decodeIfPresent(Int.self, forKey: .group)
         position = try container.decodeIfPresent(Int.self, forKey: .position)
         bank = try container.decodeIfPresent(Int.self, forKey: .bank)

@@ -77,6 +77,7 @@ internal class PracticeStore(private val context: Context) {
         if (didLoad) return
         didLoad = true
         loadState()
+        autoArchiveExpiredGroupsIfNeeded()
         loadGames()
         loadLeagueTargets()
     }
@@ -102,6 +103,7 @@ internal class PracticeStore(private val context: Context) {
     }
 
     fun selectedGroup(): PracticeGroup? {
+        autoArchiveExpiredGroupsIfNeeded()
         return selectCurrentGroup(groups, selectedGroupID)
     }
 
@@ -113,6 +115,7 @@ internal class PracticeStore(private val context: Context) {
         type: String = "custom",
         startDateMs: Long? = null,
         endDateMs: Long? = null,
+        isArchived: Boolean = false,
         insertAt: Int? = null,
     ): String? {
         val result = createGroupInList(
@@ -125,6 +128,7 @@ internal class PracticeStore(private val context: Context) {
             type = type,
             startDateMs = startDateMs,
             endDateMs = endDateMs,
+            isArchived = isArchived,
             insertAt = insertAt,
             nowMs = System.currentTimeMillis(),
         ) ?: return null
@@ -230,8 +234,14 @@ internal class PracticeStore(private val context: Context) {
     fun recommendedGame(group: PracticeGroup): PinballGame? =
         computeRecommendedGame(group, games, scores, journal, rulesheetProgress)
 
-    fun taskProgressForGame(gameSlug: String): Map<String, Int> =
-        computeTaskProgressForGame(journal, rulesheetProgress, gameSlug)
+    fun taskProgressForGame(gameSlug: String, group: PracticeGroup? = null): Map<String, Int> =
+        computeTaskProgressForGame(
+            journal = journal,
+            rulesheetProgress = rulesheetProgress,
+            gameSlug = gameSlug,
+            startDateMs = group?.startDateMs,
+            endDateMs = group?.endDateMs,
+        )
 
     fun mechanicsSkills(): List<String> = defaultMechanicsSkills()
 
@@ -245,7 +255,15 @@ internal class PracticeStore(private val context: Context) {
     fun mechanicsLogs(skill: String): List<NoteEntry> =
         mechanicsLogsForSkill(skill, notes, mechanicsSkills())
 
-    fun activeGroups(): List<PracticeGroup> = activeGroupsFromList(groups)
+    fun activeGroups(): List<PracticeGroup> {
+        autoArchiveExpiredGroupsIfNeeded()
+        return activeGroupsFromList(groups)
+    }
+
+    fun activeGroupForGame(gameSlug: String): PracticeGroup? {
+        autoArchiveExpiredGroupsIfNeeded()
+        return activeGroupForGame(groups, gameSlug)
+    }
 
     fun groupGames(group: PracticeGroup): List<PinballGame> = groupGamesFromList(group, games)
 
@@ -305,6 +323,13 @@ internal class PracticeStore(private val context: Context) {
 
     private suspend fun loadGames() {
         games = loadPracticeGamesFromLibrary()
+    }
+
+    private fun autoArchiveExpiredGroupsIfNeeded() {
+        val updated = autoArchiveExpiredGroups(groups)
+        if (updated == groups) return
+        groups = updated
+        saveState()
     }
 
     private fun saveState() {

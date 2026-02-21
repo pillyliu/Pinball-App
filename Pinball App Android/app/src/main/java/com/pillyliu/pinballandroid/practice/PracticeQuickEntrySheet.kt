@@ -1,6 +1,7 @@
 package com.pillyliu.pinballandroid.practice
 
 import android.content.Context
+import androidx.core.content.edit
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -59,11 +60,12 @@ internal fun QuickEntrySheet(
     var tournamentName by remember { mutableStateOf("") }
     var rulesheetProgress by remember { mutableStateOf(0f) }
     var videoInputKind by remember { mutableStateOf("clock") }
-    var videoValue by remember { mutableStateOf("") }
-    var videoPercent by remember { mutableStateOf(0f) }
+    var selectedVideoSource by remember { mutableStateOf("") }
+    var videoWatchedTime by remember { mutableStateOf("") }
+    var videoTotalTime by remember { mutableStateOf("") }
+    var videoPercent by remember { mutableStateOf(100f) }
     var practiceMinutes by remember { mutableStateOf("") }
     var noteText by remember { mutableStateOf("") }
-    var noteType by remember { mutableStateOf("general") }
     var mechanicsSkill by remember { mutableStateOf("Drop Catch") }
     var mechanicsCompetency by remember { mutableStateOf(3f) }
     var validation by remember { mutableStateOf<String?>(null) }
@@ -94,10 +96,20 @@ internal fun QuickEntrySheet(
             gameSlug = gameOptions.firstOrNull()?.slug.orEmpty()
         }
     }
+    val selectedGame = store.games.firstOrNull { it.slug == gameSlug }
+    val videoSourceOptions = remember(selectedGame, mode) {
+        quickEntryVideoSourceOptions(selectedGame, mode)
+    }
+    LaunchedEffect(mode, videoSourceOptions) {
+        if (mode != QuickActivity.Tutorial && mode != QuickActivity.Gameplay) return@LaunchedEffect
+        if (selectedVideoSource !in videoSourceOptions) {
+            selectedVideoSource = videoSourceOptions.firstOrNull().orEmpty()
+        }
+    }
     LaunchedEffect(origin, gameSlug) {
         val selected = gameSlug.takeUnless { it == "None" }.orEmpty()
         if (selected.isNotBlank()) {
-            prefs.edit().putString("$QUICK_GAME_KEY_PREFIX${origin.keySuffix}", selected).apply()
+            prefs.edit { putString("$QUICK_GAME_KEY_PREFIX${origin.keySuffix}", selected) }
         }
     }
 
@@ -144,7 +156,7 @@ internal fun QuickEntrySheet(
                 QuickEntryModeFields(
                     mode = mode,
                     scoreText = scoreText,
-                    onScoreTextChange = { scoreText = it },
+                    onScoreTextChange = { scoreText = formatScoreInputWithCommas(it) },
                     scoreContext = scoreContext,
                     onScoreContextChange = { scoreContext = it },
                     tournamentName = tournamentName,
@@ -153,16 +165,19 @@ internal fun QuickEntrySheet(
                     onRulesheetProgressChange = { rulesheetProgress = it },
                     videoInputKind = videoInputKind,
                     onVideoInputKindChange = { videoInputKind = it },
-                    videoValue = videoValue,
-                    onVideoValueChange = { videoValue = it },
+                    videoSourceOptions = videoSourceOptions,
+                    selectedVideoSource = selectedVideoSource,
+                    onSelectedVideoSourceChange = { selectedVideoSource = it },
+                    videoWatchedTime = videoWatchedTime,
+                    onVideoWatchedTimeChange = { videoWatchedTime = it },
+                    videoTotalTime = videoTotalTime,
+                    onVideoTotalTimeChange = { videoTotalTime = it },
                     videoPercent = videoPercent,
                     onVideoPercentChange = { videoPercent = it },
                     practiceMinutes = practiceMinutes,
                     onPracticeMinutesChange = { practiceMinutes = it },
                     noteText = noteText,
                     onNoteTextChange = { noteText = it },
-                    noteType = noteType,
-                    onNoteTypeChange = { noteType = it },
                     mechanicsSkill = mechanicsSkill,
                     onMechanicsSkillChange = { mechanicsSkill = it },
                     mechanicsSkills = mechanicsSkills,
@@ -187,11 +202,12 @@ internal fun QuickEntrySheet(
                     tournamentName = tournamentName,
                     rulesheetProgress = rulesheetProgress,
                     videoInputKind = videoInputKind,
-                    videoValue = videoValue,
+                    selectedVideoSource = selectedVideoSource,
+                    videoWatchedTime = videoWatchedTime,
+                    videoTotalTime = videoTotalTime,
                     videoPercent = videoPercent,
                     practiceMinutes = practiceMinutes,
                     noteText = noteText,
-                    noteType = noteType,
                     mechanicsSkill = mechanicsSkill,
                     mechanicsCompetency = mechanicsCompetency,
                 )
@@ -204,4 +220,10 @@ internal fun QuickEntrySheet(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+private fun formatScoreInputWithCommas(raw: String): String {
+    val digits = raw.filter { it.isDigit() }
+    if (digits.isEmpty()) return ""
+    return digits.reversed().chunked(3).joinToString(",").reversed()
 }

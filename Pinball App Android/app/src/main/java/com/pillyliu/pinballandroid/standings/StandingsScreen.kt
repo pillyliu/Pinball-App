@@ -20,10 +20,13 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,6 +55,7 @@ import com.pillyliu.pinballandroid.ui.CardContainer
 import com.pillyliu.pinballandroid.ui.CompactDropdownFilter
 import com.pillyliu.pinballandroid.ui.EmptyLabel
 import com.pillyliu.pinballandroid.ui.FixedWidthTableCell
+import com.pillyliu.pinballandroid.ui.InsetFilterHeader
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -88,8 +92,12 @@ private data class StandingsWidths(
     val bank: Int,
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StandingsScreen(contentPadding: PaddingValues) {
+fun StandingsScreen(
+    contentPadding: PaddingValues,
+    onBack: (() -> Unit)? = null,
+) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -100,6 +108,7 @@ fun StandingsScreen(contentPadding: PaddingValues) {
     var hasNewerData by remember { mutableStateOf(false) }
     var initialLoadComplete by remember { mutableStateOf(false) }
     var selectedSeason by rememberSaveable { mutableStateOf<Int?>(null) }
+    var showFilterSheet by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val pulseTransition = rememberInfiniteTransition(label = "standingsRefreshPulse")
     val pulseAlpha by pulseTransition.animateFloat(
@@ -149,20 +158,15 @@ fun StandingsScreen(contentPadding: PaddingValues) {
 
     val seasons = rows.map { it.season }.toSet().sorted()
     val standingRows = buildStandings(rows, selectedSeason)
+    val seasonLabels = seasons.map { "Season $it" }
+    val navSummaryText = "Standings - ${selectedSeason?.let { "Season $it" } ?: "Season"}"
 
     AppScreen(contentPadding) {
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            CompactDropdownFilter(
-                selectedText = selectedSeason?.let { "Season $it" } ?: "Select",
-                options = seasons.map { "Season $it" },
-                onSelect = { label ->
-                    selectedSeason = label.removePrefix("Season ").trim().toIntOrNull()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                minHeight = 38.dp,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                textSize = 12.sp,
-                itemTextSize = 12.sp,
+            InsetFilterHeader(
+                summaryText = navSummaryText,
+                onFilterClick = { showFilterSheet = true },
+                onBack = onBack,
             )
 
             error?.let { Text(it, color = Color.Red) }
@@ -232,6 +236,32 @@ fun StandingsScreen(contentPadding: PaddingValues) {
             }
         }
     }
+
+    if (showFilterSheet) {
+        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Standings filters", style = MaterialTheme.typography.titleSmall)
+                CompactDropdownFilter(
+                    selectedText = selectedSeason?.let { "Season $it" } ?: "Select",
+                    options = seasonLabels,
+                    onSelect = { label ->
+                        selectedSeason = label.removePrefix("Season ").trim().toIntOrNull()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    minHeight = 38.dp,
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                    textSize = 12.sp,
+                    itemTextSize = 12.sp,
+                )
+                TextButton(onClick = { showFilterSheet = false }, modifier = Modifier.align(Alignment.End)) {
+                    Text("Done")
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -251,7 +281,7 @@ private fun StandingRow(rank: Int, standing: Standing, widths: StandingsWidths) 
     val rankColor = podiumRankColor(rank)
     Row(
         modifier = Modifier
-            .background(if (rank % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerLow)
+            .background(if (rank % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(vertical = 6.dp),
     ) {
         FixedWidthTableCell(rank.toString(), widths.rank, color = rankColor, bold = rank <= 3)
@@ -265,8 +295,9 @@ private fun StandingRow(rank: Int, standing: Standing, widths: StandingsWidths) 
 
 @Composable
 private fun podiumRankColor(rank: Int): Color {
+    val darkMode = isSystemInDarkTheme()
     return when (rank) {
-        1 -> Color(0xFFFFD83D)
+        1 -> if (darkMode) Color(0xFFFFD83D) else Color(0xFF8A5A00)
         2 -> Color(0xFF98A3B3)
         3 -> Color(0xFFC1845B)
         else -> MaterialTheme.colorScheme.onSurface

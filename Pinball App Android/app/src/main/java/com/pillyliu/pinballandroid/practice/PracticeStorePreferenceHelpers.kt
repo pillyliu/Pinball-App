@@ -1,13 +1,14 @@
 package com.pillyliu.pinballandroid.practice
 
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 internal fun clearPracticeState(prefs: SharedPreferences, stateKey: String) {
-    prefs.edit().remove(stateKey).apply()
+    prefs.edit { remove(stateKey) }
 }
 
 internal fun savePracticeState(prefs: SharedPreferences, stateKey: String, serialized: String) {
-    prefs.edit().putString(stateKey, serialized).apply()
+    prefs.edit { putString(stateKey, serialized) }
 }
 
 internal fun loadPracticeState(prefs: SharedPreferences, stateKey: String): String? {
@@ -19,10 +20,10 @@ internal fun markPracticeLastViewedGame(
     slug: String,
     nowMs: Long,
 ) {
-    prefs.edit()
-        .putString(KEY_PRACTICE_LAST_VIEWED_SLUG, slug)
-        .putLong(KEY_PRACTICE_LAST_VIEWED_TS, nowMs)
-        .apply()
+    prefs.edit {
+        putString(KEY_PRACTICE_LAST_VIEWED_SLUG, slug)
+        putLong(KEY_PRACTICE_LAST_VIEWED_TS, nowMs)
+    }
 }
 
 internal fun resumeSlugFromLibraryOrPractice(prefs: SharedPreferences): String? {

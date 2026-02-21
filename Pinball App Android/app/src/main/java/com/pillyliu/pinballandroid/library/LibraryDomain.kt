@@ -3,6 +3,7 @@ package com.pillyliu.pinballandroid.library
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.ui.unit.dp
 import org.json.JSONArray
 import org.json.JSONObject
@@ -20,13 +21,13 @@ internal enum class LibraryRouteKind {
 }
 
 internal enum class LibrarySortOption(val label: String) {
-    LOCATION("Sort: Location"),
+    LOCATION("Sort: Area"),
     BANK("Sort: Bank"),
     ALPHABETICAL("Sort: A-Z"),
 }
 
 internal data class PinballGame(
-    val location: String?,
+    val area: String?,
     val group: Int?,
     val position: Int?,
     val bank: Int?,
@@ -86,7 +87,7 @@ internal fun parseGames(array: JSONArray): List<PinballGame> {
         if (name.isBlank() || slug.isBlank()) return@mapNotNull null
 
         PinballGame(
-            location = obj.optStringOrNull("location")?.trim(),
+            area = (obj.optStringOrNull("area") ?: obj.optStringOrNull("location"))?.trim(),
             group = obj.optIntOrNull("group"),
             position = obj.optIntOrNull("position"),
             bank = obj.optIntOrNull("bank"),
@@ -135,8 +136,8 @@ internal fun PinballGame.locationBankLine(): String {
 private fun PinballGame.locationText(): String? {
     val g = group ?: return null
     val p = position ?: return null
-    return if (!location.isNullOrBlank()) {
-        "📍 $location:$g:$p"
+    return if (!area.isNullOrBlank()) {
+        "📍 $area:$g:$p"
     } else {
         "📍 $g:$p"
     }
@@ -175,13 +176,13 @@ internal fun openYoutubeInApp(context: android.content.Context, url: String, fal
             true
         } else {
             val id = youtubeId(url) ?: fallbackVideoId
-            val appIntent = Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:$id")).apply {
+            val appIntent = Intent(Intent.ACTION_VIEW, "vnd.youtube:$id".toUri()).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             try {
                 context.startActivity(appIntent)
             } catch (_: ActivityNotFoundException) {
-                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/watch?v=$id")).apply {
+                val webIntent = Intent(Intent.ACTION_VIEW, "https://www.youtube.com/watch?v=$id".toUri()).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(webIntent)

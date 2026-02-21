@@ -270,7 +270,7 @@ enum PinballLibrarySortOption: String, CaseIterable, Identifiable {
     var menuLabel: String {
         switch self {
         case .location:
-            return "Sort: Location"
+            return "Sort: Area"
         case .bank:
             return "Sort: Bank"
         case .alphabetical:
@@ -559,6 +559,7 @@ struct PinballGame: Identifiable, Decodable {
     }
 
     enum CodingKeys: String, CodingKey {
+        case area
         case location
         case group
         case position
@@ -573,7 +574,7 @@ struct PinballGame: Identifiable, Decodable {
         case videos
     }
 
-    let location: String?
+    let area: String?
     let group: Int?
     let pos: Int?
     let bank: Int?
@@ -588,8 +589,10 @@ struct PinballGame: Identifiable, Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        location = try container.decodeIfPresent(String.self, forKey: .location)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        area = (
+            try container.decodeIfPresent(String.self, forKey: .area) ??
+                container.decodeIfPresent(String.self, forKey: .location)
+            )?.trimmingCharacters(in: .whitespacesAndNewlines)
         group = try container.decodeIfPresent(Int.self, forKey: .group)
         pos = try container.decodeIfPresent(Int.self, forKey: .position)
         bank = try container.decodeIfPresent(Int.self, forKey: .bank)
@@ -646,8 +649,8 @@ struct PinballGame: Identifiable, Decodable {
 
     var locationText: String? {
         guard let group, let pos else { return nil }
-        if let location, !location.isEmpty {
-            return "📍 \(location):\(group):\(pos)"
+        if let area, !area.isEmpty {
+            return "📍 \(area):\(group):\(pos)"
         }
         return "📍 \(group):\(pos)"
     }

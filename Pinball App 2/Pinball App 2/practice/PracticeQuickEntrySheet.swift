@@ -15,10 +15,11 @@ struct PracticeQuickEntrySheet: View {
     @State private var tournamentName: String = ""
     @State private var rulesheetProgress: Double = 0
     @State private var videoKind: VideoProgressInputKind = .clock
-    @State private var videoValue: String = ""
-    @State private var videoPercent: Double = 0
+    @State private var selectedVideoSource: String = ""
+    @State private var videoWatchedTime: String = ""
+    @State private var videoTotalTime: String = ""
+    @State private var videoPercent: Double = 100
     @State private var practiceMinutes: String = ""
-    @State private var practiceCategory: PracticeCategory = .general
     @State private var mechanicsSkill: String = ""
     @State private var mechanicsCompetency: Double = 3
     @State private var mechanicsNote: String = ""
@@ -40,6 +41,16 @@ struct PracticeQuickEntrySheet: View {
 
     private var showsActivityPicker: Bool {
         kind == .study
+    }
+
+    private var selectedGame: PinballGame? {
+        store.games.first(where: { $0.id == selectedGameID })
+    }
+
+    private var videoSourceOptions: [String] {
+        guard selectedActivity == .tutorialVideo || selectedActivity == .gameplayVideo else { return [] }
+        let task: StudyTaskKind = selectedActivity == .tutorialVideo ? .tutorialVideo : .gameplayVideo
+        return practiceVideoSourceOptions(game: selectedGame, task: task)
     }
 
     var body: some View {
@@ -81,7 +92,7 @@ struct PracticeQuickEntrySheet: View {
                             sectionCard("Details") {
                                 switch selectedActivity {
                                 case .score:
-                                    styledTextField("Score", text: $scoreText, keyboard: .numberPad)
+                                    styledTextField("Score", text: formattedScoreBinding, keyboard: .numberPad)
 
                                     Picker("Context", selection: $scoreContext) {
                                         ForEach(ScoreContext.allCases) { context in
@@ -97,6 +108,13 @@ struct PracticeQuickEntrySheet: View {
                                     sliderRow(title: "Rulesheet progress", value: $rulesheetProgress)
                                     styledTextField("Optional note", text: $noteText, axis: .vertical)
                                 case .tutorialVideo, .gameplayVideo:
+                                    Picker("Video", selection: $selectedVideoSource) {
+                                        ForEach(videoSourceOptions, id: \.self) { source in
+                                            Text(source).tag(source)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+
                                     Picker("Input mode", selection: $videoKind) {
                                         ForEach(VideoProgressInputKind.allCases) { kind in
                                             Text(kind.label).tag(kind)
@@ -105,7 +123,8 @@ struct PracticeQuickEntrySheet: View {
                                     .pickerStyle(.segmented)
 
                                     if videoKind == .clock {
-                                        styledTextField("mm:ss (example: 12:45)", text: $videoValue, keyboard: .numbersAndPunctuation)
+                                        styledTextField("Amount watched (hh:mm:ss)", text: $videoWatchedTime, keyboard: .numbersAndPunctuation)
+                                        styledTextField("Total length (hh:mm:ss)", text: $videoTotalTime, keyboard: .numbersAndPunctuation)
                                     } else {
                                         sliderRow(title: "Percent watched", value: $videoPercent)
                                     }
@@ -118,12 +137,6 @@ struct PracticeQuickEntrySheet: View {
                                     styledTextField("Optional note", text: $noteText, axis: .vertical)
                                 case .practice:
                                     styledTextField("Practice minutes (optional)", text: $practiceMinutes, keyboard: .numberPad)
-                                    Picker("Practice note type", selection: $practiceCategory) {
-                                        ForEach(noteCategories) { option in
-                                            Text(option.label).tag(option)
-                                        }
-                                    }
-                                    .pickerStyle(.menu)
                                     styledTextField("Optional note", text: $noteText, axis: .vertical)
                                 case .mechanics:
                                     Picker("Skill", selection: $mechanicsSkill) {
@@ -194,6 +207,21 @@ struct PracticeQuickEntrySheet: View {
             .onChange(of: selectedGameID) { _, newValue in
                 onGameSelectionChanged(kind, newValue)
             }
+            .onChange(of: selectedActivity) { _, _ in
+                if selectedVideoSource.isEmpty || !videoSourceOptions.contains(selectedVideoSource) {
+                    selectedVideoSource = videoSourceOptions.first ?? ""
+                }
+            }
+            .onChange(of: selectedGameID) { _, _ in
+                if selectedVideoSource.isEmpty || !videoSourceOptions.contains(selectedVideoSource) {
+                    selectedVideoSource = videoSourceOptions.first ?? ""
+                }
+            }
+            .onAppear {
+                if selectedVideoSource.isEmpty || !videoSourceOptions.contains(selectedVideoSource) {
+                    selectedVideoSource = videoSourceOptions.first ?? ""
+                }
+            }
         }
     }
 
@@ -222,6 +250,13 @@ struct PracticeQuickEntrySheet: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .appControlStyle()
+    }
+
+    private var formattedScoreBinding: Binding<String> {
+        Binding(
+            get: { scoreText },
+            set: { scoreText = formatScoreInputWithCommas($0) }
+        )
     }
 
     private func sliderRow(title: String, value: Binding<Double>) -> some View {
@@ -261,13 +296,14 @@ struct PracticeQuickEntrySheet: View {
             )
             return selectedGameID
         case .tutorialVideo, .gameplayVideo:
-            guard let normalizedVideoValue = validatedVideoValue(
-                value: videoKind == .percent ? "\(Int(videoPercent.rounded()))" : videoValue,
-                kind: videoKind
+            guard let videoDraft = buildVideoLogDraft(
+                inputKind: videoKind,
+                sourceLabel: selectedVideoSource,
+                watchedTime: videoWatchedTime,
+                totalTime: videoTotalTime,
+                percentValue: videoPercent
             ) else {
-                validationMessage = videoKind == .clock
-                    ? "Video time must be in mm:ss format (example: 12:45)."
-                    : "Video percent must be a whole number between 0 and 100."
+                validationMessage = "Use valid hh:mm:ss watched/total values (or leave both blank for 100%)."
                 return nil
             }
 
@@ -275,8 +311,9 @@ struct PracticeQuickEntrySheet: View {
             store.addManualVideoProgress(
                 gameID: selectedGameID,
                 action: action,
-                kind: videoKind,
-                value: normalizedVideoValue,
+                kind: videoDraft.kind,
+                value: videoDraft.value,
+                progressPercent: videoDraft.progressPercent,
                 note: note
             )
             return selectedGameID
@@ -308,9 +345,6 @@ struct PracticeQuickEntrySheet: View {
                 progressPercent: nil,
                 note: composedNote
             )
-            if let note, !note.isEmpty {
-                store.addNote(gameID: selectedGameID, category: practiceCategory, detail: nil, note: note)
-            }
             return selectedGameID
         case .mechanics:
             let skill = mechanicsSkill.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -329,28 +363,18 @@ struct PracticeQuickEntrySheet: View {
         }
     }
 
-    private var noteCategories: [PracticeCategory] {
-        [.general, .shots, .modes, .multiball, .strategy]
-    }
+}
 
-    private func validatedVideoValue(value raw: String, kind: VideoProgressInputKind) -> String? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        switch kind {
-        case .clock:
-            let parts = trimmed.split(separator: ":")
-            guard parts.count == 2,
-                  let minutes = Int(parts[0]),
-                  let seconds = Int(parts[1]),
-                  minutes >= 0,
-                  (0...59).contains(seconds) else {
-                return nil
-            }
-            return "\(minutes):\(String(format: "%02d", seconds))"
-        case .percent:
-            guard let percent = Int(trimmed), (0...100).contains(percent) else {
-                return nil
-            }
-            return "\(percent)"
-        }
+private func formatScoreInputWithCommas(_ raw: String) -> String {
+    let digits = raw.filter(\.isNumber)
+    guard !digits.isEmpty else { return "" }
+    var grouped: [String] = []
+    var remaining = String(digits)
+    while remaining.count > 3 {
+        let cut = remaining.index(remaining.endIndex, offsetBy: -3)
+        grouped.insert(String(remaining[cut...]), at: 0)
+        remaining = String(remaining[..<cut])
     }
+    grouped.insert(remaining, at: 0)
+    return grouped.joined(separator: ",")
 }

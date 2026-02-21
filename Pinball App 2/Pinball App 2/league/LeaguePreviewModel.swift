@@ -506,6 +506,7 @@ private struct ParsedStatsRow {
 private struct LeagueLibraryGame: Decodable {
     enum CodingKeys: String, CodingKey {
         case name
+        case area
         case location
         case group
         case position
@@ -513,7 +514,7 @@ private struct LeagueLibraryGame: Decodable {
     }
 
     let name: String
-    let location: String?
+    let area: String?
     let group: Int?
     let position: Int?
     let bank: Int?
@@ -521,8 +522,10 @@ private struct LeagueLibraryGame: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         name = try container.decode(String.self, forKey: .name)
-        location = try container.decodeIfPresent(String.self, forKey: .location)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        area = (
+            try container.decodeIfPresent(String.self, forKey: .area) ??
+                container.decodeIfPresent(String.self, forKey: .location)
+            )?.trimmingCharacters(in: .whitespacesAndNewlines)
         group = try container.decodeIfPresent(Int.self, forKey: .group)
         position = try container.decodeIfPresent(Int.self, forKey: .position)
         bank = try container.decodeIfPresent(Int.self, forKey: .bank)

@@ -108,6 +108,7 @@ struct GroupEditorScreen: View {
     @State private var selectedGameIDs: [String] = []
     @State private var isActive = true
     @State private var isPriority = false
+    @State private var isArchived = false
     @State private var type: GroupType = .custom
     @State private var startDate = Date()
     @State private var endDate = Date()
@@ -430,6 +431,17 @@ struct GroupEditorScreen: View {
                     .padding(.vertical, 8)
                     .appControlStyle()
 
+                    HStack {
+                        Text("Archived")
+                        Spacer()
+                        Toggle("", isOn: $isArchived)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .appControlStyle()
+
                     if let validationMessage {
                         Text(validationMessage)
                             .font(.footnote)
@@ -538,6 +550,7 @@ struct GroupEditorScreen: View {
         selectedGameIDs = group.gameIDs
         isActive = group.isActive
         isPriority = group.isPriority
+        isArchived = group.isArchived
         type = group.type
         hasStartDate = group.startDate != nil
         hasEndDate = group.endDate != nil
@@ -574,6 +587,7 @@ struct GroupEditorScreen: View {
                 gameIDs: selectedGameIDs,
                 type: type,
                 isActive: isActive,
+                isArchived: isArchived,
                 isPriority: isPriority,
                 replaceStartDate: true,
                 startDate: start,
@@ -586,6 +600,7 @@ struct GroupEditorScreen: View {
             gameIDs: selectedGameIDs,
             type: type,
             isActive: isActive,
+            isArchived: isArchived,
             isPriority: isPriority,
             startDate: start,
             endDate: end
@@ -633,6 +648,7 @@ struct GroupEditorScreen: View {
         selectedGameIDs = source.gameIDs
         type = source.type
         isPriority = source.isPriority
+        isArchived = source.isArchived
         if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             name = "Copy of \(source.name)"
         }

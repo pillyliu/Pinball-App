@@ -55,7 +55,7 @@ extension PracticeScreen {
         PracticeGroupDashboardSectionView(
             selectedGroup: selectedGroup,
             allGroups: store.state.customGroups,
-            selectedGroupID: selectedGroup?.id,
+            selectedGroupID: store.state.practiceSettings.selectedGroupID,
             gameTransition: gameTransition,
             onOpenCreateGroup: {
                 openGroupEditorForCreate()
@@ -68,6 +68,12 @@ extension PracticeScreen {
             },
             onTogglePriority: { groupID, isPriority in
                 store.updateGroup(id: groupID, isPriority: isPriority)
+            },
+            onSetGroupArchived: { groupID, isArchived in
+                store.updateGroup(id: groupID, isArchived: isArchived)
+            },
+            onDeleteGroup: { groupID in
+                store.deleteGroup(id: groupID)
             },
             onUpdateGroupDate: { groupID, field, date in
                 switch field {

@@ -37,7 +37,7 @@ internal fun PracticeJournalSection(
     journalFilter: JournalFilter,
     onJournalFilterChange: (JournalFilter) -> Unit,
     onOpenGame: (String) -> Unit,
-    timelineModifier: Modifier = Modifier,
+    modifier: Modifier = Modifier,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val filterWeights = remember {
@@ -64,7 +64,7 @@ internal fun PracticeJournalSection(
         }
     }
 
-    CardContainer(modifier = timelineModifier.fillMaxWidth()) {
+    CardContainer(modifier = modifier.fillMaxWidth()) {
         val appRows = store.journalItems(journalFilter).map { row ->
             JournalTimelineRow(
                 id = "app-${row.id}",

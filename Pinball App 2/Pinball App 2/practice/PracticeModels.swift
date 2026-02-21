@@ -86,7 +86,7 @@ enum VideoProgressInputKind: String, CaseIterable, Codable, Identifiable {
 
     var label: String {
         switch self {
-        case .clock: return "mm:ss"
+        case .clock: return "hh:mm:ss"
         case .percent: return "%"
         }
     }
@@ -286,6 +286,7 @@ struct CustomGameGroup: Identifiable, Codable {
     var gameIDs: [String]
     var type: GroupType
     var isActive: Bool
+    var isArchived: Bool
     var isPriority: Bool
     var startDate: Date?
     var endDate: Date?
@@ -297,6 +298,7 @@ struct CustomGameGroup: Identifiable, Codable {
         case gameIDs
         case type
         case isActive
+        case isArchived
         case isPriority
         case startDate
         case endDate
@@ -309,6 +311,7 @@ struct CustomGameGroup: Identifiable, Codable {
         gameIDs: [String],
         type: GroupType = .custom,
         isActive: Bool = true,
+        isArchived: Bool = false,
         isPriority: Bool = false,
         startDate: Date? = nil,
         endDate: Date? = nil,
@@ -319,6 +322,7 @@ struct CustomGameGroup: Identifiable, Codable {
         self.gameIDs = gameIDs
         self.type = type
         self.isActive = isActive
+        self.isArchived = isArchived
         self.isPriority = isPriority
         self.startDate = startDate
         self.endDate = endDate
@@ -332,6 +336,7 @@ struct CustomGameGroup: Identifiable, Codable {
         gameIDs = try container.decodeIfPresent([String].self, forKey: .gameIDs) ?? []
         type = try container.decodeIfPresent(GroupType.self, forKey: .type) ?? .custom
         isActive = try container.decodeIfPresent(Bool.self, forKey: .isActive) ?? true
+        isArchived = try container.decodeIfPresent(Bool.self, forKey: .isArchived) ?? false
         isPriority = try container.decodeIfPresent(Bool.self, forKey: .isPriority) ?? false
         startDate = try container.decodeIfPresent(Date.self, forKey: .startDate)
         endDate = try container.decodeIfPresent(Date.self, forKey: .endDate)

@@ -77,18 +77,16 @@ extension PracticeStore {
             }
             return entry.note ?? "Read \(name) rulesheet"
         case .tutorialWatch:
-            if let value = entry.videoValue, let kind = entry.videoKind {
-                let suffix = kind == .clock ? "watched" : "complete"
-                return "Tutorial for \(name): \(value) \(suffix)"
+            if let value = entry.videoValue {
+                return "Tutorial for \(name): \(value)"
             }
             if let progress = entry.progressPercent {
                 return "Tutorial for \(name): \(progress)% complete"
             }
             return entry.note ?? "Updated tutorial progress for \(name)"
         case .gameplayWatch:
-            if let value = entry.videoValue, let kind = entry.videoKind {
-                let suffix = kind == .clock ? "watched" : "complete"
-                return "Gameplay for \(name): \(value) \(suffix)"
+            if let value = entry.videoValue {
+                return "Gameplay for \(name): \(value)"
             }
             if let progress = entry.progressPercent {
                 return "Gameplay for \(name): \(progress)% complete"

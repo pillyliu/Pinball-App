@@ -57,7 +57,7 @@ internal fun HomeMiniCard(label: String, subtitle: String, modifier: Modifier = 
     Card(
         modifier = modifier,
         onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
         Column(
             modifier = Modifier
@@ -87,7 +87,7 @@ internal fun SelectedGameMiniCard(game: PinballGame, modifier: Modifier = Modifi
             .width(122.dp)
             .clip(cardShape)
             .background(
-                MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.96f),
+                MaterialTheme.colorScheme.surfaceContainerHighest,
                 shape = cardShape,
             )
             .padding(top = 0.dp, bottom = 12.dp),

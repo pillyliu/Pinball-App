@@ -97,7 +97,29 @@ internal fun PracticeGameSection(
         when (gameSubview) {
             PracticeGameSubview.Summary -> {
                 val summary = store.scoreSummaryFor(game.slug)
-                Text("Actionable Summary", fontWeight = FontWeight.SemiBold)
+                val activeGroup = store.activeGroupForGame(game.slug)
+                if (activeGroup != null) {
+                    val groupProgress = store.taskProgressForGame(game.slug, activeGroup)
+                    Row(
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        GroupProgressWheel(
+                            taskProgress = groupProgress,
+                            modifier = Modifier
+                                .height(46.dp)
+                                .aspectRatio(1f),
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(activeGroup.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                progressSummary(groupProgress),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
                 NextActionBlock(store = store, gameSlug = game.slug)
                 AlertsBlock(store = store, gameSlug = game.slug)
                 ConsistencyBlock(store = store, gameSlug = game.slug)

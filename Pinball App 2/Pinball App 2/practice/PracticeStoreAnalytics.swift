@@ -97,8 +97,10 @@ extension PracticeStore {
         )
     }
 
-    func studyCompletionPercent(for gameID: String) -> Int {
-        let values = StudyTaskKind.allCases.map { latestTaskProgress(gameID: gameID, task: $0) }
+    func studyCompletionPercent(for gameID: String, startDate: Date? = nil, endDate: Date? = nil) -> Int {
+        let values = StudyTaskKind.allCases.map {
+            latestTaskProgress(gameID: gameID, task: $0, startDate: startDate, endDate: endDate)
+        }
         let total = values.reduce(0, +)
         return Int((Double(total) / Double(max(values.count, 1))).rounded())
     }
@@ -108,7 +110,7 @@ extension PracticeStore {
         return max(0, summary.median - summary.floor)
     }
 
-    func focusPriority(for gameID: String) -> Double {
+    func focusPriority(for gameID: String, startDate: Date? = nil, endDate: Date? = nil) -> Double {
         let varianceWeight: Double
         if let summary = scoreSummary(for: gameID), summary.median > 0 {
             varianceWeight = (summary.p75 - summary.floor) / summary.median
@@ -117,26 +119,34 @@ extension PracticeStore {
         }
 
         let practiceGapDays: Double = {
-            guard let last = taskLastTimestamp(gameID: gameID, task: .practice) else { return 30 }
+            guard let last = taskLastTimestamp(gameID: gameID, task: .practice, startDate: startDate, endDate: endDate) else { return 30 }
             return Double(Calendar.current.dateComponents([.day], from: last, to: Date()).day ?? 0)
         }()
 
-        let completionGap = Double(100 - studyCompletionPercent(for: gameID)) / 100.0
+        let completionGap = Double(100 - studyCompletionPercent(for: gameID, startDate: startDate, endDate: endDate)) / 100.0
         return (varianceWeight * 0.45) + (min(practiceGapDays, 30) / 30.0 * 0.4) + (completionGap * 0.15)
     }
 
-    func taskLastTimestamp(gameID: String, task: StudyTaskKind) -> Date? {
+    func taskLastTimestamp(gameID: String, task: StudyTaskKind, startDate: Date? = nil, endDate: Date? = nil) -> Date? {
         let action = actionType(for: task)
         return state.journalEntries
-            .filter { $0.gameID == gameID && $0.action == action }
+            .filter {
+                $0.gameID == gameID &&
+                    $0.action == action &&
+                    isTimestampWithinWindow($0.timestamp, startDate: startDate, endDate: endDate)
+            }
             .sorted { $0.timestamp > $1.timestamp }
             .first?
             .timestamp
     }
 
-    func latestTaskProgress(gameID: String, task: StudyTaskKind) -> Int {
+    func latestTaskProgress(gameID: String, task: StudyTaskKind, startDate: Date? = nil, endDate: Date? = nil) -> Int {
         let explicit = state.studyEvents
-            .filter { $0.gameID == gameID && $0.task == task }
+            .filter {
+                $0.gameID == gameID &&
+                    $0.task == task &&
+                    isTimestampWithinWindow($0.timestamp, startDate: startDate, endDate: endDate)
+            }
             .sorted { $0.timestamp > $1.timestamp }
             .first?
             .progressPercent
@@ -145,11 +155,37 @@ extension PracticeStore {
             return explicit
         }
 
+        if task == .practice {
+            let hasPractice = state.journalEntries.contains {
+                $0.gameID == gameID &&
+                    $0.action == .practiceSession &&
+                    isTimestampWithinWindow($0.timestamp, startDate: startDate, endDate: endDate)
+            }
+            return hasPractice ? 100 : 0
+        }
+
         if task == .playfield {
-            let hasViewed = state.journalEntries.contains { $0.gameID == gameID && $0.action == .playfieldViewed }
+            let hasViewed = state.journalEntries.contains {
+                $0.gameID == gameID &&
+                    $0.action == .playfieldViewed &&
+                    isTimestampWithinWindow($0.timestamp, startDate: startDate, endDate: endDate)
+            }
             return hasViewed ? 100 : 0
         }
         return 0
+    }
+
+    private func isTimestampWithinWindow(_ timestamp: Date, startDate: Date?, endDate: Date?) -> Bool {
+        if let startDate, timestamp < startDate {
+            return false
+        }
+        if let endDate {
+            let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: endDate) ?? endDate
+            if timestamp > endOfDay {
+                return false
+            }
+        }
+        return true
     }
 }
 

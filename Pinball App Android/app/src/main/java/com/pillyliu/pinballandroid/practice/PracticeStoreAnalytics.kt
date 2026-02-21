@@ -1,6 +1,7 @@
 package com.pillyliu.pinballandroid.practice
 
 import com.pillyliu.pinballandroid.library.PinballGame
+import java.util.Calendar
 import kotlin.math.roundToInt
 
 internal fun scoreValuesForGame(scores: List<ScoreEntry>, gameSlug: String): List<Double> =
@@ -43,15 +44,22 @@ internal fun computeTaskProgressForGame(
     journal: List<JournalEntry>,
     rulesheetProgress: Map<String, Float>,
     gameSlug: String,
+    startDateMs: Long? = null,
+    endDateMs: Long? = null,
 ): Map<String, Int> {
-    val rulesheetPercent = rulesheetProgress[gameSlug]?.times(100)?.roundToInt()
-        ?: latestStudyPercentFromJournal(journal, gameSlug, "rulesheet")
+    val scopedJournal = filterJournalByDateWindow(journal, startDateMs, endDateMs)
+    val rulesheetPercent = if (startDateMs != null || endDateMs != null) {
+        latestStudyPercentFromJournal(scopedJournal, gameSlug, "rulesheet")
+    } else {
+        rulesheetProgress[gameSlug]?.times(100)?.roundToInt()
+            ?: latestStudyPercentFromJournal(scopedJournal, gameSlug, "rulesheet")
+    }
     return mapOf(
         "rulesheet" to rulesheetPercent,
-        "tutorial" to latestStudyPercentFromJournal(journal, gameSlug, "tutorial"),
-        "gameplay" to latestStudyPercentFromJournal(journal, gameSlug, "gameplay"),
-        "playfield" to if (journal.any { it.gameSlug == gameSlug && it.summary.contains("playfield", ignoreCase = true) }) 100 else 0,
-        "practice" to if (journal.any { it.gameSlug == gameSlug && it.action == "practice" }) 100 else 0,
+        "tutorial" to latestStudyPercentFromJournal(scopedJournal, gameSlug, "tutorial"),
+        "gameplay" to latestStudyPercentFromJournal(scopedJournal, gameSlug, "gameplay"),
+        "playfield" to if (scopedJournal.any { it.gameSlug == gameSlug && it.summary.contains("playfield", ignoreCase = true) }) 100 else 0,
+        "practice" to if (scopedJournal.any { it.gameSlug == gameSlug && it.action == "practice" }) 100 else 0,
     )
 }
 
@@ -62,6 +70,7 @@ internal fun computeGroupDashboardScore(
     journal: List<JournalEntry>,
     rulesheetProgress: Map<String, Float>,
 ): GroupDashboardScore {
+    val scopedJournal = filterJournalByDateWindow(journal, group.startDateMs, group.endDateMs)
     val groupGames = groupGamesFromList(group, games)
     if (groupGames.isEmpty()) {
         return GroupDashboardScore(
@@ -73,12 +82,12 @@ internal fun computeGroupDashboardScore(
     }
 
     val completionValues = groupGames.map { game ->
-        studyCompletionPercentForGame(journal, rulesheetProgress, game.slug)
+        studyCompletionPercentForGame(scopedJournal, rulesheetProgress, game.slug)
     }
     val completionAverage = (completionValues.average()).roundToInt()
     val now = System.currentTimeMillis()
     val staleCount = groupGames.count { game ->
-        val latest = latestPracticeTimestampForGame(journal, game.slug)
+        val latest = latestPracticeTimestampForGame(scopedJournal, game.slug)
         latest == null || ((now - latest) / (1000L * 60L * 60L * 24L)) >= 14
     }
     val weakerCount = groupGames.count { game ->
@@ -91,7 +100,7 @@ internal fun computeGroupDashboardScore(
         completionAverage = completionAverage,
         staleGameCount = staleCount,
         weakerGameCount = weakerCount,
-        recommendedSlug = computeRecommendedGame(group, games, scores, journal, rulesheetProgress)?.slug,
+        recommendedSlug = computeRecommendedGame(group, games, scores, scopedJournal, rulesheetProgress)?.slug,
     )
 }
 
@@ -107,6 +116,27 @@ internal fun computeRecommendedGame(
         .maxByOrNull { game ->
             focusPriorityForGame(game.slug, scores, journal, rulesheetProgress)
         }
+}
+
+private fun filterJournalByDateWindow(
+    journal: List<JournalEntry>,
+    startDateMs: Long?,
+    endDateMs: Long?,
+): List<JournalEntry> {
+    val endBoundary = endDateMs?.let(::endOfDayMs)
+    return journal.filter { entry ->
+        val ts = entry.timestampMs
+        (startDateMs == null || ts >= startDateMs) && (endBoundary == null || ts <= endBoundary)
+    }
+}
+
+private fun endOfDayMs(inputMs: Long): Long {
+    val cal = Calendar.getInstance().apply { timeInMillis = inputMs }
+    cal.set(Calendar.HOUR_OF_DAY, 23)
+    cal.set(Calendar.MINUTE, 59)
+    cal.set(Calendar.SECOND, 59)
+    cal.set(Calendar.MILLISECOND, 999)
+    return cal.timeInMillis
 }
 
 private fun latestStudyPercentFromJournal(journal: List<JournalEntry>, gameSlug: String, category: String): Int {

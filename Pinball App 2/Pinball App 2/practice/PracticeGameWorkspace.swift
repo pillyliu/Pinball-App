@@ -381,9 +381,35 @@ struct PracticeGameWorkspace: View {
 
     private var gameSummaryView: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Actionable summary")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            if let group = store.activeGroup(for: selectedGameID) {
+                let taskProgress = Dictionary(
+                    uniqueKeysWithValues: StudyTaskKind.allCases.map { task in
+                        (
+                            task,
+                            store.latestTaskProgress(
+                                gameID: selectedGameID,
+                                task: task,
+                                startDate: group.startDate,
+                                endDate: group.endDate
+                            )
+                        )
+                    }
+                )
+                HStack(spacing: 10) {
+                    GroupProgressWheel(
+                        taskProgress: taskProgress
+                    )
+                    .frame(width: 46, height: 46)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(group.name)
+                            .font(.footnote.weight(.semibold))
+                        Text(wheelProgressSummary(taskProgress: taskProgress))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
 
             if let next = nextAction(gameID: selectedGameID) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -476,6 +502,21 @@ struct PracticeGameWorkspace: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(color)
         }
+    }
+
+    private func wheelProgressSummary(taskProgress: [StudyTaskKind: Int]) -> String {
+        let ordered = StudyTaskKind.allCases.map { task in
+            let label: String
+            switch task {
+            case .playfield: label = "Playfield"
+            case .rulesheet: label = "Rules"
+            case .tutorialVideo: label = "Tutorial"
+            case .gameplayVideo: label = "Gameplay"
+            case .practice: label = "Practice"
+            }
+            return "\(label) \(taskProgress[task] ?? 0)%"
+        }
+        return ordered.joined(separator: "  •  ")
     }
 
     private struct ScoreStats {
@@ -578,7 +619,7 @@ struct GameScoreEntrySheet: View {
                 Color.clear.ignoresSafeArea()
                 PracticeEntryGlassCard(maxHeight: 420) {
                     VStack(alignment: .leading, spacing: 12) {
-                        TextField("Score", text: $scoreText)
+                        TextField("Score", text: formattedScoreBinding)
                             .keyboardType(.numberPad)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 8)
@@ -640,6 +681,27 @@ struct GameScoreEntrySheet: View {
         store.addScore(gameID: gameID, score: score, context: scoreContext, tournamentName: tournamentName)
         return true
     }
+
+    private var formattedScoreBinding: Binding<String> {
+        Binding(
+            get: { scoreText },
+            set: { scoreText = formatScoreInputWithCommas($0) }
+        )
+    }
+}
+
+private func formatScoreInputWithCommas(_ raw: String) -> String {
+    let digits = raw.filter(\.isNumber)
+    guard !digits.isEmpty else { return "" }
+    var grouped: [String] = []
+    var remaining = String(digits)
+    while remaining.count > 3 {
+        let cut = remaining.index(remaining.endIndex, offsetBy: -3)
+        grouped.insert(String(remaining[cut...]), at: 0)
+        remaining = String(remaining[..<cut])
+    }
+    grouped.insert(remaining, at: 0)
+    return grouped.joined(separator: ",")
 }
 
 struct GameNoteEntrySheet: View {
@@ -743,12 +805,22 @@ struct GameTaskEntrySheet: View {
 
     @State private var rulesheetProgress: Double = 0
     @State private var videoKind: VideoProgressInputKind = .clock
-    @State private var videoValue: String = ""
-    @State private var videoPercent: Double = 0
+    @State private var selectedVideoSource: String = ""
+    @State private var videoWatchedTime: String = ""
+    @State private var videoTotalTime: String = ""
+    @State private var videoPercent: Double = 100
     @State private var practiceMinutes: String = ""
-    @State private var practiceCategory: PracticeCategory = .general
     @State private var noteText: String = ""
     @State private var validationMessage: String?
+
+    private var selectedGame: PinballGame? {
+        store.games.first(where: { $0.id == gameID })
+    }
+
+    private var videoSourceOptions: [String] {
+        guard task == .tutorialVideo || task == .gameplayVideo else { return [] }
+        return practiceVideoSourceOptions(game: selectedGame, task: task)
+    }
 
     var body: some View {
         NavigationStack {
@@ -769,6 +841,13 @@ struct GameTaskEntrySheet: View {
                                     sliderRow(title: "Rulesheet progress", value: $rulesheetProgress)
                                     styledTextField("Optional note", text: $noteText, axis: .vertical)
                                 case .tutorialVideo, .gameplayVideo:
+                                    Picker("Video", selection: $selectedVideoSource) {
+                                        ForEach(videoSourceOptions, id: \.self) { source in
+                                            Text(source).tag(source)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+
                                     Picker("Input mode", selection: $videoKind) {
                                         ForEach(VideoProgressInputKind.allCases) { kind in
                                             Text(kind.label).tag(kind)
@@ -778,8 +857,13 @@ struct GameTaskEntrySheet: View {
 
                                     if videoKind == .clock {
                                         styledTextField(
-                                            "mm:ss (example: 12:45)",
-                                            text: $videoValue,
+                                            "Amount watched (hh:mm:ss)",
+                                            text: $videoWatchedTime,
+                                            keyboard: .numbersAndPunctuation
+                                        )
+                                        styledTextField(
+                                            "Total length (hh:mm:ss)",
+                                            text: $videoTotalTime,
                                             keyboard: .numbersAndPunctuation
                                         )
                                     } else {
@@ -794,12 +878,6 @@ struct GameTaskEntrySheet: View {
                                     styledTextField("Optional note", text: $noteText, axis: .vertical)
                                 case .practice:
                                     styledTextField("Practice minutes (optional)", text: $practiceMinutes, keyboard: .numberPad)
-                                    Picker("Practice note type", selection: $practiceCategory) {
-                                        ForEach(noteCategories) { option in
-                                            Text(option.label).tag(option)
-                                        }
-                                    }
-                                    .pickerStyle(.menu)
                                     styledTextField("Optional note", text: $noteText, axis: .vertical)
                                 }
                             }
@@ -835,6 +913,21 @@ struct GameTaskEntrySheet: View {
                     }
                     .disabled(gameID.isEmpty)
                 }
+            }
+        }
+        .onAppear {
+            if selectedVideoSource.isEmpty || !videoSourceOptions.contains(selectedVideoSource) {
+                selectedVideoSource = videoSourceOptions.first ?? ""
+            }
+        }
+        .onChange(of: task) { _, _ in
+            if selectedVideoSource.isEmpty || !videoSourceOptions.contains(selectedVideoSource) {
+                selectedVideoSource = videoSourceOptions.first ?? ""
+            }
+        }
+        .onChange(of: gameID) { _, _ in
+            if selectedVideoSource.isEmpty || !videoSourceOptions.contains(selectedVideoSource) {
+                selectedVideoSource = videoSourceOptions.first ?? ""
             }
         }
     }
@@ -897,13 +990,14 @@ struct GameTaskEntrySheet: View {
             return true
 
         case .tutorialVideo, .gameplayVideo:
-            guard let normalizedVideoValue = validatedVideoValue(
-                value: videoKind == .percent ? "\(Int(videoPercent.rounded()))" : videoValue,
-                kind: videoKind
+            guard let videoDraft = buildVideoLogDraft(
+                inputKind: videoKind,
+                sourceLabel: selectedVideoSource,
+                watchedTime: videoWatchedTime,
+                totalTime: videoTotalTime,
+                percentValue: videoPercent
             ) else {
-                validationMessage = videoKind == .clock
-                    ? "Video time must be in mm:ss format (example: 12:45)."
-                    : "Video percent must be a whole number between 0 and 100."
+                validationMessage = "Use valid hh:mm:ss watched/total values (or leave both blank for 100%)."
                 return false
             }
 
@@ -911,8 +1005,9 @@ struct GameTaskEntrySheet: View {
             store.addManualVideoProgress(
                 gameID: gameID,
                 action: action,
-                kind: videoKind,
-                value: normalizedVideoValue,
+                kind: videoDraft.kind,
+                value: videoDraft.value,
+                progressPercent: videoDraft.progressPercent,
                 note: note
             )
             return true
@@ -952,35 +1047,7 @@ struct GameTaskEntrySheet: View {
                 progressPercent: nil,
                 note: composedNote
             )
-            if let note, !note.isEmpty {
-                store.addNote(gameID: gameID, category: practiceCategory, detail: nil, note: note)
-            }
             return true
-        }
-    }
-
-    private var noteCategories: [PracticeCategory] {
-        [.general, .shots, .modes, .multiball, .strategy]
-    }
-
-    private func validatedVideoValue(value raw: String, kind: VideoProgressInputKind) -> String? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        switch kind {
-        case .clock:
-            let parts = trimmed.split(separator: ":")
-            guard parts.count == 2,
-                  let minutes = Int(parts[0]),
-                  let seconds = Int(parts[1]),
-                  minutes >= 0,
-                  (0...59).contains(seconds) else {
-                return nil
-            }
-            return "\(minutes):\(String(format: "%02d", seconds))"
-        case .percent:
-            guard let percent = Int(trimmed), (0...100).contains(percent) else {
-                return nil
-            }
-            return "\(percent)"
         }
     }
 }

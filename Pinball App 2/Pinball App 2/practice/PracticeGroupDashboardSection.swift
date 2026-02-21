@@ -10,6 +10,8 @@ struct PracticeGroupDashboardSectionView: View {
     let onOpenEditSelectedGroup: () -> Void
     let onSelectGroup: (UUID) -> Void
     let onTogglePriority: (UUID, Bool) -> Void
+    let onSetGroupArchived: (UUID, Bool) -> Void
+    let onDeleteGroup: (UUID) -> Void
     let onUpdateGroupDate: (UUID, GroupEditorDateField, Date?) -> Void
 
     let dashboardScoreForGroup: (CustomGameGroup) -> GroupDashboardScore
@@ -19,6 +21,8 @@ struct PracticeGroupDashboardSectionView: View {
     let onRemoveGameFromGroup: (String, UUID) -> Void
     @State private var inlineDateEditorGroupID: UUID?
     @State private var inlineDateEditorField: GroupEditorDateField?
+    @State private var showArchivedGroups = false
+    @State private var revealedGroupID: UUID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -48,31 +52,6 @@ struct PracticeGroupDashboardSectionView: View {
                         MetricPill(label: "Completion", value: "\(score.completionAverage)%")
                         MetricPill(label: "Stale", value: "\(score.staleGameCount)")
                         MetricPill(label: "Variance Risk", value: "\(score.weakerGameCount)")
-                    }
-
-                    if let suggested = recommendedGameForGroup(group) {
-                        Button {
-                            onOpenGame(suggested.id)
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text("Suggested Practice Game")
-                                        .font(.footnote.weight(.semibold))
-                                    Text(suggested.name)
-                                        .font(.subheadline)
-                                    Text("Historically weaker and/or recently neglected.")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(10)
-                            .appControlStyle()
-                            .matchedTransitionSource(id: suggested.id, in: gameTransition)
-                        }
-                        .buttonStyle(.plain)
                     }
 
                     let snapshots = groupProgressForGroup(group)
@@ -124,16 +103,27 @@ struct PracticeGroupDashboardSectionView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
-                    .appPanelStyle()
+                .appPanelStyle()
             }
         }
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                revealedGroupID = nil
+            }
+        )
     }
 
     private var groupListCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Current Groups")
+                Text("Groups")
                     .font(.headline)
+                Picker("Group Filter", selection: $showArchivedGroups) {
+                    Text("Current").tag(false)
+                    Text("Archived").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 180)
                 Spacer()
                 Button(action: onOpenCreateGroup) {
                     Image(systemName: "plus")
@@ -144,14 +134,15 @@ struct PracticeGroupDashboardSectionView: View {
                     Image(systemName: "pencil")
                 }
                 .buttonStyle(.glass)
-                .disabled(selectedGroupID == nil)
+                .disabled(selectedGroupID == nil || !filteredGroups().contains(where: { $0.id == selectedGroupID }))
             }
 
-            if allGroups.isEmpty {
-                Text("No groups yet.")
+            if filteredGroups().isEmpty {
+                Text(showArchivedGroups ? "No archived groups." : "No current groups.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
+                let filtered = filteredGroups()
                 VStack(spacing: 0) {
                     HStack {
                         Text("Name").frame(maxWidth: .infinity, alignment: .leading)
@@ -164,89 +155,64 @@ struct PracticeGroupDashboardSectionView: View {
                     .padding(.horizontal, 8)
                     .padding(.bottom, 4)
 
-                    ForEach(allGroups) { group in
-                        HStack {
-                            Button {
-                                onSelectGroup(group.id)
-                            } label: {
-                                Text(group.name)
-                                    .font(.footnote)
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(1)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        selectedGroupID == group.id ? Color.white.opacity(0.18) : Color.clear,
-                                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    )
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .buttonStyle(.plain)
-
-                            Button {
-                                onTogglePriority(group.id, !group.isPriority)
-                            } label: {
-                                Image(systemName: group.isPriority ? "checkmark.square.fill" : "square")
-                                    .foregroundStyle(group.isPriority ? .orange : .secondary)
-                            }
-                            .buttonStyle(.plain)
-                            .frame(width: 54, alignment: .center)
-
-                            Button {
+                    ForEach(filtered) { group in
+                        SwipeableGroupListRow(
+                            group: group,
+                            selectedGroupID: selectedGroupID,
+                            revealedGroupID: $revealedGroupID,
+                            onSelectGroup: onSelectGroup,
+                            onTogglePriority: onTogglePriority,
+                            onStartDateTap: {
                                 inlineDateEditorGroupID = group.id
                                 inlineDateEditorField = .start
-                            } label: {
-                                Text(formattedDashboardDate(group.startDate))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                            .frame(width: 78, alignment: .center)
-                            .popover(
-                                isPresented: Binding(
-                                    get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .start },
-                                    set: { isPresented in
-                                        if !isPresented {
-                                            inlineDateEditorGroupID = nil
-                                            inlineDateEditorField = nil
-                                        }
-                                    }
-                                ),
-                                attachmentAnchor: .rect(.bounds)
-                            ) {
-                                popoverCalendar(for: group, field: .start)
-                            }
-
-                            Button {
+                            },
+                            onEndDateTap: {
                                 inlineDateEditorGroupID = group.id
                                 inlineDateEditorField = .end
-                            } label: {
-                                Text(formattedDashboardDate(group.endDate))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                            .frame(width: 78, alignment: .center)
-                            .popover(
-                                isPresented: Binding(
-                                    get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .end },
-                                    set: { isPresented in
-                                        if !isPresented {
-                                            inlineDateEditorGroupID = nil
-                                            inlineDateEditorField = nil
-                                        }
+                            },
+                            onArchiveToggle: {
+                                onSetGroupArchived(group.id, !group.isArchived)
+                            },
+                            onDelete: {
+                                onDeleteGroup(group.id)
+                            },
+                            formattedDashboardDate: formattedDashboardDate
+                        )
+                        .popover(
+                            isPresented: Binding(
+                                get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .start },
+                                set: { isPresented in
+                                    if !isPresented {
+                                        inlineDateEditorGroupID = nil
+                                        inlineDateEditorField = nil
                                     }
-                                ),
-                                attachmentAnchor: .rect(.bounds)
-                            ) {
-                                popoverCalendar(for: group, field: .end)
-                            }
+                                }
+                            ),
+                            attachmentAnchor: .rect(.bounds)
+                        ) {
+                            popoverCalendar(for: group, field: .start)
                         }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
+                        .popover(
+                            isPresented: Binding(
+                                get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .end },
+                                set: { isPresented in
+                                    if !isPresented {
+                                        inlineDateEditorGroupID = nil
+                                        inlineDateEditorField = nil
+                                    }
+                                }
+                            ),
+                            attachmentAnchor: .rect(.bounds)
+                        ) {
+                            popoverCalendar(for: group, field: .end)
+                        }
                     }
                 }
             }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            revealedGroupID = nil
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
@@ -298,6 +264,10 @@ struct PracticeGroupDashboardSectionView: View {
         return Self.shortDashboardDateFormatter.string(from: date)
     }
 
+    private func filteredGroups() -> [CustomGameGroup] {
+        allGroups.filter { showArchivedGroups ? $0.isArchived : !$0.isArchived }
+    }
+
     private static let shortDashboardDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -341,6 +311,138 @@ struct PracticeGroupDashboardSectionView: View {
         case .tutorialVideo: return "Tutorial"
         case .gameplayVideo: return "Gameplay"
         case .practice: return "Practice"
+        }
+    }
+}
+
+private struct SwipeableGroupListRow: View {
+    let group: CustomGameGroup
+    let selectedGroupID: UUID?
+    @Binding var revealedGroupID: UUID?
+    let onSelectGroup: (UUID) -> Void
+    let onTogglePriority: (UUID, Bool) -> Void
+    let onStartDateTap: () -> Void
+    let onEndDateTap: () -> Void
+    let onArchiveToggle: () -> Void
+    let onDelete: () -> Void
+    let formattedDashboardDate: (Date?) -> String
+
+    @State private var offsetX: CGFloat = 0
+    @State private var dragStartX: CGFloat = 0
+    @State private var isDragging = false
+    private let actionWidth: CGFloat = 116
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            HStack(spacing: 0) {
+                Button(action: {
+                    onArchiveToggle()
+                    revealedGroupID = nil
+                    withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
+                }) {
+                    Image(systemName: group.isArchived ? "arrow.uturn.left.circle" : "archivebox")
+                        .foregroundStyle(.orange)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .buttonStyle(.plain)
+                .background(Color.orange.opacity(0.16))
+
+                Button(action: {
+                    onDelete()
+                    revealedGroupID = nil
+                    withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
+                }) {
+                    Image(systemName: "trash")
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .buttonStyle(.plain)
+                .background(Color.red.opacity(0.16))
+            }
+            .frame(width: actionWidth, height: 34)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .opacity(max(0, min(1, Double((-offsetX / actionWidth)))))
+
+            HStack {
+                Button {
+                    onSelectGroup(group.id)
+                    revealedGroupID = nil
+                    withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
+                } label: {
+                    Text(group.name)
+                        .font(.footnote)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(
+                            selectedGroupID == group.id ? Color.white.opacity(0.18) : Color.clear,
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    onTogglePriority(group.id, !group.isPriority)
+                } label: {
+                    Image(systemName: group.isPriority ? "checkmark.square.fill" : "square")
+                        .foregroundStyle(group.isPriority ? .orange : .secondary)
+                }
+                .buttonStyle(.plain)
+                .frame(width: 54, alignment: .center)
+
+                Button(action: onStartDateTap) {
+                    Text(formattedDashboardDate(group.startDate))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .frame(width: 78, alignment: .center)
+
+                Button(action: onEndDateTap) {
+                    Text(formattedDashboardDate(group.endDate))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .frame(width: 78, alignment: .center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 8)
+            .frame(height: 34)
+            .background(AppTheme.panel, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(AppTheme.border.opacity(0.6), lineWidth: 1)
+            )
+            .offset(x: offsetX)
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 12, coordinateSpace: .local)
+                    .onChanged { value in
+                        if !isDragging {
+                            dragStartX = offsetX
+                            isDragging = true
+                        }
+                        let proposed = dragStartX + value.translation.width
+                        offsetX = min(0, max(-actionWidth, proposed))
+                    }
+                    .onEnded { _ in
+                        isDragging = false
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            let shouldReveal = offsetX < (-actionWidth * 0.4)
+                            offsetX = shouldReveal ? -actionWidth : 0
+                            revealedGroupID = shouldReveal ? group.id : nil
+                        }
+                    }
+            )
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .onChange(of: revealedGroupID) { _, newValue in
+            guard newValue != group.id, offsetX != 0 else { return }
+            withAnimation(.easeOut(duration: 0.18)) {
+                offsetX = 0
+            }
         }
     }
 }

@@ -23,8 +23,11 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,6 +61,7 @@ import com.pillyliu.pinballandroid.ui.EmptyLabel
 import com.pillyliu.pinballandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinballandroid.ui.DropdownOption
 import com.pillyliu.pinballandroid.ui.FixedWidthTableCell
+import com.pillyliu.pinballandroid.ui.InsetFilterHeader
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -100,8 +104,12 @@ private data class StatsTableWidths(
     val points: Int,
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatsScreen(contentPadding: PaddingValues) {
+fun StatsScreen(
+    contentPadding: PaddingValues,
+    onBack: (() -> Unit)? = null,
+) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -124,6 +132,7 @@ fun StatsScreen(contentPadding: PaddingValues) {
     var player by rememberSaveable { mutableStateOf("") }
     var bankNumber by rememberSaveable { mutableStateOf<Int?>(null) }
     var machine by rememberSaveable { mutableStateOf("") }
+    var showFilterSheet by rememberSaveable { mutableStateOf(false) }
 
     fun refresh(force: Boolean) {
         if (isRefreshing) return
@@ -240,117 +249,28 @@ fun StatsScreen(contentPadding: PaddingValues) {
         true,
     )
     val historyStats = computeStats(rows.filter { machine.isNotEmpty() && it.machine == machine }, false)
+    val navSummaryText = statsNavSummaryText(
+        season = season,
+        bankNumber = bankNumber,
+        player = player,
+        machine = machine,
+    )
+    val seasonOptions = listOf(DropdownOption("", "S: All")) + seasons.map { DropdownOption(it, abbrSeason(it)) }
+    val playerOptions = listOf(DropdownOption("", "Player: All")) +
+        players.map { DropdownOption(it, redactPlayerNameForDisplay(it)) }
+    val bankOptions = listOf(DropdownOption("", "B: All")) + banks.map { DropdownOption(it.toString(), "B$it") }
+    val machineOptions = listOf(DropdownOption("", "Machine: All")) + machines.map { DropdownOption(it, it) }
 
     AppScreen(contentPadding) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            val seasonOptions = listOf(DropdownOption("", "S: All")) + seasons.map { DropdownOption(it, abbrSeason(it)) }
-            val playerOptions = listOf(DropdownOption("", "Player: All")) +
-                players.map { DropdownOption(it, redactPlayerNameForDisplay(it)) }
-            val bankOptions = listOf(DropdownOption("", "B: All")) + banks.map { DropdownOption(it.toString(), "B$it") }
-            val machineOptions = listOf(DropdownOption("", "Machine: All")) + machines.map { DropdownOption(it, it) }
-
-            if (isLandscape) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    AnchoredDropdownFilter(
-                        selectedText = seasonDisplayText(season),
-                        options = seasonOptions,
-                        modifier = Modifier.weight(1f),
-                        onSelect = {
-                        season = it
-                        player = ""
-                        bankNumber = null
-                        machine = ""
-                    },
-                    )
-                    AnchoredDropdownFilter(
-                        selectedText = bankDisplayText(bankNumber),
-                        options = bankOptions,
-                        modifier = Modifier.weight(1f),
-                        onSelect = {
-                        bankNumber = it.toIntOrNull()
-                        machine = ""
-                    },
-                    )
-                    AnchoredDropdownFilter(
-                        selectedText = playerDisplayText(player),
-                        options = playerOptions,
-                        modifier = Modifier.weight(1f),
-                        onSelect = {
-                        player = it
-                        bankNumber = null
-                        machine = ""
-                    },
-                    )
-                    AnchoredDropdownFilter(
-                        selectedText = machineDisplayText(machine),
-                        options = machineOptions,
-                        modifier = Modifier.weight(1f),
-                        onSelect = {
-                        machine = it
-                    },
-                    )
-                }
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        AnchoredDropdownFilter(
-                            selectedText = seasonDisplayText(season),
-                            options = seasonOptions,
-                            modifier = Modifier.weight(3f),
-                            onSelect = {
-                            season = it
-                            player = ""
-                            bankNumber = null
-                            machine = ""
-                        },
-                        )
-                        AnchoredDropdownFilter(
-                            selectedText = playerDisplayText(player),
-                            options = playerOptions,
-                            modifier = Modifier.weight(7f),
-                            onSelect = {
-                            player = it
-                            bankNumber = null
-                            machine = ""
-                        },
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        AnchoredDropdownFilter(
-                            selectedText = bankDisplayText(bankNumber),
-                            options = bankOptions,
-                            modifier = Modifier.weight(3f),
-                            onSelect = {
-                            bankNumber = it.toIntOrNull()
-                            machine = ""
-                        },
-                        )
-                        AnchoredDropdownFilter(
-                            selectedText = machineDisplayText(machine),
-                            options = machineOptions,
-                            modifier = Modifier.weight(7f),
-                            onSelect = {
-                            machine = it
-                        },
-                        )
-                    }
-                }
-            }
+            InsetFilterHeader(
+                summaryText = navSummaryText,
+                onFilterClick = { showFilterSheet = true },
+                onBack = onBack,
+            )
 
             error?.let { Text(text = it, color = Color.Red) }
             dataUpdatedAtMs?.let { updatedAt ->
@@ -428,6 +348,54 @@ fun StatsScreen(contentPadding: PaddingValues) {
             }
         }
     }
+
+    if (showFilterSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showFilterSheet = false },
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Stats filters", style = MaterialTheme.typography.titleSmall)
+                AnchoredDropdownFilter(
+                    selectedText = seasonDisplayText(season),
+                    options = seasonOptions,
+                    onSelect = {
+                        season = it
+                        player = ""
+                        bankNumber = null
+                        machine = ""
+                    },
+                )
+                AnchoredDropdownFilter(
+                    selectedText = bankDisplayText(bankNumber),
+                    options = bankOptions,
+                    onSelect = {
+                        bankNumber = it.toIntOrNull()
+                        machine = ""
+                    },
+                )
+                AnchoredDropdownFilter(
+                    selectedText = playerDisplayText(player),
+                    options = playerOptions,
+                    onSelect = {
+                        player = it
+                        bankNumber = null
+                        machine = ""
+                    },
+                )
+                AnchoredDropdownFilter(
+                    selectedText = machineDisplayText(machine),
+                    options = machineOptions,
+                    onSelect = { machine = it },
+                )
+                TextButton(onClick = { showFilterSheet = false }, modifier = Modifier.align(Alignment.End)) {
+                    Text("Done")
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -467,7 +435,7 @@ private fun StatsTable(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(if (row.id % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerLow)
+                                    .background(if (row.id % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerHigh)
                                     .padding(vertical = 6.dp),
                             ) {
                                 FixedWidthTableCell(row.season, widths.season)
@@ -648,6 +616,11 @@ private fun seasonDisplayText(season: String): String = if (season.isBlank()) "S
 private fun bankDisplayText(bankNumber: Int?): String = bankNumber?.let { "B$it" } ?: "B: All"
 private fun playerDisplayText(player: String): String = if (player.isBlank()) "Player: All" else redactPlayerNameForDisplay(player)
 private fun machineDisplayText(machine: String): String = if (machine.isBlank()) "Machine: All" else machine
+private fun statsNavSummaryText(season: String, bankNumber: Int?, player: String, machine: String): String {
+    val seasonToken = if (season.isBlank()) "S*" else abbrSeason(season)
+    val bankToken = bankNumber?.let { "B$it" } ?: "B*"
+    return "$seasonToken$bankToken  ${playerDisplayText(player)}  ${machineDisplayText(machine)}"
+}
 
 @Composable
 private fun HeaderRow(widths: StatsTableWidths) {

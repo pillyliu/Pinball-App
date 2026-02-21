@@ -6,6 +6,7 @@ internal data class PracticeGroup(
     val gameSlugs: List<String>,
     val type: String,
     val isActive: Boolean,
+    val isArchived: Boolean,
     val isPriority: Boolean,
     val startDateMs: Long?,
     val endDateMs: Long?,

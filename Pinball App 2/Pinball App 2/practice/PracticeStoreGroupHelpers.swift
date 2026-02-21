@@ -7,6 +7,7 @@ extension PracticeStore {
         gameIDs: [String],
         type: GroupType = .custom,
         isActive: Bool = true,
+        isArchived: Bool = false,
         isPriority: Bool = false,
         startDate: Date? = nil,
         endDate: Date? = nil
@@ -18,8 +19,9 @@ extension PracticeStore {
             gameIDs: uniqueGameIDsPreservingOrder(gameIDs),
             type: type,
             isActive: isActive,
+            isArchived: isArchived,
             isPriority: isPriority,
-            startDate: startDate,
+            startDate: startDate ?? Date(),
             endDate: endDate
         )
 
@@ -51,20 +53,21 @@ extension PracticeStore {
     }
 
     func selectedGroup() -> CustomGameGroup? {
+        autoArchiveExpiredGroupsIfNeeded()
         if let selected = state.practiceSettings.selectedGroupID,
            let exact = state.customGroups.first(where: { $0.id == selected }) {
             return exact
         }
 
-        if let priority = state.customGroups.first(where: { $0.isActive && $0.isPriority }) {
+        if let priority = state.customGroups.first(where: { !$0.isArchived && $0.isActive && $0.isPriority }) {
             return priority
         }
 
-        if let active = state.customGroups.first(where: { $0.isActive }) {
+        if let active = state.customGroups.first(where: { !$0.isArchived && $0.isActive }) {
             return active
         }
 
-        return state.customGroups.first
+        return state.customGroups.first(where: { !$0.isArchived }) ?? state.customGroups.first
     }
 
     func updateGroup(
@@ -73,6 +76,7 @@ extension PracticeStore {
         gameIDs: [String]? = nil,
         type: GroupType? = nil,
         isActive: Bool? = nil,
+        isArchived: Bool? = nil,
         isPriority: Bool? = nil,
         replaceStartDate: Bool = false,
         startDate: Date? = nil,
@@ -94,6 +98,13 @@ extension PracticeStore {
         }
         if let isActive {
             state.customGroups[index].isActive = isActive
+        }
+        if let isArchived {
+            state.customGroups[index].isArchived = isArchived
+            if isArchived {
+                state.customGroups[index].isActive = false
+                state.customGroups[index].isPriority = false
+            }
         }
         if let isPriority {
             if isPriority {
@@ -119,6 +130,42 @@ extension PracticeStore {
             state.practiceSettings.selectedGroupID = state.customGroups.first?.id
         }
         saveState()
+    }
+
+    @discardableResult
+    func autoArchiveExpiredGroupsIfNeeded(now: Date = Date()) -> Bool {
+        let calendar = Calendar.current
+        var changed = false
+        for index in state.customGroups.indices {
+            let group = state.customGroups[index]
+            guard !group.isArchived, let endDate = group.endDate else { continue }
+            guard let archiveDate = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: endDate)) else {
+                continue
+            }
+            if now >= archiveDate {
+                state.customGroups[index].isArchived = true
+                state.customGroups[index].isActive = false
+                state.customGroups[index].isPriority = false
+                changed = true
+            }
+        }
+        if changed {
+            saveState()
+        }
+        return changed
+    }
+
+    func activeGroup(for gameID: String) -> CustomGameGroup? {
+        autoArchiveExpiredGroupsIfNeeded()
+        let matches = state.customGroups.enumerated().compactMap { index, group -> (Int, CustomGameGroup)? in
+            guard !group.isArchived, group.isActive, group.gameIDs.contains(gameID) else { return nil }
+            return (index, group)
+        }
+        guard !matches.isEmpty else { return nil }
+        if let priority = matches.first(where: { $0.1.isPriority }) {
+            return priority.1
+        }
+        return matches.first?.1
     }
 
     func reorderGroups(fromOffsets: IndexSet, toOffset: Int) {
@@ -152,7 +199,15 @@ extension PracticeStore {
         groupGames(for: group).map { game in
             let progress = Dictionary(
                 uniqueKeysWithValues: StudyTaskKind.allCases.map { task in
-                    (task, latestTaskProgress(gameID: game.id, task: task))
+                    (
+                        task,
+                        latestTaskProgress(
+                            gameID: game.id,
+                            task: task,
+                            startDate: group.startDate,
+                            endDate: group.endDate
+                        )
+                    )
                 }
             )
             return GroupProgressSnapshot(game: game, taskProgress: progress)
@@ -163,7 +218,10 @@ extension PracticeStore {
         let groupIDs = Set(group.gameIDs)
         return games
             .filter { groupIDs.contains($0.id) }
-            .sorted { focusPriority(for: $0.id) > focusPriority(for: $1.id) }
+            .sorted {
+                focusPriority(for: $0.id, startDate: group.startDate, endDate: group.endDate) >
+                    focusPriority(for: $1.id, startDate: group.startDate, endDate: group.endDate)
+            }
             .first
     }
 
@@ -178,11 +236,18 @@ extension PracticeStore {
             )
         }
 
-        let completionValues = groupGames.map { studyCompletionPercent(for: $0.id) }
+        let completionValues = groupGames.map {
+            studyCompletionPercent(for: $0.id, startDate: group.startDate, endDate: group.endDate)
+        }
         let completionAverage = Int((Double(completionValues.reduce(0, +)) / Double(completionValues.count)).rounded())
 
         let staleGameCount = groupGames.filter { game in
-            guard let ts = taskLastTimestamp(gameID: game.id, task: .practice) else { return true }
+            guard let ts = taskLastTimestamp(
+                gameID: game.id,
+                task: .practice,
+                startDate: group.startDate,
+                endDate: group.endDate
+            ) else { return true }
             let days = Calendar.current.dateComponents([.day], from: ts, to: Date()).day ?? 0
             return days >= 14
         }.count

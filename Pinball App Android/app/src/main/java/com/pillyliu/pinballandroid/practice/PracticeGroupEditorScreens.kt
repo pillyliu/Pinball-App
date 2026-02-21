@@ -38,6 +38,7 @@ internal fun GroupEditorScreen(
     val selected = remember(editingGroupID) { mutableStateListOf<String>().apply { addAll(editing?.gameSlugs ?: emptyList()) } }
     var isActive by remember(editingGroupID) { mutableStateOf(editing?.isActive ?: true) }
     var isPriority by remember(editingGroupID) { mutableStateOf(editing?.isPriority ?: false) }
+    var isArchived by remember(editingGroupID) { mutableStateOf(editing?.isArchived ?: false) }
     var groupType by remember(editingGroupID) { mutableStateOf(editing?.type ?: "custom") }
     var startDateMsValue by remember(editingGroupID) { mutableStateOf(editing?.startDateMs ?: System.currentTimeMillis()) }
     var endDateMsValue by remember(editingGroupID) { mutableStateOf(editing?.endDateMs ?: System.currentTimeMillis()) }
@@ -89,6 +90,7 @@ internal fun GroupEditorScreen(
                     name = name,
                     selectedSlugs = selected.toList(),
                     isActive = isActive,
+                    isArchived = isArchived,
                     isPriority = isPriority,
                     groupType = groupType,
                     hasStartDate = hasStartDate,
@@ -181,6 +183,8 @@ internal fun GroupEditorScreen(
             },
             isPriority = isPriority,
             onIsPriorityChange = { isPriority = it },
+            isArchived = isArchived,
+            onIsArchivedChange = { isArchived = it },
             groupType = groupType,
             onGroupTypeChange = { groupType = it },
             isEditing = editing != null,

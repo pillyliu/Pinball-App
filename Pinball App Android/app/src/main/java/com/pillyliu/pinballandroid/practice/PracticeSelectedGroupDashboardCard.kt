@@ -11,11 +11,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -79,37 +76,12 @@ internal fun SelectedGroupDashboardCard(
                 modifier = Modifier.weight(1f),
             )
         }
-        val suggested = dashboard.recommendedSlug?.let { slug -> store.games.firstOrNull { it.slug == slug } }
-        if (suggested != null) {
-            OutlinedButton(
-                onClick = { onOpenGame(suggested.slug) },
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(start = 20.dp, top = 10.dp, end = 14.dp, bottom = 10.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Suggested Practice Game", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                        Text(suggested.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(
-                            "Historically weaker and/or recently neglected.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
         val games = store.groupGames(selected)
         if (games.isEmpty()) {
             Text("No games in this group yet.")
         } else {
             games.forEach { game ->
-                val progress = store.taskProgressForGame(game.slug)
+                val progress = store.taskProgressForGame(game.slug, selected)
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         TextButton(
@@ -133,11 +105,6 @@ internal fun SelectedGroupDashboardCard(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                        }
-                        IconButton(
-                            onClick = { store.removeGameFromGroup(selected.id, game.slug) },
-                        ) {
-                            Icon(Icons.Outlined.Delete, contentDescription = "Delete game from group")
                         }
                     }
                 }

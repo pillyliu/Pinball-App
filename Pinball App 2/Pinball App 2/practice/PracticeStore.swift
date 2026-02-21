@@ -129,6 +129,7 @@ final class PracticeStore: ObservableObject {
         didLoad = true
 
         loadState()
+        autoArchiveExpiredGroupsIfNeeded()
         await loadGames()
         await loadLeagueTargets()
     }

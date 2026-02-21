@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,18 +24,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,17 +45,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinballandroid.ui.AppScreen
+import com.pillyliu.pinballandroid.ui.CompactDropdownFilter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,10 +73,12 @@ internal fun LibraryList(
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val searchFontSize = if (isLandscape) 14.sp else 13.sp
     val searchControlMinHeight = if (isLandscape) 48.dp else 48.dp
+    val searchContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val searchTextStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = searchFontSize)
     val sortOption = remember(sortOptionName) {
         LibrarySortOption.entries.firstOrNull { it.name == sortOptionName } ?: LibrarySortOption.LOCATION
     }
+    var showFilterSheet by remember { mutableStateOf(false) }
     val bankOptions = games.mapNotNull { it.bank }.toSet().sorted()
     val filtered = games.filter { game ->
         val q = query.trim().lowercase()
@@ -99,8 +99,8 @@ internal fun LibraryList(
     }
 
     AppScreen(contentPadding) {
-        val controlsTopOffset = 4.dp
-        val controlsTopInset = if (isLandscape) 76.dp else 120.dp
+        val controlsTopOffset = 2.dp
+        val controlsTopInset = if (isLandscape) 64.dp else 64.dp
         Box(modifier = Modifier.fillMaxSize()) {
             if (games.isNotEmpty()) {
                 Column(
@@ -127,72 +127,11 @@ internal fun LibraryList(
                     .padding(top = controlsTopOffset),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (isLandscape) {
-                    BoxWithConstraints {
-                        val spacing = 8.dp
-                        val totalWidth = maxWidth - (spacing * 2)
-                        val searchWidth = totalWidth * 0.5f
-                        val sortWidth = totalWidth * 0.25f
-                        val bankWidth = totalWidth - searchWidth - sortWidth
-                        Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
-                            OutlinedTextField(
-                                value = query,
-                                onValueChange = onQueryChange,
-                                placeholder = {
-                                    Text(
-                                        "Search games...",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        style = searchTextStyle,
-                                        maxLines = 1,
-                                    )
-                                },
-                                modifier = Modifier
-                                    .width(searchWidth)
-                                    .height(searchControlMinHeight)
-                                    .shadow(10.dp, RoundedCornerShape(14.dp), clip = false),
-                                shape = RoundedCornerShape(14.dp),
-                                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None),
-                                textStyle = searchTextStyle,
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                                    focusedLabelColor = MaterialTheme.colorScheme.onSurface,
-                                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    cursorColor = MaterialTheme.colorScheme.onSurface,
-                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                    focusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                                ),
-                            )
-
-                            CompactLibraryFilterMenu(
-                                selected = sortOption.label,
-                                options = LibrarySortOption.entries.map { it.label },
-                                modifier = Modifier.width(sortWidth),
-                                isLandscape = true,
-                                landscapeHeight = searchControlMinHeight,
-                                landscapeFontSize = searchFontSize,
-                            ) { selected ->
-                                val option = LibrarySortOption.entries.firstOrNull { it.label == selected } ?: LibrarySortOption.LOCATION
-                                onSortOptionChange(option.name)
-                            }
-
-                            CompactLibraryFilterMenu(
-                                selected = selectedBank?.let { "Bank $it" } ?: "All banks",
-                                options = listOf("All banks") + bankOptions.map { "Bank $it" },
-                                modifier = Modifier.width(bankWidth),
-                                isLandscape = true,
-                                landscapeHeight = searchControlMinHeight,
-                                landscapeFontSize = searchFontSize,
-                            ) { selected ->
-                                val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
-                                onBankChange(bank)
-                            }
-                        }
-                    }
-                } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     OutlinedTextField(
                         value = query,
                         onValueChange = onQueryChange,
@@ -205,7 +144,7 @@ internal fun LibraryList(
                             )
                         },
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .weight(1f)
                             .height(searchControlMinHeight)
                             .shadow(10.dp, RoundedCornerShape(14.dp), clip = false),
                         shape = RoundedCornerShape(14.dp),
@@ -218,95 +157,67 @@ internal fun LibraryList(
                             focusedLabelColor = MaterialTheme.colorScheme.onSurface,
                             unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             cursorColor = MaterialTheme.colorScheme.onSurface,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            focusedContainerColor = searchContainerColor,
+                            unfocusedContainerColor = searchContainerColor,
                             focusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                             unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                         ),
                     )
-
-                    BoxWithConstraints {
-                        val menuWidth = (maxWidth - 8.dp) / 2
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            CompactLibraryFilterMenu(
-                                selected = sortOption.label,
-                                options = LibrarySortOption.entries.map { it.label },
-                                modifier = Modifier.width(menuWidth),
-                            ) { selected ->
-                                val option = LibrarySortOption.entries.firstOrNull { it.label == selected } ?: LibrarySortOption.LOCATION
-                                onSortOptionChange(option.name)
-                            }
-
-                            CompactLibraryFilterMenu(
-                                selected = selectedBank?.let { "Bank $it" } ?: "All banks",
-                                options = listOf("All banks") + bankOptions.map { "Bank $it" },
-                                modifier = Modifier.width(menuWidth),
-                            ) { selected ->
-                                val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
-                                onBankChange(bank)
-                            }
-                        }
+                    FilledTonalIconButton(
+                        onClick = { showFilterSheet = true },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = searchContainerColor,
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                        ),
+                        modifier = Modifier
+                            .height(searchControlMinHeight)
+                            .shadow(10.dp, RoundedCornerShape(14.dp), clip = false),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.FilterList,
+                            contentDescription = "Filters",
+                        )
                     }
                 }
             }
         }
     }
-}
 
-@Composable
-private fun CompactLibraryFilterMenu(
-    selected: String,
-    options: List<String>,
-    modifier: Modifier = Modifier,
-    isLandscape: Boolean = false,
-    landscapeHeight: androidx.compose.ui.unit.Dp = 44.dp,
-    landscapeFontSize: TextUnit = 13.sp,
-    onSelect: (String) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Column(modifier = modifier) {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(if (isLandscape) Modifier.height(landscapeHeight) else Modifier.defaultMinSize(minHeight = 34.dp))
-                .shadow(8.dp, RoundedCornerShape(10.dp), clip = false),
-            contentPadding = PaddingValues(
-                horizontal = if (isLandscape) 10.dp else 8.dp,
-                vertical = if (isLandscape) 6.dp else 3.dp,
-            ),
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-            ),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    selected,
-                    fontSize = if (isLandscape) landscapeFontSize else 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Icon(
-                    imageVector = Icons.Filled.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.defaultMinSize(minWidth = if (isLandscape) 18.dp else 14.dp),
-                )
-            }
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option, fontSize = if (isLandscape) landscapeFontSize else 12.sp) },
-                    onClick = {
-                        expanded = false
-                        onSelect(option)
+    if (showFilterSheet) {
+        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Library filters", style = MaterialTheme.typography.titleSmall)
+                CompactDropdownFilter(
+                    selectedText = sortOption.label,
+                    options = LibrarySortOption.entries.map { it.label },
+                    onSelect = { selected ->
+                        val option = LibrarySortOption.entries.firstOrNull { it.label == selected } ?: LibrarySortOption.LOCATION
+                        onSortOptionChange(option.name)
                     },
+                    modifier = Modifier.fillMaxWidth(),
+                    minHeight = 38.dp,
+                    textSize = 12.sp,
+                    itemTextSize = 12.sp,
                 )
+                CompactDropdownFilter(
+                    selectedText = selectedBank?.let { "Bank $it" } ?: "All banks",
+                    options = listOf("All banks") + bankOptions.map { "Bank $it" },
+                    onSelect = { selected ->
+                        val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
+                        onBankChange(bank)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    minHeight = 38.dp,
+                    textSize = 12.sp,
+                    itemTextSize = 12.sp,
+                )
+                TextButton(onClick = { showFilterSheet = false }, modifier = Modifier.align(Alignment.End)) {
+                    Text("Done")
+                }
             }
         }
     }

@@ -15,7 +15,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,6 +42,7 @@ import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
 import com.pillyliu.pinballandroid.ui.CompactDropdownFilter
 import com.pillyliu.pinballandroid.ui.FixedWidthTableCell
+import com.pillyliu.pinballandroid.ui.InsetFilterHeader
 import org.json.JSONArray
 import java.text.NumberFormat
 
@@ -47,7 +51,7 @@ private const val LIBRARY_URL = "https://pillyliu.com/pinball/data/pinball_libra
 private data class LPLTarget(val game: String, val great: Long, val main: Long, val floor: Long)
 private data class TargetRow(
     val target: LPLTarget,
-    val location: String?,
+    val area: String?,
     val bank: Int?,
     val group: Int?,
     val position: Int?,
@@ -57,20 +61,24 @@ private data class TargetRow(
 private data class LibraryLookup(
     val index: Int,
     val normalizedName: String,
-    val location: String?,
+    val area: String?,
     val bank: Int?,
     val group: Int?,
     val position: Int?,
 )
 
 private enum class TargetSortOption(val label: String) {
-    LOCATION("Location"),
+    LOCATION("Area"),
     BANK("Bank"),
     ALPHABETICAL("A-Z"),
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TargetsScreen(contentPadding: PaddingValues) {
+fun TargetsScreen(
+    contentPadding: PaddingValues,
+    onBack: (() -> Unit)? = null,
+) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -83,6 +91,7 @@ fun TargetsScreen(contentPadding: PaddingValues) {
     }
     var sortOptionName by rememberSaveable { mutableStateOf(TargetSortOption.LOCATION.name) }
     var selectedBank by rememberSaveable { mutableStateOf<Int?>(null) }
+    var showFilterSheet by rememberSaveable { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val sortOption = remember(sortOptionName) { TargetSortOption.valueOf(sortOptionName) }
     val bankOptions = remember(rows) { rows.mapNotNull { it.bank }.toSet().sorted() }
@@ -90,6 +99,7 @@ fun TargetsScreen(contentPadding: PaddingValues) {
     val filteredRows = remember(sortedRows, selectedBank) {
         if (selectedBank == null) sortedRows else sortedRows.filter { it.bank == selectedBank }
     }
+    val navSummaryText = "Sort: ${sortOption.label}  ${selectedBank?.let { "Bank: $it" } ?: "Bank: All"}"
 
     LaunchedEffect(Unit) {
         try {
@@ -100,7 +110,8 @@ fun TargetsScreen(contentPadding: PaddingValues) {
                 LibraryLookup(
                     index = index,
                     normalizedName = normalize(item.optString("name")),
-                    location = item.optString("location").takeIf { it.isNotBlank() }?.trim(),
+                    area = (item.optString("area").takeIf { it.isNotBlank() }
+                        ?: item.optString("location").takeIf { it.isNotBlank() })?.trim(),
                     bank = item.optInt("bank").takeIf { it > 0 },
                     group = item.optInt("group").takeIf { it > 0 },
                     position = item.optInt("position").takeIf { it > 0 },
@@ -118,7 +129,7 @@ fun TargetsScreen(contentPadding: PaddingValues) {
                 val chosen = exact ?: loose
 
                 if (chosen != null) {
-                    TargetRow(target, chosen.location, chosen.bank, chosen.group, chosen.position, chosen.index, fallbackIndex)
+                    TargetRow(target, chosen.area, chosen.bank, chosen.group, chosen.position, chosen.index, fallbackIndex)
                 } else {
                     TargetRow(target, null, null, null, null, Int.MAX_VALUE, fallbackIndex)
                 }
@@ -136,6 +147,11 @@ fun TargetsScreen(contentPadding: PaddingValues) {
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            InsetFilterHeader(
+                summaryText = navSummaryText,
+                onFilterClick = { showFilterSheet = true },
+                onBack = onBack,
+            )
             Column(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -156,22 +172,6 @@ fun TargetsScreen(contentPadding: PaddingValues) {
                         Text("\"great game\"", color = targetAccentColor(TargetColorRole.Great), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
                         Text("main target", color = targetAccentColor(TargetColorRole.Main), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
                         Text("solid floor", color = targetAccentColor(TargetColorRole.Floor), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
-                    }
-                }
-                BoxWithConstraints(modifier = Modifier.padding(top = 4.dp)) {
-                    val menuWidth = (maxWidth - 8.dp) / 2
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SortMenu(
-                            selected = sortOption,
-                            onSelect = { sortOptionName = it.name },
-                            modifier = Modifier.width(menuWidth),
-                        )
-                        BankMenu(
-                            selectedBank = selectedBank,
-                            bankOptions = bankOptions,
-                            onSelect = { selectedBank = it },
-                            modifier = Modifier.width(menuWidth),
-                        )
                     }
                 }
             }
@@ -209,6 +209,31 @@ fun TargetsScreen(contentPadding: PaddingValues) {
                 lineHeight = 16.sp,
                 modifier = Modifier.padding(top = 1.dp, start = 4.dp, end = 4.dp),
             )
+        }
+    }
+
+    if (showFilterSheet) {
+        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Targets filters", style = MaterialTheme.typography.titleSmall)
+                SortMenu(
+                    selected = sortOption,
+                    onSelect = { sortOptionName = it.name },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                BankMenu(
+                    selectedBank = selectedBank,
+                    bankOptions = bankOptions,
+                    onSelect = { selectedBank = it },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextButton(onClick = { showFilterSheet = false }, modifier = Modifier.align(Alignment.End)) {
+                    Text("Done")
+                }
+            }
         }
     }
 }
@@ -301,7 +326,7 @@ private fun Header(gameWidth: Int, bankWidth: Int, scoreWidth: Int) {
 private fun TargetRowView(index: Int, row: TargetRow, gameWidth: Int, bankWidth: Int, scoreWidth: Int) {
     Row(
         modifier = Modifier
-            .background(if (index % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerLow)
+            .background(if (index % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(vertical = 5.dp),
     ) {
         FixedWidthTableCell(

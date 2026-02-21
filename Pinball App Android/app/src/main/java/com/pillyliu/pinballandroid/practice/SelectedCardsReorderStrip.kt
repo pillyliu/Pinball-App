@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -118,13 +119,30 @@ private class SelectedCardsRecyclerAdapter(
     }
 
     fun submit(newSlugs: List<String>, newGamesBySlug: Map<String, PinballGame>) {
+        val oldSlugs = slugs.toList()
+        val gamesChanged = gamesBySlug !== newGamesBySlug
         gamesBySlug = newGamesBySlug
-        if (slugs == newSlugs) {
-            notifyItemRangeChanged(0, slugs.size)
+        if (oldSlugs == newSlugs) {
+            if (gamesChanged && slugs.isNotEmpty()) {
+                notifyItemRangeChanged(0, slugs.size)
+            }
             return
         }
+        val diff = DiffUtil.calculateDiff(
+            object : DiffUtil.Callback() {
+                override fun getOldListSize(): Int = oldSlugs.size
+                override fun getNewListSize(): Int = newSlugs.size
+                override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
+                    oldSlugs[oldItemPosition] == newSlugs[newItemPosition]
+                override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
+                    oldSlugs[oldItemPosition] == newSlugs[newItemPosition]
+            },
+        )
         slugs.clear()
         slugs.addAll(newSlugs)
-        notifyDataSetChanged()
+        diff.dispatchUpdatesTo(this)
+        if (gamesChanged && slugs.isNotEmpty()) {
+            notifyItemRangeChanged(0, slugs.size)
+        }
     }
 }

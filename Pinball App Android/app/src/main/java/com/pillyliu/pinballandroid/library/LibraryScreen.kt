@@ -2,6 +2,7 @@ package com.pillyliu.pinballandroid.library
 
 import android.content.Context
 import androidx.activity.compose.BackHandler
+import androidx.core.content.edit
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -92,10 +93,10 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                 routeSlug = it.slug
                 routeKind = LibraryRouteKind.DETAIL
                 LibraryActivityLog.log(context, it.slug, it.name, LibraryActivityKind.BrowseGame)
-                prefs.edit()
-                    .putString(KEY_LIBRARY_LAST_VIEWED_SLUG, it.slug)
-                    .putLong(KEY_LIBRARY_LAST_VIEWED_TS, System.currentTimeMillis())
-                    .apply()
+                prefs.edit {
+                    putString(KEY_LIBRARY_LAST_VIEWED_SLUG, it.slug)
+                    putLong(KEY_LIBRARY_LAST_VIEWED_TS, System.currentTimeMillis())
+                }
             },
         )
 
