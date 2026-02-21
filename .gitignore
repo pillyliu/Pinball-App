@@ -39,6 +39,8 @@ local.properties
 **/*.xcuserstate
 **/*.xcscmblueprint
 **/xcuserdata/
+Pinball App 2/*.ipa
+Pinball App 2/*.app.dSYM.zip
 
 # Android fastlane local credentials
 Pinball App Android/fastlane/play-store-service-account.json
