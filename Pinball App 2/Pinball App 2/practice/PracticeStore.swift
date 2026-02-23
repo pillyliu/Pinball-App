@@ -111,11 +111,14 @@ struct LeagueTargetScores {
 @MainActor
 final class PracticeStore: ObservableObject {
     @Published var games: [PinballGame] = []
+    @Published var allLibraryGames: [PinballGame] = []
+    @Published var librarySources: [PinballLibrarySource] = []
+    @Published var defaultPracticeSourceID: String?
     @Published var isLoadingGames = false
     @Published var state = PracticePersistedState.empty
     @Published var lastErrorMessage: String?
 
-    static let libraryPath = "/pinball/data/pinball_library.json"
+    static let libraryPath = "/pinball/data/pinball_library_v2.json"
     static let leagueStatsPath = "/pinball/data/LPL_Stats.csv"
     static let leagueTargetsPath = "/pinball/data/LPL_Targets.csv"
     static let storageKey = "practice-state-json"
@@ -131,16 +134,20 @@ final class PracticeStore: ObservableObject {
         loadState()
         autoArchiveExpiredGroupsIfNeeded()
         await loadGames()
+        migratePracticeStateKeysToCanonicalIfNeeded()
         await loadLeagueTargets()
     }
 
     func leagueTargetScores(for gameID: String) -> LeagueTargetScores? {
-        guard let game = games.first(where: { $0.id == gameID }) else { return nil }
+        let canonical = canonicalPracticeGameID(gameID)
+        guard let game = gameForAnyID(canonical) else { return nil }
         return leagueTargetScores(forGameName: game.name)
     }
 
     func gameName(for id: String) -> String {
-        games.first(where: { $0.id == id })?.name ?? id
+        let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return "All games" }
+        return gameForAnyID(trimmed)?.name ?? trimmed
     }
 
     func actionType(for task: StudyTaskKind) -> JournalActionType {

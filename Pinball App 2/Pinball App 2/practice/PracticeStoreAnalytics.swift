@@ -2,21 +2,23 @@ import Foundation
 
 extension PracticeStore {
     func groupPriorityCandidates(group: CustomGameGroup) -> [PinballGame] {
-        let groupGames = games.filter { group.gameIDs.contains($0.id) }
+        let groupIDs = Set(group.gameIDs.map { canonicalPracticeGameID($0) })
+        let groupGames = practiceGamesDeduped().filter { groupIDs.contains($0.canonicalPracticeKey) }
         return groupGames.sorted { lhs, rhs in
-            scoreGapSeverity(for: lhs.id) > scoreGapSeverity(for: rhs.id)
+            scoreGapSeverity(for: lhs.canonicalPracticeKey) > scoreGapSeverity(for: rhs.canonicalPracticeKey)
         }
     }
 
     func recommendedFocusGames(limit: Int = 3) -> [PinballGame] {
-        games.sorted { lhs, rhs in
-            focusPriority(for: lhs.id) > focusPriority(for: rhs.id)
+        practiceGamesDeduped().sorted { lhs, rhs in
+            focusPriority(for: lhs.canonicalPracticeKey) > focusPriority(for: rhs.canonicalPracticeKey)
         }
         .prefix(limit)
         .map { $0 }
     }
 
     func dashboardAlerts(for gameID: String) -> [PracticeDashboardAlert] {
+        let gameID = canonicalPracticeGameID(gameID)
         var alerts: [PracticeDashboardAlert] = []
         let now = Date()
 
@@ -58,6 +60,7 @@ extension PracticeStore {
     }
 
     func timelineSummary(for gameID: String, gapMode: ChartGapMode) -> PracticeTimelineSummary {
+        let gameID = canonicalPracticeGameID(gameID)
         let scores = state.scoreEntries
             .filter { $0.gameID == gameID }
             .sorted { $0.timestamp < $1.timestamp }
@@ -98,6 +101,7 @@ extension PracticeStore {
     }
 
     func studyCompletionPercent(for gameID: String, startDate: Date? = nil, endDate: Date? = nil) -> Int {
+        let gameID = canonicalPracticeGameID(gameID)
         let values = StudyTaskKind.allCases.map {
             latestTaskProgress(gameID: gameID, task: $0, startDate: startDate, endDate: endDate)
         }
@@ -106,11 +110,13 @@ extension PracticeStore {
     }
 
     func scoreGapSeverity(for gameID: String) -> Double {
+        let gameID = canonicalPracticeGameID(gameID)
         guard let summary = scoreSummary(for: gameID) else { return 999_999 }
         return max(0, summary.median - summary.floor)
     }
 
     func focusPriority(for gameID: String, startDate: Date? = nil, endDate: Date? = nil) -> Double {
+        let gameID = canonicalPracticeGameID(gameID)
         let varianceWeight: Double
         if let summary = scoreSummary(for: gameID), summary.median > 0 {
             varianceWeight = (summary.p75 - summary.floor) / summary.median
@@ -128,6 +134,7 @@ extension PracticeStore {
     }
 
     func taskLastTimestamp(gameID: String, task: StudyTaskKind, startDate: Date? = nil, endDate: Date? = nil) -> Date? {
+        let gameID = canonicalPracticeGameID(gameID)
         let action = actionType(for: task)
         return state.journalEntries
             .filter {
@@ -141,6 +148,7 @@ extension PracticeStore {
     }
 
     func latestTaskProgress(gameID: String, task: StudyTaskKind, startDate: Date? = nil, endDate: Date? = nil) -> Int {
+        let gameID = canonicalPracticeGameID(gameID)
         let explicit = state.studyEvents
             .filter {
                 $0.gameID == gameID &&

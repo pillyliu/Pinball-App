@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.pillyliu.pinballandroid.library.PinballGame
@@ -55,6 +57,8 @@ internal fun PracticeGameSection(
     }
 
     val heroImage = game.gameInlinePlayfieldCandidates().firstOrNull()
+    val gameKey = game.practiceKey
+    val hasRulesheet = !game.rulesheetLocal.isNullOrBlank()
     val playableVideos = game.videos.mapNotNull { video ->
         val id = youtubeId(video.url) ?: return@mapNotNull null
         id to (video.label ?: "Video")
@@ -84,6 +88,38 @@ internal fun PracticeGameSection(
     }
 
     CardContainer {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = game.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            game.variant?.takeIf { it.isNotBlank() }?.let { variant ->
+                Text(
+                    text = variant,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
+                        )
+                        .border(
+                            width = 0.75.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
+                        )
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                )
+            }
+        }
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             PracticeGameSubview.entries.forEachIndexed { index, option ->
                 SegmentedButton(
@@ -96,10 +132,10 @@ internal fun PracticeGameSection(
         }
         when (gameSubview) {
             PracticeGameSubview.Summary -> {
-                val summary = store.scoreSummaryFor(game.slug)
-                val activeGroup = store.activeGroupForGame(game.slug)
+                val summary = store.scoreSummaryFor(gameKey)
+                val activeGroup = store.activeGroupForGame(gameKey)
                 if (activeGroup != null) {
-                    val groupProgress = store.taskProgressForGame(game.slug, activeGroup)
+                    val groupProgress = store.taskProgressForGame(gameKey, activeGroup)
                     Row(
                         verticalAlignment = Alignment.Top,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -120,9 +156,9 @@ internal fun PracticeGameSection(
                         }
                     }
                 }
-                NextActionBlock(store = store, gameSlug = game.slug)
-                AlertsBlock(store = store, gameSlug = game.slug)
-                ConsistencyBlock(store = store, gameSlug = game.slug)
+                NextActionBlock(store = store, gameSlug = gameKey)
+                AlertsBlock(store = store, gameSlug = gameKey)
+                ConsistencyBlock(store = store, gameSlug = gameKey)
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Score Stats", fontWeight = FontWeight.SemiBold)
@@ -138,7 +174,7 @@ internal fun PracticeGameSection(
                     }
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Target Scores", fontWeight = FontWeight.SemiBold)
-                        val targets = store.leagueTargetScoresFor(game.slug)
+                        val targets = store.leagueTargetScoresFor(gameKey)
                         if (targets == null) {
                             Text("No target data yet.", style = MaterialTheme.typography.bodySmall)
                         } else {
@@ -162,7 +198,7 @@ internal fun PracticeGameSection(
 
             PracticeGameSubview.Log -> {
                 Text("Log", fontWeight = FontWeight.SemiBold)
-                val rows = store.journalItems(JournalFilter.All).filter { it.gameSlug == game.slug }
+                val rows = store.journalItems(JournalFilter.All).filter { it.gameSlug == gameKey }
                 if (rows.isEmpty()) {
                     Text("No actions logged yet.")
                 } else {
@@ -196,8 +232,8 @@ internal fun PracticeGameSection(
         Row(modifier = Modifier.fillMaxWidth()) {
             Spacer(Modifier.weight(1f))
             Button(
-                onClick = { store.updateGameSummaryNote(game.slug, gameSummaryDraft) },
-                enabled = game.slug.isNotBlank(),
+                onClick = { store.updateGameSummaryNote(gameKey, gameSummaryDraft) },
+                enabled = gameKey.isNotBlank(),
             ) { Text("Save Note") }
         }
     }
@@ -206,7 +242,7 @@ internal fun PracticeGameSection(
         Text("Game Resources", fontWeight = FontWeight.SemiBold)
         Text(game.metaLine(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onOpenRulesheet) { Text("Rulesheet") }
+            OutlinedButton(onClick = onOpenRulesheet, enabled = hasRulesheet) { Text("Rulesheet") }
             OutlinedButton(onClick = { onOpenPlayfield(game.fullscreenPlayfieldCandidates()) }) { Text("Playfield") }
         }
 

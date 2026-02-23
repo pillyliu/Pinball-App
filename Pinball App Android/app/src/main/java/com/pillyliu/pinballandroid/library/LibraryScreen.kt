@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.practice.KEY_LIBRARY_LAST_VIEWED_SLUG
 import com.pillyliu.pinballandroid.practice.KEY_LIBRARY_LAST_VIEWED_TS
+import com.pillyliu.pinballandroid.practice.KEY_PREFERRED_LIBRARY_SOURCE_ID
 import com.pillyliu.pinballandroid.practice.PRACTICE_PREFS
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.EmptyLabel
@@ -41,6 +42,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     var routeKind by rememberSaveable { mutableStateOf(LibraryRouteKind.LIST) }
     var routeSlug by rememberSaveable { mutableStateOf<String?>(null) }
     var routeImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
+    val avenueSourceCandidates = remember { listOf("venue--the-avenue-cafe", "the-avenue") }
 
     val goBack: () -> Unit = {
         when (routeKind) {
@@ -67,9 +69,14 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
             val parsed = parseLibraryPayload(cached.text.orEmpty())
             games = parsed.games
             sources = parsed.sources
-            val chosenSource = parsed.sources.firstOrNull { it.id == selectedSourceId } ?: parsed.sources.firstOrNull()
+            val savedSourceId = prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null)
+            val preferredSourceId = listOfNotNull(savedSourceId, selectedSourceId)
+                .plus(avenueSourceCandidates)
+                .firstOrNull { candidate -> parsed.sources.any { it.id == candidate } }
+            val chosenSource = parsed.sources.firstOrNull { it.id == preferredSourceId } ?: parsed.sources.firstOrNull()
             if (chosenSource != null) {
                 selectedSourceId = chosenSource.id
+                prefs.edit { putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, chosenSource.id) }
                 val sourceGames = parsed.games.filter { it.sourceId == chosenSource.id }
                 val options = sortOptionsForSource(chosenSource, sourceGames)
                 if (options.none { it.name == sortOptionName }) {
@@ -106,6 +113,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
             selectedBank = selectedBank,
             onSourceChange = { sourceId ->
                 selectedSourceId = sourceId
+                prefs.edit { putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, sourceId) }
                 val source = sources.firstOrNull { it.id == sourceId }
                 if (source != null) {
                     val sourceGames = games.filter { it.sourceId == source.id }
@@ -156,6 +164,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                         routeImageUrl = null
                     },
                 onOpenRulesheet = {
+                    if (routeGame.rulesheetLocal.isNullOrBlank()) return@LibraryDetailScreen
                     LibraryActivityLog.log(context, routeGame.slug, routeGame.name, LibraryActivityKind.OpenRulesheet)
                     routeKind = LibraryRouteKind.RULESHEET
                 },
@@ -190,6 +199,11 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                 RulesheetScreen(
                     contentPadding = contentPadding,
                     slug = routeGame.slug,
+                    remoteCandidates = listOfNotNull(
+                        routeGame.rulesheetLocal?.let { "https://pillyliu.com$it" },
+                        routeGame.practiceIdentity?.let { "https://pillyliu.com/pinball/rulesheets/${it}-rulesheet.md" },
+                        "https://pillyliu.com/pinball/rulesheets/${routeGame.slug}.md",
+                    ).distinct(),
                     onBack = { routeKind = LibraryRouteKind.DETAIL },
                 )
             }

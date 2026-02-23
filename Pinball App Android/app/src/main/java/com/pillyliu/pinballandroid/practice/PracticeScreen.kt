@@ -73,7 +73,8 @@ fun PracticeScreen(contentPadding: PaddingValues) {
         }
         uiState.insightsOpponentName = store.comparisonPlayerName
         if (uiState.selectedGameSlug == null) {
-            uiState.selectedGameSlug = store.resumeSlugFromLibraryOrPractice() ?: orderedGamesForDropdown(store.games).firstOrNull()?.slug
+            uiState.selectedGameSlug = store.resumeSlugFromLibraryOrPractice()
+                ?: orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey
         }
     }
 
@@ -87,12 +88,12 @@ fun PracticeScreen(contentPadding: PaddingValues) {
         }
     }
 
-    val selectedGame = store.games.firstOrNull { it.slug == uiState.selectedGameSlug }
+    val selectedGame = findGameByPracticeLookupKey(store.games, uiState.selectedGameSlug)
 
     LaunchedEffect(uiState.selectedGameSlug, store.games) {
-        val slug = uiState.selectedGameSlug ?: return@LaunchedEffect
-        val game = store.games.firstOrNull { it.slug == slug } ?: return@LaunchedEffect
-        uiState.gameSummaryDraft = store.gameSummaryNoteFor(slug)
+        val lookup = uiState.selectedGameSlug ?: return@LaunchedEffect
+        val game = findGameByPracticeLookupKey(store.games, lookup) ?: return@LaunchedEffect
+        uiState.gameSummaryDraft = store.gameSummaryNoteFor(game.practiceKey)
         uiState.activeGameVideoId = game.videos.firstNotNullOfOrNull { video -> youtubeId(video.url) }
     }
 
@@ -111,14 +112,19 @@ fun PracticeScreen(contentPadding: PaddingValues) {
 
     when (uiState.route) {
         PracticeRoute.Rulesheet -> {
-            val slug = uiState.selectedGameSlug
-            if (slug != null) {
+            val game = selectedGame
+            if (game != null) {
                 RulesheetScreen(
                     contentPadding = contentPadding,
-                    slug = slug,
+                    slug = game.practiceKey,
+                    remoteCandidates = listOfNotNull(
+                        game.rulesheetLocal?.let { "https://pillyliu.com$it" },
+                        "https://pillyliu.com/pinball/rulesheets/${game.practiceKey}-rulesheet.md",
+                        "https://pillyliu.com/pinball/rulesheets/${game.slug}.md",
+                    ),
                     onBack = uiState::goBack,
-                    practiceSavedRatio = store.rulesheetSavedProgress(slug),
-                    onSavePracticeRatio = { ratio -> store.saveRulesheetProgress(slug, ratio) },
+                    practiceSavedRatio = store.rulesheetSavedProgress(game.practiceKey),
+                    onSavePracticeRatio = { ratio -> store.saveRulesheetProgress(game.practiceKey, ratio) },
                 )
             } else {
                 uiState.resetToHome()
@@ -168,11 +174,19 @@ fun PracticeScreen(contentPadding: PaddingValues) {
                 editingGroupID = uiState.editingGroupID,
                 selectedGameName = selectedGame?.name,
                 games = store.games,
+                librarySources = store.librarySources,
+                selectedLibrarySourceId = store.defaultPracticeSourceId,
                 gamePickerExpanded = uiState.gamePickerExpanded,
                 onGamePickerExpandedChange = { expanded -> uiState.gamePickerExpanded = expanded },
+                onLibrarySourceSelected = { sourceId ->
+                    store.setPreferredLibrarySource(sourceId)
+                    if (uiState.selectedGameSlug != null && findGameByPracticeLookupKey(store.games, uiState.selectedGameSlug) == null) {
+                        uiState.selectedGameSlug = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey
+                    }
+                },
                 onGameSelected = { game ->
-                    uiState.selectedGameSlug = game.slug
-                    store.markPracticeViewedGame(game.slug)
+                    uiState.selectedGameSlug = game.practiceKey
+                    store.markPracticeViewedGame(game.practiceKey)
                 },
                 onBack = uiState::goBack,
                 onOpenSettings = { uiState.navigateTo(PracticeRoute.Settings) },
@@ -191,6 +205,14 @@ fun PracticeScreen(contentPadding: PaddingValues) {
                 onActiveGameVideoIdChange = { updated -> uiState.activeGameVideoId = updated },
                 resumeOtherExpanded = uiState.resumeOtherExpanded,
                 onResumeOtherExpandedChange = { expanded -> uiState.resumeOtherExpanded = expanded },
+                librarySources = store.librarySources,
+                selectedLibrarySourceId = store.defaultPracticeSourceId,
+                onSelectLibrarySourceId = { sourceId ->
+                    store.setPreferredLibrarySource(sourceId)
+                    if (uiState.selectedGameSlug != null && findGameByPracticeLookupKey(store.games, uiState.selectedGameSlug) == null) {
+                        uiState.selectedGameSlug = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey
+                    }
+                },
                 onOpenQuickEntry = { activity, origin, fromGameView ->
                     uiState.openQuickEntryFor(activity, origin, fromGameView)
                 },
@@ -199,7 +221,11 @@ fun PracticeScreen(contentPadding: PaddingValues) {
                 onOpenInsights = { uiState.navigateTo(PracticeRoute.Insights) },
                 onOpenMechanics = { uiState.navigateTo(PracticeRoute.Mechanics) },
                 onOpenGameRoute = { uiState.navigateTo(PracticeRoute.Game) },
-                onOpenRulesheet = { uiState.navigateTo(PracticeRoute.Rulesheet) },
+                onOpenRulesheet = {
+                    if (!selectedGame?.rulesheetLocal.isNullOrBlank()) {
+                        uiState.navigateTo(PracticeRoute.Rulesheet)
+                    }
+                },
                 onOpenPlayfield = { urls ->
                     uiState.selectedPlayfieldUrls = urls
                     uiState.navigateTo(PracticeRoute.Playfield)

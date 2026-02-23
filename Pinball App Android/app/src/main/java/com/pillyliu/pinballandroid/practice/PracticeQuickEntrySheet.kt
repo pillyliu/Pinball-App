@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
 private const val QUICK_GAME_KEY_PREFIX = "practice-quick-game-"
+private const val QUICK_LIBRARY_KEY_PREFIX = "practice-quick-library-"
+private const val ALL_GAMES_LIBRARY_OPTION = "__all_games__"
 
 @Composable
 internal fun QuickEntrySheet(
@@ -46,12 +48,45 @@ internal fun QuickEntrySheet(
         QuickEntryOrigin.Mechanics -> QuickActivity.Mechanics
     }
     val showActivityDropdown = origin == QuickEntryOrigin.Study && !fromGameView
-    var gameSlug by remember(origin, selectedGameSlug, fromGameView) {
+    val allLibraryGames = remember(store.games, store.allLibraryGames) {
+        if (store.allLibraryGames.isNotEmpty()) store.allLibraryGames else store.games
+    }
+    val librarySources = remember(store.librarySources, allLibraryGames) {
+        if (store.librarySources.isNotEmpty()) {
+            store.librarySources
+        } else {
+            allLibraryGames
+                .groupBy { it.sourceId }
+                .mapNotNull { (_, rows) ->
+                    val first = rows.firstOrNull() ?: return@mapNotNull null
+                    object {
+                        val id = first.sourceId
+                        val name = first.sourceName
+                    }
+                }
+                .map { com.pillyliu.pinballandroid.library.LibrarySource(it.id, it.name, allLibraryGames.firstOrNull { g -> g.sourceId == it.id }?.sourceType ?: com.pillyliu.pinballandroid.library.LibrarySourceType.VENUE) }
+        }
+    }
+    val showLibraryDropdown = !fromGameView && librarySources.size > 1
+    var selectedLibraryOption by remember(origin, fromGameView, librarySources, store.defaultPracticeSourceId) {
+        val saved = prefs.getString("$QUICK_LIBRARY_KEY_PREFIX${origin.keySuffix}", null)
+        val preferred = prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null)
+        val initial = when {
+            origin == QuickEntryOrigin.Mechanics -> ALL_GAMES_LIBRARY_OPTION
+            fromGameView -> store.defaultPracticeSourceId ?: ALL_GAMES_LIBRARY_OPTION
+            saved == ALL_GAMES_LIBRARY_OPTION -> ALL_GAMES_LIBRARY_OPTION
+            saved != null && librarySources.any { it.id == saved } -> saved
+            preferred != null && librarySources.any { it.id == preferred } -> preferred
+            else -> store.defaultPracticeSourceId ?: librarySources.firstOrNull()?.id ?: ALL_GAMES_LIBRARY_OPTION
+        }
+        mutableStateOf(initial)
+    }
+    var gameSlug by remember(origin, selectedGameSlug, fromGameView, store.games) {
         val saved = prefs.getString("$QUICK_GAME_KEY_PREFIX${origin.keySuffix}", null)
         val initial = when {
-            fromGameView -> selectedGameSlug.orEmpty()
             origin == QuickEntryOrigin.Mechanics -> ""
-            else -> saved ?: selectedGameSlug ?: orderedGamesForDropdown(store.games).firstOrNull()?.slug.orEmpty()
+            fromGameView -> selectedGameSlug.orEmpty()
+            else -> saved ?: selectedGameSlug ?: orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey.orEmpty()
         }
         mutableStateOf(initial)
     }
@@ -69,7 +104,16 @@ internal fun QuickEntrySheet(
     var mechanicsSkill by remember { mutableStateOf("Drop Catch") }
     var mechanicsCompetency by remember { mutableStateOf(3f) }
     var validation by remember { mutableStateOf<String?>(null) }
-    val gameOptions = remember(store.games) { orderedGamesForDropdown(store.games, limit = 41) }
+    val libraryFilteredGames = remember(allLibraryGames, selectedLibraryOption) {
+        if (selectedLibraryOption == ALL_GAMES_LIBRARY_OPTION) {
+            allLibraryGames
+        } else {
+            allLibraryGames.filter { it.sourceId == selectedLibraryOption }
+        }
+    }
+    val gameOptions = remember(libraryFilteredGames) {
+        orderedGamesForDropdown(libraryFilteredGames, collapseByPracticeIdentity = true, limit = 41)
+    }
     val mechanicsSkills = store.allTrackedMechanicsSkills()
     LaunchedEffect(mechanicsSkills) {
         if (mechanicsSkills.isNotEmpty() && !mechanicsSkills.contains(mechanicsSkill)) {
@@ -86,17 +130,26 @@ internal fun QuickEntrySheet(
         }
     }
     LaunchedEffect(fromGameView, selectedGameSlug) {
-        if (fromGameView) {
+        if (fromGameView && origin != QuickEntryOrigin.Mechanics) {
             gameSlug = selectedGameSlug.orEmpty()
         }
     }
     LaunchedEffect(mode, gameOptions) {
         if (mode == QuickActivity.Mechanics) return@LaunchedEffect
         if (gameSlug.isBlank() || gameSlug == "None") {
-            gameSlug = gameOptions.firstOrNull()?.slug.orEmpty()
+            gameSlug = gameOptions.firstOrNull()?.practiceKey.orEmpty()
         }
     }
-    val selectedGame = store.games.firstOrNull { it.slug == gameSlug }
+    LaunchedEffect(showLibraryDropdown, selectedLibraryOption) {
+        if (!showLibraryDropdown) return@LaunchedEffect
+        prefs.edit {
+            putString("$QUICK_LIBRARY_KEY_PREFIX${origin.keySuffix}", selectedLibraryOption)
+            if (selectedLibraryOption != ALL_GAMES_LIBRARY_OPTION) {
+                putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, selectedLibraryOption)
+            }
+        }
+    }
+    val selectedGame = findGameByPracticeLookupKey(allLibraryGames, gameSlug)
     val videoSourceOptions = remember(selectedGame, mode) {
         quickEntryVideoSourceOptions(selectedGame, mode)
     }
@@ -119,25 +172,43 @@ internal fun QuickEntrySheet(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!fromGameView) {
+                    if (showLibraryDropdown) {
+                        SimpleMenuDropdown(
+                            title = "Library",
+                            options = listOf(ALL_GAMES_LIBRARY_OPTION) + librarySources.map { it.id },
+                            selected = selectedLibraryOption,
+                            selectedLabel = when (selectedLibraryOption) {
+                                ALL_GAMES_LIBRARY_OPTION -> "All games"
+                                else -> librarySources.firstOrNull { it.id == selectedLibraryOption }?.name ?: selectedLibraryOption
+                            },
+                            onSelect = { selectedLibraryOption = it },
+                            formatOptionLabel = { option ->
+                                when (option) {
+                                    ALL_GAMES_LIBRARY_OPTION -> "All games"
+                                    else -> librarySources.firstOrNull { it.id == option }?.name ?: option
+                                }
+                            },
+                        )
+                    }
                     SimpleMenuDropdown(
                         title = "Game",
                         options = if (mode == QuickActivity.Mechanics) {
-                            listOf("None") + gameOptions.map { it.slug }
+                            listOf("None") + gameOptions.map { it.practiceKey }
                         } else {
-                            gameOptions.map { it.slug }
+                            gameOptions.map { it.practiceKey }
                         },
                         selected = if (mode == QuickActivity.Mechanics && gameSlug.isBlank()) "None" else gameSlug,
                         selectedLabel = if (mode == QuickActivity.Mechanics && gameSlug.isBlank()) {
                             "None"
                         } else {
-                            gameOptions.firstOrNull { it.slug == gameSlug }?.name ?: gameSlug
+                            findGameByPracticeLookupKey(gameOptions, gameSlug)?.displayTitleForPractice ?: gameSlug
                         },
                         onSelect = { gameSlug = it },
                         formatOptionLabel = { option ->
                             if (option == "None") {
                                 "None"
                             } else {
-                                gameOptions.firstOrNull { it.slug == option }?.name ?: option
+                                findGameByPracticeLookupKey(gameOptions, option)?.displayTitleForPractice ?: option
                             }
                         },
                     )

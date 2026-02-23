@@ -77,7 +77,7 @@ extension PracticeStore {
             )
             state.journalEntries.append(
                 JournalEntry(
-                    gameID: games.first?.id ?? "library",
+                    gameID: practiceGamesDeduped().first?.canonicalPracticeKey ?? "library",
                     action: .scoreLogged,
                     scoreContext: .league,
                     note: result.summaryLine,

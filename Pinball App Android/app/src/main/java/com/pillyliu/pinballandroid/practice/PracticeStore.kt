@@ -1,10 +1,12 @@
 package com.pillyliu.pinballandroid.practice
 
 import android.content.Context
+import androidx.core.content.edit
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.pillyliu.pinballandroid.library.LibraryActivityLog
+import com.pillyliu.pinballandroid.library.LibrarySource
 import com.pillyliu.pinballandroid.library.PinballGame
 
 private const val PRACTICE_STATE_KEY = "practice-state-json"
@@ -15,6 +17,15 @@ internal class PracticeStore(private val context: Context) {
         private set
 
     var games by mutableStateOf<List<PinballGame>>(emptyList())
+        private set
+
+    var allLibraryGames by mutableStateOf<List<PinballGame>>(emptyList())
+        private set
+
+    var librarySources by mutableStateOf<List<LibrarySource>>(emptyList())
+        private set
+
+    var defaultPracticeSourceId by mutableStateOf<String?>(null)
         private set
 
     var groups by mutableStateOf<List<PracticeGroup>>(emptyList())
@@ -59,6 +70,9 @@ internal class PracticeStore(private val context: Context) {
         saveState()
     }
 
+    private fun practiceLookupGames(): List<PinballGame> =
+        if (allLibraryGames.isNotEmpty()) allLibraryGames else games
+
     private fun applyPersistedState(state: PracticePersistedState) {
         playerName = state.playerName
         comparisonPlayerName = state.comparisonPlayerName
@@ -79,6 +93,7 @@ internal class PracticeStore(private val context: Context) {
         loadState()
         autoArchiveExpiredGroupsIfNeeded()
         loadGames()
+        migrateLoadedStateToPracticeKeys()
         loadLeagueTargets()
     }
 
@@ -165,11 +180,12 @@ internal class PracticeStore(private val context: Context) {
     }
 
     fun addScore(gameSlug: String, score: Double, context: String, timestampMs: Long = System.currentTimeMillis(), leagueImported: Boolean = false) {
-        val gameName = gameName(gameSlug)
+        val canonicalKey = canonicalPracticeKey(gameSlug, practiceLookupGames())
+        val gameName = gameName(canonicalKey)
         val mutation = applyScoreEntryMutation(
             scores = scores,
             journal = journal,
-            gameSlug = gameSlug,
+            gameSlug = canonicalKey,
             gameName = gameName,
             score = score,
             context = context,
@@ -178,16 +194,17 @@ internal class PracticeStore(private val context: Context) {
         )
         scores = mutation.scores
         journal = mutation.journal
-        markPracticeViewedGame(gameSlug)
+        markPracticeViewedGame(canonicalKey)
         saveState()
     }
 
     fun addStudy(gameSlug: String, category: String, value: String, note: String? = null) {
-        val gameName = gameName(gameSlug)
+        val canonicalKey = canonicalPracticeKey(gameSlug, practiceLookupGames())
+        val gameName = gameName(canonicalKey)
         val mutation = applyStudyEntryMutation(
             journal = journal,
             rulesheetProgress = rulesheetProgress,
-            gameSlug = gameSlug,
+            gameSlug = canonicalKey,
             gameName = gameName,
             category = category,
             value = value,
@@ -196,16 +213,17 @@ internal class PracticeStore(private val context: Context) {
         )
         rulesheetProgress = mutation.rulesheetProgress
         journal = mutation.journal
-        markPracticeViewedGame(gameSlug)
+        markPracticeViewedGame(canonicalKey)
         saveState()
     }
 
     fun addPracticeNote(gameSlug: String, category: String, detail: String?, note: String) {
-        val gameName = gameName(gameSlug)
+        val canonicalKey = canonicalPracticeKey(gameSlug, practiceLookupGames())
+        val gameName = gameName(canonicalKey)
         val mutation = applyPracticeNoteMutation(
             notes = notes,
             journal = journal,
-            gameSlug = gameSlug,
+            gameSlug = canonicalKey,
             gameName = gameName,
             category = category,
             detail = detail,
@@ -214,19 +232,19 @@ internal class PracticeStore(private val context: Context) {
         ) ?: return
         notes = mutation.notes
         journal = mutation.journal
-        markPracticeViewedGame(gameSlug)
+        markPracticeViewedGame(canonicalKey)
         saveState()
     }
 
     fun journalItems(filter: JournalFilter): List<JournalEntry> = filteredJournalItems(journal, filter)
 
     fun scoreValuesFor(gameSlug: String): List<Double> =
-        scoreValuesForGame(scores, gameSlug)
+        scoreValuesForGame(scores, canonicalPracticeKey(gameSlug, practiceLookupGames()))
 
     fun scoreTrendValues(gameSlug: String, limit: Int = 24): List<Double> =
-        scoreTrendValuesForGame(scores, gameSlug, limit)
+        scoreTrendValuesForGame(scores, canonicalPracticeKey(gameSlug, practiceLookupGames()), limit)
 
-    fun scoreSummaryFor(gameSlug: String): ScoreSummary? = computeScoreSummaryForGame(scores, gameSlug)
+    fun scoreSummaryFor(gameSlug: String): ScoreSummary? = computeScoreSummaryForGame(scores, canonicalPracticeKey(gameSlug, practiceLookupGames()))
 
     fun groupDashboardScore(group: PracticeGroup): GroupDashboardScore =
         computeGroupDashboardScore(group, games, scores, journal, rulesheetProgress)
@@ -238,7 +256,7 @@ internal class PracticeStore(private val context: Context) {
         computeTaskProgressForGame(
             journal = journal,
             rulesheetProgress = rulesheetProgress,
-            gameSlug = gameSlug,
+            gameSlug = canonicalPracticeKey(gameSlug, practiceLookupGames()),
             startDateMs = group?.startDateMs,
             endDateMs = group?.endDateMs,
         )
@@ -262,26 +280,27 @@ internal class PracticeStore(private val context: Context) {
 
     fun activeGroupForGame(gameSlug: String): PracticeGroup? {
         autoArchiveExpiredGroupsIfNeeded()
-        return activeGroupForGame(groups, gameSlug)
+        return activeGroupForGame(groups, canonicalPracticeKey(gameSlug, practiceLookupGames()))
     }
 
     fun groupGames(group: PracticeGroup): List<PinballGame> = groupGamesFromList(group, games)
 
-    fun gameName(slug: String): String = gameNameForSlug(games, slug)
+    fun gameName(slug: String): String = gameNameForSlug(practiceLookupGames(), canonicalPracticeKey(slug, practiceLookupGames()))
 
     fun leagueTargetScoresFor(gameSlug: String): LeagueTargetScores? =
-        leagueTargetScoresForSlug(gameSlug, games, ::leagueTargetScoresForGameName)
+        leagueTargetScoresForSlug(canonicalPracticeKey(gameSlug, practiceLookupGames()), practiceLookupGames(), ::leagueTargetScoresForGameName)
 
     fun saveRulesheetProgress(slug: String, ratio: Float) {
-        mutateAndSave { rulesheetProgress = updatedRulesheetProgress(rulesheetProgress, slug, ratio) }
+        val canonicalKey = canonicalPracticeKey(slug, practiceLookupGames())
+        mutateAndSave { rulesheetProgress = updatedRulesheetProgress(rulesheetProgress, canonicalKey, ratio) }
     }
 
-    fun rulesheetSavedProgress(slug: String): Float = rulesheetProgress[slug] ?: 0f
+    fun rulesheetSavedProgress(slug: String): Float = rulesheetProgress[canonicalPracticeKey(slug, practiceLookupGames())] ?: 0f
 
-    fun gameSummaryNoteFor(slug: String): String = gameSummaryNoteForSlug(gameSummaryNotes, slug)
+    fun gameSummaryNoteFor(slug: String): String = gameSummaryNoteForSlug(gameSummaryNotes, canonicalPracticeKey(slug, practiceLookupGames()))
 
     fun updateGameSummaryNote(slug: String, note: String) {
-        val updated = updatedGameSummaryNotes(gameSummaryNotes, slug, note) ?: return
+        val updated = updatedGameSummaryNotes(gameSummaryNotes, canonicalPracticeKey(slug, practiceLookupGames()), note) ?: return
         mutateAndSave { gameSummaryNotes = updated }
     }
 
@@ -316,13 +335,69 @@ internal class PracticeStore(private val context: Context) {
     }
 
     fun markPracticeViewedGame(slug: String) {
-        markPracticeLastViewedGame(prefs, slug, System.currentTimeMillis())
+        val canonicalKey = canonicalPracticeKey(slug, practiceLookupGames())
+        if (canonicalKey.isBlank()) return
+        markPracticeLastViewedGame(prefs, canonicalKey, System.currentTimeMillis())
     }
 
-    fun resumeSlugFromLibraryOrPractice(): String? = resumeSlugFromLibraryOrPractice(prefs)
+    fun resumeSlugFromLibraryOrPractice(): String? =
+        resumeSlugFromLibraryOrPractice(prefs)?.let { canonicalPracticeKey(it, practiceLookupGames()) }
+
+    fun setPreferredLibrarySource(sourceId: String?) {
+        val pool = if (allLibraryGames.isNotEmpty()) allLibraryGames else games
+        val trimmed = sourceId?.trim().orEmpty()
+        val selected = if (trimmed.isBlank()) {
+            null
+        } else {
+            librarySources.firstOrNull { it.id == trimmed }
+        }
+        defaultPracticeSourceId = selected?.id
+        games = if (selected != null) pool.filter { it.sourceId == selected.id } else pool
+        prefs.edit {
+            if (selected != null) {
+                putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, selected.id)
+            } else {
+                remove(KEY_PREFERRED_LIBRARY_SOURCE_ID)
+            }
+        }
+    }
 
     private suspend fun loadGames() {
-        games = loadPracticeGamesFromLibrary()
+        val loaded = loadPracticeGamesFromLibrary()
+        val avenueCandidates = listOf("venue--the-avenue-cafe", "the-avenue")
+        val savedSourceId = prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null)
+        val preferredSource = listOfNotNull(savedSourceId, loaded.defaultSourceId)
+            .plus(avenueCandidates)
+            .firstOrNull { id -> loaded.sources.any { it.id == id } }
+            ?.let { id -> loaded.sources.firstOrNull { it.id == id } }
+            ?: loaded.sources.firstOrNull()
+
+        games = if (preferredSource != null) loaded.allGames.filter { it.sourceId == preferredSource.id } else loaded.games
+        allLibraryGames = loaded.allGames
+        librarySources = loaded.sources
+        defaultPracticeSourceId = preferredSource?.id ?: loaded.defaultSourceId
+        defaultPracticeSourceId?.let { prefs.edit().putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, it).apply() }
+    }
+
+    private fun migrateLoadedStateToPracticeKeys() {
+        if (games.isEmpty()) return
+        val current = practicePersistedStateFromValues(
+            playerName = playerName,
+            comparisonPlayerName = comparisonPlayerName,
+            leaguePlayerName = leaguePlayerName,
+            cloudSyncEnabled = cloudSyncEnabled,
+            selectedGroupID = selectedGroupID,
+            groups = groups,
+            scores = scores,
+            notes = notes,
+            journal = journal,
+            rulesheetProgress = rulesheetProgress,
+            gameSummaryNotes = gameSummaryNotes,
+        )
+        val migrated = migratePracticeStateKeys(current, games)
+        if (migrated == current) return
+        applyPersistedState(migrated)
+        saveState()
     }
 
     private fun autoArchiveExpiredGroupsIfNeeded() {

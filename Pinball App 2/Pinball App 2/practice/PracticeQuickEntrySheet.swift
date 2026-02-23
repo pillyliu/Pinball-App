@@ -1,5 +1,8 @@
 import SwiftUI
 
+let quickEntryAllGamesLibraryID = "__all_games__"
+private let preferredLibrarySourceDefaultsKey = "preferred-library-source-id"
+
 struct PracticeQuickEntrySheet: View {
     let kind: QuickEntrySheet
     @ObservedObject var store: PracticeStore
@@ -25,6 +28,7 @@ struct PracticeQuickEntrySheet: View {
     @State private var mechanicsNote: String = ""
     @State private var noteText: String = ""
     @State private var validationMessage: String?
+    @State private var selectedLibraryFilterID: String = ""
 
     private var availableActivities: [QuickEntryActivity] {
         switch kind {
@@ -44,7 +48,23 @@ struct PracticeQuickEntrySheet: View {
     }
 
     private var selectedGame: PinballGame? {
-        store.games.first(where: { $0.id == selectedGameID })
+        store.gameForAnyID(selectedGameID)
+    }
+
+    private var allLibraryGamesForPicker: [PinballGame] {
+        store.allLibraryGames.isEmpty ? store.games : store.allLibraryGames
+    }
+
+    private var availableLibrarySources: [PinballLibrarySource] {
+        store.librarySources.isEmpty ? inferPracticeLibrarySources(from: allLibraryGamesForPicker) : store.librarySources
+    }
+
+    private var filteredGamesForPicker: [PinballGame] {
+        let selected = selectedLibraryFilterID.trimmingCharacters(in: .whitespacesAndNewlines)
+        if selected.isEmpty || selected == quickEntryAllGamesLibraryID {
+            return allLibraryGamesForPicker
+        }
+        return allLibraryGamesForPicker.filter { $0.sourceId == selected }
     }
 
     private var videoSourceOptions: [String] {
@@ -54,29 +74,40 @@ struct PracticeQuickEntrySheet: View {
     }
 
     var body: some View {
-        let gameOptions = orderedGamesForDropdown(store.games, limit: 41)
+        let gameOptions = orderedGamesForDropdown(filteredGamesForPicker, collapseByPracticeIdentity: true, limit: 41)
         NavigationStack {
             ZStack {
                 Color.clear.ignoresSafeArea()
                 PracticeEntryGlassCard {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 12) {
+                            if availableLibrarySources.count > 1 {
+                                Picker("Library", selection: $selectedLibraryFilterID) {
+                                    Text("All games").tag(quickEntryAllGamesLibraryID)
+                                    ForEach(availableLibrarySources) { source in
+                                        Text(source.name).tag(source.id)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                            }
                             Picker("Game", selection: $selectedGameID) {
                                 if kind == .mechanics {
                                     Text("None").tag("")
                                 }
-                                if store.games.isEmpty {
+                                if filteredGamesForPicker.isEmpty {
                                     Text("No game data").tag("")
                                 } else {
                                     ForEach(gameOptions) { game in
-                                        Text(game.name).tag(game.id)
+                                        Text(game.name).tag(game.canonicalPracticeKey)
                                     }
                                 }
                             }
                             .pickerStyle(.menu)
-                            .onChange(of: store.games.count) { _, _ in
-                                if selectedGameID.isEmpty, let first = orderedGamesForDropdown(store.games).first {
-                                    selectedGameID = first.id
+                            .onChange(of: gameOptions.count) { _, _ in
+                                if kind != .mechanics,
+                                   selectedGameID.isEmpty,
+                                   let first = orderedGamesForDropdown(filteredGamesForPicker, collapseByPracticeIdentity: true).first {
+                                    selectedGameID = first.canonicalPracticeKey
                                 }
                             }
 
@@ -197,15 +228,31 @@ struct PracticeQuickEntrySheet: View {
             }
             .onAppear {
                 selectedActivity = kind.defaultActivity
-                if selectedGameID.isEmpty, kind != .mechanics, let first = orderedGamesForDropdown(store.games).first {
-                    selectedGameID = first.id
+                if selectedLibraryFilterID.isEmpty {
+                    if kind == .mechanics {
+                        selectedLibraryFilterID = quickEntryAllGamesLibraryID
+                    } else {
+                        let savedPreferredLibraryID = UserDefaults.standard.string(forKey: preferredLibrarySourceDefaultsKey)
+                        selectedLibraryFilterID =
+                            (savedPreferredLibraryID.flatMap { id in availableLibrarySources.contains(where: { $0.id == id }) ? id : nil })
+                            ?? store.defaultPracticeSourceID
+                            ?? availableLibrarySources.first(where: { $0.id == "venue--the-avenue-cafe" })?.id
+                            ?? availableLibrarySources.first(where: { $0.id == "the-avenue" })?.id
+                            ?? availableLibrarySources.first?.id
+                            ?? quickEntryAllGamesLibraryID
+                    }
+                }
+                if kind == .mechanics {
+                    selectedGameID = ""
+                } else if selectedGameID.isEmpty, let first = orderedGamesForDropdown(filteredGamesForPicker, collapseByPracticeIdentity: true).first {
+                    selectedGameID = first.canonicalPracticeKey
                 }
                 if mechanicsSkill.isEmpty {
                     mechanicsSkill = store.allTrackedMechanicsSkills().first ?? ""
                 }
             }
             .onChange(of: selectedGameID) { _, newValue in
-                onGameSelectionChanged(kind, newValue)
+                onGameSelectionChanged(kind, store.canonicalPracticeGameID(newValue))
             }
             .onChange(of: selectedActivity) { _, _ in
                 if selectedVideoSource.isEmpty || !videoSourceOptions.contains(selectedVideoSource) {
@@ -216,6 +263,18 @@ struct PracticeQuickEntrySheet: View {
                 if selectedVideoSource.isEmpty || !videoSourceOptions.contains(selectedVideoSource) {
                     selectedVideoSource = videoSourceOptions.first ?? ""
                 }
+            }
+            .onChange(of: selectedLibraryFilterID) { _, _ in
+                if !selectedLibraryFilterID.isEmpty, selectedLibraryFilterID != quickEntryAllGamesLibraryID {
+                    UserDefaults.standard.set(selectedLibraryFilterID, forKey: preferredLibrarySourceDefaultsKey)
+                }
+                guard kind != .mechanics else { return }
+                let filtered = orderedGamesForDropdown(filteredGamesForPicker, collapseByPracticeIdentity: true)
+                if let selected = store.gameForAnyID(selectedGameID),
+                   filtered.contains(where: { $0.canonicalPracticeKey == selected.canonicalPracticeKey }) {
+                    return
+                }
+                selectedGameID = filtered.first?.canonicalPracticeKey ?? ""
             }
             .onAppear {
                 if selectedVideoSource.isEmpty || !videoSourceOptions.contains(selectedVideoSource) {
@@ -353,16 +412,23 @@ struct PracticeQuickEntrySheet: View {
             let composed = rawNote.isEmpty
                 ? "\(prefix) competency \(Int(mechanicsCompetency))/5."
                 : "\(prefix) competency \(Int(mechanicsCompetency))/5. \(rawNote)"
-            let targetGameID = selectedGameID.isEmpty ? (orderedGamesForDropdown(store.games).first?.id ?? "") : selectedGameID
-            guard !targetGameID.isEmpty else {
-                validationMessage = "Add at least one game in the library before logging mechanics."
-                return nil
-            }
+            let targetGameID = store.canonicalPracticeGameID(selectedGameID)
             store.addNote(gameID: targetGameID, category: .general, detail: skill.isEmpty ? nil : skill, note: composed)
             return targetGameID
         }
     }
 
+}
+
+private func inferPracticeLibrarySources(from games: [PinballGame]) -> [PinballLibrarySource] {
+    var seen = Set<String>()
+    var out: [PinballLibrarySource] = []
+    for game in games {
+        if seen.insert(game.sourceId).inserted {
+            out.append(PinballLibrarySource(id: game.sourceId, name: game.sourceName, type: game.sourceType))
+        }
+    }
+    return out
 }
 
 private func formatScoreInputWithCommas(_ raw: String) -> String {

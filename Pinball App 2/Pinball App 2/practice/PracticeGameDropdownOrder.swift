@@ -1,7 +1,8 @@
 import Foundation
 
-func orderedGamesForDropdown(_ games: [PinballGame], limit: Int? = nil) -> [PinballGame] {
-    let ordered = games.sorted { lhs, rhs in
+func orderedGamesForDropdown(_ games: [PinballGame], collapseByPracticeIdentity: Bool = false, limit: Int? = nil) -> [PinballGame] {
+    let source = collapseByPracticeIdentity ? dedupePracticeGames(games) : games
+    let ordered = source.sorted { lhs, rhs in
         if lhs.sourceType != rhs.sourceType {
             return lhs.sourceType == .venue
         }
@@ -21,6 +22,18 @@ func orderedGamesForDropdown(_ games: [PinballGame], limit: Int? = nil) -> [Pinb
     }
     guard let limit else { return ordered }
     return Array(ordered.prefix(limit))
+}
+
+private func dedupePracticeGames(_ games: [PinballGame]) -> [PinballGame] {
+    var seen = Set<String>()
+    var out: [PinballGame] = []
+    for game in games {
+        let key = game.canonicalPracticeKey
+        if seen.insert(key).inserted {
+            out.append(game)
+        }
+    }
+    return out
 }
 
 private func compareOptionalIntAscending(_ lhs: Int?, _ rhs: Int?) -> ComparisonResult? {

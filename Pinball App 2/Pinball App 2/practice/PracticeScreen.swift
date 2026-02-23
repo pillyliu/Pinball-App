@@ -54,7 +54,6 @@ struct PracticeScreen: View {
     }
 
     var resumeGame: PinballGame? {
-        let orderedGames = orderedGamesForDropdown(store.games)
         let libraryID = appNavigation.lastViewedLibraryGameID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let practiceID = practiceLastViewedGameID.trimmingCharacters(in: .whitespacesAndNewlines)
         let candidateID: String
@@ -64,14 +63,14 @@ struct PracticeScreen: View {
             candidateID = practiceID.isEmpty ? libraryID : practiceID
         }
         if !candidateID.isEmpty,
-           let match = orderedGames.first(where: { $0.id == candidateID }) {
+           let match = store.gameForAnyID(candidateID) {
             return match
         }
         return defaultPracticeGame
     }
 
     var defaultPracticeGame: PinballGame? {
-        return orderedGamesForDropdown(store.games).first
+        return orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first
     }
 
     var selectedGroup: CustomGameGroup? {
@@ -167,7 +166,7 @@ struct PracticeScreen: View {
 
     func applyDefaultsAfterLoad() {
         if selectedGameID.isEmpty, let fallback = defaultPracticeGame {
-            selectedGameID = fallback.id
+            selectedGameID = fallback.canonicalPracticeKey
         }
 
         playerName = store.state.practiceSettings.playerName
@@ -189,31 +188,32 @@ struct PracticeScreen: View {
     }
     func goToGame(_ gameID: String) {
         guard !gameID.isEmpty else { return }
-        selectedGameID = gameID
-        markPracticeGameViewed(gameID)
-        let target = PracticeNavRoute.game(gameID)
+        let canonical = store.canonicalPracticeGameID(gameID)
+        selectedGameID = canonical
+        markPracticeGameViewed(canonical)
+        let target = PracticeNavRoute.game(canonical)
         if gameNavigationPath.last != target {
             gameNavigationPath.append(target)
         }
     }
     func resumeToPracticeGame() {
         if let game = resumeGame {
-            goToGame(game.id)
+            goToGame(game.canonicalPracticeKey)
         } else if let fallback = defaultPracticeGame {
-            goToGame(fallback.id)
+            goToGame(fallback.canonicalPracticeKey)
         }
     }
     func openQuickEntry(_ sheet: QuickEntrySheet) {
-        let orderedGames = orderedGamesForDropdown(store.games)
-        let remembered = rememberedQuickEntryGame(for: sheet)
+        let orderedGames = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true)
+        let remembered = store.canonicalPracticeGameID(rememberedQuickEntryGame(for: sheet))
         if sheet == .mechanics {
-            selectedGameID = remembered
+            selectedGameID = ""
         } else if !remembered.isEmpty {
             selectedGameID = remembered
         } else if !selectedGameID.isEmpty {
             // keep current selection
         } else if let first = orderedGames.first {
-            selectedGameID = first.id
+            selectedGameID = first.canonicalPracticeKey
         }
         quickSheet = sheet
     }
@@ -230,20 +230,22 @@ struct PracticeScreen: View {
         }
     }
     func rememberQuickEntryGame(sheet: QuickEntrySheet, gameID: String) {
+        let canonical = store.canonicalPracticeGameID(gameID)
         switch sheet {
         case .score:
-            quickScoreGameID = gameID
+            quickScoreGameID = canonical
         case .study:
-            quickStudyGameID = gameID
+            quickStudyGameID = canonical
         case .practice:
-            quickPracticeGameID = gameID
+            quickPracticeGameID = canonical
         case .mechanics:
-            quickMechanicsGameID = gameID
+            quickMechanicsGameID = ""
         }
     }
     func markPracticeGameViewed(_ gameID: String) {
-        guard !gameID.isEmpty else { return }
-        practiceLastViewedGameID = gameID
+        let canonical = store.canonicalPracticeGameID(gameID)
+        guard !canonical.isEmpty else { return }
+        practiceLastViewedGameID = canonical
         practiceLastViewedGameTS = Date().timeIntervalSince1970
     }
     func openGroupEditorForSelection() {
@@ -312,7 +314,8 @@ struct PracticeScreen: View {
         }
     }
     func scoreTrendValues(for gameID: String) -> [Double] {
-        store.state.scoreEntries
+        let gameID = store.canonicalPracticeGameID(gameID)
+        return store.state.scoreEntries
             .filter { $0.gameID == gameID }
             .sorted { $0.timestamp < $1.timestamp }
             .map(\.score)

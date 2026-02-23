@@ -76,10 +76,9 @@ internal fun PracticeMechanicsSection(
         }
 
         Button(onClick = {
-            val gameSlug = selectedGameSlug ?: store.games.firstOrNull()?.slug ?: return@Button
             val prefix = if (mechanicsSelectedSkill.isBlank()) "#mechanics" else "#${mechanicsSelectedSkill.replace(" ", "")}"
             val composed = "$prefix competency ${mechanicsCompetency.roundToInt()}/5. ${mechanicsNote.trim()}".trim()
-            store.addPracticeNote(gameSlug, "general", mechanicsSelectedSkill, composed)
+            store.addPracticeNote("", "general", mechanicsSelectedSkill, composed)
             onMechanicsNoteChange("")
         }) { Text("Log Mechanics Session") }
     }

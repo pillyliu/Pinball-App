@@ -3,16 +3,19 @@ import SwiftUI
 struct PracticeHomeCardSection: View {
     let resumeGame: PinballGame?
     let allGames: [PinballGame]
+    let librarySources: [PinballLibrarySource]
+    let selectedLibrarySourceID: String?
     let activeGroups: [CustomGameGroup]
     let selectedGroupID: UUID?
     let groupGames: (CustomGameGroup) -> [PinballGame]
     let gameTransition: Namespace.ID
     let onResume: () -> Void
+    let onSelectLibrarySource: (String) -> Void
     let onPickGame: (String) -> Void
     let onQuickEntry: (QuickEntrySheet) -> Void
 
     var body: some View {
-        let orderedAllGames = orderedGamesForDropdown(allGames)
+        let orderedAllGames = orderedGamesForDropdown(allGames, collapseByPracticeIdentity: true)
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 8) {
                 if let game = resumeGame {
@@ -27,9 +30,17 @@ struct PracticeHomeCardSection: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                         Menu {
+                            if librarySources.count > 1 {
+                                ForEach(librarySources) { source in
+                                    Button((source.id == selectedLibrarySourceID ? "✓ " : "") + source.name) {
+                                        onSelectLibrarySource(source.id)
+                                    }
+                                }
+                                Divider()
+                            }
                             ForEach(orderedAllGames) { listGame in
                                 Button(listGame.name) {
-                                    onPickGame(listGame.id)
+                                    onPickGame(listGame.canonicalPracticeKey)
                                 }
                             }
                         } label: {
@@ -94,10 +105,10 @@ struct PracticeHomeCardSection: View {
                                         HStack(spacing: 8) {
                                             ForEach(games) { game in
                                                 Button {
-                                                    onPickGame(game.id)
+                                                    onPickGame(game.canonicalPracticeKey)
                                                 } label: {
                                                     SelectedGameMiniCard(game: game)
-                                                        .matchedTransitionSource(id: game.id, in: gameTransition)
+                                                        .matchedTransitionSource(id: game.canonicalPracticeKey, in: gameTransition)
                                                 }
                                                 .buttonStyle(.plain)
                                             }

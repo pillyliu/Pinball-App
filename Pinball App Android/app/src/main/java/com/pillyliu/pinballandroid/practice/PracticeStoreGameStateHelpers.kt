@@ -6,19 +6,19 @@ internal fun activeGroupsFromList(groups: List<PracticeGroup>): List<PracticeGro
     groups.filter { it.isActive && !it.isArchived }
 
 internal fun groupGamesFromList(group: PracticeGroup, games: List<PinballGame>): List<PinballGame> {
-    val map = games.associateBy { it.slug }
+    val map = gamesByPracticeLookupKey(games)
     return group.gameSlugs.mapNotNull { map[it] }
 }
 
 internal fun gameNameForSlug(games: List<PinballGame>, slug: String): String =
-    games.firstOrNull { it.slug == slug }?.name ?: slug
+    if (slug.isBlank()) "All games" else (findGameByPracticeLookupKey(games, slug)?.name ?: slug)
 
 internal fun leagueTargetScoresForSlug(
     gameSlug: String,
     games: List<PinballGame>,
     resolver: (String) -> LeagueTargetScores?,
 ): LeagueTargetScores? {
-    val game = games.firstOrNull { it.slug == gameSlug } ?: return null
+    val game = findGameByPracticeLookupKey(games, gameSlug) ?: return null
     return resolver(game.name)
 }
 

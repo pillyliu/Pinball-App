@@ -39,7 +39,7 @@ extension PracticeStore {
     }
 
     func applyBankTemplate(bank: Int, into groupName: String) {
-        let gameIDs = games.filter { $0.bank == bank }.map(\.id)
+        let gameIDs = games.filter { $0.bank == bank }.map(\.canonicalPracticeKey)
         createGroup(
             name: groupName.isEmpty ? "Bank \(bank) Focus" : groupName,
             gameIDs: gameIDs,
@@ -156,6 +156,7 @@ extension PracticeStore {
     }
 
     func activeGroup(for gameID: String) -> CustomGameGroup? {
+        let gameID = canonicalPracticeGameID(gameID)
         autoArchiveExpiredGroupsIfNeeded()
         let matches = state.customGroups.enumerated().compactMap { index, group -> (Int, CustomGameGroup)? in
             guard !group.isArchived, group.isActive, group.gameIDs.contains(gameID) else { return nil }
@@ -186,13 +187,14 @@ extension PracticeStore {
 
     func removeGame(_ gameID: String, fromGroup groupID: UUID) {
         guard let index = state.customGroups.firstIndex(where: { $0.id == groupID }) else { return }
-        state.customGroups[index].gameIDs.removeAll { $0 == gameID }
+        let canonical = canonicalPracticeGameID(gameID)
+        state.customGroups[index].gameIDs.removeAll { canonicalPracticeGameID($0) == canonical }
         saveState()
     }
 
     func groupGames(for group: CustomGameGroup) -> [PinballGame] {
-        let byID = Dictionary(uniqueKeysWithValues: games.map { ($0.id, $0) })
-        return group.gameIDs.compactMap { byID[$0] }
+        let byPractice = Dictionary(uniqueKeysWithValues: practiceGamesDeduped().map { ($0.canonicalPracticeKey, $0) })
+        return group.gameIDs.compactMap { byPractice[canonicalPracticeGameID($0)] }
     }
 
     func groupProgress(for group: CustomGameGroup) -> [GroupProgressSnapshot] {
@@ -200,9 +202,9 @@ extension PracticeStore {
             let progress = Dictionary(
                 uniqueKeysWithValues: StudyTaskKind.allCases.map { task in
                     (
-                        task,
-                        latestTaskProgress(
-                            gameID: game.id,
+                            task,
+                            latestTaskProgress(
+                            gameID: game.canonicalPracticeKey,
                             task: task,
                             startDate: group.startDate,
                             endDate: group.endDate
@@ -215,12 +217,12 @@ extension PracticeStore {
     }
 
     func recommendedGame(in group: CustomGameGroup) -> PinballGame? {
-        let groupIDs = Set(group.gameIDs)
-        return games
-            .filter { groupIDs.contains($0.id) }
+        let groupIDs = Set(group.gameIDs.map { canonicalPracticeGameID($0) })
+        return practiceGamesDeduped()
+            .filter { groupIDs.contains($0.canonicalPracticeKey) }
             .sorted {
-                focusPriority(for: $0.id, startDate: group.startDate, endDate: group.endDate) >
-                    focusPriority(for: $1.id, startDate: group.startDate, endDate: group.endDate)
+                focusPriority(for: $0.canonicalPracticeKey, startDate: group.startDate, endDate: group.endDate) >
+                    focusPriority(for: $1.canonicalPracticeKey, startDate: group.startDate, endDate: group.endDate)
             }
             .first
     }
@@ -237,13 +239,13 @@ extension PracticeStore {
         }
 
         let completionValues = groupGames.map {
-            studyCompletionPercent(for: $0.id, startDate: group.startDate, endDate: group.endDate)
+            studyCompletionPercent(for: $0.canonicalPracticeKey, startDate: group.startDate, endDate: group.endDate)
         }
         let completionAverage = Int((Double(completionValues.reduce(0, +)) / Double(completionValues.count)).rounded())
 
         let staleGameCount = groupGames.filter { game in
             guard let ts = taskLastTimestamp(
-                gameID: game.id,
+                gameID: game.canonicalPracticeKey,
                 task: .practice,
                 startDate: group.startDate,
                 endDate: group.endDate
@@ -253,7 +255,7 @@ extension PracticeStore {
         }.count
 
         let weakerGameCount = groupGames.filter { game in
-            guard let summary = scoreSummary(for: game.id), summary.median > 0 else { return true }
+            guard let summary = scoreSummary(for: game.canonicalPracticeKey), summary.median > 0 else { return true }
             let spread = (summary.p75 - summary.floor) / summary.median
             return spread >= 0.6
         }.count
@@ -270,9 +272,10 @@ extension PracticeStore {
         var seen = Set<String>()
         var ordered: [String] = []
         for id in ids {
-            guard !id.isEmpty, !seen.contains(id) else { continue }
-            seen.insert(id)
-            ordered.append(id)
+            let canonical = canonicalPracticeGameID(id)
+            guard !canonical.isEmpty, !seen.contains(canonical) else { continue }
+            seen.insert(canonical)
+            ordered.append(canonical)
         }
         return ordered
     }

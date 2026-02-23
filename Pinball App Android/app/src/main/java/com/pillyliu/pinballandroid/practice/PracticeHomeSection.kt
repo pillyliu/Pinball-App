@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinballandroid.library.LibrarySource
 import com.pillyliu.pinballandroid.ui.CardContainer
 
 @Composable
@@ -30,6 +31,9 @@ internal fun PracticeHomeSection(
     store: PracticeStore,
     resumeOtherExpanded: Boolean,
     onResumeOtherExpandedChange: (Boolean) -> Unit,
+    librarySources: List<LibrarySource>,
+    selectedLibrarySourceId: String?,
+    onSelectLibrarySourceId: (String) -> Unit,
     onOpenGame: (String) -> Unit,
     onOpenQuickEntry: (QuickActivity, QuickEntryOrigin) -> Unit,
     onOpenGroupDashboard: () -> Unit,
@@ -37,18 +41,18 @@ internal fun PracticeHomeSection(
     onOpenInsights: () -> Unit,
     onOpenMechanics: () -> Unit,
 ) {
-    val orderedGames = orderedGamesForDropdown(store.games)
+    val orderedGames = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true)
     CardContainer {
         HomeSectionTitle("Resume")
         val resumeSlug = store.resumeSlugFromLibraryOrPractice()
-        val resumeGame = orderedGames.firstOrNull { it.slug == resumeSlug } ?: orderedGames.firstOrNull()
+        val resumeGame = findGameByPracticeLookupKey(orderedGames, resumeSlug) ?: orderedGames.firstOrNull()
         if (resumeGame != null) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 OutlinedButton(
-                    onClick = { onOpenGame(resumeGame.slug) },
+                    onClick = { onOpenGame(resumeGame.practiceKey) },
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(resumeGame.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -61,12 +65,29 @@ internal fun PracticeHomeSection(
                         expanded = resumeOtherExpanded,
                         onDismissRequest = { onResumeOtherExpandedChange(false) },
                     ) {
+                        if (librarySources.size > 1) {
+                            librarySources.forEach { source ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            (if (source.id == selectedLibrarySourceId) "✓ " else "") + source.name,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    },
+                                    onClick = {
+                                        onResumeOtherExpandedChange(false)
+                                        onSelectLibrarySourceId(source.id)
+                                    },
+                                )
+                            }
+                        }
                         orderedGames.forEach { listGame ->
                             DropdownMenuItem(
                                 text = { Text(listGame.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                 onClick = {
                                     onResumeOtherExpandedChange(false)
-                                    onOpenGame(listGame.slug)
+                                    onOpenGame(listGame.practiceKey)
                                 },
                             )
                         }
@@ -133,7 +154,7 @@ internal fun PracticeHomeSection(
                             Box(
                                 modifier = Modifier
                                     .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
-                                    .clickable { onOpenGame(game.slug) },
+                                    .clickable { onOpenGame(game.practiceKey) },
                             ) {
                                 SelectedGameMiniCard(game = game)
                             }

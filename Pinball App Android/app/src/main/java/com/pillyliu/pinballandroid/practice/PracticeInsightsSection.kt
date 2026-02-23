@@ -29,10 +29,10 @@ internal fun PracticeInsightsSection(
     isLoadingHeadToHead: Boolean,
     onRefreshHeadToHead: () -> Unit,
 ) {
-    val orderedGames = orderedGamesForDropdown(store.games)
+    val orderedGames = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true)
     val game = selectedGameSlug?.let { slug ->
-        orderedGames.firstOrNull { it.slug == slug }
-    } ?: orderedGames.firstOrNull()?.also { onSelectGameSlug(it.slug) }
+        findGameByPracticeLookupKey(orderedGames, slug)
+    } ?: orderedGames.firstOrNull()?.also { onSelectGameSlug(it.practiceKey) }
 
     if (game == null) {
         Text("No game data.")
@@ -41,14 +41,14 @@ internal fun PracticeInsightsSection(
 
     val insightsGames = orderedGames.take(41)
     InsightsMenuDropdown(
-        selectedLabel = store.gameName(game.slug),
-        options = insightsGames.map { it.slug to store.gameName(it.slug) },
+        selectedLabel = store.gameName(game.practiceKey),
+        options = insightsGames.map { it.practiceKey to store.gameName(it.practiceKey) },
         onSelect = { onSelectGameSlug(it.first) },
     )
     CardContainer {
         Text("Stats", fontWeight = FontWeight.SemiBold)
-        val summary = store.scoreSummaryFor(game.slug)
-        val trendValues = store.scoreTrendValues(game.slug)
+        val summary = store.scoreSummaryFor(game.practiceKey)
+        val trendValues = store.scoreTrendValues(game.practiceKey)
         if (summary == null) {
             Text("Log scores to unlock trends and consistency analytics.")
         } else {

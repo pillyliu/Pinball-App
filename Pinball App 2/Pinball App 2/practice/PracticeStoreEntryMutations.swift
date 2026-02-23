@@ -2,7 +2,8 @@ import Foundation
 
 extension PracticeStore {
     func studyProgress(gameID: String, task: StudyTaskKind) -> Int {
-        state.studyEvents
+        let gameID = canonicalPracticeGameID(gameID)
+        return state.studyEvents
             .filter { $0.gameID == gameID && $0.task == task }
             .sorted { $0.timestamp < $1.timestamp }
             .last?
@@ -10,14 +11,15 @@ extension PracticeStore {
     }
 
     func studyHistory(gameID: String, task: StudyTaskKind) -> [StudyProgressEvent] {
-        state.studyEvents
+        let gameID = canonicalPracticeGameID(gameID)
+        return state.studyEvents
             .filter { $0.gameID == gameID && $0.task == task }
             .sorted { $0.timestamp > $1.timestamp }
     }
 
     func updateStudyProgress(gameID: String, task: StudyTaskKind, progressPercent: Int) {
         addGameTaskEntry(
-            gameID: gameID,
+            gameID: canonicalPracticeGameID(gameID),
             task: task,
             progressPercent: progressPercent,
             note: "Updated \(task.label.lowercased())"
@@ -25,6 +27,7 @@ extension PracticeStore {
     }
 
     func addGameTaskEntry(gameID: String, task: StudyTaskKind, progressPercent: Int?, note: String?) {
+        let gameID = canonicalPracticeGameID(gameID)
         if let progressPercent {
             let event = StudyProgressEvent(gameID: gameID, task: task, progressPercent: progressPercent)
             state.studyEvents.append(event)
@@ -51,6 +54,7 @@ extension PracticeStore {
         progressPercent: Int? = nil,
         note: String? = nil
     ) {
+        let gameID = canonicalPracticeGameID(gameID)
         let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNote = note?.trimmingCharacters(in: .whitespacesAndNewlines)
         let entry = VideoProgressEntry(gameID: gameID, kind: kind, value: trimmedValue)
@@ -82,6 +86,7 @@ extension PracticeStore {
     }
 
     func addScore(gameID: String, score: Double, context: ScoreContext, tournamentName: String?) {
+        let gameID = canonicalPracticeGameID(gameID)
         let entry = ScoreLogEntry(
             gameID: gameID,
             score: score,
@@ -104,6 +109,7 @@ extension PracticeStore {
     }
 
     func addNote(gameID: String, category: PracticeCategory, detail: String?, note: String) {
+        let gameID = canonicalPracticeGameID(gameID)
         let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         let trimmedDetail = detail?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -136,6 +142,7 @@ extension PracticeStore {
     }
 
     func markGameBrowsed(gameID: String) {
+        let gameID = canonicalPracticeGameID(gameID)
         guard !gameID.isEmpty else { return }
 
         if let latest = state.journalEntries

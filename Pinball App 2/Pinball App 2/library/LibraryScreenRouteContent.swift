@@ -129,16 +129,39 @@ extension LibraryScreen {
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(game.name)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
-                        .frame(height: 44, alignment: .topLeading)
+                    HStack(alignment: .top, spacing: 6) {
+                        Text(game.name)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .topLeading)
+                    }
+                    .frame(height: 44, alignment: .top)
+                    .clipped()
+                    HStack(spacing: 4) {
+                        Text(game.manufacturerYearLine)
+                            .font(.caption)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .layoutPriority(1)
 
-                    Text(game.manufacturerYearLine)
-                        .font(.caption)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
+                        if let variant = game.normalizedVariant {
+                            Text(variant)
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(Color(uiColor: .secondarySystemFill), in: Capsule())
+                                .overlay {
+                                    Capsule().stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 0.7)
+                                }
+                                .frame(maxWidth: 84, alignment: .leading)
+                                .layoutPriority(0)
+                        }
+                    }
 
                     Text(game.locationBankLine)
                         .font(.caption)

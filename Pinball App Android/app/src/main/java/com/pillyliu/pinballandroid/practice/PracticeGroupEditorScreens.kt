@@ -64,11 +64,17 @@ internal fun GroupEditorScreen(
     val canMoveEditedUp = editing != null && editingIndex > 0
     val canMoveEditedDown = editing != null && editingIndex in 0 until (store.groups.size - 1)
     val maxCreatePosition = (store.groups.size + 1).coerceAtLeast(1)
-    val selectedGamesBySlug = remember(store.games) { store.games.associateBy { it.slug } }
+    val selectedGamesBySlug = remember(store.games, store.allLibraryGames) {
+        val pool = if (store.allLibraryGames.isNotEmpty()) store.allLibraryGames else store.games
+        gamesByPracticeLookupKey(pool)
+    }
 
     if (showingTitleSelector) {
         GroupGameSelectionScreen(
             games = store.games,
+            allGames = store.allLibraryGames,
+            librarySources = store.librarySources,
+            defaultSourceId = store.defaultPracticeSourceId,
             selectedSlugs = selected,
             searchText = titleSearchText,
             onSearchChange = { titleSearchText = it },

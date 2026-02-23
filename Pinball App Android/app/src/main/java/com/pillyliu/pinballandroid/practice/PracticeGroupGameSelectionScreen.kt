@@ -13,7 +13,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,19 +25,50 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinballandroid.library.PinballGame
+import com.pillyliu.pinballandroid.library.LibrarySource
 import com.pillyliu.pinballandroid.ui.CardContainer
 import java.util.Locale
+
+private const val GROUP_ALL_GAMES_LIBRARY_OPTION = "__all_games__"
 
 @Composable
 internal fun GroupGameSelectionScreen(
     games: List<PinballGame>,
+    allGames: List<PinballGame>,
+    librarySources: List<LibrarySource>,
+    defaultSourceId: String?,
     selectedSlugs: SnapshotStateList<String>,
     searchText: String,
     onSearchChange: (String) -> Unit,
     onDone: () -> Unit,
 ) {
-    val filteredGames = remember(games, searchText) {
-        games
+    val sourceOptions = remember(librarySources, allGames) {
+        if (librarySources.isNotEmpty()) librarySources else {
+            allGames.groupBy { it.sourceId }.values.mapNotNull { rows -> rows.firstOrNull()?.let { first ->
+                LibrarySource(first.sourceId, first.sourceName, first.sourceType)
+            } }
+        }
+    }
+    var selectedLibraryOption by remember(sourceOptions, defaultSourceId) {
+        mutableStateOf(defaultSourceId ?: sourceOptions.firstOrNull()?.id ?: GROUP_ALL_GAMES_LIBRARY_OPTION)
+    }
+    val showLibraryDropdown = sourceOptions.size > 1
+    LaunchedEffect(showLibraryDropdown) {
+        if (!showLibraryDropdown) {
+            selectedLibraryOption = defaultSourceId ?: sourceOptions.firstOrNull()?.id ?: GROUP_ALL_GAMES_LIBRARY_OPTION
+        }
+    }
+    val selectablePool = remember(games, allGames, selectedLibraryOption) {
+        val pool = if (allGames.isNotEmpty()) allGames else games
+        val filtered = if (selectedLibraryOption == GROUP_ALL_GAMES_LIBRARY_OPTION) {
+            pool
+        } else {
+            pool.filter { it.sourceId == selectedLibraryOption }
+        }
+        distinctGamesByPracticeIdentity(filtered)
+    }
+    val filteredGames = remember(selectablePool, searchText) {
+        selectablePool
             .filter { searchText.isBlank() || it.name.contains(searchText, ignoreCase = true) }
             .sortedBy { it.name.lowercase(Locale.US) }
     }
@@ -51,6 +86,24 @@ internal fun GroupGameSelectionScreen(
             }
         }
         CardContainer {
+            if (showLibraryDropdown) {
+                SimpleMenuDropdown(
+                    title = "Library",
+                    options = listOf(GROUP_ALL_GAMES_LIBRARY_OPTION) + sourceOptions.map { it.id },
+                    selected = selectedLibraryOption,
+                    selectedLabel = when (selectedLibraryOption) {
+                        GROUP_ALL_GAMES_LIBRARY_OPTION -> "All games"
+                        else -> sourceOptions.firstOrNull { it.id == selectedLibraryOption }?.name ?: selectedLibraryOption
+                    },
+                    onSelect = { selectedLibraryOption = it },
+                    formatOptionLabel = { option ->
+                        when (option) {
+                            GROUP_ALL_GAMES_LIBRARY_OPTION -> "All games"
+                            else -> sourceOptions.firstOrNull { it.id == option }?.name ?: option
+                        }
+                    },
+                )
+            }
             OutlinedTextField(
                 value = searchText,
                 onValueChange = onSearchChange,
@@ -62,15 +115,15 @@ internal fun GroupGameSelectionScreen(
                     item(key = "section-$letter") {
                         Text(letter, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    items(gamesInSection, key = { it.slug }) { game ->
-                        val checked = selectedSlugs.contains(game.slug)
+                    items(gamesInSection, key = { it.practiceKey }) { game ->
+                        val checked = selectedSlugs.contains(game.practiceKey)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(game.name, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Checkbox(
                                 checked = checked,
                                 onCheckedChange = { enabled ->
-                                    if (enabled && !selectedSlugs.contains(game.slug)) selectedSlugs.add(game.slug)
-                                    if (!enabled) selectedSlugs.remove(game.slug)
+                                    if (enabled && !selectedSlugs.contains(game.practiceKey)) selectedSlugs.add(game.practiceKey)
+                                    if (!enabled) selectedSlugs.remove(game.practiceKey)
                                 },
                             )
                         }

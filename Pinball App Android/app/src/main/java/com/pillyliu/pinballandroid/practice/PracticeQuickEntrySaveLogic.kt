@@ -124,14 +124,10 @@ internal fun saveQuickEntry(
         }
 
         QuickActivity.Mechanics -> {
-            val targetSlug = selectedSlug.ifBlank { orderedGamesForDropdown(store.games).firstOrNull()?.slug.orEmpty() }
-            if (targetSlug.isBlank()) {
-                return QuickEntrySaveResult(validationMessage = "Add at least one game before logging mechanics.")
-            }
             val prefix = if (mechanicsSkill.isBlank()) "#mechanics" else "#${mechanicsSkill.replace(" ", "")}"
             val composed = "$prefix competency ${mechanicsCompetency.roundToInt()}/5. ${noteText.trim()}".trim()
-            store.addPracticeNote(targetSlug, "general", mechanicsSkill, composed)
-            QuickEntrySaveResult(savedSlug = targetSlug)
+            store.addPracticeNote(selectedSlug, "general", mechanicsSkill, composed)
+            QuickEntrySaveResult(savedSlug = selectedSlug)
         }
     }
 }

@@ -10,7 +10,7 @@ struct LibraryDetailScreen: View {
 
     init(game: PinballGame) {
         self.game = game
-        _viewModel = StateObject(wrappedValue: PinballGameInfoViewModel(slug: game.slug))
+        _viewModel = StateObject(wrappedValue: PinballGameInfoViewModel(pathCandidates: game.gameinfoPathCandidates))
     }
 
     var body: some View {
@@ -45,20 +45,47 @@ struct LibraryDetailScreen: View {
             imagePreview(usesDesktopLandscapeLayout: usesDesktopLandscapeLayout)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
+            HStack(spacing: 8) {
+                Text(game.name)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                if let variant = game.variant?.trimmingCharacters(in: .whitespacesAndNewlines), !variant.isEmpty {
+                    Text(variant)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color(uiColor: .secondarySystemFill), in: Capsule())
+                        .overlay(
+                            Capsule().stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 0.8)
+                        )
+                }
+                Spacer(minLength: 0)
+            }
+
             Text(game.metaLine)
                 .font(.subheadline)
                 .foregroundStyle(.primary)
 
             HStack(spacing: 8) {
-                NavigationLink("Rulesheet") {
-                    RulesheetScreen(slug: game.slug, gameName: game.name)
-                }
-                .buttonStyle(.glass)
-                .simultaneousGesture(
-                    TapGesture().onEnded {
-                        LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet)
+                if !game.rulesheetPathCandidates.isEmpty {
+                    NavigationLink("Rulesheet") {
+                        RulesheetScreen(slug: game.practiceKey, gameName: game.name, pathCandidates: game.rulesheetPathCandidates)
                     }
-                )
+                    .buttonStyle(.glass)
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet)
+                        }
+                    )
+                } else {
+                    Text("Rulesheet")
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .foregroundStyle(.secondary)
+                        .background(Color.white.opacity(0.08), in: Capsule())
+                }
 
                 if !game.fullscreenPlayfieldCandidates.isEmpty {
                     NavigationLink("Playfield") {

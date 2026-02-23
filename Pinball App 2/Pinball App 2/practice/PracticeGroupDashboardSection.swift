@@ -62,7 +62,7 @@ struct PracticeGroupDashboardSectionView: View {
                     } else {
                         ForEach(snapshots) { snapshot in
                             Button {
-                                onOpenGame(snapshot.game.id)
+                                onOpenGame(snapshot.game.canonicalPracticeKey)
                             } label: {
                                 HStack(spacing: 10) {
                                     GroupProgressWheel(taskProgress: snapshot.taskProgress)
@@ -81,12 +81,12 @@ struct PracticeGroupDashboardSectionView: View {
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
-                                .matchedTransitionSource(id: snapshot.game.id, in: gameTransition)
+                                .matchedTransitionSource(id: snapshot.game.canonicalPracticeKey, in: gameTransition)
                             }
                             .buttonStyle(.plain)
                             .contextMenu {
                                 Button(role: .destructive) {
-                                    onRemoveGameFromGroup(snapshot.game.id, group.id)
+                                    onRemoveGameFromGroup(snapshot.game.canonicalPracticeKey, group.id)
                                 } label: {
                                     Label("Delete Game", systemImage: "trash")
                                 }

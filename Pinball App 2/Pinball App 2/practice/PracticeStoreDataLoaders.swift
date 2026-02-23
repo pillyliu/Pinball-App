@@ -1,6 +1,9 @@
 import Foundation
 
 extension PracticeStore {
+    private static let preferredLibrarySourceDefaultsKey = "preferred-library-source-id"
+    private static let avenueSourceCandidates = ["venue--the-avenue-cafe", "the-avenue"]
+
     func loadGames() async {
         isLoadingGames = true
         defer { isLoadingGames = false }
@@ -12,7 +15,19 @@ extension PracticeStore {
                 throw URLError(.cannotDecodeRawData)
             }
             let payload = try decodeLibraryPayload(data: data)
-            let selectedSource = payload.sources.first(where: { $0.type == .venue }) ?? payload.sources.first
+            let savedSourceID = UserDefaults.standard.string(forKey: Self.preferredLibrarySourceDefaultsKey)
+            let preferredCandidates = [savedSourceID] + Self.avenueSourceCandidates.map(Optional.some)
+            let selectedSource =
+                preferredCandidates.compactMap { $0 }.first(where: { id in payload.sources.contains(where: { $0.id == id }) })
+                    .flatMap { id in payload.sources.first(where: { $0.id == id }) }
+                ?? payload.sources.first(where: { $0.type == .venue })
+                ?? payload.sources.first
+            allLibraryGames = payload.games
+            librarySources = payload.sources
+            defaultPracticeSourceID = selectedSource?.id
+            if let selectedSource {
+                UserDefaults.standard.set(selectedSource.id, forKey: Self.preferredLibrarySourceDefaultsKey)
+            }
             if let selectedSource {
                 games = payload.games.filter { $0.sourceId == selectedSource.id }
             } else {
@@ -20,6 +35,9 @@ extension PracticeStore {
             }
         } catch {
             games = []
+            allLibraryGames = []
+            librarySources = []
+            defaultPracticeSourceID = nil
             lastErrorMessage = "Failed to load library for practice upgrade: \(error.localizedDescription)"
         }
     }
@@ -70,5 +88,20 @@ extension PracticeStore {
         }
 
         return targets
+    }
+
+    func selectPracticeLibrarySource(id sourceID: String?) {
+        let trimmed = sourceID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let selectedSource = librarySources.first { $0.id == trimmed }
+        let pool = allLibraryGames.isEmpty ? games : allLibraryGames
+        if let selectedSource {
+            games = pool.filter { $0.sourceId == selectedSource.id }
+            defaultPracticeSourceID = selectedSource.id
+            UserDefaults.standard.set(selectedSource.id, forKey: Self.preferredLibrarySourceDefaultsKey)
+        } else {
+            games = pool
+            defaultPracticeSourceID = nil
+            UserDefaults.standard.removeObject(forKey: Self.preferredLibrarySourceDefaultsKey)
+        }
     }
 }

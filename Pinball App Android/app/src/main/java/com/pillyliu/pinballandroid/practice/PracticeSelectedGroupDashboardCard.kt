@@ -81,11 +81,11 @@ internal fun SelectedGroupDashboardCard(
             Text("No games in this group yet.")
         } else {
             games.forEach { game ->
-                val progress = store.taskProgressForGame(game.slug, selected)
+                val progress = store.taskProgressForGame(game.practiceKey, selected)
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         TextButton(
-                            onClick = { onOpenGame(game.slug) },
+                            onClick = { onOpenGame(game.practiceKey) },
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp),
                         ) {

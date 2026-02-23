@@ -275,7 +275,7 @@ struct PinballLibrarySource: Identifiable {
         case .venue:
             return .area
         case .category:
-            return .year
+            return .alphabetical
         }
     }
 }
@@ -314,7 +314,9 @@ final class PinballLibraryViewModel: ObservableObject {
     @Published private(set) var isLoading: Bool = false
 
     private var didLoad = false
-    private static let libraryPath = "/pinball/data/pinball_library.json"
+    private static let libraryPath = "/pinball/data/pinball_library_v2.json"
+    private static let preferredSourceDefaultsKey = "preferred-library-source-id"
+    private static let avenueSourceCandidates = ["venue--the-avenue-cafe", "the-avenue"]
 
     var selectedSource: PinballLibrarySource? {
         sources.first(where: { $0.id == selectedSourceID }) ?? sources.first
@@ -331,7 +333,7 @@ final class PinballLibraryViewModel: ObservableObject {
         }
         switch selectedSource.type {
         case .category:
-            return [.year, .alphabetical]
+            return [.alphabetical, .year]
         case .venue:
             let hasBank = sourceScopedGames.contains { ($0.bank ?? 0) > 0 }
             var options: [PinballLibrarySortOption] = [.area]
@@ -473,6 +475,7 @@ final class PinballLibraryViewModel: ObservableObject {
 
     func selectSource(_ sourceID: String) {
         selectedSourceID = sourceID
+        UserDefaults.standard.set(sourceID, forKey: Self.preferredSourceDefaultsKey)
         if let selectedSource {
             let options = sortOptions
             if !options.contains(sortOption) {
@@ -499,8 +502,14 @@ final class PinballLibraryViewModel: ObservableObject {
             let payload = try decodeLibraryPayload(data: data)
             games = payload.games
             sources = payload.sources
-            if let selected = sources.first(where: { $0.id == selectedSourceID }) ?? sources.first {
+            let savedSourceID = UserDefaults.standard.string(forKey: Self.preferredSourceDefaultsKey)
+            let preferredCandidates = [savedSourceID, selectedSourceID] + Self.avenueSourceCandidates.map(Optional.some)
+            let preferredSourceID = preferredCandidates
+                .compactMap { $0 }
+                .first(where: { id in sources.contains(where: { $0.id == id }) })
+            if let selected = sources.first(where: { $0.id == preferredSourceID }) ?? sources.first(where: { $0.id == selectedSourceID }) ?? sources.first {
                 selectedSourceID = selected.id
+                UserDefaults.standard.set(selected.id, forKey: Self.preferredSourceDefaultsKey)
                 let options = sortOptions
                 if !options.contains(sortOption) {
                     sortOption = selected.defaultSortOption
@@ -526,11 +535,15 @@ final class PinballGameInfoViewModel: ObservableObject {
     @Published private(set) var status: LoadStatus = .idle
     @Published private(set) var markdownText: String?
 
-    private let slug: String
+    private let pathCandidates: [String]
     private var didLoad = false
 
-    init(slug: String) {
-        self.slug = slug
+    init(pathCandidates: [String]) {
+        self.pathCandidates = pathCandidates.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
+    convenience init(slug: String) {
+        self.init(pathCandidates: ["/pinball/gameinfo/\(slug).md"])
     }
 
     func loadIfNeeded() async {
@@ -544,19 +557,23 @@ final class PinballGameInfoViewModel: ObservableObject {
         markdownText = nil
 
         do {
-            let path = "/pinball/gameinfo/\(slug).md"
-            let cached = try await PinballDataCache.shared.loadText(path: path, allowMissing: true)
-            if cached.isMissing {
-                status = .missing
-                return
-            }
-            guard let text = cached.text, !text.isEmpty else {
-                status = .missing
-                return
-            }
+            var sawMissing = false
+            for path in pathCandidates {
+                let cached = try await PinballDataCache.shared.loadText(path: path, allowMissing: true)
+                if cached.isMissing {
+                    sawMissing = true
+                    continue
+                }
+                guard let text = cached.text, !text.isEmpty else {
+                    sawMissing = true
+                    continue
+                }
 
-            markdownText = text
-            status = .loaded
+                markdownText = text
+                status = .loaded
+                return
+            }
+            status = sawMissing ? .missing : .error
         } catch {
             status = .error
         }
@@ -568,11 +585,15 @@ final class RulesheetScreenModel: ObservableObject {
     @Published private(set) var status: LoadStatus = .idle
     @Published private(set) var markdownText: String?
 
-    private let slug: String
+    private let pathCandidates: [String]
     private var didLoad = false
 
-    init(slug: String) {
-        self.slug = slug
+    init(pathCandidates: [String]) {
+        self.pathCandidates = pathCandidates.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
+    convenience init(slug: String) {
+        self.init(pathCandidates: ["/pinball/rulesheets/\(slug).md"])
     }
 
     func loadIfNeeded() async {
@@ -586,19 +607,23 @@ final class RulesheetScreenModel: ObservableObject {
         markdownText = nil
 
         do {
-            let path = "/pinball/rulesheets/\(slug).md"
-            let cached = try await PinballDataCache.shared.loadText(path: path, allowMissing: true)
-            if cached.isMissing {
-                status = .missing
-                return
-            }
-            guard let text = cached.text, !text.isEmpty else {
-                status = .missing
-                return
-            }
+            var sawMissing = false
+            for path in pathCandidates {
+                let cached = try await PinballDataCache.shared.loadText(path: path, allowMissing: true)
+                if cached.isMissing {
+                    sawMissing = true
+                    continue
+                }
+                guard let text = cached.text, !text.isEmpty else {
+                    sawMissing = true
+                    continue
+                }
 
-            markdownText = Self.normalizeRulesheet(text)
-            status = .loaded
+                markdownText = Self.normalizeRulesheet(text)
+                status = .loaded
+                return
+            }
+            status = sawMissing ? .missing : .error
         } catch {
             status = .error
         }
@@ -631,12 +656,25 @@ private struct PinballLibraryRoot: Decodable {
     let games: [PinballGame]?
     let items: [PinballGame]?
     let sources: [PinballLibrarySourcePayload]?
+    let libraries: [PinballLibrarySourcePayload]?
 }
 
 private struct PinballLibrarySourcePayload: Decodable {
-    let id: String
+    let id: String?
+    let libraryID: String?
     let name: String?
+    let libraryName: String?
     let type: String?
+    let libraryType: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case libraryID = "library_id"
+        case name
+        case libraryName = "library_name"
+        case type
+        case libraryType = "library_type"
+    }
 }
 
 func decodeLibraryPayload(data: Data) throws -> PinballLibraryPayload {
@@ -644,11 +682,19 @@ func decodeLibraryPayload(data: Data) throws -> PinballLibraryPayload {
 
     if let root = try? decoder.decode(PinballLibraryRoot.self, from: data) {
         let games = root.games ?? root.items ?? []
-        let decodedSources = (root.sources ?? []).map {
-            PinballLibrarySource(
-                id: $0.id,
-                name: ($0.name?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 } ?? $0.id,
-                type: parseSourceType($0.type),
+        let sourcePayloads = root.sources ?? root.libraries ?? []
+        let decodedSources = sourcePayloads.compactMap { (payload: PinballLibrarySourcePayload) -> PinballLibrarySource? in
+            guard let id = (payload.id ?? payload.libraryID)?
+                .trimmingCharacters(in: .whitespacesAndNewlines), !id.isEmpty else {
+                return nil
+            }
+            let rawName = payload.name ?? payload.libraryName
+            let trimmedName = rawName?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let normalizedName = (trimmedName?.isEmpty == false) ? trimmedName : nil
+            return PinballLibrarySource(
+                id: id,
+                name: normalizedName ?? id,
+                type: parseSourceType(payload.type ?? payload.libraryType)
             )
         }
         let sources = decodedSources.isEmpty ? inferSources(from: games) : decodedSources
@@ -732,26 +778,57 @@ struct PinballGame: Identifiable, Decodable {
 
     enum CodingKeys: String, CodingKey {
         case libraryId
+        case libraryIdV2 = "library_id"
         case sourceId
         case libraryName
+        case libraryNameV2 = "library_name"
         case sourceName
         case libraryType
+        case libraryTypeV2 = "library_type"
         case sourceType
         case venueName
+        case venue
         case area
         case areaOrder
+        case areaOrderV2 = "area_order"
         case location
         case group
         case position
         case bank
         case name
+        case game
+        case variant
         case manufacturer
         case year
         case slug
+        case pinsideSlug = "pinside_slug"
+        case libraryEntryId = "library_entry_id"
+        case practiceIdentity = "practice_identity"
         case playfieldImageUrl
+        case playfieldImageUrlV2 = "playfield_image_url"
         case playfieldLocal
         case rulesheetUrl
+        case rulesheetUrlV2 = "rulesheet_url"
+        case assets
         case videos
+    }
+
+    struct Assets: Decodable {
+        let playfieldLocalPractice: String?
+        let playfieldLocalLegacy: String?
+        let rulesheetLocalPractice: String?
+        let rulesheetLocalLegacy: String?
+        let gameinfoLocalPractice: String?
+        let gameinfoLocalLegacy: String?
+
+        enum CodingKeys: String, CodingKey {
+            case playfieldLocalPractice = "playfield_local_practice"
+            case playfieldLocalLegacy = "playfield_local_legacy"
+            case rulesheetLocalPractice = "rulesheet_local_practice"
+            case rulesheetLocalLegacy = "rulesheet_local_legacy"
+            case gameinfoLocalPractice = "gameinfo_local_practice"
+            case gameinfoLocalLegacy = "gameinfo_local_legacy"
+        }
     }
 
     let sourceId: String
@@ -763,11 +840,16 @@ struct PinballGame: Identifiable, Decodable {
     let pos: Int?
     let bank: Int?
     let name: String
+    let variant: String?
     let manufacturer: String?
     let year: Int?
     let slug: String
+    let libraryEntryID: String?
+    let practiceIdentity: String?
     let playfieldImageUrl: String?
     let playfieldLocal: String?
+    let gameinfoLocal: String?
+    let rulesheetLocal: String?
     let rulesheetUrl: String?
     let videos: [Video]
 
@@ -775,38 +857,63 @@ struct PinballGame: Identifiable, Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let parsedType = parseSourceType(
             try container.decodeIfPresent(String.self, forKey: .libraryType) ??
-                container.decodeIfPresent(String.self, forKey: .sourceType)
+                (try container.decodeIfPresent(String.self, forKey: .libraryTypeV2)) ??
+                (try container.decodeIfPresent(String.self, forKey: .sourceType))
         )
         sourceType = parsedType
+        let sourceNameLibrary = try container.decodeIfPresent(String.self, forKey: .libraryName)
+        let sourceNameLibraryV2 = try container.decodeIfPresent(String.self, forKey: .libraryNameV2)
+        let sourceNameSource = try container.decodeIfPresent(String.self, forKey: .sourceName)
+        let sourceNameVenueName = try container.decodeIfPresent(String.self, forKey: .venueName)
+        let sourceNameVenue = try container.decodeIfPresent(String.self, forKey: .venue)
         let decodedSourceName = normalizedOptionalString(
-            try container.decodeIfPresent(String.self, forKey: .libraryName) ??
-                container.decodeIfPresent(String.self, forKey: .sourceName) ??
-                container.decodeIfPresent(String.self, forKey: .venueName)
+            sourceNameLibrary ??
+                sourceNameLibraryV2 ??
+                sourceNameSource ??
+                sourceNameVenueName ??
+                sourceNameVenue
         )
         sourceName = decodedSourceName ?? "The Avenue"
         sourceId = normalizedOptionalString(
             try container.decodeIfPresent(String.self, forKey: .libraryId) ??
-                container.decodeIfPresent(String.self, forKey: .sourceId)
+                (try container.decodeIfPresent(String.self, forKey: .libraryIdV2)) ??
+                (try container.decodeIfPresent(String.self, forKey: .sourceId))
         ) ?? slugifySourceID(sourceName)
         area = (
             try container.decodeIfPresent(String.self, forKey: .area) ??
-                container.decodeIfPresent(String.self, forKey: .location)
+                (try container.decodeIfPresent(String.self, forKey: .location))
             )?.trimmingCharacters(in: .whitespacesAndNewlines)
         areaOrder = try container.decodeIfPresent(Int.self, forKey: .areaOrder)
+            ?? (try container.decodeIfPresent(Int.self, forKey: .areaOrderV2))
         group = try container.decodeIfPresent(Int.self, forKey: .group)
         pos = try container.decodeIfPresent(Int.self, forKey: .position)
         bank = try container.decodeIfPresent(Int.self, forKey: .bank)
-        name = try container.decode(String.self, forKey: .name)
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+            ?? (try container.decodeIfPresent(String.self, forKey: .game))
+            ?? ""
+        variant = try container.decodeIfPresent(String.self, forKey: .variant)
         manufacturer = try container.decodeIfPresent(String.self, forKey: .manufacturer)
         year = try container.decodeIfPresent(Int.self, forKey: .year)
-        slug = try container.decode(String.self, forKey: .slug)
+        slug = try container.decodeIfPresent(String.self, forKey: .slug)
+            ?? (try container.decodeIfPresent(String.self, forKey: .pinsideSlug))
+            ?? ""
+        libraryEntryID = try container.decodeIfPresent(String.self, forKey: .libraryEntryId)
+        practiceIdentity = try container.decodeIfPresent(String.self, forKey: .practiceIdentity)
+        let assets = try container.decodeIfPresent(Assets.self, forKey: .assets)
         playfieldImageUrl = try container.decodeIfPresent(String.self, forKey: .playfieldImageUrl)
+            ?? (try container.decodeIfPresent(String.self, forKey: .playfieldImageUrlV2))
         playfieldLocal = try container.decodeIfPresent(String.self, forKey: .playfieldLocal)
+            ?? assets?.playfieldLocalPractice
+            ?? assets?.playfieldLocalLegacy
+        gameinfoLocal = assets?.gameinfoLocalPractice ?? assets?.gameinfoLocalLegacy
+        rulesheetLocal = assets?.rulesheetLocalPractice ?? assets?.rulesheetLocalLegacy
         rulesheetUrl = try container.decodeIfPresent(String.self, forKey: .rulesheetUrl)
+            ?? (try container.decodeIfPresent(String.self, forKey: .rulesheetUrlV2))
         videos = try container.decodeIfPresent([Video].self, forKey: .videos) ?? []
     }
 
-    var id: String { slug }
+    var id: String { libraryEntryID ?? slug }
+    var practiceKey: String { practiceIdentity ?? slug }
 
     var metaLine: String {
         var parts: [String] = []
@@ -836,6 +943,13 @@ struct PinballGame: Identifiable, Decodable {
         return maker
     }
 
+    var normalizedVariant: String? {
+        guard let variant else { return nil }
+        let trimmed = variant.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed.lowercased() != "null" else { return nil }
+        return trimmed
+    }
+
     var locationBankLine: String {
         var parts: [String] = []
         if let locationText {
@@ -849,8 +963,11 @@ struct PinballGame: Identifiable, Decodable {
 
     var locationText: String? {
         guard let group, let pos else { return nil }
-        if let area, !area.isEmpty {
-            return "📍 \(area):\(group):\(pos)"
+        if let area {
+            let trimmed = area.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty, trimmed.lowercased() != "null" {
+                return "📍 \(trimmed):\(group):\(pos)"
+            }
         }
         return "📍 \(group):\(pos)"
     }
@@ -861,19 +978,33 @@ struct PinballGame: Identifiable, Decodable {
     }
 
     var libraryPlayfieldCandidates: [URL] {
-        [derivedPlayfieldURL(width: 700), playfieldLocalURL].compactMap { $0 }
+        [derivedPlayfieldURL(width: 700), playfieldLocalURL, Self.fallbackPlayfieldURL(width: 700)].compactMap { $0 }
     }
 
     var miniPlayfieldCandidates: [URL] {
-        [derivedPlayfieldURL(width: 700), playfieldLocalURL, derivedPlayfieldURL(width: 1400)].compactMap { $0 }
+        [
+            derivedPlayfieldURL(width: 700),
+            playfieldLocalURL,
+            derivedPlayfieldURL(width: 1400),
+            Self.fallbackPlayfieldURL(width: 700),
+            Self.fallbackPlayfieldURL(width: 1400)
+        ].compactMap { $0 }
     }
 
     var gamePlayfieldCandidates: [URL] {
-        [derivedPlayfieldURL(width: 1400), playfieldLocalURL, derivedPlayfieldURL(width: 700)].compactMap { $0 }
+        [
+            derivedPlayfieldURL(width: 1400),
+            playfieldLocalURL,
+            derivedPlayfieldURL(width: 700)
+        ].compactMap { $0 }
     }
 
     var fullscreenPlayfieldCandidates: [URL] {
-        [playfieldLocalURL, derivedPlayfieldURL(width: 1400), derivedPlayfieldURL(width: 700)].compactMap { $0 }
+        [
+            playfieldLocalURL,
+            derivedPlayfieldURL(width: 1400),
+            derivedPlayfieldURL(width: 700)
+        ].compactMap { $0 }
     }
 
     var playfieldImageSourceURL: URL? {
@@ -884,6 +1015,30 @@ struct PinballGame: Identifiable, Decodable {
     var rulesheetSourceURL: URL? {
         guard let rulesheetUrl else { return nil }
         return URL(string: rulesheetUrl)
+    }
+
+    var gameinfoPathCandidates: [String] {
+        var paths: [String] = []
+        if let gameinfoLocalPath = Self.normalizeCachePath(gameinfoLocal) {
+            paths.append(gameinfoLocalPath)
+        }
+        if let practiceIdentity {
+            paths.append("/pinball/gameinfo/\(practiceIdentity)-gameinfo.md")
+        }
+        paths.append("/pinball/gameinfo/\(slug).md")
+        return Array(NSOrderedSet(array: paths)) as? [String] ?? paths
+    }
+
+    var rulesheetPathCandidates: [String] {
+        var paths: [String] = []
+        if let rulesheetLocalPath = Self.normalizeCachePath(rulesheetLocal) {
+            paths.append(rulesheetLocalPath)
+        }
+        if let practiceIdentity {
+            paths.append("/pinball/rulesheets/\(practiceIdentity)-rulesheet.md")
+        }
+        paths.append("/pinball/rulesheets/\(slug).md")
+        return Array(NSOrderedSet(array: paths)) as? [String] ?? paths
     }
 
     private static func resolveURL(pathOrURL: String) -> URL? {
@@ -898,6 +1053,21 @@ struct PinballGame: Identifiable, Decodable {
         return URL(string: "https://pillyliu.com/\(pathOrURL)")
     }
 
+    private static func normalizeCachePath(_ pathOrURL: String?) -> String? {
+        guard let raw = pathOrURL?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+            return nil
+        }
+        if let url = URL(string: raw), let host = url.host?.lowercased(), host == "pillyliu.com" {
+            return url.path
+        }
+        if raw.hasPrefix("/") { return raw }
+        return "/" + raw
+    }
+
+    private static func fallbackPlayfieldURL(width: Int) -> URL? {
+        resolveURL(pathOrURL: "/pinball/images/playfields/fallback-whitewood-playfield_\(width).webp")
+    }
+
     private func derivedPlayfieldURL(width: Int) -> URL? {
         guard let playfieldLocal else { return nil }
 
@@ -910,7 +1080,17 @@ struct PinballGame: Identifiable, Decodable {
 
         guard let slashIndex = normalizedPath.lastIndex(of: "/") else { return nil }
         let directory = String(normalizedPath[..<slashIndex])
-        let derived = "\(directory)/\(slug)_\(width).webp"
+        let filename = String(normalizedPath[normalizedPath.index(after: slashIndex)...])
+        let stemWithMaybeSuffix: String = {
+            if let dot = filename.lastIndex(of: ".") {
+                return String(filename[..<dot])
+            }
+            return filename
+        }()
+        let baseStem = stemWithMaybeSuffix
+            .replacingOccurrences(of: "_700", with: "")
+            .replacingOccurrences(of: "_1400", with: "")
+        let derived = "\(directory)/\(baseStem)_\(width).webp"
         return Self.resolveURL(pathOrURL: derived)
     }
 

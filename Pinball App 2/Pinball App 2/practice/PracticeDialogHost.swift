@@ -10,6 +10,8 @@ extension PracticeScreen {
             },
             resumeGame: resumeGame,
             allGames: store.games,
+            librarySources: store.librarySources,
+            selectedLibrarySourceID: store.defaultPracticeSourceID,
             activeGroups: store.state.customGroups.filter { $0.isActive && !$0.isArchived },
             selectedGroupID: selectedGroup?.id,
             groupGames: { group in
@@ -18,6 +20,12 @@ extension PracticeScreen {
             gameTransition: gameTransition,
             onResume: {
                 resumeToPracticeGame()
+            },
+            onSelectLibrarySource: { sourceID in
+                store.selectPracticeLibrarySource(id: sourceID)
+                if store.gameForAnyID(selectedGameID) == nil || !store.games.contains(where: { $0.canonicalPracticeKey == store.canonicalPracticeGameID(selectedGameID) }) {
+                    selectedGameID = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first?.canonicalPracticeKey ?? ""
+                }
             },
             onPickGame: { gameID in
                 goToGame(gameID)

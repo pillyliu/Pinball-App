@@ -16,12 +16,12 @@ struct PracticeInsightsSectionView: View {
     let onRefreshOpponentOptions: () async -> Void
 
     private var selectedGame: PinballGame? {
-        games.first(where: { $0.id == selectedGameID })
+        games.first(where: { $0.canonicalPracticeKey == selectedGameID || $0.id == selectedGameID })
     }
 
     private var selectedGameName: String {
         guard !selectedGameID.isEmpty else { return "Select game" }
-        if let game = games.first(where: { $0.id == selectedGameID }) {
+        if let game = games.first(where: { $0.canonicalPracticeKey == selectedGameID || $0.id == selectedGameID }) {
             return game.name
         }
         return "Select game"
@@ -35,7 +35,7 @@ struct PracticeInsightsSectionView: View {
                 Text("Stats")
                     .font(.headline)
 
-                if let gameID = selectedGame?.id,
+                if let gameID = selectedGame?.canonicalPracticeKey,
                    let summary = scoreSummaryForGame(gameID) {
                     HStack {
                         Text("Average")
@@ -150,13 +150,13 @@ struct PracticeInsightsSectionView: View {
 
     private var insightsGameDropdown: some View {
         Menu {
-            let gameOptions = orderedGamesForDropdown(games, limit: 41)
+            let gameOptions = orderedGamesForDropdown(games, collapseByPracticeIdentity: true, limit: 41)
             if gameOptions.isEmpty {
                 Text("No game data")
             } else {
                 ForEach(gameOptions) { game in
                     Button(game.name) {
-                        selectedGameID = game.id
+                        selectedGameID = game.canonicalPracticeKey
                     }
                 }
             }

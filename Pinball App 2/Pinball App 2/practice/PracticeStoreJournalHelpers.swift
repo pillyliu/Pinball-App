@@ -2,6 +2,7 @@ import Foundation
 
 extension PracticeStore {
     func scoreSummary(for gameID: String) -> ScoreSummary? {
+        let gameID = canonicalPracticeGameID(gameID)
         let values = state.scoreEntries
             .filter { $0.gameID == gameID }
             .map(\.score)
@@ -41,13 +42,15 @@ extension PracticeStore {
     }
 
     func gameJournalEntries(for gameID: String) -> [JournalEntry] {
-        state.journalEntries
+        let gameID = canonicalPracticeGameID(gameID)
+        return state.journalEntries
             .filter { $0.gameID == gameID }
             .sorted { $0.timestamp > $1.timestamp }
     }
 
     func gameTaskSummary(for gameID: String) -> [GameTaskSummaryRow] {
-        StudyTaskKind.allCases.map { task in
+        let gameID = canonicalPracticeGameID(gameID)
+        return StudyTaskKind.allCases.map { task in
             let action = actionType(for: task)
             let taskLogs = state.journalEntries
                 .filter { $0.gameID == gameID && $0.action == action }
@@ -121,7 +124,8 @@ extension PracticeStore {
     }
 
     func recentScores(for gameID: String, limit: Int = 10) -> [ScoreLogEntry] {
-        Array(
+        let gameID = canonicalPracticeGameID(gameID)
+        return Array(
             state.scoreEntries
                 .filter { $0.gameID == gameID }
                 .sorted { $0.timestamp > $1.timestamp }
@@ -130,7 +134,8 @@ extension PracticeStore {
     }
 
     func recentNotes(for gameID: String, limit: Int = 15) -> [PracticeNoteEntry] {
-        Array(
+        let gameID = canonicalPracticeGameID(gameID)
+        return Array(
             state.noteEntries
                 .filter { $0.gameID == gameID }
                 .sorted { $0.timestamp > $1.timestamp }

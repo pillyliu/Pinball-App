@@ -37,7 +37,8 @@ internal fun bankTemplateSlugs(games: List<PinballGame>, selectedTemplateBank: I
     return games
         .filter { it.bank == selectedTemplateBank }
         .sortedBy { it.name.lowercase(Locale.US) }
-        .map { it.slug }
+        .map { it.practiceKey }
+        .distinct()
 }
 
 internal fun applyDuplicateGroupTemplate(

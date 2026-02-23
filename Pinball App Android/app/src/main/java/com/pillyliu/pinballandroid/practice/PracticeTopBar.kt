@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinballandroid.data.redactPlayerNameForDisplay
+import com.pillyliu.pinballandroid.library.LibrarySource
 import com.pillyliu.pinballandroid.library.PinballGame
 
 @Composable
@@ -34,13 +35,16 @@ internal fun PracticeTopBar(
     editingGroupID: String?,
     selectedGameName: String?,
     games: List<PinballGame>,
+    librarySources: List<LibrarySource>,
+    selectedLibrarySourceId: String?,
     gamePickerExpanded: Boolean,
     onGamePickerExpandedChange: (Boolean) -> Unit,
+    onLibrarySourceSelected: (String) -> Unit,
     onGameSelected: (PinballGame) -> Unit,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    val orderedGames = orderedGamesForDropdown(games)
+    val orderedGames = orderedGamesForDropdown(games, collapseByPracticeIdentity = true)
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (route != PracticeRoute.Home) {
             IconButton(onClick = onBack) {
@@ -82,6 +86,23 @@ internal fun PracticeTopBar(
                     expanded = gamePickerExpanded,
                     onDismissRequest = { onGamePickerExpandedChange(false) },
                 ) {
+                    if (librarySources.size > 1) {
+                        librarySources.forEach { source ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        (if (source.id == selectedLibrarySourceId) "✓ " else "") + source.name,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                },
+                                onClick = {
+                                    onGamePickerExpandedChange(false)
+                                    onLibrarySourceSelected(source.id)
+                                },
+                            )
+                        }
+                    }
                     orderedGames.forEach { game ->
                         DropdownMenuItem(
                             text = { Text(game.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },

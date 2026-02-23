@@ -82,16 +82,16 @@ internal fun computeGroupDashboardScore(
     }
 
     val completionValues = groupGames.map { game ->
-        studyCompletionPercentForGame(scopedJournal, rulesheetProgress, game.slug)
+        studyCompletionPercentForGame(scopedJournal, rulesheetProgress, game.practiceKey)
     }
     val completionAverage = (completionValues.average()).roundToInt()
     val now = System.currentTimeMillis()
     val staleCount = groupGames.count { game ->
-        val latest = latestPracticeTimestampForGame(scopedJournal, game.slug)
+        val latest = latestPracticeTimestampForGame(scopedJournal, game.practiceKey)
         latest == null || ((now - latest) / (1000L * 60L * 60L * 24L)) >= 14
     }
     val weakerCount = groupGames.count { game ->
-        val summary = computeScoreSummaryForGame(scores, game.slug) ?: return@count true
+        val summary = computeScoreSummaryForGame(scores, game.practiceKey) ?: return@count true
         val median = summary.median
         if (median <= 0) true else ((summary.targetHigh - summary.targetFloor) / median) >= 0.6
     }
@@ -100,7 +100,7 @@ internal fun computeGroupDashboardScore(
         completionAverage = completionAverage,
         staleGameCount = staleCount,
         weakerGameCount = weakerCount,
-        recommendedSlug = computeRecommendedGame(group, games, scores, scopedJournal, rulesheetProgress)?.slug,
+        recommendedSlug = computeRecommendedGame(group, games, scores, scopedJournal, rulesheetProgress)?.practiceKey,
     )
 }
 
@@ -112,9 +112,9 @@ internal fun computeRecommendedGame(
     rulesheetProgress: Map<String, Float>,
 ): PinballGame? {
     val groupSet = group.gameSlugs.toSet()
-    return games.filter { groupSet.contains(it.slug) }
+    return distinctGamesByPracticeIdentity(games).filter { groupSet.contains(it.practiceKey) }
         .maxByOrNull { game ->
-            focusPriorityForGame(game.slug, scores, journal, rulesheetProgress)
+            focusPriorityForGame(game.practiceKey, scores, journal, rulesheetProgress)
         }
 }
 

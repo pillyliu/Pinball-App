@@ -5,9 +5,11 @@ import java.util.Locale
 
 internal fun orderedGamesForDropdown(
     games: List<PinballGame>,
+    collapseByPracticeIdentity: Boolean = false,
     limit: Int? = null,
 ): List<PinballGame> {
-    val ordered = games.sortedWith(
+    val source = if (collapseByPracticeIdentity) distinctGamesByPracticeIdentity(games) else games
+    val ordered = source.sortedWith(
         compareBy<PinballGame> { if (it.sourceType == com.pillyliu.pinballandroid.library.LibrarySourceType.CATEGORY) 1 else 0 }
             .thenBy { it.areaOrder ?: Int.MAX_VALUE }
             .thenBy { it.group ?: Int.MAX_VALUE }

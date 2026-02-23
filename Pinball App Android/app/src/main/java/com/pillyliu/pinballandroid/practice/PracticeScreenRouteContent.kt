@@ -3,6 +3,7 @@ package com.pillyliu.pinballandroid.practice
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.UriHandler
+import com.pillyliu.pinballandroid.library.LibrarySource
 
 internal data class PracticeRouteContentContext(
     val store: PracticeStore,
@@ -17,6 +18,9 @@ internal data class PracticeRouteContentContext(
     val onActiveGameVideoIdChange: (String?) -> Unit,
     val resumeOtherExpanded: Boolean,
     val onResumeOtherExpandedChange: (Boolean) -> Unit,
+    val librarySources: List<LibrarySource>,
+    val selectedLibrarySourceId: String?,
+    val onSelectLibrarySourceId: (String) -> Unit,
     val onOpenQuickEntry: (QuickActivity, QuickEntryOrigin, Boolean) -> Unit,
     val onOpenGroupDashboard: () -> Unit,
     val onOpenJournal: () -> Unit,
@@ -63,6 +67,9 @@ internal fun PracticeScreenRouteContent(
                 store = store,
                 resumeOtherExpanded = context.resumeOtherExpanded,
                 onResumeOtherExpandedChange = context.onResumeOtherExpandedChange,
+                librarySources = context.librarySources,
+                selectedLibrarySourceId = context.selectedLibrarySourceId,
+                onSelectLibrarySourceId = context.onSelectLibrarySourceId,
                 onOpenGame = { slug ->
                     context.onSelectGameSlug(slug)
                     store.markPracticeViewedGame(slug)

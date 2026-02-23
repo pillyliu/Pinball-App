@@ -120,18 +120,31 @@ internal fun LibraryDetailScreen(
     var activeVideoId by rememberSaveable(game.slug) {
         mutableStateOf<String?>(null)
     }
+    val hasRulesheet = !game.rulesheetLocal.isNullOrBlank()
 
     LaunchedEffect(game.slug) {
         if (infoStatus == "loaded" || infoStatus == "missing") return@LaunchedEffect
-        val (code, text) = downloadTextAllowMissing("https://pillyliu.com/pinball/gameinfo/${game.slug}.md")
-        when {
-            code == 404 -> infoStatus = "missing"
-            code in 200..299 && !text.isNullOrBlank() -> {
-                markdown = text
-                infoStatus = "loaded"
+        val candidates = listOfNotNull(
+            game.resolve(game.gameinfoLocal),
+            game.practiceIdentity?.let { "https://pillyliu.com/pinball/gameinfo/${it}-gameinfo.md" },
+            "https://pillyliu.com/pinball/gameinfo/${game.slug}.md",
+        ).distinct()
+        var loaded = false
+        var sawError = false
+        for (candidate in candidates) {
+            val (code, text) = downloadTextAllowMissing(candidate)
+            when {
+                code in 200..299 && !text.isNullOrBlank() -> {
+                    markdown = text
+                    infoStatus = "loaded"
+                    loaded = true
+                    break
+                }
+                code == 404 -> Unit
+                else -> sawError = true
             }
-            else -> infoStatus = "error"
         }
+        if (!loaded) infoStatus = if (sawError) "error" else "missing"
     }
 
     AppScreen(
@@ -154,7 +167,7 @@ internal fun LibraryDetailScreen(
                     modifier = Modifier.align(Alignment.CenterStart),
                 )
                 Text(
-                    text = game.name,
+                    text = if (!game.variant.isNullOrBlank()) "${game.name} • ${game.variant}" else game.name,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -174,9 +187,40 @@ internal fun LibraryDetailScreen(
                     modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
                     contentScale = ContentScale.FillWidth,
                 )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        game.name,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    game.variant?.takeIf { it.isNotBlank() }?.let { variant ->
+                        Text(
+                            text = variant,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
+                                )
+                                .border(
+                                    width = 0.75.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
+                                )
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                        )
+                    }
+                }
                 Text(game.metaLine(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onOpenRulesheet) { Text("Rulesheet") }
+                    OutlinedButton(onClick = onOpenRulesheet, enabled = hasRulesheet) { Text("Rulesheet") }
                     game.fullscreenPlayfieldCandidates().firstOrNull()?.let { url ->
                         OutlinedButton(onClick = { onOpenPlayfield(url) }) { Text("Playfield") }
                     }
@@ -231,7 +275,9 @@ internal fun LibraryDetailScreen(
             CardContainer {
                 SectionTitle("Game Info")
                 when (infoStatus) {
-                    "loading", "missing", "error" -> {}
+                    "loading" -> Text("Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    "missing" -> Text("No game info yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    "error" -> Text("Could not load game info.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     else -> CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
                         val linkColor = MaterialTheme.colorScheme.primary
                         val gameInfoStyle = remember {
@@ -286,6 +332,13 @@ internal fun LibraryDetailScreen(
                     }
                 }
             }
+            if (game.rulesheetUrl.isNullOrBlank() && game.playfieldImageUrl.isNullOrBlank()) {
+                Text(
+                    "No sources available.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp,
+                )
+            }
             Spacer(Modifier.height(LIBRARY_CONTENT_BOTTOM_FILLER))
         }
     }
@@ -331,6 +384,7 @@ private fun EmbeddedYouTubeView(videoId: String, modifier: Modifier = Modifier) 
 internal fun RulesheetScreen(
     contentPadding: PaddingValues,
     slug: String,
+    remoteCandidates: List<String>? = null,
     onBack: () -> Unit,
     practiceSavedRatio: Float? = null,
     onSavePracticeRatio: ((Float) -> Unit)? = null,
@@ -355,15 +409,23 @@ internal fun RulesheetScreen(
 
     LaunchedEffect(slug) {
         if (status == "loaded" || status == "missing") return@LaunchedEffect
-        val (code, text) = downloadTextAllowMissing("https://pillyliu.com/pinball/rulesheets/$slug.md")
-        when {
-            code == 404 -> status = "missing"
-            code in 200..299 && !text.isNullOrBlank() -> {
-                status = "loaded"
-                markdown = normalizeRulesheet(text) + RULESHEET_BOTTOM_MARKDOWN_FILLER
+        val urls = (remoteCandidates?.filter { it.isNotBlank() } ?: emptyList())
+            .ifEmpty { listOf("https://pillyliu.com/pinball/rulesheets/$slug.md") }
+        var saw404 = false
+        for (url in urls) {
+            val (code, text) = downloadTextAllowMissing(url)
+            when {
+                code == 404 -> {
+                    saw404 = true
+                }
+                code in 200..299 && !text.isNullOrBlank() -> {
+                    status = "loaded"
+                    markdown = normalizeRulesheet(text) + RULESHEET_BOTTOM_MARKDOWN_FILLER
+                    return@LaunchedEffect
+                }
             }
-            else -> status = "error"
         }
+        status = if (saw404) "missing" else "error"
     }
 
     AppScreen(contentPadding, horizontalPadding = 8.dp) {
@@ -371,7 +433,15 @@ internal fun RulesheetScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             when (status) {
-                "loading", "missing", "error" -> {}
+                "loading" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Loading rulesheet...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                "missing" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Rulesheet not available.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                "error" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Could not load rulesheet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 else -> MarkdownWebView(
                     markdown,
                     Modifier.fillMaxSize(),

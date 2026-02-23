@@ -7,11 +7,14 @@ struct PracticeHomeRootView: View {
 
     let resumeGame: PinballGame?
     let allGames: [PinballGame]
+    let librarySources: [PinballLibrarySource]
+    let selectedLibrarySourceID: String?
     let activeGroups: [CustomGameGroup]
     let selectedGroupID: UUID?
     let groupGames: (CustomGameGroup) -> [PinballGame]
     let gameTransition: Namespace.ID
     let onResume: () -> Void
+    let onSelectLibrarySource: (String) -> Void
     let onPickGame: (String) -> Void
     let onQuickEntry: (QuickEntrySheet) -> Void
 
@@ -44,11 +47,14 @@ struct PracticeHomeRootView: View {
                         PracticeHomeCardSection(
                             resumeGame: resumeGame,
                             allGames: allGames,
+                            librarySources: librarySources,
+                            selectedLibrarySourceID: selectedLibrarySourceID,
                             activeGroups: activeGroups,
                             selectedGroupID: selectedGroupID,
                             groupGames: groupGames,
                             gameTransition: gameTransition,
                             onResume: onResume,
+                            onSelectLibrarySource: onSelectLibrarySource,
                             onPickGame: onPickGame,
                             onQuickEntry: onQuickEntry
                         )

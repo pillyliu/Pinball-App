@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.pillyliu.pinballandroid.library.PinballGame
 import com.pillyliu.pinballandroid.library.fullscreenPlayfieldCandidates
+import com.pillyliu.pinballandroid.library.miniCardPlayfieldCandidate
 
 @Composable
 internal fun QuickEntryHomeButton(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
@@ -79,7 +80,7 @@ internal fun HomeMiniCard(label: String, subtitle: String, modifier: Modifier = 
 
 @Composable
 internal fun SelectedGameMiniCard(game: PinballGame, modifier: Modifier = Modifier) {
-    val imageUrl = game.fullscreenPlayfieldCandidates().firstOrNull()
+    val imageUrl = game.miniCardPlayfieldCandidate()
     val cardShape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
     val imageShape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)
     Column(

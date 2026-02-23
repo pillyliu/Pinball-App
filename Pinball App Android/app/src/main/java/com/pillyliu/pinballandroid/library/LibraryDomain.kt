@@ -8,8 +8,10 @@ import androidx.compose.ui.unit.dp
 import org.json.JSONArray
 import org.json.JSONObject
 
-internal const val LIBRARY_URL = "https://pillyliu.com/pinball/data/pinball_library.json"
+internal const val LIBRARY_URL = "https://pillyliu.com/pinball/data/pinball_library_v2.json"
 internal val LIBRARY_CONTENT_BOTTOM_FILLER = 60.dp
+private const val FALLBACK_WHITEWOOD_PLAYFIELD_700 = "/pinball/images/playfields/fallback-whitewood-playfield_700.webp"
+private const val FALLBACK_WHITEWOOD_PLAYFIELD_1400 = "/pinball/images/playfields/fallback-whitewood-playfield_1400.webp"
 
 internal enum class LibrarySourceType {
     VENUE,
@@ -24,7 +26,7 @@ internal data class LibrarySource(
     val defaultSortOption: LibrarySortOption
         get() = when (type) {
             LibrarySourceType.VENUE -> LibrarySortOption.AREA
-            LibrarySourceType.CATEGORY -> LibrarySortOption.YEAR
+            LibrarySourceType.CATEGORY -> LibrarySortOption.ALPHABETICAL
         }
 }
 
@@ -50,6 +52,9 @@ internal enum class LibrarySortOption(val label: String) {
 }
 
 internal data class PinballGame(
+    val libraryEntryId: String?,
+    val practiceIdentity: String?,
+    val variant: String?,
     val sourceId: String,
     val sourceName: String,
     val sourceType: LibrarySourceType,
@@ -64,6 +69,8 @@ internal data class PinballGame(
     val slug: String,
     val playfieldImageUrl: String?,
     val playfieldLocal: String?,
+    val gameinfoLocal: String?,
+    val rulesheetLocal: String?,
     val rulesheetUrl: String?,
     val videos: List<Video>,
 )
@@ -114,8 +121,8 @@ internal fun sortLibraryGames(games: List<PinballGame>, option: LibrarySortOptio
 internal fun sortOptionsForSource(source: LibrarySource, games: List<PinballGame>): List<LibrarySortOption> {
     return when (source.type) {
         LibrarySourceType.CATEGORY -> listOf(
-            LibrarySortOption.YEAR,
             LibrarySortOption.ALPHABETICAL,
+            LibrarySortOption.YEAR,
         )
         LibrarySourceType.VENUE -> {
             val hasBank = games.any { (it.bank ?: 0) > 0 }
@@ -137,7 +144,7 @@ internal fun parseLibraryPayload(raw: String): ParsedLibraryData {
             ?: root.optJSONArray("items")
             ?: JSONArray()
         val parsedGames = parseGames(gamesArray)
-        val sourcesFromRoot = parseSources(root.optJSONArray("sources"))
+        val sourcesFromRoot = parseSources(root.optJSONArray("sources") ?: root.optJSONArray("libraries"))
         val sources = if (sourcesFromRoot.isNotEmpty()) {
             sourcesFromRoot
         } else {
@@ -152,35 +159,55 @@ internal fun parseLibraryPayload(raw: String): ParsedLibraryData {
 internal fun parseGames(array: JSONArray): List<PinballGame> {
     return (0 until array.length()).mapNotNull { i ->
         val obj = array.optJSONObject(i) ?: return@mapNotNull null
-        val name = obj.optString("name")
-        val slug = obj.optString("slug")
+        val name = obj.optStringOrNull("name") ?: obj.optStringOrNull("game") ?: ""
+        val slug = obj.optStringOrNull("slug") ?: obj.optStringOrNull("pinside_slug") ?: ""
         if (name.isBlank() || slug.isBlank()) return@mapNotNull null
-        val sourceType = parseSourceType(obj.optStringOrNull("libraryType") ?: obj.optStringOrNull("sourceType"))
-        val fallbackVenue = obj.optStringOrNull("venueName")
+        val sourceType = parseSourceType(
+            obj.optStringOrNull("libraryType")
+                ?: obj.optStringOrNull("sourceType")
+                ?: obj.optStringOrNull("library_type")
+        )
+        val fallbackVenue = obj.optStringOrNull("venueName") ?: obj.optStringOrNull("venue")
         val sourceName = obj.optStringOrNull("libraryName")
             ?: obj.optStringOrNull("sourceName")
+            ?: obj.optStringOrNull("library_name")
             ?: fallbackVenue
             ?: "The Avenue"
         val sourceId = obj.optStringOrNull("libraryId")
             ?: obj.optStringOrNull("sourceId")
+            ?: obj.optStringOrNull("library_id")
             ?: slugifySourceId(sourceName)
+        val assets = obj.optJSONObject("assets")
+        val playfieldLocal = obj.optStringOrNull("playfieldLocal")
+            ?: assets?.optStringOrNull("playfield_local_practice")
+            ?: assets?.optStringOrNull("playfield_local_legacy")
+        val rulesheetLocal = obj.optStringOrNull("rulesheetLocal")
+            ?: assets?.optStringOrNull("rulesheet_local_practice")
+            ?: assets?.optStringOrNull("rulesheet_local_legacy")
+        val gameinfoLocal = assets?.optStringOrNull("gameinfo_local_practice")
+            ?: assets?.optStringOrNull("gameinfo_local_legacy")
 
         PinballGame(
+            libraryEntryId = obj.optStringOrNull("library_entry_id"),
+            practiceIdentity = obj.optStringOrNull("practice_identity"),
+            variant = obj.optStringOrNull("variant"),
             sourceId = sourceId,
             sourceName = sourceName,
             sourceType = sourceType,
             area = (obj.optStringOrNull("area") ?: obj.optStringOrNull("location"))?.trim(),
-            areaOrder = obj.optIntOrNull("areaOrder"),
-            group = obj.optIntOrNull("group"),
-            position = obj.optIntOrNull("position"),
-            bank = obj.optIntOrNull("bank"),
+            areaOrder = obj.optIntOrNull("areaOrder") ?: parseIntFlexible(obj.opt("area_order")),
+            group = obj.optIntOrNull("group") ?: parseIntFlexible(obj.opt("group")),
+            position = obj.optIntOrNull("position") ?: parseIntFlexible(obj.opt("position")),
+            bank = obj.optIntOrNull("bank") ?: parseIntFlexible(obj.opt("bank")),
             name = name,
             manufacturer = obj.optStringOrNull("manufacturer"),
-            year = obj.optIntOrNull("year"),
+            year = obj.optIntOrNull("year") ?: parseIntFlexible(obj.opt("year")),
             slug = slug,
-            playfieldImageUrl = obj.optStringOrNull("playfieldImageUrl"),
-            playfieldLocal = obj.optStringOrNull("playfieldLocal"),
-            rulesheetUrl = obj.optStringOrNull("rulesheetUrl"),
+            playfieldImageUrl = obj.optStringOrNull("playfieldImageUrl") ?: obj.optStringOrNull("playfield_image_url"),
+            playfieldLocal = playfieldLocal,
+            gameinfoLocal = gameinfoLocal,
+            rulesheetLocal = rulesheetLocal,
+            rulesheetUrl = obj.optStringOrNull("rulesheetUrl") ?: obj.optStringOrNull("rulesheet_url"),
             videos = obj.optJSONArray("videos")?.let { vids ->
                 (0 until vids.length()).mapNotNull { idx ->
                     vids.optJSONObject(idx)?.let { v ->
@@ -200,9 +227,9 @@ private fun parseSources(array: JSONArray?): List<LibrarySource> {
     if (array == null) return emptyList()
     return (0 until array.length()).mapNotNull { i ->
         val obj = array.optJSONObject(i) ?: return@mapNotNull null
-        val id = obj.optStringOrNull("id") ?: return@mapNotNull null
-        val name = obj.optStringOrNull("name") ?: id
-        val type = parseSourceType(obj.optStringOrNull("type"))
+        val id = obj.optStringOrNull("id") ?: obj.optStringOrNull("library_id") ?: return@mapNotNull null
+        val name = obj.optStringOrNull("name") ?: obj.optStringOrNull("library_name") ?: id
+        val type = parseSourceType(obj.optStringOrNull("type") ?: obj.optStringOrNull("library_type"))
         LibrarySource(id = id, name = name, type = type)
     }
 }
@@ -233,6 +260,12 @@ private fun parseSourceType(raw: String?): LibrarySourceType {
         "category", "manufacturer" -> LibrarySourceType.CATEGORY
         else -> LibrarySourceType.VENUE
     }
+}
+
+private fun parseIntFlexible(value: Any?): Int? = when (value) {
+    is Number -> value.toInt()
+    is String -> value.trim().toIntOrNull()
+    else -> null
 }
 
 private fun slugifySourceId(input: String): String {
@@ -268,8 +301,11 @@ internal fun PinballGame.locationBankLine(): String {
 private fun PinballGame.locationText(): String? {
     val g = group ?: return null
     val p = position ?: return null
-    return if (!area.isNullOrBlank()) {
-        "📍 $area:$g:$p"
+    val normalizedArea = area
+        ?.trim()
+        ?.takeUnless { it.isBlank() || it.equals("null", ignoreCase = true) }
+    return if (normalizedArea != null) {
+        "📍 $normalizedArea:$g:$p"
     } else {
         "📍 $g:$p"
     }
@@ -290,14 +326,30 @@ internal fun PinballGame.derivedPlayfield(width: Int): String? {
     }
     val slash = path.lastIndexOf('/')
     if (slash < 0) return null
-    return resolve("${path.substring(0, slash)}/${slug}_${width}.webp")
+    val directory = path.substring(0, slash)
+    val filename = path.substring(slash + 1)
+    val dot = filename.lastIndexOf('.')
+    val stem = if (dot > 0) filename.substring(0, dot) else filename
+    val baseStem = stem.removeSuffix("_700").removeSuffix("_1400")
+    return resolve("$directory/${baseStem}_${width}.webp")
 }
 
-internal fun PinballGame.libraryPlayfieldCandidate(): String? = derivedPlayfield(700)
+internal fun PinballGame.libraryPlayfieldCandidate(): String? =
+    derivedPlayfield(700) ?: resolve(playfieldLocal) ?: resolve(FALLBACK_WHITEWOOD_PLAYFIELD_700)
+internal fun PinballGame.miniCardPlayfieldCandidate(): String? =
+    derivedPlayfield(700) ?: resolve(playfieldLocal) ?: resolve(FALLBACK_WHITEWOOD_PLAYFIELD_700)
 internal fun PinballGame.gameInlinePlayfieldCandidates(): List<String> =
-    listOfNotNull(derivedPlayfield(1400), resolve(playfieldLocal), derivedPlayfield(700))
+    listOfNotNull(
+        derivedPlayfield(1400),
+        resolve(playfieldLocal),
+        derivedPlayfield(700),
+    )
 internal fun PinballGame.fullscreenPlayfieldCandidates(): List<String> =
-    listOfNotNull(resolve(playfieldLocal), derivedPlayfield(1400), derivedPlayfield(700))
+    listOfNotNull(
+        resolve(playfieldLocal),
+        derivedPlayfield(1400),
+        derivedPlayfield(700),
+    )
 
 internal fun openYoutubeInApp(context: android.content.Context, url: String, fallbackVideoId: String): Boolean {
     return try {
@@ -353,4 +405,7 @@ internal fun youtubeId(raw: String?): String? {
 }
 
 private fun JSONObject.optIntOrNull(name: String): Int? = if (has(name) && !isNull(name)) optInt(name) else null
-private fun JSONObject.optStringOrNull(name: String): String? = optString(name).takeIf { it.isNotBlank() }
+private fun JSONObject.optStringOrNull(name: String): String? =
+    optString(name)
+        .trim()
+        .takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }

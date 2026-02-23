@@ -132,8 +132,7 @@ struct GroupEditorScreen: View {
     }
 
     private var selectedGames: [PinballGame] {
-        let byID = Dictionary(uniqueKeysWithValues: store.games.map { ($0.id, $0) })
-        return selectedGameIDs.compactMap { byID[$0] }
+        selectedGameIDs.compactMap { store.gameForAnyID($0) }
     }
 
     private var availableBanks: [Int] {
@@ -635,7 +634,9 @@ struct GroupEditorScreen: View {
         let games = store.games
             .filter { $0.bank == bank }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-        selectedGameIDs = games.map(\.id)
+        selectedGameIDs = games.map(\.canonicalPracticeKey).reduce(into: [String]()) { result, id in
+            if !result.contains(id) { result.append(id) }
+        }
         type = .bank
         if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             name = "Bank \(bank) Focus"
@@ -751,12 +752,31 @@ struct GroupGameSelectionScreen: View {
     @Binding var selectedGameIDs: [String]
 
     @State private var searchText: String = ""
+    @State private var selectedLibraryFilterID: String = ""
+
+    private var allLibraryGamesForPicker: [PinballGame] {
+        store.allLibraryGames.isEmpty ? store.games : store.allLibraryGames
+    }
+
+    private var availableLibrarySources: [PinballLibrarySource] {
+        store.librarySources.isEmpty ? inferPracticeLibrarySourcesForGroupPicker(from: allLibraryGamesForPicker) : store.librarySources
+    }
+
+    private var baseGamesForSelection: [PinballGame] {
+        let selected = selectedLibraryFilterID.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pool = allLibraryGamesForPicker
+        if selected.isEmpty || selected == quickEntryAllGamesLibraryID {
+            return pool
+        }
+        return pool.filter { $0.sourceId == selected }
+    }
 
     private var filteredGames: [PinballGame] {
+        let ordered = orderedGamesForDropdown(baseGamesForSelection, collapseByPracticeIdentity: true)
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return store.games.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            return ordered.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         }
-        return store.games
+        return ordered
             .filter { $0.name.localizedCaseInsensitiveContains(searchText) }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
@@ -772,17 +792,28 @@ struct GroupGameSelectionScreen: View {
 
     var body: some View {
         List {
+            if availableLibrarySources.count > 1 {
+                Section {
+                    Picker("Library", selection: $selectedLibraryFilterID) {
+                        Text("All games").tag(quickEntryAllGamesLibraryID)
+                        ForEach(availableLibrarySources) { source in
+                            Text(source.name).tag(source.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+            }
             ForEach(grouped, id: \.letter) { section in
                 Section(section.letter) {
                     ForEach(section.games) { game in
                         Button {
-                            toggle(game.id)
+                            toggle(game.canonicalPracticeKey)
                         } label: {
                             HStack {
                                 Text(game.name)
                                 Spacer()
-                                Image(systemName: isSelected(game.id) ? "checkmark.square.fill" : "square")
-                                    .foregroundStyle(isSelected(game.id) ? .orange : .secondary)
+                                Image(systemName: isSelected(game.canonicalPracticeKey) ? "checkmark.square.fill" : "square")
+                                    .foregroundStyle(isSelected(game.canonicalPracticeKey) ? .orange : .secondary)
                             }
                         }
                         .buttonStyle(.plain)
@@ -793,6 +824,13 @@ struct GroupGameSelectionScreen: View {
         .searchable(text: $searchText, prompt: "Search titles")
         .navigationTitle("Select Titles")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            if selectedLibraryFilterID.isEmpty {
+                selectedLibraryFilterID = store.defaultPracticeSourceID
+                    ?? availableLibrarySources.first?.id
+                    ?? quickEntryAllGamesLibraryID
+            }
+        }
     }
 
     private func toggle(_ gameID: String) {
@@ -843,6 +881,17 @@ struct SelectedGameMiniCard: View {
         .padding(.bottom, 12)
         .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
+}
+
+private func inferPracticeLibrarySourcesForGroupPicker(from games: [PinballGame]) -> [PinballLibrarySource] {
+    var seen = Set<String>()
+    var out: [PinballLibrarySource] = []
+    for game in games {
+        if seen.insert(game.sourceId).inserted {
+            out.append(PinballLibrarySource(id: game.sourceId, name: game.sourceName, type: game.sourceType))
+        }
+    }
+    return out
 }
 
 struct SelectedGameReorderDropDelegate: DropDelegate {

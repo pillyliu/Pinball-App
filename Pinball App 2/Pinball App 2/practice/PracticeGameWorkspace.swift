@@ -17,6 +17,17 @@ private enum PracticeGameSubview: String, CaseIterable, Identifiable {
     }
 }
 
+private func inferPracticeLibrarySourcesForWorkspace(from games: [PinballGame]) -> [PinballLibrarySource] {
+    var seen = Set<String>()
+    var out: [PinballLibrarySource] = []
+    for game in games {
+        if seen.insert(game.sourceId).inserted {
+            out.append(PinballLibrarySource(id: game.sourceId, name: game.sourceName, type: game.sourceType))
+        }
+    }
+    return out
+}
+
 struct PracticeGameWorkspace: View {
     @ObservedObject var store: PracticeStore
     @Binding var selectedGameID: String
@@ -30,7 +41,7 @@ struct PracticeGameWorkspace: View {
     @State private var gameSummaryDraft: String = ""
 
     private var selectedGame: PinballGame? {
-        store.games.first(where: { $0.id == selectedGameID })
+        store.gameForAnyID(selectedGameID)
     }
 
     private var playableVideos: [PinballGame.PlayableVideo] {
@@ -42,6 +53,10 @@ struct PracticeGameWorkspace: View {
             }
             return PinballGame.PlayableVideo(id: id, label: video.label ?? "Video")
         }
+    }
+
+    private var availableLibrarySources: [PinballLibrarySource] {
+        store.librarySources.isEmpty ? inferPracticeLibrarySourcesForWorkspace(from: store.allLibraryGames.isEmpty ? store.games : store.allLibraryGames) : store.librarySources
     }
 
     var body: some View {
@@ -90,12 +105,34 @@ struct PracticeGameWorkspace: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    if availableLibrarySources.count > 1 {
+                        Picker(
+                            "Library",
+                            selection: Binding(
+                                get: { store.defaultPracticeSourceID ?? "" },
+                                set: { newValue in
+                                    store.selectPracticeLibrarySource(id: newValue)
+                                    let canonical = store.canonicalPracticeGameID(selectedGameID)
+                                    if !canonical.isEmpty,
+                                       store.games.contains(where: { $0.canonicalPracticeKey == canonical }) {
+                                        selectedGameID = canonical
+                                    } else {
+                                        selectedGameID = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first?.canonicalPracticeKey ?? ""
+                                    }
+                                }
+                            )
+                        ) {
+                            ForEach(availableLibrarySources) { source in
+                                Text(source.name).tag(source.id)
+                            }
+                        }
+                    }
                     Picker("Game", selection: $selectedGameID) {
                         if store.games.isEmpty {
                             Text("No game data").tag("")
                         } else {
-                            ForEach(orderedGamesForDropdown(store.games, limit: 41)) { game in
-                                Text(game.name).tag(game.id)
+                            ForEach(orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true, limit: 41)) { game in
+                                Text(game.name).tag(game.canonicalPracticeKey)
                             }
                         }
                     }
@@ -117,8 +154,8 @@ struct PracticeGameWorkspace: View {
         }
         .animation(.easeInOut(duration: 0.25), value: saveBanner)
         .onAppear {
-            if selectedGameID.isEmpty, let first = orderedGamesForDropdown(store.games).first {
-                selectedGameID = first.id
+            if selectedGameID.isEmpty, let first = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first {
+                selectedGameID = first.canonicalPracticeKey
             }
             if !selectedGameID.isEmpty {
                 store.markGameBrowsed(gameID: selectedGameID)
@@ -219,19 +256,48 @@ struct PracticeGameWorkspace: View {
 
     private var gameResourceCard: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if let game = selectedGame {
+                HStack(alignment: .center, spacing: 8) {
+                    Text(game.name)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                    if let variant = game.variant?.trimmingCharacters(in: .whitespacesAndNewlines), !variant.isEmpty {
+                        Text(variant)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color(uiColor: .secondarySystemFill), in: Capsule())
+                            .overlay(
+                                Capsule().stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 0.8)
+                            )
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
             Text("Game Resources")
                 .font(.headline)
 
             if let game = selectedGame {
+                let hasRulesheet = !game.rulesheetPathCandidates.isEmpty
                 Text(game.metaLine)
                     .font(.subheadline)
                     .foregroundStyle(.primary)
 
                 HStack(spacing: 8) {
-                    NavigationLink("Rulesheet") {
-                        RulesheetScreen(slug: game.slug, gameName: game.name)
+                    if hasRulesheet {
+                        NavigationLink("Rulesheet") {
+                            RulesheetScreen(slug: game.practiceKey, gameName: game.name, pathCandidates: game.rulesheetPathCandidates)
+                        }
+                        .buttonStyle(.glass)
+                    } else {
+                        Text("Rulesheet")
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .foregroundStyle(.secondary)
+                            .background(Color.white.opacity(0.08), in: Capsule())
                     }
-                    .buttonStyle(.glass)
 
                     if !game.fullscreenPlayfieldCandidates.isEmpty {
                         NavigationLink("Playfield") {

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -305,15 +306,60 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit) {
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
-            Text(
-                game.name,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                minLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                lineHeight = 16.sp,
-            )
-            Text(game.manufacturerYearLine(), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, fontSize = 12.sp, lineHeight = 14.sp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(38.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Text(
+                    game.name,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    minLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 16.sp,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val variantText = game.variant?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
+                val variantMaxWidth = 84.dp
+                val makerMaxWidth = if (variantText != null) (maxWidth - variantMaxWidth - 4.dp) else maxWidth
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        game.manufacturerYearLine(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 12.sp,
+                        lineHeight = 14.sp,
+                        modifier = Modifier.widthIn(max = if (makerMaxWidth > 48.dp) makerMaxWidth else 48.dp),
+                    )
+                    variantText?.let { variant ->
+                        Text(
+                            text = variant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 9.sp,
+                            lineHeight = 10.sp,
+                            modifier = Modifier
+                                .widthIn(max = variantMaxWidth)
+                                .border(
+                                    width = 0.75.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                    shape = RoundedCornerShape(999.dp),
+                                )
+                                .padding(horizontal = 5.dp, vertical = 2.dp),
+                        )
+                    }
+                }
+            }
             Text(game.locationBankLine(), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, fontSize = 12.sp, lineHeight = 14.sp)
         }
     }

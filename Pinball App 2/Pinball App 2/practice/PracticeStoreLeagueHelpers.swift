@@ -127,20 +127,22 @@ extension PracticeStore {
     }
 
     func rulesheetResumeOffset(for gameID: String) -> Double {
-        state.rulesheetResumeOffsets[gameID] ?? 0
+        state.rulesheetResumeOffsets[canonicalPracticeGameID(gameID)] ?? 0
     }
 
     func updateRulesheetResumeOffset(gameID: String, offset: Double) {
+        let gameID = canonicalPracticeGameID(gameID)
         guard !gameID.isEmpty else { return }
         state.rulesheetResumeOffsets[gameID] = max(0, offset)
         saveState()
     }
 
     func videoResumeHint(for gameID: String) -> String? {
-        state.videoResumeHints[gameID]
+        state.videoResumeHints[canonicalPracticeGameID(gameID)]
     }
 
     func updateVideoResumeHint(gameID: String, hint: String) {
+        let gameID = canonicalPracticeGameID(gameID)
         guard !gameID.isEmpty else { return }
         let trimmed = hint.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -149,10 +151,11 @@ extension PracticeStore {
     }
 
     func gameSummaryNote(for gameID: String) -> String {
-        state.gameSummaryNotes[gameID] ?? ""
+        state.gameSummaryNotes[canonicalPracticeGameID(gameID)] ?? ""
     }
 
     func updateGameSummaryNote(gameID: String, note: String) {
+        let gameID = canonicalPracticeGameID(gameID)
         guard !gameID.isEmpty else { return }
         let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
@@ -205,20 +208,21 @@ extension PracticeStore {
     func matchGameID(fromMachine machine: String) -> String? {
         let normalizedMachine = normalizeMachineName(machine)
         if let exact = games.first(where: { normalizeMachineName($0.name) == normalizedMachine }) {
-            return exact.id
+            return exact.canonicalPracticeKey
         }
 
         if let fuzzy = games.first(where: {
             let candidate = normalizeMachineName($0.name)
             return candidate.contains(normalizedMachine) || normalizedMachine.contains(candidate)
         }) {
-            return fuzzy.id
+            return fuzzy.canonicalPracticeKey
         }
         return nil
     }
 
     func isDuplicateLeagueScore(gameID: String, score: Double, eventDate: Date) -> Bool {
-        state.scoreEntries.contains { existing in
+        let gameID = canonicalPracticeGameID(gameID)
+        return state.scoreEntries.contains { existing in
             guard existing.gameID == gameID, existing.context == .league else { return false }
             guard abs(existing.score - score) < 0.5 else { return false }
             return Calendar.current.isDate(existing.timestamp, inSameDayAs: eventDate)

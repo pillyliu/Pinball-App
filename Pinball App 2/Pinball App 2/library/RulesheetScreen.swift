@@ -4,6 +4,7 @@ import WebKit
 struct RulesheetScreen: View {
     let slug: String
     let gameName: String
+    private let pathCandidates: [String]
     @StateObject private var viewModel: RulesheetScreenModel
     @State private var scrollProgress: CGFloat = 0
     @State private var savedProgress: CGFloat?
@@ -15,10 +16,11 @@ struct RulesheetScreen: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showsBackButton = false
 
-    init(slug: String, gameName: String? = nil) {
+    init(slug: String, gameName: String? = nil, pathCandidates: [String]? = nil) {
         self.slug = slug
         self.gameName = gameName ?? slug.replacingOccurrences(of: "-", with: " ").capitalized
-        _viewModel = StateObject(wrappedValue: RulesheetScreenModel(slug: slug))
+        self.pathCandidates = pathCandidates ?? ["/pinball/rulesheets/\(slug).md"]
+        _viewModel = StateObject(wrappedValue: RulesheetScreenModel(pathCandidates: pathCandidates ?? ["/pinball/rulesheets/\(slug).md"]))
     }
 
     var body: some View {

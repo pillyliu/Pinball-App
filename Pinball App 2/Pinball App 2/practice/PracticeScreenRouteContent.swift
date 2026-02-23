@@ -158,12 +158,9 @@ extension PracticeScreen {
             },
             maxHistoryHeight: mechanicsHistoryMaxHeight(),
             onLogMechanicsSession: { skill, comfort, note in
-                let targetGameID = selectedGameID.isEmpty ? (orderedGamesForDropdown(store.games).first?.id ?? "") : selectedGameID
-                guard !targetGameID.isEmpty else { return }
-
                 let prefix = skill.isEmpty ? "#mechanics" : "#\(skill.replacingOccurrences(of: " ", with: ""))"
                 let fullNote = "\(prefix) competency \(comfort)/5. \(note)"
-                store.addNote(gameID: targetGameID, category: .general, detail: skill, note: fullNote)
+                store.addNote(gameID: "", category: .general, detail: skill, note: fullNote)
                 mechanicsNote = ""
             }
         )
