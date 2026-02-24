@@ -72,6 +72,7 @@ import kotlinx.coroutines.withContext
 import kotlin.math.pow
 import kotlin.math.sqrt
 
+
 private const val CSV_URL = "https://pillyliu.com/pinball/data/LPL_Stats.csv"
 
 private data class ScoreRow(

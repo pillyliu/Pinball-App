@@ -39,6 +39,14 @@ Build release AAB
 
 Upload release AAB to Google Play internal track
 
+### android closed
+
+```sh
+[bundle exec] fastlane android closed
+```
+
+Upload release AAB to Google Play closed track
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.

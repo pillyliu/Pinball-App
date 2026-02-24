@@ -491,7 +491,7 @@ private final class TargetsViewModel: ObservableObject {
         LPLTargetRow(target: target, area: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: index)
     }
 
-    private static let libraryPath = "/pinball/data/pinball_library.json"
+    private static let libraryPath = "/pinball/data/pinball_library_v3.json"
 
     var bankOptions: [Int] {
         Array(Set(allRows.compactMap(\.bank))).sorted()
@@ -515,7 +515,8 @@ private final class TargetsViewModel: ObservableObject {
                 throw URLError(.cannotDecodeRawData)
             }
 
-            let libraryGames = try JSONDecoder().decode([LibraryGame].self, from: data)
+            let libraryRoot = try JSONDecoder().decode(LibraryGameRoot.self, from: data)
+            let libraryGames = libraryRoot.items
             let rowsWithLibrary = mergeTargetsWithLibrary(libraryGames: libraryGames)
 
             allRows = rowsWithLibrary
@@ -523,7 +524,7 @@ private final class TargetsViewModel: ObservableObject {
 
             errorMessage = nil
         } catch {
-            errorMessage = "Using default order (library unavailable)."
+            errorMessage = "Using default order (v3 library unavailable: \(error.localizedDescription))."
         }
     }
 
@@ -650,6 +651,7 @@ private final class TargetsViewModel: ObservableObject {
 private struct LibraryGame: Decodable {
     enum CodingKeys: String, CodingKey {
         case name
+        case game
         case area
         case location
         case group
@@ -665,7 +667,11 @@ private struct LibraryGame: Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        name = try container.decode(String.self, forKey: .name)
+        if let decodedName = try container.decodeIfPresent(String.self, forKey: .name) {
+            name = decodedName
+        } else {
+            name = try container.decode(String.self, forKey: .game)
+        }
         area = (
             try container.decodeIfPresent(String.self, forKey: .area) ??
                 container.decodeIfPresent(String.self, forKey: .location)
@@ -675,6 +681,10 @@ private struct LibraryGame: Decodable {
         bank = try container.decodeIfPresent(Int.self, forKey: .bank)
     }
 
+}
+
+private struct LibraryGameRoot: Decodable {
+    let items: [LibraryGame]
 }
 
 private struct LPLTarget: Identifiable {

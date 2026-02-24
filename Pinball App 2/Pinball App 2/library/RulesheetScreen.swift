@@ -376,10 +376,25 @@ private extension RulesheetRenderer {
               line-height: 1.45;
               box-sizing: border-box;
             }
-            #content { margin: 0; }
+            #content {
+              margin: 0;
+              max-width: 100%;
+              overflow-x: hidden;
+              overflow-wrap: anywhere;
+              word-break: break-word;
+            }
             #content > :first-child { margin-top: 0 !important; }
-            a { color: var(--link); text-decoration: underline; }
+            a {
+              color: var(--link);
+              text-decoration: underline;
+              overflow-wrap: anywhere;
+              word-break: break-word;
+            }
             code, pre { background: var(--code-bg); border-radius: 8px; color: var(--code-text); }
+            code {
+              overflow-wrap: anywhere;
+              word-break: break-word;
+            }
             pre { padding: 10px; overflow-x: auto; }
             table { border-collapse: collapse; width: 100%; overflow-x: auto; display: block; }
             th, td { border: 1px solid var(--table-border); padding: 6px 8px; }
@@ -391,6 +406,10 @@ private extension RulesheetRenderer {
               line-height: 1.35;
               opacity: 0.78;
               margin-bottom: 0.8rem;
+            }
+            .rulesheet-attribution, .rulesheet-attribution * {
+              overflow-wrap: anywhere;
+              word-break: break-word;
             }
           </style>
           <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>

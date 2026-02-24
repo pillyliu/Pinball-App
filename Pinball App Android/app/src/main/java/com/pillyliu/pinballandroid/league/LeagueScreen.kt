@@ -62,6 +62,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -221,12 +222,14 @@ fun LeagueScreen(
                 }
             } else {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(cardGap),
                 ) {
-                    DestinationCard(LeagueDestination.Stats, modifier = Modifier.weight(1f))
-                    DestinationCard(LeagueDestination.Standings, modifier = Modifier.weight(1f))
-                    DestinationCard(LeagueDestination.Targets, modifier = Modifier.weight(1f))
+                    DestinationCard(LeagueDestination.Stats)
+                    DestinationCard(LeagueDestination.Standings)
+                    DestinationCard(LeagueDestination.Targets)
                 }
             }
         }
@@ -617,7 +620,7 @@ private suspend fun loadLeaguePreviewState(context: Context): LeaguePreviewState
         val targetsCsv = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/LPL_Targets.csv").text.orEmpty()
         val standingsCsv = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/LPL_Standings.csv", allowMissing = true).text.orEmpty()
         val statsCsv = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/LPL_Stats.csv", allowMissing = true).text.orEmpty()
-        val libraryJson = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/pinball_library.json", allowMissing = true).text
+        val libraryJson = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/pinball_library_v3.json", allowMissing = true).text
         val selectedPlayer = loadPreferredLeaguePlayerName(context)
 
         val statsRows = parseStatsRows(statsCsv)
@@ -843,9 +846,10 @@ private data class LibraryLookup(
 private fun mergeTargetsWithLibrary(targetRows: List<TargetPreviewRow>, libraryJson: String?): List<TargetPreviewRow> {
     if (libraryJson.isNullOrBlank()) return targetRows
     val lookups = try {
-        val array = JSONArray(libraryJson)
-        (0 until array.length()).map { index ->
-            val item = array.getJSONObject(index)
+        val root = JSONObject(libraryJson)
+        val array = root.optJSONArray("items") ?: JSONArray()
+        (0 until array.length()).mapNotNull { index ->
+            val item = array.optJSONObject(index) ?: return@mapNotNull null
             val group = item.optInt("group").takeIf { it > 0 }
             val position = item.optInt("position").takeIf { it > 0 }
             val weightedOrder = if (group != null && position != null) {
@@ -853,8 +857,10 @@ private fun mergeTargetsWithLibrary(targetRows: List<TargetPreviewRow>, libraryJ
             } else {
                 100_000 + index
             }
+            val machineName = item.optString("game").ifBlank { item.optString("name") }
+            if (machineName.isBlank()) return@mapNotNull null
             LibraryLookup(
-                normalizedName = normalizeMachineName(item.optString("name")),
+                normalizedName = normalizeMachineName(machineName),
                 bank = item.optInt("bank").takeIf { it > 0 },
                 order = weightedOrder,
             )

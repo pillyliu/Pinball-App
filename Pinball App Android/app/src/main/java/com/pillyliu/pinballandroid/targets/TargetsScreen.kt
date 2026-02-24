@@ -44,9 +44,10 @@ import com.pillyliu.pinballandroid.ui.CompactDropdownFilter
 import com.pillyliu.pinballandroid.ui.FixedWidthTableCell
 import com.pillyliu.pinballandroid.ui.InsetFilterHeader
 import org.json.JSONArray
+import org.json.JSONObject
 import java.text.NumberFormat
 
-private const val LIBRARY_URL = "https://pillyliu.com/pinball/data/pinball_library.json"
+private const val LIBRARY_URL = "https://pillyliu.com/pinball/data/pinball_library_v3.json"
 
 private data class LPLTarget(val game: String, val great: Long, val main: Long, val floor: Long)
 private data class TargetRow(
@@ -104,18 +105,26 @@ fun TargetsScreen(
     LaunchedEffect(Unit) {
         try {
             val cached = PinballDataCache.passthroughOrCachedText(LIBRARY_URL)
-            val libraryGames = JSONArray(cached.text.orEmpty())
-            val normalizedLibrary = (0 until libraryGames.length()).map { index ->
-                val item = libraryGames.getJSONObject(index)
-                LibraryLookup(
-                    index = index,
-                    normalizedName = normalize(item.optString("name")),
-                    area = (item.optString("area").takeIf { it.isNotBlank() }
-                        ?: item.optString("location").takeIf { it.isNotBlank() })?.trim(),
-                    bank = item.optInt("bank").takeIf { it > 0 },
-                    group = item.optInt("group").takeIf { it > 0 },
-                    position = item.optInt("position").takeIf { it > 0 },
-                )
+            val root = JSONObject(cached.text.orEmpty())
+            val libraryGames = root.optJSONArray("items")
+                ?: throw IllegalStateException("pinball_library_v3.json missing top-level items[]")
+            val normalizedLibrary = buildList {
+                for (index in 0 until libraryGames.length()) {
+                    val item = libraryGames.optJSONObject(index) ?: continue
+                val name = item.optString("game").ifBlank { item.optString("name") }.trim()
+                    if (name.isBlank()) continue
+                    add(
+                        LibraryLookup(
+                            index = index,
+                            normalizedName = normalize(name),
+                            area = (item.optString("area").takeIf { it.isNotBlank() }
+                                ?: item.optString("location").takeIf { it.isNotBlank() })?.trim(),
+                            bank = item.optInt("bank").takeIf { it > 0 },
+                            group = item.optInt("group").takeIf { it > 0 },
+                            position = item.optInt("position").takeIf { it > 0 },
+                        ),
+                    )
+                }
             }
 
             val merged = lplTargets.mapIndexed { fallbackIndex, target ->
@@ -138,7 +147,7 @@ fun TargetsScreen(
             rows = merged
             error = null
         } catch (t: Throwable) {
-            error = "Using default order (library unavailable)."
+            error = "Using default order (v3 library unavailable: ${t.message ?: t::class.java.simpleName})."
         }
     }
 

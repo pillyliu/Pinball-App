@@ -199,6 +199,11 @@ private struct ZoomableImageScrollView: UIViewRepresentable {
         imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
         scrollView.addSubview(imageView)
+        let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTap(_:)))
+        doubleTap.numberOfTapsRequired = 2
+        scrollView.addGestureRecognizer(doubleTap)
+
+        context.coordinator.scrollView = scrollView
         context.coordinator.imageView = imageView
         return scrollView
     }
@@ -213,6 +218,7 @@ private struct ZoomableImageScrollView: UIViewRepresentable {
     }
 
     final class Coordinator: NSObject, UIScrollViewDelegate {
+        weak var scrollView: UIScrollView?
         weak var imageView: UIImageView?
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
@@ -236,6 +242,32 @@ private struct ZoomableImageScrollView: UIViewRepresentable {
                 bottom: verticalInset,
                 right: horizontalInset
             )
+        }
+
+        @objc func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
+            guard let scrollView, let imageView else { return }
+
+            if scrollView.zoomScale > scrollView.minimumZoomScale + 0.01 {
+                scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
+                return
+            }
+
+            let targetZoom = min(max(scrollView.minimumZoomScale * 2.5, 2.0), scrollView.maximumZoomScale)
+            let tapPoint = recognizer.location(in: imageView)
+            let zoomRect = zoomRect(for: targetZoom, center: tapPoint, in: scrollView)
+            scrollView.zoom(to: zoomRect, animated: true)
+        }
+
+        private func zoomRect(for scale: CGFloat, center: CGPoint, in scrollView: UIScrollView) -> CGRect {
+            let size = CGSize(
+                width: scrollView.bounds.width / scale,
+                height: scrollView.bounds.height / scale
+            )
+            let origin = CGPoint(
+                x: center.x - (size.width / 2),
+                y: center.y - (size.height / 2)
+            )
+            return CGRect(origin: origin, size: size)
         }
     }
 }

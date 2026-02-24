@@ -314,7 +314,7 @@ final class PinballLibraryViewModel: ObservableObject {
     @Published private(set) var isLoading: Bool = false
 
     private var didLoad = false
-    private static let libraryPath = "/pinball/data/pinball_library_v2.json"
+    private static let libraryPath = "/pinball/data/pinball_library_v3.json"
     private static let preferredSourceDefaultsKey = "preferred-library-source-id"
     private static let avenueSourceCandidates = ["venue--the-avenue-cafe", "the-avenue"]
 
@@ -801,7 +801,7 @@ struct PinballGame: Identifiable, Decodable {
         case manufacturer
         case year
         case slug
-        case pinsideSlug = "pinside_slug"
+        case opdbId = "opdb_id"
         case libraryEntryId = "library_entry_id"
         case practiceIdentity = "practice_identity"
         case playfieldImageUrl
@@ -845,8 +845,10 @@ struct PinballGame: Identifiable, Decodable {
     let year: Int?
     let slug: String
     let libraryEntryID: String?
+    let opdbID: String?
     let practiceIdentity: String?
     let playfieldImageUrl: String?
+    let playfieldLocalOriginal: String?
     let playfieldLocal: String?
     let gameinfoLocal: String?
     let rulesheetLocal: String?
@@ -895,16 +897,20 @@ struct PinballGame: Identifiable, Decodable {
         manufacturer = try container.decodeIfPresent(String.self, forKey: .manufacturer)
         year = try container.decodeIfPresent(Int.self, forKey: .year)
         slug = try container.decodeIfPresent(String.self, forKey: .slug)
-            ?? (try container.decodeIfPresent(String.self, forKey: .pinsideSlug))
+            ?? (try container.decodeIfPresent(String.self, forKey: .practiceIdentity))
+            ?? (try container.decodeIfPresent(String.self, forKey: .opdbId))
             ?? ""
         libraryEntryID = try container.decodeIfPresent(String.self, forKey: .libraryEntryId)
+        opdbID = try container.decodeIfPresent(String.self, forKey: .opdbId)
         practiceIdentity = try container.decodeIfPresent(String.self, forKey: .practiceIdentity)
         let assets = try container.decodeIfPresent(Assets.self, forKey: .assets)
         playfieldImageUrl = try container.decodeIfPresent(String.self, forKey: .playfieldImageUrl)
             ?? (try container.decodeIfPresent(String.self, forKey: .playfieldImageUrlV2))
-        playfieldLocal = try container.decodeIfPresent(String.self, forKey: .playfieldLocal)
+        let rawPlayfieldLocal = try container.decodeIfPresent(String.self, forKey: .playfieldLocal)
             ?? assets?.playfieldLocalPractice
             ?? assets?.playfieldLocalLegacy
+        playfieldLocalOriginal = Self.normalizeCachePath(rawPlayfieldLocal)
+        playfieldLocal = Self.normalizePlayfieldLocalPath(rawPlayfieldLocal)
         gameinfoLocal = assets?.gameinfoLocalPractice ?? assets?.gameinfoLocalLegacy
         rulesheetLocal = assets?.rulesheetLocalPractice ?? assets?.rulesheetLocalLegacy
         rulesheetUrl = try container.decodeIfPresent(String.self, forKey: .rulesheetUrl)
@@ -912,8 +918,18 @@ struct PinballGame: Identifiable, Decodable {
         videos = try container.decodeIfPresent([Video].self, forKey: .videos) ?? []
     }
 
-    var id: String { libraryEntryID ?? slug }
-    var practiceKey: String { practiceIdentity ?? slug }
+    var id: String { libraryEntryID ?? opdbID ?? practiceIdentity ?? slug }
+    var practiceKey: String { practiceIdentity ?? opdbGroupID ?? slug }
+
+    var opdbGroupID: String? {
+        guard let opdbID else { return nil }
+        let trimmed = opdbID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.hasPrefix("G") else { return nil }
+        if let dash = trimmed.firstIndex(of: "-") {
+            return String(trimmed[..<dash])
+        }
+        return trimmed.isEmpty ? nil : trimmed
+    }
 
     var metaLine: String {
         var parts: [String] = []
@@ -977,14 +993,20 @@ struct PinballGame: Identifiable, Decodable {
         return Self.resolveURL(pathOrURL: playfieldLocal)
     }
 
+    var playfieldLocalOriginalURL: URL? {
+        guard let playfieldLocalOriginal else { return nil }
+        return Self.resolveURL(pathOrURL: playfieldLocalOriginal)
+    }
+
     var libraryPlayfieldCandidates: [URL] {
-        [derivedPlayfieldURL(width: 700), playfieldLocalURL, Self.fallbackPlayfieldURL(width: 700)].compactMap { $0 }
+        [derivedPlayfieldURL(width: 700), Self.fallbackPlayfieldURL(width: 700)].compactMap { $0 }
     }
 
     var miniPlayfieldCandidates: [URL] {
         [
             derivedPlayfieldURL(width: 700),
             playfieldLocalURL,
+            playfieldImageSourceURL,
             derivedPlayfieldURL(width: 1400),
             Self.fallbackPlayfieldURL(width: 700),
             Self.fallbackPlayfieldURL(width: 1400)
@@ -994,16 +1016,18 @@ struct PinballGame: Identifiable, Decodable {
     var gamePlayfieldCandidates: [URL] {
         [
             derivedPlayfieldURL(width: 1400),
-            playfieldLocalURL,
-            derivedPlayfieldURL(width: 700)
+            derivedPlayfieldURL(width: 700),
+            Self.fallbackPlayfieldURL(width: 700)
         ].compactMap { $0 }
     }
 
     var fullscreenPlayfieldCandidates: [URL] {
         [
-            playfieldLocalURL,
+            playfieldLocalOriginalURL,
+            playfieldImageSourceURL,
             derivedPlayfieldURL(width: 1400),
-            derivedPlayfieldURL(width: 700)
+            derivedPlayfieldURL(width: 700),
+            Self.fallbackPlayfieldURL(width: 700)
         ].compactMap { $0 }
     }
 
@@ -1066,6 +1090,22 @@ struct PinballGame: Identifiable, Decodable {
 
     private static func fallbackPlayfieldURL(width: Int) -> URL? {
         resolveURL(pathOrURL: "/pinball/images/playfields/fallback-whitewood-playfield_\(width).webp")
+    }
+
+    private static func normalizePlayfieldLocalPath(_ pathOrURL: String?) -> String? {
+        guard let raw = pathOrURL?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+            return nil
+        }
+        if raw.localizedCaseInsensitiveContains("/pinball/images/playfields/") {
+            if raw.lowercased().hasSuffix("_700.webp") { return raw }
+            if raw.lowercased().hasSuffix("_1400.webp") {
+                return raw.replacingOccurrences(of: "_1400.webp", with: "_700.webp", options: [.caseInsensitive])
+            }
+            if let dot = raw.lastIndex(of: ".") {
+                return String(raw[..<dot]) + "_700.webp"
+            }
+        }
+        return raw
     }
 
     private func derivedPlayfieldURL(width: Int) -> URL? {

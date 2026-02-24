@@ -23,8 +23,10 @@ private const val MANIFEST_URL = "https://pillyliu.com/pinball/cache-manifest.js
 private const val UPDATE_LOG_URL = "https://pillyliu.com/pinball/cache-update-log.json"
 private const val META_REFRESH_INTERVAL_MS = 5 * 60 * 1000L
 private const val STARTER_ASSET_ROOT = "starter-pack/pinball"
-private const val STARTER_SEED_MARKER = "starter-pack-seeded-v1"
+private const val STARTER_SEED_MARKER = "starter-pack-seeded-v3-only"
 private val STARTER_PRIORITY_PATHS = listOf(
+    "/pinball/data/pinball_library_v3.json",
+    "/pinball/data/LPL_Targets.csv",
     "/pinball/data/LPL_Stats.csv",
     "/pinball/data/LPL_Standings.csv",
     "/pinball/data/redacted_players.csv",
@@ -45,6 +47,7 @@ data class CachedBytesResult(
 
 object PinballDataCache {
     private val mutex = Mutex()
+    private val indexIoLock = Any()
     private val refreshScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Volatile
@@ -247,6 +250,7 @@ object PinballDataCache {
     }
 
     private suspend fun ensureLoaded() {
+        if (loaded) return
         mutex.withLock {
             if (loaded) return
             val context = appContext ?: error("PinballDataCache.initialize(context) was not called")
@@ -425,50 +429,72 @@ object PinballDataCache {
 
     private fun upsertIndex(path: String, hash: String?, missing: Boolean) {
         val context = appContext ?: return
-        val file = indexFile(context)
-        val root = if (file.exists()) JSONObject(file.readText()) else JSONObject()
-        val resources = root.optJSONObject("resources") ?: JSONObject().also { root.put("resources", it) }
-        val obj = JSONObject()
-            .put("path", path)
-            .put("hash", hash)
-            .put("missing", missing)
-            .put("lastValidatedAt", System.currentTimeMillis())
-        resources.put(path, obj)
-        root.put("lastMetaFetchAt", lastMetaFetchAt)
-        root.put("lastUpdateScanAt", lastUpdateScanAt)
-        file.writeText(root.toString())
+        synchronized(indexIoLock) {
+            val root = readOrInitIndexRoot(context)
+            val resources = root.optJSONObject("resources") ?: JSONObject().also { root.put("resources", it) }
+            val obj = JSONObject()
+                .put("path", path)
+                .put("hash", hash)
+                .put("missing", missing)
+                .put("lastValidatedAt", System.currentTimeMillis())
+            resources.put(path, obj)
+            root.put("lastMetaFetchAt", lastMetaFetchAt)
+            root.put("lastUpdateScanAt", lastUpdateScanAt)
+            writeIndexRoot(context, root)
+        }
     }
 
     private fun isMarkedMissingInIndex(path: String): Boolean {
         val context = appContext ?: return false
-        val file = indexFile(context)
-        if (!file.exists()) return false
-        return runCatching {
-            val root = JSONObject(file.readText())
-            val resources = root.optJSONObject("resources") ?: return@runCatching false
-            resources.optJSONObject(path)?.optBoolean("missing", false) == true
-        }.getOrDefault(false)
+        return synchronized(indexIoLock) {
+            runCatching {
+                val root = readOrInitIndexRoot(context)
+                val resources = root.optJSONObject("resources") ?: return@runCatching false
+                resources.optJSONObject(path)?.optBoolean("missing", false) == true
+            }.getOrDefault(false)
+        }
     }
 
     private fun readIndexState() {
         val context = appContext ?: return
-        val file = indexFile(context)
-        if (!file.exists()) return
-        val root = JSONObject(file.readText())
-        lastMetaFetchAt = root.optLong("lastMetaFetchAt", 0L)
-        lastUpdateScanAt = root.optString("lastUpdateScanAt").takeIf { it.isNotBlank() }
+        synchronized(indexIoLock) {
+            val root = readOrInitIndexRoot(context)
+            lastMetaFetchAt = root.optLong("lastMetaFetchAt", 0L)
+            lastUpdateScanAt = root.optString("lastUpdateScanAt").takeIf { it.isNotBlank() }
+        }
     }
 
     private fun persistMetaState() {
         val context = appContext ?: return
+        synchronized(indexIoLock) {
+            val root = readOrInitIndexRoot(context)
+            root.put("lastMetaFetchAt", lastMetaFetchAt)
+            root.put("lastUpdateScanAt", lastUpdateScanAt)
+            if (!root.has("resources")) {
+                root.put("resources", JSONObject())
+            }
+            writeIndexRoot(context, root)
+        }
+    }
+
+    private fun readOrInitIndexRoot(context: Context): JSONObject {
         val file = indexFile(context)
-        val root = if (file.exists()) JSONObject(file.readText()) else JSONObject()
-        root.put("lastMetaFetchAt", lastMetaFetchAt)
-        root.put("lastUpdateScanAt", lastUpdateScanAt)
-        if (!root.has("resources")) {
+        val root = if (!file.exists()) {
+            JSONObject()
+        } else {
+            runCatching { JSONObject(file.readText()) }.getOrElse {
+                file.delete()
+                JSONObject()
+            }
+        }
+        if (!root.has("resources") || root.optJSONObject("resources") == null) {
             root.put("resources", JSONObject())
         }
-        file.writeText(root.toString())
+        return root
+    }
+
+    private fun writeIndexRoot(context: Context, root: JSONObject) {
+        indexFile(context).writeText(root.toString())
     }
 
     private fun hasUsableNetwork(context: Context?): Boolean {

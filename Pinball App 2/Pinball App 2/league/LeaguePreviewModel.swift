@@ -21,7 +21,7 @@ final class LeaguePreviewModel: ObservableObject {
     private static let targetsPath = "/pinball/data/LPL_Targets.csv"
     private static let standingsPath = "/pinball/data/LPL_Standings.csv"
     private static let statsPath = "/pinball/data/LPL_Stats.csv"
-    private static let libraryPath = "/pinball/data/pinball_library.json"
+    private static let libraryPath = "/pinball/data/pinball_library_v3.json"
     private static let practiceStorageKey = "practice-state-json"
     private static let legacyPracticeStorageKey = "practice-upgrade-state-v1"
 
@@ -366,9 +366,10 @@ final class LeaguePreviewModel: ObservableObject {
     private func mergeTargetsWithLibrary(targetRows: [LeagueTargetPreviewRow], libraryJSON: String?) -> [LeagueTargetPreviewRow] {
         guard let libraryJSON,
               let data = libraryJSON.data(using: .utf8),
-              let games = try? JSONDecoder().decode([LeagueLibraryGame].self, from: data) else {
+              let root = try? JSONDecoder().decode(LeagueLibraryGameRoot.self, from: data) else {
             return targetRows
         }
+        let games = root.items
 
         let normalizedLibrary: [(normalizedName: String, bank: Int?, order: Int)] = games.enumerated().map { index, game in
             let weightedOrder: Int
@@ -506,6 +507,7 @@ private struct ParsedStatsRow {
 private struct LeagueLibraryGame: Decodable {
     enum CodingKeys: String, CodingKey {
         case name
+        case game
         case area
         case location
         case group
@@ -521,7 +523,11 @@ private struct LeagueLibraryGame: Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        name = try container.decode(String.self, forKey: .name)
+        if let decodedName = try container.decodeIfPresent(String.self, forKey: .name) {
+            name = decodedName
+        } else {
+            name = try container.decode(String.self, forKey: .game)
+        }
         area = (
             try container.decodeIfPresent(String.self, forKey: .area) ??
                 container.decodeIfPresent(String.self, forKey: .location)
@@ -531,4 +537,8 @@ private struct LeagueLibraryGame: Decodable {
         bank = try container.decodeIfPresent(Int.self, forKey: .bank)
     }
 
+}
+
+private struct LeagueLibraryGameRoot: Decodable {
+    let items: [LeagueLibraryGame]
 }

@@ -63,8 +63,10 @@ actor PinballDataCache {
     private let starterPackBundleName = "PinballStarter"
     private let starterPackBundleExt = "bundle"
     private let starterPackBundlePath = "pinball"
-    private let starterSeedMarkerName = "starter-pack-seeded-v1"
+    private let starterSeedMarkerName = "starter-pack-seeded-v3-only"
     private let starterPriorityPaths = [
+        "/pinball/data/pinball_library_v3.json",
+        "/pinball/data/LPL_Targets.csv",
         "/pinball/data/LPL_Stats.csv",
         "/pinball/data/LPL_Standings.csv",
         "/pinball/data/redacted_players.csv",

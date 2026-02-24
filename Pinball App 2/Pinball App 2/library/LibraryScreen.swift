@@ -99,11 +99,18 @@ struct LibraryScreen: View {
             }
             .navigationDestination(for: String.self) { gameID in
                 if let game = viewModel.games.first(where: { $0.id == gameID }) {
-                    LibraryDetailScreen(game: game)
-                        .onAppear {
-                            appNavigation.lastViewedLibraryGameID = gameID
-                            LibraryActivityLog.log(gameID: gameID, gameName: game.name, kind: .browseGame)
+                    Group {
+                        if reduceMotion {
+                            LibraryDetailScreen(game: game)
+                        } else {
+                            LibraryDetailScreen(game: game)
+                                .navigationTransition(.zoom(sourceID: gameID, in: cardTransition))
                         }
+                    }
+                    .onAppear {
+                        appNavigation.lastViewedLibraryGameID = gameID
+                        LibraryActivityLog.log(gameID: gameID, gameName: game.name, kind: .browseGame)
+                    }
                 } else {
                     Text("Game not found.")
                         .foregroundStyle(.secondary)

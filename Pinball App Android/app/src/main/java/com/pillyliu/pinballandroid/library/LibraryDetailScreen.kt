@@ -41,6 +41,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -66,6 +67,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -96,10 +98,17 @@ import com.pillyliu.pinballandroid.ui.SectionTitle
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.TextButton
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 @Composable
@@ -670,16 +679,54 @@ private fun ZoomablePlayfieldImage(
     onTap: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val candidates = imageUrls.filter { it.isNotBlank() }.distinct()
     var activeImageIndex by remember(candidates) { mutableStateOf(0) }
+    var imageLoaded by remember(candidates, activeImageIndex) { mutableStateOf(false) }
+    var lastTapAtMs by remember { mutableStateOf(0L) }
+    var singleTapJob by remember { mutableStateOf<Job?>(null) }
+    var animateTransform by remember { mutableStateOf(false) }
     var scale by remember { mutableStateOf(1f) }
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
+    var containerSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     val touchSlop = LocalViewConfiguration.current.touchSlop
+    val displayScale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = scale,
+        animationSpec = if (animateTransform) tween(durationMillis = 220) else snap(),
+        label = "playfieldScale",
+    )
+    val displayOffsetX by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = offsetX,
+        animationSpec = if (animateTransform) tween(durationMillis = 220) else snap(),
+        label = "playfieldOffsetX",
+    )
+    val displayOffsetY by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = offsetY,
+        animationSpec = if (animateTransform) tween(durationMillis = 220) else snap(),
+        label = "playfieldOffsetY",
+    )
+
+    LaunchedEffect(candidates, activeImageIndex) {
+        imageLoaded = false
+        val url = candidates.getOrNull(activeImageIndex) ?: return@LaunchedEffect
+        if (activeImageIndex >= candidates.lastIndex) return@LaunchedEffect
+        val timeoutMs = when {
+            // Give full-res originals extra time; these can be many MB and legitimately slow.
+            url.contains("/pinball/images/playfields/") && !url.contains("_1400.") && !url.contains("_700.") -> 5000L
+            url.contains("_1400.") -> 2500L
+            else -> return@LaunchedEffect
+        }
+        delay(timeoutMs)
+        if (!imageLoaded && activeImageIndex < candidates.lastIndex) {
+            activeImageIndex += 1
+        }
+    }
 
     Box(
         modifier = modifier
             .clipToBounds()
+            .onSizeChanged { containerSize = it }
             .pointerInput(touchSlop) {
                 awaitEachGesture {
                     var moved = false
@@ -687,6 +734,7 @@ private fun ZoomablePlayfieldImage(
                     var transformed = false
                     var activePointer: androidx.compose.ui.input.pointer.PointerId? = null
                     var accumulatedMove = Offset.Zero
+                    var lastPointerPosition: Offset? = null
 
                     do {
                         val event = awaitPointerEvent()
@@ -698,11 +746,13 @@ private fun ZoomablePlayfieldImage(
                         }
                         val tracked = pressedChanges.firstOrNull { it.id == activePointer } ?: pressedChanges.firstOrNull()
                         if (tracked != null) {
+                            lastPointerPosition = tracked.position
                             accumulatedMove += tracked.position - tracked.previousPosition
                             if (accumulatedMove.getDistance() > touchSlop) moved = true
                         }
 
                         if (pointersDown >= 2 || scale > 1f) {
+                            if (animateTransform) animateTransform = false
                             val zoom = event.calculateZoom()
                             val pan = event.calculatePan()
                             if (pointersDown >= 2 || kotlin.math.abs(zoom - 1f) > 0.01f || pan.getDistance() > 0f) {
@@ -720,36 +770,87 @@ private fun ZoomablePlayfieldImage(
                     } while (event.changes.any { it.pressed })
 
                     if (!multiTouch && !moved && !transformed) {
-                        onTap()
+                        val now = android.os.SystemClock.uptimeMillis()
+                        val isDoubleTap = (now - lastTapAtMs) <= 325L
+                        if (isDoubleTap) {
+                            singleTapJob?.cancel()
+                            singleTapJob = null
+                            animateTransform = true
+                            if (scale > 1f) {
+                                scale = 1f
+                                offsetX = 0f
+                                offsetY = 0f
+                            } else {
+                                val targetScale = 2.5f
+                                val tap = lastPointerPosition
+                                    ?: Offset(containerSize.width / 2f, containerSize.height / 2f)
+                                val center = Offset(containerSize.width / 2f, containerSize.height / 2f)
+                                val delta = targetScale - scale
+                                scale = targetScale
+                                offsetX += (center.x - tap.x) * delta
+                                offsetY += (center.y - tap.y) * delta
+                            }
+                            scope.launch {
+                                delay(240)
+                                animateTransform = false
+                            }
+                            lastTapAtMs = 0L
+                        } else {
+                            lastTapAtMs = now
+                            singleTapJob?.cancel()
+                            singleTapJob = scope.launch {
+                                delay(325)
+                                if (lastTapAtMs == now) {
+                                    onTap()
+                                }
+                            }
+                        }
                     }
                 }
             },
     ) {
         val activeUrl = candidates.getOrNull(activeImageIndex)
         val cachedModel = rememberCachedImageModel(activeUrl)
-        AsyncImage(
-            model = cachedModel?.let { model ->
+        val imageRequest = remember(cachedModel) {
+            cachedModel?.let { model ->
                 ImageRequest.Builder(context)
                     .data(model)
                     .size(Size.ORIGINAL)
                     .build()
-            },
+            }
+        }
+        AsyncImage(
+            model = imageRequest,
             contentDescription = title,
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    translationX = offsetX
-                    translationY = offsetY
+                    scaleX = displayScale
+                    scaleY = displayScale
+                    translationX = displayOffsetX
+                    translationY = displayOffsetY
                 },
             contentScale = ContentScale.Fit,
+            onLoading = {
+                imageLoaded = false
+            },
+            onSuccess = {
+                imageLoaded = true
+            },
             onError = {
                 if (activeImageIndex < candidates.lastIndex) {
                     activeImageIndex += 1
                 }
             },
         )
+
+        if (!imageLoaded) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = Color.White.copy(alpha = 0.9f),
+                trackColor = Color.White.copy(alpha = 0.2f),
+            )
+        }
     }
 }
 
@@ -781,7 +882,7 @@ private fun rememberCachedImageModel(url: String?): Any? {
     if (url.isNullOrBlank()) return null
     val model by produceState<Any?>(initialValue = url, key1 = url) {
         value = try {
-            PinballDataCache.resolveImageModel(url)
+            withContext(Dispatchers.IO) { PinballDataCache.resolveImageModel(url) }
         } catch (_: Throwable) {
             url
         }
@@ -924,11 +1025,25 @@ private fun MarkdownWebView(
                             body { padding:14px 16px; line-height:1.45; font-size:17px; box-sizing:border-box; }
                             *, *:before, *:after { box-sizing:border-box; }
                             * { color:$bodyColorHex !important; background: transparent !important; }
-                            p, li, dd, dt { color:$bodyColorHex !important; }
+                            #content { max-width:100%; overflow-x:hidden !important; overflow-wrap:anywhere !important; word-break:break-word !important; word-wrap:break-word !important; }
+                            p, li, dd, dt, small, div, span { color:$bodyColorHex !important; max-width:100% !important; overflow-wrap:anywhere !important; word-wrap:break-word !important; word-break:break-word !important; white-space:normal !important; }
                             blockquote { color:$mutedColorHex !important; border-left:3px solid $tableBorderHex !important; padding-left:10px; }
-                            a { color:$linkColorHex !important; text-decoration:underline !important; text-underline-offset:2px; font-weight:600; }
+                            a { color:$linkColorHex !important; text-decoration:underline !important; text-underline-offset:2px; font-weight:600; max-width:100% !important; white-space:normal !important; overflow-wrap:anywhere !important; word-wrap:break-word !important; word-break:break-all !important; }
                             code, pre { background:$codeBgHex !important; border-radius:6px !important; color:$bodyColorHex !important; }
-                            pre { padding:10px; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word; }
+                            code { overflow-wrap:anywhere; word-break:break-all; white-space:pre-wrap; }
+                            pre {
+                                padding:10px;
+                                max-width:100%;
+                                overflow-x:hidden;
+                                white-space:pre-wrap;
+                                overflow-wrap:anywhere;
+                                word-break:break-all;
+                            }
+                            pre code {
+                                white-space:pre-wrap !important;
+                                overflow-wrap:anywhere !important;
+                                word-break:break-all !important;
+                            }
                             table { border-collapse:collapse; width:100%; max-width:100%; table-layout:fixed; }
                             th, td { border:1px solid $tableBorderHex; padding:6px 8px; word-break:break-word; overflow-wrap:anywhere; }
                             img { max-width:100%; height:auto; display:block; }
@@ -939,6 +1054,7 @@ private fun MarkdownWebView(
                                 opacity:0.78;
                                 margin-bottom:0.8rem;
                             }
+                            .rulesheet-attribution, .rulesheet-attribution * { overflow-wrap:anywhere; word-break:break-word; }
                         </style>
                     </head>
                     <body>
