@@ -12,6 +12,20 @@ extension PracticeScreen {
             practiceViewportScreen("Journal Timeline") {
                 journalScreen
             }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        selectedJournalItemIDs.removeAll()
+                        isEditingJournalEntries.toggle()
+                    } label: {
+                        if isEditingJournalEntries {
+                            Text("Cancel")
+                        } else {
+                            Image(systemName: "pencil")
+                        }
+                    }
+                }
+            }
         case .insights:
             practiceScreen("Insights") {
                 insightsScreen
@@ -108,14 +122,30 @@ extension PracticeScreen {
                 set: { journalFilterRaw = $0.rawValue }
             ),
             items: journalSectionItems,
+            isEditingEntries: $isEditingJournalEntries,
+            selectedItemIDs: $selectedJournalItemIDs,
             gameTransition: gameTransition,
-            onTapItem: { gameID in goToGame(gameID) }
+            onTapItem: { gameID in goToGame(gameID) },
+            onEditJournalEntry: { entry in openJournalEntryEditor(entry) },
+            onDeleteJournalEntries: { entries in deleteJournalEntries(entries) }
         )
     }
 
     var insightsScreen: some View {
         PracticeInsightsSectionView(
             games: store.games,
+            librarySources: store.librarySources,
+            selectedLibrarySourceID: store.defaultPracticeSourceID,
+            onSelectLibrarySourceID: { sourceID in
+                store.selectPracticeLibrarySource(id: sourceID)
+                let canonical = store.canonicalPracticeGameID(selectedGameID)
+                if !canonical.isEmpty,
+                   store.games.contains(where: { $0.canonicalPracticeKey == canonical }) {
+                    selectedGameID = canonical
+                } else {
+                    selectedGameID = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first?.canonicalPracticeKey ?? ""
+                }
+            },
             selectedGameID: $selectedGameID,
             scoreSummaryForGame: { gameID in
                 store.scoreSummary(for: gameID)

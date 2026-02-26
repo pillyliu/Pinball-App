@@ -146,307 +146,12 @@ struct GroupEditorScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                sectionCard("Name") {
-                    TextField("Group name", text: $name)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .appControlStyle()
-                }
-
+                nameSection
                 if editingGroup == nil {
-                    sectionCard("Templates") {
-                        Picker("Template", selection: $templateSource) {
-                            ForEach(GroupCreationTemplateSource.allCases) { option in
-                                Text(option.label).tag(option)
-                            }
-                        }
-                        .pickerStyle(.menu)
-
-                        switch templateSource {
-                        case .none:
-                            Text("Choose a template to prefill this group.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        case .bank:
-                            if availableBanks.isEmpty {
-                                Text("No bank data found in library.")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                Picker("Bank", selection: $selectedTemplateBank) {
-                                    ForEach(availableBanks, id: \.self) { bank in
-                                        Text("Bank \(bank)").tag(bank)
-                                    }
-                                }
-                                .pickerStyle(.menu)
-
-                                Button("Apply Bank Template") {
-                                    applyBankTemplate(bank: selectedTemplateBank)
-                                }
-                                .buttonStyle(.glass)
-                            }
-                        case .duplicate:
-                            if duplicateCandidates.isEmpty {
-                                Text("No existing groups to duplicate.")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                Picker("Group", selection: Binding<UUID?>(
-                                    get: { selectedDuplicateGroupID ?? duplicateCandidates.first?.id },
-                                    set: { selectedDuplicateGroupID = $0 }
-                                )) {
-                                    ForEach(duplicateCandidates) { group in
-                                        Text(group.name).tag(Optional(group.id))
-                                    }
-                                }
-                                .pickerStyle(.menu)
-
-                                Button("Apply Duplicate Group") {
-                                    applyDuplicateTemplate(groupID: selectedDuplicateGroupID ?? duplicateCandidates.first?.id)
-                                }
-                                .buttonStyle(.glass)
-                            }
-                        }
-                    }
+                    templatesSection
                 }
-
-                sectionCard("Titles") {
-                    Button {
-                        showingTitleSelector = true
-                    } label: {
-                        HStack {
-                            Text(selectedGameIDs.isEmpty ? "Select games" : "\(selectedGameIDs.count) selected")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .appControlStyle()
-                    }
-                    .buttonStyle(.plain)
-
-                    if selectedGames.isEmpty {
-                        Text("No games selected.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(selectedGames) { game in
-                                    SelectedGameMiniCard(game: game)
-                                        .onDrag {
-                                            draggingGameID = game.id
-                                            return NSItemProvider(object: game.id as NSString)
-                                        }
-                                        .onDrop(
-                                            of: [UTType.text],
-                                            delegate: SelectedGameReorderDropDelegate(
-                                                targetGameID: game.id,
-                                                selectedGameIDs: $selectedGameIDs,
-                                                draggingGameID: $draggingGameID
-                                            )
-                                        )
-                                        .contextMenu {
-                                            Button(role: .destructive) {
-                                                pendingDeleteGameID = game.id
-                                            } label: {
-                                                Label("Delete Title", systemImage: "trash")
-                                            }
-                                        }
-                                }
-                            }
-                            .onDrop(of: [UTType.text], delegate: SelectedGameReorderContainerDropDelegate(draggingGameID: $draggingGameID))
-                        }
-
-                        Text("Long-press a title card to reorder or delete.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                sectionCard("Settings") {
-                    HStack {
-                        Text("Active")
-                        Spacer()
-                        Toggle("", isOn: $isActive)
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                            .tint(.green)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .appControlStyle()
-
-                    HStack {
-                        Text("Priority")
-                        Spacer()
-                        Toggle("", isOn: $isPriority)
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                            .tint(.orange)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .appControlStyle()
-
-                    Picker("Type", selection: $type) {
-                        ForEach(GroupType.allCases) { option in
-                            Text(option.label).tag(option)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-
-                    HStack {
-                        Text("Position")
-                        Spacer()
-                        HStack(spacing: 8) {
-                            Button {
-                                moveGroupPosition(up: true)
-                            } label: {
-                                Image(systemName: "chevron.up")
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(!canMoveGroupUp)
-                            .foregroundStyle(canMoveGroupUp ? Color.primary : Color.secondary.opacity(0.4))
-
-                            Text("\(groupPosition)")
-                                .font(.footnote.monospacedDigit().weight(.semibold))
-                                .frame(minWidth: 28)
-
-                            Button {
-                                moveGroupPosition(up: false)
-                            } label: {
-                                Image(systemName: "chevron.down")
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(!canMoveGroupDown)
-                            .foregroundStyle(canMoveGroupDown ? Color.primary : Color.secondary.opacity(0.4))
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .appControlStyle()
-                    }
-
-                    HStack {
-                        Toggle("Start Date", isOn: $hasStartDate)
-                            .toggleStyle(.switch)
-                        Spacer()
-                        if hasStartDate {
-                            Button {
-                                inlineDateEditorField = .start
-                            } label: {
-                                Text(formatEditorDate(startDate))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                            .popover(
-                                isPresented: Binding(
-                                    get: { inlineDateEditorField == .start },
-                                    set: { isPresented in
-                                        if !isPresented { inlineDateEditorField = nil }
-                                    }
-                                ),
-                                attachmentAnchor: .rect(.bounds)
-                            ) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
-                                        .datePickerStyle(.graphical)
-
-                                    HStack {
-                                        Button("Clear", role: .destructive) {
-                                            hasStartDate = false
-                                            inlineDateEditorField = nil
-                                        }
-                                        .buttonStyle(.glass)
-
-                                        Spacer()
-
-                                        Button("Done") {
-                                            inlineDateEditorField = nil
-                                        }
-                                        .buttonStyle(.glass)
-                                    }
-                                }
-                                .padding(12)
-                                .frame(minWidth: 320)
-                                .presentationCompactAdaptation(.popover)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .appControlStyle()
-
-                    HStack {
-                        Toggle("End Date", isOn: $hasEndDate)
-                            .toggleStyle(.switch)
-                        Spacer()
-                        if hasEndDate {
-                            Button {
-                                inlineDateEditorField = .end
-                            } label: {
-                                Text(formatEditorDate(endDate))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                            .popover(
-                                isPresented: Binding(
-                                    get: { inlineDateEditorField == .end },
-                                    set: { isPresented in
-                                        if !isPresented { inlineDateEditorField = nil }
-                                    }
-                                ),
-                                attachmentAnchor: .rect(.bounds)
-                            ) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    DatePicker("End Date", selection: $endDate, displayedComponents: .date)
-                                        .datePickerStyle(.graphical)
-
-                                    HStack {
-                                        Button("Clear", role: .destructive) {
-                                            hasEndDate = false
-                                            inlineDateEditorField = nil
-                                        }
-                                        .buttonStyle(.glass)
-
-                                        Spacer()
-
-                                        Button("Done") {
-                                            inlineDateEditorField = nil
-                                        }
-                                        .buttonStyle(.glass)
-                                    }
-                                }
-                                .padding(12)
-                                .frame(minWidth: 320)
-                                .presentationCompactAdaptation(.popover)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .appControlStyle()
-
-                    HStack {
-                        Text("Archived")
-                        Spacer()
-                        Toggle("", isOn: $isArchived)
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .appControlStyle()
-
-                    if let validationMessage {
-                        Text(validationMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                    }
-                }
+                titlesSection
+                settingsSection
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -522,6 +227,286 @@ struct GroupEditorScreen: View {
                 pendingDeleteGameID = nil
             }
         }
+        .onChange(of: availableBanks) { _, _ in
+            syncTemplateDefaultsToAvailableData()
+        }
+        .onChange(of: store.state.customGroups.map(\.id)) { _, _ in
+            syncTemplateDefaultsToAvailableData()
+        }
+    }
+
+    private var nameSection: some View {
+        sectionCard("Name") {
+            TextField("Group name", text: $name)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .appControlStyle()
+        }
+    }
+
+    private var templatesSection: some View {
+        sectionCard("Templates") {
+            Picker("Template", selection: $templateSource) {
+                ForEach(GroupCreationTemplateSource.allCases) { option in
+                    Text(option.label).tag(option)
+                }
+            }
+            .pickerStyle(.menu)
+
+            switch templateSource {
+            case .none:
+                Text("Choose a template to prefill this group.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            case .bank:
+                if availableBanks.isEmpty {
+                    Text("No bank data found in library.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Picker("Bank", selection: $selectedTemplateBank) {
+                        ForEach(availableBanks, id: \.self) { bank in
+                            Text("Bank \(bank)").tag(bank)
+                        }
+                    }
+                    .pickerStyle(.menu)
+
+                    Button("Apply Bank Template") {
+                        applyBankTemplate(bank: selectedTemplateBank)
+                    }
+                    .buttonStyle(.glass)
+                }
+            case .duplicate:
+                if duplicateCandidates.isEmpty {
+                    Text("No existing groups to duplicate.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Picker("Group", selection: Binding<UUID?>(
+                        get: { selectedDuplicateGroupID ?? duplicateCandidates.first?.id },
+                        set: { selectedDuplicateGroupID = $0 }
+                    )) {
+                        ForEach(duplicateCandidates) { group in
+                            Text(group.name).tag(Optional(group.id))
+                        }
+                    }
+                    .pickerStyle(.menu)
+
+                    Button("Apply Duplicate Group") {
+                        applyDuplicateTemplate(groupID: selectedDuplicateGroupID ?? duplicateCandidates.first?.id)
+                    }
+                    .buttonStyle(.glass)
+                }
+            }
+        }
+    }
+
+    private var titlesSection: some View {
+        sectionCard("Titles") {
+            Button {
+                showingTitleSelector = true
+            } label: {
+                HStack {
+                    Text(selectedGameIDs.isEmpty ? "Select games" : "\(selectedGameIDs.count) selected")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .appControlStyle()
+            }
+            .buttonStyle(.plain)
+
+            if selectedGames.isEmpty {
+                Text("No games selected.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(selectedGames) { game in
+                            SelectedGameMiniCard(game: game)
+                                .onDrag {
+                                    draggingGameID = game.id
+                                    return NSItemProvider(object: game.id as NSString)
+                                }
+                                .onDrop(
+                                    of: [UTType.text],
+                                    delegate: SelectedGameReorderDropDelegate(
+                                        targetGameID: game.id,
+                                        selectedGameIDs: $selectedGameIDs,
+                                        draggingGameID: $draggingGameID
+                                    )
+                                )
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        pendingDeleteGameID = game.id
+                                    } label: {
+                                        Label("Delete Title", systemImage: "trash")
+                                    }
+                                }
+                        }
+                    }
+                    .onDrop(of: [UTType.text], delegate: SelectedGameReorderContainerDropDelegate(draggingGameID: $draggingGameID))
+                }
+
+                Text("Long-press a title card to reorder or delete.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var settingsSection: some View {
+        sectionCard("Settings") {
+            HStack {
+                Text("Active")
+                Spacer()
+                Toggle("", isOn: $isActive)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .tint(.green)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .appControlStyle()
+
+            HStack {
+                Text("Priority")
+                Spacer()
+                Toggle("", isOn: $isPriority)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .tint(.orange)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .appControlStyle()
+
+            Picker("Type", selection: $type) {
+                ForEach(GroupType.allCases) { option in
+                    Text(option.label).tag(option)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            HStack {
+                Text("Position")
+                Spacer()
+                HStack(spacing: 8) {
+                    Button { moveGroupPosition(up: true) } label: { Image(systemName: "chevron.up") }
+                        .buttonStyle(.plain)
+                        .disabled(!canMoveGroupUp)
+                        .foregroundStyle(canMoveGroupUp ? Color.primary : Color.secondary.opacity(0.4))
+
+                    Text("\(groupPosition)")
+                        .font(.footnote.monospacedDigit().weight(.semibold))
+                        .frame(minWidth: 28)
+
+                    Button { moveGroupPosition(up: false) } label: { Image(systemName: "chevron.down") }
+                        .buttonStyle(.plain)
+                        .disabled(!canMoveGroupDown)
+                        .foregroundStyle(canMoveGroupDown ? Color.primary : Color.secondary.opacity(0.4))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .appControlStyle()
+            }
+
+            dateToggleRow(title: "Start Date", hasDate: $hasStartDate, date: $startDate, field: .start)
+            dateToggleRow(title: "End Date", hasDate: $hasEndDate, date: $endDate, field: .end)
+
+            HStack {
+                Text("Archived")
+                Spacer()
+                Toggle("", isOn: $isArchived)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .appControlStyle()
+
+            if let validationMessage {
+                Text(validationMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+        }
+    }
+
+    private func dateToggleRow(title: String, hasDate: Binding<Bool>, date: Binding<Date>, field: GroupEditorDateField) -> some View {
+        HStack {
+            Text(title)
+            Spacer(minLength: 8)
+            Button {
+                if !hasDate.wrappedValue { hasDate.wrappedValue = true }
+                inlineDateEditorField = field
+            } label: {
+                Text(hasDate.wrappedValue ? formatEditorDate(date.wrappedValue) : "Select date")
+                    .font(.caption2)
+                    .foregroundStyle(hasDate.wrappedValue ? .secondary : .tertiary)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(AppTheme.panel.opacity(0.45), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(AppTheme.border.opacity(0.45), lineWidth: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+            if hasDate.wrappedValue {
+                Button {
+                    hasDate.wrappedValue = false
+                    if inlineDateEditorField == field { inlineDateEditorField = nil }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+            }
+            Toggle("", isOn: hasDate)
+                .labelsHidden()
+                .toggleStyle(.switch)
+        }
+        .popover(
+            isPresented: Binding(
+                get: { inlineDateEditorField == field },
+                set: { isPresented in
+                    if !isPresented { inlineDateEditorField = nil }
+                }
+            ),
+            attachmentAnchor: .rect(.bounds)
+        ) {
+            VStack(alignment: .leading, spacing: 8) {
+                DatePicker(title, selection: date, displayedComponents: .date)
+                    .datePickerStyle(.graphical)
+
+                HStack {
+                    Button("Clear", role: .destructive) {
+                        hasDate.wrappedValue = false
+                        inlineDateEditorField = nil
+                    }
+                    .buttonStyle(.glass)
+
+                    Spacer()
+
+                    Button("Done") {
+                        inlineDateEditorField = nil
+                    }
+                    .buttonStyle(.glass)
+                }
+            }
+            .padding(12)
+            .frame(minWidth: 320)
+            .presentationCompactAdaptation(.popover)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .appControlStyle()
     }
 
     @ViewBuilder
@@ -538,13 +523,14 @@ struct GroupEditorScreen: View {
         guard !didSeedFromEditingGroup else { return }
         defer { didSeedFromEditingGroup = true }
 
-        if selectedTemplateBank == 0 {
-            selectedTemplateBank = availableBanks.first ?? 1
-        }
-        selectedDuplicateGroupID = duplicateCandidates.first?.id
+        syncTemplateDefaultsToAvailableData()
         createGroupPosition = store.state.customGroups.count + 1
 
-        guard let group = editingGroup else { return }
+        guard let group = editingGroup else {
+            hasStartDate = true
+            startDate = Date()
+            return
+        }
         name = group.name
         selectedGameIDs = group.gameIDs
         isActive = group.isActive
@@ -558,6 +544,19 @@ struct GroupEditorScreen: View {
         }
         if let end = group.endDate {
             endDate = end
+        }
+    }
+
+    private func syncTemplateDefaultsToAvailableData() {
+        if let firstBank = availableBanks.first, !availableBanks.contains(selectedTemplateBank) {
+            selectedTemplateBank = firstBank
+        } else if availableBanks.isEmpty, selectedTemplateBank == 0 {
+            selectedTemplateBank = 1
+        }
+
+        let duplicateIDs = Set(duplicateCandidates.map(\.id))
+        if selectedDuplicateGroupID == nil || (selectedDuplicateGroupID != nil && !duplicateIDs.contains(selectedDuplicateGroupID!)) {
+            selectedDuplicateGroupID = duplicateCandidates.first?.id
         }
     }
 
@@ -748,6 +747,8 @@ struct GroupEditorScreen: View {
 }
 
 struct GroupGameSelectionScreen: View {
+    private static let preferredGroupPickerLibrarySourceDefaultsKey = "practice-group-picker-library-source-id"
+
     @ObservedObject var store: PracticeStore
     @Binding var selectedGameIDs: [String]
 
@@ -826,10 +827,17 @@ struct GroupGameSelectionScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if selectedLibraryFilterID.isEmpty {
-                selectedLibraryFilterID = store.defaultPracticeSourceID
+                let savedPreferredLibraryID = UserDefaults.standard.string(forKey: Self.preferredGroupPickerLibrarySourceDefaultsKey)
+                selectedLibraryFilterID =
+                    (savedPreferredLibraryID.flatMap { id in availableLibrarySources.contains(where: { $0.id == id }) ? id : nil })
+                    ?? store.defaultPracticeSourceID
                     ?? availableLibrarySources.first?.id
                     ?? quickEntryAllGamesLibraryID
             }
+        }
+        .onChange(of: selectedLibraryFilterID) { _, newValue in
+            guard !newValue.isEmpty else { return }
+            UserDefaults.standard.set(newValue, forKey: Self.preferredGroupPickerLibrarySourceDefaultsKey)
         }
     }
 

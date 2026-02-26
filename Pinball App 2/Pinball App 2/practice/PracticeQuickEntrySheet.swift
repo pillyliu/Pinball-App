@@ -59,6 +59,12 @@ struct PracticeQuickEntrySheet: View {
         store.librarySources.isEmpty ? inferPracticeLibrarySources(from: allLibraryGamesForPicker) : store.librarySources
     }
 
+    private var avenueLibrarySourceIDForQuickEntry: String? {
+        availableLibrarySources.first(where: { $0.id == "venue--the-avenue-cafe" })?.id
+            ?? availableLibrarySources.first(where: { $0.id == "the-avenue" })?.id
+            ?? availableLibrarySources.first(where: { $0.name.localizedCaseInsensitiveContains("the avenue") })?.id
+    }
+
     private var filteredGamesForPicker: [PinballGame] {
         let selected = selectedLibraryFilterID.trimmingCharacters(in: .whitespacesAndNewlines)
         if selected.isEmpty || selected == quickEntryAllGamesLibraryID {
@@ -74,7 +80,7 @@ struct PracticeQuickEntrySheet: View {
     }
 
     var body: some View {
-        let gameOptions = orderedGamesForDropdown(filteredGamesForPicker, collapseByPracticeIdentity: true, limit: 41)
+        let gameOptions = orderedGamesForDropdown(filteredGamesForPicker, collapseByPracticeIdentity: true)
         NavigationStack {
             ZStack {
                 Color.clear.ignoresSafeArea()
@@ -123,7 +129,17 @@ struct PracticeQuickEntrySheet: View {
                             sectionCard("Details") {
                                 switch selectedActivity {
                                 case .score:
-                                    styledTextField("Score", text: formattedScoreBinding, keyboard: .numberPad)
+                                    TextField("Score", text: $scoreText)
+                                        .keyboardType(.numberPad)
+                                        .multilineTextAlignment(.trailing)
+                                        .monospacedDigit()
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 8)
+                                        .appControlStyle()
+                                        .onChange(of: scoreText) { _, newValue in
+                                            let formatted = formatScoreInputWithCommas(newValue)
+                                            if formatted != newValue { scoreText = formatted }
+                                        }
 
                                     Picker("Context", selection: $scoreContext) {
                                         ForEach(ScoreContext.allCases) { context in
@@ -137,7 +153,7 @@ struct PracticeQuickEntrySheet: View {
                                     }
                                 case .rulesheet:
                                     sliderRow(title: "Rulesheet progress", value: $rulesheetProgress)
-                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
+                                    styledMultilineTextEditor("Optional note", text: $noteText)
                                 case .tutorialVideo, .gameplayVideo:
                                     Picker("Video", selection: $selectedVideoSource) {
                                         ForEach(videoSourceOptions, id: \.self) { source in
@@ -160,15 +176,15 @@ struct PracticeQuickEntrySheet: View {
                                         sliderRow(title: "Percent watched", value: $videoPercent)
                                     }
 
-                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
+                                    styledMultilineTextEditor("Optional note", text: $noteText)
                                 case .playfield:
                                     Text("Logs a timestamped playfield review.")
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
-                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
+                                    styledMultilineTextEditor("Optional note", text: $noteText)
                                 case .practice:
                                     styledTextField("Practice minutes (optional)", text: $practiceMinutes, keyboard: .numberPad)
-                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
+                                    styledMultilineTextEditor("Optional note", text: $noteText)
                                 case .mechanics:
                                     Picker("Skill", selection: $mechanicsSkill) {
                                         ForEach(store.allTrackedMechanicsSkills(), id: \.self) { skill in
@@ -185,7 +201,7 @@ struct PracticeQuickEntrySheet: View {
                                     }
                                     Slider(value: $mechanicsCompetency, in: 1...5, step: 1)
 
-                                    styledTextField("Mechanics note", text: $mechanicsNote, axis: .vertical)
+                                    styledMultilineTextEditor("Mechanics note", text: $mechanicsNote)
 
                                     let detected = store.detectedMechanicsTags(in: mechanicsNote)
                                     if !detected.isEmpty {
@@ -232,12 +248,9 @@ struct PracticeQuickEntrySheet: View {
                     if kind == .mechanics {
                         selectedLibraryFilterID = quickEntryAllGamesLibraryID
                     } else {
-                        let savedPreferredLibraryID = UserDefaults.standard.string(forKey: preferredLibrarySourceDefaultsKey)
                         selectedLibraryFilterID =
-                            (savedPreferredLibraryID.flatMap { id in availableLibrarySources.contains(where: { $0.id == id }) ? id : nil })
+                            avenueLibrarySourceIDForQuickEntry
                             ?? store.defaultPracticeSourceID
-                            ?? availableLibrarySources.first(where: { $0.id == "venue--the-avenue-cafe" })?.id
-                            ?? availableLibrarySources.first(where: { $0.id == "the-avenue" })?.id
                             ?? availableLibrarySources.first?.id
                             ?? quickEntryAllGamesLibraryID
                     }
@@ -297,25 +310,38 @@ struct PracticeQuickEntrySheet: View {
         .appPanelStyle()
     }
 
+    @ViewBuilder
     private func styledTextField(
         _ placeholder: String,
         text: Binding<String>,
         axis: Axis = .horizontal,
-        keyboard: UIKeyboardType = .default
+        keyboard: UIKeyboardType = .default,
+        textAlignment: TextAlignment = .leading,
+        monospacedDigits: Bool = false
     ) -> some View {
-        TextField(placeholder, text: text, axis: axis)
+        let field = TextField(placeholder, text: text, axis: axis)
             .keyboardType(keyboard)
             .lineLimit(axis == .vertical ? 2 ... 4 : 1 ... 1)
+            .multilineTextAlignment(textAlignment)
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .appControlStyle()
+        if monospacedDigits { field.monospacedDigit() } else { field }
     }
 
-    private var formattedScoreBinding: Binding<String> {
-        Binding(
-            get: { scoreText },
-            set: { scoreText = formatScoreInputWithCommas($0) }
-        )
+    @ViewBuilder
+    private func styledMultilineTextEditor(_ placeholder: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(placeholder)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            TextEditor(text: text)
+                .frame(minHeight: 88, maxHeight: 96)
+                .scrollContentBackground(.hidden)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .appControlStyle()
+        }
     }
 
     private func sliderRow(title: String, value: Binding<Double>) -> some View {
@@ -334,8 +360,9 @@ struct PracticeQuickEntrySheet: View {
 
     private func save() -> String? {
         validationMessage = nil
-        let trimmedNote = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let note = trimmedNote.isEmpty ? nil : trimmedNote
+        let normalizedNoteText = noteText.replacingOccurrences(of: "\r\n", with: "\n")
+        let trimmedNote = normalizedNoteText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let note = trimmedNote.isEmpty ? nil : normalizedNoteText
 
         switch selectedActivity {
         case .score:
@@ -407,7 +434,8 @@ struct PracticeQuickEntrySheet: View {
             return selectedGameID
         case .mechanics:
             let skill = mechanicsSkill.trimmingCharacters(in: .whitespacesAndNewlines)
-            let rawNote = mechanicsNote.trimmingCharacters(in: .whitespacesAndNewlines)
+            let normalizedMechanicsNote = mechanicsNote.replacingOccurrences(of: "\r\n", with: "\n")
+            let rawNote = normalizedMechanicsNote.trimmingCharacters(in: .whitespacesAndNewlines)
             let prefix = skill.isEmpty ? "#mechanics" : "#\(skill.replacingOccurrences(of: " ", with: ""))"
             let composed = rawNote.isEmpty
                 ? "\(prefix) competency \(Int(mechanicsCompetency))/5."

@@ -75,51 +75,73 @@ extension PracticeStore {
 
         switch entry.action {
         case .rulesheetRead:
-            if let progress = entry.progressPercent {
-                return "Read \(progress)% of \(name) rulesheet"
-            }
-            return entry.note ?? "Read \(name) rulesheet"
+            let value = entry.progressPercent.map { "Progress: \($0)%" } ?? "Read rulesheet"
+            return structuredStudySummary(title: "Rulesheet", value: value, note: entry.note, gameName: name)
         case .tutorialWatch:
+            let valueLine: String
             if let value = entry.videoValue {
-                return "Tutorial for \(name): \(value)"
+                valueLine = "Progress: \(value)"
+            } else if let progress = entry.progressPercent {
+                valueLine = "Progress: \(progress)%"
+            } else {
+                valueLine = "Updated progress"
             }
-            if let progress = entry.progressPercent {
-                return "Tutorial for \(name): \(progress)% complete"
-            }
-            return entry.note ?? "Updated tutorial progress for \(name)"
+            return structuredStudySummary(title: "Tutorial Video", value: valueLine, note: entry.note, gameName: name)
         case .gameplayWatch:
+            let valueLine: String
             if let value = entry.videoValue {
-                return "Gameplay for \(name): \(value)"
+                valueLine = "Progress: \(value)"
+            } else if let progress = entry.progressPercent {
+                valueLine = "Progress: \(progress)%"
+            } else {
+                valueLine = "Updated progress"
             }
-            if let progress = entry.progressPercent {
-                return "Gameplay for \(name): \(progress)% complete"
-            }
-            return entry.note ?? "Updated gameplay progress for \(name)"
+            return structuredStudySummary(title: "Gameplay Video", value: valueLine, note: entry.note, gameName: name)
         case .playfieldViewed:
-            return entry.note ?? "Viewed \(name) playfield"
+            return structuredStudySummary(title: "Playfield", value: "Viewed playfield", note: entry.note, gameName: name)
         case .gameBrowse:
             return "Browsed \(name)"
         case .practiceSession:
             if let progress = entry.progressPercent {
                 return "Practice progress \(progress)% on \(name)"
             }
-            return entry.note ?? "Logged practice for \(name)"
+            let practiceParts = parsedPracticeSessionParts(from: entry.note)
+            var lines = ["Practice:", practiceParts.value]
+            if let note = practiceParts.note, !note.isEmpty {
+                lines.append(note)
+            }
+            lines.append("• \(name)")
+            return lines.joined(separator: "\n")
         case .scoreLogged:
             if let score = entry.score, let context = entry.scoreContext {
                 if context == .tournament, let tournament = entry.tournamentName, !tournament.isEmpty {
-                    return "Logged \(formatScore(score)) on \(name) (\(context.label): \(tournament))"
+                    return "Score: \(formatScore(score)) • \(name) (\(context.label): \(tournament))"
                 }
-                return "Logged \(formatScore(score)) on \(name) (\(context.label))"
+                return "Score: \(formatScore(score)) • \(name) (\(context.label))"
             }
             return entry.note ?? "Logged score for \(name)"
         case .noteAdded:
             if let category = entry.noteCategory {
-                if let detail = entry.noteDetail, !detail.isEmpty {
-                    return "\(category.label) note for \(name) (\(detail)): \(entry.note ?? "")"
+                if category == .general,
+                   let detail = entry.noteDetail,
+                   detail.caseInsensitiveCompare("Game Note") == .orderedSame {
+                    let noteText = (entry.note ?? "").isEmpty ? "Added game note" : (entry.note ?? "")
+                    return "Game Note:\n\(noteText)\n• \(name)"
                 }
-                return "\(category.label) note for \(name): \(entry.note ?? "")"
+                let categoryLabel = category.label
+                let detailSuffix: String
+                if let detail = entry.noteDetail, !detail.isEmpty {
+                    detailSuffix = " (\(detail))"
+                } else {
+                    detailSuffix = ""
+                }
+                let noteText = (entry.note ?? "").isEmpty ? "Added \(categoryLabel.lowercased()) note" : (entry.note ?? "")
+                return "\(categoryLabel) note\(detailSuffix): \(noteText)\n• \(name)"
             }
-            return entry.note ?? "Added note for \(name)"
+            if let note = entry.note, !note.isEmpty {
+                return "Note: \(note)\n• \(name)"
+            }
+            return "Added note\n• \(name)"
         }
     }
 
@@ -149,4 +171,41 @@ extension PracticeStore {
         formatter.maximumFractionDigits = 0
         return formatter.string(from: NSNumber(value: score)) ?? String(Int(score))
     }
+}
+
+private func structuredStudySummary(title: String, value: String, note: String?, gameName: String) -> String {
+    var lines = [title + ":", value]
+    if let note, !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        lines.append(note)
+    }
+    lines.append("• \(gameName)")
+    return lines.joined(separator: "\n")
+}
+
+private func parsedPracticeSessionParts(from raw: String?) -> (value: String, note: String?) {
+    let normalized = raw?
+        .replacingOccurrences(of: "\r\n", with: "\n")
+        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+    guard !normalized.isEmpty else {
+        return ("Practice session", nil)
+    }
+
+    if normalized.hasPrefix("Practice session") {
+        if let newline = normalized.firstIndex(of: "\n") {
+            let value = String(normalized[..<newline]).trimmingCharacters(in: .whitespacesAndNewlines)
+            let note = String(normalized[normalized.index(after: newline)...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            return (value.isEmpty ? "Practice session" : value, note.isEmpty ? nil : note)
+        }
+        if let dotRange = normalized.range(of: ". ") {
+            let value = String(normalized[..<dotRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+            let note = String(normalized[dotRange.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !value.isEmpty {
+                return (value, note.isEmpty ? nil : note)
+            }
+        }
+        return (normalized, nil)
+    }
+
+    return ("Practice session", normalized)
 }

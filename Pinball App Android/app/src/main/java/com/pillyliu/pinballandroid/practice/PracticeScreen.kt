@@ -88,11 +88,12 @@ fun PracticeScreen(contentPadding: PaddingValues) {
         }
     }
 
-    val selectedGame = findGameByPracticeLookupKey(store.games, uiState.selectedGameSlug)
+    val gameLookupPool = if (store.allLibraryGames.isNotEmpty()) store.allLibraryGames else store.games
+    val selectedGame = findGameByPracticeLookupKey(gameLookupPool, uiState.selectedGameSlug)
 
-    LaunchedEffect(uiState.selectedGameSlug, store.games) {
+    LaunchedEffect(uiState.selectedGameSlug, store.games, store.allLibraryGames) {
         val lookup = uiState.selectedGameSlug ?: return@LaunchedEffect
-        val game = findGameByPracticeLookupKey(store.games, lookup) ?: return@LaunchedEffect
+        val game = findGameByPracticeLookupKey(gameLookupPool, lookup) ?: return@LaunchedEffect
         uiState.gameSummaryDraft = store.gameSummaryNoteFor(game.practiceKey)
         uiState.activeGameVideoId = game.videos.firstNotNullOfOrNull { video -> youtubeId(video.url) }
     }
@@ -108,6 +109,8 @@ fun PracticeScreen(contentPadding: PaddingValues) {
 
     LaunchedEffect(uiState.journalFilter) {
         prefs.edit { putString(KEY_PRACTICE_JOURNAL_FILTER, uiState.journalFilter.name) }
+        uiState.journalSelectionMode = false
+        uiState.selectedJournalRowIds = emptySet()
     }
 
     when (uiState.route) {
@@ -179,7 +182,8 @@ fun PracticeScreen(contentPadding: PaddingValues) {
                 gamePickerExpanded = uiState.gamePickerExpanded,
                 onGamePickerExpandedChange = { expanded -> uiState.gamePickerExpanded = expanded },
                 onLibrarySourceSelected = { sourceId ->
-                    store.setPreferredLibrarySource(sourceId)
+                    val normalizedSourceId = if (sourceId == "__practice_home_all_games__" || sourceId == "__practice_topbar_all_games__") null else sourceId
+                    store.setPreferredLibrarySource(normalizedSourceId)
                     if (uiState.selectedGameSlug != null && findGameByPracticeLookupKey(store.games, uiState.selectedGameSlug) == null) {
                         uiState.selectedGameSlug = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey
                     }
@@ -190,6 +194,13 @@ fun PracticeScreen(contentPadding: PaddingValues) {
                 },
                 onBack = uiState::goBack,
                 onOpenSettings = { uiState.navigateTo(PracticeRoute.Settings) },
+                isJournalSelectionMode = uiState.journalSelectionMode,
+                onToggleJournalSelectionMode = if (uiState.route == PracticeRoute.Journal) {
+                    {
+                        uiState.selectedJournalRowIds = emptySet()
+                        uiState.journalSelectionMode = !uiState.journalSelectionMode
+                    }
+                } else null,
             )
 
             val routeContentContext = PracticeRouteContentContext(
@@ -208,7 +219,8 @@ fun PracticeScreen(contentPadding: PaddingValues) {
                 librarySources = store.librarySources,
                 selectedLibrarySourceId = store.defaultPracticeSourceId,
                 onSelectLibrarySourceId = { sourceId ->
-                    store.setPreferredLibrarySource(sourceId)
+                    val normalizedSourceId = if (sourceId == "__practice_home_all_games__" || sourceId == "__practice_topbar_all_games__") null else sourceId
+                    store.setPreferredLibrarySource(normalizedSourceId)
                     if (uiState.selectedGameSlug != null && findGameByPracticeLookupKey(store.games, uiState.selectedGameSlug) == null) {
                         uiState.selectedGameSlug = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey
                     }
@@ -236,6 +248,10 @@ fun PracticeScreen(contentPadding: PaddingValues) {
                 onBack = uiState::goBack,
                 journalFilter = uiState.journalFilter,
                 onJournalFilterChange = { uiState.journalFilter = it },
+                journalSelectionMode = uiState.journalSelectionMode,
+                selectedJournalRowIds = uiState.selectedJournalRowIds,
+                onJournalSelectionModeChange = { uiState.journalSelectionMode = it },
+                onSelectedJournalRowIdsChange = { uiState.selectedJournalRowIds = it },
                 journalTimelineModifier = Modifier.fillMaxSize(),
                 insightsOpponentName = uiState.insightsOpponentName,
                 insightsOpponentOptions = uiState.insightsOpponentOptions,

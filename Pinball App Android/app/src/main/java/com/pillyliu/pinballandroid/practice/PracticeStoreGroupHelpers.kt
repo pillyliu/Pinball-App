@@ -1,5 +1,7 @@
 package com.pillyliu.pinballandroid.practice
 
+import java.util.UUID
+
 internal data class GroupCreateResult(
     val groups: List<PracticeGroup>,
     val createdId: String,
@@ -39,7 +41,7 @@ internal fun createGroupInList(
 ): GroupCreateResult? {
     val trimmed = name.trim()
     if (trimmed.isEmpty()) return null
-    val id = "group-$nowMs"
+    val id = UUID.randomUUID().toString()
     val newGroup = PracticeGroup(
         id = id,
         name = trimmed,

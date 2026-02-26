@@ -64,6 +64,7 @@ actor PinballDataCache {
     private let starterPackBundleExt = "bundle"
     private let starterPackBundlePath = "pinball"
     private let starterSeedMarkerName = "starter-pack-seeded-v3-only"
+    private let legacyCacheResetMarkerName = "legacy-cache-reset-v3-assets-v1"
     private let starterPriorityPaths = [
         "/pinball/data/pinball_library_v3.json",
         "/pinball/data/LPL_Targets.csv",
@@ -339,6 +340,7 @@ actor PinballDataCache {
 
         let root = cacheRootURL()
         try fileManager.createDirectory(at: root, withIntermediateDirectories: true, attributes: nil)
+        try purgeLegacyCachedPinballAssetsIfNeeded(root: root)
 
         let indexURL = root.appendingPathComponent("cache-index.json")
         if let data = try? Data(contentsOf: indexURL),
@@ -361,6 +363,31 @@ actor PinballDataCache {
         Task.detached(priority: .utility) {
             await PinballDataCache.shared.refreshMetadataBestEffort(force: true)
         }
+    }
+
+    private func purgeLegacyCachedPinballAssetsIfNeeded(root: URL) throws {
+        let markerURL = root.appendingPathComponent(legacyCacheResetMarkerName)
+        guard !fileManager.fileExists(atPath: markerURL.path) else { return }
+
+        let resourcesURL = root.appendingPathComponent("resources", isDirectory: true)
+        let indexURL = root.appendingPathComponent("cache-index.json")
+        let starterSeedMarkerURL = root.appendingPathComponent(starterSeedMarkerName)
+
+        if fileManager.fileExists(atPath: resourcesURL.path) {
+            try? fileManager.removeItem(at: resourcesURL)
+        }
+        if fileManager.fileExists(atPath: indexURL.path) {
+            try? fileManager.removeItem(at: indexURL)
+        }
+        if fileManager.fileExists(atPath: starterSeedMarkerURL.path) {
+            try? fileManager.removeItem(at: starterSeedMarkerURL)
+        }
+
+        index = CacheIndex()
+        manifest = nil
+        inFlightRevalidations.removeAll()
+
+        try Data("ok".utf8).write(to: markerURL, options: .atomic)
     }
 
     private func preloadStarterPriorityFilesIfNeeded() throws {

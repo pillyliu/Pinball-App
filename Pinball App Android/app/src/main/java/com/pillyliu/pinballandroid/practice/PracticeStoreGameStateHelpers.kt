@@ -11,7 +11,7 @@ internal fun groupGamesFromList(group: PracticeGroup, games: List<PinballGame>):
 }
 
 internal fun gameNameForSlug(games: List<PinballGame>, slug: String): String =
-    if (slug.isBlank()) "All games" else (findGameByPracticeLookupKey(games, slug)?.name ?: slug)
+    if (slug.isBlank()) "None" else (findGameByPracticeLookupKey(games, slug)?.name ?: slug)
 
 internal fun leagueTargetScoresForSlug(
     gameSlug: String,

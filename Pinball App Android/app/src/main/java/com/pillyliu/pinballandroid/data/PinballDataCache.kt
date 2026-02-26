@@ -24,6 +24,7 @@ private const val UPDATE_LOG_URL = "https://pillyliu.com/pinball/cache-update-lo
 private const val META_REFRESH_INTERVAL_MS = 5 * 60 * 1000L
 private const val STARTER_ASSET_ROOT = "starter-pack/pinball"
 private const val STARTER_SEED_MARKER = "starter-pack-seeded-v3-only"
+private const val LEGACY_CACHE_RESET_MARKER = "legacy-cache-reset-v3-assets-v1"
 private val STARTER_PRIORITY_PATHS = listOf(
     "/pinball/data/pinball_library_v3.json",
     "/pinball/data/LPL_Targets.csv",
@@ -256,6 +257,7 @@ object PinballDataCache {
             val context = appContext ?: error("PinballDataCache.initialize(context) was not called")
             val dir = cacheRoot(context)
             if (!dir.exists()) dir.mkdirs()
+            purgeLegacyCachedPinballAssetsIfNeeded(context)
             readIndexState()
             preloadPriorityStarterFiles(context)
             loaded = true
@@ -269,6 +271,25 @@ object PinballDataCache {
             }
             requestMetadataRefresh(force = true)
         }
+    }
+
+    private fun purgeLegacyCachedPinballAssetsIfNeeded(context: Context) {
+        val root = cacheRoot(context)
+        if (!root.exists()) root.mkdirs()
+        val marker = File(root, LEGACY_CACHE_RESET_MARKER)
+        if (marker.exists()) return
+
+        runCatching {
+            resourcesDir(context).takeIf { it.exists() }?.deleteRecursively()
+            indexFile(context).takeIf { it.exists() }?.delete()
+            File(root, STARTER_SEED_MARKER).takeIf { it.exists() }?.delete()
+        }
+
+        manifestFiles.clear()
+        lastMetaFetchAt = 0L
+        lastUpdateScanAt = null
+
+        runCatching { marker.writeText("ok") }
     }
 
     private fun preloadPriorityStarterFiles(context: Context) {

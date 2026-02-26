@@ -3,22 +3,14 @@ import Foundation
 func orderedGamesForDropdown(_ games: [PinballGame], collapseByPracticeIdentity: Bool = false, limit: Int? = nil) -> [PinballGame] {
     let source = collapseByPracticeIdentity ? dedupePracticeGames(games) : games
     let ordered = source.sorted { lhs, rhs in
-        if lhs.sourceType != rhs.sourceType {
-            return lhs.sourceType == .venue
-        }
-        if let cmp = compareOptionalIntAscending(lhs.areaOrder, rhs.areaOrder), cmp != .orderedSame {
-            return cmp == .orderedAscending
-        }
-        if let cmp = compareOptionalIntAscending(lhs.group, rhs.group), cmp != .orderedSame {
-            return cmp == .orderedAscending
-        }
-        if let cmp = compareOptionalIntAscending(lhs.pos, rhs.pos), cmp != .orderedSame {
-            return cmp == .orderedAscending
+        let nameCompare = lhs.name.localizedCaseInsensitiveCompare(rhs.name)
+        if nameCompare != .orderedSame {
+            return nameCompare == .orderedAscending
         }
         if let cmp = compareOptionalIntAscending(lhs.year, rhs.year), cmp != .orderedSame {
             return cmp == .orderedAscending
         }
-        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        return lhs.canonicalPracticeKey.localizedCaseInsensitiveCompare(rhs.canonicalPracticeKey) == .orderedAscending
     }
     guard let limit else { return ordered }
     return Array(ordered.prefix(limit))

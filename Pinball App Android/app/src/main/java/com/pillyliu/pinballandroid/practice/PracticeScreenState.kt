@@ -13,6 +13,8 @@ internal class PracticeScreenState(initialJournalFilter: JournalFilter) {
     var selectedGameSlug by mutableStateOf<String?>(null)
     var selectedPlayfieldUrls by mutableStateOf<List<String>>(emptyList())
     var journalFilter by mutableStateOf(initialJournalFilter)
+    var journalSelectionMode by mutableStateOf(false)
+    var selectedJournalRowIds by mutableStateOf<Set<String>>(emptySet())
     var gameSubview by mutableStateOf(PracticeGameSubview.Summary)
     var quickPresetActivity by mutableStateOf(QuickActivity.Score)
     var quickEntryOrigin by mutableStateOf(QuickEntryOrigin.Score)
@@ -54,6 +56,10 @@ internal class PracticeScreenState(initialJournalFilter: JournalFilter) {
         if (target == PracticeRoute.Game) {
             gameSubview = PracticeGameSubview.Summary
         }
+        if (target != PracticeRoute.Journal) {
+            journalSelectionMode = false
+            selectedJournalRowIds = emptySet()
+        }
         if (target == route) return
         routeHistory.add(route)
         route = target
@@ -61,6 +67,8 @@ internal class PracticeScreenState(initialJournalFilter: JournalFilter) {
 
     fun resetToHome() {
         routeHistory.clear()
+        journalSelectionMode = false
+        selectedJournalRowIds = emptySet()
         route = PracticeRoute.Home
     }
 
@@ -69,6 +77,10 @@ internal class PracticeScreenState(initialJournalFilter: JournalFilter) {
             route = routeHistory.removeAt(routeHistory.lastIndex)
         } else {
             route = PracticeRoute.Home
+        }
+        if (route != PracticeRoute.Journal) {
+            journalSelectionMode = false
+            selectedJournalRowIds = emptySet()
         }
     }
 }

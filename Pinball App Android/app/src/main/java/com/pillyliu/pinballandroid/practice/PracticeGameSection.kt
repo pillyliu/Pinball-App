@@ -2,6 +2,7 @@ package com.pillyliu.pinballandroid.practice
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -21,11 +23,18 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,6 +72,10 @@ internal fun PracticeGameSection(
         val id = youtubeId(video.url) ?: return@mapNotNull null
         id to (video.label ?: "Video")
     }
+    var editingDraft by remember { mutableStateOf<PracticeJournalEditDraft?>(null) }
+    var pendingDeleteEntry by remember { mutableStateOf<JournalEntry?>(null) }
+    var editValidation by remember { mutableStateOf<String?>(null) }
+    var revealedLogRowId by rememberSaveable(gameKey) { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
@@ -87,7 +100,17 @@ internal fun PracticeGameSection(
         }
     }
 
-    CardContainer {
+    CardContainer(
+        modifier = Modifier.pointerInput(revealedLogRowId) {
+            detectTapGestures(
+                onTap = {
+                    if (revealedLogRowId != null) {
+                        revealedLogRowId = null
+                    }
+                }
+            )
+        }
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -198,16 +221,41 @@ internal fun PracticeGameSection(
 
             PracticeGameSubview.Log -> {
                 Text("Log", fontWeight = FontWeight.SemiBold)
-                val rows = store.journalItems(JournalFilter.All).filter { it.gameSlug == gameKey }
-                if (rows.isEmpty()) {
+                val logRows = store.journalItems(JournalFilter.All)
+                    .filter { it.gameSlug == gameKey }
+                    .map { row ->
+                        JournalTimelineRow(
+                            id = "app-${row.id}",
+                            gameSlug = row.gameSlug,
+                            summary = row.summary,
+                            timestampMs = row.timestampMs,
+                            journalEntry = row,
+                            isEditable = store.canEditJournalEntry(row),
+                        )
+                    }
+                if (logRows.isEmpty()) {
                     Text("No actions logged yet.")
                 } else {
                     LazyColumn(modifier = Modifier.height(280.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(rows) { row ->
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(row.summary, style = MaterialTheme.typography.bodySmall)
-                                Text(formatTimestamp(row.timestampMs), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                        items(logRows, key = { it.id }) { row ->
+                            JournalRow(
+                                row = row,
+                                revealedRowId = revealedLogRowId,
+                                onRevealedRowIdChange = { revealedLogRowId = it },
+                                isSelectionMode = false,
+                                isSelected = false,
+                                onToggleSelected = {},
+                                onOpenGame = {},
+                                onEdit = { entry ->
+                                    revealedLogRowId = null
+                                    editingDraft = store.journalEditDraft(entry)
+                                    editValidation = null
+                                },
+                                onDelete = { entry ->
+                                    revealedLogRowId = null
+                                    pendingDeleteEntry = entry
+                                },
+                            )
                         }
                     }
                 }
@@ -297,5 +345,44 @@ internal fun PracticeGameSection(
                 }
             }
         }
+    }
+
+    pendingDeleteEntry?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { pendingDeleteEntry = null },
+            title = { Text("Delete entry?") },
+            text = { Text("This will remove the selected journal entry and linked practice data.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    store.deleteJournalEntry(entry.id)
+                    pendingDeleteEntry = null
+                    revealedLogRowId = null
+                }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteEntry = null }) { Text("Cancel") }
+            },
+        )
+    }
+
+    editingDraft?.let { draft ->
+        JournalEditDialog(
+            store = store,
+            initial = draft,
+            validationMessage = editValidation,
+            onDismiss = {
+                editingDraft = null
+                editValidation = null
+            },
+            onSave = { updated ->
+                if (store.updateJournalEntry(updated)) {
+                    editingDraft = null
+                    editValidation = null
+                    revealedLogRowId = null
+                } else {
+                    editValidation = "Could not save changes."
+                }
+            },
+        )
     }
 }

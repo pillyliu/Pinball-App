@@ -2,6 +2,9 @@ import SwiftUI
 
 struct PracticeInsightsSectionView: View {
     let games: [PinballGame]
+    let librarySources: [PinballLibrarySource]
+    let selectedLibrarySourceID: String?
+    let onSelectLibrarySourceID: (String?) -> Void
     @Binding var selectedGameID: String
     let scoreSummaryForGame: (String) -> ScoreSummary?
     let scoreTrendValuesForGame: (String) -> [Double]
@@ -25,6 +28,10 @@ struct PracticeInsightsSectionView: View {
             return game.name
         }
         return "Select game"
+    }
+
+    private var orderedInsightGames: [PinballGame] {
+        orderedGamesForDropdown(games, collapseByPracticeIdentity: true)
     }
 
     var body: some View {
@@ -150,11 +157,22 @@ struct PracticeInsightsSectionView: View {
 
     private var insightsGameDropdown: some View {
         Menu {
-            let gameOptions = orderedGamesForDropdown(games, collapseByPracticeIdentity: true, limit: 41)
-            if gameOptions.isEmpty {
+            if librarySources.count > 1 {
+                Button((selectedLibrarySourceID == nil ? "✓ " : "") + "All games") {
+                    onSelectLibrarySourceID(nil)
+                }
+                ForEach(librarySources) { source in
+                    Button((source.id == selectedLibrarySourceID ? "✓ " : "") + source.name) {
+                        onSelectLibrarySourceID(source.id)
+                    }
+                }
+                Divider()
+            }
+
+            if orderedInsightGames.isEmpty {
                 Text("No game data")
             } else {
-                ForEach(gameOptions) { game in
+                ForEach(orderedInsightGames) { game in
                     Button(game.name) {
                         selectedGameID = game.canonicalPracticeKey
                     }

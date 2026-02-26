@@ -15,6 +15,9 @@ struct PracticeScreen: View {
     @State var currentGroupDateEditorField: GroupEditorDateField = .start
     @State var currentGroupDateEditorValue: Date = Date()
     @State var quickSheet: QuickEntrySheet?
+    @State var isEditingJournalEntries = false
+    @State var selectedJournalItemIDs: Set<String> = []
+    @State var editingJournalEntry: JournalEntry?
 
     @AppStorage("practice-journal-filter") var journalFilterRaw: String = JournalFilter.all.rawValue
     @AppStorage("practice-quick-game-score") var quickScoreGameID: String = ""
@@ -51,6 +54,7 @@ struct PracticeScreen: View {
         let summary: String
         let icon: String
         let timestamp: Date
+        let journalEntry: JournalEntry?
     }
 
     var resumeGame: PinballGame? {
@@ -127,7 +131,8 @@ struct PracticeScreen: View {
                 gameID: entry.gameID,
                 summary: store.journalSummary(for: entry),
                 icon: actionIcon(entry.action),
-                timestamp: entry.timestamp
+                timestamp: entry.timestamp,
+                journalEntry: entry
             )
         }
         let libraryItems = filteredLibraryActivities.map { event in
@@ -136,7 +141,8 @@ struct PracticeScreen: View {
                 gameID: event.gameID,
                 summary: libraryActivitySummary(event),
                 icon: libraryActivityIcon(event.kind),
-                timestamp: event.timestamp
+                timestamp: event.timestamp,
+                journalEntry: nil
             )
         }
         return (appItems + libraryItems).sorted { $0.timestamp > $1.timestamp }
@@ -149,7 +155,8 @@ struct PracticeScreen: View {
                 gameID: item.gameID,
                 summary: item.summary,
                 icon: item.icon,
-                timestamp: item.timestamp
+                timestamp: item.timestamp,
+                journalEntry: item.journalEntry
             )
         }
     }
@@ -273,6 +280,35 @@ struct PracticeScreen: View {
             currentGroupDateEditorValue = Date()
         }
         openCurrentGroupDateEditor = true
+    }
+    func openJournalEntryEditor(_ entry: JournalEntry) {
+        guard store.canEditJournalEntry(entry) else { return }
+        selectedJournalItemIDs.removeAll()
+        isEditingJournalEntries = false
+        editingJournalEntry = entry
+    }
+    func saveEditedJournalEntry(_ entry: JournalEntry) {
+        _ = store.updateJournalEntry(entry)
+    }
+    func deleteJournalEntries(_ entries: [JournalEntry]) {
+        guard !entries.isEmpty else { return }
+        let ids = Set(entries.map(\.id))
+        for entry in entries {
+            _ = store.deleteJournalEntry(id: entry.id)
+        }
+        selectedJournalItemIDs = Set(selectedJournalItemIDs.filter { itemID in
+            guard let journalID = journalEntryID(fromTimelineItemID: itemID) else { return false }
+            return !ids.contains(journalID)
+        })
+        if selectedJournalItemIDs.isEmpty {
+            isEditingJournalEntries = false
+        }
+    }
+    private func journalEntryID(fromTimelineItemID itemID: String) -> UUID? {
+        let prefix = "app-"
+        guard itemID.hasPrefix(prefix) else { return nil }
+        let raw = String(itemID.dropFirst(prefix.count))
+        return UUID(uuidString: raw)
     }
     func actionIcon(_ action: JournalActionType) -> String {
         switch action {

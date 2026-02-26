@@ -26,10 +26,15 @@ internal fun saveQuickEntry(
     mechanicsSkill: String,
     mechanicsCompetency: Float,
 ): QuickEntrySaveResult {
+    val lookupGames = if (store.allLibraryGames.isNotEmpty()) store.allLibraryGames else store.games
     val selectedSlug = rawGameSlug.takeUnless { it == "None" }.orEmpty()
+    val resolvedSelectedSlug = canonicalPracticeKey(selectedSlug, lookupGames).takeIf {
+        it.isNotBlank() && findGameByPracticeLookupKey(lookupGames, it) != null
+    }.orEmpty()
+
     return when (mode) {
         QuickActivity.Score -> {
-            if (selectedSlug.isBlank()) return QuickEntrySaveResult(validationMessage = "Select a game.")
+            if (resolvedSelectedSlug.isBlank()) return QuickEntrySaveResult(validationMessage = "Select a game.")
             val score = scoreText.replace(",", "").toDoubleOrNull()
             if (score != null && score > 0) {
                 val context = if (scoreContext == "tournament" && tournamentName.isNotBlank()) {
@@ -37,26 +42,26 @@ internal fun saveQuickEntry(
                 } else {
                     scoreContext
                 }
-                store.addScore(selectedSlug, score, context = context)
-                QuickEntrySaveResult(savedSlug = selectedSlug)
+                store.addScore(resolvedSelectedSlug, score, context = context)
+                QuickEntrySaveResult(savedSlug = resolvedSelectedSlug)
             } else {
                 QuickEntrySaveResult(validationMessage = "Enter a valid score above 0.")
             }
         }
 
         QuickActivity.Rulesheet -> {
-            if (selectedSlug.isBlank()) return QuickEntrySaveResult(validationMessage = "Select a game.")
+            if (resolvedSelectedSlug.isBlank()) return QuickEntrySaveResult(validationMessage = "Select a game.")
             store.addStudy(
-                selectedSlug,
+                resolvedSelectedSlug,
                 "rulesheet",
                 "${rulesheetProgress.roundToInt()}%",
                 note = noteText.takeIf { it.isNotBlank() },
             )
-            QuickEntrySaveResult(savedSlug = selectedSlug)
+            QuickEntrySaveResult(savedSlug = resolvedSelectedSlug)
         }
 
         QuickActivity.Tutorial, QuickActivity.Gameplay -> {
-            if (selectedSlug.isBlank()) return QuickEntrySaveResult(validationMessage = "Select a game.")
+            if (resolvedSelectedSlug.isBlank()) return QuickEntrySaveResult(validationMessage = "Select a game.")
             val sourceLabel = selectedVideoSource.ifBlank {
                 if (mode == QuickActivity.Tutorial) "Tutorial -" else "Gameplay -"
             }
@@ -86,27 +91,27 @@ internal fun saveQuickEntry(
                 "$percent% ($sourceLabel)"
             }
             store.addStudy(
-                selectedSlug,
+                resolvedSelectedSlug,
                 if (mode == QuickActivity.Tutorial) "tutorial" else "gameplay",
                 value,
                 note = noteText.takeIf { it.isNotBlank() },
             )
-            QuickEntrySaveResult(savedSlug = selectedSlug)
+            QuickEntrySaveResult(savedSlug = resolvedSelectedSlug)
         }
 
         QuickActivity.Playfield -> {
-            if (selectedSlug.isBlank()) return QuickEntrySaveResult(validationMessage = "Select a game.")
+            if (resolvedSelectedSlug.isBlank()) return QuickEntrySaveResult(validationMessage = "Select a game.")
             store.addStudy(
-                selectedSlug,
+                resolvedSelectedSlug,
                 "playfield",
                 "Viewed",
                 note = noteText.takeIf { it.isNotBlank() } ?: "Reviewed playfield image",
             )
-            QuickEntrySaveResult(savedSlug = selectedSlug)
+            QuickEntrySaveResult(savedSlug = resolvedSelectedSlug)
         }
 
         QuickActivity.Practice -> {
-            if (selectedSlug.isBlank()) return QuickEntrySaveResult(validationMessage = "Select a game.")
+            if (resolvedSelectedSlug.isBlank()) return QuickEntrySaveResult(validationMessage = "Select a game.")
             val minutes = practiceMinutes.trim()
             if (minutes.isNotEmpty() && (minutes.toIntOrNull() == null || minutes.toInt() <= 0)) {
                 return QuickEntrySaveResult(validationMessage = "Practice minutes must be a whole number greater than 0.")
@@ -115,19 +120,19 @@ internal fun saveQuickEntry(
                 "Practice session: $m minute${if (m == 1) "" else "s"}"
             } ?: "Practice session"
             store.addStudy(
-                selectedSlug,
+                resolvedSelectedSlug,
                 "practice",
                 practiceSummary,
                 note = noteText.takeIf { it.isNotBlank() },
             )
-            QuickEntrySaveResult(savedSlug = selectedSlug)
+            QuickEntrySaveResult(savedSlug = resolvedSelectedSlug)
         }
 
         QuickActivity.Mechanics -> {
             val prefix = if (mechanicsSkill.isBlank()) "#mechanics" else "#${mechanicsSkill.replace(" ", "")}"
             val composed = "$prefix competency ${mechanicsCompetency.roundToInt()}/5. ${noteText.trim()}".trim()
-            store.addPracticeNote(selectedSlug, "general", mechanicsSkill, composed)
-            QuickEntrySaveResult(savedSlug = selectedSlug)
+            store.addPracticeNote(resolvedSelectedSlug, "general", mechanicsSkill, composed)
+            QuickEntrySaveResult(savedSlug = resolvedSelectedSlug)
         }
     }
 }

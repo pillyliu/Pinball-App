@@ -7,11 +7,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import kotlin.math.roundToInt
 
 @Composable
@@ -48,12 +58,26 @@ internal fun QuickEntryModeFields(
 ) {
     when (mode) {
         QuickActivity.Score -> {
+            var scoreFieldValue by remember { mutableStateOf(TextFieldValue(scoreText, TextRange(scoreText.length))) }
+            LaunchedEffect(scoreText) {
+                if (scoreFieldValue.text != scoreText) {
+                    scoreFieldValue = TextFieldValue(scoreText, TextRange(scoreText.length))
+                }
+            }
             OutlinedTextField(
-                value = scoreText,
-                onValueChange = onScoreTextChange,
+                value = scoreFieldValue,
+                onValueChange = { incoming ->
+                    onScoreTextChange(incoming.text)
+                    val formatted = formatScoreInputWithCommasForQuickEntryField(incoming.text)
+                    scoreFieldValue = TextFieldValue(formatted, TextRange(formatted.length))
+                },
                 label = { Text("Score") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                textStyle = LocalTextStyle.current.copy(
+                    textAlign = TextAlign.End,
+                    fontFamily = FontFamily.Monospace,
+                ),
             )
             SimpleMenuDropdown(
                 title = "Context",
@@ -187,4 +211,15 @@ internal fun QuickEntryModeFields(
             )
         }
     }
+}
+
+private fun formatScoreInputWithCommasForQuickEntryField(raw: String): String {
+    val digits = raw.filter(Char::isDigit)
+    if (digits.isEmpty()) return ""
+    val grouped = StringBuilder()
+    for (i in digits.indices) {
+        if (i > 0 && (digits.length - i) % 3 == 0) grouped.append(',')
+        grouped.append(digits[i])
+    }
+    return grouped.toString()
 }

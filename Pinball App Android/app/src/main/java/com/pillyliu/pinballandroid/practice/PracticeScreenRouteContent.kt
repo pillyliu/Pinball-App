@@ -35,6 +35,10 @@ internal data class PracticeRouteContentContext(
     val onBack: () -> Unit,
     val journalFilter: JournalFilter,
     val onJournalFilterChange: (JournalFilter) -> Unit,
+    val journalSelectionMode: Boolean,
+    val selectedJournalRowIds: Set<String>,
+    val onJournalSelectionModeChange: (Boolean) -> Unit,
+    val onSelectedJournalRowIdsChange: (Set<String>) -> Unit,
     val journalTimelineModifier: Modifier,
     val insightsOpponentName: String,
     val insightsOpponentOptions: List<String>,
@@ -137,6 +141,10 @@ internal fun PracticeScreenRouteContent(
                 store = store,
                 journalFilter = context.journalFilter,
                 onJournalFilterChange = context.onJournalFilterChange,
+                isSelectionMode = context.journalSelectionMode,
+                selectedRowIds = context.selectedJournalRowIds,
+                onSelectionModeChange = context.onJournalSelectionModeChange,
+                onSelectedRowIdsChange = context.onSelectedJournalRowIdsChange,
                 onOpenGame = { slug ->
                     context.onSelectGameSlug(slug)
                     store.markPracticeViewedGame(slug)

@@ -403,6 +403,9 @@ struct AnalyticsSettings: Codable {
 }
 
 struct PracticePersistedState: Codable {
+    static let currentSchemaVersion = 4
+
+    var schemaVersion: Int
     var studyEvents: [StudyProgressEvent]
     var videoProgressEntries: [VideoProgressEntry]
     var scoreEntries: [ScoreLogEntry]
@@ -418,6 +421,7 @@ struct PracticePersistedState: Codable {
     var practiceSettings: PracticeSettings
 
     private enum CodingKeys: String, CodingKey {
+        case schemaVersion
         case studyEvents
         case videoProgressEntries
         case scoreEntries
@@ -434,6 +438,7 @@ struct PracticePersistedState: Codable {
     }
 
     init(
+        schemaVersion: Int = PracticePersistedState.currentSchemaVersion,
         studyEvents: [StudyProgressEvent],
         videoProgressEntries: [VideoProgressEntry],
         scoreEntries: [ScoreLogEntry],
@@ -448,6 +453,7 @@ struct PracticePersistedState: Codable {
         gameSummaryNotes: [String: String],
         practiceSettings: PracticeSettings
     ) {
+        self.schemaVersion = schemaVersion
         self.studyEvents = studyEvents
         self.videoProgressEntries = videoProgressEntries
         self.scoreEntries = scoreEntries
@@ -465,6 +471,7 @@ struct PracticePersistedState: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? PracticePersistedState.currentSchemaVersion
         studyEvents = try container.decodeIfPresent([StudyProgressEvent].self, forKey: .studyEvents) ?? []
         videoProgressEntries = try container.decodeIfPresent([VideoProgressEntry].self, forKey: .videoProgressEntries) ?? []
         scoreEntries = try container.decodeIfPresent([ScoreLogEntry].self, forKey: .scoreEntries) ?? []
@@ -481,6 +488,7 @@ struct PracticePersistedState: Codable {
     }
 
     static let empty = PracticePersistedState(
+        schemaVersion: PracticePersistedState.currentSchemaVersion,
         studyEvents: [],
         videoProgressEntries: [],
         scoreEntries: [],

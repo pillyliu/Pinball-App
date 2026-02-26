@@ -157,13 +157,18 @@ extension PracticeStore {
     func updateGameSummaryNote(gameID: String, note: String) {
         let gameID = canonicalPracticeGameID(gameID)
         guard !gameID.isEmpty else { return }
+        let previous = state.gameSummaryNotes[gameID]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
             state.gameSummaryNotes.removeValue(forKey: gameID)
         } else {
             state.gameSummaryNotes[gameID] = trimmed
         }
+        // Persist the summary note itself first, then log a journal note when the saved note changed.
         saveState()
+        if !trimmed.isEmpty, trimmed != previous {
+            addNote(gameID: gameID, category: .general, detail: "Game Note", note: trimmed)
+        }
     }
 
     func parseLeagueRows(text: String) -> [LeagueCSVRow] {

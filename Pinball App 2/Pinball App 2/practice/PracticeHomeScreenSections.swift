@@ -1,5 +1,7 @@
 import SwiftUI
 
+private let practiceHomeAllGamesSourceMenuID = "__practice_home_all_games__"
+
 struct PracticeHomeCardSection: View {
     let resumeGame: PinballGame?
     let allGames: [PinballGame]
@@ -31,6 +33,9 @@ struct PracticeHomeCardSection: View {
 
                         Menu {
                             if librarySources.count > 1 {
+                                Button((selectedLibrarySourceID == nil ? "✓ " : "") + "All games") {
+                                    onSelectLibrarySource(practiceHomeAllGamesSourceMenuID)
+                                }
                                 ForEach(librarySources) { source in
                                     Button((source.id == selectedLibrarySourceID ? "✓ " : "") + source.name) {
                                         onSelectLibrarySource(source.id)

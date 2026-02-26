@@ -8,10 +8,10 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 internal fun formatScore(value: Double): String {
-    val rounded = value.roundToInt().toLong()
+    val rounded = value.roundToLong()
     return java.text.NumberFormat.getIntegerInstance(Locale.US).format(rounded)
 }
 

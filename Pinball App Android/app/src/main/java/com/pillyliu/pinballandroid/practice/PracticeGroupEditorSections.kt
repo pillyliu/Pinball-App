@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -178,23 +179,37 @@ internal fun GroupEditorStatusCard(
                 ) { Text("Down") }
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Start Date", modifier = Modifier.weight(1f))
+            OutlinedButton(
+                onClick = {
+                    if (!hasStartDate) onHasStartDateChange(true)
+                    onOpenStartDatePicker()
+                },
+            ) {
+                Text(
+                    if (hasStartDate) formatShortDate(startDateMsValue) else "Select date",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (hasStartDate) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Switch(checked = hasStartDate, onCheckedChange = onHasStartDateChange)
-            if (hasStartDate) {
-                TextButton(onClick = onOpenStartDatePicker) {
-                    Text(formatShortDate(startDateMsValue), style = MaterialTheme.typography.labelSmall)
-                }
-            }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("End Date", modifier = Modifier.weight(1f))
-            Switch(checked = hasEndDate, onCheckedChange = onHasEndDateChange)
-            if (hasEndDate) {
-                TextButton(onClick = onOpenEndDatePicker) {
-                    Text(formatShortDate(endDateMsValue), style = MaterialTheme.typography.labelSmall)
-                }
+            OutlinedButton(
+                onClick = {
+                    if (!hasEndDate) onHasEndDateChange(true)
+                    onOpenEndDatePicker()
+                },
+            ) {
+                Text(
+                    if (hasEndDate) formatShortDate(endDateMsValue) else "Select date",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (hasEndDate) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
+            Switch(checked = hasEndDate, onCheckedChange = onHasEndDateChange)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Archived", modifier = Modifier.weight(1f))

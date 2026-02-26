@@ -1,6 +1,7 @@
 package com.pillyliu.pinballandroid.practice
 
 import java.util.Locale
+import java.util.UUID
 
 internal fun buildScoreEntry(
     gameSlug: String,
@@ -10,7 +11,7 @@ internal fun buildScoreEntry(
     leagueImported: Boolean,
 ): ScoreEntry {
     return ScoreEntry(
-        id = "score-${System.nanoTime()}",
+        id = UUID.randomUUID().toString(),
         gameSlug = gameSlug,
         score = score,
         context = context,
@@ -27,10 +28,10 @@ internal fun buildScoreJournalEntry(
     timestampMs: Long,
 ): JournalEntry {
     return JournalEntry(
-        id = "journal-${System.nanoTime()}",
+        id = UUID.randomUUID().toString(),
         gameSlug = gameSlug,
         action = "score",
-        summary = "Logged ${formatScore(score)} on $gameName (${context.replaceFirstChar { it.titlecase(Locale.US) }})",
+        summary = "Score: ${formatScore(score)} • $gameName (${context.replaceFirstChar { it.titlecase(Locale.US) }})",
         timestampMs = timestampMs,
     )
 }
@@ -42,7 +43,7 @@ internal fun buildStudyJournalEntry(
     timestampMs: Long,
 ): JournalEntry {
     return JournalEntry(
-        id = "journal-${System.nanoTime()}",
+        id = UUID.randomUUID().toString(),
         gameSlug = gameSlug,
         action = action,
         summary = summary,
@@ -58,7 +59,7 @@ internal fun buildPracticeNoteEntry(
     timestampMs: Long,
 ): NoteEntry {
     return NoteEntry(
-        id = "note-${System.nanoTime()}",
+        id = UUID.randomUUID().toString(),
         gameSlug = gameSlug,
         category = category,
         detail = detail?.trim()?.ifBlank { null },
@@ -74,7 +75,7 @@ internal fun buildNoteJournalEntry(
     timestampMs: Long,
 ): JournalEntry {
     return JournalEntry(
-        id = "journal-${System.nanoTime()}",
+        id = UUID.randomUUID().toString(),
         gameSlug = gameSlug,
         action = if (category == "mechanics") "mechanics" else "note",
         summary = summary,

@@ -68,12 +68,23 @@ internal fun QuickEntrySheet(
         }
     }
     val showLibraryDropdown = !fromGameView && librarySources.size > 1
+    fun avenueLibraryOptionId(): String? {
+        return librarySources.firstOrNull { it.id == "venue--the-avenue-cafe" }?.id
+            ?: librarySources.firstOrNull { it.id == "the-avenue" }?.id
+            ?: librarySources.firstOrNull { it.name.contains("the avenue", ignoreCase = true) }?.id
+    }
+    fun canonicalExistingQuickGameKey(raw: String?): String {
+        val canonical = canonicalPracticeKey(raw, allLibraryGames)
+        return canonical.takeIf { it.isNotBlank() && findGameByPracticeLookupKey(allLibraryGames, it) != null }.orEmpty()
+    }
     var selectedLibraryOption by remember(origin, fromGameView, librarySources, store.defaultPracticeSourceId) {
         val saved = prefs.getString("$QUICK_LIBRARY_KEY_PREFIX${origin.keySuffix}", null)
         val preferred = prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null)
+        val avenue = avenueLibraryOptionId()
         val initial = when {
             origin == QuickEntryOrigin.Mechanics -> ALL_GAMES_LIBRARY_OPTION
             fromGameView -> store.defaultPracticeSourceId ?: ALL_GAMES_LIBRARY_OPTION
+            avenue != null -> avenue
             saved == ALL_GAMES_LIBRARY_OPTION -> ALL_GAMES_LIBRARY_OPTION
             saved != null && librarySources.any { it.id == saved } -> saved
             preferred != null && librarySources.any { it.id == preferred } -> preferred
@@ -81,12 +92,14 @@ internal fun QuickEntrySheet(
         }
         mutableStateOf(initial)
     }
-    var gameSlug by remember(origin, selectedGameSlug, fromGameView, store.games) {
+    var gameSlug by remember(origin, selectedGameSlug, fromGameView, store.games, store.allLibraryGames) {
         val saved = prefs.getString("$QUICK_GAME_KEY_PREFIX${origin.keySuffix}", null)
         val initial = when {
             origin == QuickEntryOrigin.Mechanics -> ""
-            fromGameView -> selectedGameSlug.orEmpty()
-            else -> saved ?: selectedGameSlug ?: orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey.orEmpty()
+            fromGameView -> canonicalExistingQuickGameKey(selectedGameSlug)
+            else -> canonicalExistingQuickGameKey(saved)
+                .ifBlank { canonicalExistingQuickGameKey(selectedGameSlug) }
+                .ifBlank { orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey.orEmpty() }
         }
         mutableStateOf(initial)
     }
@@ -112,7 +125,7 @@ internal fun QuickEntrySheet(
         }
     }
     val gameOptions = remember(libraryFilteredGames) {
-        orderedGamesForDropdown(libraryFilteredGames, collapseByPracticeIdentity = true, limit = 41)
+        orderedGamesForDropdown(libraryFilteredGames, collapseByPracticeIdentity = true)
     }
     val mechanicsSkills = store.allTrackedMechanicsSkills()
     LaunchedEffect(mechanicsSkills) {
@@ -129,14 +142,15 @@ internal fun QuickEntrySheet(
             mode = fixedModeForOrigin
         }
     }
-    LaunchedEffect(fromGameView, selectedGameSlug) {
+    LaunchedEffect(fromGameView, selectedGameSlug, allLibraryGames) {
         if (fromGameView && origin != QuickEntryOrigin.Mechanics) {
-            gameSlug = selectedGameSlug.orEmpty()
+            gameSlug = canonicalExistingQuickGameKey(selectedGameSlug)
         }
     }
     LaunchedEffect(mode, gameOptions) {
         if (mode == QuickActivity.Mechanics) return@LaunchedEffect
-        if (gameSlug.isBlank() || gameSlug == "None") {
+        val selectedStillAvailable = findGameByPracticeLookupKey(gameOptions, gameSlug) != null
+        if (gameSlug.isBlank() || gameSlug == "None" || !selectedStillAvailable) {
             gameSlug = gameOptions.firstOrNull()?.practiceKey.orEmpty()
         }
     }

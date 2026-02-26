@@ -146,7 +146,7 @@ final class PracticeStore: ObservableObject {
 
     func gameName(for id: String) -> String {
         let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty { return "All games" }
+        if trimmed.isEmpty { return "None" }
         return gameForAnyID(trimmed)?.name ?? trimmed
     }
 

@@ -22,7 +22,8 @@ extension PracticeScreen {
                 resumeToPracticeGame()
             },
             onSelectLibrarySource: { sourceID in
-                store.selectPracticeLibrarySource(id: sourceID)
+                let normalizedSourceID = (sourceID == "__practice_home_all_games__") ? nil : sourceID
+                store.selectPracticeLibrarySource(id: normalizedSourceID)
                 if store.gameForAnyID(selectedGameID) == nil || !store.games.contains(where: { $0.canonicalPracticeKey == store.canonicalPracticeGameID(selectedGameID) }) {
                     selectedGameID = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first?.canonicalPracticeKey ?? ""
                 }
@@ -194,6 +195,16 @@ extension PracticeScreen {
                 .practiceEntrySheetStyle()
                 .presentationBackground(.ultraThinMaterial)
             }
+            .sheet(item: $editingJournalEntry) { entry in
+                PracticeJournalEntryEditorSheet(
+                    entry: entry,
+                    store: store,
+                    onSave: { updated in
+                        saveEditedJournalEntry(updated)
+                    }
+                )
+                .practiceEntrySheetStyle()
+            }
             .task {
                 await store.loadIfNeeded()
                 applyDefaultsAfterLoad()
@@ -210,6 +221,10 @@ extension PracticeScreen {
                 let trimmed = newValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 guard !trimmed.isEmpty else { return }
                 libraryLastViewedGameTS = Date().timeIntervalSince1970
+            }
+            .onChange(of: journalFilterRaw) { _, _ in
+                selectedJournalItemIDs.removeAll()
+                isEditingJournalEntries = false
             }
     }
 }

@@ -42,11 +42,14 @@ internal fun GroupEditorScreen(
     var groupType by remember(editingGroupID) { mutableStateOf(editing?.type ?: "custom") }
     var startDateMsValue by remember(editingGroupID) { mutableStateOf(editing?.startDateMs ?: System.currentTimeMillis()) }
     var endDateMsValue by remember(editingGroupID) { mutableStateOf(editing?.endDateMs ?: System.currentTimeMillis()) }
-    var hasStartDate by remember(editingGroupID) { mutableStateOf(editing?.startDateMs != null) }
+    var hasStartDate by remember(editingGroupID) { mutableStateOf(if (editing == null) true else editing.startDateMs != null) }
     var hasEndDate by remember(editingGroupID) { mutableStateOf(editing?.endDateMs != null) }
     var createGroupPosition by remember(editingGroupID) { mutableStateOf((store.groups.size + 1).coerceAtLeast(1)) }
+    val allGamesPool = remember(store.games, store.allLibraryGames) {
+        if (store.allLibraryGames.isNotEmpty()) store.allLibraryGames else store.games
+    }
     var templateSource by remember(editingGroupID) { mutableStateOf("none") }
-    var selectedTemplateBank by remember(editingGroupID) { mutableStateOf(store.games.mapNotNull { it.bank }.distinct().sorted().firstOrNull() ?: 1) }
+    var selectedTemplateBank by remember(editingGroupID, allGamesPool) { mutableStateOf(allGamesPool.mapNotNull { it.bank }.distinct().sorted().firstOrNull() ?: 1) }
     var selectedDuplicateGroupID by remember(editingGroupID) { mutableStateOf(store.groups.firstOrNull()?.id.orEmpty()) }
     var titleSearchText by remember(editingGroupID) { mutableStateOf("") }
     var showingTitleSelector by remember(editingGroupID) { mutableStateOf(false) }
@@ -57,7 +60,7 @@ internal fun GroupEditorScreen(
     var scheduleDateDialogField by remember(editingGroupID) { mutableStateOf(GroupEditorDateField.Start) }
     var scheduleDatePickerInitialMs by remember(editingGroupID) { mutableStateOf(System.currentTimeMillis()) }
 
-    val availableBanks = remember(store.games) { store.games.mapNotNull { it.bank }.distinct().sorted() }
+    val availableBanks = remember(allGamesPool) { allGamesPool.mapNotNull { it.bank }.distinct().sorted() }
     val duplicateCandidates = remember(store.groups) { store.groups.sortedBy { it.name.lowercase(Locale.US) } }
     val editingIndex = editing?.let { group -> store.groups.indexOfFirst { it.id == group.id } } ?: -1
     val editingPosition = if (editingIndex >= 0) editingIndex + 1 else 1
@@ -123,7 +126,7 @@ internal fun GroupEditorScreen(
             selectedTemplateBank = selectedTemplateBank,
             onSelectedTemplateBankChange = { selectedTemplateBank = it },
             onApplyBankTemplate = {
-                val bankGames = bankTemplateSlugs(store.games, selectedTemplateBank)
+                val bankGames = bankTemplateSlugs(allGamesPool, selectedTemplateBank)
                 selected.clear()
                 selected.addAll(bankGames)
                 groupType = "bank"

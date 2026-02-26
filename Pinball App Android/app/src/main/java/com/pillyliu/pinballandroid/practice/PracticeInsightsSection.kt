@@ -7,12 +7,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinballandroid.data.redactPlayerNameForDisplay
 import com.pillyliu.pinballandroid.ui.CardContainer
@@ -39,12 +48,71 @@ internal fun PracticeInsightsSection(
         return
     }
 
-    val insightsGames = orderedGames.take(41)
-    InsightsMenuDropdown(
-        selectedLabel = store.gameName(game.practiceKey),
-        options = insightsGames.map { it.practiceKey to store.gameName(it.practiceKey) },
-        onSelect = { onSelectGameSlug(it.first) },
-    )
+    val availableSources = store.librarySources
+    var gamePickerExpanded by remember { mutableStateOf(false) }
+    Box {
+        OutlinedButton(
+            onClick = { gamePickerExpanded = true },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = store.gameName(game.practiceKey),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text("▼", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        DropdownMenu(
+            expanded = gamePickerExpanded,
+            onDismissRequest = { gamePickerExpanded = false },
+        ) {
+            if (availableSources.size > 1) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            (if (store.defaultPracticeSourceId == null) "✓ " else "") + "All games",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    onClick = {
+                        store.setPreferredLibrarySource(null)
+                    },
+                )
+                availableSources.forEach { source ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                (if (source.id == store.defaultPracticeSourceId) "✓ " else "") + source.name,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        onClick = {
+                            store.setPreferredLibrarySource(source.id)
+                        },
+                    )
+                }
+                HorizontalDivider()
+            }
+            orderedGames.forEach { insightsGame ->
+                DropdownMenuItem(
+                    text = { Text(insightsGame.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    onClick = {
+                        gamePickerExpanded = false
+                        onSelectGameSlug(insightsGame.practiceKey)
+                    },
+                )
+            }
+        }
+    }
     CardContainer {
         Text("Stats", fontWeight = FontWeight.SemiBold)
         val summary = store.scoreSummaryFor(game.practiceKey)

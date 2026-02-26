@@ -1,5 +1,7 @@
 package com.pillyliu.pinballandroid.practice
 
+import android.content.Context
+import androidx.core.content.edit
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,12 +26,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import com.pillyliu.pinballandroid.library.PinballGame
 import com.pillyliu.pinballandroid.library.LibrarySource
 import com.pillyliu.pinballandroid.ui.CardContainer
 import java.util.Locale
 
 private const val GROUP_ALL_GAMES_LIBRARY_OPTION = "__all_games__"
+private const val GROUP_PICKER_LIBRARY_KEY = "practice-group-picker-library-source-id"
 
 @Composable
 internal fun GroupGameSelectionScreen(
@@ -42,6 +46,8 @@ internal fun GroupGameSelectionScreen(
     onSearchChange: (String) -> Unit,
     onDone: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE) }
     val sourceOptions = remember(librarySources, allGames) {
         if (librarySources.isNotEmpty()) librarySources else {
             allGames.groupBy { it.sourceId }.values.mapNotNull { rows -> rows.firstOrNull()?.let { first ->
@@ -50,13 +56,23 @@ internal fun GroupGameSelectionScreen(
         }
     }
     var selectedLibraryOption by remember(sourceOptions, defaultSourceId) {
-        mutableStateOf(defaultSourceId ?: sourceOptions.firstOrNull()?.id ?: GROUP_ALL_GAMES_LIBRARY_OPTION)
+        val saved = prefs.getString(GROUP_PICKER_LIBRARY_KEY, null)
+        mutableStateOf(
+            saved?.takeIf { id -> id == GROUP_ALL_GAMES_LIBRARY_OPTION || sourceOptions.any { it.id == id } }
+                ?: defaultSourceId
+                ?: sourceOptions.firstOrNull()?.id
+                ?: GROUP_ALL_GAMES_LIBRARY_OPTION
+        )
     }
     val showLibraryDropdown = sourceOptions.size > 1
     LaunchedEffect(showLibraryDropdown) {
         if (!showLibraryDropdown) {
             selectedLibraryOption = defaultSourceId ?: sourceOptions.firstOrNull()?.id ?: GROUP_ALL_GAMES_LIBRARY_OPTION
         }
+    }
+    LaunchedEffect(selectedLibraryOption) {
+        if (selectedLibraryOption.isBlank()) return@LaunchedEffect
+        prefs.edit { putString(GROUP_PICKER_LIBRARY_KEY, selectedLibraryOption) }
     }
     val selectablePool = remember(games, allGames, selectedLibraryOption) {
         val pool = if (allGames.isNotEmpty()) allGames else games

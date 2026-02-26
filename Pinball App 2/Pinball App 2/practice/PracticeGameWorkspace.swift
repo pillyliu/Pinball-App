@@ -39,6 +39,9 @@ struct PracticeGameWorkspace: View {
     @State private var saveBanner: String?
     @State private var activeVideoID: String?
     @State private var gameSummaryDraft: String = ""
+    @State private var revealedLogEntryID: String?
+    @State private var editingLogEntry: JournalEntry?
+    @State private var pendingDeleteLogEntry: JournalEntry?
 
     private var selectedGame: PinballGame? {
         store.gameForAnyID(selectedGameID)
@@ -105,33 +108,33 @@ struct PracticeGameWorkspace: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    let applyLibrarySelection: (String?) -> Void = { sourceID in
+                        store.selectPracticeLibrarySource(id: sourceID)
+                        let canonical = store.canonicalPracticeGameID(selectedGameID)
+                        if !canonical.isEmpty,
+                           store.games.contains(where: { $0.canonicalPracticeKey == canonical }) {
+                            selectedGameID = canonical
+                        } else {
+                            selectedGameID = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first?.canonicalPracticeKey ?? ""
+                        }
+                    }
+
                     if availableLibrarySources.count > 1 {
-                        Picker(
-                            "Library",
-                            selection: Binding(
-                                get: { store.defaultPracticeSourceID ?? "" },
-                                set: { newValue in
-                                    store.selectPracticeLibrarySource(id: newValue)
-                                    let canonical = store.canonicalPracticeGameID(selectedGameID)
-                                    if !canonical.isEmpty,
-                                       store.games.contains(where: { $0.canonicalPracticeKey == canonical }) {
-                                        selectedGameID = canonical
-                                    } else {
-                                        selectedGameID = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first?.canonicalPracticeKey ?? ""
-                                    }
-                                }
-                            )
-                        ) {
-                            ForEach(availableLibrarySources) { source in
-                                Text(source.name).tag(source.id)
+                        Button((store.defaultPracticeSourceID == nil ? "✓ " : "") + "All games") {
+                            applyLibrarySelection(nil)
+                        }
+                        ForEach(availableLibrarySources) { source in
+                            Button((source.id == store.defaultPracticeSourceID ? "✓ " : "") + source.name) {
+                                applyLibrarySelection(source.id)
                             }
                         }
+                        Divider()
                     }
                     Picker("Game", selection: $selectedGameID) {
                         if store.games.isEmpty {
                             Text("No game data").tag("")
                         } else {
-                            ForEach(orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true, limit: 41)) { game in
+                            ForEach(orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true)) { game in
                                 Text(game.name).tag(game.canonicalPracticeKey)
                             }
                         }
@@ -190,6 +193,31 @@ struct PracticeGameWorkspace: View {
                 }
             )
             .practiceEntrySheetStyle()
+        }
+        .sheet(item: $editingLogEntry) { entry in
+            PracticeJournalEntryEditorSheet(entry: entry, store: store) { updated in
+                if store.updateJournalEntry(updated) {
+                    showSaveBanner("Entry updated")
+                }
+            }
+            .practiceEntrySheetStyle()
+        }
+        .alert("Delete entry?", isPresented: Binding(
+            get: { pendingDeleteLogEntry != nil },
+            set: { if !$0 { pendingDeleteLogEntry = nil } }
+        )) {
+            Button("Delete", role: .destructive) {
+                if let entry = pendingDeleteLogEntry {
+                    _ = store.deleteJournalEntry(id: entry.id)
+                    showSaveBanner("Entry deleted")
+                }
+                pendingDeleteLogEntry = nil
+            }
+            Button("Cancel", role: .cancel) {
+                pendingDeleteLogEntry = nil
+            }
+        } message: {
+            Text("This will remove the selected journal entry and linked practice data.")
         }
     }
 
@@ -392,13 +420,7 @@ struct PracticeGameWorkspace: View {
                 ScrollView(.vertical, showsIndicators: true) {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(logs) { entry in
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(store.journalSummary(for: entry))
-                                    .font(.footnote)
-                                Text(entry.timestamp.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
+                            gameLogRow(entry)
                             if entry.id != logs.last?.id {
                                 Divider().overlay(.white.opacity(0.14))
                             }
@@ -407,7 +429,47 @@ struct PracticeGameWorkspace: View {
                 }
                 .frame(maxHeight: 280)
                 .scrollBounceBehavior(.basedOnSize)
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        if revealedLogEntryID != nil {
+                            revealedLogEntryID = nil
+                        }
+                    }
+                )
             }
+        }
+    }
+
+    @ViewBuilder
+    private func gameLogRow(_ entry: JournalEntry) -> some View {
+        let content = VStack(alignment: .leading, spacing: 2) {
+            styledPracticeJournalSummary(store.journalSummary(for: entry))
+                .font(.footnote)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(entry.timestamp.formatted(date: .abbreviated, time: .shortened))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+        if store.canEditJournalEntry(entry) {
+            JournalSwipeRevealRow(
+                id: entry.id.uuidString,
+                revealedID: $revealedLogEntryID,
+                onEdit: {
+                    editingLogEntry = entry
+                },
+                onDelete: {
+                    pendingDeleteLogEntry = entry
+                }
+            ) {
+                content
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+            }
+        } else {
+            content
         }
     }
 
@@ -665,6 +727,7 @@ struct PracticeGameWorkspace: View {
             }
         }
     }
+
 }
 
 struct GameScoreEntrySheet: View {
@@ -685,11 +748,17 @@ struct GameScoreEntrySheet: View {
                 Color.clear.ignoresSafeArea()
                 PracticeEntryGlassCard(maxHeight: 420) {
                     VStack(alignment: .leading, spacing: 12) {
-                        TextField("Score", text: formattedScoreBinding)
+                        TextField("Score", text: $scoreText)
                             .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .monospacedDigit()
                             .padding(.horizontal, 10)
                             .padding(.vertical, 8)
                             .appControlStyle()
+                            .onChange(of: scoreText) { _, newValue in
+                                let formatted = formatScoreInputWithCommas(newValue)
+                                if formatted != newValue { scoreText = formatted }
+                            }
 
                         Picker("Context", selection: $scoreContext) {
                             ForEach(ScoreContext.allCases) { context in
@@ -746,13 +815,6 @@ struct GameScoreEntrySheet: View {
         }
         store.addScore(gameID: gameID, score: score, context: scoreContext, tournamentName: tournamentName)
         return true
-    }
-
-    private var formattedScoreBinding: Binding<String> {
-        Binding(
-            get: { scoreText },
-            set: { scoreText = formatScoreInputWithCommas($0) }
-        )
     }
 }
 
