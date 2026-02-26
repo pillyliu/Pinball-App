@@ -55,12 +55,12 @@ platform :android do
     )
   end
 
-  desc "Upload release AAB to Google Play closed testing (beta track)"
+  desc "Upload release AAB to Google Play closed testing (alpha track)"
   lane :closed do
     bump_android_versions!("../app/build.gradle.kts")
     gradle(task: "clean bundle", build_type: "Release")
     upload_to_play_store(
-      track: "beta",
+      track: "alpha",
       release_status: "draft",
       aab: "app/build/outputs/bundle/release/app-release.aab"
     )

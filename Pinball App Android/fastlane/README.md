@@ -45,7 +45,7 @@ Upload release AAB to Google Play internal track
 [bundle exec] fastlane android closed
 ```
 
-Upload release AAB to Google Play closed testing (beta track)
+Upload release AAB to Google Play closed testing (alpha track)
 
 ----
 
