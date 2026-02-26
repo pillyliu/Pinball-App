@@ -112,7 +112,6 @@ internal class PracticeStore(private val context: Context) {
         didLoad = true
         loadGames()
         loadState()
-        autoArchiveExpiredGroupsIfNeeded()
         migrateLoadedStateToPracticeKeys()
         migratePreferenceGameKeysToPracticeKeys()
         loadLeagueTargets()
@@ -139,7 +138,6 @@ internal class PracticeStore(private val context: Context) {
     }
 
     fun selectedGroup(): PracticeGroup? {
-        autoArchiveExpiredGroupsIfNeeded()
         return selectCurrentGroup(groups, selectedGroupID)
     }
 
@@ -608,12 +606,10 @@ internal class PracticeStore(private val context: Context) {
         mechanicsLogsForSkill(skill, notes, mechanicsSkills())
 
     fun activeGroups(): List<PracticeGroup> {
-        autoArchiveExpiredGroupsIfNeeded()
         return activeGroupsFromList(groups)
     }
 
     fun activeGroupForGame(gameSlug: String): PracticeGroup? {
-        autoArchiveExpiredGroupsIfNeeded()
         return activeGroupForGame(groups, canonicalPracticeKey(gameSlug, practiceLookupGames()))
     }
 

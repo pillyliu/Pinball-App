@@ -24,7 +24,11 @@ struct PracticeEntryGlassCard<Content: View>: View {
 
 extension View {
     func practiceEntrySheetStyle() -> some View {
-        presentationDetents([.medium, .large])
+        practiceEntrySheetStyle(detents: [.medium, .large])
+    }
+
+    func practiceEntrySheetStyle(detents: Set<PresentationDetent>) -> some View {
+        presentationDetents(detents)
             .presentationDragIndicator(.visible)
             .presentationBackground(.clear)
     }

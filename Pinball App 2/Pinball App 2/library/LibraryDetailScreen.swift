@@ -1,12 +1,15 @@
 import SwiftUI
-import WebKit
 
 struct LibraryDetailScreen: View {
     let game: PinballGame
     @StateObject private var viewModel: PinballGameInfoViewModel
     @State private var activeVideoID: String?
+    @State private var pendingVideoOpenURL: URL?
+    @State private var pendingVideoOpenLabel: String = ""
+    @State private var showingVideoOpenPrompt = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.openURL) private var openURL
 
     init(game: PinballGame) {
         self.game = game
@@ -37,6 +40,19 @@ struct LibraryDetailScreen: View {
         .appEdgeBackGesture(dismiss: dismiss)
         .task {
             await viewModel.loadIfNeeded()
+        }
+        .alert("Open in YouTube", isPresented: $showingVideoOpenPrompt) {
+            Button("Open in YouTube") {
+                guard let pendingVideoOpenURL else { return }
+                openURL(pendingVideoOpenURL)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if pendingVideoOpenLabel.isEmpty {
+                Text("This video will open in the YouTube app or web browser.")
+            } else {
+                Text("\"\(pendingVideoOpenLabel)\" will open in the YouTube app or web browser.")
+            }
         }
     }
 
@@ -189,7 +205,7 @@ struct LibraryDetailScreen: View {
         }
 
         return VStack(alignment: .leading, spacing: 8) {
-            Text("Videos")
+            Text("Video References")
                 .font(.headline)
                 .foregroundStyle(.primary)
 
@@ -201,20 +217,17 @@ struct LibraryDetailScreen: View {
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
                         )
-                    Text("No videos listed.")
+                    Text("No video references listed.")
                         .font(.headline)
                         .foregroundStyle(.primary)
                 }
                 .frame(maxWidth: .infinity)
                 .aspectRatio(16.0 / 9.0, contentMode: .fit)
             } else {
-                if let activeVideoID {
-                    EmbeddedYouTubeView(videoID: activeVideoID)
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                        .frame(minHeight: usesDesktopLandscapeLayout ? 260 : 0)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                }
+                videoLaunchPanel(
+                    selectedVideo: playableVideos.first(where: { $0.id == activeVideoID }) ?? playableVideos.first,
+                    usesDesktopLandscapeLayout: usesDesktopLandscapeLayout
+                )
 
                 LazyVGrid(
                     columns: usesDesktopLandscapeLayout
@@ -225,6 +238,9 @@ struct LibraryDetailScreen: View {
                     ForEach(playableVideos) { video in
                         Button {
                             activeVideoID = video.id
+                            pendingVideoOpenURL = video.youtubeWatchURL
+                            pendingVideoOpenLabel = video.label
+                            showingVideoOpenPrompt = video.youtubeWatchURL != nil
                             LibraryActivityLog.log(
                                 gameID: game.id,
                                 gameName: game.name,
@@ -268,6 +284,43 @@ struct LibraryDetailScreen: View {
                 activeVideoID = playableVideos.first?.id
             }
         }
+    }
+
+    private func videoLaunchPanel(selectedVideo: PinballGame.PlayableVideo?, usesDesktopLandscapeLayout: Bool) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(.regularMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
+                )
+
+            VStack(spacing: 8) {
+                Image(systemName: "play.rectangle")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(.primary)
+                Text(selectedVideo?.label ?? "Tap a video thumbnail")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                Text("Opens in YouTube")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Button("Open in YouTube") {
+                    guard let selectedVideo else { return }
+                    pendingVideoOpenURL = selectedVideo.youtubeWatchURL
+                    pendingVideoOpenLabel = selectedVideo.label
+                    showingVideoOpenPrompt = selectedVideo.youtubeWatchURL != nil
+                }
+                .buttonStyle(.glass)
+                .disabled(selectedVideo?.youtubeWatchURL == nil)
+            }
+            .padding(16)
+        }
+        .frame(maxWidth: .infinity)
+        .aspectRatio(16.0 / 9.0, contentMode: .fit)
+        .frame(minHeight: usesDesktopLandscapeLayout ? 260 : 0)
     }
 
     private var gameInfoCard: some View {
@@ -500,47 +553,6 @@ private struct MarkdownTableView: View {
         case .right:
             return .trailing
         }
-    }
-}
-
-private struct EmbeddedYouTubeView: UIViewRepresentable {
-    let videoID: String
-
-    func makeUIView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        configuration.allowsInlineMediaPlayback = true
-        configuration.mediaTypesRequiringUserActionForPlayback = []
-
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.isOpaque = false
-        webView.backgroundColor = .black
-        webView.scrollView.isScrollEnabled = false
-        return webView
-    }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        let html = """
-        <!doctype html>
-        <html>
-        <head>
-          <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-          <style>
-            html, body { margin: 0; padding: 0; background: #000; height: 100%; }
-            iframe { border: 0; width: 100%; height: 100%; }
-          </style>
-        </head>
-        <body>
-          <iframe
-            src="https://www.youtube-nocookie.com/embed/\(videoID)"
-            title="YouTube video player"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowfullscreen>
-          </iframe>
-        </body>
-        </html>
-        """
-
-        webView.loadHTMLString(html, baseURL: URL(string: "https://www.youtube-nocookie.com"))
     }
 }
 

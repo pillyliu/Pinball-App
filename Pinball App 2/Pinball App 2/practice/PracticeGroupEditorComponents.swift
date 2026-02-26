@@ -856,7 +856,8 @@ struct GroupGameSelectionScreen: View {
 
 struct SelectedGameMiniCard: View {
     let game: PinballGame
-    private let cardWidth: CGFloat = 122
+    var cardWidth: CGFloat = 122
+    var imageHeight: CGFloat = 36
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -866,7 +867,7 @@ struct SelectedGameMiniCard: View {
                 contentMode: .fill
             )
             .frame(maxWidth: .infinity)
-            .frame(height: 36)
+            .frame(height: imageHeight)
             .clipped()
             .clipShape(
                 UnevenRoundedRectangle(

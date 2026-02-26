@@ -76,7 +76,13 @@ struct PracticeQuickEntrySheet: View {
     private var videoSourceOptions: [String] {
         guard selectedActivity == .tutorialVideo || selectedActivity == .gameplayVideo else { return [] }
         let task: StudyTaskKind = selectedActivity == .tutorialVideo ? .tutorialVideo : .gameplayVideo
-        return practiceVideoSourceOptions(game: selectedGame, task: task)
+        let preferredSourceID = (selectedLibraryFilterID == quickEntryAllGamesLibraryID || selectedLibraryFilterID.isEmpty) ? nil : selectedLibraryFilterID
+        return practiceVideoSourceOptions(
+            store: store,
+            gameID: selectedGameID,
+            task: task,
+            preferredSourceID: preferredSourceID
+        )
     }
 
     var body: some View {

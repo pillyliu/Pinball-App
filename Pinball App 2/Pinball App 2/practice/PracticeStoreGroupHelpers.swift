@@ -53,7 +53,6 @@ extension PracticeStore {
     }
 
     func selectedGroup() -> CustomGameGroup? {
-        autoArchiveExpiredGroupsIfNeeded()
         if let selected = state.practiceSettings.selectedGroupID,
            let exact = state.customGroups.first(where: { $0.id == selected }) {
             return exact
@@ -157,7 +156,6 @@ extension PracticeStore {
 
     func activeGroup(for gameID: String) -> CustomGameGroup? {
         let gameID = canonicalPracticeGameID(gameID)
-        autoArchiveExpiredGroupsIfNeeded()
         let matches = state.customGroups.enumerated().compactMap { index, group -> (Int, CustomGameGroup)? in
             guard !group.isArchived, group.isActive, group.gameIDs.contains(gameID) else { return nil }
             return (index, group)

@@ -132,7 +132,6 @@ final class PracticeStore: ObservableObject {
         didLoad = true
 
         loadState()
-        autoArchiveExpiredGroupsIfNeeded()
         await loadGames()
         migratePracticeStateKeysToCanonicalIfNeeded()
         await loadLeagueTargets()

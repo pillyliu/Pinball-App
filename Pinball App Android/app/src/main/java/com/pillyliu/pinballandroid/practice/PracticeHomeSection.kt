@@ -5,12 +5,22 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.SportsEsports
+import androidx.compose.material.icons.outlined.Tag
+import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -18,11 +28,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinballandroid.library.LibrarySource
 import com.pillyliu.pinballandroid.ui.CardContainer
@@ -45,30 +61,57 @@ internal fun PracticeHomeSection(
     onOpenMechanics: () -> Unit,
 ) {
     val orderedGames = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true)
+    var resumeLibraryExpanded by rememberSaveable { mutableStateOf(false) }
+    var resumeControlColumnHeightPx by rememberSaveable { mutableStateOf(0) }
+    val density = LocalDensity.current
     CardContainer {
-        HomeSectionTitle("Resume")
         val resumeSlug = store.resumeSlugFromLibraryOrPractice()
         val resumeGame = findGameByPracticeLookupKey(orderedGames, resumeSlug) ?: orderedGames.firstOrNull()
+        val selectedLibraryLabel = librarySources.firstOrNull { it.id == selectedLibrarySourceId }?.name ?: "All games"
         if (resumeGame != null) {
             Row(
+                verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                OutlinedButton(
-                    onClick = { onOpenGame(resumeGame.practiceKey) },
-                    modifier = Modifier.weight(1f),
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                        .clickable { onOpenGame(resumeGame.practiceKey) },
                 ) {
-                    Text(resumeGame.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    SelectedGameMiniCard(
+                        game = resumeGame,
+                        modifier = if (resumeControlColumnHeightPx > 0) {
+                            Modifier.height(with(density) { resumeControlColumnHeightPx.toDp() })
+                        } else {
+                            Modifier
+                        },
+                        cardWidth = 184.dp,
+                        imageHeight = if (resumeControlColumnHeightPx > 0) null else 56.dp,
+                        titleTextStyle = MaterialTheme.typography.titleSmall,
+                    )
                 }
-                Box {
-                    OutlinedButton(onClick = { onResumeOtherExpandedChange(true) }) {
-                        Text("Game List", maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                    DropdownMenu(
-                        expanded = resumeOtherExpanded,
-                        onDismissRequest = { onResumeOtherExpandedChange(false) },
-                    ) {
-                        if (librarySources.size > 1) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .width(168.dp)
+                        .onSizeChanged { size ->
+                            if (size.height > 0) {
+                                resumeControlColumnHeightPx = size.height
+                            }
+                        },
+                ) {
+                    Box {
+                        ResumeDropdownButton(
+                            title = "Library",
+                            value = selectedLibraryLabel,
+                            onClick = { resumeLibraryExpanded = true },
+                        )
+                        DropdownMenu(
+                            expanded = resumeLibraryExpanded,
+                            onDismissRequest = { resumeLibraryExpanded = false },
+                        ) {
                             DropdownMenuItem(
                                 text = {
                                     Text(
@@ -78,6 +121,7 @@ internal fun PracticeHomeSection(
                                     )
                                 },
                                 onClick = {
+                                    resumeLibraryExpanded = false
                                     onSelectLibrarySourceId(PRACTICE_HOME_ALL_GAMES_SOURCE_ID)
                                 },
                             )
@@ -91,20 +135,33 @@ internal fun PracticeHomeSection(
                                         )
                                     },
                                     onClick = {
+                                        resumeLibraryExpanded = false
                                         onSelectLibrarySourceId(source.id)
                                     },
                                 )
                             }
-                            HorizontalDivider()
                         }
-                        orderedGames.forEach { listGame ->
-                            DropdownMenuItem(
-                                text = { Text(listGame.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                                onClick = {
-                                    onResumeOtherExpandedChange(false)
-                                    onOpenGame(listGame.practiceKey)
-                                },
-                            )
+                    }
+
+                    Box {
+                        ResumeDropdownButton(
+                            title = "Game List",
+                            value = resumeGame.name,
+                            onClick = { onResumeOtherExpandedChange(true) },
+                        )
+                        DropdownMenu(
+                            expanded = resumeOtherExpanded,
+                            onDismissRequest = { onResumeOtherExpandedChange(false) },
+                        ) {
+                            orderedGames.forEach { listGame ->
+                                DropdownMenuItem(
+                                    text = { Text(listGame.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                    onClick = {
+                                        onResumeOtherExpandedChange(false)
+                                        onOpenGame(listGame.practiceKey)
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -115,26 +172,25 @@ internal fun PracticeHomeSection(
     CardContainer {
         HomeSectionTitle("Quick Entry")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            QuickEntryHomeButton(label = "Score", modifier = Modifier.weight(1f), onClick = {
+            QuickEntryHomeButton(label = "Score", icon = Icons.Outlined.Tag, modifier = Modifier.weight(1f), onClick = {
                 onOpenQuickEntry(QuickActivity.Score, QuickEntryOrigin.Score)
             })
-            QuickEntryHomeButton(label = "Study", modifier = Modifier.weight(1f), onClick = {
+            QuickEntryHomeButton(label = "Study", icon = Icons.Outlined.Book, modifier = Modifier.weight(1f), onClick = {
                 onOpenQuickEntry(QuickActivity.Rulesheet, QuickEntryOrigin.Study)
             })
-            QuickEntryHomeButton(label = "Practice", modifier = Modifier.weight(1f), onClick = {
+            QuickEntryHomeButton(label = "Practice", icon = Icons.Outlined.SportsEsports, modifier = Modifier.weight(1f), onClick = {
                 onOpenQuickEntry(QuickActivity.Practice, QuickEntryOrigin.Practice)
             })
-            QuickEntryHomeButton(label = "Mechanics", modifier = Modifier.weight(1f), onClick = {
+            QuickEntryHomeButton(label = "Mechanics", icon = Icons.Outlined.Build, modifier = Modifier.weight(1f), onClick = {
                 onOpenQuickEntry(QuickActivity.Mechanics, QuickEntryOrigin.Mechanics)
             })
         }
     }
 
     CardContainer {
-        HomeSectionTitle("Active Groups")
         val active = store.activeGroups()
         if (active.isEmpty()) {
-            Text("No active groups", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            HomeSectionTitle("No active groups")
         } else {
             active.forEach { group ->
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -162,7 +218,7 @@ internal fun PracticeHomeSection(
                     )
                 } else {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                     ) {
                         games.forEach { game ->
@@ -171,12 +227,12 @@ internal fun PracticeHomeSection(
                                     .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
                                     .clickable { onOpenGame(game.practiceKey) },
                             ) {
-                                SelectedGameMiniCard(game = game)
+                                SelectedGameMiniCard(game = game, bottomPadding = 6.dp)
                             }
                         }
                     }
                 }
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(2.dp))
             }
         }
     }
@@ -185,11 +241,13 @@ internal fun PracticeHomeSection(
         HomeMiniCard(
             label = "Group Dashboard",
             subtitle = "Focus set, suggested game, and per-game progress",
+            icon = Icons.Outlined.Dashboard,
             modifier = Modifier.weight(1f),
         ) { onOpenGroupDashboard() }
         HomeMiniCard(
             label = "Journal Timeline",
             subtitle = "Full app activity history",
+            icon = Icons.Outlined.Timeline,
             modifier = Modifier.weight(1f),
         ) { onOpenJournal() }
     }
@@ -197,12 +255,46 @@ internal fun PracticeHomeSection(
         HomeMiniCard(
             label = "Insights",
             subtitle = "Scores, variance, and trend context",
+            icon = Icons.Outlined.Insights,
             modifier = Modifier.weight(1f),
         ) { onOpenInsights() }
         HomeMiniCard(
             label = "Mechanics",
             subtitle = "Track transferable pinball skill practice",
+            icon = Icons.Outlined.Build,
             modifier = Modifier.weight(1f),
         ) { onOpenMechanics() }
+    }
+}
+
+@Composable
+private fun ResumeDropdownButton(
+    title: String,
+    value: String,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.width(168.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                value,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }

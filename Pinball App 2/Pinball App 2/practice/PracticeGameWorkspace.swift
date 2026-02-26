@@ -1,5 +1,4 @@
 import SwiftUI
-import WebKit
 
 private enum PracticeGameSubview: String, CaseIterable, Identifiable {
     case summary
@@ -38,10 +37,14 @@ struct PracticeGameWorkspace: View {
     @State private var showingScoreSheet = false
     @State private var saveBanner: String?
     @State private var activeVideoID: String?
+    @State private var pendingVideoOpenURL: URL?
+    @State private var pendingVideoOpenLabel: String = ""
+    @State private var showingVideoOpenPrompt = false
     @State private var gameSummaryDraft: String = ""
     @State private var revealedLogEntryID: String?
     @State private var editingLogEntry: JournalEntry?
     @State private var pendingDeleteLogEntry: JournalEntry?
+    @Environment(\.openURL) private var openURL
 
     private var selectedGame: PinballGame? {
         store.gameForAnyID(selectedGameID)
@@ -219,6 +222,19 @@ struct PracticeGameWorkspace: View {
         } message: {
             Text("This will remove the selected journal entry and linked practice data.")
         }
+        .confirmationDialog("Open in YouTube", isPresented: $showingVideoOpenPrompt, titleVisibility: .visible) {
+            Button("Open in YouTube") {
+                guard let pendingVideoOpenURL else { return }
+                openURL(pendingVideoOpenURL)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if pendingVideoOpenLabel.isEmpty {
+                Text("This video will open in the YouTube app or web browser.")
+            } else {
+                Text("\"\(pendingVideoOpenLabel)\" will open in the YouTube app or web browser.")
+            }
+        }
     }
 
     private var gameSummaryCard: some View {
@@ -343,24 +359,22 @@ struct PracticeGameWorkspace: View {
                                 RoundedRectangle(cornerRadius: 10)
                                     .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
                             )
-                        Text("No videos listed.")
+                        Text("No video references listed.")
                             .font(.headline)
                             .foregroundStyle(.primary)
                     }
                     .frame(maxWidth: .infinity)
                     .aspectRatio(16.0 / 9.0, contentMode: .fit)
                 } else {
-                    if let activeVideoID {
-                        PracticeEmbeddedYouTubeView(videoID: activeVideoID)
-                            .frame(maxWidth: .infinity)
-                            .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    }
+                    practiceVideoLaunchPanel(selectedVideo: playableVideos.first(where: { $0.id == activeVideoID }) ?? playableVideos.first)
 
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                         ForEach(playableVideos) { video in
                             Button {
                                 activeVideoID = video.id
+                                pendingVideoOpenURL = video.youtubeWatchURL
+                                pendingVideoOpenLabel = video.label
+                                showingVideoOpenPrompt = video.youtubeWatchURL != nil
                             } label: {
                                 VStack(alignment: .leading, spacing: 8) {
                                     PracticeYouTubeThumbnailView(candidates: video.thumbnailCandidates)
@@ -391,7 +405,7 @@ struct PracticeGameWorkspace: View {
                     }
                 }
             } else {
-                Text("Select a game to load rulesheet, playfield, and videos.")
+                Text("Select a game to load rulesheet, playfield, and video references.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -407,6 +421,42 @@ struct PracticeGameWorkspace: View {
         .onChange(of: selectedGameID) { _, _ in
             activeVideoID = playableVideos.first?.id
         }
+    }
+
+    private func practiceVideoLaunchPanel(selectedVideo: PinballGame.PlayableVideo?) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(.regularMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
+                )
+
+            VStack(spacing: 8) {
+                Image(systemName: "play.rectangle")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(.primary)
+                Text(selectedVideo?.label ?? "Tap a video thumbnail")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                Text("Opens in YouTube")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Button("Open in YouTube") {
+                    guard let selectedVideo else { return }
+                    pendingVideoOpenURL = selectedVideo.youtubeWatchURL
+                    pendingVideoOpenLabel = selectedVideo.label
+                    showingVideoOpenPrompt = selectedVideo.youtubeWatchURL != nil
+                }
+                .buttonStyle(.glass)
+                .disabled(selectedVideo?.youtubeWatchURL == nil)
+            }
+            .padding(16)
+        }
+        .frame(maxWidth: .infinity)
+        .aspectRatio(16.0 / 9.0, contentMode: .fit)
     }
 
     private var gameLogView: some View {
@@ -479,31 +529,30 @@ struct PracticeGameWorkspace: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
-            ForEach(StudyTaskKind.allCases) { task in
-                Button {
-                    entryTask = task
-                } label: {
-                    HStack {
-                        Text(task.label)
-                        Spacer()
-                        Image(systemName: "plus.circle")
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.glass)
-            }
+            let inputButtons: [GameInputShortcut] = [
+                .init(title: "Rulesheet", icon: "book.closed", action: { entryTask = .rulesheet }),
+                .init(title: "Playfield", icon: "photo.on.rectangle", action: { entryTask = .playfield }),
+                .init(title: "Score", icon: "number.circle", action: { showingScoreSheet = true }),
+                .init(title: "Tutorial", icon: "graduationcap.circle", action: { entryTask = .tutorialVideo }),
+                .init(title: "Practice", icon: "figure.run.circle", action: { entryTask = .practice }),
+                .init(title: "Gameplay", icon: "gamecontroller", action: { entryTask = .gameplayVideo })
+            ]
 
-            Button {
-                showingScoreSheet = true
-            } label: {
-                HStack {
-                    Text("Log score")
-                    Spacer()
-                    Image(systemName: "plus.circle")
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                ForEach(inputButtons) { button in
+                    Button(action: button.action) {
+                        VStack(spacing: 3) {
+                            Image(systemName: button.icon)
+                            Text(button.title)
+                                .font(.caption)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .appControlStyle()
+                    }
+                    .buttonStyle(.plain)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.glass)
         }
     }
 
@@ -730,6 +779,13 @@ struct PracticeGameWorkspace: View {
 
 }
 
+private struct GameInputShortcut: Identifiable {
+    let id = UUID()
+    let title: String
+    let icon: String
+    let action: () -> Void
+}
+
 struct GameScoreEntrySheet: View {
     let gameID: String
     @ObservedObject var store: PracticeStore
@@ -947,7 +1003,7 @@ struct GameTaskEntrySheet: View {
 
     private var videoSourceOptions: [String] {
         guard task == .tutorialVideo || task == .gameplayVideo else { return [] }
-        return practiceVideoSourceOptions(game: selectedGame, task: task)
+        return practiceVideoSourceOptions(store: store, gameID: gameID, task: task)
     }
 
     var body: some View {
@@ -1177,47 +1233,6 @@ struct GameTaskEntrySheet: View {
             )
             return true
         }
-    }
-}
-
-private struct PracticeEmbeddedYouTubeView: UIViewRepresentable {
-    let videoID: String
-
-    func makeUIView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        configuration.allowsInlineMediaPlayback = true
-        configuration.mediaTypesRequiringUserActionForPlayback = []
-
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.isOpaque = false
-        webView.backgroundColor = .black
-        webView.scrollView.isScrollEnabled = false
-        return webView
-    }
-
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        let html = """
-        <!doctype html>
-        <html>
-        <head>
-          <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-          <style>
-            html, body { margin: 0; padding: 0; background: #000; height: 100%; }
-            iframe { border: 0; width: 100%; height: 100%; }
-          </style>
-        </head>
-        <body>
-          <iframe
-            src="https://www.youtube-nocookie.com/embed/\(videoID)"
-            title="YouTube video player"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowfullscreen>
-          </iframe>
-        </body>
-        </html>
-        """
-
-        webView.loadHTMLString(html, baseURL: URL(string: "https://www.youtube-nocookie.com"))
     }
 }
 

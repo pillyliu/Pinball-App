@@ -756,6 +756,10 @@ struct PinballGame: Identifiable, Decodable {
         let id: String
         let label: String
 
+        var youtubeWatchURL: URL? {
+            URL(string: "https://www.youtube.com/watch?v=\(id)")
+        }
+
         var thumbnailCandidates: [URL] {
             [
                 URL(string: "https://i.ytimg.com/vi/\(id)/hqdefault.jpg"),

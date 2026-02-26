@@ -30,6 +30,58 @@ func practiceVideoSourceOptions(game: PinballGame?, task: StudyTaskKind) -> [Str
     return matches.indices.map { "\(prefix) \($0 + 1)" }
 }
 
+private func videoPlaceholderLabel(for task: StudyTaskKind) -> String {
+    switch task {
+    case .tutorialVideo:
+        return "Tutorial -"
+    case .gameplayVideo:
+        return "Gameplay -"
+    default:
+        return ""
+    }
+}
+
+private func isVideoPlaceholderOnly(_ options: [String], task: StudyTaskKind) -> Bool {
+    options.count == 1 && options.first == videoPlaceholderLabel(for: task)
+}
+
+func practiceVideoSourceOptions(
+    store: PracticeStore,
+    gameID: String,
+    task: StudyTaskKind,
+    preferredSourceID: String? = nil
+) -> [String] {
+    let canonicalID = store.canonicalPracticeGameID(gameID)
+    let pool = store.allLibraryGames.isEmpty ? store.games : store.allLibraryGames
+
+    let candidates = pool.filter { game in
+        game.canonicalPracticeKey == canonicalID || game.id == gameID || game.slug == gameID
+    }
+
+    if candidates.isEmpty {
+        return practiceVideoSourceOptions(game: store.gameForAnyID(gameID), task: task)
+    }
+
+    let preferredTrimmed = preferredSourceID?.trimmingCharacters(in: .whitespacesAndNewlines)
+    let orderedCandidates = candidates.sorted { lhs, rhs in
+        let lPreferred = preferredTrimmed != nil && lhs.sourceId == preferredTrimmed
+        let rPreferred = preferredTrimmed != nil && rhs.sourceId == preferredTrimmed
+        if lPreferred != rPreferred { return lPreferred && !rPreferred }
+        let lCount = practiceVideoSourceOptions(game: lhs, task: task).count
+        let rCount = practiceVideoSourceOptions(game: rhs, task: task).count
+        return lCount > rCount
+    }
+
+    for candidate in orderedCandidates {
+        let options = practiceVideoSourceOptions(game: candidate, task: task)
+        if !isVideoPlaceholderOnly(options, task: task) {
+            return options
+        }
+    }
+
+    return practiceVideoSourceOptions(game: orderedCandidates.first, task: task)
+}
+
 func buildVideoLogDraft(
     inputKind: VideoProgressInputKind,
     sourceLabel: String,

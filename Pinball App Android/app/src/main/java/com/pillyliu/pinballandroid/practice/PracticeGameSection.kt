@@ -38,6 +38,13 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.SmartDisplay
+import androidx.compose.material.icons.outlined.SportsEsports
+import androidx.compose.material.icons.outlined.Tag
 import coil.compose.AsyncImage
 import com.pillyliu.pinballandroid.library.PinballGame
 import com.pillyliu.pinballandroid.library.fullscreenPlayfieldCandidates
@@ -211,12 +218,44 @@ internal fun PracticeGameSection(
 
             PracticeGameSubview.Input -> {
                 Text("Task-Specific Logging", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                PracticeInputButton("View playfield image") { onOpenQuickEntry(QuickActivity.Playfield, QuickEntryOrigin.Study) }
-                PracticeInputButton("Read rulesheet") { onOpenQuickEntry(QuickActivity.Rulesheet, QuickEntryOrigin.Study) }
-                PracticeInputButton("Watch tutorial video(s)") { onOpenQuickEntry(QuickActivity.Tutorial, QuickEntryOrigin.Study) }
-                PracticeInputButton("Watch gameplay video(s)") { onOpenQuickEntry(QuickActivity.Gameplay, QuickEntryOrigin.Study) }
-                PracticeInputButton("Practice the game") { onOpenQuickEntry(QuickActivity.Practice, QuickEntryOrigin.Practice) }
-                PracticeInputButton("Log Score") { onOpenQuickEntry(QuickActivity.Score, QuickEntryOrigin.Score) }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        PracticeInputGridButton(
+                            label = "Rulesheet",
+                            icon = Icons.Outlined.Book,
+                            modifier = Modifier.weight(1f),
+                        ) { onOpenQuickEntry(QuickActivity.Rulesheet, QuickEntryOrigin.Study) }
+                        PracticeInputGridButton(
+                            label = "Playfield",
+                            icon = Icons.Outlined.Image,
+                            modifier = Modifier.weight(1f),
+                        ) { onOpenQuickEntry(QuickActivity.Playfield, QuickEntryOrigin.Study) }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        PracticeInputGridButton(
+                            label = "Score",
+                            icon = Icons.Outlined.Tag,
+                            modifier = Modifier.weight(1f),
+                        ) { onOpenQuickEntry(QuickActivity.Score, QuickEntryOrigin.Score) }
+                        PracticeInputGridButton(
+                            label = "Tutorial",
+                            icon = Icons.Outlined.School,
+                            modifier = Modifier.weight(1f),
+                        ) { onOpenQuickEntry(QuickActivity.Tutorial, QuickEntryOrigin.Study) }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        PracticeInputGridButton(
+                            label = "Practice",
+                            icon = Icons.Outlined.SportsEsports,
+                            modifier = Modifier.weight(1f),
+                        ) { onOpenQuickEntry(QuickActivity.Practice, QuickEntryOrigin.Practice) }
+                        PracticeInputGridButton(
+                            label = "Gameplay",
+                            icon = Icons.Outlined.SmartDisplay,
+                            modifier = Modifier.weight(1f),
+                        ) { onOpenQuickEntry(QuickActivity.Gameplay, QuickEntryOrigin.Study) }
+                    }
+                }
             }
 
             PracticeGameSubview.Log -> {

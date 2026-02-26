@@ -20,11 +20,11 @@ func styledPracticeJournalSummary(_ summary: String) -> Text {
             .foregroundStyle(colorForPracticeJournalToken(token.color))
         switch token.color {
         case .primary:
-            return partial + segment
+            return Text("\(partial)\(segment)")
         case .game, .screen, .score:
-            return partial + segment.bold()
+            return Text("\(partial)\(segment.bold())")
         case .note:
-            return partial + segment
+            return Text("\(partial)\(segment)")
         }
     }
 }

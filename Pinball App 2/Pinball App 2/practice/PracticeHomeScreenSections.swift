@@ -15,24 +15,25 @@ struct PracticeHomeCardSection: View {
     let onSelectLibrarySource: (String) -> Void
     let onPickGame: (String) -> Void
     let onQuickEntry: (QuickEntrySheet) -> Void
+    @State private var resumeControlColumnHeight: CGFloat = 0
 
     var body: some View {
         let orderedAllGames = orderedGamesForDropdown(allGames, collapseByPracticeIdentity: true)
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 8) {
                 if let game = resumeGame {
-                    Text("Resume")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
                     HStack(spacing: 8) {
                         Button(action: onResume) {
-                            resumeChip(game.name)
+                            ResumeSelectedGameCard(
+                                game: game,
+                                targetHeight: resumeControlColumnHeight > 0 ? resumeControlColumnHeight : nil
+                            )
                         }
                         .buttonStyle(.plain)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                        Menu {
-                            if librarySources.count > 1 {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Menu {
                                 Button((selectedLibrarySourceID == nil ? "✓ " : "") + "All games") {
                                     onSelectLibrarySource(practiceHomeAllGamesSourceMenuID)
                                 }
@@ -41,24 +42,46 @@ struct PracticeHomeCardSection: View {
                                         onSelectLibrarySource(source.id)
                                     }
                                 }
-                                Divider()
+                            } label: {
+                                resumeDropdownLabel(
+                                    title: "Library",
+                                    value: selectedLibraryLabel(librarySources: librarySources)
+                                )
                             }
-                            ForEach(orderedAllGames) { listGame in
-                                Button(listGame.name) {
-                                    onPickGame(listGame.canonicalPracticeKey)
+                            .buttonStyle(.plain)
+
+                            Menu {
+                                ForEach(orderedAllGames) { listGame in
+                                    Button(listGame.name) {
+                                        onPickGame(listGame.canonicalPracticeKey)
+                                    }
                                 }
+                            } label: {
+                                resumeDropdownLabel(
+                                    title: "Game List",
+                                    value: game.name
+                                )
                             }
-                        } label: {
-                            resumeChip("Game List", showsChevron: true)
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
-                        .fixedSize(horizontal: true, vertical: false)
+                        .frame(width: 168, alignment: .leading)
+                        .background(
+                            GeometryReader { geo in
+                                Color.clear
+                                    .preference(key: ResumeControlColumnHeightPreferenceKey.self, value: geo.size.height)
+                            }
+                        )
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
             .appPanelStyle()
+            .onPreferenceChange(ResumeControlColumnHeightPreferenceKey.self) { newHeight in
+                guard newHeight > 0 else { return }
+                resumeControlColumnHeight = newHeight
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Quick Entry")
@@ -76,13 +99,9 @@ struct PracticeHomeCardSection: View {
             .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Active Groups")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-
                 if activeGroups.isEmpty {
                     Text("No active groups")
-                        .font(.subheadline)
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
@@ -132,21 +151,35 @@ struct PracticeHomeCardSection: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func resumeChip(_ text: String, showsChevron: Bool = false) -> some View {
-        HStack(spacing: 4) {
-            Text(text)
-                .font(.caption)
-                .lineLimit(1)
-                .truncationMode(.tail)
-            if showsChevron {
-                Image(systemName: "chevron.down")
+    private func resumeDropdownLabel(title: String, value: String) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .foregroundStyle(.primary)
             }
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.down")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(Color.white.opacity(0.14), in: Capsule())
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color.white.opacity(0.10), lineWidth: 0.8)
+        )
+    }
+
+    private func selectedLibraryLabel(librarySources: [PinballLibrarySource]) -> String {
+        if selectedLibrarySourceID == nil { return "All Games" }
+        return librarySources.first(where: { $0.id == selectedLibrarySourceID })?.name ?? "All Games"
     }
 
     private func quickActionButton(_ text: String, icon: String, action: @escaping () -> Void) -> some View {
@@ -161,6 +194,65 @@ struct PracticeHomeCardSection: View {
             .appControlStyle()
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct ResumeSelectedGameCard: View {
+    let game: PinballGame
+    let targetHeight: CGFloat?
+
+    var body: some View {
+        let height = max(72, targetHeight ?? 92)
+        let cornerRadius: CGFloat = 10
+
+        GeometryReader { geo in
+            let labelStripHeight: CGFloat = 22
+            let verticalGap: CGFloat = 4
+            let bottomInset: CGFloat = 8
+            let imageHeight = max(28, geo.size.height - labelStripHeight - verticalGap - bottomInset)
+
+            VStack(alignment: .leading, spacing: verticalGap) {
+                FallbackAsyncImageView(
+                    candidates: game.miniPlayfieldCandidates,
+                    emptyMessage: nil,
+                    contentMode: .fill
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: imageHeight)
+                .clipped()
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 8,
+                        bottomLeadingRadius: 0,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: 8,
+                        style: .continuous
+                    )
+                )
+
+                Text(game.name)
+                    .font(.subheadline)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .padding(.horizontal, 6)
+                    .frame(height: labelStripHeight, alignment: .center)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.bottom, bottomInset)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: height, alignment: .top)
+        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+}
+
+private struct ResumeControlColumnHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 

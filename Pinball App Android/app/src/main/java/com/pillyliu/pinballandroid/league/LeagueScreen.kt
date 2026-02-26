@@ -67,6 +67,7 @@ import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.abs
 
 enum class LeagueDestination(val title: String, val subtitle: String, val icon: ImageVector) {
     Stats("Stats", "Player trends and machine performance", Icons.Outlined.BarChart),
@@ -252,36 +253,38 @@ private fun LeagueCard(
             .heightIn(min = 0.dp)
             .clickable { onClick() },
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = destination.icon,
-                contentDescription = destination.title,
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.width(8.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = destination.icon,
+                    contentDescription = destination.title,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = destination.title,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = titleSize,
+                )
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    imageVector = Icons.Outlined.ChevronRight,
+                    contentDescription = "Open ${destination.title}",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             Text(
-                text = destination.title,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = titleSize,
+                text = destination.subtitle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = subtitleSize,
+                modifier = Modifier.padding(start = 28.dp),
             )
-            Spacer(Modifier.weight(1f))
-            Icon(
-                imageVector = Icons.Outlined.ChevronRight,
-                contentDescription = "Open ${destination.title}",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
 
-        Text(
-            text = destination.subtitle,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = subtitleSize,
-            modifier = Modifier.padding(start = 28.dp),
-        )
-
-        Column(modifier = Modifier.padding(start = 28.dp)) {
-            preview()
+            Column(modifier = Modifier.padding(start = 28.dp)) {
+                preview()
+            }
         }
     }
 }
@@ -674,9 +677,16 @@ private fun buildStatsPreview(rows: List<StatsCsvRow>, preferredPlayer: String?)
     } ?: return StatsPreviewPayload(emptyList(), "Most Recent Bank", "")
     val sample = grouped[recentKey]?.firstOrNull() ?: return StatsPreviewPayload(emptyList(), "Most Recent Bank", "")
 
-    val previewRows = grouped[recentKey]
+    val sortedMostRecentRows = grouped[recentKey]
         .orEmpty()
         .sortedBy { it.sourceOrder }
+    val rowsForPreview = if (sortedMostRecentRows.size > 5) {
+        val nonZeroScoreRows = sortedMostRecentRows.filter { abs(it.score) > 0.000001 }
+        if (nonZeroScoreRows.size >= 5) nonZeroScoreRows else sortedMostRecentRows
+    } else {
+        sortedMostRecentRows
+    }
+    val previewRows = rowsForPreview
         .take(5)
         .map { StatsPreviewRow(machine = it.machine, score = it.score, points = it.points) }
 

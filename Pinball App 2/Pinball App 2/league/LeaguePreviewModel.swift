@@ -194,8 +194,16 @@ final class LeaguePreviewModel: ObservableObject {
             return
         }
 
-        let previewRows = mostRecentRows
+        let sortedMostRecentRows = mostRecentRows
             .sorted { $0.sourceOrder < $1.sourceOrder }
+
+        let rowsForPreview: [ParsedStatsRow] = {
+            guard sortedMostRecentRows.count > 5 else { return sortedMostRecentRows }
+            let nonZeroScoreRows = sortedMostRecentRows.filter { abs($0.rawScore) > 0.000_001 }
+            return nonZeroScoreRows.count >= 5 ? nonZeroScoreRows : sortedMostRecentRows
+        }()
+
+        let previewRows = rowsForPreview
             .prefix(5)
             .enumerated()
             .map { localIndex, row in
