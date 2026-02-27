@@ -35,11 +35,10 @@ internal fun PracticeMechanicsSection(
     onOpenDeadFlipTutorials: () -> Unit,
 ) {
     val allSkills = store.allTrackedMechanicsSkills()
-    if (mechanicsSelectedSkill.isBlank() && allSkills.isNotEmpty()) {
-        onMechanicsSelectedSkillChange(allSkills.first())
-    } else if (allSkills.isNotEmpty() && !allSkills.contains(mechanicsSelectedSkill)) {
-        onMechanicsSelectedSkillChange(allSkills.first())
+    if (mechanicsSelectedSkill.isNotBlank() && !allSkills.contains(mechanicsSelectedSkill)) {
+        onMechanicsSelectedSkillChange("")
     }
+    val skillOptions = listOf("") + allSkills
 
     CardContainer {
         Text("Mechanics", fontWeight = FontWeight.SemiBold)
@@ -47,8 +46,10 @@ internal fun PracticeMechanicsSection(
 
         SimpleMenuDropdown(
             title = "Skill",
-            options = allSkills,
+            options = skillOptions,
             selected = mechanicsSelectedSkill,
+            selectedLabel = mechanicsSelectedSkill.ifBlank { "Select skill" },
+            formatOptionLabel = { option -> if (option.isBlank()) "Select skill" else option },
             onSelect = onMechanicsSelectedSkillChange,
         )
 
@@ -68,7 +69,7 @@ internal fun PracticeMechanicsSection(
             value = mechanicsNote,
             onValueChange = onMechanicsNoteChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Mechanics note") },
+            label = { Text("Optional notes") },
         )
         val detected = store.detectedMechanicsTags(mechanicsNote)
         if (detected.isNotEmpty()) {
@@ -83,9 +84,21 @@ internal fun PracticeMechanicsSection(
         }) { Text("Log Mechanics Session") }
     }
 
-    if (mechanicsSelectedSkill.isNotBlank()) {
-        CardContainer {
-            Text("$mechanicsSelectedSkill History", fontWeight = FontWeight.SemiBold)
+    CardContainer {
+        val selectedSkill = mechanicsSelectedSkill.trim()
+        Text(
+            if (selectedSkill.isEmpty()) "Mechanics History (All Skills)" else "$selectedSkill History",
+            fontWeight = FontWeight.SemiBold,
+        )
+        val logs = if (selectedSkill.isEmpty()) {
+            allSkills
+                .flatMap { skill -> store.mechanicsLogs(skill) }
+                .distinctBy { it.id }
+                .sortedBy { it.timestampMs }
+        } else {
+            store.mechanicsLogs(selectedSkill)
+        }
+        if (selectedSkill.isNotEmpty()) {
             val summary = store.mechanicsSummary(mechanicsSelectedSkill)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 Text("Logs: ${summary.totalLogs}", style = MaterialTheme.typography.bodySmall)
@@ -99,22 +112,27 @@ internal fun PracticeMechanicsSection(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            val logs = store.mechanicsLogs(mechanicsSelectedSkill)
             MechanicsTrendSparkline(logs = logs)
-            val rows = logs.takeLast(24).reversed()
-            if (rows.isEmpty()) {
-                Text("No sessions logged for this skill yet.")
-            } else {
-                LazyColumn(modifier = Modifier.height(260.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(rows) { row ->
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(row.note, style = MaterialTheme.typography.bodySmall)
-                            Text(
-                                "${formatTimestamp(row.timestampMs)} • ${store.gameName(row.gameSlug)}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Text("Logs: ${logs.size}", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        val rows = logs.takeLast(24).reversed()
+        if (rows.isEmpty()) {
+            Text(
+                if (selectedSkill.isEmpty()) "No mechanics sessions logged yet." else "No sessions logged for this skill yet.",
+            )
+        } else {
+            LazyColumn(modifier = Modifier.height(260.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(rows) { row ->
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(row.note, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "${formatTimestamp(row.timestampMs)} • ${store.gameName(row.gameSlug)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }

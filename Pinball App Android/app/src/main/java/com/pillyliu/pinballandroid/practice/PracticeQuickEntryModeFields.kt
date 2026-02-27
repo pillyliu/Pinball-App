@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
 @Composable
@@ -128,16 +129,16 @@ internal fun QuickEntryModeFields(
                 onSelect = onVideoInputKindChange,
             )
             if (videoInputKind == "clock") {
-                OutlinedTextField(
+                TimeNumericField(
                     value = videoWatchedTime,
                     onValueChange = onVideoWatchedTimeChange,
-                    label = { Text("Amount watched (hh:mm:ss)") },
+                    label = "Watched",
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                TimeNumericField(
                     value = videoTotalTime,
                     onValueChange = onVideoTotalTimeChange,
-                    label = { Text("Total length (hh:mm:ss)") },
+                    label = "Duration",
                     modifier = Modifier.fillMaxWidth(),
                 )
             } else {
@@ -222,4 +223,86 @@ private fun formatScoreInputWithCommasForQuickEntryField(raw: String): String {
         grouped.append(digits[i])
     }
     return grouped.toString()
+}
+
+@Composable
+private fun TimeNumericField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    val parsed = remember(value) { parseHhMmSsOrDefault(value) }
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(label, modifier = Modifier.weight(1f))
+        OutlinedTextField(
+            value = parsed.first.toString().padStart(2, '0'),
+            onValueChange = { input ->
+                onValueChange(updatedTimeValue(value, part = 0, input = input, max = 24))
+            },
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            textStyle = LocalTextStyle.current.copy(
+                textAlign = TextAlign.Center,
+                fontFamily = FontFamily.Monospace,
+            ),
+            label = { Text("HH") },
+        )
+        OutlinedTextField(
+            value = parsed.second.toString().padStart(2, '0'),
+            onValueChange = { input ->
+                onValueChange(updatedTimeValue(value, part = 1, input = input, max = 59))
+            },
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            textStyle = LocalTextStyle.current.copy(
+                textAlign = TextAlign.Center,
+                fontFamily = FontFamily.Monospace,
+            ),
+            label = { Text("MM") },
+        )
+        OutlinedTextField(
+            value = parsed.third.toString().padStart(2, '0'),
+            onValueChange = { input ->
+                onValueChange(updatedTimeValue(value, part = 2, input = input, max = 59))
+            },
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            textStyle = LocalTextStyle.current.copy(
+                textAlign = TextAlign.Center,
+                fontFamily = FontFamily.Monospace,
+            ),
+            label = { Text("SS") },
+        )
+    }
+}
+
+private fun parseHhMmSsOrDefault(raw: String): Triple<Int, Int, Int> {
+    val parts = raw.trim().split(":")
+    if (parts.size != 3) return Triple(0, 0, 0)
+    val h = parts[0].toIntOrNull()?.coerceIn(0, 24) ?: 0
+    val m = parts[1].toIntOrNull()?.coerceIn(0, 59) ?: 0
+    val s = parts[2].toIntOrNull()?.coerceIn(0, 59) ?: 0
+    return Triple(h, m, s)
+}
+
+private fun formatHhMmSs(hours: Int, minutes: Int, seconds: Int): String {
+    return "%02d:%02d:%02d".format(hours.coerceIn(0, 24), minutes.coerceIn(0, 59), seconds.coerceIn(0, 59))
+}
+
+private fun updatedTimeValue(current: String, part: Int, input: String, max: Int): String {
+    val (h, m, s) = parseHhMmSsOrDefault(current)
+    val next = input.filter(Char::isDigit).take(2).toIntOrNull()?.coerceIn(0, max) ?: 0
+    return when (part) {
+        0 -> formatHhMmSs(next, m, s)
+        1 -> formatHhMmSs(h, next, s)
+        else -> formatHhMmSs(h, m, next)
+    }
 }

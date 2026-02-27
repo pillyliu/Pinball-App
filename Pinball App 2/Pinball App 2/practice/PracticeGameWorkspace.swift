@@ -37,13 +37,11 @@ struct PracticeGameWorkspace: View {
     @State private var showingScoreSheet = false
     @State private var saveBanner: String?
     @State private var activeVideoID: String?
-    @State private var pendingVideoOpenURL: URL?
-    @State private var pendingVideoOpenLabel: String = ""
-    @State private var showingVideoOpenPrompt = false
     @State private var gameSummaryDraft: String = ""
     @State private var revealedLogEntryID: String?
     @State private var editingLogEntry: JournalEntry?
     @State private var pendingDeleteLogEntry: JournalEntry?
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
 
     private var selectedGame: PinballGame? {
@@ -108,6 +106,8 @@ struct PracticeGameWorkspace: View {
         }
         .navigationTitle(selectedGame?.name ?? "Game")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+        .appEdgeBackGesture(dismiss: dismiss)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -222,28 +222,12 @@ struct PracticeGameWorkspace: View {
         } message: {
             Text("This will remove the selected journal entry and linked practice data.")
         }
-        .confirmationDialog("Open in YouTube", isPresented: $showingVideoOpenPrompt, titleVisibility: .visible) {
-            Button("Open in YouTube") {
-                guard let pendingVideoOpenURL else { return }
-                openURL(pendingVideoOpenURL)
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            if pendingVideoOpenLabel.isEmpty {
-                Text("This video will open in the YouTube app or web browser.")
-            } else {
-                Text("\"\(pendingVideoOpenLabel)\" will open in the YouTube app or web browser.")
-            }
-        }
     }
 
     private var gameSummaryCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Game Note")
                 .font(.headline)
-            Text("Freeform summary of how this game is going.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
 
             TextEditor(text: $gameSummaryDraft)
                 .frame(minHeight: 96)
@@ -372,9 +356,6 @@ struct PracticeGameWorkspace: View {
                         ForEach(playableVideos) { video in
                             Button {
                                 activeVideoID = video.id
-                                pendingVideoOpenURL = video.youtubeWatchURL
-                                pendingVideoOpenLabel = video.label
-                                showingVideoOpenPrompt = video.youtubeWatchURL != nil
                             } label: {
                                 VStack(alignment: .leading, spacing: 8) {
                                     PracticeYouTubeThumbnailView(candidates: video.thumbnailCandidates)
@@ -446,9 +427,8 @@ struct PracticeGameWorkspace: View {
                     .foregroundStyle(.secondary)
                 Button("Open in YouTube") {
                     guard let selectedVideo else { return }
-                    pendingVideoOpenURL = selectedVideo.youtubeWatchURL
-                    pendingVideoOpenLabel = selectedVideo.label
-                    showingVideoOpenPrompt = selectedVideo.youtubeWatchURL != nil
+                    guard let youtubeURL = selectedVideo.youtubeWatchURL else { return }
+                    openURL(youtubeURL)
                 }
                 .buttonStyle(.glass)
                 .disabled(selectedVideo?.youtubeWatchURL == nil)
@@ -994,6 +974,7 @@ struct GameTaskEntrySheet: View {
     @State private var videoTotalTime: String = ""
     @State private var videoPercent: Double = 100
     @State private var practiceMinutes: String = ""
+    @State private var practiceCategory: PracticeCategory = .general
     @State private var noteText: String = ""
     @State private var validationMessage: String?
 
@@ -1006,72 +987,108 @@ struct GameTaskEntrySheet: View {
         return practiceVideoSourceOptions(store: store, gameID: gameID, task: task)
     }
 
+    private var quickPracticeCategories: [PracticeCategory] {
+        [.general, .modes, .multiball, .shots]
+    }
+
+    private var selectedVideoSourceLabel: String {
+        let trimmed = selectedVideoSource.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Video" : trimmed
+    }
+
+    private var selectedPracticeCategoryLabel: String {
+        switch practiceCategory {
+        case .general: return "General"
+        case .modes: return "Modes"
+        case .multiball: return "Multiball"
+        case .shots: return "Shots"
+        case .strategy: return "Strategy"
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.clear.ignoresSafeArea()
                 PracticeEntryGlassCard {
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 14) {
-                            sectionCard("Task") {
-                                Text(task.label)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.primary)
-                            }
-
-                            sectionCard("Details") {
-                                switch task {
-                                case .rulesheet:
-                                    sliderRow(title: "Rulesheet progress", value: $rulesheetProgress)
-                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
-                                case .tutorialVideo, .gameplayVideo:
-                                    Picker("Video", selection: $selectedVideoSource) {
-                                        ForEach(videoSourceOptions, id: \.self) { source in
-                                            Text(source).tag(source)
+                        VStack(alignment: .leading, spacing: 12) {
+                            switch task {
+                            case .rulesheet:
+                                sliderRow(title: "Rulesheet progress", value: $rulesheetProgress)
+                                styledMultilineTextEditor("Optional notes", text: $noteText)
+                            case .tutorialVideo, .gameplayVideo:
+                                Menu {
+                                    ForEach(videoSourceOptions, id: \.self) { source in
+                                        Button {
+                                            selectedVideoSource = source
+                                        } label: {
+                                            if selectedVideoSource == source {
+                                                Label(source, systemImage: "checkmark")
+                                            } else {
+                                                Text(source)
+                                            }
                                         }
                                     }
-                                    .pickerStyle(.menu)
-
-                                    Picker("Input mode", selection: $videoKind) {
-                                        ForEach(VideoProgressInputKind.allCases) { kind in
-                                            Text(kind.label).tag(kind)
-                                        }
-                                    }
-                                    .pickerStyle(.segmented)
-
-                                    if videoKind == .clock {
-                                        styledTextField(
-                                            "Amount watched (hh:mm:ss)",
-                                            text: $videoWatchedTime,
-                                            keyboard: .numbersAndPunctuation
-                                        )
-                                        styledTextField(
-                                            "Total length (hh:mm:ss)",
-                                            text: $videoTotalTime,
-                                            keyboard: .numbersAndPunctuation
-                                        )
-                                    } else {
-                                        sliderRow(title: "Percent watched", value: $videoPercent)
-                                    }
-
-                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
-                                case .playfield:
-                                    Text("Logs a timestamped playfield review.")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
-                                case .practice:
-                                    styledTextField("Practice minutes (optional)", text: $practiceMinutes, keyboard: .numberPad)
-                                    styledTextField("Optional note", text: $noteText, axis: .vertical)
+                                } label: {
+                                    compactDropdownLabel(text: selectedVideoSourceLabel)
                                 }
+                                .buttonStyle(.plain)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .accessibilityLabel("Video")
+
+                                Picker("Input mode", selection: $videoKind) {
+                                    ForEach(VideoProgressInputKind.allCases) { kind in
+                                        Text(kind.label).tag(kind)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+
+                                if videoKind == .clock {
+                                    HStack(alignment: .top, spacing: 10) {
+                                        PracticeTimePopoverField(title: "Watched", value: $videoWatchedTime)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        PracticeTimePopoverField(title: "Duration", value: $videoTotalTime)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                } else {
+                                    sliderRow(title: "Percent watched", value: $videoPercent)
+                                }
+
+                                styledMultilineTextEditor("Optional notes", text: $noteText)
+                            case .playfield:
+                                styledMultilineTextEditor("Optional notes", text: $noteText)
+                            case .practice:
+                                Menu {
+                                    ForEach(quickPracticeCategories) { category in
+                                        Button {
+                                            practiceCategory = category
+                                        } label: {
+                                            if practiceCategory == category {
+                                                Label(
+                                                    category == .general ? "General" : category.label,
+                                                    systemImage: "checkmark"
+                                                )
+                                            } else {
+                                                Text(category == .general ? "General" : category.label)
+                                            }
+                                        }
+                                    }
+                                } label: {
+                                    compactDropdownLabel(text: selectedPracticeCategoryLabel)
+                                }
+                                .buttonStyle(.plain)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .accessibilityLabel("Practice type")
+
+                                styledTextField("Practice minutes (optional)", text: $practiceMinutes, keyboard: .numberPad)
+                                styledMultilineTextEditor("Optional notes", text: $noteText)
                             }
 
                             if let validationMessage {
-                                sectionCard("Validation") {
-                                    Text(validationMessage)
-                                        .font(.footnote)
-                                        .foregroundStyle(.red)
-                                }
+                                Text(validationMessage)
+                                    .font(.footnote)
+                                    .foregroundStyle(.red)
                             }
                         }
                         .padding(.horizontal, 14)
@@ -1116,19 +1133,6 @@ struct GameTaskEntrySheet: View {
         }
     }
 
-    @ViewBuilder
-    private func sectionCard<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.headline)
-                .foregroundStyle(.primary)
-            content()
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appPanelStyle()
-    }
-
     private func styledTextField(
         _ placeholder: String,
         text: Binding<String>,
@@ -1141,6 +1145,42 @@ struct GameTaskEntrySheet: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .appControlStyle()
+    }
+
+    @ViewBuilder
+    private func styledMultilineTextEditor(_ placeholder: String, text: Binding<String>) -> some View {
+        ZStack(alignment: .topLeading) {
+            if text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(placeholder)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 14)
+                    .allowsHitTesting(false)
+            }
+            TextEditor(text: text)
+                .scrollContentBackground(.hidden)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+        }
+        .frame(minHeight: 88, maxHeight: 96)
+        .appControlStyle()
+    }
+
+    private func compactDropdownLabel(text: String) -> some View {
+        HStack(spacing: 8) {
+            Text(text)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appControlStyle()
     }
 
     private func sliderRow(title: String, value: Binding<Double>) -> some View {
@@ -1213,16 +1253,24 @@ struct GameTaskEntrySheet: View {
                 return false
             }
 
+            let practiceTypeLabel: String = switch practiceCategory {
+            case .general: "General"
+            case .modes: "Modes"
+            case .multiball: "Multiball"
+            case .shots: "Shots"
+            case .strategy: "Strategy"
+            }
+            let focusLine: String? = practiceCategory == .general ? nil : "Focus: \(practiceTypeLabel)"
+
             let composedNote: String?
             if let minutes = Int(trimmedMinutes), minutes > 0 {
                 let prefix = "Practice session: \(minutes) minute\(minutes == 1 ? "" : "s")"
-                if let note {
-                    composedNote = "\(prefix). \(note)"
-                } else {
-                    composedNote = prefix
-                }
+                let tail = [focusLine, note].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ")
+                composedNote = tail.isEmpty ? prefix : "\(prefix). \(tail)"
             } else {
-                composedNote = note ?? "Practice session"
+                let base = "Practice session"
+                let tail = [focusLine, note].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ")
+                composedNote = tail.isEmpty ? base : "\(base). \(tail)"
             }
 
             store.addGameTaskEntry(

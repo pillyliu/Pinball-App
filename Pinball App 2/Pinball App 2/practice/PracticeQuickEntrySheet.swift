@@ -23,6 +23,7 @@ struct PracticeQuickEntrySheet: View {
     @State private var videoTotalTime: String = ""
     @State private var videoPercent: Double = 100
     @State private var practiceMinutes: String = ""
+    @State private var practiceCategory: PracticeCategory = .general
     @State private var mechanicsSkill: String = ""
     @State private var mechanicsCompetency: Double = 3
     @State private var mechanicsNote: String = ""
@@ -85,6 +86,54 @@ struct PracticeQuickEntrySheet: View {
         )
     }
 
+    private var selectedLibraryFilterLabel: String {
+        if selectedLibraryFilterID.isEmpty || selectedLibraryFilterID == quickEntryAllGamesLibraryID {
+            return "All games"
+        }
+        return availableLibrarySources.first(where: { $0.id == selectedLibraryFilterID })?.name ?? "Location"
+    }
+
+    private var selectedGameLabel: String {
+        if kind == .mechanics, selectedGameID.isEmpty {
+            return "None"
+        }
+        if filteredGamesForPicker.isEmpty {
+            return "No game data"
+        }
+        return store.gameForAnyID(selectedGameID)?.name
+            ?? orderedGamesForDropdown(filteredGamesForPicker, collapseByPracticeIdentity: true)
+                .first(where: { $0.canonicalPracticeKey == selectedGameID })?.name
+            ?? "Game"
+    }
+
+    private var selectedActivityLabel: String {
+        selectedActivity.label
+    }
+
+    private var selectedVideoSourceLabel: String {
+        let trimmed = selectedVideoSource.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Video" : trimmed
+    }
+
+    private var selectedMechanicsSkillLabel: String {
+        let trimmed = mechanicsSkill.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Skill" : trimmed
+    }
+
+    private var quickPracticeCategories: [PracticeCategory] {
+        [.general, .modes, .multiball, .shots]
+    }
+
+    private var selectedPracticeCategoryLabel: String {
+        switch practiceCategory {
+        case .general: return "General"
+        case .modes: return "Modes"
+        case .multiball: return "Multiball"
+        case .shots: return "Shots"
+        case .strategy: return "Strategy"
+        }
+    }
+
     var body: some View {
         let gameOptions = orderedGamesForDropdown(filteredGamesForPicker, collapseByPracticeIdentity: true)
         NavigationStack {
@@ -93,28 +142,73 @@ struct PracticeQuickEntrySheet: View {
                 PracticeEntryGlassCard {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 12) {
-                            if availableLibrarySources.count > 1 {
-                                Picker("Library", selection: $selectedLibraryFilterID) {
-                                    Text("All games").tag(quickEntryAllGamesLibraryID)
-                                    ForEach(availableLibrarySources) { source in
-                                        Text(source.name).tag(source.id)
+                            HStack(alignment: .top, spacing: 6) {
+                                if availableLibrarySources.count > 1 {
+                                    Menu {
+                                        Button {
+                                            selectedLibraryFilterID = quickEntryAllGamesLibraryID
+                                        } label: {
+                                            if selectedLibraryFilterID == quickEntryAllGamesLibraryID || selectedLibraryFilterID.isEmpty {
+                                                Label("All games", systemImage: "checkmark")
+                                            } else {
+                                                Text("All games")
+                                            }
+                                        }
+                                        ForEach(availableLibrarySources) { source in
+                                            Button {
+                                                selectedLibraryFilterID = source.id
+                                            } label: {
+                                                if selectedLibraryFilterID == source.id {
+                                                    Label(source.name, systemImage: "checkmark")
+                                                } else {
+                                                    Text(source.name)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    label: {
+                                        compactDropdownLabel(text: selectedLibraryFilterLabel)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .accessibilityLabel("Location")
+                                }
+
+                                Menu {
+                                    if kind == .mechanics {
+                                        Button {
+                                            selectedGameID = ""
+                                        } label: {
+                                            if selectedGameID.isEmpty {
+                                                Label("None", systemImage: "checkmark")
+                                            } else {
+                                                Text("None")
+                                            }
+                                        }
+                                    }
+                                    if filteredGamesForPicker.isEmpty {
+                                        Text("No game data")
+                                    } else {
+                                        ForEach(gameOptions) { game in
+                                            Button {
+                                                selectedGameID = game.canonicalPracticeKey
+                                            } label: {
+                                                if selectedGameID == game.canonicalPracticeKey {
+                                                    Label(game.name, systemImage: "checkmark")
+                                                } else {
+                                                    Text(game.name)
+                                                }
+                                            }
+                                        }
                                     }
                                 }
-                                .pickerStyle(.menu)
-                            }
-                            Picker("Game", selection: $selectedGameID) {
-                                if kind == .mechanics {
-                                    Text("None").tag("")
+                                label: {
+                                    compactDropdownLabel(text: selectedGameLabel)
                                 }
-                                if filteredGamesForPicker.isEmpty {
-                                    Text("No game data").tag("")
-                                } else {
-                                    ForEach(gameOptions) { game in
-                                        Text(game.name).tag(game.canonicalPracticeKey)
-                                    }
-                                }
+                                .buttonStyle(.plain)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .accessibilityLabel("Game")
                             }
-                            .pickerStyle(.menu)
                             .onChange(of: gameOptions.count) { _, _ in
                                 if kind != .mechanics,
                                    selectedGameID.isEmpty,
@@ -124,97 +218,160 @@ struct PracticeQuickEntrySheet: View {
                             }
 
                             if showsActivityPicker {
-                                Picker("Activity", selection: $selectedActivity) {
+                                Menu {
                                     ForEach(availableActivities) { activity in
-                                        Text(activity.label).tag(activity)
+                                        Button {
+                                            selectedActivity = activity
+                                        } label: {
+                                            if selectedActivity == activity {
+                                                Label(activity.label, systemImage: "checkmark")
+                                            } else {
+                                                Text(activity.label)
+                                            }
+                                        }
                                     }
                                 }
-                                .pickerStyle(.menu)
+                                label: {
+                                    compactDropdownLabel(text: selectedActivityLabel)
+                                }
+                                .buttonStyle(.plain)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .accessibilityLabel("Activity")
                             }
 
-                            sectionCard("Details") {
-                                switch selectedActivity {
-                                case .score:
-                                    TextField("Score", text: $scoreText)
-                                        .keyboardType(.numberPad)
-                                        .multilineTextAlignment(.trailing)
+                            switch selectedActivity {
+                            case .score:
+                                TextField("Score", text: $scoreText)
+                                    .font(.subheadline)
+                                    .keyboardType(.numberPad)
+                                    .multilineTextAlignment(.trailing)
+                                    .monospacedDigit()
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 8)
+                                    .appControlStyle()
+                                    .onChange(of: scoreText) { _, newValue in
+                                        let formatted = formatScoreInputWithCommas(newValue)
+                                        if formatted != newValue { scoreText = formatted }
+                                    }
+
+                                Picker("Context", selection: $scoreContext) {
+                                    ForEach(ScoreContext.allCases) { context in
+                                        Text(context.label).tag(context)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+
+                                if scoreContext == .tournament {
+                                    styledTextField("Tournament name", text: $tournamentName)
+                                }
+                            case .rulesheet:
+                                sliderRow(title: "Rulesheet progress", value: $rulesheetProgress)
+                                styledMultilineTextEditor("Optional notes", text: $noteText)
+                            case .tutorialVideo, .gameplayVideo:
+                                Menu {
+                                    ForEach(videoSourceOptions, id: \.self) { source in
+                                        Button {
+                                            selectedVideoSource = source
+                                        } label: {
+                                            if selectedVideoSource == source {
+                                                Label(source, systemImage: "checkmark")
+                                            } else {
+                                                Text(source)
+                                            }
+                                        }
+                                    }
+                                }
+                                label: {
+                                    compactDropdownLabel(text: selectedVideoSourceLabel)
+                                }
+                                .buttonStyle(.plain)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .accessibilityLabel("Video")
+
+                                Picker("Input mode", selection: $videoKind) {
+                                    ForEach(VideoProgressInputKind.allCases) { kind in
+                                        Text(kind.label).tag(kind)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+
+                                if videoKind == .clock {
+                                    HStack(alignment: .top, spacing: 10) {
+                                        PracticeTimePopoverField(title: "Watched", value: $videoWatchedTime)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        PracticeTimePopoverField(title: "Duration", value: $videoTotalTime)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                } else {
+                                    sliderRow(title: "Percent watched", value: $videoPercent)
+                                }
+
+                                styledMultilineTextEditor("Optional notes", text: $noteText)
+                            case .playfield:
+                                styledMultilineTextEditor("Optional notes", text: $noteText)
+                            case .practice:
+                                Menu {
+                                    ForEach(quickPracticeCategories) { category in
+                                        Button {
+                                            practiceCategory = category
+                                        } label: {
+                                            if practiceCategory == category {
+                                                Label(
+                                                    category == .general ? "General" : category.label,
+                                                    systemImage: "checkmark"
+                                                )
+                                            } else {
+                                                Text(category == .general ? "General" : category.label)
+                                            }
+                                        }
+                                    }
+                                }
+                                label: {
+                                    compactDropdownLabel(text: selectedPracticeCategoryLabel)
+                                }
+                                .buttonStyle(.plain)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .accessibilityLabel("Practice type")
+
+                                styledTextField("Practice minutes (optional)", text: $practiceMinutes, keyboard: .numberPad)
+                                styledMultilineTextEditor("Optional notes", text: $noteText)
+                            case .mechanics:
+                                Menu {
+                                    ForEach(store.allTrackedMechanicsSkills(), id: \.self) { skill in
+                                        Button {
+                                            mechanicsSkill = skill
+                                        } label: {
+                                            if mechanicsSkill == skill {
+                                                Label(skill, systemImage: "checkmark")
+                                            } else {
+                                                Text(skill)
+                                            }
+                                        }
+                                    }
+                                }
+                                label: {
+                                    compactDropdownLabel(text: selectedMechanicsSkillLabel)
+                                }
+                                .buttonStyle(.plain)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .accessibilityLabel("Skill")
+
+                                HStack {
+                                    Text("Competency")
+                                    Spacer()
+                                    Text("\(Int(mechanicsCompetency))/5")
                                         .monospacedDigit()
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 8)
-                                        .appControlStyle()
-                                        .onChange(of: scoreText) { _, newValue in
-                                            let formatted = formatScoreInputWithCommas(newValue)
-                                            if formatted != newValue { scoreText = formatted }
-                                        }
+                                        .foregroundStyle(.primary)
+                                }
+                                Slider(value: $mechanicsCompetency, in: 1...5, step: 1)
 
-                                    Picker("Context", selection: $scoreContext) {
-                                        ForEach(ScoreContext.allCases) { context in
-                                            Text(context.label).tag(context)
-                                        }
-                                    }
-                                    .pickerStyle(.segmented)
+                                styledMultilineTextEditor("Optional notes", text: $mechanicsNote)
 
-                                    if scoreContext == .tournament {
-                                        styledTextField("Tournament name", text: $tournamentName)
-                                    }
-                                case .rulesheet:
-                                    sliderRow(title: "Rulesheet progress", value: $rulesheetProgress)
-                                    styledMultilineTextEditor("Optional note", text: $noteText)
-                                case .tutorialVideo, .gameplayVideo:
-                                    Picker("Video", selection: $selectedVideoSource) {
-                                        ForEach(videoSourceOptions, id: \.self) { source in
-                                            Text(source).tag(source)
-                                        }
-                                    }
-                                    .pickerStyle(.menu)
-
-                                    Picker("Input mode", selection: $videoKind) {
-                                        ForEach(VideoProgressInputKind.allCases) { kind in
-                                            Text(kind.label).tag(kind)
-                                        }
-                                    }
-                                    .pickerStyle(.segmented)
-
-                                    if videoKind == .clock {
-                                        styledTextField("Amount watched (hh:mm:ss)", text: $videoWatchedTime, keyboard: .numbersAndPunctuation)
-                                        styledTextField("Total length (hh:mm:ss)", text: $videoTotalTime, keyboard: .numbersAndPunctuation)
-                                    } else {
-                                        sliderRow(title: "Percent watched", value: $videoPercent)
-                                    }
-
-                                    styledMultilineTextEditor("Optional note", text: $noteText)
-                                case .playfield:
-                                    Text("Logs a timestamped playfield review.")
-                                        .font(.footnote)
+                                let detected = store.detectedMechanicsTags(in: mechanicsNote)
+                                if !detected.isEmpty {
+                                    Text("Detected tags: \(detected.joined(separator: ", "))")
+                                        .font(.caption)
                                         .foregroundStyle(.secondary)
-                                    styledMultilineTextEditor("Optional note", text: $noteText)
-                                case .practice:
-                                    styledTextField("Practice minutes (optional)", text: $practiceMinutes, keyboard: .numberPad)
-                                    styledMultilineTextEditor("Optional note", text: $noteText)
-                                case .mechanics:
-                                    Picker("Skill", selection: $mechanicsSkill) {
-                                        ForEach(store.allTrackedMechanicsSkills(), id: \.self) { skill in
-                                            Text(skill).tag(skill)
-                                        }
-                                    }
-                                    .pickerStyle(.menu)
-
-                                    HStack {
-                                        Text("Competency")
-                                        Spacer()
-                                        Text("\(Int(mechanicsCompetency))/5")
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    Slider(value: $mechanicsCompetency, in: 1...5, step: 1)
-
-                                    styledMultilineTextEditor("Mechanics note", text: $mechanicsNote)
-
-                                    let detected = store.detectedMechanicsTags(in: mechanicsNote)
-                                    if !detected.isEmpty {
-                                        Text("Detected tags: \(detected.joined(separator: ", "))")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
                                 }
                             }
 
@@ -303,17 +460,22 @@ struct PracticeQuickEntrySheet: View {
         }
     }
 
-    @ViewBuilder
-    private func sectionCard<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.headline)
+    private func compactDropdownLabel(text: String) -> some View {
+        HStack(spacing: 8) {
+            Text(text)
+                .font(.subheadline)
+                .lineLimit(1)
+                .truncationMode(.tail)
                 .foregroundStyle(.primary)
-            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
         }
-        .padding(12)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .appPanelStyle()
+        .appControlStyle()
     }
 
     @ViewBuilder
@@ -326,6 +488,7 @@ struct PracticeQuickEntrySheet: View {
         monospacedDigits: Bool = false
     ) -> some View {
         let field = TextField(placeholder, text: text, axis: axis)
+            .font(.subheadline)
             .keyboardType(keyboard)
             .lineLimit(axis == .vertical ? 2 ... 4 : 1 ... 1)
             .multilineTextAlignment(textAlignment)
@@ -337,17 +500,23 @@ struct PracticeQuickEntrySheet: View {
 
     @ViewBuilder
     private func styledMultilineTextEditor(_ placeholder: String, text: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(placeholder)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        ZStack(alignment: .topLeading) {
+            if text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(placeholder)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 14)
+                    .allowsHitTesting(false)
+            }
             TextEditor(text: text)
-                .frame(minHeight: 88, maxHeight: 96)
+                .font(.subheadline)
                 .scrollContentBackground(.hidden)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
-                .appControlStyle()
         }
+        .frame(minHeight: 88, maxHeight: 96)
+        .appControlStyle()
     }
 
     private func sliderRow(title: String, value: Binding<Double>) -> some View {
@@ -356,7 +525,8 @@ struct PracticeQuickEntrySheet: View {
                 Text(title)
                 Spacer()
                 Text("\(Int(value.wrappedValue.rounded()))%")
-                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
             }
             Slider(value: value, in: 0...100, step: 1)
                 .tint(.white.opacity(0.92))
@@ -424,12 +594,16 @@ struct PracticeQuickEntrySheet: View {
                 validationMessage = "Practice minutes must be a whole number greater than 0 when entered."
                 return nil
             }
+            let focusLine: String? = practiceCategory == .general ? nil : "Focus: \(selectedPracticeCategoryLabel)"
             let composedNote: String?
             if let minutes = Int(trimmedMinutes), minutes > 0 {
                 let prefix = "Practice session: \(minutes) minute\(minutes == 1 ? "" : "s")"
-                composedNote = note.map { "\(prefix). \($0)" } ?? prefix
+                let tail = [focusLine, note].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ")
+                composedNote = tail.isEmpty ? prefix : "\(prefix). \(tail)"
             } else {
-                composedNote = note ?? "Practice session"
+                let base = "Practice session"
+                let tail = [focusLine, note].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ")
+                composedNote = tail.isEmpty ? base : "\(base). \(tail)"
             }
             store.addGameTaskEntry(
                 gameID: selectedGameID,

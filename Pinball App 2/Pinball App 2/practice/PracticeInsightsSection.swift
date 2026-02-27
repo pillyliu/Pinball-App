@@ -179,19 +179,10 @@ struct PracticeInsightsSectionView: View {
                 }
             }
         } label: {
-            HStack(spacing: 8) {
-                Text(selectedGameName)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.down")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .appControlStyle()
+            compactDropdownLabel(text: selectedGameName)
         }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var insightsOpponentDropdown: some View {
@@ -205,19 +196,27 @@ struct PracticeInsightsSectionView: View {
                 }
             }
         } label: {
-            HStack(spacing: 8) {
-                Text(opponentName.isEmpty ? "Select player" : redactName(opponentName))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.down")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .appControlStyle()
+            compactDropdownLabel(text: opponentName.isEmpty ? "Select player" : redactName(opponentName))
         }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func compactDropdownLabel(text: String) -> some View {
+        HStack(spacing: 8) {
+            Text(text)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appControlStyle()
     }
 
     private func headToHeadPlotHeight(for count: Int) -> CGFloat {

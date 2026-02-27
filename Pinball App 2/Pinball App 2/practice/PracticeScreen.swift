@@ -14,6 +14,7 @@ struct PracticeScreen: View {
     @State var currentGroupDateEditorGroupID: UUID?
     @State var currentGroupDateEditorField: GroupEditorDateField = .start
     @State var currentGroupDateEditorValue: Date = Date()
+    @State var gameTransitionSourceID: String?
     @State var quickSheet: QuickEntrySheet?
     @State var isEditingJournalEntries = false
     @State var selectedJournalItemIDs: Set<String> = []
@@ -48,6 +49,7 @@ struct PracticeScreen: View {
     @State var headToHead: HeadToHeadComparison?
     @State var isLoadingHeadToHead = false
     @State var viewportHeight: CGFloat = 0
+    @State var hasRunInitialPracticeLoad = false
     struct TimelineItem: Identifiable {
         let id: String
         let gameID: String
@@ -189,13 +191,11 @@ struct PracticeScreen: View {
             store.setSelectedGroup(id: first.id)
         }
 
-        if selectedMechanicSkill.isEmpty {
-            selectedMechanicSkill = store.allTrackedMechanicsSkills().first ?? ""
-        }
     }
-    func goToGame(_ gameID: String) {
+    func goToGame(_ gameID: String, zoomSourceID: String? = nil) {
         guard !gameID.isEmpty else { return }
         let canonical = store.canonicalPracticeGameID(gameID)
+        gameTransitionSourceID = zoomSourceID
         selectedGameID = canonical
         markPracticeGameViewed(canonical)
         let target = PracticeNavRoute.game(canonical)
@@ -203,11 +203,11 @@ struct PracticeScreen: View {
             gameNavigationPath.append(target)
         }
     }
-    func resumeToPracticeGame() {
+    func resumeToPracticeGame(zoomSourceID: String? = nil) {
         if let game = resumeGame {
-            goToGame(game.canonicalPracticeKey)
+            goToGame(game.canonicalPracticeKey, zoomSourceID: zoomSourceID)
         } else if let fallback = defaultPracticeGame {
-            goToGame(fallback.canonicalPracticeKey)
+            goToGame(fallback.canonicalPracticeKey, zoomSourceID: zoomSourceID)
         }
     }
     func openQuickEntry(_ sheet: QuickEntrySheet) {

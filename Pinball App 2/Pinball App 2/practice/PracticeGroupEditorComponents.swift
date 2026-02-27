@@ -327,28 +327,29 @@ struct GroupEditorScreen: View {
                     HStack(spacing: 8) {
                         ForEach(selectedGames) { game in
                             SelectedGameMiniCard(game: game)
-                                .onDrag {
-                                    draggingGameID = game.id
-                                    return NSItemProvider(object: game.id as NSString)
-                                }
-                                .onDrop(
-                                    of: [UTType.text],
-                                    delegate: SelectedGameReorderDropDelegate(
-                                        targetGameID: game.id,
-                                        selectedGameIDs: $selectedGameIDs,
-                                        draggingGameID: $draggingGameID
-                                    )
+                            .onDrag {
+                                let canonicalID = game.canonicalPracticeKey
+                                draggingGameID = canonicalID
+                                return NSItemProvider(object: canonicalID as NSString)
+                            }
+                            .onDrop(
+                                of: [UTType.text, UTType.plainText],
+                                delegate: SelectedGameReorderDropDelegate(
+                                    targetGameID: game.canonicalPracticeKey,
+                                    selectedGameIDs: $selectedGameIDs,
+                                    draggingGameID: $draggingGameID
                                 )
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        pendingDeleteGameID = game.id
-                                    } label: {
-                                        Label("Delete Title", systemImage: "trash")
-                                    }
+                            )
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    pendingDeleteGameID = game.canonicalPracticeKey
+                                } label: {
+                                    Label("Delete Title", systemImage: "trash")
                                 }
+                            }
                         }
                     }
-                    .onDrop(of: [UTType.text], delegate: SelectedGameReorderContainerDropDelegate(draggingGameID: $draggingGameID))
+                    .onDrop(of: [UTType.text, UTType.plainText], delegate: SelectedGameReorderContainerDropDelegate(draggingGameID: $draggingGameID))
                 }
 
                 Text("Long-press a title card to reorder or delete.")
@@ -457,6 +458,39 @@ struct GroupEditorScreen: View {
                     )
             }
             .buttonStyle(.plain)
+            .popover(
+                isPresented: Binding(
+                    get: { inlineDateEditorField == field },
+                    set: { isPresented in
+                        if !isPresented { inlineDateEditorField = nil }
+                    }
+                ),
+                attachmentAnchor: .rect(.bounds),
+                arrowEdge: .top
+            ) {
+                VStack(alignment: .leading, spacing: 8) {
+                    DatePicker(title, selection: date, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+
+                    HStack {
+                        Button("Clear", role: .destructive) {
+                            hasDate.wrappedValue = false
+                            inlineDateEditorField = nil
+                        }
+                        .buttonStyle(.glass)
+
+                        Spacer()
+
+                        Button("Done") {
+                            inlineDateEditorField = nil
+                        }
+                        .buttonStyle(.glass)
+                    }
+                }
+                .padding(12)
+                .frame(minWidth: 320)
+                .presentationCompactAdaptation(.popover)
+            }
             if hasDate.wrappedValue {
                 Button {
                     hasDate.wrappedValue = false
@@ -471,38 +505,6 @@ struct GroupEditorScreen: View {
             Toggle("", isOn: hasDate)
                 .labelsHidden()
                 .toggleStyle(.switch)
-        }
-        .popover(
-            isPresented: Binding(
-                get: { inlineDateEditorField == field },
-                set: { isPresented in
-                    if !isPresented { inlineDateEditorField = nil }
-                }
-            ),
-            attachmentAnchor: .rect(.bounds)
-        ) {
-            VStack(alignment: .leading, spacing: 8) {
-                DatePicker(title, selection: date, displayedComponents: .date)
-                    .datePickerStyle(.graphical)
-
-                HStack {
-                    Button("Clear", role: .destructive) {
-                        hasDate.wrappedValue = false
-                        inlineDateEditorField = nil
-                    }
-                    .buttonStyle(.glass)
-
-                    Spacer()
-
-                    Button("Done") {
-                        inlineDateEditorField = nil
-                    }
-                    .buttonStyle(.glass)
-                }
-            }
-            .padding(12)
-            .frame(minWidth: 320)
-            .presentationCompactAdaptation(.popover)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
@@ -917,7 +919,7 @@ struct SelectedGameReorderDropDelegate: DropDelegate {
         }
         if fromIndex == toIndex { return }
 
-        withAnimation(.easeInOut(duration: 0.35)) {
+        withAnimation(.easeInOut(duration: 0.2)) {
             selectedGameIDs.move(
                 fromOffsets: IndexSet(integer: fromIndex),
                 toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex

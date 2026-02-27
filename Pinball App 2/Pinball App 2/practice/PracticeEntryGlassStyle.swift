@@ -31,5 +31,6 @@ extension View {
         presentationDetents(detents)
             .presentationDragIndicator(.visible)
             .presentationBackground(.clear)
+            .dismissKeyboardOnTap()
     }
 }

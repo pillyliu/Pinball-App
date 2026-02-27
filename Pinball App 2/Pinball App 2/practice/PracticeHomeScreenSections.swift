@@ -11,9 +11,9 @@ struct PracticeHomeCardSection: View {
     let selectedGroupID: UUID?
     let groupGames: (CustomGameGroup) -> [PinballGame]
     let gameTransition: Namespace.ID
-    let onResume: () -> Void
+    let onResume: (String) -> Void
     let onSelectLibrarySource: (String) -> Void
-    let onPickGame: (String) -> Void
+    let onPickGame: (String, String?) -> Void
     let onQuickEntry: (QuickEntrySheet) -> Void
     @State private var resumeControlColumnHeight: CGFloat = 0
 
@@ -23,11 +23,14 @@ struct PracticeHomeCardSection: View {
             VStack(alignment: .leading, spacing: 8) {
                 if let game = resumeGame {
                     HStack(spacing: 8) {
-                        Button(action: onResume) {
+                        Button {
+                            onResume(resumeTransitionSourceID(for: game.canonicalPracticeKey))
+                        } label: {
                             ResumeSelectedGameCard(
                                 game: game,
                                 targetHeight: resumeControlColumnHeight > 0 ? resumeControlColumnHeight : nil
                             )
+                            .matchedTransitionSource(id: resumeTransitionSourceID(for: game.canonicalPracticeKey), in: gameTransition)
                         }
                         .buttonStyle(.plain)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -53,7 +56,7 @@ struct PracticeHomeCardSection: View {
                             Menu {
                                 ForEach(orderedAllGames) { listGame in
                                     Button(listGame.name) {
-                                        onPickGame(listGame.canonicalPracticeKey)
+                                        onPickGame(listGame.canonicalPracticeKey, nil)
                                     }
                                 }
                             } label: {
@@ -129,10 +132,10 @@ struct PracticeHomeCardSection: View {
                                         HStack(spacing: 8) {
                                             ForEach(games) { game in
                                                 Button {
-                                                    onPickGame(game.canonicalPracticeKey)
+                                                    onPickGame(game.canonicalPracticeKey, groupTransitionSourceID(for: game.canonicalPracticeKey))
                                                 } label: {
                                                     SelectedGameMiniCard(game: game)
-                                                        .matchedTransitionSource(id: game.canonicalPracticeKey, in: gameTransition)
+                                                        .matchedTransitionSource(id: groupTransitionSourceID(for: game.canonicalPracticeKey), in: gameTransition)
                                                 }
                                                 .buttonStyle(.plain)
                                             }
@@ -194,6 +197,14 @@ struct PracticeHomeCardSection: View {
             .appControlStyle()
         }
         .buttonStyle(.plain)
+    }
+
+    private func resumeTransitionSourceID(for gameID: String) -> String {
+        "home-resume-\(gameID)"
+    }
+
+    private func groupTransitionSourceID(for gameID: String) -> String {
+        "home-group-\(gameID)"
     }
 }
 
@@ -291,8 +302,9 @@ struct PracticeWelcomeOverlay: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 overlaySectionRow("Home", detail: "Return to game, quick entry, active groups")
-                overlaySectionRow("Group Dashboard", detail: "View and manage game study groups")
-                overlaySectionRow("Insights", detail: "Score trends, consistency, and head-to-head.")
+                overlaySectionRow("Group Dashboard", detail: "View and edit groups")
+                overlaySectionRow("Insights", detail: "Scores, variance, and trends")
+                overlaySectionRow("Mechanics", detail: "Track pinball skills")
                 overlaySectionRow("Journal Timeline", detail: "Practice and library activity history.")
                 overlaySectionRow("Game View", detail: "Game resources and study log")
             }

@@ -101,6 +101,9 @@ func buildVideoLogDraft(
         if watched == nil && total == nil {
             return VideoLogDraft(kind: .clock, progressPercent: 100, value: "\(source) • 100%")
         }
+        if watched == 0 && total == 0 {
+            return VideoLogDraft(kind: .clock, progressPercent: 100, value: "\(source) • 100%")
+        }
         guard let watched, let total, total > 0, watched <= total else {
             return nil
         }

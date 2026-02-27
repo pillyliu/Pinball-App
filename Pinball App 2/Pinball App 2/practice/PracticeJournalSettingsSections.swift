@@ -29,6 +29,7 @@ struct PracticeJournalSectionView: View {
     let onEditJournalEntry: (JournalEntry) -> Void
     let onDeleteJournalEntries: ([JournalEntry]) -> Void
     @State private var revealedSwipeItemID: String?
+    @State private var suppressNextRowTap = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -102,13 +103,17 @@ struct PracticeJournalSectionView: View {
                         }
                     }
                     .listStyle(.plain)
-                    .listSectionSpacing(4)
+                    .listSectionSpacing(0)
+                    .contentMargins(.top, 0, for: .scrollContent)
+                    .contentMargins(.top, 0, for: .scrollIndicators)
                     .scrollContentBackground(.hidden)
                     .environment(\.defaultMinListRowHeight, 1)
-                    .simultaneousGesture(
+                    .environment(\.defaultMinListHeaderHeight, 1)
+                    .highPriorityGesture(
                         TapGesture().onEnded {
                             if revealedSwipeItemID != nil {
                                 revealedSwipeItemID = nil
+                                suppressNextRowTap = true
                             }
                         }
                     )
@@ -191,8 +196,13 @@ struct PracticeJournalSectionView: View {
         .padding(.vertical, 2)
         .contentShape(Rectangle())
         .onTapGesture {
+            if suppressNextRowTap {
+                suppressNextRowTap = false
+                return
+            }
             if revealedSwipeItemID != nil {
                 revealedSwipeItemID = nil
+                suppressNextRowTap = true
                 return
             }
             if isEditingEntries {
@@ -717,6 +727,9 @@ struct PracticeSettingsSectionView: View {
                     .font(.headline)
 
                 Menu {
+                    Button("Select league player") {
+                        leaguePlayerName = ""
+                    }
                     if leaguePlayerOptions.isEmpty {
                         Text("No player names found")
                     } else {
@@ -729,17 +742,21 @@ struct PracticeSettingsSectionView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Text(leaguePlayerName.isEmpty ? "Select league player" : redactName(leaguePlayerName))
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .lineLimit(1)
                             .truncationMode(.tail)
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.down")
+                        Image(systemName: "chevron.up.chevron.down")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .appControlStyle()
                 }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text("Used when you tap Import LPL CSV.")
                     .font(.caption)

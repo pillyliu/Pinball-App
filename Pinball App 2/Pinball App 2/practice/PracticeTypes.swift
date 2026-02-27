@@ -19,10 +19,10 @@ enum PracticeHubDestination: String, CaseIterable, Identifiable, Hashable {
 
     var subtitle: String {
         switch self {
-        case .groupDashboard: return "Focus set, suggested game, and per-game progress"
+        case .groupDashboard: return "View and edit groups"
         case .journal: return "Full app activity history"
-        case .insights: return "Scores, variance, and trend context"
-        case .mechanics: return "Track transferable pinball skill practice"
+        case .insights: return "Scores, variance, and trends"
+        case .mechanics: return "Track pinball skills"
         }
     }
 
@@ -120,4 +120,3 @@ enum JournalFilter: String, CaseIterable, Identifiable {
         }
     }
 }
-

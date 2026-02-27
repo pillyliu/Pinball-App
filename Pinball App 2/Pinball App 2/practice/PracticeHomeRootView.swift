@@ -13,9 +13,9 @@ struct PracticeHomeRootView: View {
     let selectedGroupID: UUID?
     let groupGames: (CustomGameGroup) -> [PinballGame]
     let gameTransition: Namespace.ID
-    let onResume: () -> Void
+    let onResume: (String) -> Void
     let onSelectLibrarySource: (String) -> Void
-    let onPickGame: (String) -> Void
+    let onPickGame: (String, String?) -> Void
     let onQuickEntry: (QuickEntrySheet) -> Void
 
     let showingNamePrompt: Bool
@@ -88,5 +88,6 @@ struct PracticeHomeRootView: View {
                 .frame(maxWidth: 560)
             }
         }
+        .toolbar(.hidden, for: .navigationBar)
     }
 }

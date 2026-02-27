@@ -18,8 +18,8 @@ extension PracticeScreen {
                 store.groupGames(for: group)
             },
             gameTransition: gameTransition,
-            onResume: {
-                resumeToPracticeGame()
+            onResume: { sourceID in
+                resumeToPracticeGame(zoomSourceID: sourceID)
             },
             onSelectLibrarySource: { sourceID in
                 let normalizedSourceID = (sourceID == "__practice_home_all_games__") ? nil : sourceID
@@ -28,8 +28,8 @@ extension PracticeScreen {
                     selectedGameID = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first?.canonicalPracticeKey ?? ""
                 }
             },
-            onPickGame: { gameID in
-                goToGame(gameID)
+            onPickGame: { gameID, sourceID in
+                goToGame(gameID, zoomSourceID: sourceID)
             },
             onQuickEntry: { sheet in
                 openQuickEntry(sheet)
@@ -59,7 +59,6 @@ extension PracticeScreen {
                 }
             }
         )
-        .toolbar(.hidden, for: .navigationBar)
         .background(
             GeometryReader { geo in
                 Color.clear
@@ -98,7 +97,7 @@ extension PracticeScreen {
                         markPracticeGameViewed(viewedGameID)
                     })
                     .onAppear { selectedGameID = gameID }
-                    .navigationTransition(.zoom(sourceID: gameID, in: gameTransition))
+                    .navigationTransition(.zoom(sourceID: gameTransitionSourceID ?? gameID, in: gameTransition))
                 }
             }
             .navigationDestination(isPresented: $openPracticeSettings) {
@@ -206,6 +205,8 @@ extension PracticeScreen {
                 .practiceEntrySheetStyle()
             }
             .task {
+                guard !hasRunInitialPracticeLoad else { return }
+                hasRunInitialPracticeLoad = true
                 await store.loadIfNeeded()
                 applyDefaultsAfterLoad()
                 await refreshLeaguePlayerOptions()

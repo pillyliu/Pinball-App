@@ -77,7 +77,7 @@ private func practiceJournalSummaryTokens(_ summary: String) -> [PracticeJournal
     if let bullet = parseBulletGameSummary(summary) {
         return [
             .init(text: bullet.prefix, color: .primary),
-            .init(text: "\n• ", color: .screen),
+            .init(text: "\n", color: .primary),
             .init(text: bullet.game, color: .game),
         ]
     }
@@ -148,7 +148,7 @@ private func parseStructuredPracticeSummary(_ summary: String) -> [PracticeJourn
         tokens.append(.init(text: "\n", color: .primary))
         tokens.append(.init(text: noteText, color: .note))
     }
-    tokens.append(.init(text: "\n• ", color: .screen))
+    tokens.append(.init(text: "\n", color: .primary))
     tokens.append(.init(text: game, color: .game))
     return tokens
 }
@@ -162,7 +162,7 @@ private func parseStructuredGameNoteSummary(_ summary: String) -> [PracticeJourn
         .init(text: "Game Note", color: .screen),
         .init(text: ":\n", color: .primary),
         .init(text: note, color: .note),
-        .init(text: "\n• ", color: .screen),
+        .init(text: "\n", color: .primary),
         .init(text: game, color: .game),
     ]
 }
@@ -192,9 +192,21 @@ private func parseStructuredStudySummary(_ summary: String) -> [PracticeJournalS
         .init(text: ":\n", color: .primary)
     ]
     if let progress = valueLine.stripProgressPrefix() {
+        if (header.label == "Tutorial Video" || header.label == "Gameplay Video"),
+           let (source, progressValue) = splitVideoSourceAndProgress(progress) {
+            tokens = [
+                .init(text: "\(header.titleToken) - ", color: .screen),
+                .init(text: source, color: .screen),
+                .init(text: ":\n", color: .primary)
+            ]
+            tokens.append(.init(text: "Progress", color: .screen))
+            tokens.append(.init(text: ": ", color: .primary))
+            tokens.append(.init(text: progressValue, color: .screen))
+        } else {
         tokens.append(.init(text: "Progress", color: .screen))
         tokens.append(.init(text: ": ", color: .primary))
         tokens.append(.init(text: progress, color: .screen))
+        }
     } else if valueLine.caseInsensitiveCompare("Viewed playfield") == .orderedSame {
         tokens.append(.init(text: "Viewed ", color: .primary))
         tokens.append(.init(text: "playfield", color: .screen))
@@ -205,7 +217,7 @@ private func parseStructuredStudySummary(_ summary: String) -> [PracticeJournalS
         tokens.append(.init(text: "\n", color: .primary))
         tokens.append(.init(text: noteText, color: .note))
     }
-    tokens.append(.init(text: "\n• ", color: .screen))
+    tokens.append(.init(text: "\n", color: .primary))
     tokens.append(.init(text: game, color: .game))
     return tokens
 }
@@ -265,6 +277,14 @@ private extension String {
         let out = String(dropFirst("Progress: ".count))
         return out.isEmpty ? nil : out
     }
+}
+
+private func splitVideoSourceAndProgress(_ raw: String) -> (source: String, progress: String)? {
+    guard let divider = raw.range(of: " • ") else { return nil }
+    let source = String(raw[..<divider.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+    let progress = String(raw[divider.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !source.isEmpty, !progress.isEmpty else { return nil }
+    return (source, progress)
 }
 
 private func parsePracticePlayfieldSummary(_ summary: String) -> [PracticeJournalSummaryToken]? {

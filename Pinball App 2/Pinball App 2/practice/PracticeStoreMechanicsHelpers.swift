@@ -33,9 +33,9 @@ extension PracticeStore {
 
     func mechanicsLogs(for skill: String) -> [MechanicsSkillLog] {
         let trimmedSkill = skill.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedSkill.isEmpty else { return [] }
+        guard !trimmedSkill.isEmpty else { return allMechanicsLogs() }
 
-        return state.noteEntries
+        return allMechanicsLogEntries()
             .filter { entry in
                 let detailMatch = detectedMechanicsTags(in: entry.detail ?? "").contains(trimmedSkill)
                 let tagMatch = entry.note.localizedCaseInsensitiveContains("#\(trimmedSkill.replacingOccurrences(of: " ", with: "").lowercased())")
@@ -47,6 +47,25 @@ extension PracticeStore {
                 MechanicsSkillLog(
                     id: entry.id,
                     skill: trimmedSkill,
+                    timestamp: entry.timestamp,
+                    comfort: parseComfortValue(from: entry.note),
+                    gameID: entry.gameID,
+                    note: entry.note
+                )
+            }
+    }
+
+    func allMechanicsLogs() -> [MechanicsSkillLog] {
+        allMechanicsLogEntries()
+            .sorted { $0.timestamp < $1.timestamp }
+            .map { entry in
+                let inferredSkill =
+                    detectedMechanicsTags(in: [entry.detail ?? "", entry.note].joined(separator: " ")).first
+                    ?? entry.detail?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    ?? "Mechanics"
+                return MechanicsSkillLog(
+                    id: entry.id,
+                    skill: inferredSkill,
                     timestamp: entry.timestamp,
                     comfort: parseComfortValue(from: entry.note),
                     gameID: entry.gameID,
@@ -127,6 +146,16 @@ extension PracticeStore {
         case "Over Under": return ["over under", "overunder"]
         case "Tap Pass": return ["tap pass", "tappass"]
         default: return [skill.lowercased()]
+        }
+    }
+
+    private func allMechanicsLogEntries() -> [PracticeNoteEntry] {
+        state.noteEntries.filter { entry in
+            let detailTags = detectedMechanicsTags(in: entry.detail ?? "")
+            let noteTags = detectedMechanicsTags(in: entry.note)
+            let hasMechanicsTag = entry.note.localizedCaseInsensitiveContains("#mechanics")
+            let hasCompetencyMarker = entry.note.localizedCaseInsensitiveContains("competency")
+            return !detailTags.isEmpty || !noteTags.isEmpty || hasMechanicsTag || hasCompetencyMarker
         }
     }
 }

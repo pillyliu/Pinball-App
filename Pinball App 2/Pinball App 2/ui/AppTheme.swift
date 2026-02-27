@@ -122,4 +122,13 @@ extension View {
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .shadow(color: Color.black.opacity(0.35), radius: 10, y: 4)
     }
+
+    func dismissKeyboardOnTap() -> some View {
+        simultaneousGesture(
+            TapGesture().onEnded {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            },
+            including: .gesture
+        )
+    }
 }

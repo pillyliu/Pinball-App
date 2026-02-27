@@ -240,13 +240,13 @@ internal fun PracticeHomeSection(
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
         HomeMiniCard(
             label = "Group Dashboard",
-            subtitle = "Focus set, suggested game, and per-game progress",
+            subtitle = "View and edit groups",
             icon = Icons.Outlined.Dashboard,
             modifier = Modifier.weight(1f),
         ) { onOpenGroupDashboard() }
         HomeMiniCard(
             label = "Journal Timeline",
-            subtitle = "Full app activity history",
+            subtitle = "Practice and library activity history.",
             icon = Icons.Outlined.Timeline,
             modifier = Modifier.weight(1f),
         ) { onOpenJournal() }
@@ -254,13 +254,13 @@ internal fun PracticeHomeSection(
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
         HomeMiniCard(
             label = "Insights",
-            subtitle = "Scores, variance, and trend context",
+            subtitle = "Scores, variance, and trends",
             icon = Icons.Outlined.Insights,
             modifier = Modifier.weight(1f),
         ) { onOpenInsights() }
         HomeMiniCard(
             label = "Mechanics",
-            subtitle = "Track transferable pinball skill practice",
+            subtitle = "Track pinball skills",
             icon = Icons.Outlined.Build,
             modifier = Modifier.weight(1f),
         ) { onOpenMechanics() }

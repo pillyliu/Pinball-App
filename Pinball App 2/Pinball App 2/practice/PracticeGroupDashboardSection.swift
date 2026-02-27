@@ -160,6 +160,24 @@ struct PracticeGroupDashboardSectionView: View {
                             group: group,
                             selectedGroupID: selectedGroupID,
                             revealedGroupID: $revealedGroupID,
+                            isStartDatePopoverPresented: Binding(
+                                get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .start },
+                                set: { isPresented in
+                                    if !isPresented {
+                                        inlineDateEditorGroupID = nil
+                                        inlineDateEditorField = nil
+                                    }
+                                }
+                            ),
+                            isEndDatePopoverPresented: Binding(
+                                get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .end },
+                                set: { isPresented in
+                                    if !isPresented {
+                                        inlineDateEditorGroupID = nil
+                                        inlineDateEditorField = nil
+                                    }
+                                }
+                            ),
                             onSelectGroup: onSelectGroup,
                             onTogglePriority: onTogglePriority,
                             onStartDateTap: {
@@ -176,36 +194,10 @@ struct PracticeGroupDashboardSectionView: View {
                             onDelete: {
                                 onDeleteGroup(group.id)
                             },
-                            formattedDashboardDate: formattedDashboardDate
+                            formattedDashboardDate: formattedDashboardDate,
+                            startDatePopoverContent: { AnyView(popoverCalendar(for: group, field: .start)) },
+                            endDatePopoverContent: { AnyView(popoverCalendar(for: group, field: .end)) }
                         )
-                        .popover(
-                            isPresented: Binding(
-                                get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .start },
-                                set: { isPresented in
-                                    if !isPresented {
-                                        inlineDateEditorGroupID = nil
-                                        inlineDateEditorField = nil
-                                    }
-                                }
-                            ),
-                            attachmentAnchor: .rect(.bounds)
-                        ) {
-                            popoverCalendar(for: group, field: .start)
-                        }
-                        .popover(
-                            isPresented: Binding(
-                                get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .end },
-                                set: { isPresented in
-                                    if !isPresented {
-                                        inlineDateEditorGroupID = nil
-                                        inlineDateEditorField = nil
-                                    }
-                                }
-                            ),
-                            attachmentAnchor: .rect(.bounds)
-                        ) {
-                            popoverCalendar(for: group, field: .end)
-                        }
                     }
                 }
             }
@@ -319,6 +311,8 @@ private struct SwipeableGroupListRow: View {
     let group: CustomGameGroup
     let selectedGroupID: UUID?
     @Binding var revealedGroupID: UUID?
+    let isStartDatePopoverPresented: Binding<Bool>
+    let isEndDatePopoverPresented: Binding<Bool>
     let onSelectGroup: (UUID) -> Void
     let onTogglePriority: (UUID, Bool) -> Void
     let onStartDateTap: () -> Void
@@ -326,6 +320,8 @@ private struct SwipeableGroupListRow: View {
     let onArchiveToggle: () -> Void
     let onDelete: () -> Void
     let formattedDashboardDate: (Date?) -> String
+    let startDatePopoverContent: () -> AnyView
+    let endDatePopoverContent: () -> AnyView
 
     @State private var offsetX: CGFloat = 0
     @State private var dragStartX: CGFloat = 0
@@ -396,17 +392,35 @@ private struct SwipeableGroupListRow: View {
                     Text(formattedDashboardDate(group.startDate))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.plain)
                 .frame(width: 78, alignment: .center)
+                .contentShape(Rectangle())
+                .popover(
+                    isPresented: isStartDatePopoverPresented,
+                    attachmentAnchor: .rect(.bounds),
+                    arrowEdge: .top
+                ) {
+                    startDatePopoverContent()
+                }
 
                 Button(action: onEndDateTap) {
                     Text(formattedDashboardDate(group.endDate))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.plain)
                 .frame(width: 78, alignment: .center)
+                .contentShape(Rectangle())
+                .popover(
+                    isPresented: isEndDatePopoverPresented,
+                    attachmentAnchor: .rect(.bounds),
+                    arrowEdge: .top
+                ) {
+                    endDatePopoverContent()
+                }
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 8)

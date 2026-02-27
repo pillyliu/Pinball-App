@@ -180,6 +180,9 @@ extension PracticeScreen {
             summaryForSkill: { skill in
                 store.mechanicsSummary(for: skill)
             },
+            allLogs: {
+                store.allMechanicsLogs()
+            },
             logsForSkill: { skill in
                 store.mechanicsLogs(for: skill)
             },

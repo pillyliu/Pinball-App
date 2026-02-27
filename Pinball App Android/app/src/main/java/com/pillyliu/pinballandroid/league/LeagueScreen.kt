@@ -55,7 +55,7 @@ import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.data.parseCsv
 import com.pillyliu.pinballandroid.data.redactPlayerNameForDisplay
 import com.pillyliu.pinballandroid.practice.PRACTICE_PREFS
-import com.pillyliu.pinballandroid.practice.parsePracticeStateJson
+import com.pillyliu.pinballandroid.practice.parsePracticeStatePayloadJson
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
 import kotlinx.coroutines.Dispatchers
@@ -924,8 +924,8 @@ private fun loadPreferredLeaguePlayerName(context: Context): String? {
     val raw = prefs.getString(PRACTICE_STATE_KEY, null)
         ?: prefs.getString(LEGACY_PRACTICE_STATE_KEY, null)
         ?: return null
-    val state = parsePracticeStateJson(raw) ?: return null
-    val trimmed = state.leaguePlayerName.trim()
+    val payload = parsePracticeStatePayloadJson(raw) { it } ?: return null
+    val trimmed = payload.runtime.leaguePlayerName.trim()
     return trimmed.takeIf { it.isNotEmpty() }
 }
 
@@ -940,7 +940,11 @@ private fun coerceSeason(raw: String): Int {
 }
 
 private fun normalizeHumanName(raw: String): String {
-    return raw.lowercase(Locale.US).trim().split(Regex("\\s+")).filter { it.isNotBlank() }.joinToString(" ")
+    val normalized = raw
+        .lowercase(Locale.US)
+        .map { ch -> if (ch.isLetterOrDigit() || ch.isWhitespace()) ch else ' ' }
+        .joinToString(separator = "")
+    return normalized.trim().split(Regex("\\s+")).filter { it.isNotBlank() }.joinToString(" ")
 }
 
 private fun normalizeMachineName(raw: String): String {

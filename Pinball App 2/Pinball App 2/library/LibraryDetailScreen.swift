@@ -4,9 +4,6 @@ struct LibraryDetailScreen: View {
     let game: PinballGame
     @StateObject private var viewModel: PinballGameInfoViewModel
     @State private var activeVideoID: String?
-    @State private var pendingVideoOpenURL: URL?
-    @State private var pendingVideoOpenLabel: String = ""
-    @State private var showingVideoOpenPrompt = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.openURL) private var openURL
@@ -40,19 +37,6 @@ struct LibraryDetailScreen: View {
         .appEdgeBackGesture(dismiss: dismiss)
         .task {
             await viewModel.loadIfNeeded()
-        }
-        .alert("Open in YouTube", isPresented: $showingVideoOpenPrompt) {
-            Button("Open in YouTube") {
-                guard let pendingVideoOpenURL else { return }
-                openURL(pendingVideoOpenURL)
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            if pendingVideoOpenLabel.isEmpty {
-                Text("This video will open in the YouTube app or web browser.")
-            } else {
-                Text("\"\(pendingVideoOpenLabel)\" will open in the YouTube app or web browser.")
-            }
         }
     }
 
@@ -238,9 +222,6 @@ struct LibraryDetailScreen: View {
                     ForEach(playableVideos) { video in
                         Button {
                             activeVideoID = video.id
-                            pendingVideoOpenURL = video.youtubeWatchURL
-                            pendingVideoOpenLabel = video.label
-                            showingVideoOpenPrompt = video.youtubeWatchURL != nil
                             LibraryActivityLog.log(
                                 gameID: game.id,
                                 gameName: game.name,
@@ -309,9 +290,8 @@ struct LibraryDetailScreen: View {
                     .foregroundStyle(.secondary)
                 Button("Open in YouTube") {
                     guard let selectedVideo else { return }
-                    pendingVideoOpenURL = selectedVideo.youtubeWatchURL
-                    pendingVideoOpenLabel = selectedVideo.label
-                    showingVideoOpenPrompt = selectedVideo.youtubeWatchURL != nil
+                    guard let youtubeURL = selectedVideo.youtubeWatchURL else { return }
+                    openURL(youtubeURL)
                 }
                 .buttonStyle(.glass)
                 .disabled(selectedVideo?.youtubeWatchURL == nil)
