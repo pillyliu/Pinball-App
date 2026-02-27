@@ -49,3 +49,5 @@ Pinball App Android/fastlane/play-store-service-account.json
 output/
 .playwright-cli/
 tmp_practice_key_crosswalk_*.csv
+
+Pinball_App_Architecture_Blueprint_rendered_mermaid.pdf
