@@ -43,12 +43,13 @@ jobs:
           resolve_sim_id() {
             SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>/dev/null | awk '
               /platform:iOS Simulator/ && $0 !~ /Any iOS Simulator Device/ {
-                if (match($0, /id:[[:space:]]*([^,} ]+)/, m)) {
-                  id=m[1]
-                  if (id !~ /placeholder/) {
-                    print id
-                    exit
-                  }
+                id=$0
+                sub(/^.*id:[ ]*/, "", id)
+                sub(/[,}].*$/, "", id)
+                gsub(/[ ]/, "", id)
+                if (id != "" && id !~ /placeholder/) {
+                  print id
+                  exit
                 }
               }
             ')
@@ -61,8 +62,11 @@ jobs:
               /^-- iOS / { ios=1; next }
               /^-- / { ios=0 }
               ios && /iPhone/ {
-                if (match($0, /\(([0-9A-F-]+)\)/, m)) {
-                  print m[1]
+                id=$0
+                sub(/^.*\(/, "", id)
+                sub(/\).*/, "", id)
+                if (id ~ /-/) {
+                  print id
                   exit
                 }
               }
@@ -93,12 +97,13 @@ jobs:
           resolve_sim_id() {
             SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>/dev/null | awk '
               /platform:iOS Simulator/ && $0 !~ /Any iOS Simulator Device/ {
-                if (match($0, /id:[[:space:]]*([^,} ]+)/, m)) {
-                  id=m[1]
-                  if (id !~ /placeholder/) {
-                    print id
-                    exit
-                  }
+                id=$0
+                sub(/^.*id:[ ]*/, "", id)
+                sub(/[,}].*$/, "", id)
+                gsub(/[ ]/, "", id)
+                if (id != "" && id !~ /placeholder/) {
+                  print id
+                  exit
                 }
               }
             ')
@@ -111,8 +116,11 @@ jobs:
               /^-- iOS / { ios=1; next }
               /^-- / { ios=0 }
               ios && /iPhone/ {
-                if (match($0, /\(([0-9A-F-]+)\)/, m)) {
-                  print m[1]
+                id=$0
+                sub(/^.*\(/, "", id)
+                sub(/\).*/, "", id)
+                if (id ~ /-/) {
+                  print id
                   exit
                 }
               }
