@@ -1,0 +1,68 @@
+{
+  "playerName": "Pat",
+  "comparisonPlayerName": "Sam",
+  "leaguePlayerName": "League Pat",
+  "cloudSyncEnabled": true,
+  "selectedGroupID": "group-legacy",
+  "groups": [
+    {
+      "id": "group-legacy",
+      "name": "League Set",
+      "gameSlugs": ["Gd2Xb"],
+      "type": "custom",
+      "isActive": true,
+      "isArchived": false,
+      "isPriority": true,
+      "startDateMs": 1700000000000
+    }
+  ],
+  "scores": [
+    {
+      "id": "score-1",
+      "gameSlug": "Gd2Xb",
+      "score": 123456,
+      "context": "practice",
+      "timestampMs": 1700000000100,
+      "leagueImported": false
+    }
+  ],
+  "notes": [
+    {
+      "id": "note-1",
+      "gameSlug": "Gd2Xb",
+      "category": "mechanics",
+      "detail": "Left ramp",
+      "note": "Late flip",
+      "timestampMs": 1700000000200
+    }
+  ],
+  "journal": [
+    {
+      "id": "journal-1",
+      "gameSlug": "Gd2Xb",
+      "action": "study",
+      "summary": "Tutorial progress on TMNT: 01:23: clip note",
+      "timestampMs": 1700000000050
+    },
+    {
+      "id": "journal-2",
+      "gameSlug": "Gd2Xb",
+      "action": "score",
+      "summary": "Logged 123,456 on TMNT (Practice)",
+      "timestampMs": 1700000000100
+    },
+    {
+      "id": "journal-3",
+      "gameSlug": "Gd2Xb",
+      "action": "mechanics",
+      "summary": "Mechanics note for TMNT (Left ramp): Late flip",
+      "timestampMs": 1700000000200
+    }
+  ],
+  "rulesheetProgress": {
+    "Gd2Xb": 0.42
+  },
+  "gameSummaryNotes": {
+    "Gd2Xb": "Practice multiball starts"
+  }
+}

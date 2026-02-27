@@ -15,6 +15,14 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 ## Android
 
+### android test_migration
+
+```sh
+[bundle exec] fastlane android test_migration
+```
+
+Run practice migration unit tests
+
 ### android test
 
 ```sh

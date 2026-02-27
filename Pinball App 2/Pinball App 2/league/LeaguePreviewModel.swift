@@ -22,8 +22,6 @@ final class LeaguePreviewModel: ObservableObject {
     private static let standingsPath = "/pinball/data/LPL_Standings.csv"
     private static let statsPath = "/pinball/data/LPL_Stats.csv"
     private static let libraryPath = "/pinball/data/pinball_library_v3.json"
-    private static let practiceStorageKey = "practice-state-json"
-    private static let legacyPracticeStorageKey = "practice-upgrade-state-v1"
 
     func loadIfNeeded() async {
         guard !didLoad else { return }
@@ -450,9 +448,7 @@ final class LeaguePreviewModel: ObservableObject {
     }
 
     private func loadPreferredLeaguePlayerName() -> String? {
-        let defaults = UserDefaults.standard
-        guard let raw = defaults.data(forKey: Self.practiceStorageKey) ?? defaults.data(forKey: Self.legacyPracticeStorageKey),
-              let state = try? JSONDecoder().decode(PracticePersistedState.self, from: raw) else {
+        guard let state = PracticeStore.loadPersistedStateFromDefaults() else {
             return nil
         }
 

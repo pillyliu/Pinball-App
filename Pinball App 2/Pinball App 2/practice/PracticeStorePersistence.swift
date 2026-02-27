@@ -1,16 +1,8 @@
 import Foundation
 
 extension PracticeStore {
-    private static func canonicalPracticeDecoder() -> JSONDecoder {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .millisecondsSince1970
-        return decoder
-    }
-
-    private static func canonicalPracticeEncoder() -> JSONEncoder {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .millisecondsSince1970
-        return encoder
+    static func loadPersistedStateFromDefaults(_ defaults: UserDefaults = .standard) -> PracticePersistedState? {
+        PracticeStateCodec.loadFromDefaults(defaults, storageKey: Self.storageKey, legacyStorageKey: Self.legacyStorageKey)
     }
 
     func loadState() {
@@ -21,26 +13,23 @@ extension PracticeStore {
         }
 
         do {
-            state = try Self.canonicalPracticeDecoder().decode(PracticePersistedState.self, from: raw)
+            let decoded = try PracticeStateCodec.decode(raw)
+            state = decoded.state
             if defaults.data(forKey: Self.storageKey) == nil {
                 defaults.set(raw, forKey: Self.storageKey)
+            } else if decoded.usedFallbackDateDecoding {
+                saveState()
             }
         } catch {
-            do {
-                // Backward compatibility for older iOS builds that used Foundation's default Date Codable encoding.
-                state = try JSONDecoder().decode(PracticePersistedState.self, from: raw)
-                saveState()
-            } catch {
-                lastErrorMessage = "Failed to load saved practice data: \(error.localizedDescription)"
-                state = .empty
-            }
+            lastErrorMessage = "Failed to load saved practice data: \(error.localizedDescription)"
+            state = .empty
         }
     }
 
     func saveState() {
         do {
             state.schemaVersion = PracticePersistedState.currentSchemaVersion
-            let data = try Self.canonicalPracticeEncoder().encode(state)
+            let data = try PracticeStateCodec.canonicalEncoder().encode(state)
             let defaults = UserDefaults.standard
             defaults.set(data, forKey: Self.storageKey)
             defaults.removeObject(forKey: Self.legacyStorageKey)

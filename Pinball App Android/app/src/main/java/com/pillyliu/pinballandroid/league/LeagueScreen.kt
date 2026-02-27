@@ -668,7 +668,7 @@ private fun buildStatsPreview(rows: List<StatsCsvRow>, preferredPlayer: String?)
     if (rows.isEmpty()) return StatsPreviewPayload(emptyList(), "Most Recent Bank", "")
 
     val selectedPlayer = resolvePlayerForStats(rows, preferredPlayer)
-    val selected = rows.filter { normalizeHumanName(it.player) == normalizeHumanName(selectedPlayer) }
+    val selected = rows.filter { matchesPreferredPlayer(it.player, selectedPlayer) }
     if (selected.isEmpty()) return StatsPreviewPayload(emptyList(), "Most Recent Bank", "")
 
     val grouped = selected.groupBy { "${it.season}-${it.bank}" }
@@ -699,8 +699,7 @@ private fun buildStatsPreview(rows: List<StatsCsvRow>, preferredPlayer: String?)
 
 private fun resolvePlayerForStats(rows: List<StatsCsvRow>, preferredPlayer: String?): String {
     if (!preferredPlayer.isNullOrBlank()) {
-        val normalized = normalizeHumanName(preferredPlayer)
-        if (rows.any { normalizeHumanName(it.player) == normalized }) {
+        if (rows.any { matchesPreferredPlayer(it.player, preferredPlayer) }) {
             return preferredPlayer
         }
     }
@@ -743,18 +742,9 @@ private fun buildStandingsPreview(rows: List<StandingCsvRow>, selectedPlayer: St
     val topRows = previewRows.take(5)
 
     if (!selectedPlayer.isNullOrBlank()) {
-        val normalizedSelected = normalizeHumanName(selectedPlayer)
-        val selectedIndex = previewRows.indexOfFirst { normalizeHumanName(it.rawPlayer) == normalizedSelected }
+        val selectedIndex = previewRows.indexOfFirst { matchesPreferredPlayer(it.rawPlayer, selectedPlayer) }
         if (selectedIndex >= 0) {
-            val totalCount = previewRows.size
-            val selectedRank = selectedIndex + 1
-            val startIndex = when {
-                selectedRank <= 3 -> 0
-                selectedRank >= totalCount - 2 -> maxOf(0, totalCount - 5)
-                else -> maxOf(0, selectedIndex - 2)
-            }
-            val endIndex = minOf(totalCount, startIndex + 5)
-            return StandingsPreviewPayload("Season $latestSeason", topRows, previewRows.subList(startIndex, endIndex))
+            return StandingsPreviewPayload("Season $latestSeason", topRows, aroundRowsWindow(previewRows, selectedIndex))
         }
     }
 
@@ -911,8 +901,7 @@ private fun resolveNextBank(statsRows: List<StatsCsvRow>, availableBanks: Set<In
 
 private fun scopedStatsRows(rows: List<StatsCsvRow>, preferredPlayer: String?): List<StatsCsvRow> {
     if (preferredPlayer.isNullOrBlank()) return rows
-    val normalizedPreferred = normalizeHumanName(preferredPlayer)
-    val selectedRows = rows.filter { normalizeHumanName(it.player) == normalizedPreferred }
+    val selectedRows = rows.filter { matchesPreferredPlayer(it.player, preferredPlayer) }
     return if (selectedRows.isEmpty()) rows else selectedRows
 }
 
@@ -945,6 +934,27 @@ private fun normalizeHumanName(raw: String): String {
         .map { ch -> if (ch.isLetterOrDigit() || ch.isWhitespace()) ch else ' ' }
         .joinToString(separator = "")
     return normalized.trim().split(Regex("\\s+")).filter { it.isNotBlank() }.joinToString(" ")
+}
+
+private fun matchesPreferredPlayer(candidate: String, preferred: String): Boolean {
+    return normalizeHumanName(candidate) == normalizeHumanName(preferred)
+}
+
+private fun aroundRowsWindow(
+    rows: List<StandingsPreviewRow>,
+    selectedIndex: Int,
+    windowSize: Int = 5,
+): List<StandingsPreviewRow> {
+    if (rows.isEmpty()) return emptyList()
+    val clampedIndex = selectedIndex.coerceIn(0, rows.lastIndex)
+    val edge = windowSize / 2
+    val start = when {
+        clampedIndex <= edge -> 0
+        clampedIndex >= rows.size - edge - 1 -> maxOf(0, rows.size - windowSize)
+        else -> clampedIndex - edge
+    }
+    val end = minOf(rows.size, start + windowSize)
+    return rows.subList(start, end)
 }
 
 private fun normalizeMachineName(raw: String): String {

@@ -1,7 +1,7 @@
 default_platform(:ios)
 
 platform :ios do
-  before_all do
+  private_lane :ensure_asc_env do
     ensure_env_vars(
       env_vars: %w[
         APP_STORE_CONNECT_KEY_ID
@@ -11,10 +11,29 @@ platform :ios do
     )
   end
 
+  desc "Run practice migration XCTest suite"
+  lane :test do |options|
+    scheme = options[:scheme] || "Pinball App 2"
+    project = options[:project] || "../Pinball App 2.xcodeproj"
+    simulator_id = sh(
+      "xcodebuild -project '#{project}' -scheme '#{scheme}' -showdestinations 2>/dev/null | " \
+      "awk -F '[,}]' '/platform:iOS Simulator/ && $0 !~ /Any iOS Simulator Device/ " \
+      "{for(i=1;i<=NF;i++){if($i ~ /id:/){gsub(/.*id:[ ]*/, \"\", $i);gsub(/ /, \"\", $i); print $i; exit}}}'"
+    ).strip
+    UI.user_error!("No available iOS simulator destination found") if simulator_id.empty?
+    UI.message("Using simulator id: #{simulator_id}")
+    sh(
+      "xcodebuild -project '#{project}' -scheme '#{scheme}' -sdk iphonesimulator " \
+      "-destination 'platform=iOS Simulator,id=#{simulator_id}' " \
+      "-only-testing:'Pinball App 2Tests/PracticeStateCodecTests' test"
+    )
+  end
+
   desc "Build an App Store archive"
   lane :build do |options|
+    test(options)
     build_app(
-      project: options[:project] || "Pinball App 2.xcodeproj",
+      project: options[:project] || "../Pinball App 2.xcodeproj",
       scheme: options[:scheme] || "Pinball App 2",
       clean: true,
       export_method: "app-store"
@@ -23,6 +42,8 @@ platform :ios do
 
   desc "Build and upload to TestFlight"
   lane :beta do |options|
+    ensure_asc_env
+    test(options)
     api_key = app_store_connect_api_key(
       key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
       issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
@@ -32,7 +53,7 @@ platform :ios do
     )
 
     build_app(
-      project: options[:project] || "Pinball App 2.xcodeproj",
+      project: options[:project] || "../Pinball App 2.xcodeproj",
       scheme: options[:scheme] || "Pinball App 2",
       clean: true,
       export_method: "app-store"
@@ -46,6 +67,8 @@ platform :ios do
 
   desc "Build and submit to App Store Connect"
   lane :release do |options|
+    ensure_asc_env
+    test(options)
     api_key = app_store_connect_api_key(
       key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
       issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
@@ -55,7 +78,7 @@ platform :ios do
     )
 
     build_app(
-      project: options[:project] || "Pinball App 2.xcodeproj",
+      project: options[:project] || "../Pinball App 2.xcodeproj",
       scheme: options[:scheme] || "Pinball App 2",
       clean: true,
       export_method: "app-store"

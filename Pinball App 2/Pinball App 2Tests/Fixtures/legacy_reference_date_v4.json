@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 4,
+  "studyEvents": [
+    {
+      "id": "20000000-0000-4000-8000-000000000001",
+      "gameID": "Gd2Xb",
+      "task": "rulesheet",
+      "progressPercent": 40,
+      "timestamp": 788000000.0
+    }
+  ],
+  "videoProgressEntries": [],
+  "scoreEntries": [
+    {
+      "id": "20000000-0000-4000-8000-000000000002",
+      "gameID": "Gd2Xb",
+      "score": 500,
+      "context": "practice",
+      "timestamp": 788000100.0,
+      "leagueImported": false
+    }
+  ],
+  "noteEntries": [],
+  "journalEntries": [
+    {
+      "id": "20000000-0000-4000-8000-000000000003",
+      "gameID": "Gd2Xb",
+      "action": "gameBrowse",
+      "timestamp": 788000120.0
+    }
+  ],
+  "customGroups": [],
+  "leagueSettings": {
+    "playerName": "Legacy L",
+    "csvAutoFillEnabled": false,
+    "lastImportAt": 788000200.0
+  },
+  "syncSettings": {
+    "cloudSyncEnabled": false,
+    "endpoint": "pillyliu.com",
+    "phaseLabel": "Phase 1: On-device"
+  },
+  "analyticsSettings": {
+    "gapMode": "compressInactive",
+    "useMedian": true
+  },
+  "rulesheetResumeOffsets": {
+    "Gd2Xb": 0.4
+  },
+  "videoResumeHints": {},
+  "gameSummaryNotes": {},
+  "practiceSettings": {
+    "playerName": "Legacy P",
+    "comparisonPlayerName": "Legacy C"
+  }
+}

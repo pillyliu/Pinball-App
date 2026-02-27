@@ -233,55 +233,60 @@ private fun TimeNumericField(
     modifier: Modifier = Modifier,
 ) {
     val parsed = remember(value) { parseHhMmSsOrDefault(value) }
+    val baseTextStyle = LocalTextStyle.current.copy(
+        textAlign = TextAlign.Center,
+        fontFamily = FontFamily.Monospace,
+    )
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(label, modifier = Modifier.weight(1f))
-        OutlinedTextField(
-            value = parsed.first.toString().padStart(2, '0'),
-            onValueChange = { input ->
-                onValueChange(updatedTimeValue(value, part = 0, input = input, max = 24))
-            },
+        TimePartField(
+            label = "HH",
+            current = parsed.first,
             modifier = Modifier.weight(1f),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            textStyle = LocalTextStyle.current.copy(
-                textAlign = TextAlign.Center,
-                fontFamily = FontFamily.Monospace,
-            ),
-            label = { Text("HH") },
-        )
-        OutlinedTextField(
-            value = parsed.second.toString().padStart(2, '0'),
-            onValueChange = { input ->
-                onValueChange(updatedTimeValue(value, part = 1, input = input, max = 59))
-            },
+            textStyle = baseTextStyle,
+        ) { input ->
+            onValueChange(updatedTimeValue(value, part = 0, input = input, max = 24))
+        }
+        TimePartField(
+            label = "MM",
+            current = parsed.second,
             modifier = Modifier.weight(1f),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            textStyle = LocalTextStyle.current.copy(
-                textAlign = TextAlign.Center,
-                fontFamily = FontFamily.Monospace,
-            ),
-            label = { Text("MM") },
-        )
-        OutlinedTextField(
-            value = parsed.third.toString().padStart(2, '0'),
-            onValueChange = { input ->
-                onValueChange(updatedTimeValue(value, part = 2, input = input, max = 59))
-            },
+            textStyle = baseTextStyle,
+        ) { input ->
+            onValueChange(updatedTimeValue(value, part = 1, input = input, max = 59))
+        }
+        TimePartField(
+            label = "SS",
+            current = parsed.third,
             modifier = Modifier.weight(1f),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            textStyle = LocalTextStyle.current.copy(
-                textAlign = TextAlign.Center,
-                fontFamily = FontFamily.Monospace,
-            ),
-            label = { Text("SS") },
-        )
+            textStyle = baseTextStyle,
+        ) { input ->
+            onValueChange(updatedTimeValue(value, part = 2, input = input, max = 59))
+        }
     }
+}
+
+@Composable
+private fun TimePartField(
+    label: String,
+    current: Int,
+    modifier: Modifier = Modifier,
+    textStyle: androidx.compose.ui.text.TextStyle,
+    onRawInput: (String) -> Unit,
+) {
+    OutlinedTextField(
+        value = current.toString().padStart(2, '0'),
+        onValueChange = { input -> onRawInput(input.filter(Char::isDigit).take(2)) },
+        modifier = modifier,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        textStyle = textStyle,
+        label = { Text(label) },
+    )
 }
 
 private fun parseHhMmSsOrDefault(raw: String): Triple<Int, Int, Int> {

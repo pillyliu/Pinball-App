@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 4,
+  "studyEvents": [
+    {
+      "id": "10000000-0000-4000-8000-000000000001",
+      "gameID": "Gd2Xb",
+      "task": "rulesheet",
+      "progressPercent": 60,
+      "timestamp": 1700000000123
+    }
+  ],
+  "videoProgressEntries": [
+    {
+      "id": "10000000-0000-4000-8000-000000000006",
+      "gameID": "Gd2Xb",
+      "kind": "percent",
+      "value": "25%",
+      "timestamp": 1700000000200
+    }
+  ],
+  "scoreEntries": [
+    {
+      "id": "10000000-0000-4000-8000-000000000002",
+      "gameID": "Gd2Xb",
+      "score": 1000,
+      "context": "tournament",
+      "tournamentName": "Expo",
+      "timestamp": 1700000001000,
+      "leagueImported": false
+    }
+  ],
+  "noteEntries": [],
+  "journalEntries": [
+    {
+      "id": "10000000-0000-4000-8000-000000000003",
+      "gameID": "Gd2Xb",
+      "action": "scoreLogged",
+      "score": 1000,
+      "scoreContext": "tournament",
+      "tournamentName": "Expo",
+      "timestamp": 1700000001000
+    }
+  ],
+  "customGroups": [
+    {
+      "id": "10000000-0000-4000-8000-000000000004",
+      "name": "League Set",
+      "gameIDs": ["Gd2Xb"],
+      "type": "custom",
+      "isActive": true,
+      "isArchived": false,
+      "isPriority": true,
+      "startDate": 1700000002000,
+      "endDate": null,
+      "createdAt": 1700000000000
+    }
+  ],
+  "leagueSettings": {
+    "playerName": "L",
+    "csvAutoFillEnabled": true,
+    "lastImportAt": 1700000002000
+  },
+  "syncSettings": {
+    "cloudSyncEnabled": true,
+    "endpoint": "pillyliu.com",
+    "phaseLabel": "Phase 2: Optional cloud sync"
+  },
+  "analyticsSettings": {
+    "gapMode": "compressInactive",
+    "useMedian": true
+  },
+  "rulesheetResumeOffsets": {
+    "Gd2Xb": 0.75
+  },
+  "videoResumeHints": {
+    "Gd2Xb": "12:34"
+  },
+  "gameSummaryNotes": {
+    "Gd2Xb": "hello"
+  },
+  "practiceSettings": {
+    "playerName": "P",
+    "comparisonPlayerName": "C",
+    "selectedGroupID": "10000000-0000-4000-8000-000000000005"
+  }
+}

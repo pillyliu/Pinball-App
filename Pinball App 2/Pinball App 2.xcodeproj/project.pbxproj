@@ -6,8 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		92ACDA402F35498B00923E9F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 92ACDA222F35498A00923E9F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 92ACDA292F35498A00923E9F;
+			remoteInfo = "Pinball App 2";
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		92ACDA2A2F35498A00923E9F /* Pinball App 2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Pinball App 2.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		92ACDA3A2F35498B00923E9F /* Pinball App 2Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Pinball App 2Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +27,22 @@
 			path = "Pinball App 2";
 			sourceTree = "<group>";
 		};
+		92ACDA3B2F35498B00923E9F /* Pinball App 2Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Pinball App 2Tests";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		92ACDA272F35498A00923E9F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		92ACDA3C2F35498B00923E9F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				92ACDA2C2F35498A00923E9F /* Pinball App 2 */,
+				92ACDA3B2F35498B00923E9F /* Pinball App 2Tests */,
 				92ACDA2B2F35498A00923E9F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +65,7 @@
 			isa = PBXGroup;
 			children = (
 				92ACDA2A2F35498A00923E9F /* Pinball App 2.app */,
+				92ACDA3A2F35498B00923E9F /* Pinball App 2Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +95,29 @@
 			productReference = 92ACDA2A2F35498A00923E9F /* Pinball App 2.app */;
 			productType = "com.apple.product-type.application";
 		};
+		92ACDA3D2F35498B00923E9F /* Pinball App 2Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 92ACDA442F35498B00923E9F /* Build configuration list for PBXNativeTarget "Pinball App 2Tests" */;
+			buildPhases = (
+				92ACDA3E2F35498B00923E9F /* Sources */,
+				92ACDA3C2F35498B00923E9F /* Frameworks */,
+				92ACDA3F2F35498B00923E9F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				92ACDA412F35498B00923E9F /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				92ACDA3B2F35498B00923E9F /* Pinball App 2Tests */,
+			);
+			name = "Pinball App 2Tests";
+			packageProductDependencies = (
+			);
+			productName = "Pinball App 2Tests";
+			productReference = 92ACDA3A2F35498B00923E9F /* Pinball App 2Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -82,6 +130,10 @@
 				TargetAttributes = {
 					92ACDA292F35498A00923E9F = {
 						CreatedOnToolsVersion = 26.2;
+					};
+					92ACDA3D2F35498B00923E9F = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 92ACDA292F35498A00923E9F;
 					};
 				};
 			};
@@ -100,12 +152,20 @@
 			projectRoot = "";
 			targets = (
 				92ACDA292F35498A00923E9F /* Pinball App 2 */,
+				92ACDA3D2F35498B00923E9F /* Pinball App 2Tests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		92ACDA282F35498A00923E9F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		92ACDA3F2F35498B00923E9F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +182,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		92ACDA3E2F35498B00923E9F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		92ACDA412F35498B00923E9F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 92ACDA292F35498A00923E9F /* Pinball App 2 */;
+			targetProxy = 92ACDA402F35498B00923E9F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		92ACDA332F35498B00923E9F /* Debug */ = {
@@ -269,7 +344,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.8;
+				MARKETING_VERSION = 2.1.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.pillyliu.Pinball-App-2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -305,7 +380,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.8;
+				MARKETING_VERSION = 2.1.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.pillyliu.Pinball-App-2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -315,6 +390,54 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		92ACDA422F35498B00923E9F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6U34DD3Y88;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+					"@loader_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.1.9;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.pillyliu.Pinball-App-2Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pinball App 2.app/Pinball App 2";
+			};
+			name = Debug;
+		};
+		92ACDA432F35498B00923E9F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6U34DD3Y88;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+					"@loader_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.1.9;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.pillyliu.Pinball-App-2Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pinball App 2.app/Pinball App 2";
 			};
 			name = Release;
 		};
@@ -335,6 +458,15 @@
 			buildConfigurations = (
 				92ACDA362F35498B00923E9F /* Debug */,
 				92ACDA372F35498B00923E9F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		92ACDA442F35498B00923E9F /* Build configuration list for PBXNativeTarget "Pinball App 2Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				92ACDA422F35498B00923E9F /* Debug */,
+				92ACDA432F35498B00923E9F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

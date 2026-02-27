@@ -13,6 +13,19 @@ private struct PracticeJournalSummaryToken {
     let color: PracticeJournalSummaryTokenColor
 }
 
+private extension Array where Element == PracticeJournalSummaryToken {
+    mutating func appendGameLine(_ game: String) {
+        append(.init(text: "\n", color: .primary))
+        append(.init(text: game, color: .game))
+    }
+
+    mutating func appendProgressLine(_ progress: String) {
+        append(.init(text: "Progress", color: .screen))
+        append(.init(text: ": ", color: .primary))
+        append(.init(text: progress, color: .screen))
+    }
+}
+
 func styledPracticeJournalSummary(_ summary: String) -> Text {
     let tokens = practiceJournalSummaryTokens(summary)
     return tokens.reduce(Text("")) { partial, token in
@@ -148,8 +161,7 @@ private func parseStructuredPracticeSummary(_ summary: String) -> [PracticeJourn
         tokens.append(.init(text: "\n", color: .primary))
         tokens.append(.init(text: noteText, color: .note))
     }
-    tokens.append(.init(text: "\n", color: .primary))
-    tokens.append(.init(text: game, color: .game))
+    tokens.appendGameLine(game)
     return tokens
 }
 
@@ -199,13 +211,9 @@ private func parseStructuredStudySummary(_ summary: String) -> [PracticeJournalS
                 .init(text: source, color: .screen),
                 .init(text: ":\n", color: .primary)
             ]
-            tokens.append(.init(text: "Progress", color: .screen))
-            tokens.append(.init(text: ": ", color: .primary))
-            tokens.append(.init(text: progressValue, color: .screen))
+            tokens.appendProgressLine(progressValue)
         } else {
-        tokens.append(.init(text: "Progress", color: .screen))
-        tokens.append(.init(text: ": ", color: .primary))
-        tokens.append(.init(text: progress, color: .screen))
+            tokens.appendProgressLine(progress)
         }
     } else if valueLine.caseInsensitiveCompare("Viewed playfield") == .orderedSame {
         tokens.append(.init(text: "Viewed ", color: .primary))
@@ -217,8 +225,7 @@ private func parseStructuredStudySummary(_ summary: String) -> [PracticeJournalS
         tokens.append(.init(text: "\n", color: .primary))
         tokens.append(.init(text: noteText, color: .note))
     }
-    tokens.append(.init(text: "\n", color: .primary))
-    tokens.append(.init(text: game, color: .game))
+    tokens.appendGameLine(game)
     return tokens
 }
 

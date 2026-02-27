@@ -34,6 +34,11 @@ def bump_android_versions!(gradle_file)
 end
 
 platform :android do
+  desc "Run practice migration unit tests"
+  lane :test_migration do
+    gradle(task: "testDebugUnitTest", flags: "--tests com.pillyliu.pinballandroid.practice.PracticeCanonicalPersistenceTest")
+  end
+
   desc "Run unit tests"
   lane :test do
     gradle(task: "test")
@@ -41,11 +46,13 @@ platform :android do
 
   desc "Build release AAB"
   lane :build_release do
+    test_migration
     gradle(task: "clean bundle", build_type: "Release")
   end
 
   desc "Upload release AAB to Google Play internal track"
   lane :internal do
+    test_migration
     bump_android_versions!("../app/build.gradle.kts")
     gradle(task: "clean bundle", build_type: "Release")
     upload_to_play_store(
@@ -57,6 +64,7 @@ platform :android do
 
   desc "Upload release AAB to Google Play closed testing (alpha track)"
   lane :closed do
+    test_migration
     bump_android_versions!("../app/build.gradle.kts")
     gradle(task: "clean bundle", build_type: "Release")
     upload_to_play_store(

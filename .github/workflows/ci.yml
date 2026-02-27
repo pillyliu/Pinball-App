@@ -8,7 +8,7 @@ on:
 
 jobs:
   android-build:
-    name: Android Build
+    name: Android Build + Tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -24,9 +24,11 @@ jobs:
           cache: gradle
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug
+      - name: Run practice migration tests
+        run: ./gradlew :app:testDebugUnitTest --tests com.pillyliu.pinballandroid.practice.PracticeCanonicalPersistenceTest
 
   ios-build:
-    name: iOS Build
+    name: iOS Build + Tests
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -38,9 +40,23 @@ jobs:
       - name: Build iOS app
         run: |
           cd "Pinball App 2"
+          SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>/dev/null | awk -F '[,}]' '/platform:iOS Simulator/ && $0 !~ /Any iOS Simulator Device/ {for(i=1;i<=NF;i++){if($i ~ /id:/){gsub(/.*id:[ ]*/, "", $i);gsub(/ /, "", $i); print $i; exit}}}')
+          echo "Using simulator id: ${SIM_ID}"
           xcodebuild \
             -project "Pinball App 2.xcodeproj" \
             -scheme "Pinball App 2" \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination "platform=iOS Simulator,id=${SIM_ID}" \
             build
+      - name: Run practice migration tests
+        run: |
+          cd "Pinball App 2"
+          SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>/dev/null | awk -F '[,}]' '/platform:iOS Simulator/ && $0 !~ /Any iOS Simulator Device/ {for(i=1;i<=NF;i++){if($i ~ /id:/){gsub(/.*id:[ ]*/, "", $i);gsub(/ /, "", $i); print $i; exit}}}')
+          echo "Using simulator id: ${SIM_ID}"
+          xcodebuild \
+            -project "Pinball App 2.xcodeproj" \
+            -scheme "Pinball App 2" \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=${SIM_ID}" \
+            -only-testing:"Pinball App 2Tests/PracticeStateCodecTests" \
+            test
