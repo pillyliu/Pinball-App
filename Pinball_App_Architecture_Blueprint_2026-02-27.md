@@ -1,226 +1,340 @@
 # Pinball App Architecture Blueprint (2026-02-27)
 
-## 1. Scope and Intent
+## 1. Purpose
 
-This document is an updated architecture and cleanup blueprint for the full app:
-- iOS: `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2`
-- Android: `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid`
+This document is the current architecture reference for the full app and the active cleanup roadmap.
 
-Primary goals:
-- Preserve existing product behavior while reducing residual compatibility complexity from v1/v2/v3 transitions.
-- Identify dead/obsolete pathways that can be removed safely.
-- Define a staged cleanup plan with acceptance criteria.
+Scope:
+- iOS app: `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2`
+- Android app: `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid`
 
----
+Goals:
+- Describe what ships today (modules, data flow, persistence, migration boundaries).
+- Capture cleanup work completed through Phase 2.5.
+- Define the next safe cleanup steps (Phase 3) with verification gates.
 
-## 2. Current System Snapshot
+## 2. Product Architecture Snapshot
 
-### 2.1 High-level structure
+The product has four user-facing domains on both platforms:
+- League: stats, standings, targets, mini-preview cards.
+- Library: game browse/detail, playfield, rulesheet, videos, source links.
+- Practice: quick entry, game workspace, groups, journal, insights, mechanics, settings.
+- About: static league info and links.
 
-Both platforms still follow the same functional pillars:
-- League (`Stats`, `Standings`, `Targets`)
-- Library (browse/detail/rulesheet/playfield/video)
-- Practice (quick entry, per-game workspace, groups, journal, insights, mechanics, settings)
+Top-level design:
+- Read-only remote data source (`https://pillyliu.com/pinball/...`) for league/library content.
+- Offline-first cache + starter-pack seed on both platforms.
+- Local-first user state for Practice and activity logs.
+- No backend write API from app clients.
 
-### 2.2 Shared data model direction
+## 3. Repository and Runtime Boundaries
 
-- Canonical data source for content remains `https://pillyliu.com/pinball/...`.
-- Both clients use local cache + starter-pack bootstrap.
-- Practice has moved toward canonical keying and schema-based persistence, but compatibility bridges remain active.
+Repository layout:
+- iOS: `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2`
+- Android: `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android`
+- Architecture docs:
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball_App_Architecture_Blueprint.md`
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball_App_Architecture_Blueprint_2026-02-27.md`
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball_App_Architecture_Blueprint_print_layout.pdf`
 
----
+Runtime data boundaries:
+- Remote static content: CSV/JSON/Markdown/assets.
+- Local cache files: `pinball-data-cache` managed by platform cache layers.
+- Local user persistence: UserDefaults (iOS) and SharedPreferences (Android).
 
-## 3. Audit Findings (Cross-Platform)
+## 4. C4 Views
 
-### 3.1 Legacy state compatibility is still active (expected, but now concentrated)
+### 4.1 Context (C1)
 
-#### iOS
-- Active storage key: `practice-state-json`
-  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeStore.swift`
-- Legacy fallback key still read/cleaned: `practice-upgrade-state-v1`
-  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeStorePersistence.swift`
-- Key canonicalization migration still runs on load:
-  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeIdentityKeying.swift`
-- League preview still contains direct fallback key awareness:
-  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/league/LeaguePreviewModel.swift`
+```mermaid
+flowchart LR
+    U["League Player"] --> IOS["Pinball App iOS"]
+    U --> AND["Pinball App Android"]
 
-#### Android
-- Preference container still named v2:
-  - `PRACTICE_PREFS = "practice-upgrade-state-v2"`
-  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeKeys.kt`
-- Active state key: `practice-state-json`
-  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeStore.kt`
-- Legacy parsing path still available through canonical adapter:
-  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeCanonicalPersistence.kt`
-- Practice load includes runtime + canonical migration passes:
-  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeStore.kt`
+    IOS --> REMOTE["pillyliu.com static data"]
+    AND --> REMOTE
 
-### 3.2 Practice persistence architecture differs by platform
+    IOS --> YT["YouTube / external links"]
+    AND --> YT
 
-- iOS stores one evolving `PracticePersistedState` with schema versioning.
-- Android stores canonical and also reconstructs a runtime shape for UI compatibility.
+    IOS --> IOSLOCAL["UserDefaults + file cache"]
+    AND --> ANDLOCAL["SharedPreferences + file cache"]
+```
 
-Risk:
-- Behavior drift when one platform adjusts migration logic and the other does not.
+### 4.2 Containers (C2)
 
-### 3.3 League mini-preview player targeting had coupling to persistence format
+```mermaid
+flowchart TB
+    subgraph iOS
+      IUI["SwiftUI Screens"]
+      ISTORE["Observable stores/models"]
+      ICACHE["PinballDataCache actor"]
+      ILOCAL["UserDefaults/AppStorage"]
+    end
 
-- League previews read Practice-selected player out of persisted state directly.
-- This was recently fixed on Android to parse canonical payload first.
+    subgraph Android
+      AUI["Jetpack Compose Screens"]
+      ASTORE["State stores/helpers"]
+      ACACHE["PinballDataCache"]
+      ALOCAL["SharedPreferences"]
+    end
 
-Risk:
-- Any future persistence format change can break league mini previews unless this read path is centralized.
+    REMOTE["Static CSV/JSON/MD endpoints"]
 
-### 3.4 Cache layer is largely aligned, but marker naming preserves legacy context
+    IUI --> ISTORE --> ICACHE --> REMOTE
+    ISTORE --> ILOCAL
 
-Both platforms include marker constants like:
+    AUI --> ASTORE --> ACACHE --> REMOTE
+    ASTORE --> ALOCAL
+```
+
+### 4.3 Components (C3) by feature
+
+League:
+- iOS: `LeaguePreviewModel.swift`, `StatsScreen.swift`, `StandingsScreen.swift`, `TargetsScreen.swift`
+- Android: `LeagueScreen.kt`, `StatsScreen.kt`, `StandingsScreen.kt`, `TargetsScreen.kt`
+
+Library:
+- iOS: `LibraryScreen.swift`, `LibraryDetailScreen.swift`, `LibraryDomain.swift`
+- Android: `LibraryScreen.kt`, `LibraryDetailScreen.kt`, `LibraryDomain.kt`, `LibraryActivityLog.kt`
+
+Practice core:
+- iOS:
+  - state: `PracticeStore.swift`, `PracticeModels.swift`
+  - persistence/migration: `PracticeStorePersistence.swift`, `PracticeStateCodec.swift`, `PracticeIdentityKeying.swift`
+  - UI: `PracticeScreen.swift`, `PracticeQuickEntrySheet.swift`, `PracticeMechanicsSection.swift`
+- Android:
+  - state: `PracticeStore.kt`, `PracticeModels.kt`
+  - canonical persistence: `PracticeCanonicalPersistence.kt`
+  - persistence helpers: `PracticeStorePreferenceHelpers.kt`, `PracticeStorePersistence.kt`, `PracticeKeys.kt`
+  - UI: `PracticeScreen.kt`, `PracticeGameSection.kt`, `PracticeGroup*`, `PracticeJournal*`
+
+## 5. Feature Inventory (Current Behavior)
+
+### 5.1 League
+
+Key behaviors:
+- Stats, standings, targets load from latest CSVs with cache fallback.
+- League preview cards on home use selected player from Practice settings when available.
+- Standings mini-card supports both `Top 5` and `Around You` window logic.
+- Around-you centering behavior handles first/last ranks with edge clamping.
+
+Current sources:
+- `/pinball/data/LPL_Stats.csv`
+- `/pinball/data/LPL_Standings.csv`
+- `/pinball/data/LPL_Targets.csv`
+- `/pinball/data/pinball_library_v3.json`
+- `/pinball/data/redacted_players.csv`
+
+### 5.2 Library
+
+Key behaviors:
+- List supports search/sort/filter.
+- Detail supports rulesheet/playfield/video consumption.
+- Viewing activity contributes to journal timeline context.
+- Library still supports compatibility fields in content payloads (`*_local_legacy`) when present.
+
+### 5.3 Practice
+
+Key behaviors:
+- Quick Entry supports score, study, practice, mechanics, and video progress flows.
+- Game Workspace has subviews (`Summary`, `Input`, `Log`) and resource shortcuts.
+- Group dashboard/editor supports templates, date windows, ordering, and game management.
+- Journal timeline merges practice entries and library activity.
+- Insights uses local score data + imported league context.
+- Mechanics supports skill log, competency tracking, history, and trend visualizations.
+
+## 6. Practice Persistence and Migration Model
+
+### 6.1 iOS (schema-evolved single model)
+
+Primary files:
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeStore.swift`
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeStorePersistence.swift`
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeStateCodec.swift`
+
+Current keys:
+- active: `practice-state-json`
+- compatibility read: `practice-upgrade-state-v1`
+
+Codec behavior:
+- Canonical date strategy: milliseconds since 1970.
+- Fallback decoder still exists for legacy Foundation `Date` encoding compatibility.
+- `PracticeStateCodec.decode(_:)` now centralizes fallback handling.
+
+### 6.2 Android (canonical shadow + runtime projection)
+
+Primary files:
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeStore.kt`
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeCanonicalPersistence.kt`
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeStorePreferenceHelpers.kt`
+
+Current keys:
+- preference namespace: `practice-upgrade-state-v2`
+- active state key: `practice-state-json`
+- compatibility read key: `practice-upgrade-state-v1`
+
+Model behavior:
+- Canonical schema (`CANONICAL_PRACTICE_SCHEMA_VERSION = 4`) is persisted.
+- Runtime shape is derived for existing UI callsites.
+- Save path projects runtime deltas back into canonical shadow state.
+
+### 6.3 Cross-platform migration test gates
+
+Automated migration tests in repo:
+- iOS: `Pinball App 2Tests/PracticeStateCodecTests.swift`
+- Android: `PracticeCanonicalPersistenceTest.kt`
+
+Release/CI gating has been wired so migration regressions fail before release packaging.
+
+## 7. Data and Cache Architecture
+
+Primary cached remote paths:
+- `/pinball/data/pinball_library_v3.json`
+- `/pinball/data/LPL_Targets.csv`
+- `/pinball/data/LPL_Stats.csv`
+- `/pinball/data/LPL_Standings.csv`
+- `/pinball/data/redacted_players.csv`
+- `/pinball/cache-manifest.json`
+- `/pinball/cache-update-log.json`
+
+Cache strategy:
+- Read cache first when available.
+- Revalidate in background or on force refresh.
+- Seed from starter bundle/assets to improve first launch behavior.
+
+Legacy cache markers kept intentionally:
 - `starter-pack-seeded-v3-only`
 - `legacy-cache-reset-v3-assets-v1`
 
-These are not immediately problematic; they are historical markers and can remain unless cache reset strategy is redesigned.
+These are historical markers and not immediate cleanup targets.
 
-### 3.5 Toolchain/Build warnings (Android)
+## 8. Screen-Level Interaction Flow
 
-Current Android build remains stable but uses AGP compatibility flags that emit deprecation warnings. Attempting to remove them currently breaks plugin initialization in this project configuration.
+### 8.1 Practice quick-entry to persistence
 
-Conclusion:
-- Do not mass-remove these flags during product cleanup.
-- Plan a dedicated AGP/Kotlin DSL migration project.
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant Q as Quick Entry UI
+    participant S as Practice Store
+    participant P as Local Persistence
 
----
+    U->>Q: Fill fields + Save
+    Q->>S: Validate and map to domain entry
+    S->>S: Mutate in-memory state
+    S->>P: Serialize and persist
+    P-->>S: success/failure
+    S-->>Q: Updated state or error message
+```
 
-## 4. Dead Code and Removal Candidates
+### 8.2 League preview selected-player resolution
 
-### 4.1 Safe-to-evaluate candidates (Phase 2+)
+```mermaid
+flowchart LR
+    LP["League preview load"] --> PREF["Read preferred player from Practice persistence helper"]
+    PREF --> STAND["Compute top 5 and around-you standings"]
+    PREF --> STATS["Resolve most recent bank rows for selected player"]
+    STAND --> UI["Render preview cards"]
+    STATS --> UI
+```
 
-1. Legacy practice key fallback reads (`practice-upgrade-state-v1`) on both platforms.
-2. Legacy summary/action conversion paths used only for backward compatibility in Android canonical adapter.
-3. Legacy preference key migration functions once migration window is formally closed.
-4. Legacy library asset fallbacks (`*_local_legacy`) after verifying v3 coverage for all shipped entries.
+## 9. Cleanup Status Through Phase 2.5
 
-### 4.2 Not safe to remove yet
+Completed cleanup highlights:
+- iOS league preview now uses shared practice persistence helper for player name lookup.
+- iOS practice codec fallback decode logic is centralized (single helper path).
+- Android call sites now use shared practice preference helpers instead of ad hoc key access.
+- Android canonical migration conversion was deduped (`stableIdMap` and journal mapping simplification).
+- Fixture-based migration tests exist on both platforms and are part of release/CI lanes.
+- Temporary artifacts (`tmp_practice_key_crosswalk_*`) were removed and ignored.
 
-1. Android AGP compatibility flags in `gradle.properties` (build can fail if removed now).
-2. Runtime/canonical dual representation on Android without first finishing UI/state adapter consolidation.
-3. Cache legacy markers without proving cache upgrade behavior across cold installs and upgrades.
+Recent commit anchor:
+- `5cdba2a` (`refactor practice codec and migration helpers (phase 2.5)`).
 
----
+## 10. Phase 3 Cleanup Plan (Next)
 
-## 5. Cleanup Plan (Thorough, Staged)
+Objective:
+- Retire legacy compatibility branches once upgrade horizon is formally closed.
 
-## Phase 0: Baseline Lock (done/in progress)
-- Ensure both platforms build cleanly.
-- Stabilize critical flows affected by recent UI churn.
-- Capture current behavior baselines for:
-  - Quick entry (all modes)
-  - Practice game input/log
-  - Journal edit/delete/reveal interactions
-  - League mini previews
+### 10.1 Planned removals (gated)
 
-## Phase 1: Readability and Local Refactors (no behavior changes)
-- Extract repeated UI/data formatting helpers.
-- Remove duplicated token-building logic where practical.
-- Normalize naming for shared concepts (`selectedPlayer`, `leaguePlayerName`, `practiceKey`).
+iOS candidates:
+- Remove `practice-upgrade-state-v1` fallback reads.
+- Remove fallback date-decoding branch in `PracticeStateCodec`.
+- Remove legacy alias key-matching branches in `PracticeIdentityKeying`.
 
-Acceptance criteria:
-- No behavior changes in manual smoke tests.
-- iOS + Android builds green.
+Android candidates:
+- Remove fallback read of `practice-upgrade-state-v1`.
+- Remove legacy runtime parser bridge path in canonical adapter.
+- Remove canonical-to-legacy journal summary/action shims used only for compatibility.
+- Remove legacy alias key-matching branches.
 
-## Phase 2: Persistence Boundary Consolidation
-- iOS: centralize all legacy key fallbacks to one persistence adapter.
-- Android: formalize canonical as single source of truth; isolate runtime projection layer.
-- Add explicit migration-complete gates (version or one-time marker) to disable old branches safely.
+Shared candidate:
+- Remove `*_local_legacy` content fallback fields once library payload audit confirms complete v3 coverage.
 
-Acceptance criteria:
-- Upgrade tests from v1/v2/v3 fixtures all pass.
-- New writes only use canonical pathway.
+### 10.2 Exit gates before deletion
 
-## Phase 3: Legacy Path Retirement
-- Remove code guarded by migration-complete gates.
-- Remove duplicate legacy summary/action conversion once old payloads are unsupported.
-- Keep one documented compatibility horizon.
+Must pass before any destructive retirement:
+1. iOS migration fixtures green.
+2. Android migration fixtures green.
+3. CI green for both platforms.
+4. Manual smoke flows:
+- quick entry (all modes)
+- game workspace input/log
+- journal swipe/edit/delete
+- group dashboard/editor
+- league mini previews (selected-player behavior)
 
-Acceptance criteria:
-- No references to retired keys/parsers in runtime code.
-- Cold install + upgrade scenarios validated.
+## 11. Risk Register
 
-## Phase 4: Toolchain Modernization (separate stream)
-- AGP/Kotlin DSL migration.
-- Remove deprecated `gradle.properties` flags safely.
+Current architectural risks:
+- Platform divergence in migration semantics if cleanup is done asymmetrically.
+- Hidden old installs still depending on fallback keys/date decoding.
+- Removal of legacy library fields before content parity verification.
 
-Acceptance criteria:
-- Build works with modern defaults.
-- Deprecation warnings materially reduced.
+Mitigations in place:
+- Fixture-based migration tests on both platforms.
+- Shared helper boundaries for persistence reads.
+- Staged retirement checklist in repo:
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Legacy_Path_Retirement_Checklist_2026-02-27.md`
 
----
+## 12. Verification Matrix (Ongoing)
 
-## 6. Verification Matrix
+Automated baseline:
+- iOS build + migration tests.
+- Android compile + migration tests.
 
-### 6.1 Required automated checks each cleanup PR
-- iOS: `xcodebuild ... build` for primary scheme.
-- Android: `./gradlew :app:compileDebugKotlin`.
-- Targeted unit tests where parsing/migration behavior is changed.
+Recommended routine commands:
+- iOS targeted migration tests:
+  - `xcodebuild -project 'Pinball App 2.xcodeproj' -scheme 'Pinball App 2' -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:'Pinball App 2Tests/PracticeStateCodecTests' test`
+- Android targeted migration tests:
+  - `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest --tests com.pillyliu.pinballandroid.practice.PracticeCanonicalPersistenceTest`
 
-### 6.2 Required manual checks
-- Practice quick entry for score/study/video/practice/mechanics.
-- Practice game view input/log switching and swipe minimize behavior.
-- Journal swipe reveal close/edit/delete behavior.
-- League mini cards:
-  - Stats reflects selected practice player when matched.
-  - Standings alternates `Top 5` and `Around You`.
-  - Around window centered with edge handling.
+Manual UX checks:
+- practice quick entry layout/function
+- game view input/log selector transitions
+- journal row reveal-close priority
+- group edit/reorder and delete affordances
+- time-entry picker behavior by platform
 
----
+## 13. Architecture Decisions (Current)
 
-## 7. Immediate Next Actions
+Accepted decisions:
+- Keep offline-first + static data host architecture.
+- Keep local-first practice persistence per device.
+- Keep migration compatibility active until Phase 3 gates are explicitly satisfied.
+- Keep Android canonical shadow model until runtime projection cleanup can be done safely.
 
-1. Add migration fixture tests for known legacy payloads (iOS + Android).
-2. Introduce a single shared cleanup tracker (file-level checklist) for migration-path retirement.
-3. Start Phase 2 with persistence-boundary consolidation before any broad deletion.
+Deferred decisions:
+- AGP modernization and deprecation warning elimination (separate stream).
+- Cross-device cloud sync (still phase-labeled, not shipped as true sync).
 
----
+## 14. Update Policy for This Blueprint
 
-## 8. Change Log for This Blueprint
+When architecture changes:
+1. Update this markdown file first.
+2. Regenerate print-layout PDF from this source.
+3. Keep `Pinball_App_Architecture_Blueprint.md` aligned with the latest baseline.
+4. Include commit references for major architecture shifts.
 
-- Replaces prior high-level architecture view with cleanup-focused, migration-aware architecture.
-- Adds explicit risk and retirement strategy for v1/v2/v3 residual code.
-- Adds phased execution and validation criteria for safe cleanup across both platforms.
-- 2026-02-27 (Phase 2 progress):
-  - iOS league preview now uses the shared Practice persistence loader instead of direct JSON decode of legacy/current keys.
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeStorePersistence.swift`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/league/LeaguePreviewModel.swift`
-  - iOS persistence decode logic is now centralized in a pure codec with legacy Date-decoding fallback detection.
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeStateCodec.swift`
-  - Android migration tests now use fixture payloads for both legacy and canonical inputs.
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/test/java/com/pillyliu/pinballandroid/practice/PracticeCanonicalPersistenceTest.kt`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/test/resources/practice/legacy_state_v1.json`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/test/resources/practice/canonical_state_v4.json`
-  - Added iOS XCTest target and fixture-based migration tests.
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2Tests/PracticeStateCodecTests.swift`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2Tests/Fixtures/canonical_millis_v4.json`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2Tests/Fixtures/legacy_reference_date_v4.json`
-  - Migration checks are now release-gated in both CI and Fastlane lanes (iOS + Android) before beta/release packaging.
-    - `/Users/pillyliu/Documents/Codex/Pinball App/.github/workflows/ci.yml`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/fastlane/Fastfile`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/fastlane/Fastfile`
-  - Android lint cleanup: fixed a real `SuspiciousIndentation` failure in Targets screen and reran lint to green.
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/targets/TargetsScreen.kt`
-  - Android lint warning count reduced (from 7 to 6 warnings) by replacing one non-KTX SharedPreferences write path.
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeStore.kt`
-  - Repository hygiene: local Playwright scratch artifacts are now ignored by default.
-    - `/Users/pillyliu/Documents/Codex/Pinball App/.gitignore`
-  - Android persistence-boundary consolidation: league/library/practice UI callers now obtain practice prefs via one shared helper instead of direct `PRACTICE_PREFS` access.
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeStorePreferenceHelpers.kt`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/league/LeagueScreen.kt`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/library/LibraryActivityLog.kt`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/library/LibraryScreen.kt`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeScreen.kt`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeQuickEntrySheet.kt`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeGroupGameSelectionScreen.kt`
-  - Android league preferred-player lookup now uses a shared persistence helper (canonical-first, runtime fallback) rather than decoding payload structure inline.
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeStorePreferenceHelpers.kt`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/league/LeagueScreen.kt`
-  - iOS now exposes a shared helper for preferred league player lookup, and league preview consumes that helper.
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeStorePersistence.swift`
-    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/league/LeaguePreviewModel.swift`
-  - iOS audit check: no direct references to `practice-state-json` or `practice-upgrade-state-v1` remain outside `/practice`.
