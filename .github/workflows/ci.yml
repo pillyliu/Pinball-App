@@ -40,63 +40,49 @@ jobs:
       - name: Build iOS app
         run: |
           cd "Pinball App 2"
-          resolve_sim_id() {
-            SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>&1 | grep -E 'platform:iOS Simulator,.*id:[A-Za-z0-9-]+' | grep -v placeholder | head -n1 | sed -E 's/.*id:([A-Za-z0-9-]+).*/\1/' || true)
-            if [ -n "${SIM_ID}" ]; then
-              echo "${SIM_ID}"
-              return 0
-            fi
-
-            SIM_ID=$(xcrun simctl list devices available | grep -m1 -E 'iPhone .*\([0-9A-F-]{8,}\)' | sed -E 's/.*\(([0-9A-F-]+)\).*/\1/' || true)
-            if [ -n "${SIM_ID}" ]; then
-              echo "${SIM_ID}"
+          resolve_destination() {
+            DEST_SPEC=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>&1 | sed -n -E 's/.*platform:iOS Simulator, arch:[^,]+, id:[^,]+, OS:([^,}]+), name:(iPhone[^}]*) }.*/platform=iOS Simulator,name=\2,OS=\1/p' | head -n1 || true)
+            if [ -n "${DEST_SPEC}" ]; then
+              echo "${DEST_SPEC}"
               return 0
             fi
             return 1
           }
-          SIM_ID=$(resolve_sim_id || true)
-          if [ -z "${SIM_ID}" ]; then
-            echo "No available iOS simulator destination found."
+          DESTINATION=$(resolve_destination || true)
+          if [ -z "${DESTINATION}" ]; then
+            echo "No available iOS simulator destination found for this scheme."
             xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations || true
-            xcrun simctl list devices available || true
             exit 1
           fi
-          echo "Using simulator id: ${SIM_ID}"
+          echo "Using simulator destination: ${DESTINATION}"
           xcodebuild \
             -project "Pinball App 2.xcodeproj" \
             -scheme "Pinball App 2" \
             -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,id=${SIM_ID}" \
+            -destination "${DESTINATION}" \
             build
       - name: Run practice migration tests
         run: |
           cd "Pinball App 2"
-          resolve_sim_id() {
-            SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>&1 | grep -E 'platform:iOS Simulator,.*id:[A-Za-z0-9-]+' | grep -v placeholder | head -n1 | sed -E 's/.*id:([A-Za-z0-9-]+).*/\1/' || true)
-            if [ -n "${SIM_ID}" ]; then
-              echo "${SIM_ID}"
-              return 0
-            fi
-
-            SIM_ID=$(xcrun simctl list devices available | grep -m1 -E 'iPhone .*\([0-9A-F-]{8,}\)' | sed -E 's/.*\(([0-9A-F-]+)\).*/\1/' || true)
-            if [ -n "${SIM_ID}" ]; then
-              echo "${SIM_ID}"
+          resolve_destination() {
+            DEST_SPEC=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>&1 | sed -n -E 's/.*platform:iOS Simulator, arch:[^,]+, id:[^,]+, OS:([^,}]+), name:(iPhone[^}]*) }.*/platform=iOS Simulator,name=\2,OS=\1/p' | head -n1 || true)
+            if [ -n "${DEST_SPEC}" ]; then
+              echo "${DEST_SPEC}"
               return 0
             fi
             return 1
           }
-          SIM_ID=$(resolve_sim_id || true)
-          if [ -z "${SIM_ID}" ]; then
-            echo "No available iOS simulator destination found."
+          DESTINATION=$(resolve_destination || true)
+          if [ -z "${DESTINATION}" ]; then
+            echo "No available iOS simulator destination found for this scheme."
             xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations || true
-            xcrun simctl list devices available || true
             exit 1
           fi
-          echo "Using simulator id: ${SIM_ID}"
+          echo "Using simulator destination: ${DESTINATION}"
           xcodebuild \
             -project "Pinball App 2.xcodeproj" \
             -scheme "Pinball App 2" \
             -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,id=${SIM_ID}" \
+            -destination "${DESTINATION}" \
             -only-testing:"Pinball App 2Tests/PracticeStateCodecTests" \
             test
