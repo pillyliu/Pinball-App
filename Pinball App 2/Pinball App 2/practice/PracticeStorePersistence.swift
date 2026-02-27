@@ -7,22 +7,14 @@ extension PracticeStore {
 
     func loadState() {
         let defaults = UserDefaults.standard
-        guard let raw = defaults.data(forKey: Self.storageKey) ?? defaults.data(forKey: Self.legacyStorageKey) else {
+        guard let loaded = Self.loadPersistedStateFromDefaults(defaults) else {
             state = .empty
             return
         }
 
-        do {
-            let decoded = try PracticeStateCodec.decode(raw)
-            state = decoded.state
-            if defaults.data(forKey: Self.storageKey) == nil {
-                defaults.set(raw, forKey: Self.storageKey)
-            } else if decoded.usedFallbackDateDecoding {
-                saveState()
-            }
-        } catch {
-            lastErrorMessage = "Failed to load saved practice data: \(error.localizedDescription)"
-            state = .empty
+        state = loaded
+        if defaults.data(forKey: Self.storageKey) == nil || defaults.data(forKey: Self.legacyStorageKey) != nil {
+            saveState()
         }
     }
 
