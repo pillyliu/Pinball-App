@@ -40,38 +40,40 @@ jobs:
       - name: Build iOS app
         run: |
           cd "Pinball App 2"
-          DEST_JSON=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations -json 2>/dev/null || true)
-          SIM_ID=$(DEST_JSON="${DEST_JSON}" python3 - <<'PY'
-          import json, os
-          raw = (os.environ.get("DEST_JSON") or "").strip()
-          if not raw:
-              raise SystemExit(0)
-          try:
-              data = json.loads(raw)
-          except Exception:
-              raise SystemExit(0)
+          resolve_sim_id() {
+            SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>/dev/null | awk '
+              /platform:iOS Simulator/ && $0 !~ /Any iOS Simulator Device/ {
+                if (match($0, /id:[[:space:]]*([^,} ]+)/, m)) {
+                  id=m[1]
+                  if (id !~ /placeholder/) {
+                    print id
+                    exit
+                  }
+                }
+              }
+            ')
+            if [ -n "${SIM_ID}" ]; then
+              echo "${SIM_ID}"
+              return 0
+            fi
 
-          rows = []
-          if isinstance(data, dict):
-              for key in ("availableDestinations", "destinations"):
-                  value = data.get(key)
-                  if isinstance(value, list):
-                      rows.extend(value)
-          elif isinstance(data, list):
-              rows = data
-
-          for row in rows:
-              platform = (row.get("platform") or "").strip()
-              name = (row.get("name") or "").strip()
-              sim_id = (row.get("id") or "").strip()
-              if platform == "iOS Simulator" and sim_id and "placeholder" not in sim_id and name != "Any iOS Simulator Device":
-                  print(sim_id)
-                  break
-          PY
-          )
-          if [ -z "${SIM_ID}" ]; then
-            SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>/dev/null | awk -F '[,}]' '/platform:iOS Simulator/ && $0 !~ /Any iOS Simulator Device/ {for(i=1;i<=NF;i++){if($i ~ /id:/){gsub(/.*id:[ ]*/, "", $i);gsub(/ /, "", $i); print $i; exit}}}')
-          fi
+            SIM_ID=$(xcrun simctl list devices available | awk '
+              /^-- iOS / { ios=1; next }
+              /^-- / { ios=0 }
+              ios && /iPhone/ {
+                if (match($0, /\(([0-9A-F-]+)\)/, m)) {
+                  print m[1]
+                  exit
+                }
+              }
+            ')
+            if [ -n "${SIM_ID}" ]; then
+              echo "${SIM_ID}"
+              return 0
+            fi
+            return 1
+          }
+          SIM_ID=$(resolve_sim_id || true)
           if [ -z "${SIM_ID}" ]; then
             echo "No available iOS simulator destination found."
             xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations || true
@@ -88,38 +90,40 @@ jobs:
       - name: Run practice migration tests
         run: |
           cd "Pinball App 2"
-          DEST_JSON=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations -json 2>/dev/null || true)
-          SIM_ID=$(DEST_JSON="${DEST_JSON}" python3 - <<'PY'
-          import json, os
-          raw = (os.environ.get("DEST_JSON") or "").strip()
-          if not raw:
-              raise SystemExit(0)
-          try:
-              data = json.loads(raw)
-          except Exception:
-              raise SystemExit(0)
+          resolve_sim_id() {
+            SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>/dev/null | awk '
+              /platform:iOS Simulator/ && $0 !~ /Any iOS Simulator Device/ {
+                if (match($0, /id:[[:space:]]*([^,} ]+)/, m)) {
+                  id=m[1]
+                  if (id !~ /placeholder/) {
+                    print id
+                    exit
+                  }
+                }
+              }
+            ')
+            if [ -n "${SIM_ID}" ]; then
+              echo "${SIM_ID}"
+              return 0
+            fi
 
-          rows = []
-          if isinstance(data, dict):
-              for key in ("availableDestinations", "destinations"):
-                  value = data.get(key)
-                  if isinstance(value, list):
-                      rows.extend(value)
-          elif isinstance(data, list):
-              rows = data
-
-          for row in rows:
-              platform = (row.get("platform") or "").strip()
-              name = (row.get("name") or "").strip()
-              sim_id = (row.get("id") or "").strip()
-              if platform == "iOS Simulator" and sim_id and "placeholder" not in sim_id and name != "Any iOS Simulator Device":
-                  print(sim_id)
-                  break
-          PY
-          )
-          if [ -z "${SIM_ID}" ]; then
-            SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>/dev/null | awk -F '[,}]' '/platform:iOS Simulator/ && $0 !~ /Any iOS Simulator Device/ {for(i=1;i<=NF;i++){if($i ~ /id:/){gsub(/.*id:[ ]*/, "", $i);gsub(/ /, "", $i); print $i; exit}}}')
-          fi
+            SIM_ID=$(xcrun simctl list devices available | awk '
+              /^-- iOS / { ios=1; next }
+              /^-- / { ios=0 }
+              ios && /iPhone/ {
+                if (match($0, /\(([0-9A-F-]+)\)/, m)) {
+                  print m[1]
+                  exit
+                }
+              }
+            ')
+            if [ -n "${SIM_ID}" ]; then
+              echo "${SIM_ID}"
+              return 0
+            fi
+            return 1
+          }
+          SIM_ID=$(resolve_sim_id || true)
           if [ -z "${SIM_ID}" ]; then
             echo "No available iOS simulator destination found."
             xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations || true
