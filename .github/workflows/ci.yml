@@ -41,36 +41,13 @@ jobs:
         run: |
           cd "Pinball App 2"
           resolve_sim_id() {
-            SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>/dev/null | awk '
-              /platform:iOS Simulator/ && $0 !~ /Any iOS Simulator Device/ {
-                id=$0
-                sub(/^.*id:[ ]*/, "", id)
-                sub(/[,}].*$/, "", id)
-                gsub(/[ ]/, "", id)
-                if (id != "" && id !~ /placeholder/) {
-                  print id
-                  exit
-                }
-              }
-            ')
+            SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>&1 | grep -E 'platform:iOS Simulator,.*id:[A-Za-z0-9-]+' | grep -v placeholder | head -n1 | sed -E 's/.*id:([A-Za-z0-9-]+).*/\1/' || true)
             if [ -n "${SIM_ID}" ]; then
               echo "${SIM_ID}"
               return 0
             fi
 
-            SIM_ID=$(xcrun simctl list devices available | awk '
-              /^-- iOS / { ios=1; next }
-              /^-- / { ios=0 }
-              ios && /iPhone/ {
-                id=$0
-                sub(/^.*\(/, "", id)
-                sub(/\).*/, "", id)
-                if (id ~ /-/) {
-                  print id
-                  exit
-                }
-              }
-            ')
+            SIM_ID=$(xcrun simctl list devices available | grep -m1 -E 'iPhone .*\([0-9A-F-]{8,}\)' | sed -E 's/.*\(([0-9A-F-]+)\).*/\1/' || true)
             if [ -n "${SIM_ID}" ]; then
               echo "${SIM_ID}"
               return 0
@@ -95,36 +72,13 @@ jobs:
         run: |
           cd "Pinball App 2"
           resolve_sim_id() {
-            SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>/dev/null | awk '
-              /platform:iOS Simulator/ && $0 !~ /Any iOS Simulator Device/ {
-                id=$0
-                sub(/^.*id:[ ]*/, "", id)
-                sub(/[,}].*$/, "", id)
-                gsub(/[ ]/, "", id)
-                if (id != "" && id !~ /placeholder/) {
-                  print id
-                  exit
-                }
-              }
-            ')
+            SIM_ID=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>&1 | grep -E 'platform:iOS Simulator,.*id:[A-Za-z0-9-]+' | grep -v placeholder | head -n1 | sed -E 's/.*id:([A-Za-z0-9-]+).*/\1/' || true)
             if [ -n "${SIM_ID}" ]; then
               echo "${SIM_ID}"
               return 0
             fi
 
-            SIM_ID=$(xcrun simctl list devices available | awk '
-              /^-- iOS / { ios=1; next }
-              /^-- / { ios=0 }
-              ios && /iPhone/ {
-                id=$0
-                sub(/^.*\(/, "", id)
-                sub(/\).*/, "", id)
-                if (id ~ /-/) {
-                  print id
-                  exit
-                }
-              }
-            ')
+            SIM_ID=$(xcrun simctl list devices available | grep -m1 -E 'iPhone .*\([0-9A-F-]{8,}\)' | sed -E 's/.*\(([0-9A-F-]+)\).*/\1/' || true)
             if [ -n "${SIM_ID}" ]; then
               echo "${SIM_ID}"
               return 0
