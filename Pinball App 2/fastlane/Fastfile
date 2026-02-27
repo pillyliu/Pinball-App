@@ -1,6 +1,48 @@
 default_platform(:ios)
+require "json"
 
 platform :ios do
+  private_lane :resolve_ios_simulator_id do |options|
+    scheme = options[:scheme] || "Pinball App 2"
+    project = options[:project] || "../Pinball App 2.xcodeproj"
+    destinations_json = sh(
+      "xcodebuild -project '#{project}' -scheme '#{scheme}' -showdestinations -json 2>/dev/null || true"
+    ).to_s.strip
+
+    simulator_id = nil
+    unless destinations_json.empty?
+      begin
+        parsed = JSON.parse(destinations_json)
+        rows = if parsed.is_a?(Hash)
+          (parsed["availableDestinations"] || []) + (parsed["destinations"] || [])
+        elsif parsed.is_a?(Array)
+          parsed
+        else
+          []
+        end
+        simulator_id = rows.find do |row|
+          row.is_a?(Hash) &&
+            row["platform"] == "iOS Simulator" &&
+            row["name"] != "Any iOS Simulator Device" &&
+            !(row["id"] || "").include?("placeholder")
+        end&.dig("id")
+      rescue JSON::ParserError
+        simulator_id = nil
+      end
+    end
+
+    if simulator_id.to_s.empty?
+      simulator_id = sh(
+        "xcodebuild -project '#{project}' -scheme '#{scheme}' -showdestinations 2>/dev/null | " \
+        "awk -F '[,}]' '/platform:iOS Simulator/ && $0 !~ /Any iOS Simulator Device/ " \
+        "{for(i=1;i<=NF;i++){if($i ~ /id:/){gsub(/.*id:[ ]*/, \"\", $i);gsub(/ /, \"\", $i); print $i; exit}}}'"
+      ).strip
+    end
+
+    UI.user_error!("No available iOS simulator destination found") if simulator_id.to_s.empty?
+    simulator_id
+  end
+
   private_lane :ensure_asc_env do
     ensure_env_vars(
       env_vars: %w[
@@ -15,12 +57,7 @@ platform :ios do
   lane :test do |options|
     scheme = options[:scheme] || "Pinball App 2"
     project = options[:project] || "../Pinball App 2.xcodeproj"
-    simulator_id = sh(
-      "xcodebuild -project '#{project}' -scheme '#{scheme}' -showdestinations 2>/dev/null | " \
-      "awk -F '[,}]' '/platform:iOS Simulator/ && $0 !~ /Any iOS Simulator Device/ " \
-      "{for(i=1;i<=NF;i++){if($i ~ /id:/){gsub(/.*id:[ ]*/, \"\", $i);gsub(/ /, \"\", $i); print $i; exit}}}'"
-    ).strip
-    UI.user_error!("No available iOS simulator destination found") if simulator_id.empty?
+    simulator_id = resolve_ios_simulator_id(project: project, scheme: scheme)
     UI.message("Using simulator id: #{simulator_id}")
     sh(
       "xcodebuild -project '#{project}' -scheme '#{scheme}' -sdk iphonesimulator " \
