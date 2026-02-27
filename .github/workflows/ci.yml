@@ -40,44 +40,22 @@ jobs:
       - name: Build iOS app
         run: |
           cd "Pinball App 2"
-          resolve_destination() {
-            DEST_SPEC=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>&1 | sed -n -E 's/.*platform:iOS Simulator, arch:[^,]+, id:[^,]+, OS:([^,}]+), name:(iPhone[^}]*) }.*/platform=iOS Simulator,name=\2,OS=\1/p' | head -n1 || true)
-            if [ -n "${DEST_SPEC}" ]; then
-              echo "${DEST_SPEC}"
-              return 0
-            fi
-            return 1
-          }
-          DESTINATION=$(resolve_destination || true)
-          if [ -z "${DESTINATION}" ]; then
-            echo "No available iOS simulator destination found for this scheme."
-            xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations || true
-            exit 1
-          fi
+          DESTINATION="platform=iOS Simulator,name=iPhone 16"
           echo "Using simulator destination: ${DESTINATION}"
           xcodebuild \
             -project "Pinball App 2.xcodeproj" \
             -scheme "Pinball App 2" \
             -sdk iphonesimulator \
             -destination "${DESTINATION}" \
-            build
+            build || {
+              echo "iOS build failed; available destinations:"
+              xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations || true
+              exit 1
+            }
       - name: Run practice migration tests
         run: |
           cd "Pinball App 2"
-          resolve_destination() {
-            DEST_SPEC=$(xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations 2>&1 | sed -n -E 's/.*platform:iOS Simulator, arch:[^,]+, id:[^,]+, OS:([^,}]+), name:(iPhone[^}]*) }.*/platform=iOS Simulator,name=\2,OS=\1/p' | head -n1 || true)
-            if [ -n "${DEST_SPEC}" ]; then
-              echo "${DEST_SPEC}"
-              return 0
-            fi
-            return 1
-          }
-          DESTINATION=$(resolve_destination || true)
-          if [ -z "${DESTINATION}" ]; then
-            echo "No available iOS simulator destination found for this scheme."
-            xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations || true
-            exit 1
-          fi
+          DESTINATION="platform=iOS Simulator,name=iPhone 16"
           echo "Using simulator destination: ${DESTINATION}"
           xcodebuild \
             -project "Pinball App 2.xcodeproj" \
@@ -85,4 +63,8 @@ jobs:
             -sdk iphonesimulator \
             -destination "${DESTINATION}" \
             -only-testing:"Pinball App 2Tests/PracticeStateCodecTests" \
-            test
+            test || {
+              echo "iOS tests failed; available destinations:"
+              xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations || true
+              exit 1
+            }
