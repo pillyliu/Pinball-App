@@ -3,6 +3,27 @@ package com.pillyliu.pinballandroid.practice
 import android.content.SharedPreferences
 import androidx.core.content.edit
 
+internal data class LoadedPracticeStatePayload(
+    val payload: ParsedPracticeStatePayload,
+    val usedLegacyKey: Boolean,
+)
+
+internal fun loadPracticeStatePayload(
+    prefs: SharedPreferences,
+    gameNameForKey: (String) -> String,
+): LoadedPracticeStatePayload? {
+    val current = prefs.getString(PRACTICE_STATE_KEY, null)
+    val raw = when {
+        !current.isNullOrBlank() -> current
+        else -> prefs.getString(LEGACY_PRACTICE_STATE_KEY, null) ?: return null
+    }
+    val payload = parsePracticeStatePayloadJson(raw, gameNameForKey) ?: return null
+    return LoadedPracticeStatePayload(
+        payload = payload,
+        usedLegacyKey = current.isNullOrBlank(),
+    )
+}
+
 internal fun clearPracticeState(prefs: SharedPreferences, stateKey: String) {
     prefs.edit { remove(stateKey) }
 }

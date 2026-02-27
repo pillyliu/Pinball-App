@@ -11,7 +11,6 @@ import com.pillyliu.pinballandroid.library.PinballGame
 import java.util.UUID
 import kotlin.math.abs
 
-private const val PRACTICE_STATE_KEY = "practice-state-json"
 private const val LEAGUE_TARGETS_PATH = "/pinball/data/LPL_Targets.csv"
 
 internal class PracticeStore(private val context: Context) {
@@ -789,10 +788,13 @@ internal class PracticeStore(private val context: Context) {
     }
 
     private fun loadState() {
-        val raw = loadPracticeState(prefs, PRACTICE_STATE_KEY) ?: return
-        val payload = parsePracticeStatePayloadJson(raw, ::gameName) ?: return
+        val loaded = loadPracticeStatePayload(prefs, ::gameName) ?: return
         runCatching {
-            applyPersistedState(payload)
+            applyPersistedState(loaded.payload)
+            if (loaded.usedLegacyKey) {
+                saveState()
+                clearPracticeState(prefs, LEGACY_PRACTICE_STATE_KEY)
+            }
         }
     }
 
