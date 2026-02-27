@@ -382,10 +382,9 @@ internal fun runtimePracticeStateFromCanonicalState(
 }
 
 internal fun canonicalPracticeStateFromLegacyState(legacy: PracticePersistedState): CanonicalPracticePersistedState {
-    val groupIdMap = legacy.groups.associate { it.id to validUuidOrStable("group", it.id) }
-    val scoreIdMap = legacy.scores.associate { it.id to validUuidOrStable("score", it.id) }
-    val noteIdMap = legacy.notes.associate { it.id to validUuidOrStable("note", it.id) }
-    val journalIdMap = legacy.journal.associate { it.id to validUuidOrStable("journal", it.id) }
+    val groupIdMap = stableIdMap(legacy.groups, "group") { it.id }
+    val scoreIdMap = stableIdMap(legacy.scores, "score") { it.id }
+    val noteIdMap = stableIdMap(legacy.notes, "note") { it.id }
 
     val convertedScores = legacy.scores.map { score ->
         val (context, tournamentName) = splitLegacyScoreContext(score.context)
@@ -418,7 +417,7 @@ internal fun canonicalPracticeStateFromLegacyState(legacy: PracticePersistedStat
         val parsed = parseLegacyJournalToCanonical(journal, legacy.scores, legacy.notes)
         workingStudyEvents += parsed.studyEvents
         workingVideoEntries += parsed.videoEntries
-        workingJournal += parsed.journalEntry.copy(id = journalIdMap.getValue(journal.id))
+        workingJournal += parsed.journalEntry
     }
 
     val customGroups = legacy.groups.map { group ->
@@ -473,6 +472,7 @@ private fun parseLegacyJournalToCanonical(
     notes: List<NoteEntry>,
 ): LegacyToCanonicalJournalParse {
     val ts = journal.timestampMs
+    val journalID = validUuidOrStable("journal", journal.id)
     return when (journal.action) {
         "score" -> {
             val scoreMatch = scores
@@ -481,7 +481,7 @@ private fun parseLegacyJournalToCanonical(
             val (context, tournamentName) = splitLegacyScoreContext(scoreMatch?.context ?: "practice")
             LegacyToCanonicalJournalParse(
                 journalEntry = CanonicalJournalEntry(
-                    id = validUuidOrStable("journal", journal.id),
+                    id = journalID,
                     gameID = journal.gameSlug,
                     action = "scoreLogged",
                     task = null,
@@ -505,7 +505,7 @@ private fun parseLegacyJournalToCanonical(
             val category = noteMatch?.category ?: if (journal.action == "mechanics") "mechanics" else "general"
             LegacyToCanonicalJournalParse(
                 journalEntry = CanonicalJournalEntry(
-                    id = validUuidOrStable("journal", journal.id),
+                    id = journalID,
                     gameID = journal.gameSlug,
                     action = "noteAdded",
                     task = null,
@@ -555,7 +555,7 @@ private fun parseLegacyJournalToCanonical(
                 parsed.note
             }
             val journalEntry = CanonicalJournalEntry(
-                id = validUuidOrStable("journal", journal.id),
+                id = journalID,
                 gameID = journal.gameSlug,
                 action = action,
                 task = task,
@@ -599,7 +599,7 @@ private fun parseLegacyJournalToCanonical(
         else -> {
             LegacyToCanonicalJournalParse(
                 journalEntry = CanonicalJournalEntry(
-                    id = validUuidOrStable("journal", journal.id),
+                    id = journalID,
                     gameID = journal.gameSlug,
                     action = "gameBrowse",
                     task = null,
@@ -616,6 +616,13 @@ private fun parseLegacyJournalToCanonical(
                 ),
             )
         }
+    }
+}
+
+private fun <T> stableIdMap(items: List<T>, prefix: String, keyOf: (T) -> String): Map<String, String> {
+    return items.associate { item ->
+        val key = keyOf(item)
+        key to validUuidOrStable(prefix, key)
     }
 }
 

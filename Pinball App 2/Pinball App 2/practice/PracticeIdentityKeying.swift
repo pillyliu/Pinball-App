@@ -101,18 +101,13 @@ extension PracticeStore {
 
     private func migratePracticePreferenceGameIDsToCanonicalIfNeeded() {
         let defaults = UserDefaults.standard
-        var changed = false
         for key in Self.practicePreferenceGameIDKeys {
             let raw = defaults.string(forKey: key) ?? ""
             if raw.isEmpty { continue }
             let canonical = canonicalPracticeGameID(raw)
             if canonical != raw {
                 defaults.set(canonical, forKey: key)
-                changed = true
             }
-        }
-        if changed {
-            defaults.synchronize()
         }
     }
 

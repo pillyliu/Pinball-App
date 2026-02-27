@@ -15,6 +15,11 @@ enum PracticeStateCodec {
         return encoder
     }
 
+    static func fallbackDecoder() -> JSONDecoder {
+        // Legacy compatibility with Foundation's default Date Codable encoding.
+        JSONDecoder()
+    }
+
     static func loadFromDefaults(
         _ defaults: UserDefaults = .standard,
         storageKey: String,
@@ -27,10 +32,14 @@ enum PracticeStateCodec {
     }
 
     static func decode(_ raw: Data) throws -> (state: PracticePersistedState, usedFallbackDateDecoding: Bool) {
+        func decodeWithFallback() throws -> PracticePersistedState {
+            try fallbackDecoder().decode(PracticePersistedState.self, from: raw)
+        }
+
         do {
             let decoded = try canonicalDecoder().decode(PracticePersistedState.self, from: raw)
             if !containsPlausibleRecentTimestamp(decoded) {
-                let legacy = try JSONDecoder().decode(PracticePersistedState.self, from: raw)
+                let legacy = try decodeWithFallback()
                 if containsPlausibleRecentTimestamp(legacy) {
                     return (legacy, true)
                 }
@@ -38,8 +47,7 @@ enum PracticeStateCodec {
             return (decoded, false)
         } catch let canonicalError {
             do {
-                // Backward compatibility for older iOS builds that used Foundation's default Date Codable encoding.
-                return (try JSONDecoder().decode(PracticePersistedState.self, from: raw), true)
+                return (try decodeWithFallback(), true)
             } catch {
                 throw canonicalError
             }
