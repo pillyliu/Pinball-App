@@ -48,3 +48,4 @@ Pinball App Android/fastlane/play-store-service-account.json
 # Local generated artifacts
 output/
 .playwright-cli/
+tmp_practice_key_crosswalk_*.csv
