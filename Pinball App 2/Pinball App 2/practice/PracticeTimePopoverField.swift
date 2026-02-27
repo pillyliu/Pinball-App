@@ -34,8 +34,6 @@ struct PracticeTimePopoverField: View {
             arrowEdge: .top
         ) {
             VStack(alignment: .leading, spacing: 10) {
-                Text(title)
-                    .font(.headline)
                 HStack(spacing: 6) {
                     FiniteWheelNumberPicker(value: $hours, upperBound: 24)
                     Text(":").monospacedDigit().foregroundStyle(.secondary)
@@ -44,8 +42,6 @@ struct PracticeTimePopoverField: View {
                     FiniteWheelNumberPicker(value: $seconds, upperBound: 59)
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
-                Button("Done") { showPopover = false }
-                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .padding(12)
             .frame(minWidth: 280)

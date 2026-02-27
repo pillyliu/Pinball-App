@@ -5,6 +5,7 @@ private let preferredLibrarySourceDefaultsKey = "preferred-library-source-id"
 
 struct PracticeQuickEntrySheet: View {
     let kind: QuickEntrySheet
+    let initialActivity: QuickEntryActivity?
     @ObservedObject var store: PracticeStore
     @Binding var selectedGameID: String
     let onGameSelectionChanged: (QuickEntrySheet, String) -> Void
@@ -30,6 +31,22 @@ struct PracticeQuickEntrySheet: View {
     @State private var noteText: String = ""
     @State private var validationMessage: String?
     @State private var selectedLibraryFilterID: String = ""
+
+    init(
+        kind: QuickEntrySheet,
+        initialActivity: QuickEntryActivity? = nil,
+        store: PracticeStore,
+        selectedGameID: Binding<String>,
+        onGameSelectionChanged: @escaping (QuickEntrySheet, String) -> Void,
+        onEntrySaved: @escaping (String) -> Void
+    ) {
+        self.kind = kind
+        self.initialActivity = initialActivity
+        self.store = store
+        _selectedGameID = selectedGameID
+        self.onGameSelectionChanged = onGameSelectionChanged
+        self.onEntrySaved = onEntrySaved
+    }
 
     private var availableActivities: [QuickEntryActivity] {
         switch kind {
@@ -406,7 +423,8 @@ struct PracticeQuickEntrySheet: View {
                 }
             }
             .onAppear {
-                selectedActivity = kind.defaultActivity
+                let requestedActivity = initialActivity ?? kind.defaultActivity
+                selectedActivity = availableActivities.contains(requestedActivity) ? requestedActivity : kind.defaultActivity
                 if selectedLibraryFilterID.isEmpty {
                     if kind == .mechanics {
                         selectedLibraryFilterID = quickEntryAllGamesLibraryID

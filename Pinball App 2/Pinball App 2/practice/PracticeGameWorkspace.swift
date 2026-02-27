@@ -176,17 +176,7 @@ struct PracticeGameWorkspace: View {
             }
             gameSummaryDraft = store.gameSummaryNote(for: newValue)
         }
-        .sheet(item: $entryTask) { task in
-            GameTaskEntrySheet(
-                task: task,
-                gameID: selectedGameID,
-                store: store,
-                onSaved: { message in
-                    showSaveBanner(message)
-                }
-            )
-            .practiceEntrySheetStyle()
-        }
+        .sheet(item: $entryTask, content: taskEntrySheet)
         .sheet(isPresented: $showingScoreSheet) {
             GameScoreEntrySheet(
                 gameID: selectedGameID,
@@ -747,6 +737,34 @@ struct PracticeGameWorkspace: View {
         }
     }
 
+    private func quickEntryActivity(for task: StudyTaskKind) -> QuickEntryActivity {
+        switch task {
+        case .rulesheet:
+            return .rulesheet
+        case .tutorialVideo:
+            return .tutorialVideo
+        case .gameplayVideo:
+            return .gameplayVideo
+        case .playfield:
+            return .playfield
+        case .practice:
+            return .practice
+        }
+    }
+
+    @ViewBuilder
+    private func taskEntrySheet(for task: StudyTaskKind) -> some View {
+        PracticeQuickEntrySheet(
+            kind: task == .practice ? .practice : .study,
+            initialActivity: quickEntryActivity(for: task),
+            store: store,
+            selectedGameID: $selectedGameID,
+            onGameSelectionChanged: { _, _ in },
+            onEntrySaved: { _ in showSaveBanner("\(task.label) saved") }
+        )
+        .practiceEntrySheetStyle()
+    }
+
     private func showSaveBanner(_ message: String) {
         saveBanner = message
         Task {
@@ -1133,18 +1151,24 @@ struct GameTaskEntrySheet: View {
         }
     }
 
+    @ViewBuilder
     private func styledTextField(
         _ placeholder: String,
         text: Binding<String>,
         axis: Axis = .horizontal,
-        keyboard: UIKeyboardType = .default
+        keyboard: UIKeyboardType = .default,
+        textAlignment: TextAlignment = .leading,
+        monospacedDigits: Bool = false
     ) -> some View {
-        TextField(placeholder, text: text, axis: axis)
+        let field = TextField(placeholder, text: text, axis: axis)
+            .font(.subheadline)
             .keyboardType(keyboard)
             .lineLimit(axis == .vertical ? 2 ... 4 : 1 ... 1)
+            .multilineTextAlignment(textAlignment)
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .appControlStyle()
+        if monospacedDigits { field.monospacedDigit() } else { field }
     }
 
     @ViewBuilder
@@ -1152,12 +1176,14 @@ struct GameTaskEntrySheet: View {
         ZStack(alignment: .topLeading) {
             if text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text(placeholder)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 14)
                     .allowsHitTesting(false)
             }
             TextEditor(text: text)
+                .font(.subheadline)
                 .scrollContentBackground(.hidden)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
@@ -1169,6 +1195,7 @@ struct GameTaskEntrySheet: View {
     private func compactDropdownLabel(text: String) -> some View {
         HStack(spacing: 8) {
             Text(text)
+                .font(.subheadline)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .foregroundStyle(.primary)
@@ -1179,6 +1206,7 @@ struct GameTaskEntrySheet: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
+        .frame(minHeight: 36)
         .frame(maxWidth: .infinity, alignment: .leading)
         .appControlStyle()
     }
@@ -1189,7 +1217,8 @@ struct GameTaskEntrySheet: View {
                 Text(title)
                 Spacer()
                 Text("\(Int(value.wrappedValue.rounded()))%")
-                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
             }
             Slider(value: value, in: 0...100, step: 1)
                 .tint(.white.opacity(0.92))
