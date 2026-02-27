@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -148,7 +149,7 @@ internal fun CurrentGroupsCard(
             visibleGroups.forEach { group ->
                 val actionWidth = 132.dp
                 val actionWidthPx = with(LocalDensity.current) { actionWidth.toPx() }
-                var offsetX by rememberSaveable(group.id) { mutableStateOf(0f) }
+                var offsetX by rememberSaveable(group.id) { mutableFloatStateOf(0f) }
                 val revealProgress = (abs(offsetX) / actionWidthPx).coerceIn(0f, 1f)
                 val dragState = rememberDraggableState { delta ->
                     offsetX = (offsetX + delta).coerceIn(-actionWidthPx, 0f)

@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -62,7 +63,7 @@ internal fun PracticeHomeSection(
 ) {
     val orderedGames = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true)
     var resumeLibraryExpanded by rememberSaveable { mutableStateOf(false) }
-    var resumeControlColumnHeightPx by rememberSaveable { mutableStateOf(0) }
+    var resumeControlColumnHeightPx by rememberSaveable { mutableIntStateOf(0) }
     val density = LocalDensity.current
     CardContainer {
         val resumeSlug = store.resumeSlugFromLibraryOrPractice()

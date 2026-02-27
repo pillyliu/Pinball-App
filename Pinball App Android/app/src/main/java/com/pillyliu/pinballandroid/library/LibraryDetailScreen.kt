@@ -53,7 +53,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -403,8 +405,8 @@ internal fun RulesheetScreen(
     var status by rememberSaveable(slug) { mutableStateOf("loading") }
     var markdown by rememberSaveable(slug) { mutableStateOf("") }
     var chromeVisible by rememberSaveable(slug) { mutableStateOf(false) }
-    var progressRatio by rememberSaveable(slug) { mutableStateOf(0f) }
-    var savedRatio by rememberSaveable(slug) { mutableStateOf(0f) }
+    var progressRatio by rememberSaveable(slug) { mutableFloatStateOf(0f) }
+    var savedRatio by rememberSaveable(slug) { mutableFloatStateOf(0f) }
     var showResumePrompt by rememberSaveable(slug) { mutableStateOf(false) }
     var evaluatedResumePrompt by rememberSaveable(slug) { mutableStateOf(false) }
     var resumeTargetRatio by rememberSaveable(slug) { mutableStateOf<Float?>(null) }
@@ -681,14 +683,14 @@ private fun ZoomablePlayfieldImage(
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val candidates = imageUrls.filter { it.isNotBlank() }.distinct()
-    var activeImageIndex by remember(candidates) { mutableStateOf(0) }
+    var activeImageIndex by remember(candidates) { mutableIntStateOf(0) }
     var imageLoaded by remember(candidates, activeImageIndex) { mutableStateOf(false) }
-    var lastTapAtMs by remember { mutableStateOf(0L) }
+    var lastTapAtMs by remember { mutableLongStateOf(0L) }
     var singleTapJob by remember { mutableStateOf<Job?>(null) }
     var animateTransform by remember { mutableStateOf(false) }
-    var scale by remember { mutableStateOf(1f) }
-    var offsetX by remember { mutableStateOf(0f) }
-    var offsetY by remember { mutableStateOf(0f) }
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
     var containerSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     val touchSlop = LocalViewConfiguration.current.touchSlop
     val displayScale by androidx.compose.animation.core.animateFloatAsState(
@@ -862,7 +864,7 @@ private fun FallbackAsyncImage(
     contentScale: ContentScale,
 ) {
     val candidates = urls.filter { it.isNotBlank() }.distinct()
-    var activeIndex by remember(candidates) { mutableStateOf(0) }
+    var activeIndex by remember(candidates) { mutableIntStateOf(0) }
     val model = rememberCachedImageModel(candidates.getOrNull(activeIndex))
     AsyncImage(
         model = model,
@@ -934,7 +936,7 @@ private fun MarkdownWebView(
     val codeBgHex = MaterialTheme.colorScheme.surfaceContainerLowest.toCssHex()
     val tableBorderHex = MaterialTheme.colorScheme.outlineVariant.toCssHex()
     val webViewState = rememberSaveable(stateKey, saver = bundleParcelSaver) { Bundle() }
-    var savedScrollRatio by rememberSaveable(stateKey) { mutableStateOf(0f) }
+    var savedScrollRatio by rememberSaveable(stateKey) { mutableFloatStateOf(0f) }
     var loadedHash by remember(stateKey) { mutableStateOf<Int?>(null) }
     var lastAppliedResumeRequestId by remember(stateKey) { mutableIntStateOf(-1) }
     AndroidView(

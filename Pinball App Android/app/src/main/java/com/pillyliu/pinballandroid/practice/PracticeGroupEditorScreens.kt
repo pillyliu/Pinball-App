@@ -15,6 +15,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,16 +42,16 @@ internal fun GroupEditorScreen(
     var isPriority by remember(editingGroupID) { mutableStateOf(editing?.isPriority ?: false) }
     var isArchived by remember(editingGroupID) { mutableStateOf(editing?.isArchived ?: false) }
     var groupType by remember(editingGroupID) { mutableStateOf(editing?.type ?: "custom") }
-    var startDateMsValue by remember(editingGroupID) { mutableStateOf(editing?.startDateMs ?: System.currentTimeMillis()) }
-    var endDateMsValue by remember(editingGroupID) { mutableStateOf(editing?.endDateMs ?: System.currentTimeMillis()) }
+    var startDateMsValue by remember(editingGroupID) { mutableLongStateOf(editing?.startDateMs ?: System.currentTimeMillis()) }
+    var endDateMsValue by remember(editingGroupID) { mutableLongStateOf(editing?.endDateMs ?: System.currentTimeMillis()) }
     var hasStartDate by remember(editingGroupID) { mutableStateOf(if (editing == null) true else editing.startDateMs != null) }
     var hasEndDate by remember(editingGroupID) { mutableStateOf(editing?.endDateMs != null) }
-    var createGroupPosition by remember(editingGroupID) { mutableStateOf((store.groups.size + 1).coerceAtLeast(1)) }
+    var createGroupPosition by remember(editingGroupID) { mutableIntStateOf((store.groups.size + 1).coerceAtLeast(1)) }
     val allGamesPool = remember(store.games, store.allLibraryGames) {
         if (store.allLibraryGames.isNotEmpty()) store.allLibraryGames else store.games
     }
     var templateSource by remember(editingGroupID) { mutableStateOf("none") }
-    var selectedTemplateBank by remember(editingGroupID, allGamesPool) { mutableStateOf(allGamesPool.mapNotNull { it.bank }.distinct().sorted().firstOrNull() ?: 1) }
+    var selectedTemplateBank by remember(editingGroupID, allGamesPool) { mutableIntStateOf(allGamesPool.mapNotNull { it.bank }.distinct().sorted().firstOrNull() ?: 1) }
     var selectedDuplicateGroupID by remember(editingGroupID) { mutableStateOf(store.groups.firstOrNull()?.id.orEmpty()) }
     var titleSearchText by remember(editingGroupID) { mutableStateOf("") }
     var showingTitleSelector by remember(editingGroupID) { mutableStateOf(false) }
@@ -58,7 +60,7 @@ internal fun GroupEditorScreen(
     var pendingDeleteSlug by remember(editingGroupID) { mutableStateOf<String?>(null) }
     var openScheduleDateDialog by remember(editingGroupID) { mutableStateOf(false) }
     var scheduleDateDialogField by remember(editingGroupID) { mutableStateOf(GroupEditorDateField.Start) }
-    var scheduleDatePickerInitialMs by remember(editingGroupID) { mutableStateOf(System.currentTimeMillis()) }
+    var scheduleDatePickerInitialMs by remember(editingGroupID) { mutableLongStateOf(System.currentTimeMillis()) }
 
     val availableBanks = remember(allGamesPool) { allGamesPool.mapNotNull { it.bank }.distinct().sorted() }
     val duplicateCandidates = remember(store.groups) { store.groups.sortedBy { it.name.lowercase(Locale.US) } }

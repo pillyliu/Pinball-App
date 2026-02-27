@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -106,16 +107,16 @@ internal fun QuickEntrySheet(
     var scoreText by remember { mutableStateOf("") }
     var scoreContext by remember { mutableStateOf("practice") }
     var tournamentName by remember { mutableStateOf("") }
-    var rulesheetProgress by remember { mutableStateOf(0f) }
+    var rulesheetProgress by remember { mutableFloatStateOf(0f) }
     var videoInputKind by remember { mutableStateOf("clock") }
     var selectedVideoSource by remember { mutableStateOf("") }
     var videoWatchedTime by remember { mutableStateOf("") }
     var videoTotalTime by remember { mutableStateOf("") }
-    var videoPercent by remember { mutableStateOf(100f) }
+    var videoPercent by remember { mutableFloatStateOf(100f) }
     var practiceMinutes by remember { mutableStateOf("") }
     var noteText by remember { mutableStateOf("") }
     var mechanicsSkill by remember { mutableStateOf("Drop Catch") }
-    var mechanicsCompetency by remember { mutableStateOf(3f) }
+    var mechanicsCompetency by remember { mutableFloatStateOf(3f) }
     var validation by remember { mutableStateOf<String?>(null) }
     val libraryFilteredGames = remember(allLibraryGames, selectedLibraryOption) {
         if (selectedLibraryOption == ALL_GAMES_LIBRARY_OPTION) {

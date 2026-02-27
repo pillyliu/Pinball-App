@@ -41,7 +41,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -306,11 +308,11 @@ internal fun JournalRow(
     if (row.journalEntry != null && row.isEditable && !isSelectionMode) {
         val actionWidth = 132.dp
         val actionWidthPx = with(LocalDensity.current) { actionWidth.toPx() }
-        var rowHeightPx by rememberSaveable(row.id) { mutableStateOf(0) }
+        var rowHeightPx by rememberSaveable(row.id) { mutableIntStateOf(0) }
         val rowHeightDp = with(LocalDensity.current) {
             if (rowHeightPx > 0) rowHeightPx.toDp() else 40.dp
         }
-        var offsetX by rememberSaveable(row.id) { mutableStateOf(0f) }
+        var offsetX by rememberSaveable(row.id) { mutableFloatStateOf(0f) }
         val revealProgress = (kotlin.math.abs(offsetX) / actionWidthPx).coerceIn(0f, 1f)
         val dragState = rememberDraggableState { delta ->
             offsetX = (offsetX + delta).coerceIn(-actionWidthPx, 0f)

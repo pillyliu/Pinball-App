@@ -111,7 +111,7 @@ fun TargetsScreen(
             val normalizedLibrary = buildList {
                 for (index in 0 until libraryGames.length()) {
                     val item = libraryGames.optJSONObject(index) ?: continue
-                val name = item.optString("game").ifBlank { item.optString("name") }.trim()
+                    val name = item.optString("game").ifBlank { item.optString("name") }.trim()
                     if (name.isBlank()) continue
                     add(
                         LibraryLookup(

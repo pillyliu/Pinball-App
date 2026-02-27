@@ -728,7 +728,9 @@ internal class PracticeStore(private val context: Context) {
         allLibraryGames = loaded.allGames
         librarySources = loaded.sources
         defaultPracticeSourceId = preferredSource?.id ?: loaded.defaultSourceId
-        defaultPracticeSourceId?.let { prefs.edit().putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, it).apply() }
+        defaultPracticeSourceId?.let { sourceId ->
+            prefs.edit { putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, sourceId) }
+        }
     }
 
     private fun migrateLoadedStateToPracticeKeys() {
