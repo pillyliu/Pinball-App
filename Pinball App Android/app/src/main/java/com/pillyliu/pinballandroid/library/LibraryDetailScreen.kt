@@ -88,7 +88,7 @@ import coil.request.ImageRequest
 import coil.size.Size
 import com.halilibo.richtext.markdown.Markdown
 import com.halilibo.richtext.ui.RichTextStyle
-import com.halilibo.richtext.ui.material3.Material3RichText
+import com.halilibo.richtext.ui.material3.RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.data.downloadTextAllowMissing
@@ -298,7 +298,7 @@ internal fun LibraryDetailScreen(
                                 ),
                             )
                         }
-                        Material3RichText(
+                        RichText(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 20.dp),
