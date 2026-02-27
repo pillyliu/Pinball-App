@@ -1,6 +1,5 @@
 package com.pillyliu.pinballandroid.practice
 
-import android.content.Context
 import androidx.core.content.edit
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -47,7 +46,7 @@ internal fun GroupGameSelectionScreen(
     onDone: () -> Unit,
 ) {
     val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE) }
+    val prefs = remember { practiceSharedPreferences(context) }
     val sourceOptions = remember(librarySources, allGames) {
         if (librarySources.isNotEmpty()) librarySources else {
             allGames.groupBy { it.sourceId }.values.mapNotNull { rows -> rows.firstOrNull()?.let { first ->

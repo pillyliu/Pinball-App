@@ -209,3 +209,18 @@ Acceptance criteria:
     - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeStore.kt`
   - Repository hygiene: local Playwright scratch artifacts are now ignored by default.
     - `/Users/pillyliu/Documents/Codex/Pinball App/.gitignore`
+  - Android persistence-boundary consolidation: league/library/practice UI callers now obtain practice prefs via one shared helper instead of direct `PRACTICE_PREFS` access.
+    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeStorePreferenceHelpers.kt`
+    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/league/LeagueScreen.kt`
+    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/library/LibraryActivityLog.kt`
+    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/library/LibraryScreen.kt`
+    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeScreen.kt`
+    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeQuickEntrySheet.kt`
+    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeGroupGameSelectionScreen.kt`
+  - Android league preferred-player lookup now uses a shared persistence helper (canonical-first, runtime fallback) rather than decoding payload structure inline.
+    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/practice/PracticeStorePreferenceHelpers.kt`
+    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinballandroid/league/LeagueScreen.kt`
+  - iOS now exposes a shared helper for preferred league player lookup, and league preview consumes that helper.
+    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeStorePersistence.swift`
+    - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/league/LeaguePreviewModel.swift`
+  - iOS audit check: no direct references to `practice-state-json` or `practice-upgrade-state-v1` remain outside `/practice`.

@@ -54,8 +54,8 @@ import androidx.compose.ui.unit.sp
 import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.data.parseCsv
 import com.pillyliu.pinballandroid.data.redactPlayerNameForDisplay
-import com.pillyliu.pinballandroid.practice.PRACTICE_PREFS
-import com.pillyliu.pinballandroid.practice.loadPracticeStatePayload
+import com.pillyliu.pinballandroid.practice.loadPreferredLeaguePlayerName
+import com.pillyliu.pinballandroid.practice.practiceSharedPreferences
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
 import kotlinx.coroutines.Dispatchers
@@ -906,10 +906,8 @@ private fun scopedStatsRows(rows: List<StatsCsvRow>, preferredPlayer: String?): 
 }
 
 private fun loadPreferredLeaguePlayerName(context: Context): String? {
-    val prefs = context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE)
-    val payload = loadPracticeStatePayload(prefs) { it }?.payload ?: return null
-    val trimmed = payload.runtime.leaguePlayerName.trim()
-    return trimmed.takeIf { it.isNotEmpty() }
+    val prefs = practiceSharedPreferences(context)
+    return loadPreferredLeaguePlayerName(prefs)
 }
 
 private fun normalizeHeader(value: String): String {

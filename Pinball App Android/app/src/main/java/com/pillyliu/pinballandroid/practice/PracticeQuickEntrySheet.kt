@@ -1,6 +1,5 @@
 package com.pillyliu.pinballandroid.practice
 
-import android.content.Context
 import androidx.core.content.edit
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,7 +36,7 @@ internal fun QuickEntrySheet(
     onSave: (String) -> Unit,
 ) {
     val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE) }
+    val prefs = remember { practiceSharedPreferences(context) }
     var mode by remember(presetActivity) { mutableStateOf(presetActivity) }
     val studyActivities = remember {
         listOf(QuickActivity.Rulesheet, QuickActivity.Tutorial, QuickActivity.Gameplay, QuickActivity.Playfield)

@@ -448,12 +448,7 @@ final class LeaguePreviewModel: ObservableObject {
     }
 
     private func loadPreferredLeaguePlayerName() -> String? {
-        guard let state = PracticeStore.loadPersistedStateFromDefaults() else {
-            return nil
-        }
-
-        let trimmed = state.leagueSettings.playerName.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        PracticeStore.loadPreferredLeaguePlayerNameFromDefaults()
     }
 
     private func normalizeHumanName(_ raw: String) -> String {

@@ -1,6 +1,5 @@
 package com.pillyliu.pinballandroid.practice
 
-import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.core.content.edit
 import androidx.compose.foundation.layout.Arrangement
@@ -52,7 +51,7 @@ fun PracticeScreen(contentPadding: PaddingValues) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val store = remember { PracticeStore(context) }
-    val prefs = remember { context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE) }
+    val prefs = remember { practiceSharedPreferences(context) }
     val scope = rememberCoroutineScope()
     val uiState = rememberPracticeScreenState(prefs)
 

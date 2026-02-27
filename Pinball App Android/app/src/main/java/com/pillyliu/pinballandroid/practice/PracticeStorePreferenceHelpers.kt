@@ -1,5 +1,6 @@
 package com.pillyliu.pinballandroid.practice
 
+import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 
@@ -7,6 +8,10 @@ internal data class LoadedPracticeStatePayload(
     val payload: ParsedPracticeStatePayload,
     val usedLegacyKey: Boolean,
 )
+
+internal fun practiceSharedPreferences(context: Context): SharedPreferences {
+    return context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE)
+}
 
 internal fun loadPracticeStatePayload(
     prefs: SharedPreferences,
@@ -57,4 +62,12 @@ internal fun resumeSlugFromLibraryOrPractice(prefs: SharedPreferences): String? 
     } else {
         practiceSlug ?: librarySlug
     }
+}
+
+internal fun loadPreferredLeaguePlayerName(prefs: SharedPreferences): String? {
+    val payload = loadPracticeStatePayload(prefs) { it }?.payload ?: return null
+    val canonicalName = payload.canonical.leagueSettings.playerName.trim()
+    if (canonicalName.isNotEmpty()) return canonicalName
+    val runtimeName = payload.runtime.leaguePlayerName.trim()
+    return runtimeName.ifEmpty { null }
 }

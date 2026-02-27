@@ -5,6 +5,14 @@ extension PracticeStore {
         PracticeStateCodec.loadFromDefaults(defaults, storageKey: Self.storageKey, legacyStorageKey: Self.legacyStorageKey)
     }
 
+    static func loadPreferredLeaguePlayerNameFromDefaults(_ defaults: UserDefaults = .standard) -> String? {
+        guard let state = loadPersistedStateFromDefaults(defaults) else {
+            return nil
+        }
+        let trimmed = state.leagueSettings.playerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
     func loadState() {
         let defaults = UserDefaults.standard
         guard let loaded = Self.loadPersistedStateFromDefaults(defaults) else {

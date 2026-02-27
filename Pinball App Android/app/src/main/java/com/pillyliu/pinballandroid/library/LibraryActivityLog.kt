@@ -2,7 +2,7 @@ package com.pillyliu.pinballandroid.library
 
 import android.content.Context
 import androidx.core.content.edit
-import com.pillyliu.pinballandroid.practice.PRACTICE_PREFS
+import com.pillyliu.pinballandroid.practice.practiceSharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -31,7 +31,7 @@ internal data class LibraryActivityEvent(
 
 internal object LibraryActivityLog {
     fun log(context: Context, gameSlug: String, gameName: String, kind: LibraryActivityKind, detail: String? = null) {
-        val prefs = context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE)
+        val prefs = practiceSharedPreferences(context)
         val current = events(context).toMutableList()
         current.add(
             LibraryActivityEvent(
@@ -62,7 +62,7 @@ internal object LibraryActivityLog {
     }
 
     fun events(context: Context): List<LibraryActivityEvent> {
-        val prefs = context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE)
+        val prefs = practiceSharedPreferences(context)
         val raw = prefs.getString(LIBRARY_ACTIVITY_KEY, null) ?: return emptyList()
         return runCatching {
             val arr = JSONArray(raw)
@@ -85,7 +85,7 @@ internal object LibraryActivityLog {
     }
 
     fun clear(context: Context) {
-        val prefs = context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE)
+        val prefs = practiceSharedPreferences(context)
         prefs.edit { remove(LIBRARY_ACTIVITY_KEY) }
     }
 }

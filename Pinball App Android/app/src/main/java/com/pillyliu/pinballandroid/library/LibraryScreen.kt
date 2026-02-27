@@ -21,7 +21,7 @@ import com.pillyliu.pinballandroid.data.PinballDataCache
 import com.pillyliu.pinballandroid.practice.KEY_LIBRARY_LAST_VIEWED_SLUG
 import com.pillyliu.pinballandroid.practice.KEY_LIBRARY_LAST_VIEWED_TS
 import com.pillyliu.pinballandroid.practice.KEY_PREFERRED_LIBRARY_SOURCE_ID
-import com.pillyliu.pinballandroid.practice.PRACTICE_PREFS
+import com.pillyliu.pinballandroid.practice.practiceSharedPreferences
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.EmptyLabel
 import com.pillyliu.pinballandroid.ui.LocalBottomBarVisible
@@ -32,7 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 @Composable
 internal fun LibraryScreen(contentPadding: PaddingValues) {
     val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE) }
+    val prefs = remember { practiceSharedPreferences(context) }
     val bottomBarVisible = LocalBottomBarVisible.current
     var games by remember { mutableStateOf(emptyList<PinballGame>()) }
     var sources by remember { mutableStateOf(emptyList<LibrarySource>()) }
