@@ -37,17 +37,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.isSystemInDarkTheme
-import com.pillyliu.pinballandroid.data.PinballDataCache
+import androidx.compose.ui.platform.LocalContext
+import com.pillyliu.pinballandroid.library.LibraryGameLookup
+import com.pillyliu.pinballandroid.library.loadLibraryExtraction
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
 import com.pillyliu.pinballandroid.ui.CompactDropdownFilter
 import com.pillyliu.pinballandroid.ui.FixedWidthTableCell
 import com.pillyliu.pinballandroid.ui.InsetFilterHeader
-import org.json.JSONArray
-import org.json.JSONObject
 import java.text.NumberFormat
-
-private const val LIBRARY_URL = "https://pillyliu.com/pinball/data/pinball_library_v3.json"
 
 private data class LPLTarget(val game: String, val great: Long, val main: Long, val floor: Long)
 private data class TargetRow(
@@ -59,15 +57,6 @@ private data class TargetRow(
     val libraryOrder: Int,
     val fallbackOrder: Int,
 )
-private data class LibraryLookup(
-    val index: Int,
-    val normalizedName: String,
-    val area: String?,
-    val bank: Int?,
-    val group: Int?,
-    val position: Int?,
-)
-
 private enum class TargetSortOption(val label: String) {
     LOCATION("Area"),
     BANK("Bank"),
@@ -80,6 +69,7 @@ fun TargetsScreen(
     contentPadding: PaddingValues,
     onBack: (() -> Unit)? = null,
 ) {
+    val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -104,41 +94,14 @@ fun TargetsScreen(
 
     LaunchedEffect(Unit) {
         try {
-            val cached = PinballDataCache.passthroughOrCachedText(LIBRARY_URL)
-            val root = JSONObject(cached.text.orEmpty())
-            val libraryGames = root.optJSONArray("items")
-                ?: throw IllegalStateException("pinball_library_v3.json missing top-level items[]")
-            val normalizedLibrary = buildList {
-                for (index in 0 until libraryGames.length()) {
-                    val item = libraryGames.optJSONObject(index) ?: continue
-                    val name = item.optString("game").ifBlank { item.optString("name") }.trim()
-                    if (name.isBlank()) continue
-                    add(
-                        LibraryLookup(
-                            index = index,
-                            normalizedName = normalize(name),
-                            area = (item.optString("area").takeIf { it.isNotBlank() }
-                                ?: item.optString("location").takeIf { it.isNotBlank() })?.trim(),
-                            bank = item.optInt("bank").takeIf { it > 0 },
-                            group = item.optInt("group").takeIf { it > 0 },
-                            position = item.optInt("position").takeIf { it > 0 },
-                        ),
-                    )
-                }
-            }
+            val extraction = loadLibraryExtraction(context)
+            val libraryEntries = LibraryGameLookup.buildEntries(extraction.payload.games)
 
             val merged = lplTargets.mapIndexed { fallbackIndex, target ->
-                val normalizedTarget = normalize(target.game)
-                val keys = listOf(normalizedTarget) + (aliases[normalizedTarget] ?: emptyList())
-
-                val exact = normalizedLibrary.firstOrNull { keys.contains(it.normalizedName) }
-                val loose = normalizedLibrary.firstOrNull { entry ->
-                    keys.any { key -> entry.normalizedName.contains(key) || key.contains(entry.normalizedName) }
-                }
-                val chosen = exact ?: loose
+                val chosen = LibraryGameLookup.bestMatch(target.game, libraryEntries)
 
                 if (chosen != null) {
-                    TargetRow(target, chosen.area, chosen.bank, chosen.group, chosen.position, chosen.index, fallbackIndex)
+                    TargetRow(target, chosen.area, chosen.bank, chosen.group, chosen.position, chosen.order, fallbackIndex)
                 } else {
                     TargetRow(target, null, null, null, null, Int.MAX_VALUE, fallbackIndex)
                 }
@@ -370,20 +333,6 @@ private fun targetAccentColor(role: TargetColorRole): Color {
 }
 
 private fun fmt(value: Long): String = NumberFormat.getIntegerInstance().format(value)
-
-private fun normalize(name: String): String {
-    val lowered = name.lowercase().replace("&", " and ")
-    return lowered.filter { it.isLetterOrDigit() }
-}
-
-private val aliases = mapOf(
-    "tmnt" to listOf("teenagemutantninjaturtles"),
-    "thegetaway" to listOf("thegetawayhighspeedii"),
-    "starwars2017" to listOf("starwars"),
-    "jurassicparkstern2019" to listOf("jurassicpark", "jurassicpark2019"),
-    "attackfrommars" to listOf("attackfrommarsremake"),
-    "dungeonsanddragons" to listOf("dungeonsdragons"),
-)
 
 private val lplTargets = listOf(
     LPLTarget("Avengers: Infinity Quest", 173_438_323, 88_524_766, 39_851_803),

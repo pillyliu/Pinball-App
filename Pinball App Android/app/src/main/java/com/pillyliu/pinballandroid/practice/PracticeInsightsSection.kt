@@ -23,7 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.pillyliu.pinballandroid.data.redactPlayerNameForDisplay
+import com.pillyliu.pinballandroid.data.formatLplPlayerNameForDisplay
+import com.pillyliu.pinballandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinballandroid.ui.CardContainer
 
 @Composable
@@ -38,6 +39,7 @@ internal fun PracticeInsightsSection(
     isLoadingHeadToHead: Boolean,
     onRefreshHeadToHead: () -> Unit,
 ) {
+    val showFullLplLastName = rememberShowFullLplLastName()
     val orderedGames = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true)
     val game = selectedGameSlug?.let { slug ->
         findGameByPracticeLookupKey(orderedGames, slug)
@@ -168,9 +170,9 @@ internal fun PracticeInsightsSection(
             selectedLabel = if (insightsOpponentName.isBlank()) {
                 "Select player"
             } else {
-                redactPlayerNameForDisplay(insightsOpponentName)
+                formatLplPlayerNameForDisplay(insightsOpponentName, showFullLplLastName)
             },
-            options = listOf("" to "Select player") + insightsOpponentOptions.map { it to redactPlayerNameForDisplay(it) },
+            options = listOf("" to "Select player") + insightsOpponentOptions.map { it to formatLplPlayerNameForDisplay(it, showFullLplLastName) },
             onSelect = { pair ->
                 onInsightsOpponentNameChange(pair.first)
             },
@@ -180,7 +182,7 @@ internal fun PracticeInsightsSection(
             isLoadingHeadToHead -> Text("Loading player comparison...", style = MaterialTheme.typography.bodySmall)
             insightsOpponentName.isBlank() -> Text("Select a player above to enable player-vs-player views.", style = MaterialTheme.typography.bodySmall)
             headToHead == null -> Text(
-                "No shared machine history yet between ${if (store.playerName.isBlank()) "you" else redactPlayerNameForDisplay(store.playerName)} and ${redactPlayerNameForDisplay(insightsOpponentName)}.",
+                "No shared machine history yet between ${if (store.playerName.isBlank()) "you" else formatLplPlayerNameForDisplay(store.playerName, showFullLplLastName)} and ${formatLplPlayerNameForDisplay(insightsOpponentName, showFullLplLastName)}.",
                 style = MaterialTheme.typography.bodySmall,
             )
 

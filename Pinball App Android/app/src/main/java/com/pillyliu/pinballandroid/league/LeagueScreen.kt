@@ -52,8 +52,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinballandroid.data.PinballDataCache
+import com.pillyliu.pinballandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinballandroid.data.parseCsv
-import com.pillyliu.pinballandroid.data.redactPlayerNameForDisplay
+import com.pillyliu.pinballandroid.library.LibraryGameLookup
+import com.pillyliu.pinballandroid.library.LibraryGameLookupEntry
+import com.pillyliu.pinballandroid.library.loadLibraryExtraction
+import com.pillyliu.pinballandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinballandroid.practice.loadPreferredLeaguePlayerName
 import com.pillyliu.pinballandroid.practice.practiceSharedPreferences
 import com.pillyliu.pinballandroid.ui.AppScreen
@@ -61,8 +65,6 @@ import com.pillyliu.pinballandroid.ui.CardContainer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -81,6 +83,7 @@ fun LeagueScreen(
     onOpenDestination: (LeagueDestination) -> Unit,
 ) {
     val context = LocalContext.current
+    val showFullLplLastName = rememberShowFullLplLastName()
     val previewState by produceState(initialValue = LeaguePreviewState()) {
         value = withContext(Dispatchers.IO) { loadLeaguePreviewState(context) }
     }
@@ -143,7 +146,7 @@ fun LeagueScreen(
                             StatsMiniPreview(
                                 rows = previewState.statsRecentRows.take(maxRows),
                                 bankLabel = previewState.statsRecentBankLabel,
-                                playerLabel = previewState.statsPlayerLabel,
+                                playerLabel = formatLplPlayerNameForDisplay(previewState.statsPlayerRawName, showFullLplLastName),
                                 showScore = showStatsScore,
                                 labelSize = miniLabelSize,
                                 headerSize = miniHeaderSize,
@@ -157,6 +160,7 @@ fun LeagueScreen(
                                 showAround = showAround,
                                 topRows = previewState.standingsTopRows.take(maxRows),
                                 aroundRows = previewState.standingsAroundRows.take(maxRows),
+                                showFullLplLastName = showFullLplLastName,
                                 labelSize = miniLabelSize,
                                 headerSize = miniHeaderSize,
                                 valueSize = miniValueSize,
@@ -387,6 +391,7 @@ private fun StandingsMiniPreview(
     showAround: Boolean,
     topRows: List<StandingsPreviewRow>,
     aroundRows: List<StandingsPreviewRow>,
+    showFullLplLastName: Boolean,
     labelSize: androidx.compose.ui.unit.TextUnit,
     headerSize: androidx.compose.ui.unit.TextUnit,
     valueSize: androidx.compose.ui.unit.TextUnit,
@@ -457,7 +462,7 @@ private fun StandingsMiniPreview(
                             textAlign = TextAlign.Start,
                         )
                         Text(
-                            row.player,
+                            formatLplPlayerNameForDisplay(row.rawPlayer, showFullLplLastName),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = valueSize,
                             fontWeight = if (isPodium) FontWeight.SemiBold else FontWeight.Normal,
@@ -575,7 +580,7 @@ private data class LeaguePreviewState(
     val standingsAroundRows: List<StandingsPreviewRow> = emptyList(),
     val statsRecentRows: List<StatsPreviewRow> = emptyList(),
     val statsRecentBankLabel: String = "Most Recent Bank",
-    val statsPlayerLabel: String = "",
+    val statsPlayerRawName: String = "",
 )
 
 private data class TargetPreviewRow(
@@ -590,7 +595,6 @@ private data class TargetPreviewRow(
 private data class StandingsPreviewRow(
     val rank: Int,
     val rawPlayer: String,
-    val player: String,
     val points: Double,
 )
 
@@ -623,11 +627,11 @@ private suspend fun loadLeaguePreviewState(context: Context): LeaguePreviewState
         val targetsCsv = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/LPL_Targets.csv").text.orEmpty()
         val standingsCsv = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/LPL_Standings.csv", allowMissing = true).text.orEmpty()
         val statsCsv = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/LPL_Stats.csv", allowMissing = true).text.orEmpty()
-        val libraryJson = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/pinball_library_v3.json", allowMissing = true).text
+        val libraryEntries = LibraryGameLookup.buildEntries(loadLibraryExtraction(context).payload.games)
         val selectedPlayer = loadPreferredLeaguePlayerName(context)
 
         val statsRows = parseStatsRows(statsCsv)
-        val targets = mergeTargetsWithLibrary(parseTargetRows(targetsCsv), libraryJson)
+        val targets = mergeTargetsWithLibrary(parseTargetRows(targetsCsv), libraryEntries)
         val standingsRows = parseStandingsRows(standingsCsv)
 
         val availableBanks = targets.mapNotNull { it.bank }.toSet()
@@ -651,7 +655,7 @@ private suspend fun loadLeaguePreviewState(context: Context): LeaguePreviewState
             standingsAroundRows = standingsPreview.aroundRows,
             statsRecentRows = statsPreview.rows,
             statsRecentBankLabel = statsPreview.bankLabel,
-            statsPlayerLabel = statsPreview.playerLabel,
+            statsPlayerRawName = statsPreview.playerRawName,
         )
     } catch (_: Throwable) {
         LeaguePreviewState()
@@ -661,7 +665,7 @@ private suspend fun loadLeaguePreviewState(context: Context): LeaguePreviewState
 private data class StatsPreviewPayload(
     val rows: List<StatsPreviewRow>,
     val bankLabel: String,
-    val playerLabel: String,
+    val playerRawName: String,
 )
 
 private fun buildStatsPreview(rows: List<StatsCsvRow>, preferredPlayer: String?): StatsPreviewPayload {
@@ -693,7 +697,7 @@ private fun buildStatsPreview(rows: List<StatsCsvRow>, preferredPlayer: String?)
     return StatsPreviewPayload(
         rows = previewRows,
         bankLabel = "Most Recent • S${sample.season} B${sample.bank}",
-        playerLabel = redactPlayerNameForDisplay(sample.player),
+        playerRawName = sample.player,
     )
 }
 
@@ -735,7 +739,6 @@ private fun buildStandingsPreview(rows: List<StandingCsvRow>, selectedPlayer: St
         StandingsPreviewRow(
             rank = row.rank ?: (index + 1),
             rawPlayer = row.player,
-            player = redactPlayerNameForDisplay(row.player),
             points = row.total,
         )
     }
@@ -837,46 +840,12 @@ private fun parseTargetRows(text: String): List<TargetPreviewRow> {
     }
 }
 
-private data class LibraryLookup(
-    val normalizedName: String,
-    val bank: Int?,
-    val order: Int,
-)
-
-private fun mergeTargetsWithLibrary(targetRows: List<TargetPreviewRow>, libraryJson: String?): List<TargetPreviewRow> {
-    if (libraryJson.isNullOrBlank()) return targetRows
-    val lookups = try {
-        val root = JSONObject(libraryJson)
-        val array = root.optJSONArray("items") ?: JSONArray()
-        (0 until array.length()).mapNotNull { index ->
-            val item = array.optJSONObject(index) ?: return@mapNotNull null
-            val group = item.optInt("group").takeIf { it > 0 }
-            val position = item.optInt("position").takeIf { it > 0 }
-            val weightedOrder = if (group != null && position != null) {
-                (group * 1000) + position
-            } else {
-                100_000 + index
-            }
-            val machineName = item.optString("game").ifBlank { item.optString("name") }
-            if (machineName.isBlank()) return@mapNotNull null
-            LibraryLookup(
-                normalizedName = normalizeMachineName(machineName),
-                bank = item.optInt("bank").takeIf { it > 0 },
-                order = weightedOrder,
-            )
-        }
-    } catch (_: Throwable) {
-        return targetRows
-    }
-
+private fun mergeTargetsWithLibrary(
+    targetRows: List<TargetPreviewRow>,
+    libraryEntries: List<LibraryGameLookupEntry>,
+): List<TargetPreviewRow> {
     return targetRows.map { row ->
-        val normalizedTarget = normalizeMachineName(row.game)
-        val aliases = machineAliases[normalizedTarget].orEmpty()
-        val keys = listOf(normalizedTarget) + aliases
-
-        val match = lookups.firstOrNull { keys.contains(it.normalizedName) } ?: lookups.firstOrNull { entry ->
-            keys.any { key -> entry.normalizedName.contains(key) || key.contains(entry.normalizedName) }
-        }
+        val match = LibraryGameLookup.bestMatch(row.game, libraryEntries)
 
         if (match == null) row else row.copy(bank = match.bank, order = match.order)
     }
@@ -948,19 +917,6 @@ private fun aroundRowsWindow(
     val end = minOf(rows.size, start + windowSize)
     return rows.subList(start, end)
 }
-
-private fun normalizeMachineName(raw: String): String {
-    return raw.lowercase(Locale.US).replace("&", " and ").filter { it.isLetterOrDigit() }
-}
-
-private val machineAliases = mapOf(
-    "tmnt" to listOf("teenagemutantninjaturtles"),
-    "thegetaway" to listOf("thegetawayhighspeedii"),
-    "starwars2017" to listOf("starwars"),
-    "jurassicparkstern2019" to listOf("jurassicpark", "jurassicpark2019"),
-    "attackfrommars" to listOf("attackfrommarsremake"),
-    "dungeonsanddragons" to listOf("dungeonsdragons"),
-)
 
 @Composable
 private fun rankColor(rank: Int): Color = when (rank) {

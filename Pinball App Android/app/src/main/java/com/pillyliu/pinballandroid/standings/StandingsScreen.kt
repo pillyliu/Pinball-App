@@ -48,8 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinballandroid.data.PinballDataCache
+import com.pillyliu.pinballandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinballandroid.data.parseCsv
-import com.pillyliu.pinballandroid.data.redactPlayerNameForDisplay
+import com.pillyliu.pinballandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
 import com.pillyliu.pinballandroid.ui.CompactDropdownFilter
@@ -76,7 +77,6 @@ private data class StandingsCsvRow(
 
 private data class Standing(
     val rawPlayer: String,
-    val displayPlayer: String,
     val seasonTotal: Double,
     val eligible: String,
     val nights: String,
@@ -98,6 +98,7 @@ fun StandingsScreen(
     contentPadding: PaddingValues,
     onBack: (() -> Unit)? = null,
 ) {
+    val showFullLplLastName = rememberShowFullLplLastName()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -225,8 +226,8 @@ fun StandingsScreen(
                                 EmptyLabel("No rows. Check data source or season selection.")
                             } else {
                                 Column(modifier = Modifier.verticalScroll(rememberScrollState()).fillMaxSize()) {
-                                    standingRows.forEachIndexed { index, standing ->
-                                        StandingRow(rank = index + 1, standing = standing, widths = widths)
+                                standingRows.forEachIndexed { index, standing ->
+                                        StandingRow(rank = index + 1, standing = standing, widths = widths, showFullLplLastName = showFullLplLastName)
                                     }
                                 }
                             }
@@ -277,7 +278,7 @@ private fun HeaderRow(widths: StandingsWidths) {
 }
 
 @Composable
-private fun StandingRow(rank: Int, standing: Standing, widths: StandingsWidths) {
+private fun StandingRow(rank: Int, standing: Standing, widths: StandingsWidths, showFullLplLastName: Boolean) {
     val rankColor = podiumRankColor(rank)
     Row(
         modifier = Modifier
@@ -285,7 +286,7 @@ private fun StandingRow(rank: Int, standing: Standing, widths: StandingsWidths) 
             .padding(vertical = 6.dp),
     ) {
         FixedWidthTableCell(rank.toString(), widths.rank, color = rankColor, bold = rank <= 3)
-        FixedWidthTableCell(standing.displayPlayer, widths.player, bold = rank <= 8)
+        FixedWidthTableCell(formatLplPlayerNameForDisplay(standing.rawPlayer, showFullLplLastName), widths.player, bold = rank <= 8)
         FixedWidthTableCell(fmt(standing.seasonTotal), widths.points)
         FixedWidthTableCell(standing.eligible, widths.eligible)
         FixedWidthTableCell(standing.nights, widths.nights)
@@ -312,7 +313,6 @@ private fun buildStandings(rows: List<StandingsCsvRow>, selectedSeason: Int?): L
     val mapped = seasonRows.map {
         Standing(
             rawPlayer = it.player,
-            displayPlayer = redactPlayerNameForDisplay(it.player),
             seasonTotal = it.total,
             eligible = it.eligible,
             nights = it.nights,

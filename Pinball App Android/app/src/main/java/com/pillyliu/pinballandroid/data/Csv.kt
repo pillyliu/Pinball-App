@@ -69,7 +69,7 @@ suspend fun refreshRedactedPlayersFromCsv() {
     }
 }
 
-private fun shouldRedactPlayerName(raw: String): Boolean {
+internal fun shouldRedactPlayerName(raw: String): Boolean {
     val normalized = normalizePlayerName(raw)
     if (normalized.isBlank()) return false
     return redactedPlayersNormalized.contains(normalized)
@@ -85,7 +85,7 @@ private fun normalizePlayerName(raw: String): String {
         .joinToString(" ")
 }
 
-private fun redactionToken(raw: String): String {
+internal fun redactionToken(raw: String): String {
     val normalized = normalizePlayerName(raw)
     val bytes = java.security.MessageDigest.getInstance("SHA-256")
         .digest("$REDACTION_TOKEN_SALT:$normalized".toByteArray(Charsets.UTF_8))

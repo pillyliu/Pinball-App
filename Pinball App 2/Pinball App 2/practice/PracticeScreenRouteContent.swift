@@ -159,7 +159,7 @@ extension PracticeScreen {
             isLoadingHeadToHead: isLoadingHeadToHead,
             headToHead: headToHead,
             redactName: { name in
-                redactPlayerNameForDisplay(name)
+                formatLPLPlayerNameForDisplay(name)
             },
             onRefreshHeadToHead: {
                 await refreshHeadToHead()
@@ -206,7 +206,7 @@ extension PracticeScreen {
             leaguePlayerOptions: leaguePlayerOptions,
             leagueImportStatus: leagueImportStatus,
             cloudSyncEnabled: $cloudSyncEnabled,
-            redactName: { name in redactPlayerNameForDisplay(name) },
+            redactName: { name in formatLPLPlayerNameForDisplay(name) },
             onSaveProfile: {
                 store.updatePracticeSettings(playerName: playerName)
             },

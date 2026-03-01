@@ -11,14 +11,22 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinballandroid.library.PlayfieldScreen
 import com.pillyliu.pinballandroid.library.RulesheetScreen
+import com.pillyliu.pinballandroid.library.LibrarySourceEvents
+import com.pillyliu.pinballandroid.library.RulesheetRemoteSource
+import com.pillyliu.pinballandroid.library.ExternalRulesheetWebScreen
+import com.pillyliu.pinballandroid.library.hasRulesheetResource
+import com.pillyliu.pinballandroid.library.resolve
+import com.pillyliu.pinballandroid.library.rulesheetPathCandidates
 import com.pillyliu.pinballandroid.library.fullscreenPlayfieldCandidates
 import com.pillyliu.pinballandroid.library.youtubeId
 import com.pillyliu.pinballandroid.ui.AppScreen
@@ -54,6 +62,7 @@ fun PracticeScreen(contentPadding: PaddingValues) {
     val prefs = remember { practiceSharedPreferences(context) }
     val scope = rememberCoroutineScope()
     val uiState = rememberPracticeScreenState(prefs)
+    val sourceVersion by LibrarySourceEvents.version.collectAsState()
 
     suspend fun refreshHeadToHeadComparison() {
         if (store.playerName.isBlank() || uiState.insightsOpponentName.isBlank()) {
@@ -106,6 +115,14 @@ fun PracticeScreen(contentPadding: PaddingValues) {
         refreshHeadToHeadComparison()
     }
 
+    LaunchedEffect(sourceVersion) {
+        if (sourceVersion == 0L) return@LaunchedEffect
+        store.loadGames()
+        if (uiState.selectedGameSlug != null && findGameByPracticeLookupKey(store.games, uiState.selectedGameSlug) == null) {
+            uiState.selectedGameSlug = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey
+        }
+    }
+
     LaunchedEffect(uiState.journalFilter) {
         prefs.edit { putString(KEY_PRACTICE_JOURNAL_FILTER, uiState.journalFilter.name) }
         uiState.journalSelectionMode = false
@@ -116,18 +133,24 @@ fun PracticeScreen(contentPadding: PaddingValues) {
         PracticeRoute.Rulesheet -> {
             val game = selectedGame
             if (game != null) {
-                RulesheetScreen(
-                    contentPadding = contentPadding,
-                    slug = game.practiceKey,
-                    remoteCandidates = listOfNotNull(
-                        game.rulesheetLocal?.let { "https://pillyliu.com$it" },
-                        "https://pillyliu.com/pinball/rulesheets/${game.practiceKey}-rulesheet.md",
-                        "https://pillyliu.com/pinball/rulesheets/${game.slug}.md",
-                    ),
-                    onBack = uiState::goBack,
-                    practiceSavedRatio = store.rulesheetSavedProgress(game.practiceKey),
-                    onSavePracticeRatio = { ratio -> store.saveRulesheetProgress(game.practiceKey, ratio) },
-                )
+                if (!uiState.selectedExternalRulesheetUrl.isNullOrBlank()) {
+                    ExternalRulesheetWebScreen(
+                        contentPadding = contentPadding,
+                        title = game.name,
+                        url = uiState.selectedExternalRulesheetUrl!!,
+                        onBack = uiState::goBack,
+                    )
+                } else {
+                    RulesheetScreen(
+                        contentPadding = contentPadding,
+                        slug = game.practiceKey,
+                        remoteCandidates = game.rulesheetPathCandidates.mapNotNull { game.resolve(it) },
+                        externalSource = uiState.selectedRulesheetSource,
+                        onBack = uiState::goBack,
+                        practiceSavedRatio = store.rulesheetSavedProgress(game.practiceKey),
+                        onSavePracticeRatio = { ratio -> store.saveRulesheetProgress(game.practiceKey, ratio) },
+                    )
+                }
             } else {
                 uiState.resetToHome()
             }
@@ -232,8 +255,17 @@ fun PracticeScreen(contentPadding: PaddingValues) {
                 onOpenInsights = { uiState.navigateTo(PracticeRoute.Insights) },
                 onOpenMechanics = { uiState.navigateTo(PracticeRoute.Mechanics) },
                 onOpenGameRoute = { uiState.navigateTo(PracticeRoute.Game) },
-                onOpenRulesheet = {
-                    if (!selectedGame?.rulesheetLocal.isNullOrBlank()) {
+                onOpenRulesheet = { source ->
+                    if (selectedGame?.hasRulesheetResource == true) {
+                        uiState.selectedRulesheetSource = source
+                        uiState.selectedExternalRulesheetUrl = null
+                        uiState.navigateTo(PracticeRoute.Rulesheet)
+                    }
+                },
+                onOpenExternalRulesheet = { url ->
+                    if (selectedGame != null) {
+                        uiState.selectedRulesheetSource = null
+                        uiState.selectedExternalRulesheetUrl = url
                         uiState.navigateTo(PracticeRoute.Rulesheet)
                     }
                 },

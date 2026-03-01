@@ -17,6 +17,7 @@ struct PracticeInsightsSectionView: View {
     let redactName: (String) -> String
     let onRefreshHeadToHead: () async -> Void
     let onRefreshOpponentOptions: () async -> Void
+    @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
 
     private var selectedGame: PinballGame? {
         games.first(where: { $0.canonicalPracticeKey == selectedGameID || $0.id == selectedGameID })
@@ -138,7 +139,7 @@ struct PracticeInsightsSectionView: View {
                     HeadToHeadDeltaBars(games: chartGames)
                         .frame(height: headToHeadPlotHeight(for: chartGames.count))
                 } else {
-                    Text("No shared machine history yet between \(playerName.isEmpty ? "you" : redactName(playerName)) and \(redactName(opponentName)).")
+                    Text("No shared machine history yet between \(playerName.isEmpty ? "you" : displayLPLPlayerName(playerName)) and \(displayLPLPlayerName(opponentName)).")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -191,15 +192,20 @@ struct PracticeInsightsSectionView: View {
                 opponentName = ""
             }
             ForEach(opponentOptions, id: \.self) { name in
-                Button(redactName(name)) {
+                Button(displayLPLPlayerName(name)) {
                     opponentName = name
                 }
             }
         } label: {
-            compactDropdownLabel(text: opponentName.isEmpty ? "Select player" : redactName(opponentName))
+            compactDropdownLabel(text: opponentName.isEmpty ? "Select player" : displayLPLPlayerName(opponentName))
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func displayLPLPlayerName(_ raw: String) -> String {
+        _ = showFullLPLLastNames
+        return formatLPLPlayerNameForDisplay(raw)
     }
 
     private func compactDropdownLabel(text: String) -> some View {

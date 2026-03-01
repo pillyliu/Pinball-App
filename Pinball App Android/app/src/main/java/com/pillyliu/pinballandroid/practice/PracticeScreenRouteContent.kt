@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.UriHandler
 import com.pillyliu.pinballandroid.library.LibrarySource
+import com.pillyliu.pinballandroid.library.RulesheetRemoteSource
 
 internal data class PracticeRouteContentContext(
     val store: PracticeStore,
@@ -27,7 +28,8 @@ internal data class PracticeRouteContentContext(
     val onOpenInsights: () -> Unit,
     val onOpenMechanics: () -> Unit,
     val onOpenGameRoute: () -> Unit,
-    val onOpenRulesheet: () -> Unit,
+    val onOpenRulesheet: (RulesheetRemoteSource?) -> Unit,
+    val onOpenExternalRulesheet: (String) -> Unit,
     val onOpenPlayfield: (List<String>) -> Unit,
     val editingGroupID: String?,
     val onEditingGroupIDChange: (String?) -> Unit,
@@ -103,6 +105,7 @@ internal fun PracticeScreenRouteContent(
                     context.onOpenQuickEntry(activity, origin, true)
                 },
                 onOpenRulesheet = context.onOpenRulesheet,
+                onOpenExternalRulesheet = context.onOpenExternalRulesheet,
                 onOpenPlayfield = context.onOpenPlayfield,
             )
         }

@@ -2,10 +2,18 @@ import SwiftUI
 import UIKit
 import Combine
 
+enum AppImageLayoutMode {
+    case fill
+    case fit
+    case widthFillTopCropBottom
+}
+
 struct FallbackAsyncImageView: View {
     let candidates: [URL]
     let emptyMessage: String?
     var contentMode: ContentMode = .fill
+    var fillAlignment: Alignment = .center
+    var layoutMode: AppImageLayoutMode?
     @State private var index = 0
     @State private var image: UIImage?
     @State private var didFailCurrent = false
@@ -17,7 +25,13 @@ struct FallbackAsyncImageView: View {
             if let image {
                 Image(uiImage: image)
                     .resizable()
-                    .modifier(AppImageContentMode(contentMode: contentMode))
+                    .modifier(
+                        AppImageContentMode(
+                            contentMode: contentMode,
+                            fillAlignment: fillAlignment,
+                            layoutMode: layoutMode
+                        )
+                    )
             } else {
                 Color(uiColor: .tertiarySystemBackground)
                     .overlay {
@@ -38,12 +52,14 @@ struct FallbackAsyncImageView: View {
                 return
             }
             do {
-                let data = try await PinballDataCache.shared.loadData(url: currentURL)
+                let data = try await loadDataWithRetry(url: currentURL)
                 guard let loaded = UIImage(data: data) else {
                     throw URLError(.cannotDecodeContentData)
                 }
                 image = loaded
                 didFailCurrent = false
+            } catch is CancellationError {
+                return
             } catch {
                 image = nil
                 didFailCurrent = true
@@ -53,19 +69,70 @@ struct FallbackAsyncImageView: View {
             }
         }
     }
+
+    private func loadDataWithRetry(url: URL) async throws -> Data {
+        var lastError: Error?
+        for attempt in 0..<3 {
+            do {
+                return try await PinballDataCache.shared.loadData(url: url)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                lastError = error
+                if !shouldRetry(error: error) || attempt == 2 {
+                    throw error
+                }
+                try await Task.sleep(nanoseconds: UInt64(250_000_000 * (attempt + 1)))
+            }
+        }
+        throw lastError ?? URLError(.unknown)
+    }
+
+    private func shouldRetry(error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        switch urlError.code {
+        case .timedOut, .networkConnectionLost, .notConnectedToInternet, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
+            return true
+        default:
+            return false
+        }
+    }
 }
 
 private struct AppImageContentMode: ViewModifier {
     let contentMode: ContentMode
+    let fillAlignment: Alignment
+    let layoutMode: AppImageLayoutMode?
 
     func body(content: Content) -> some View {
-        switch contentMode {
-        case .fit:
-            content.scaledToFit()
-        case .fill:
-            content.scaledToFill()
-        @unknown default:
-            content.scaledToFill()
+        Group {
+            if let layoutMode {
+                switch layoutMode {
+                case .fill:
+                    content
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: fillAlignment)
+                case .fit:
+                    content.scaledToFit()
+                case .widthFillTopCropBottom:
+                    content
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, alignment: fillAlignment)
+                }
+            } else {
+                switch contentMode {
+                case .fit:
+                    content.scaledToFit()
+                case .fill:
+                    content
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: fillAlignment)
+                @unknown default:
+                    content
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: fillAlignment)
+                }
+            }
         }
     }
 }
@@ -146,7 +213,7 @@ struct HostedImageView: View {
 }
 
 @MainActor
-private final class RemoteUIImageLoader: ObservableObject {
+final class RemoteUIImageLoader: ObservableObject {
     @Published private(set) var image: UIImage?
     @Published private(set) var failed = false
 
@@ -172,6 +239,48 @@ private final class RemoteUIImageLoader: ObservableObject {
         }
 
         failed = true
+    }
+}
+
+struct ConstrainedAsyncImagePreview: View {
+    let candidates: [URL]
+    let emptyMessage: String?
+    var maxAspectRatio: CGFloat = 4.0 / 3.0
+    var imagePadding: CGFloat = 8
+
+    @StateObject private var loader = RemoteUIImageLoader()
+
+    private var effectiveAspectRatio: CGFloat {
+        guard let image = loader.image, image.size.width > 0, image.size.height > 0 else {
+            return maxAspectRatio
+        }
+        let imageAspectRatio = image.size.width / image.size.height
+        return max(maxAspectRatio, imageAspectRatio)
+    }
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(Color.black.opacity(0.82))
+
+            if let image = loader.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(imagePadding)
+            } else if loader.failed {
+                Text(emptyMessage ?? "No image")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ProgressView()
+            }
+        }
+        .aspectRatio(effectiveAspectRatio, contentMode: .fit)
+        .task {
+            await loader.loadIfNeeded(from: candidates)
+        }
     }
 }
 

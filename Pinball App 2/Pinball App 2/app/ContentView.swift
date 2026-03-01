@@ -13,6 +13,7 @@ enum RootTab: Hashable {
     case league
     case library
     case practice
+    case settings
 }
 
 final class AppNavigationModel: ObservableObject {
@@ -54,6 +55,12 @@ struct ContentView: View {
                 .tag(RootTab.about)
                 .tabItem {
                     Label("About", systemImage: "info.circle")
+                }
+
+            SettingsScreen()
+                .tag(RootTab.settings)
+                .tabItem {
+                    Label("Settings", systemImage: "slider.horizontal.3")
                 }
         }
         .environmentObject(appNavigation)

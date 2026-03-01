@@ -1,16 +1,19 @@
 package com.pillyliu.pinballandroid.practice
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -18,15 +21,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinballandroid.library.PinballGame
 import com.pillyliu.pinballandroid.library.fullscreenPlayfieldCandidates
@@ -130,54 +140,67 @@ internal fun SelectedGameMiniCard(
     titleVerticalPadding: Dp = 4.dp,
 ) {
     val imageUrl = game.miniCardPlayfieldCandidate()
-    val cardShape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
-    val imageShape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)
-    Column(
+    val cardShape = RoundedCornerShape(10.dp)
+    Box(
         modifier = modifier
             .width(cardWidth)
-            .clip(cardShape)
-            .background(
-                MaterialTheme.colorScheme.surfaceContainerHighest,
-                shape = cardShape,
-            )
-            .padding(top = 0.dp, bottom = bottomPadding),
+            .let { base ->
+                if (imageHeight != null) {
+                    base.height(imageHeight + bottomPadding + 22.dp)
+                } else {
+                    base
+                }
+            }
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest, shape = cardShape)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f), cardShape)
+            .clip(cardShape),
     ) {
-        if (imageUrl.isNullOrBlank()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .let { base ->
-                        if (imageHeight != null) base.height(imageHeight) else base.weight(1f, fill = true)
-                    }
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant,
-                        shape = imageShape,
-                    )
-                    .clip(imageShape),
-            )
-        } else {
+        if (!imageUrl.isNullOrBlank()) {
             AsyncImage(
                 model = imageUrl,
                 contentDescription = game.name,
                 contentScale = ContentScale.Crop,
+                alignment = Alignment.Center,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .let { base ->
-                        if (imageHeight != null) base.height(imageHeight) else base.weight(1f, fill = true)
-                    }
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant,
-                        shape = imageShape,
-                    )
-                    .clip(imageShape),
+                    .fillMaxSize(),
             )
         }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color.Transparent,
+                        0.18f to Color.Transparent,
+                        0.4f to Color.Black.copy(alpha = 0.50f),
+                        1f to Color.Black.copy(alpha = 0.78f),
+                    ),
+                ),
+        )
         Text(
             game.name,
-            style = titleTextStyle,
-            maxLines = 1,
+            style = titleTextStyle.withMiniCardOverlayShadow(),
+            color = Color.White,
+            maxLines = if (imageHeight == null) 2 else 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = titleVerticalPadding),
+            textAlign = TextAlign.Start,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(horizontal = 8.dp, vertical = titleVerticalPadding + 4.dp),
         )
     }
 }
+
+private fun TextStyle.withMiniCardOverlayShadow(): TextStyle = copy(
+    color = Color.White,
+    shadow = Shadow(
+        color = Color.Black.copy(alpha = 1f),
+        blurRadius = 8f,
+        offset = androidx.compose.ui.geometry.Offset(0f, 3f),
+    ),
+    lineHeight = when {
+        lineHeight != TextUnit.Unspecified -> lineHeight
+        fontSize != TextUnit.Unspecified -> (fontSize.value + 2f).sp
+        else -> 14.sp
+    },
+)

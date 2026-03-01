@@ -702,6 +702,7 @@ struct PracticeSettingsSectionView: View {
     let onImportLeagueCSV: () -> Void
     let onCloudSyncChanged: (Bool) -> Void
     let onResetPracticeLog: () -> Void
+    @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -734,14 +735,14 @@ struct PracticeSettingsSectionView: View {
                         Text("No player names found")
                     } else {
                         ForEach(leaguePlayerOptions, id: \.self) { name in
-                            Button(redactName(name)) {
+                            Button(displayLPLPlayerName(name)) {
                                 leaguePlayerName = name
                             }
                         }
                     }
                 } label: {
                     HStack(spacing: 8) {
-                        Text(leaguePlayerName.isEmpty ? "Select league player" : redactName(leaguePlayerName))
+                        Text(leaguePlayerName.isEmpty ? "Select league player" : displayLPLPlayerName(leaguePlayerName))
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .lineLimit(1)
@@ -772,10 +773,10 @@ struct PracticeSettingsSectionView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .appPanelStyle()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Defaults")
@@ -811,5 +812,10 @@ struct PracticeSettingsSectionView: View {
             .appPanelStyle()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func displayLPLPlayerName(_ raw: String) -> String {
+        _ = showFullLPLLastNames
+        return formatLPLPlayerNameForDisplay(raw)
     }
 }

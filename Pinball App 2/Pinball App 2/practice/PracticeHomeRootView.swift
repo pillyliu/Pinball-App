@@ -44,7 +44,7 @@ struct PracticeHomeRootView: View {
                         }
                         .padding(.leading, 8)
 
-                        PracticeHomeCardSection(
+                        PracticeHomeSection(
                             resumeGame: resumeGame,
                             allGames: allGames,
                             librarySources: librarySources,

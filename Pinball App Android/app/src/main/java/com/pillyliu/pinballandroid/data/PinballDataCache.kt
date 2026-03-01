@@ -9,7 +9,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -50,6 +52,7 @@ object PinballDataCache {
     private val mutex = Mutex()
     private val indexIoLock = Any()
     private val refreshScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val remoteRequestLimiter = Semaphore(8)
 
     @Volatile
     private var appContext: Context? = null
@@ -100,6 +103,33 @@ object PinballDataCache {
         if (fetched.isMissing) {
             return@withContext CachedTextResult(text = null, isMissing = true, updatedAtMs = null)
         }
+        val text = fetched.bytes?.decodeToString()
+        CachedTextResult(text = text, isMissing = text == null, updatedAtMs = fetched.updatedAtMs)
+    }
+
+    suspend fun loadText(url: String, allowMissing: Boolean = false, maxCacheAgeMs: Long): CachedTextResult = withContext(Dispatchers.IO) {
+        val path = normalizePath(url)
+        ensureLoaded()
+
+        if (isMissingAndFresh(path, maxCacheAgeMs)) {
+            return@withContext CachedTextResult(text = null, isMissing = true, updatedAtMs = null)
+        }
+
+        val cached = readCached(path)
+        val updatedAtMs = cachedUpdatedAtMs(path)
+        if (cached != null && updatedAtMs != null && System.currentTimeMillis() - updatedAtMs < maxCacheAgeMs) {
+            return@withContext CachedTextResult(
+                text = cached.decodeToString(),
+                isMissing = false,
+                updatedAtMs = updatedAtMs,
+            )
+        }
+
+        val fetched = fetchBytes(path, allowMissing)
+        if (fetched.isMissing) {
+            return@withContext CachedTextResult(text = null, isMissing = true, updatedAtMs = null)
+        }
+
         val text = fetched.bytes?.decodeToString()
         CachedTextResult(text = text, isMissing = text == null, updatedAtMs = fetched.updatedAtMs)
     }
@@ -158,23 +188,25 @@ object PinballDataCache {
 
         val url = "$BASE_URL$path"
         return try {
-            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                connectTimeout = 15000
-                readTimeout = 20000
-                requestMethod = "GET"
-                setRequestProperty("Cache-Control", "no-cache")
-            }
+            remoteRequestLimiter.withPermit {
+                val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 15000
+                    readTimeout = 20000
+                    requestMethod = "GET"
+                    setRequestProperty("Cache-Control", "no-cache")
+                }
 
-            val code = conn.responseCode
-            if (code == 404 && allowMissing) {
-                upsertIndex(path = path, hash = null, missing = true)
-                CachedBytesResult(bytes = null, isMissing = true, updatedAtMs = null)
-            } else {
-                if (code !in 200..299) throw IllegalStateException("Fetch failed ($code) for $url")
-                val bytes = conn.inputStream.use { it.readBytes() }
-                writeCached(path, bytes)
-                upsertIndex(path = path, hash = manifestFiles[path], missing = false)
-                CachedBytesResult(bytes = bytes, isMissing = false, updatedAtMs = cachedUpdatedAtMs(path))
+                val code = conn.responseCode
+                if (code == 404 && allowMissing) {
+                    upsertIndex(path = path, hash = null, missing = true)
+                    CachedBytesResult(bytes = null, isMissing = true, updatedAtMs = null)
+                } else {
+                    if (code !in 200..299) throw IllegalStateException("Fetch failed ($code) for $url")
+                    val bytes = conn.inputStream.use { it.readBytes() }
+                    writeCached(path, bytes)
+                    upsertIndex(path = path, hash = manifestFiles[path], missing = false)
+                    CachedBytesResult(bytes = bytes, isMissing = false, updatedAtMs = cachedUpdatedAtMs(path))
+                }
             }
         } catch (t: Throwable) {
             val stale = readCached(path)
@@ -306,15 +338,19 @@ object PinballDataCache {
     }
 
     private fun httpText(url: String): String {
-        val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-            connectTimeout = 15000
-            readTimeout = 20000
-            requestMethod = "GET"
-            setRequestProperty("Cache-Control", "no-cache")
+        return kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+            remoteRequestLimiter.withPermit {
+                val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 15000
+                    readTimeout = 20000
+                    requestMethod = "GET"
+                    setRequestProperty("Cache-Control", "no-cache")
+                }
+                val code = conn.responseCode
+                if (code !in 200..299) throw IllegalStateException("Fetch failed ($code) for $url")
+                conn.inputStream.bufferedReader().use { it.readText() }
+            }
         }
-        val code = conn.responseCode
-        if (code !in 200..299) throw IllegalStateException("Fetch failed ($code) for $url")
-        return conn.inputStream.bufferedReader().use { it.readText() }
     }
 
     private fun normalizePath(urlOrPath: String): String {
@@ -344,15 +380,17 @@ object PinballDataCache {
 
     suspend fun passthroughOrCachedBytes(url: String, allowMissing: Boolean = false): CachedBytesResult {
         if (!shouldCacheByManifest(url)) {
-            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                connectTimeout = 15000
-                readTimeout = 20000
-                requestMethod = "GET"
+            return remoteRequestLimiter.withPermit {
+                val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 15000
+                    readTimeout = 20000
+                    requestMethod = "GET"
+                }
+                val code = conn.responseCode
+                if (code == 404 && allowMissing) return@withPermit CachedBytesResult(bytes = null, isMissing = true)
+                if (code !in 200..299) throw IllegalStateException("Fetch failed ($code) for $url")
+                CachedBytesResult(bytes = conn.inputStream.use { it.readBytes() }, isMissing = false, updatedAtMs = System.currentTimeMillis())
             }
-            val code = conn.responseCode
-            if (code == 404 && allowMissing) return CachedBytesResult(bytes = null, isMissing = true)
-            if (code !in 200..299) throw IllegalStateException("Fetch failed ($code) for $url")
-            return CachedBytesResult(bytes = conn.inputStream.use { it.readBytes() }, isMissing = false, updatedAtMs = System.currentTimeMillis())
         }
         return loadBytes(url, allowMissing)
     }
@@ -472,6 +510,20 @@ object PinballDataCache {
                 val root = readOrInitIndexRoot(context)
                 val resources = root.optJSONObject("resources") ?: return@runCatching false
                 resources.optJSONObject(path)?.optBoolean("missing", false) == true
+            }.getOrDefault(false)
+        }
+    }
+
+    private fun isMissingAndFresh(path: String, maxCacheAgeMs: Long): Boolean {
+        val context = appContext ?: return false
+        return synchronized(indexIoLock) {
+            runCatching {
+                val root = readOrInitIndexRoot(context)
+                val resources = root.optJSONObject("resources") ?: return@runCatching false
+                val resource = resources.optJSONObject(path) ?: return@runCatching false
+                val missing = resource.optBoolean("missing", false)
+                val lastValidatedAt = resource.optLong("lastValidatedAt", 0L)
+                missing && lastValidatedAt > 0L && (System.currentTimeMillis() - lastValidatedAt) < maxCacheAgeMs
             }.getOrDefault(false)
         }
     }

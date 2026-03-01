@@ -1,6 +1,28 @@
 import Foundation
 import CryptoKit
 
+nonisolated func loadBundledPinballData(path: String) throws -> Data? {
+    let normalizedPath = path.hasPrefix("/") ? path : "/" + path
+    guard normalizedPath.hasPrefix("/pinball/"),
+          let starterBundleURL = Bundle.main.url(forResource: "PinballStarter", withExtension: "bundle") else {
+        return nil
+    }
+
+    let relativePath = String(normalizedPath.dropFirst("/pinball/".count))
+    let fileURL = starterBundleURL
+        .appendingPathComponent("pinball", isDirectory: true)
+        .appendingPathComponent(relativePath)
+    guard FileManager.default.fileExists(atPath: fileURL.path) else {
+        return nil
+    }
+    return try Data(contentsOf: fileURL)
+}
+
+nonisolated func loadBundledPinballText(path: String) throws -> String? {
+    guard let data = try loadBundledPinballData(path: path) else { return nil }
+    return String(data: data, encoding: .utf8) ?? String(data: data, encoding: .unicode)
+}
+
 struct CachedTextResult {
     let text: String?
     let isMissing: Bool
@@ -9,6 +31,37 @@ struct CachedTextResult {
 
 actor PinballDataCache {
     static let shared = PinballDataCache()
+
+    private actor RequestLimiter {
+        private let limit: Int
+        private var inFlight = 0
+        private var waiters: [CheckedContinuation<Void, Never>] = []
+
+        init(limit: Int) {
+            self.limit = max(1, limit)
+        }
+
+        func acquire() async {
+            if inFlight < limit {
+                inFlight += 1
+                return
+            }
+
+            await withCheckedContinuation { continuation in
+                waiters.append(continuation)
+            }
+        }
+
+        func release() {
+            if let waiter = waiters.first {
+                waiters.removeFirst()
+                waiter.resume()
+                return
+            }
+
+            inFlight = max(0, inFlight - 1)
+        }
+    }
 
     private struct Manifest: Decodable {
         struct Entry: Decodable {
@@ -78,6 +131,7 @@ actor PinballDataCache {
     private var index = CacheIndex()
     private var manifest: Manifest?
     private var inFlightRevalidations: Set<String> = []
+    private let remoteImageLimiter = RequestLimiter(limit: 8)
 
     private let fileManager = FileManager.default
     private let encoder = JSONEncoder()
@@ -100,6 +154,25 @@ actor PinballDataCache {
     func forceRefreshText(path: String, allowMissing: Bool = false) async throws -> CachedTextResult {
         try await ensureLoaded()
         let normalizedPath = normalize(path)
+        return try await fetchTextFromNetwork(path: normalizedPath, allowMissing: allowMissing)
+    }
+
+    func loadText(path: String, allowMissing: Bool = false, maxCacheAge: TimeInterval) async throws -> CachedTextResult {
+        try await ensureLoaded()
+        let normalizedPath = normalize(path)
+
+        if let resource = index.resources[normalizedPath],
+           resource.missing,
+           Date().timeIntervalSince1970 - resource.lastValidatedAt < maxCacheAge {
+            return CachedTextResult(text: nil, isMissing: true, updatedAt: nil)
+        }
+
+        if let cached = try cachedText(for: normalizedPath),
+           let updatedAt = cached.updatedAt,
+           Date().timeIntervalSince(updatedAt) < maxCacheAge {
+            return cached
+        }
+
         return try await fetchTextFromNetwork(path: normalizedPath, allowMissing: allowMissing)
     }
 
@@ -127,13 +200,7 @@ actor PinballDataCache {
         try await ensureLoaded()
 
         guard shouldUseManifestCache(for: url) else {
-            var request = URLRequest(url: url)
-            request.timeoutInterval = 20
-            let (data, response) = try await URLSession.shared.data(for: request)
-            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                throw URLError(.badServerResponse)
-            }
-            return data
+            return try await loadRemoteData(url: url)
         }
 
         let path = normalize(url.path)
@@ -145,6 +212,23 @@ actor PinballDataCache {
         let fetched = try await fetchBinaryFromNetwork(path: path, allowMissing: false)
         guard let data = fetched else {
             throw URLError(.resourceUnavailable)
+        }
+        return data
+    }
+
+    private func loadRemoteData(url: URL) async throws -> Data {
+        await remoteImageLimiter.acquire()
+        defer {
+            Task {
+                await remoteImageLimiter.release()
+            }
+        }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 20
+        let (data, response) = try await URLSession.shared.data(for: request)
+        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            throw URLError(.badServerResponse)
         }
         return data
     }

@@ -8,11 +8,14 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.pillyliu.pinballandroid.library.RulesheetRemoteSource
 
 internal class PracticeScreenState(initialJournalFilter: JournalFilter) {
     var route by mutableStateOf(PracticeRoute.Home)
     var selectedGameSlug by mutableStateOf<String?>(null)
     var selectedPlayfieldUrls by mutableStateOf<List<String>>(emptyList())
+    var selectedRulesheetSource by mutableStateOf<RulesheetRemoteSource?>(null)
+    var selectedExternalRulesheetUrl by mutableStateOf<String?>(null)
     var journalFilter by mutableStateOf(initialJournalFilter)
     var journalSelectionMode by mutableStateOf(false)
     var selectedJournalRowIds by mutableStateOf<Set<String>>(emptySet())
@@ -70,6 +73,8 @@ internal class PracticeScreenState(initialJournalFilter: JournalFilter) {
         routeHistory.clear()
         journalSelectionMode = false
         selectedJournalRowIds = emptySet()
+        selectedRulesheetSource = null
+        selectedExternalRulesheetUrl = null
         route = PracticeRoute.Home
     }
 

@@ -16,15 +16,6 @@ extension PracticeStore {
         return formatter
     }()
 
-    static let machineAliases: [String: [String]] = [
-        "tmnt": ["teenagemutantninjaturtles"],
-        "thegetaway": ["thegetawayhighspeedii"],
-        "starwars2017": ["starwars"],
-        "jurassicparkstern2019": ["jurassicpark", "jurassicpark2019"],
-        "attackfrommars": ["attackfrommarsremake"],
-        "dungeonsanddragons": ["dungeonsdragons"]
-    ]
-
     func comparePlayers(yourName: String, opponentName: String) async -> HeadToHeadComparison? {
         let yourNormalized = normalizeHumanName(yourName)
         let opponentNormalized = normalizeHumanName(opponentName)
@@ -211,18 +202,7 @@ extension PracticeStore {
     }
 
     func matchGameID(fromMachine machine: String) -> String? {
-        let normalizedMachine = normalizeMachineName(machine)
-        if let exact = games.first(where: { normalizeMachineName($0.name) == normalizedMachine }) {
-            return exact.canonicalPracticeKey
-        }
-
-        if let fuzzy = games.first(where: {
-            let candidate = normalizeMachineName($0.name)
-            return candidate.contains(normalizedMachine) || normalizedMachine.contains(candidate)
-        }) {
-            return fuzzy.canonicalPracticeKey
-        }
-        return nil
+        LibraryGameLookup.bestMatch(gameName: machine, games: games)?.canonicalPracticeKey
     }
 
     func isDuplicateLeagueScore(gameID: String, score: Double, eventDate: Date) -> Bool {
@@ -242,19 +222,9 @@ extension PracticeStore {
             .joined(separator: " ")
     }
 
-    func normalizeMachineName(_ raw: String) -> String {
-        raw.lowercased()
-            .replacingOccurrences(of: "&", with: " and ")
-            .unicodeScalars
-            .filter { CharacterSet.alphanumerics.contains($0) }
-            .map(String.init)
-            .joined()
-    }
-
     func leagueTargetScores(forGameName gameName: String) -> LeagueTargetScores? {
-        let normalized = normalizeMachineName(gameName)
-        let aliases = Self.machineAliases[normalized] ?? []
-        let keys = [normalized] + aliases
+        let keys = LibraryGameLookup.candidateKeys(gameName: gameName)
+        guard !keys.isEmpty else { return nil }
 
         for key in keys {
             if let exact = leagueTargetsByNormalizedMachine[key] {

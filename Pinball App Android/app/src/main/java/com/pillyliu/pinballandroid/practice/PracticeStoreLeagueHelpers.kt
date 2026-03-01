@@ -1,6 +1,7 @@
 package com.pillyliu.pinballandroid.practice
 
 import com.pillyliu.pinballandroid.data.parseCsv
+import com.pillyliu.pinballandroid.library.LibraryGameLookup
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -12,8 +13,7 @@ internal data class LeagueCsvRow(
     val rawScore: Double,
 )
 
-internal fun normalizeMachine(value: String): String =
-    value.lowercase(Locale.US).replace("&", " and ").filter { it.isLetterOrDigit() }
+internal fun normalizeMachine(value: String): String = LibraryGameLookup.normalizeMachineName(value)
 
 internal fun normalizeHumanName(value: String): String =
     value.lowercase(Locale.US).trim().split(Regex("\\s+")).filter { it.isNotBlank() }.joinToString(" ")
@@ -64,7 +64,7 @@ internal fun parseLeagueTargets(text: String): Map<String, LeagueTargetScores> {
         val great = row[secondIndex].replace(",", "").trim().toDoubleOrNull() ?: return@forEach
         val main = row[fourthIndex].replace(",", "").trim().toDoubleOrNull() ?: return@forEach
         val floor = row[eighthIndex].replace(",", "").trim().toDoubleOrNull() ?: return@forEach
-        targets[normalizeMachine(game)] = LeagueTargetScores(great = great, main = main, floor = floor)
+        targets[LibraryGameLookup.normalizeMachineName(game)] = LeagueTargetScores(great = great, main = main, floor = floor)
     }
     return targets
 }
@@ -73,8 +73,8 @@ internal fun resolveLeagueTargetScores(
     gameName: String,
     targetsByNormalizedMachine: Map<String, LeagueTargetScores>,
 ): LeagueTargetScores? {
-    val normalized = normalizeMachine(gameName)
-    val keys = listOf(normalized) + (MACHINE_ALIASES[normalized] ?: emptyList())
+    val keys = LibraryGameLookup.candidateKeys(gameName)
+    if (keys.isEmpty()) return null
 
     keys.forEach { key ->
         targetsByNormalizedMachine[key]?.let { return it }
@@ -85,12 +85,3 @@ internal fun resolveLeagueTargetScores(
     }
     return loose?.value
 }
-
-private val MACHINE_ALIASES = mapOf(
-    "tmnt" to listOf("teenagemutantninjaturtles"),
-    "thegetaway" to listOf("thegetawayhighspeedii"),
-    "starwars2017" to listOf("starwars"),
-    "jurassicparkstern2019" to listOf("jurassicpark", "jurassicpark2019"),
-    "attackfrommars" to listOf("attackfrommarsremake"),
-    "dungeonsanddragons" to listOf("dungeonsdragons"),
-)

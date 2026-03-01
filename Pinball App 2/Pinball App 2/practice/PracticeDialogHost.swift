@@ -227,5 +227,11 @@ extension PracticeScreen {
                 selectedJournalItemIDs.removeAll()
                 isEditingJournalEntries = false
             }
+            .onReceive(NotificationCenter.default.publisher(for: .pinballLibrarySourcesDidChange)) { _ in
+                Task {
+                    await store.loadGames()
+                    applyDefaultsAfterLoad()
+                }
+            }
     }
 }

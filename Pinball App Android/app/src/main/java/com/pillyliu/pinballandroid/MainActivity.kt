@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +49,7 @@ import com.pillyliu.pinballandroid.league.LeagueDestination
 import com.pillyliu.pinballandroid.league.LeagueScreen
 import com.pillyliu.pinballandroid.library.LibraryScreen
 import com.pillyliu.pinballandroid.practice.PracticeScreen
+import com.pillyliu.pinballandroid.settings.SettingsScreen
 import com.pillyliu.pinballandroid.standings.StandingsScreen
 import com.pillyliu.pinballandroid.stats.StatsScreen
 import com.pillyliu.pinballandroid.targets.TargetsScreen
@@ -86,6 +88,7 @@ private enum class PinballTab {
     Library,
     Practice,
     About,
+    Settings,
 }
 
 @Composable
@@ -132,6 +135,7 @@ private fun PinballApp() {
                     val paddedForTabBar = contentPaddingWithExtra(padding, extraBottom = 74.dp)
                     when (selectedTab) {
                         PinballTab.About -> AboutScreen(contentPadding = paddedForTabBar)
+                        PinballTab.Settings -> SettingsScreen(contentPadding = paddedForTabBar)
                         PinballTab.Practice -> PracticeScreen(contentPadding = paddedForTabBar)
                         PinballTab.League -> {
                             when (leagueDestination) {
@@ -210,6 +214,14 @@ private fun PinballApp() {
                                     onClick = { selectedTab = PinballTab.Practice },
                                     icon = { Icon(Icons.Outlined.SportsEsports, contentDescription = "Practice") },
                                     label = { Text("Practice") },
+                                    alwaysShowLabel = false,
+                                    colors = tabItemColors,
+                                )
+                                NavigationBarItem(
+                                    selected = selectedTab == PinballTab.Settings,
+                                    onClick = { selectedTab = PinballTab.Settings },
+                                    icon = { Icon(Icons.Outlined.Settings, contentDescription = "Settings") },
+                                    label = { Text("Settings") },
                                     alwaysShowLabel = false,
                                     colors = tabItemColors,
                                 )

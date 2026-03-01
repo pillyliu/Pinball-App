@@ -19,6 +19,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -39,6 +40,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -62,6 +64,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -111,6 +114,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 @Composable
@@ -118,7 +122,8 @@ internal fun LibraryDetailScreen(
     contentPadding: PaddingValues,
     game: PinballGame,
     onBack: () -> Unit,
-    onOpenRulesheet: () -> Unit,
+    onOpenRulesheet: (RulesheetRemoteSource?) -> Unit,
+    onOpenExternalRulesheet: (String) -> Unit,
     onOpenPlayfield: (String) -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
@@ -131,7 +136,7 @@ internal fun LibraryDetailScreen(
     var activeVideoId by rememberSaveable(game.slug) {
         mutableStateOf<String?>(null)
     }
-    val hasRulesheet = !game.rulesheetLocal.isNullOrBlank()
+    val hasRulesheet = game.hasRulesheetResource
 
     LaunchedEffect(game.slug) {
         if (infoStatus == "loaded" || infoStatus == "missing") return@LaunchedEffect
@@ -178,7 +183,7 @@ internal fun LibraryDetailScreen(
                     modifier = Modifier.align(Alignment.CenterStart),
                 )
                 Text(
-                    text = if (!game.variant.isNullOrBlank()) "${game.name} • ${game.variant}" else game.name,
+                    text = if (game.normalizedVariant != null) "${game.name} • ${game.normalizedVariant}" else game.name,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -191,159 +196,35 @@ internal fun LibraryDetailScreen(
                 )
             }
 
-            CardContainer {
-                FallbackAsyncImage(
-                    urls = game.gameInlinePlayfieldCandidates(),
-                    contentDescription = game.name,
-                    modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
-                    contentScale = ContentScale.FillWidth,
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        game.name,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    game.variant?.takeIf { it.isNotBlank() }?.let { variant ->
-                        Text(
-                            text = variant,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-                                )
-                                .border(
-                                    width = 0.75.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant,
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-                                )
-                                .padding(horizontal = 10.dp, vertical = 5.dp),
-                        )
-                    }
-                }
-                Text(game.metaLine(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onOpenRulesheet, enabled = hasRulesheet) { Text("Rulesheet") }
-                    game.fullscreenPlayfieldCandidates().firstOrNull()?.let { url ->
-                        OutlinedButton(onClick = { onOpenPlayfield(url) }) { Text("Playfield") }
-                    }
-                }
-            }
+            LibraryDetailScreenshotSection(game = game)
 
-            CardContainer {
-                SectionTitle("Videos")
-                val playableVideos = game.videos.mapNotNull { v ->
-                    youtubeId(v.url)?.let { id ->
-                        val fallback = v.kind?.replaceFirstChar { c -> c.titlecase() } ?: "Video"
-                        id to (v.label ?: fallback)
-                    }
-                }
-                if (playableVideos.isEmpty()) {
-                    Text("No videos listed.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
-                    activeVideoId?.let { id ->
-                        EmbeddedYouTubeView(
-                            videoId = id,
-                            modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
-                        )
-                    } ?: Text("Tap a video below to load player.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    BoxWithConstraints {
-                        val tileWidth = (maxWidth - 10.dp) / 2
-                        val rows = playableVideos.chunked(2)
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            rows.forEach { rowItems ->
-                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    rowItems.forEach { (id, label) ->
-                                        VideoTile(
-                                            videoId = id,
-                                            label = label,
-                                            selected = activeVideoId == id,
-                                            width = tileWidth,
-                                            onSelect = {
-                                                activeVideoId = id
-                                                LibraryActivityLog.log(context, game.slug, game.name, LibraryActivityKind.TapVideo, label)
-                                            },
-                                        )
-                                    }
-                                    if (rowItems.size == 1) {
-                                        Spacer(Modifier.width(tileWidth))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            LibraryDetailSummaryCard(
+                game = game,
+                hasRulesheet = hasRulesheet,
+                onOpenRulesheet = onOpenRulesheet,
+                onOpenExternalRulesheet = onOpenExternalRulesheet,
+                onOpenPlayfield = onOpenPlayfield,
+            )
 
-            CardContainer {
-                SectionTitle("Game Info")
-                when (infoStatus) {
-                    "loading" -> Text("Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    "missing" -> Text("No game info yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    "error" -> Text("Could not load game info.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    else -> CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-                        val linkColor = MaterialTheme.colorScheme.primary
-                        val gameInfoStyle = remember {
-                            RichTextStyle.Default.copy(
-                                stringStyle = RichTextStringStyle.Default.copy(
-                                    linkStyle = SpanStyle(color = linkColor),
-                                ),
-                            )
-                        }
-                        RichText(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 20.dp),
-                            style = gameInfoStyle,
-                        ) {
-                            Markdown(markdown.orEmpty())
-                        }
-                    }
-                }
-            }
+            LibraryDetailVideosCard(
+                game = game,
+                activeVideoId = activeVideoId,
+                onActiveVideoIdChange = { activeVideoId = it },
+            )
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-            ) {
-                game.rulesheetUrl?.let {
-                    OutlinedButton(
-                        onClick = { uriHandler.openUri(it) },
-                        modifier = Modifier.defaultMinSize(minHeight = 32.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                        ),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    ) {
-                        Text("Rulesheet (source)", fontSize = 12.sp)
-                    }
-                }
-                game.playfieldImageUrl?.let {
-                    OutlinedButton(
-                        onClick = { uriHandler.openUri(it) },
-                        modifier = Modifier.defaultMinSize(minHeight = 32.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                        ),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    ) {
-                        Text("Playfield (source)", fontSize = 12.sp)
-                    }
-                }
-            }
-            if (game.rulesheetUrl.isNullOrBlank() && game.playfieldImageUrl.isNullOrBlank()) {
+            LibraryDetailGameInfoCard(
+                infoStatus = infoStatus,
+                markdown = markdown,
+            )
+
+            LibraryDetailSourcesSection(
+                game = game,
+                hasRulesheet = hasRulesheet,
+                onOpenRulesheet = onOpenRulesheet,
+                onOpenExternalRulesheet = onOpenExternalRulesheet,
+                onOpenPlayfield = onOpenPlayfield,
+            )
+            if (!game.hasRulesheetResource && !game.hasPlayfieldResource) {
                 Text(
                     "No sources available.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -355,305 +236,8 @@ internal fun LibraryDetailScreen(
     }
 }
 
-@SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun EmbeddedYouTubeView(videoId: String, modifier: Modifier = Modifier) {
-    var loadedVideoId by remember(videoId) { mutableStateOf<String?>(null) }
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-            WebView(context).apply {
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.mediaPlaybackRequiresUserGesture = false
-                settings.loadsImagesAutomatically = true
-                settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                settings.useWideViewPort = false
-                settings.loadWithOverviewMode = false
-                setBackgroundColor(android.graphics.Color.BLACK)
-                webChromeClient = WebChromeClient()
-                webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean = false
-                    override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean = false
-                }
-            }
-        },
-        update = { webView ->
-            if (loadedVideoId != videoId) {
-                loadedVideoId = videoId
-                webView.loadUrl("https://m.youtube.com/watch?v=$videoId&app=m")
-            }
-        },
-        onRelease = { webView ->
-            webView.stopLoading()
-            webView.destroy()
-        },
-    )
-}
-
-@Composable
-internal fun RulesheetScreen(
-    contentPadding: PaddingValues,
-    slug: String,
-    remoteCandidates: List<String>? = null,
-    onBack: () -> Unit,
-    practiceSavedRatio: Float? = null,
-    onSavePracticeRatio: ((Float) -> Unit)? = null,
-) {
-    val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences("rulesheet-progress-v1", android.content.Context.MODE_PRIVATE) }
-    var status by rememberSaveable(slug) { mutableStateOf("loading") }
-    var markdown by rememberSaveable(slug) { mutableStateOf("") }
-    var chromeVisible by rememberSaveable(slug) { mutableStateOf(false) }
-    var progressRatio by rememberSaveable(slug) { mutableFloatStateOf(0f) }
-    var savedRatio by rememberSaveable(slug) { mutableFloatStateOf(0f) }
-    var showResumePrompt by rememberSaveable(slug) { mutableStateOf(false) }
-    var evaluatedResumePrompt by rememberSaveable(slug) { mutableStateOf(false) }
-    var resumeTargetRatio by rememberSaveable(slug) { mutableStateOf<Float?>(null) }
-    var resumeRequestId by rememberSaveable(slug) { mutableIntStateOf(0) }
-
-    LaunchedEffect(slug, practiceSavedRatio) {
-        val key = "rulesheet-last-progress-$slug"
-        val stored = prefs.getFloat(key, 0f).coerceIn(0f, 1f)
-        savedRatio = (practiceSavedRatio ?: stored).coerceIn(0f, 1f)
-    }
-
-    LaunchedEffect(slug) {
-        if (status == "loaded" || status == "missing") return@LaunchedEffect
-        val urls = (remoteCandidates?.filter { it.isNotBlank() } ?: emptyList())
-            .ifEmpty { listOf("https://pillyliu.com/pinball/rulesheets/$slug.md") }
-        var saw404 = false
-        for (url in urls) {
-            val (code, text) = downloadTextAllowMissing(url)
-            when {
-                code == 404 -> {
-                    saw404 = true
-                }
-                code in 200..299 && !text.isNullOrBlank() -> {
-                    status = "loaded"
-                    markdown = normalizeRulesheet(text) + RULESHEET_BOTTOM_MARKDOWN_FILLER
-                    return@LaunchedEffect
-                }
-            }
-        }
-        status = if (saw404) "missing" else "error"
-    }
-
-    AppScreen(contentPadding, horizontalPadding = 8.dp) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            when (status) {
-                "loading" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Loading rulesheet...", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                "missing" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Rulesheet not available.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                "error" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Could not load rulesheet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                else -> MarkdownWebView(
-                    markdown,
-                    Modifier.fillMaxSize(),
-                    stateKey = "rulesheet-$slug",
-                    resumeRequestId = resumeRequestId,
-                    resumeTargetRatio = resumeTargetRatio,
-                    onTap = { chromeVisible = !chromeVisible },
-                    onProgressChange = { progressRatio = it },
-                )
-            }
-            if (status == "loaded" && !evaluatedResumePrompt) {
-                evaluatedResumePrompt = true
-                if (savedRatio > 0.001f) {
-                    showResumePrompt = true
-                }
-            }
-            if (status == "loaded") {
-                val percentText = "${(progressRatio.coerceIn(0f, 1f) * 100f).roundToInt()}%"
-                val savedPercent = (savedRatio.coerceIn(0f, 1f) * 100f).roundToInt()
-                val needsSave = savedPercent != (progressRatio.coerceIn(0f, 1f) * 100f).roundToInt()
-                val pulse = rememberInfiniteTransition(label = "rulesheetPercentPulse")
-                val pulseAlpha by pulse.animateFloat(
-                    initialValue = 1f,
-                    targetValue = 0.5f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(durationMillis = 1050),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                    label = "pulseAlpha",
-                )
-                Text(
-                    text = percentText,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 12.dp, end = 12.dp)
-                        .clickable {
-                            val clamped = progressRatio.coerceIn(0f, 1f)
-                            savedRatio = clamped
-                            prefs.edit { putFloat("rulesheet-last-progress-$slug", clamped) }
-                            onSavePracticeRatio?.invoke(clamped)
-                        }
-                        .then(
-                            if (needsSave) Modifier else Modifier
-                        )
-                        .background(
-                            if (needsSave) {
-                                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.76f)
-                            } else {
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.84f)
-                            },
-                            RoundedCornerShape(999.dp),
-                        )
-                        .border(
-                            width = 0.5.dp,
-                            color = if (needsSave) {
-                                MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
-                            } else {
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.9f)
-                            },
-                            shape = RoundedCornerShape(999.dp),
-                        )
-                        .graphicsLayer {
-                            alpha = if (needsSave) pulseAlpha else 1f
-                        }
-                        .padding(horizontal = 9.dp, vertical = 4.dp),
-                )
-            }
-            if (chromeVisible) {
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(top = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    GlassBackButton(onClick = onBack)
-                }
-            }
-        }
-    }
-    if (showResumePrompt) {
-        AlertDialog(
-            onDismissRequest = { showResumePrompt = false },
-            title = { Text("Return to last saved position?") },
-            text = { Text("Return to ${(savedRatio * 100f).roundToInt()}%?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    resumeTargetRatio = savedRatio
-                    resumeRequestId += 1
-                    showResumePrompt = false
-                }) { Text("Yes") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showResumePrompt = false }) { Text("No") }
-            },
-        )
-    }
-}
-
-@Composable
-internal fun PlayfieldScreen(contentPadding: PaddingValues, title: String, imageUrls: List<String>, onBack: () -> Unit) {
-    val bottomBarVisible = LocalBottomBarVisible.current
-    var chromeVisible by rememberSaveable(title) { mutableStateOf(false) }
-    val adaptiveTitleColor = rememberPlayfieldTitleColor(imageUrls)
-
-    LaunchedEffect(chromeVisible) {
-        bottomBarVisible.value = chromeVisible
-    }
-    DisposableEffect(Unit) {
-        onDispose { bottomBarVisible.value = true }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .iosEdgeSwipeBack(enabled = true, onBack = onBack),
-    ) {
-        ZoomablePlayfieldImage(
-            imageUrls = imageUrls,
-            title = title,
-            modifier = Modifier.fillMaxSize(),
-            onTap = { chromeVisible = !chromeVisible },
-        )
-
-        if (chromeVisible) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(contentPadding)
-                    .padding(start = 14.dp, end = 14.dp, top = 8.dp),
-            ) {
-                GlassBackButton(
-                    onClick = onBack,
-                    modifier = Modifier.align(Alignment.CenterStart),
-                )
-                Text(
-                    text = title,
-                    color = adaptiveTitleColor,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                        .padding(horizontal = 50.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun rememberPlayfieldTitleColor(imageUrls: List<String>): Color {
-    val context = LocalContext.current
-    val fallback = MaterialTheme.colorScheme.onSurface
-    val candidates = imageUrls.filter { it.isNotBlank() }.distinct()
-    val primaryModel = rememberCachedImageModel(candidates.firstOrNull())
-    val titleColor by produceState(initialValue = fallback, key1 = primaryModel) {
-        value = fallback
-        val model = primaryModel ?: return@produceState
-        val request = ImageRequest.Builder(context)
-            .data(model)
-            .allowHardware(false)
-            .size(Size.ORIGINAL)
-            .build()
-        val result = runCatching { context.imageLoader.execute(request) }.getOrNull() ?: return@produceState
-        val bitmap = (result.drawable as? BitmapDrawable)?.bitmap ?: return@produceState
-        val luma = sampleTopCenterLuma(bitmap)
-        value = if (luma < 0.46) Color(0xFFF8FAFC) else Color(0xFF111827)
-    }
-    return titleColor
-}
-
-private fun sampleTopCenterLuma(bitmap: Bitmap): Double {
-    val width = bitmap.width
-    val height = bitmap.height
-    if (width <= 0 || height <= 0) return 0.5
-
-    val left = (width * 0.2f).toInt().coerceIn(0, width - 1)
-    val right = (width * 0.8f).toInt().coerceIn(left + 1, width)
-    val bottom = (height * 0.22f).toInt().coerceIn(1, height)
-    val stepX = maxOf(1, (right - left) / 36)
-    val stepY = maxOf(1, bottom / 18)
-
-    var total = 0.0
-    var count = 0
-    for (y in 0 until bottom step stepY) {
-        for (x in left until right step stepX) {
-            total += ColorUtils.calculateLuminance(bitmap[x, y])
-            count++
-        }
-    }
-    return if (count == 0) 0.5 else total / count
-}
-
-@Composable
-private fun GlassBackButton(
+internal fun GlassBackButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -670,189 +254,6 @@ private fun GlassBackButton(
             contentDescription = "Back",
             modifier = Modifier.size(18.dp),
         )
-    }
-}
-
-@Composable
-private fun ZoomablePlayfieldImage(
-    imageUrls: List<String>,
-    title: String,
-    modifier: Modifier = Modifier,
-    onTap: () -> Unit = {},
-) {
-    val context = LocalContext.current
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
-    val candidates = imageUrls.filter { it.isNotBlank() }.distinct()
-    var activeImageIndex by remember(candidates) { mutableIntStateOf(0) }
-    var imageLoaded by remember(candidates, activeImageIndex) { mutableStateOf(false) }
-    var lastTapAtMs by remember { mutableLongStateOf(0L) }
-    var singleTapJob by remember { mutableStateOf<Job?>(null) }
-    var animateTransform by remember { mutableStateOf(false) }
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    var offsetY by remember { mutableFloatStateOf(0f) }
-    var containerSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
-    val touchSlop = LocalViewConfiguration.current.touchSlop
-    val displayScale by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = scale,
-        animationSpec = if (animateTransform) tween(durationMillis = 220) else snap(),
-        label = "playfieldScale",
-    )
-    val displayOffsetX by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = offsetX,
-        animationSpec = if (animateTransform) tween(durationMillis = 220) else snap(),
-        label = "playfieldOffsetX",
-    )
-    val displayOffsetY by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = offsetY,
-        animationSpec = if (animateTransform) tween(durationMillis = 220) else snap(),
-        label = "playfieldOffsetY",
-    )
-
-    LaunchedEffect(candidates, activeImageIndex) {
-        imageLoaded = false
-        val url = candidates.getOrNull(activeImageIndex) ?: return@LaunchedEffect
-        if (activeImageIndex >= candidates.lastIndex) return@LaunchedEffect
-        val timeoutMs = when {
-            // Give full-res originals extra time; these can be many MB and legitimately slow.
-            url.contains("/pinball/images/playfields/") && !url.contains("_1400.") && !url.contains("_700.") -> 5000L
-            url.contains("_1400.") -> 2500L
-            else -> return@LaunchedEffect
-        }
-        delay(timeoutMs)
-        if (!imageLoaded && activeImageIndex < candidates.lastIndex) {
-            activeImageIndex += 1
-        }
-    }
-
-    Box(
-        modifier = modifier
-            .clipToBounds()
-            .onSizeChanged { containerSize = it }
-            .pointerInput(touchSlop) {
-                awaitEachGesture {
-                    var moved = false
-                    var multiTouch = false
-                    var transformed = false
-                    var activePointer: androidx.compose.ui.input.pointer.PointerId? = null
-                    var accumulatedMove = Offset.Zero
-                    var lastPointerPosition: Offset? = null
-
-                    do {
-                        val event = awaitPointerEvent()
-                        val pressedChanges = event.changes.filter { it.pressed }
-                        val pointersDown = pressedChanges.size
-                        if (pointersDown >= 2) multiTouch = true
-                        if (activePointer == null && pressedChanges.isNotEmpty()) {
-                            activePointer = pressedChanges.first().id
-                        }
-                        val tracked = pressedChanges.firstOrNull { it.id == activePointer } ?: pressedChanges.firstOrNull()
-                        if (tracked != null) {
-                            lastPointerPosition = tracked.position
-                            accumulatedMove += tracked.position - tracked.previousPosition
-                            if (accumulatedMove.getDistance() > touchSlop) moved = true
-                        }
-
-                        if (pointersDown >= 2 || scale > 1f) {
-                            if (animateTransform) animateTransform = false
-                            val zoom = event.calculateZoom()
-                            val pan = event.calculatePan()
-                            if (pointersDown >= 2 || kotlin.math.abs(zoom - 1f) > 0.01f || pan.getDistance() > 0f) {
-                                transformed = true
-                            }
-                            scale = (scale * zoom).coerceIn(1f, 6f)
-                            if (scale > 1f) {
-                                offsetX += pan.x
-                                offsetY += pan.y
-                            } else {
-                                offsetX = 0f
-                                offsetY = 0f
-                            }
-                        }
-                    } while (event.changes.any { it.pressed })
-
-                    if (!multiTouch && !moved && !transformed) {
-                        val now = android.os.SystemClock.uptimeMillis()
-                        val isDoubleTap = (now - lastTapAtMs) <= 325L
-                        if (isDoubleTap) {
-                            singleTapJob?.cancel()
-                            singleTapJob = null
-                            animateTransform = true
-                            if (scale > 1f) {
-                                scale = 1f
-                                offsetX = 0f
-                                offsetY = 0f
-                            } else {
-                                val targetScale = 2.5f
-                                val tap = lastPointerPosition
-                                    ?: Offset(containerSize.width / 2f, containerSize.height / 2f)
-                                val center = Offset(containerSize.width / 2f, containerSize.height / 2f)
-                                val delta = targetScale - scale
-                                scale = targetScale
-                                offsetX += (center.x - tap.x) * delta
-                                offsetY += (center.y - tap.y) * delta
-                            }
-                            scope.launch {
-                                delay(240)
-                                animateTransform = false
-                            }
-                            lastTapAtMs = 0L
-                        } else {
-                            lastTapAtMs = now
-                            singleTapJob?.cancel()
-                            singleTapJob = scope.launch {
-                                delay(325)
-                                if (lastTapAtMs == now) {
-                                    onTap()
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-    ) {
-        val activeUrl = candidates.getOrNull(activeImageIndex)
-        val cachedModel = rememberCachedImageModel(activeUrl)
-        val imageRequest = remember(cachedModel) {
-            cachedModel?.let { model ->
-                ImageRequest.Builder(context)
-                    .data(model)
-                    .size(Size.ORIGINAL)
-                    .build()
-            }
-        }
-        AsyncImage(
-            model = imageRequest,
-            contentDescription = title,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = displayScale
-                    scaleY = displayScale
-                    translationX = displayOffsetX
-                    translationY = displayOffsetY
-                },
-            contentScale = ContentScale.Fit,
-            onLoading = {
-                imageLoaded = false
-            },
-            onSuccess = {
-                imageLoaded = true
-            },
-            onError = {
-                if (activeImageIndex < candidates.lastIndex) {
-                    activeImageIndex += 1
-                }
-            },
-        )
-
-        if (!imageLoaded) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center),
-                color = Color.White.copy(alpha = 0.9f),
-                trackColor = Color.White.copy(alpha = 0.2f),
-            )
-        }
     }
 }
 
@@ -880,20 +281,7 @@ private fun FallbackAsyncImage(
 }
 
 @Composable
-private fun rememberCachedImageModel(url: String?): Any? {
-    if (url.isNullOrBlank()) return null
-    val model by produceState<Any?>(initialValue = url, key1 = url) {
-        value = try {
-            withContext(Dispatchers.IO) { PinballDataCache.resolveImageModel(url) }
-        } catch (_: Throwable) {
-            url
-        }
-    }
-    return model
-}
-
-@Composable
-private fun VideoTile(
+internal fun VideoTile(
     videoId: String,
     label: String,
     selected: Boolean,
@@ -917,196 +305,4 @@ private fun VideoTile(
         )
         Text(label, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
-}
-
-@SuppressLint("SetJavaScriptEnabled")
-@Composable
-private fun MarkdownWebView(
-    markdown: String,
-    modifier: Modifier = Modifier,
-    stateKey: String = "default",
-    resumeRequestId: Int = 0,
-    resumeTargetRatio: Float? = null,
-    onTap: (() -> Unit)? = null,
-    onProgressChange: (Float) -> Unit = {},
-) {
-    val bodyColorHex = MaterialTheme.colorScheme.onSurface.toCssHex()
-    val mutedColorHex = MaterialTheme.colorScheme.onSurfaceVariant.toCssHex()
-    val linkColorHex = MaterialTheme.colorScheme.primary.toCssHex()
-    val codeBgHex = MaterialTheme.colorScheme.surfaceContainerLowest.toCssHex()
-    val tableBorderHex = MaterialTheme.colorScheme.outlineVariant.toCssHex()
-    val webViewState = rememberSaveable(stateKey, saver = bundleParcelSaver) { Bundle() }
-    var savedScrollRatio by rememberSaveable(stateKey) { mutableFloatStateOf(0f) }
-    var loadedHash by remember(stateKey) { mutableStateOf<Int?>(null) }
-    var lastAppliedResumeRequestId by remember(stateKey) { mutableIntStateOf(-1) }
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-            WebView(context).apply {
-                var downX = 0f
-                var downY = 0f
-                setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                settings.javaScriptEnabled = false
-                settings.cacheMode = WebSettings.LOAD_NO_CACHE
-                settings.domStorageEnabled = true
-                isVerticalScrollBarEnabled = true
-                overScrollMode = WebView.OVER_SCROLL_IF_CONTENT_SCROLLS
-                setOnTouchListener { view, event ->
-                    when (event.actionMasked) {
-                        MotionEvent.ACTION_DOWN -> {
-                            downX = event.x
-                            downY = event.y
-                        }
-                        MotionEvent.ACTION_UP -> {
-                            val dx = kotlin.math.abs(event.x - downX)
-                            val dy = kotlin.math.abs(event.y - downY)
-                            if (dx < 12f && dy < 12f) {
-                                val webView = view as? WebView
-                                val hitType = webView?.hitTestResult?.type
-                                val isLinkTap = hitType == WebView.HitTestResult.SRC_ANCHOR_TYPE ||
-                                    hitType == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE
-                                if (!isLinkTap) {
-                                    onTap?.invoke()
-                                    view.performClick()
-                                }
-                            }
-                        }
-                    }
-                    if (event.action == MotionEvent.ACTION_DOWN || event.action == MotionEvent.ACTION_MOVE) {
-                        view.parent?.requestDisallowInterceptTouchEvent(true)
-                    }
-                    false
-                }
-                webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView?, url: String?) {
-                        super.onPageFinished(view, url)
-                        view?.post {
-                            view.requestLayout()
-                            view.invalidate()
-                        }
-                    }
-                }
-                setOnScrollChangeListener { view, _, scrollY, _, _ ->
-                    val webView = view as? WebView ?: return@setOnScrollChangeListener
-                    val contentPx = (webView.contentHeight * webView.resources.displayMetrics.density).toInt()
-                    val maxScroll = (contentPx - view.height).coerceAtLeast(1)
-                    savedScrollRatio = (scrollY.toFloat() / maxScroll.toFloat()).coerceIn(0f, 1f)
-                    onProgressChange(savedScrollRatio)
-                }
-                if (!webViewState.isEmpty) {
-                    restoreState(webViewState)
-                    post {
-                        val contentPx = (contentHeight * resources.displayMetrics.density).toInt()
-                        val maxScroll = (contentPx - height).coerceAtLeast(0)
-                        val contextOffset = (24f * resources.displayMetrics.density).toInt()
-                        val target = ((savedScrollRatio * maxScroll).toInt() - contextOffset).coerceAtLeast(0)
-                        scrollTo(0, target)
-                        onProgressChange(savedScrollRatio)
-                    }
-                }
-            }
-        },
-        update = { webView ->
-            val newHash = markdown.hashCode()
-            if (loadedHash == null && !webViewState.isEmpty) {
-                loadedHash = newHash
-            }
-            if (loadedHash != newHash) {
-                if (!webViewState.isEmpty) {
-                    webViewState.clear()
-                }
-                val renderedHtml = renderMarkdownHtml(markdown)
-                val html = """
-                    <!doctype html>
-                    <html>
-                    <head>
-                        <meta charset=\"utf-8\" />
-                        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
-                        <style>
-                            html, body { margin:0; padding:0; background:transparent !important; color:$bodyColorHex !important; overflow-x:hidden !important; width:100%; }
-                            body { padding:14px 16px; line-height:1.45; font-size:17px; box-sizing:border-box; }
-                            *, *:before, *:after { box-sizing:border-box; }
-                            * { color:$bodyColorHex !important; background: transparent !important; }
-                            #content { max-width:100%; overflow-x:hidden !important; overflow-wrap:anywhere !important; word-break:break-word !important; word-wrap:break-word !important; }
-                            p, li, dd, dt, small, div, span { color:$bodyColorHex !important; max-width:100% !important; overflow-wrap:anywhere !important; word-wrap:break-word !important; word-break:break-word !important; white-space:normal !important; }
-                            blockquote { color:$mutedColorHex !important; border-left:3px solid $tableBorderHex !important; padding-left:10px; }
-                            a { color:$linkColorHex !important; text-decoration:underline !important; text-underline-offset:2px; font-weight:600; max-width:100% !important; white-space:normal !important; overflow-wrap:anywhere !important; word-wrap:break-word !important; word-break:break-all !important; }
-                            code, pre { background:$codeBgHex !important; border-radius:6px !important; color:$bodyColorHex !important; }
-                            code { overflow-wrap:anywhere; word-break:break-all; white-space:pre-wrap; }
-                            pre {
-                                padding:10px;
-                                max-width:100%;
-                                overflow-x:hidden;
-                                white-space:pre-wrap;
-                                overflow-wrap:anywhere;
-                                word-break:break-all;
-                            }
-                            pre code {
-                                white-space:pre-wrap !important;
-                                overflow-wrap:anywhere !important;
-                                word-break:break-all !important;
-                            }
-                            table { border-collapse:collapse; width:100%; max-width:100%; table-layout:fixed; }
-                            th, td { border:1px solid $tableBorderHex; padding:6px 8px; word-break:break-word; overflow-wrap:anywhere; }
-                            img { max-width:100%; height:auto; display:block; }
-                            .rulesheet-attribution {
-                                display:block;
-                                font-size:0.78rem;
-                                line-height:1.35;
-                                opacity:0.78;
-                                margin-bottom:0.8rem;
-                            }
-                            .rulesheet-attribution, .rulesheet-attribution * { overflow-wrap:anywhere; word-break:break-word; }
-                        </style>
-                    </head>
-                    <body>
-                        <article id=\"content\">$renderedHtml</article>
-                    </body>
-                    </html>
-                """.trimIndent()
-                webView.loadDataWithBaseURL("https://pillyliu.com", html, "text/html", "utf-8", null)
-                loadedHash = newHash
-                webView.post {
-                    val contentPx = (webView.contentHeight * webView.resources.displayMetrics.density).toInt()
-                    val maxScroll = (contentPx - webView.height).coerceAtLeast(0)
-                    val contextOffset = (24f * webView.resources.displayMetrics.density).toInt()
-                    val target = ((savedScrollRatio * maxScroll).toInt() - contextOffset).coerceAtLeast(0)
-                    webView.scrollTo(0, target)
-                    onProgressChange(savedScrollRatio)
-                }
-            }
-            if (resumeTargetRatio != null && resumeRequestId != lastAppliedResumeRequestId) {
-                val clamped = resumeTargetRatio.coerceIn(0f, 1f)
-                savedScrollRatio = clamped
-                webView.post {
-                    val contentPx = (webView.contentHeight * webView.resources.displayMetrics.density).toInt()
-                    val maxScroll = (contentPx - webView.height).coerceAtLeast(0)
-                    val contextOffset = (24f * webView.resources.displayMetrics.density).toInt()
-                    val target = ((clamped * maxScroll).toInt() - contextOffset).coerceAtLeast(0)
-                    webView.scrollTo(0, target)
-                    onProgressChange(clamped)
-                }
-                lastAppliedResumeRequestId = resumeRequestId
-            }
-        },
-        onRelease = { webView ->
-            val contentPx = (webView.contentHeight * webView.resources.displayMetrics.density).toInt()
-            val maxScroll = (contentPx - webView.height).coerceAtLeast(1)
-            savedScrollRatio = (webView.scrollY.toFloat() / maxScroll.toFloat()).coerceIn(0f, 1f)
-            val out = Bundle()
-            val backStack = webView.saveState(out)
-            if (backStack != null && !out.isEmpty) {
-                webViewState.clear()
-                webViewState.putAll(out)
-            }
-        },
-    )
-}
-
-private fun Color.toCssHex(): String {
-    val argb = toArgb()
-    val red = (argb shr 16) and 0xFF
-    val green = (argb shr 8) and 0xFF
-    val blue = argb and 0xFF
-    return String.format(Locale.US, "#%02X%02X%02X", red, green, blue)
 }

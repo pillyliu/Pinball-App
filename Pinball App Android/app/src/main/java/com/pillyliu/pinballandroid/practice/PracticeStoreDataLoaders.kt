@@ -1,11 +1,11 @@
 package com.pillyliu.pinballandroid.practice
 
+import android.content.Context
 import com.pillyliu.pinballandroid.data.PinballDataCache
-import com.pillyliu.pinballandroid.library.LIBRARY_URL
 import com.pillyliu.pinballandroid.library.LibrarySource
 import com.pillyliu.pinballandroid.library.LibrarySourceType
 import com.pillyliu.pinballandroid.library.PinballGame
-import com.pillyliu.pinballandroid.library.parseLibraryPayload
+import com.pillyliu.pinballandroid.library.loadLibraryExtraction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -16,11 +16,12 @@ internal data class PracticeLibraryLoadResult(
     val defaultSourceId: String?,
 )
 
-internal suspend fun loadPracticeGamesFromLibrary(): PracticeLibraryLoadResult = withContext(Dispatchers.IO) {
+internal suspend fun loadPracticeGamesFromLibrary(context: Context): PracticeLibraryLoadResult = withContext(Dispatchers.IO) {
     try {
-        val cached = PinballDataCache.passthroughOrCachedText(LIBRARY_URL)
-        val parsed = parseLibraryPayload(cached.text.orEmpty())
-        val selectedSource = parsed.sources.firstOrNull { it.type == LibrarySourceType.VENUE }
+        val extraction = loadLibraryExtraction(context)
+        val parsed = extraction.payload
+        val selectedSource = parsed.sources.firstOrNull { it.id == extraction.state.selectedSourceId }
+            ?: parsed.sources.firstOrNull { it.type == LibrarySourceType.VENUE }
             ?: parsed.sources.firstOrNull()
         if (selectedSource == null) {
             PracticeLibraryLoadResult(

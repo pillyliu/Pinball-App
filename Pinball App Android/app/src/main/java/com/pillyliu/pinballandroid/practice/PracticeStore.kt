@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.pillyliu.pinballandroid.library.LibraryActivityLog
 import com.pillyliu.pinballandroid.library.LibrarySource
+import com.pillyliu.pinballandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinballandroid.library.PinballGame
 import java.util.UUID
 import kotlin.math.abs
@@ -711,10 +712,11 @@ internal class PracticeStore(private val context: Context) {
                 remove(KEY_PREFERRED_LIBRARY_SOURCE_ID)
             }
         }
+        LibrarySourceStateStore.setSelectedSource(context, selected?.id)
     }
 
-    private suspend fun loadGames() {
-        val loaded = loadPracticeGamesFromLibrary()
+    suspend fun loadGames() {
+        val loaded = loadPracticeGamesFromLibrary(context)
         val avenueCandidates = listOf("venue--the-avenue-cafe", "the-avenue")
         val savedSourceId = prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null)
         val preferredSource = listOfNotNull(savedSourceId, loaded.defaultSourceId)
@@ -730,6 +732,7 @@ internal class PracticeStore(private val context: Context) {
         defaultPracticeSourceId?.let { sourceId ->
             prefs.edit { putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, sourceId) }
         }
+        LibrarySourceStateStore.setSelectedSource(context, defaultPracticeSourceId)
     }
 
     private fun migrateLoadedStateToPracticeKeys() {

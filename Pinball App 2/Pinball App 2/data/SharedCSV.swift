@@ -4,6 +4,12 @@ import CryptoKit
 private let redactionTokenSalt = "pinball-app-redaction-v1"
 private let redactedPlayersCSVPath = "/pinball/data/redacted_players.csv"
 
+enum LPLNamePrivacySettings {
+    static let fullNameAccessUnlockedDefaultsKey = "lpl-name-privacy.full-access-unlocked"
+    static let showFullLastNameDefaultsKey = "lpl-name-privacy.show-full-last-name"
+    static let fullNamePassword = "Stephen"
+}
+
 private final class RedactedPlayerStore: @unchecked Sendable {
     private let lock = NSLock()
     private var names: Set<String> = []
@@ -101,6 +107,37 @@ func normalizeSeasonToken(_ raw: String) -> String {
     let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
     let digits = trimmed.filter(\.isNumber)
     return digits.isEmpty ? trimmed : digits
+}
+
+func formatLPLPlayerNameForDisplay(_ raw: String, defaults: UserDefaults = .standard) -> String {
+    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return "" }
+    if shouldRedactPlayerName(trimmed) {
+        return "Redacted \(redactionToken(for: trimmed))"
+    }
+
+    let suffixRange = trimmed.range(of: #" \([^)]*\)$"#, options: .regularExpression)
+    let namePortion = suffixRange.map { String(trimmed[..<$0.lowerBound]) } ?? trimmed
+    let suffix = suffixRange.map { String(trimmed[$0]) } ?? ""
+
+    guard !defaults.bool(forKey: LPLNamePrivacySettings.showFullLastNameDefaultsKey) else {
+        return namePortion + suffix
+    }
+
+    let parts = namePortion.split(whereSeparator: \.isWhitespace)
+    guard let first = parts.first else { return trimmed }
+    guard parts.count > 1, let last = parts.last, let initial = last.first else {
+        return String(first) + suffix
+    }
+
+    return "\(first) \(String(initial))\(suffix)"
+}
+
+@discardableResult
+func unlockLPLFullNameAccess(with password: String, defaults: UserDefaults = .standard) -> Bool {
+    guard password == LPLNamePrivacySettings.fullNamePassword else { return false }
+    defaults.set(true, forKey: LPLNamePrivacySettings.fullNameAccessUnlockedDefaultsKey)
+    return true
 }
 
 func redactPlayerNameForDisplay(_ raw: String) -> String {

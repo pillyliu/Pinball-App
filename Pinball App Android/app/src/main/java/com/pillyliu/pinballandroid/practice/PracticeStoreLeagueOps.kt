@@ -1,8 +1,9 @@
 package com.pillyliu.pinballandroid.practice
 
 import com.pillyliu.pinballandroid.data.PinballDataCache
+import com.pillyliu.pinballandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinballandroid.data.parseCsv
-import com.pillyliu.pinballandroid.data.redactPlayerNameForDisplay
+import com.pillyliu.pinballandroid.library.LibraryGameLookup
 import com.pillyliu.pinballandroid.library.PinballGame
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -73,7 +74,7 @@ internal suspend fun importLeagueScoresFromCsvData(
             onAddScore(slug, score, timestamp)
             imported++
         }
-        "League import for ${redactPlayerNameForDisplay(selectedPlayer)}: $imported imported, $unmatched unmatched."
+        "League import for ${formatLplPlayerNameForDisplay(selectedPlayer, false)}: $imported imported, $unmatched unmatched."
     } catch (t: Throwable) {
         "League CSV import failed: ${t.message ?: "unknown error"}"
     }
@@ -152,10 +153,5 @@ internal suspend fun comparePlayersFromCsv(
 }
 
 private fun matchGameSlug(machine: String, games: List<PinballGame>): String? {
-    val normalized = normalizeMachine(machine)
-    val byNormalized = games.associateBy { normalizeMachine(it.name) }
-    byNormalized[normalized]?.let { return it.slug }
-    return byNormalized.entries.firstOrNull { (key, _) ->
-        key.contains(normalized) || normalized.contains(key)
-    }?.value?.slug
+    return LibraryGameLookup.bestMatch(machine, games)?.slug
 }

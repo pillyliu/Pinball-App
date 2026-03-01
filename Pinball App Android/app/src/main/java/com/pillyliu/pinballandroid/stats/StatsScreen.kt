@@ -53,8 +53,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.pillyliu.pinballandroid.data.PinballDataCache
+import com.pillyliu.pinballandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinballandroid.data.parseCsv
-import com.pillyliu.pinballandroid.data.redactPlayerNameForDisplay
+import com.pillyliu.pinballandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinballandroid.ui.AppScreen
 import com.pillyliu.pinballandroid.ui.CardContainer
 import com.pillyliu.pinballandroid.ui.EmptyLabel
@@ -111,6 +112,7 @@ fun StatsScreen(
     contentPadding: PaddingValues,
     onBack: (() -> Unit)? = null,
 ) {
+    val showFullLplLastName = rememberShowFullLplLastName()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -255,10 +257,11 @@ fun StatsScreen(
         bankNumber = bankNumber,
         player = player,
         machine = machine,
+        showFullLplLastName = showFullLplLastName,
     )
     val seasonOptions = listOf(DropdownOption("", "S: All")) + seasons.map { DropdownOption(it, abbrSeason(it)) }
     val playerOptions = listOf(DropdownOption("", "Player: All")) +
-        players.map { DropdownOption(it, redactPlayerNameForDisplay(it)) }
+        players.map { DropdownOption(it, formatLplPlayerNameForDisplay(it, showFullLplLastName)) }
     val bankOptions = listOf(DropdownOption("", "B: All")) + banks.map { DropdownOption(it.toString(), "B$it") }
     val machineOptions = listOf(DropdownOption("", "Machine: All")) + machines.map { DropdownOption(it, it) }
 
@@ -312,6 +315,7 @@ fun StatsScreen(
                     CardContainer(modifier = Modifier.weight(0.6f, fill = true)) {
                         StatsTable(
                             filtered = filtered,
+                            showFullLplLastName = showFullLplLastName,
                             isRefreshing = isRefreshing,
                             initialLoadComplete = initialLoadComplete,
                             modifier = Modifier.fillMaxSize(),
@@ -332,6 +336,7 @@ fun StatsScreen(
                 CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
                     StatsTable(
                         filtered = filtered,
+                        showFullLplLastName = showFullLplLastName,
                         isRefreshing = isRefreshing,
                         initialLoadComplete = initialLoadComplete,
                         modifier = Modifier.fillMaxSize(),
@@ -378,7 +383,7 @@ fun StatsScreen(
                     },
                 )
                 AnchoredDropdownFilter(
-                    selectedText = playerDisplayText(player),
+                    selectedText = playerDisplayText(player, showFullLplLastName),
                     options = playerOptions,
                     onSelect = {
                         player = it
@@ -402,6 +407,7 @@ fun StatsScreen(
 @Composable
 private fun StatsTable(
     filtered: List<ScoreRow>,
+    showFullLplLastName: Boolean,
     isRefreshing: Boolean,
     initialLoadComplete: Boolean,
     modifier: Modifier = Modifier,
@@ -441,7 +447,7 @@ private fun StatsTable(
                             ) {
                                 FixedWidthTableCell(row.season, widths.season)
                                 FixedWidthTableCell(row.bankNumber.toString(), widths.bank)
-                                FixedWidthTableCell(redactPlayerNameForDisplay(row.player), widths.player)
+                                FixedWidthTableCell(formatLplPlayerNameForDisplay(row.player, showFullLplLastName), widths.player)
                                 FixedWidthTableCell(row.machine, widths.machine)
                                 FixedWidthTableCell(formatInt(row.rawScore), widths.score)
                                 FixedWidthTableCell(formatInt(row.points), widths.points)
@@ -547,6 +553,7 @@ private fun StatLabelCell(text: String, modifier: Modifier) {
 
 @Composable
 private fun StatValueCell(label: String, stats: StatResult, isAllSeasons: Boolean, modifier: Modifier) {
+    val showFullLplLastName = rememberShowFullLplLastName()
     val valueColor = statsAccentColor(label)
     val value = when (label) {
         "High" -> formatInt(stats.high)
@@ -576,7 +583,7 @@ private fun StatValueCell(label: String, stats: StatResult, isAllSeasons: Boolea
         if (label == "High" || label == "Low") {
             val playerText = if (player.isNullOrBlank()) "-" else if (isAllSeasons) player else player.substringBefore(" (S")
             Text(
-                text = redactPlayerNameForDisplay(playerText),
+                text = formatLplPlayerNameForDisplay(playerText, showFullLplLastName),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 9.sp,
                 textAlign = TextAlign.Start,
@@ -615,12 +622,13 @@ private fun selectedBankLabel(season: String, bankNumber: Int?): String {
 
 private fun seasonDisplayText(season: String): String = if (season.isBlank()) "S: All" else abbrSeason(season)
 private fun bankDisplayText(bankNumber: Int?): String = bankNumber?.let { "B$it" } ?: "B: All"
-private fun playerDisplayText(player: String): String = if (player.isBlank()) "Player: All" else redactPlayerNameForDisplay(player)
+private fun playerDisplayText(player: String, showFullLplLastName: Boolean): String =
+    if (player.isBlank()) "Player: All" else formatLplPlayerNameForDisplay(player, showFullLplLastName)
 private fun machineDisplayText(machine: String): String = if (machine.isBlank()) "Machine: All" else machine
-private fun statsNavSummaryText(season: String, bankNumber: Int?, player: String, machine: String): String {
+private fun statsNavSummaryText(season: String, bankNumber: Int?, player: String, machine: String, showFullLplLastName: Boolean): String {
     val seasonToken = if (season.isBlank()) "S*" else abbrSeason(season)
     val bankToken = bankNumber?.let { "B$it" } ?: "B*"
-    return "$seasonToken$bankToken  ${playerDisplayText(player)}  ${machineDisplayText(machine)}"
+    return "$seasonToken$bankToken  ${playerDisplayText(player, showFullLplLastName)}  ${machineDisplayText(machine)}"
 }
 
 @Composable
@@ -697,7 +705,7 @@ private fun computeStats(scope: List<ScoreRow>, isBankScope: Boolean): StatResul
     val highRow = scope.firstOrNull { it.rawScore == high }
 
     fun label(row: ScoreRow): String =
-        if (isBankScope) redactPlayerNameForDisplay(row.player) else "${redactPlayerNameForDisplay(row.player)} (${abbrSeason(row.season)})"
+        if (isBankScope) row.player else "${row.player} (${abbrSeason(row.season)})"
 
     return StatResult(
         count = count,

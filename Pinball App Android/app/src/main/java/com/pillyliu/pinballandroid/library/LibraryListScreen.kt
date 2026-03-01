@@ -24,9 +24,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -39,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -66,6 +69,7 @@ internal fun LibraryList(
     selectedSourceId: String,
     query: String,
     sortOptionName: String,
+    yearSortDescending: Boolean,
     selectedBank: Int?,
     onSourceChange: (String) -> Unit,
     onQueryChange: (String) -> Unit,
@@ -98,6 +102,7 @@ internal fun LibraryList(
             ?.takeIf { sortOptions.contains(it) }
             ?: fallbackSort
     }
+    var visibleCount by remember(selectedSourceId, query, sortOptionName, yearSortDescending, selectedBank, games) { mutableIntStateOf(48) }
     var showFilterSheet by remember { mutableStateOf(false) }
     val supportsBankFilter = selectedSource?.type == LibrarySourceType.VENUE && sourceScopedGames.any { (it.bank ?: 0) > 0 }
     val effectiveSelectedBank = if (supportsBankFilter) selectedBank else null
@@ -110,12 +115,14 @@ internal fun LibraryList(
         val bankMatch = effectiveSelectedBank == null || game.bank == effectiveSelectedBank
         queryMatch && bankMatch
     }
-    val sortedGames = remember(filtered, sortOption) { sortLibraryGames(filtered, sortOption) }
+    val sortedGames = remember(filtered, sortOption, yearSortDescending) { sortLibraryGames(filtered, sortOption, yearSortDescending) }
+    val visibleGames = remember(sortedGames, visibleCount) { sortedGames.take(visibleCount) }
+    val hasMoreGames = visibleGames.size < sortedGames.size
     val showGroupedView = effectiveSelectedBank == null && (sortOption == LibrarySortOption.AREA || sortOption == LibrarySortOption.BANK)
-    val groupedSections = remember(sortedGames, sortOption) {
+    val groupedSections = remember(visibleGames, sortOption) {
         when (sortOption) {
-            LibrarySortOption.AREA -> buildSections(sortedGames) { it.group }
-            LibrarySortOption.BANK -> buildSections(sortedGames) { it.bank }
+            LibrarySortOption.AREA -> buildSections(visibleGames) { it.group }
+            LibrarySortOption.BANK -> buildSections(visibleGames) { it.bank }
             LibrarySortOption.ALPHABETICAL, LibrarySortOption.YEAR -> emptyList()
         }
     }
@@ -134,10 +141,26 @@ internal fun LibraryList(
                             if (idx > 0) {
                                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), thickness = 1.dp)
                             }
-                            LibrarySectionGrid(games = section.games, onOpenGame = onOpenGame)
+                            LibrarySectionGrid(
+                                games = section.games,
+                                onOpenGame = onOpenGame,
+                                onGameAppear = { game ->
+                                    if (hasMoreGames && visibleGames.lastOrNull()?.slug == game.slug) {
+                                        visibleCount += 36
+                                    }
+                                },
+                            )
                         }
                     } else {
-                        LibrarySectionGrid(games = sortedGames, onOpenGame = onOpenGame)
+                        LibrarySectionGrid(
+                            games = visibleGames,
+                            onOpenGame = onOpenGame,
+                            onGameAppear = { game ->
+                                if (hasMoreGames && visibleGames.lastOrNull()?.slug == game.slug) {
+                                    visibleCount += 36
+                                }
+                            },
+                        )
                     }
                     Spacer(Modifier.height(LIBRARY_CONTENT_BOTTOM_FILLER))
                 }
@@ -228,11 +251,23 @@ internal fun LibraryList(
                     )
                 }
                 CompactDropdownFilter(
-                    selectedText = sortOption.label,
-                    options = sortOptions.map { it.label },
+                    selectedText = when {
+                        sortOption == LibrarySortOption.YEAR && yearSortDescending -> "Sort: Year (New-Old)"
+                        sortOption == LibrarySortOption.YEAR -> "Sort: Year (Old-New)"
+                        else -> sortOption.label
+                    },
+                    options = sortOptions.flatMap {
+                        if (it == LibrarySortOption.YEAR) listOf("Sort: Year (Old-New)", "Sort: Year (New-Old)") else listOf(it.label)
+                    },
                     onSelect = { selected ->
-                        val option = sortOptions.firstOrNull { it.label == selected } ?: fallbackSort
-                        onSortOptionChange(option.name)
+                        when (selected) {
+                            "Sort: Year (New-Old)" -> onSortOptionChange("YEAR_DESC")
+                            "Sort: Year (Old-New)" -> onSortOptionChange(LibrarySortOption.YEAR.name)
+                            else -> {
+                                val option = sortOptions.firstOrNull { it.label == selected } ?: fallbackSort
+                                onSortOptionChange(option.name)
+                            }
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     minHeight = 38.dp,
@@ -262,19 +297,30 @@ internal fun LibraryList(
 }
 
 @Composable
-private fun LibrarySectionGrid(games: List<PinballGame>, onOpenGame: (PinballGame) -> Unit) {
+private fun LibrarySectionGrid(
+    games: List<PinballGame>,
+    onOpenGame: (PinballGame) -> Unit,
+    onGameAppear: (PinballGame) -> Unit,
+) {
+    val configuration = LocalConfiguration.current
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val tileWidth = (maxWidth - 12.dp) / 2
-        val rows = games.chunked(2)
+        val columnCount = if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 4 else 2
+        val spacing = 12.dp
+        val tileWidth = (maxWidth - (spacing * (columnCount - 1))) / columnCount
+        val rows = games.chunked(columnCount)
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             rows.forEach { rowGames ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
                     rowGames.forEach { game ->
                         Box(modifier = Modifier.width(tileWidth)) {
-                            LibraryGameCard(game = game, onClick = { onOpenGame(game) })
+                            LibraryGameCard(
+                                game = game,
+                                onClick = { onOpenGame(game) },
+                                onAppear = { onGameAppear(game) },
+                            )
                         }
                     }
-                    if (rowGames.size == 1) {
+                    repeat(columnCount - rowGames.size) {
                         Spacer(Modifier.width(tileWidth))
                     }
                 }
@@ -284,47 +330,67 @@ private fun LibrarySectionGrid(games: List<PinballGame>, onOpenGame: (PinballGam
 }
 
 @Composable
-private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit) {
-    Column(
+private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: () -> Unit) {
+    Box(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(12.dp))
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .aspectRatio(4f / 3f),
     ) {
-        AsyncImage(
-            model = game.libraryPlayfieldCandidate(),
-            contentDescription = game.name,
+        androidx.compose.runtime.LaunchedEffect(game.slug) {
+            onAppear()
+        }
+        Box(modifier = Modifier.fillMaxSize()) {
+            AsyncImage(
+                model = game.libraryPlayfieldCandidate(),
+                contentDescription = game.name,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center),
+                contentScale = ContentScale.FillWidth,
+                alignment = Alignment.Center,
+            )
+        }
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 96.dp)
-                .aspectRatio(16f / 9f),
-            contentScale = ContentScale.FillWidth,
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to androidx.compose.ui.graphics.Color.Transparent,
+                        0.18f to androidx.compose.ui.graphics.Color.Transparent,
+                        0.4f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.50f),
+                        1f to androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.78f),
+                    ),
+                ),
         )
-
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(38.dp),
+                    .height(42.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.Top,
             ) {
                 Text(
                     game.name,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = androidx.compose.ui.graphics.Color.White,
                     maxLines = 2,
                     minLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    lineHeight = 16.sp,
+                    fontSize = 16.sp,
+                    lineHeight = 17.sp,
                     modifier = Modifier.weight(1f),
                 )
             }
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val variantText = game.variant?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
+                val variantText = game.normalizedVariant
                 val variantMaxWidth = 84.dp
                 val makerMaxWidth = if (variantText != null) (maxWidth - variantMaxWidth - 4.dp) else maxWidth
                 Row(
@@ -333,7 +399,7 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit) {
                 ) {
                     Text(
                         game.manufacturerYearLine(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.95f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontSize = 12.sp,
@@ -345,14 +411,18 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit) {
                             text = variant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.92f),
                             fontSize = 9.sp,
                             lineHeight = 10.sp,
                             modifier = Modifier
                                 .widthIn(max = variantMaxWidth)
+                                .background(
+                                    androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.46f),
+                                    shape = RoundedCornerShape(999.dp),
+                                )
                                 .border(
                                     width = 0.75.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.22f),
                                     shape = RoundedCornerShape(999.dp),
                                 )
                                 .padding(horizontal = 5.dp, vertical = 2.dp),
@@ -360,7 +430,13 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit) {
                     }
                 }
             }
-            Text(game.locationBankLine(), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, fontSize = 12.sp, lineHeight = 14.sp)
+            Text(
+                game.locationBankLine().ifBlank { " " },
+                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.88f),
+                maxLines = 1,
+                fontSize = 12.sp,
+                lineHeight = 14.sp,
+            )
         }
     }
 }

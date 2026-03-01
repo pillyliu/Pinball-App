@@ -3,18 +3,19 @@ package com.pillyliu.pinballandroid.practice
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,9 +34,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,11 +46,18 @@ import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.SmartDisplay
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.Tag
-import coil.compose.AsyncImage
+import com.pillyliu.pinballandroid.library.ConstrainedAsyncImagePreview
 import com.pillyliu.pinballandroid.library.PinballGame
+import com.pillyliu.pinballandroid.library.actualFullscreenPlayfieldCandidates
 import com.pillyliu.pinballandroid.library.fullscreenPlayfieldCandidates
 import com.pillyliu.pinballandroid.library.gameInlinePlayfieldCandidates
+import com.pillyliu.pinballandroid.library.hasPlayfieldResource
+import com.pillyliu.pinballandroid.library.hasRulesheetResource
 import com.pillyliu.pinballandroid.library.metaLine
+import com.pillyliu.pinballandroid.library.normalizedVariant
+import com.pillyliu.pinballandroid.library.practiceKey
+import com.pillyliu.pinballandroid.library.ReferenceLink
+import com.pillyliu.pinballandroid.library.RulesheetRemoteSource
 import com.pillyliu.pinballandroid.library.youtubeId
 import com.pillyliu.pinballandroid.ui.CardContainer
 
@@ -64,17 +72,16 @@ internal fun PracticeGameSection(
     activeGameVideoId: String?,
     onActiveGameVideoIdChange: (String?) -> Unit,
     onOpenQuickEntry: (QuickActivity, QuickEntryOrigin) -> Unit,
-    onOpenRulesheet: () -> Unit,
+    onOpenRulesheet: (RulesheetRemoteSource?) -> Unit,
+    onOpenExternalRulesheet: (String) -> Unit,
     onOpenPlayfield: (List<String>) -> Unit,
 ) {
+    val uriHandler = LocalUriHandler.current
     if (game == null) {
         Text("Select a game first.")
         return
     }
-
-    val heroImage = game.gameInlinePlayfieldCandidates().firstOrNull()
     val gameKey = game.practiceKey
-    val hasRulesheet = !game.rulesheetLocal.isNullOrBlank()
     val playableVideos = game.videos.mapNotNull { video ->
         val id = youtubeId(video.url) ?: return@mapNotNull null
         id to (video.label ?: "Video")
@@ -84,28 +91,11 @@ internal fun PracticeGameSection(
     var editValidation by remember { mutableStateOf<String?>(null) }
     var revealedLogRowId by rememberSaveable(gameKey) { mutableStateOf<String?>(null) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(16f / 9f)
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        if (heroImage.isNullOrBlank()) {
-            Text(
-                "No image",
-                modifier = Modifier.align(Alignment.Center),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            AsyncImage(
-                model = heroImage,
-                contentDescription = game.name,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-    }
+    ConstrainedAsyncImagePreview(
+        urls = game.gameInlinePlayfieldCandidates(),
+        contentDescription = game.name,
+        emptyMessage = "No image",
+    )
 
     CardContainer(
         modifier = Modifier.pointerInput(revealedLogRowId) {
@@ -131,7 +121,7 @@ internal fun PracticeGameSection(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            game.variant?.takeIf { it.isNotBlank() }?.let { variant ->
+            game.normalizedVariant?.let { variant ->
                 Text(
                     text = variant,
                     style = MaterialTheme.typography.labelSmall,
@@ -328,9 +318,36 @@ internal fun PracticeGameSection(
     CardContainer {
         Text("Game Resources", fontWeight = FontWeight.SemiBold)
         Text(game.metaLine(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onOpenRulesheet, enabled = hasRulesheet) { Text("Rulesheet") }
-            OutlinedButton(onClick = { onOpenPlayfield(game.fullscreenPlayfieldCandidates()) }) { Text("Playfield") }
+        PracticeResourceRow(label = "Rulesheet:") {
+            if (game.rulesheetLinks.isEmpty()) {
+                if (game.hasRulesheetResource) {
+                    PracticeResourceChip(label = "Local") { onOpenRulesheet(null) }
+                } else {
+                    PracticeUnavailableResourceChip()
+                }
+            } else {
+                game.rulesheetLinks.forEach { link ->
+                    val destination = link.destinationUrl
+                    val embedded = link.embeddedRulesheetSource
+                    PracticeResourceChip(label = shortRulesheetTitle(link)) {
+                        when {
+                            embedded != null -> onOpenRulesheet(embedded)
+                            destination != null -> onOpenExternalRulesheet(destination)
+                            else -> onOpenRulesheet(null)
+                        }
+                    }
+                }
+            }
+        }
+        PracticeResourceRow(label = "Playfield:") {
+            val playfieldCandidates = game.actualFullscreenPlayfieldCandidates
+            if (playfieldCandidates.isNotEmpty()) {
+                PracticeResourceChip(label = if (game.playfieldSourceLabel == "Playfield (OPDB)") "OPDB" else "Local") {
+                    onOpenPlayfield(playfieldCandidates)
+                }
+            } else {
+                PracticeUnavailableResourceChip()
+            }
         }
 
         if (playableVideos.isEmpty()) {
@@ -352,14 +369,47 @@ internal fun PracticeGameSection(
                 Text("No videos listed.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            activeGameVideoId?.let { id ->
-                PracticeEmbeddedYouTubeView(
-                    videoId = id,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(16f / 9f)
-                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp)),
-                )
+            val selectedVideo = playableVideos.firstOrNull { it.first == activeGameVideoId } ?: playableVideos.firstOrNull()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .background(
+                        MaterialTheme.colorScheme.surfaceContainerLow,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                    )
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(16.dp),
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Outlined.SmartDisplay,
+                        contentDescription = null,
+                    )
+                    Text(
+                        selectedVideo?.second ?: "Tap a video thumbnail",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text("Opens in YouTube", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedButton(
+                        onClick = {
+                            selectedVideo?.first?.let { id ->
+                                uriHandler.openUri("https://www.youtube.com/watch?v=$id")
+                            }
+                        },
+                        enabled = selectedVideo != null,
+                    ) {
+                        Text("Open in YouTube")
+                    }
+                }
             }
             val rows = playableVideos.chunked(2)
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -423,5 +473,68 @@ internal fun PracticeGameSection(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun PracticeResourceRow(
+    label: String,
+    content: @Composable () -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .horizontalScroll(rememberScrollState()),
+        ) {
+            content()
+        }
+        Spacer(modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun PracticeResourceChip(
+    label: String,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(onClick = onClick) {
+        Text(label)
+    }
+}
+
+@Composable
+private fun PracticeUnavailableResourceChip() {
+    Text(
+        "Unavailable",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .background(
+                MaterialTheme.colorScheme.surfaceContainerLow,
+                androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
+            )
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant,
+                androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
+            )
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+    )
+}
+
+private fun shortRulesheetTitle(link: ReferenceLink): String {
+    val label = link.label.lowercase()
+    return when {
+        "(tf)" in label -> "TF"
+        "(pp)" in label -> "PP"
+        "(papa)" in label -> "PAPA"
+        "(bob)" in label -> "Bob"
+        else -> "Local"
     }
 }

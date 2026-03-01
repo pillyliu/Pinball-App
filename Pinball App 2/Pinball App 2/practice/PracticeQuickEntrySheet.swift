@@ -12,7 +12,6 @@ struct PracticeQuickEntrySheet: View {
     let onEntrySaved: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
-
     @State private var selectedActivity: QuickEntryActivity = .score
     @State private var scoreText: String = ""
     @State private var scoreContext: ScoreContext = .practice
@@ -160,71 +159,8 @@ struct PracticeQuickEntrySheet: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(alignment: .top, spacing: 6) {
-                                if availableLibrarySources.count > 1 {
-                                    Menu {
-                                        Button {
-                                            selectedLibraryFilterID = quickEntryAllGamesLibraryID
-                                        } label: {
-                                            if selectedLibraryFilterID == quickEntryAllGamesLibraryID || selectedLibraryFilterID.isEmpty {
-                                                Label("All games", systemImage: "checkmark")
-                                            } else {
-                                                Text("All games")
-                                            }
-                                        }
-                                        ForEach(availableLibrarySources) { source in
-                                            Button {
-                                                selectedLibraryFilterID = source.id
-                                            } label: {
-                                                if selectedLibraryFilterID == source.id {
-                                                    Label(source.name, systemImage: "checkmark")
-                                                } else {
-                                                    Text(source.name)
-                                                }
-                                            }
-                                        }
-                                    }
-                                    label: {
-                                        compactDropdownLabel(text: selectedLibraryFilterLabel)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .accessibilityLabel("Location")
-                                }
-
-                                Menu {
-                                    if kind == .mechanics {
-                                        Button {
-                                            selectedGameID = ""
-                                        } label: {
-                                            if selectedGameID.isEmpty {
-                                                Label("None", systemImage: "checkmark")
-                                            } else {
-                                                Text("None")
-                                            }
-                                        }
-                                    }
-                                    if filteredGamesForPicker.isEmpty {
-                                        Text("No game data")
-                                    } else {
-                                        ForEach(gameOptions) { game in
-                                            Button {
-                                                selectedGameID = game.canonicalPracticeKey
-                                            } label: {
-                                                if selectedGameID == game.canonicalPracticeKey {
-                                                    Label(game.name, systemImage: "checkmark")
-                                                } else {
-                                                    Text(game.name)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                label: {
-                                    compactDropdownLabel(text: selectedGameLabel)
-                                }
-                                .buttonStyle(.plain)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .accessibilityLabel("Game")
+                                libraryFilterMenu
+                                gameSelectionMenu(gameOptions: gameOptions)
                             }
                             .onChange(of: gameOptions.count) { _, _ in
                                 if kind != .mechanics,
@@ -492,8 +428,80 @@ struct PracticeQuickEntrySheet: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
+        .frame(height: 36)
         .frame(maxWidth: .infinity, alignment: .leading)
         .appControlStyle()
+    }
+
+    @ViewBuilder
+    private var libraryFilterMenu: some View {
+        if availableLibrarySources.count > 1 {
+            Menu {
+                Button {
+                    selectedLibraryFilterID = quickEntryAllGamesLibraryID
+                } label: {
+                    if selectedLibraryFilterID == quickEntryAllGamesLibraryID || selectedLibraryFilterID.isEmpty {
+                        Label("All games", systemImage: "checkmark")
+                    } else {
+                        Text("All games")
+                    }
+                }
+                ForEach(availableLibrarySources) { source in
+                    Button {
+                        selectedLibraryFilterID = source.id
+                    } label: {
+                        if selectedLibraryFilterID == source.id {
+                            Label(source.name, systemImage: "checkmark")
+                        } else {
+                            Text(source.name)
+                        }
+                    }
+                }
+            }
+            label: {
+                compactDropdownLabel(text: selectedLibraryFilterLabel)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityLabel("Location")
+        }
+    }
+
+    private func gameSelectionMenu(gameOptions: [PinballGame]) -> some View {
+        Menu {
+            if kind == .mechanics {
+                Button {
+                    selectedGameID = ""
+                } label: {
+                    if selectedGameID.isEmpty {
+                        Label("None", systemImage: "checkmark")
+                    } else {
+                        Text("None")
+                    }
+                }
+            }
+            if filteredGamesForPicker.isEmpty {
+                Text("No game data")
+            } else {
+                ForEach(gameOptions) { game in
+                    Button {
+                        selectedGameID = game.canonicalPracticeKey
+                    } label: {
+                        if selectedGameID == game.canonicalPracticeKey {
+                            Label(game.name, systemImage: "checkmark")
+                        } else {
+                            Text(game.name)
+                        }
+                    }
+                }
+            }
+        }
+        label: {
+            compactDropdownLabel(text: selectedGameLabel)
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityLabel("Game")
     }
 
     @ViewBuilder

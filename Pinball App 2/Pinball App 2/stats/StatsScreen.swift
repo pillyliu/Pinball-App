@@ -10,6 +10,7 @@ import Combine
 
 struct StatsScreen: View {
     let embeddedInNavigation: Bool
+    @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
 
     init(embeddedInNavigation: Bool = false) {
         self.embeddedInNavigation = embeddedInNavigation
@@ -214,7 +215,7 @@ struct StatsScreen: View {
         let seasonDigits = viewModel.season.filter(\.isNumber)
         let seasonToken = viewModel.season.isEmpty ? "S*" : (seasonDigits.isEmpty ? viewModel.season : "S\(seasonDigits)")
         let bankToken = viewModel.bankNumber.map { "B\($0)" } ?? "B*"
-        let playerToken = viewModel.player.isEmpty ? "Player: All" : redactPlayerNameForDisplay(viewModel.player)
+        let playerToken = viewModel.player.isEmpty ? "Player: All" : displayLPLPlayerName(viewModel.player)
         let machineToken = viewModel.machine.isEmpty ? "Machine: All" : viewModel.machine
         return "\(seasonToken)\(bankToken)  \(playerToken)  \(machineToken)"
     }
@@ -224,7 +225,7 @@ struct StatsScreen: View {
             FilterOption(value: $0, label: seasonToken($0))
         }
         let playerOptions = [FilterOption(value: "", label: "Player: All")] + viewModel.players.map {
-            FilterOption(value: $0, label: redactPlayerNameForDisplay($0))
+            FilterOption(value: $0, label: displayLPLPlayerName($0))
         }
         let bankOptions = [FilterOption(value: "", label: "B: All")] + viewModel.bankNumbers.map {
             FilterOption(value: String($0), label: "B\($0)")
@@ -309,7 +310,7 @@ struct StatsScreen: View {
             Menu("Player") {
                 Button("All players") { viewModel.player = "" }
                 ForEach(viewModel.players, id: \.self) { player in
-                    Button(redactPlayerNameForDisplay(player)) { viewModel.player = player }
+                    Button(displayLPLPlayerName(player)) { viewModel.player = player }
                 }
             }
 
@@ -443,7 +444,7 @@ struct StatsScreen: View {
 
     private var seasonDisplayText: String { viewModel.season.isEmpty ? "S: All" : seasonToken(viewModel.season) }
     private var bankDisplayText: String { viewModel.bankNumber.map { "B\($0)" } ?? "B: All" }
-    private var playerDisplayText: String { viewModel.player.isEmpty ? "Player: All" : redactPlayerNameForDisplay(viewModel.player) }
+    private var playerDisplayText: String { viewModel.player.isEmpty ? "Player: All" : displayLPLPlayerName(viewModel.player) }
     private var machineDisplayText: String { viewModel.machine.isEmpty ? "Machine: All" : viewModel.machine }
 
     @ViewBuilder
@@ -482,6 +483,11 @@ struct StatsScreen: View {
         return digits.isEmpty ? raw : "S\(digits)"
     }
 
+    private func displayLPLPlayerName(_ raw: String) -> String {
+        _ = showFullLPLLastNames
+        return formatLPLPlayerNameForDisplay(raw)
+    }
+
     private func resolvedTableHeight(maxHeight: CGFloat) -> CGFloat {
         return min(maxHeight, compactTableContentHeight)
     }
@@ -511,17 +517,23 @@ private struct TableRowView: View {
     let pointsColWidth: CGFloat
     let rowHeight: CGFloat
     let largeText: Bool
+    @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
 
     var body: some View {
         HStack(spacing: 0) {
             rowCell(row.season, width: seasonColWidth)
             rowCell(String(row.bankNumber), width: bankNumColWidth)
-            rowCell(redactPlayerNameForDisplay(row.player), width: playerColWidth)
+            rowCell(displayLPLPlayerName(row.player), width: playerColWidth)
             rowCell(row.machine, width: machineColWidth)
             rowCell(formatScore(row.rawScore), width: scoreColWidth, monospaced: true)
             rowCell(formatPoints(row.points), width: pointsColWidth, monospaced: true)
         }
         .frame(height: rowHeight)
+    }
+
+    private func displayLPLPlayerName(_ raw: String) -> String {
+        _ = showFullLPLLastNames
+        return formatLPLPlayerNameForDisplay(raw)
     }
 
     private func rowCell(_ text: String, width: CGFloat, alignment: Alignment = .leading, monospaced: Bool = false) -> some View {
@@ -668,7 +680,7 @@ private struct MachineStatsTable: View {
     private func playerName(_ raw: String?, allSeasons: Bool) -> String {
         guard let raw, !raw.isEmpty else { return "-" }
         let display = allSeasons ? raw : raw.components(separatedBy: " (S").first ?? raw
-        return redactPlayerNameForDisplay(display)
+        return formatLPLPlayerNameForDisplay(display)
     }
 }
 
@@ -915,9 +927,9 @@ private final class StatsViewModel: ObservableObject {
 
     private func playerLabel(for row: ScoreRow, isBankScope: Bool) -> String {
         if isBankScope {
-            return redactPlayerNameForDisplay(row.player)
+            return formatLPLPlayerNameForDisplay(row.player)
         }
-        return "\(redactPlayerNameForDisplay(row.player)) (\(abbreviateSeason(row.season)))"
+        return "\(formatLPLPlayerNameForDisplay(row.player)) (\(abbreviateSeason(row.season)))"
     }
 
     private func abbreviateSeason(_ season: String) -> String {
