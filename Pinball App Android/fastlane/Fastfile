@@ -1,38 +1,5 @@
 default_platform(:android)
 
-def bump_patch_version(version_name)
-  parts = version_name.split(".")
-  unless parts.all? { |part| part.match?(/^\d+$/) }
-    UI.user_error!("versionName must be numeric dot format (for example 1.0.3), got #{version_name}")
-  end
-
-  parts[-1] = (parts[-1].to_i + 1).to_s
-  parts.join(".")
-end
-
-def bump_android_versions!(gradle_file)
-  gradle_path = File.expand_path(gradle_file, __dir__)
-  content = File.read(gradle_path)
-
-  code_match = content.match(/versionCode\s*=\s*(\d+)/)
-  name_match = content.match(/versionName\s*=\s*"([^"]+)"/)
-
-  UI.user_error!("Could not find versionCode in #{gradle_path}") unless code_match
-  UI.user_error!("Could not find versionName in #{gradle_path}") unless name_match
-
-  old_code = code_match[1].to_i
-  old_name = name_match[1]
-  new_code = old_code + 1
-  new_name = bump_patch_version(old_name)
-
-  updated = content.sub(/versionCode\s*=\s*\d+/, "versionCode = #{new_code}")
-  updated = updated.sub(/versionName\s*=\s*"[^"]+"/, "versionName = \"#{new_name}\"")
-  File.write(gradle_path, updated)
-
-  UI.message("Bumped versionCode: #{old_code} -> #{new_code}")
-  UI.message("Bumped versionName: #{old_name} -> #{new_name}")
-end
-
 platform :android do
   desc "Run practice migration unit tests"
   lane :test_migration do
@@ -50,10 +17,9 @@ platform :android do
     gradle(task: "clean bundle", build_type: "Release")
   end
 
-  desc "Upload release AAB to Google Play internal track"
+  desc "Upload release AAB to Google Play internal track using the existing Gradle version"
   lane :internal do
     test_migration
-    bump_android_versions!("../app/build.gradle.kts")
     gradle(task: "clean bundle", build_type: "Release")
     upload_to_play_store(
       track: "internal",
@@ -62,10 +28,9 @@ platform :android do
     )
   end
 
-  desc "Upload release AAB to Google Play closed testing (alpha track)"
+  desc "Upload release AAB to Google Play closed testing (alpha track) using the existing Gradle version"
   lane :closed do
     test_migration
-    bump_android_versions!("../app/build.gradle.kts")
     gradle(task: "clean bundle", build_type: "Release")
     upload_to_play_store(
       track: "alpha",
