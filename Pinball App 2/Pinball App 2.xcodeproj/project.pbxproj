@@ -12,12 +12,12 @@
 			containerPortal = 92ACDA222F35498A00923E9F /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 92ACDA292F35498A00923E9F;
-			remoteInfo = "Pinball App 2";
+			remoteInfo = PinProf;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		92ACDA2A2F35498A00923E9F /* Pinball App 2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Pinball App 2.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		92ACDA2A2F35498A00923E9F /* PinProf.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PinProf.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		92ACDA3A2F35498B00923E9F /* Pinball App 2Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Pinball App 2Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -64,7 +64,7 @@
 		92ACDA2B2F35498A00923E9F /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				92ACDA2A2F35498A00923E9F /* Pinball App 2.app */,
+				92ACDA2A2F35498A00923E9F /* PinProf.app */,
 				92ACDA3A2F35498B00923E9F /* Pinball App 2Tests.xctest */,
 			);
 			name = Products;
@@ -73,9 +73,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		92ACDA292F35498A00923E9F /* Pinball App 2 */ = {
+		92ACDA292F35498A00923E9F /* PinProf */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 92ACDA352F35498B00923E9F /* Build configuration list for PBXNativeTarget "Pinball App 2" */;
+			buildConfigurationList = 92ACDA352F35498B00923E9F /* Build configuration list for PBXNativeTarget "PinProf" */;
 			buildPhases = (
 				92ACDA262F35498A00923E9F /* Sources */,
 				92ACDA272F35498A00923E9F /* Frameworks */,
@@ -88,11 +88,11 @@
 			fileSystemSynchronizedGroups = (
 				92ACDA2C2F35498A00923E9F /* Pinball App 2 */,
 			);
-			name = "Pinball App 2";
+			name = PinProf;
 			packageProductDependencies = (
 			);
-			productName = "Pinball App 2";
-			productReference = 92ACDA2A2F35498A00923E9F /* Pinball App 2.app */;
+			productName = PinProf;
+			productReference = 92ACDA2A2F35498A00923E9F /* PinProf.app */;
 			productType = "com.apple.product-type.application";
 		};
 		92ACDA3D2F35498B00923E9F /* Pinball App 2Tests */ = {
@@ -126,7 +126,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2620;
-				LastUpgradeCheck = 2620;
+				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					92ACDA292F35498A00923E9F = {
 						CreatedOnToolsVersion = 26.2;
@@ -151,7 +151,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				92ACDA292F35498A00923E9F /* Pinball App 2 */,
+				92ACDA292F35498A00923E9F /* PinProf */,
 				92ACDA3D2F35498B00923E9F /* Pinball App 2Tests */,
 			);
 		};
@@ -194,7 +194,7 @@
 /* Begin PBXTargetDependency section */
 		92ACDA412F35498B00923E9F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 92ACDA292F35498A00923E9F /* Pinball App 2 */;
+			target = 92ACDA292F35498A00923E9F /* PinProf */;
 			targetProxy = 92ACDA402F35498B00923E9F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -259,6 +259,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -316,6 +317,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -331,6 +333,7 @@
 				DEVELOPMENT_TEAM = 6U34DD3Y88;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = PinProf;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -344,9 +347,9 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.0.0;
+				MARKETING_VERSION = 3.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.pillyliu.Pinball-App-2";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = PinProf;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -367,6 +370,7 @@
 				DEVELOPMENT_TEAM = 6U34DD3Y88;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = PinProf;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -380,9 +384,9 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.0.0;
+				MARKETING_VERSION = 3.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.pillyliu.Pinball-App-2";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = PinProf;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -413,7 +417,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pinball App 2.app/Pinball App 2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PinProf.app/PinProf";
 			};
 			name = Debug;
 		};
@@ -437,7 +441,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pinball App 2.app/Pinball App 2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PinProf.app/PinProf";
 			};
 			name = Release;
 		};
@@ -453,7 +457,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		92ACDA352F35498B00923E9F /* Build configuration list for PBXNativeTarget "Pinball App 2" */ = {
+		92ACDA352F35498B00923E9F /* Build configuration list for PBXNativeTarget "PinProf" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				92ACDA362F35498B00923E9F /* Debug */,

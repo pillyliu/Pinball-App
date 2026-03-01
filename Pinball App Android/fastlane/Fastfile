@@ -3,7 +3,7 @@ default_platform(:android)
 platform :android do
   desc "Run practice migration unit tests"
   lane :test_migration do
-    gradle(task: "testDebugUnitTest", flags: "--tests com.pillyliu.pinballandroid.practice.PracticeCanonicalPersistenceTest")
+    gradle(task: "testDebugUnitTest", flags: "--tests com.pillyliu.pinprofandroid.practice.PracticeCanonicalPersistenceTest")
   end
 
   desc "Run unit tests"

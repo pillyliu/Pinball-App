@@ -33,6 +33,16 @@ struct AboutScreen: View {
         isLargeTablet ? .title3.weight(.semibold) : .subheadline.weight(.semibold)
     }
 
+    private var aboutLogo: Image? {
+        guard
+            let url = Bundle.main.url(forResource: "LPLLogo", withExtension: "png"),
+            let uiImage = UIImage(contentsOfFile: url.path)
+        else {
+            return nil
+        }
+        return Image(uiImage: uiImage)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -41,11 +51,13 @@ struct AboutScreen: View {
                 VStack(spacing: 0) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 14) {
-                            Image("LaunchLogo")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(maxWidth: .infinity)
-                                .frame(minHeight: 120, maxHeight: 220)
+                            if let aboutLogo {
+                                aboutLogo
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxWidth: .infinity)
+                                    .frame(minHeight: 120, maxHeight: 220)
+                            }
 
                             Text("Pinball in the Capital City")
                                 .font(aboutTitleFont)
