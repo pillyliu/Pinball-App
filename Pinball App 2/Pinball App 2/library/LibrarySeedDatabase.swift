@@ -387,7 +387,7 @@ actor LibrarySeedDatabase {
                     ($0.year ?? Int.max, $0.name.lowercased(), $0.opdbMachineID ?? "")
                         < ($1.year ?? Int.max, $1.name.lowercased(), $1.opdbMachineID ?? "")
                 }
-            case .venue:
+            case .venue, .tournament:
                 let ids = Set(source.machineIDs)
                 sourceMachines = machines.filter { machine in
                     if let opdbMachineID = machine.opdbMachineID, ids.contains(opdbMachineID) {

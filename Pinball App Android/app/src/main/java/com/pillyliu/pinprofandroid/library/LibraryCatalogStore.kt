@@ -7,6 +7,22 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
 
+private val canonicalBuiltinSourceIds = setOf(
+    "venue--rlm-amusements",
+    "venue--the-avenue-cafe",
+)
+
+private val legacySourceIdAliases = mapOf(
+    "the-avenue" to "venue--the-avenue-cafe",
+    "rlm-amusements" to "venue--rlm-amusements",
+)
+
+private fun canonicalLibrarySourceId(raw: String?): String? {
+    val trimmed = raw?.trim().orEmpty()
+    if (trimmed.isEmpty()) return null
+    return legacySourceIdAliases[trimmed] ?: trimmed
+}
+
 internal data class LibrarySourceState(
     val enabledSourceIds: List<String> = emptyList(),
     val pinnedSourceIds: List<String> = emptyList(),
@@ -17,7 +33,8 @@ internal data class LibrarySourceState(
 
 internal enum class ImportedSourceProvider(val rawValue: String) {
     OPDB("opdb"),
-    PINBALL_MAP("pinball_map");
+    PINBALL_MAP("pinball_map"),
+    MATCH_PLAY("match_play");
 
     companion object {
         fun fromRaw(raw: String?): ImportedSourceProvider? = entries.firstOrNull { it.rawValue == raw }
@@ -46,27 +63,39 @@ internal object LibrarySourceStateStore {
         val raw = prefs.getString(STATE_KEY, null) ?: return LibrarySourceState()
         return runCatching {
             val root = JSONObject(raw)
-            LibrarySourceState(
-                enabledSourceIds = root.optJSONArray("enabledSourceIds").toStringList(),
-                pinnedSourceIds = root.optJSONArray("pinnedSourceIds").toStringList(),
-                selectedSourceId = root.optString("selectedSourceId").trim().ifBlank { null },
-                selectedSortBySource = root.optJSONObject("selectedSortBySource").toStringMap(),
-                selectedBankBySource = root.optJSONObject("selectedBankBySource").toIntMap(),
+            normalize(
+                LibrarySourceState(
+                    enabledSourceIds = root.optJSONArray("enabledSourceIds").toStringList().mapNotNull(::canonicalLibrarySourceId),
+                    pinnedSourceIds = root.optJSONArray("pinnedSourceIds").toStringList().mapNotNull(::canonicalLibrarySourceId),
+                    selectedSourceId = canonicalLibrarySourceId(root.optString("selectedSourceId").trim().ifBlank { null }),
+                    selectedSortBySource = root.optJSONObject("selectedSortBySource").toStringMap().mapNotNullKeys(::canonicalLibrarySourceId),
+                    selectedBankBySource = root.optJSONObject("selectedBankBySource").toIntMap().mapNotNullKeys(::canonicalLibrarySourceId),
+                ),
             )
         }.getOrDefault(LibrarySourceState())
     }
 
+    private fun normalize(state: LibrarySourceState): LibrarySourceState =
+        LibrarySourceState(
+            enabledSourceIds = state.enabledSourceIds.mapNotNull(::canonicalLibrarySourceId).distinct(),
+            pinnedSourceIds = state.pinnedSourceIds.mapNotNull(::canonicalLibrarySourceId).distinct(),
+            selectedSourceId = canonicalLibrarySourceId(state.selectedSourceId),
+            selectedSortBySource = state.selectedSortBySource.mapNotNullKeys(::canonicalLibrarySourceId),
+            selectedBankBySource = state.selectedBankBySource.mapNotNullKeys(::canonicalLibrarySourceId),
+        )
+
     fun save(context: Context, state: LibrarySourceState) {
+        val normalized = normalize(state)
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val json = JSONObject().apply {
-            put("enabledSourceIds", JSONArray().apply { state.enabledSourceIds.forEach(::put) })
-            put("pinnedSourceIds", JSONArray().apply { state.pinnedSourceIds.forEach(::put) })
-            put("selectedSourceId", state.selectedSourceId)
+            put("enabledSourceIds", JSONArray().apply { normalized.enabledSourceIds.forEach(::put) })
+            put("pinnedSourceIds", JSONArray().apply { normalized.pinnedSourceIds.forEach(::put) })
+            put("selectedSourceId", normalized.selectedSourceId)
             put("selectedSortBySource", JSONObject().apply {
-                state.selectedSortBySource.forEach { (key, value) -> put(key, value) }
+                normalized.selectedSortBySource.forEach { (key, value) -> put(key, value) }
             })
             put("selectedBankBySource", JSONObject().apply {
-                state.selectedBankBySource.forEach { (key, value) -> put(key, value) }
+                normalized.selectedBankBySource.forEach { (key, value) -> put(key, value) }
             })
         }
         prefs.edit { putString(STATE_KEY, json.toString()) }
@@ -75,91 +104,100 @@ internal object LibrarySourceStateStore {
     fun synchronize(context: Context, payloadSources: List<LibrarySource>): LibrarySourceState {
         val validIds = payloadSources.map { it.id }.toSet()
         var state = load(context)
+        val enabledIds = filteredKnownIds(state.enabledSourceIds, validIds).toMutableList()
+        canonicalBuiltinSourceIds.filter { it in validIds }.forEach { builtinId ->
+            if (builtinId !in enabledIds) enabledIds += builtinId
+        }
         state = state.copy(
-            enabledSourceIds = filteredKnownIds(state.enabledSourceIds, validIds).ifEmpty {
+            enabledSourceIds = enabledIds.ifEmpty {
                 payloadSources.map { it.id }
             },
             pinnedSourceIds = filteredKnownIds(state.pinnedSourceIds, validIds).take(MAX_PINNED_SOURCES).ifEmpty {
                 payloadSources.take(MAX_PINNED_SOURCES).map { it.id }
             },
-            selectedSourceId = state.selectedSourceId?.takeIf { validIds.contains(it) },
-            selectedSortBySource = state.selectedSortBySource.filterKeys { validIds.contains(it) },
-            selectedBankBySource = state.selectedBankBySource.filterKeys { validIds.contains(it) },
+            selectedSourceId = canonicalLibrarySourceId(state.selectedSourceId)?.takeIf { validIds.contains(it) },
+            selectedSortBySource = state.selectedSortBySource.mapNotNullKeys(::canonicalLibrarySourceId).filterKeys { validIds.contains(it) },
+            selectedBankBySource = state.selectedBankBySource.mapNotNullKeys(::canonicalLibrarySourceId).filterKeys { validIds.contains(it) },
         )
         save(context, state)
         return state
     }
 
     fun upsertSource(context: Context, id: String, enable: Boolean = true, pinIfPossible: Boolean = true) {
+        val canonicalId = canonicalLibrarySourceId(id) ?: return
         val current = load(context)
         val enabled = current.enabledSourceIds.toMutableList()
         val pinned = current.pinnedSourceIds.toMutableList()
-        if (enable && !enabled.contains(id)) {
-            enabled += id
+        if (enable && !enabled.contains(canonicalId)) {
+            enabled += canonicalId
         }
-        if (pinIfPossible && !pinned.contains(id) && pinned.size < MAX_PINNED_SOURCES) {
-            pinned += id
+        if (pinIfPossible && !pinned.contains(canonicalId) && pinned.size < MAX_PINNED_SOURCES) {
+            pinned += canonicalId
         }
         save(context, current.copy(enabledSourceIds = enabled, pinnedSourceIds = pinned))
     }
 
     fun setEnabled(context: Context, sourceId: String, isEnabled: Boolean) {
+        val canonicalId = canonicalLibrarySourceId(sourceId) ?: return
         val current = load(context)
         val enabled = current.enabledSourceIds.toMutableList()
         val pinned = current.pinnedSourceIds.toMutableList()
         val selected = current.selectedSourceId
         if (isEnabled) {
-            if (!enabled.contains(sourceId)) enabled += sourceId
+            if (!enabled.contains(canonicalId)) enabled += canonicalId
             save(context, current.copy(enabledSourceIds = enabled))
             return
         }
-        enabled.removeAll { it == sourceId }
-        pinned.removeAll { it == sourceId }
+        enabled.removeAll { it == canonicalId }
+        pinned.removeAll { it == canonicalId }
         save(
             context,
             current.copy(
                 enabledSourceIds = enabled,
                 pinnedSourceIds = pinned,
-                selectedSourceId = if (selected == sourceId) null else selected,
+                selectedSourceId = if (selected == canonicalId) null else selected,
             ),
         )
     }
 
     fun setPinned(context: Context, sourceId: String, isPinned: Boolean): Boolean {
+        val canonicalId = canonicalLibrarySourceId(sourceId) ?: return false
         val current = load(context)
         val enabled = current.enabledSourceIds.toMutableList()
         val pinned = current.pinnedSourceIds.toMutableList()
         if (isPinned) {
-            if (pinned.contains(sourceId)) return true
+            if (pinned.contains(canonicalId)) return true
             if (pinned.size >= MAX_PINNED_SOURCES) return false
-            if (!enabled.contains(sourceId)) enabled += sourceId
-            pinned += sourceId
+            if (!enabled.contains(canonicalId)) enabled += canonicalId
+            pinned += canonicalId
         } else {
-            pinned.removeAll { it == sourceId }
+            pinned.removeAll { it == canonicalId }
         }
         save(context, current.copy(enabledSourceIds = enabled, pinnedSourceIds = pinned))
         return true
     }
 
     fun setSelectedSource(context: Context, sourceId: String?) {
-        save(context, load(context).copy(selectedSourceId = sourceId?.trim()?.ifBlank { null }))
+        save(context, load(context).copy(selectedSourceId = canonicalLibrarySourceId(sourceId)))
     }
 
     fun setSelectedSort(context: Context, sourceId: String, sortName: String) {
+        val canonicalId = canonicalLibrarySourceId(sourceId) ?: return
         val next = load(context).selectedSortBySource.toMutableMap()
-        next[sourceId] = sortName
+        next[canonicalId] = sortName
         save(context, load(context).copy(selectedSortBySource = next))
     }
 
     fun setSelectedBank(context: Context, sourceId: String, bank: Int?) {
+        val canonicalId = canonicalLibrarySourceId(sourceId) ?: return
         val next = load(context).selectedBankBySource.toMutableMap()
-        if (bank == null) next.remove(sourceId) else next[sourceId] = bank
+        if (bank == null) next.remove(canonicalId) else next[canonicalId] = bank
         save(context, load(context).copy(selectedBankBySource = next))
     }
 
     private fun filteredKnownIds(ids: List<String>, validIds: Set<String>): List<String> {
         val seen = LinkedHashSet<String>()
-        return ids.filter { id -> validIds.contains(id) && seen.add(id) }
+        return ids.mapNotNull(::canonicalLibrarySourceId).filter { id -> validIds.contains(id) && seen.add(id) }
     }
 }
 
@@ -175,12 +213,13 @@ internal object ImportedSourcesStore {
             buildList {
                 for (i in 0 until array.length()) {
                     val obj = array.optJSONObject(i) ?: continue
-                    val id = obj.optString("id").trim()
+                    val id = canonicalLibrarySourceId(obj.optString("id").trim())
                     val name = obj.optString("name").trim()
                     val type = LibrarySourceType.fromRaw(obj.optString("type")) ?: continue
-                    val provider = ImportedSourceProvider.fromRaw(obj.optString("provider")) ?: continue
+                    val provider = ImportedSourceProvider.fromRaw(obj.optString("provider"))
+                        ?: inferredImportedSourceProvider(type, id)
                     val providerSourceId = obj.optString("providerSourceId").trim()
-                    if (id.isBlank() || name.isBlank() || providerSourceId.isBlank()) continue
+                    if (id.isNullOrBlank() || name.isBlank() || providerSourceId.isBlank()) continue
                     add(
                         ImportedSourceRecord(
                             id = id,
@@ -222,27 +261,30 @@ internal object ImportedSourcesStore {
     }
 
     fun upsert(context: Context, record: ImportedSourceRecord) {
+        val canonicalId = canonicalLibrarySourceId(record.id) ?: return
         val current = load(context).toMutableList()
-        val index = current.indexOfFirst { it.id == record.id }
+        val canonicalRecord = record.copy(id = canonicalId)
+        val index = current.indexOfFirst { it.id == canonicalId }
         if (index >= 0) {
-            current[index] = record
+            current[index] = canonicalRecord
         } else {
-            current += record
+            current += canonicalRecord
         }
         save(context, current)
     }
 
     fun remove(context: Context, id: String) {
-        save(context, load(context).filterNot { it.id == id })
+        val canonicalId = canonicalLibrarySourceId(id) ?: return
+        save(context, load(context).filterNot { it.id == canonicalId })
         val state = LibrarySourceStateStore.load(context)
         LibrarySourceStateStore.save(
             context,
             state.copy(
-                enabledSourceIds = state.enabledSourceIds.filterNot { it == id },
-                pinnedSourceIds = state.pinnedSourceIds.filterNot { it == id },
-                selectedSourceId = state.selectedSourceId?.takeUnless { it == id },
-                selectedSortBySource = state.selectedSortBySource.filterKeys { it != id },
-                selectedBankBySource = state.selectedBankBySource.filterKeys { it != id },
+                enabledSourceIds = state.enabledSourceIds.filterNot { it == canonicalId },
+                pinnedSourceIds = state.pinnedSourceIds.filterNot { it == canonicalId },
+                selectedSourceId = state.selectedSourceId?.takeUnless { it == canonicalId },
+                selectedSortBySource = state.selectedSortBySource.filterKeys { it != canonicalId },
+                selectedBankBySource = state.selectedBankBySource.filterKeys { it != canonicalId },
             ),
         )
     }
@@ -291,3 +333,14 @@ private fun JSONObject?.toIntMap(): Map<String, Int> {
     }
     return out
 }
+
+private fun <V> Map<String, V>.mapNotNullKeys(transform: (String) -> String?): Map<String, V> =
+    entries.mapNotNull { (key, value) -> transform(key)?.let { it to value } }.toMap()
+
+private fun inferredImportedSourceProvider(type: LibrarySourceType, id: String?): ImportedSourceProvider =
+    when (type) {
+        LibrarySourceType.MANUFACTURER -> ImportedSourceProvider.OPDB
+        LibrarySourceType.TOURNAMENT -> ImportedSourceProvider.MATCH_PLAY
+        LibrarySourceType.VENUE -> if ((id ?: "").startsWith("venue--pm-")) ImportedSourceProvider.PINBALL_MAP else ImportedSourceProvider.OPDB
+        LibrarySourceType.CATEGORY -> ImportedSourceProvider.OPDB
+    }

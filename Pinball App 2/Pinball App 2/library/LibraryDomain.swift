@@ -264,6 +264,7 @@ enum PinballLibrarySourceType: String, CaseIterable, Codable {
     case venue
     case category
     case manufacturer
+    case tournament
 }
 
 struct PinballLibrarySource: Identifiable {
@@ -279,6 +280,8 @@ struct PinballLibrarySource: Identifiable {
             return .alphabetical
         case .manufacturer:
             return .year
+        case .tournament:
+            return .alphabetical
         }
     }
 }
@@ -375,7 +378,7 @@ final class PinballLibraryViewModel: ObservableObject {
             return [.area, .alphabetical]
         }
         switch selectedSource.type {
-        case .category, .manufacturer:
+        case .category, .manufacturer, .tournament:
             return [.year, .alphabetical]
         case .venue:
             let hasBank = sourceScopedGames.contains { ($0.bank ?? 0) > 0 }
@@ -656,7 +659,7 @@ final class PinballLibraryViewModel: ObservableObject {
         switch source.type {
         case .manufacturer:
             return .year
-        case .category:
+        case .category, .tournament:
             return .alphabetical
         case .venue:
             let hasArea = games.contains {
@@ -877,6 +880,9 @@ private func parseSourceType(_ raw: String?) -> PinballLibrarySourceType {
     }
     if normalized == "category" {
         return .category
+    }
+    if normalized == "tournament" {
+        return .tournament
     }
     return .venue
 }

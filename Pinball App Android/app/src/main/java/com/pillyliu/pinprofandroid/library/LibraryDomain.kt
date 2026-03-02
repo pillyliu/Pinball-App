@@ -17,7 +17,8 @@ private const val FALLBACK_WHITEWOOD_PLAYFIELD_1400 = "/pinball/images/playfield
 internal enum class LibrarySourceType(val rawValue: String) {
     VENUE("venue"),
     CATEGORY("category"),
-    MANUFACTURER("manufacturer");
+    MANUFACTURER("manufacturer"),
+    TOURNAMENT("tournament");
 
     companion object {
         fun fromRaw(raw: String?): LibrarySourceType? {
@@ -25,6 +26,7 @@ internal enum class LibrarySourceType(val rawValue: String) {
                 "venue" -> VENUE
                 "category" -> CATEGORY
                 "manufacturer" -> MANUFACTURER
+                "tournament" -> TOURNAMENT
                 else -> null
             }
         }
@@ -41,6 +43,7 @@ internal data class LibrarySource(
             LibrarySourceType.VENUE -> LibrarySortOption.AREA
             LibrarySourceType.CATEGORY -> LibrarySortOption.ALPHABETICAL
             LibrarySourceType.MANUFACTURER -> LibrarySortOption.YEAR
+            LibrarySourceType.TOURNAMENT -> LibrarySortOption.ALPHABETICAL
         }
 }
 
@@ -195,7 +198,8 @@ internal fun sortLibraryGames(
 internal fun sortOptionsForSource(source: LibrarySource, games: List<PinballGame>): List<LibrarySortOption> {
     return when (source.type) {
         LibrarySourceType.CATEGORY,
-        LibrarySourceType.MANUFACTURER -> listOf(
+        LibrarySourceType.MANUFACTURER,
+        LibrarySourceType.TOURNAMENT -> listOf(
             LibrarySortOption.YEAR,
             LibrarySortOption.ALPHABETICAL,
         )
@@ -356,6 +360,7 @@ private fun parseSourceType(raw: String?): LibrarySourceType {
     return when (raw?.trim()?.lowercase()) {
         "category" -> LibrarySourceType.CATEGORY
         "manufacturer" -> LibrarySourceType.MANUFACTURER
+        "tournament" -> LibrarySourceType.TOURNAMENT
         else -> LibrarySourceType.VENUE
     }
 }

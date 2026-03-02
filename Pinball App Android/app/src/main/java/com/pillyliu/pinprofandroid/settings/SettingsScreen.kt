@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.foundation.text.KeyboardActions
@@ -80,6 +81,7 @@ private sealed interface SettingsRoute {
     data object Home : SettingsRoute
     data object AddManufacturer : SettingsRoute
     data object AddVenue : SettingsRoute
+    data object AddTournament : SettingsRoute
 }
 
 private enum class ManufacturerBucket(val label: String) {
@@ -92,6 +94,7 @@ private enum class ManufacturerBucket(val label: String) {
 @Composable
 internal fun SettingsScreen(contentPadding: PaddingValues) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val builtinSources = remember {
         listOf(
             LibrarySource(id = "venue--rlm-amusements", name = "RLM Amusements", type = LibrarySourceType.VENUE),
@@ -182,6 +185,29 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
             return
         }
 
+        SettingsRoute.AddTournament -> {
+            AddTournamentScreen(
+                contentPadding = contentPadding,
+                onBack = { route = SettingsRoute.Home },
+                onImport = { result ->
+                    val record = ImportedSourceRecord(
+                        id = "tournament--mp-${result.id}",
+                        name = result.name,
+                        type = LibrarySourceType.TOURNAMENT,
+                        provider = ImportedSourceProvider.MATCH_PLAY,
+                        providerSourceId = result.id,
+                        machineIds = result.machineIds,
+                        lastSyncedAtMs = System.currentTimeMillis(),
+                    )
+                    ImportedSourcesStore.upsert(context, record)
+                    LibrarySourceStateStore.upsertSource(context, record.id, enable = true, pinIfPossible = true)
+                    afterSourceMutation()
+                    route = SettingsRoute.Home
+                },
+            )
+            return
+        }
+
         SettingsRoute.Home -> Unit
     }
 
@@ -200,9 +226,27 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
             item {
                 CardContainer {
                     Text("Library", fontWeight = FontWeight.SemiBold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { route = SettingsRoute.AddManufacturer }) { Text("Add Manufacturer") }
-                        Button(onClick = { route = SettingsRoute.AddVenue }) { Text("Add Venue") }
+                    Text(
+                        "Add:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Button(
+                            onClick = { route = SettingsRoute.AddManufacturer },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        ) { Text("Manufacturer", maxLines = 1, overflow = TextOverflow.Clip) }
+                        Button(
+                            onClick = { route = SettingsRoute.AddVenue },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        ) { Text("Venue", maxLines = 1, overflow = TextOverflow.Clip) }
+                        Button(
+                            onClick = { route = SettingsRoute.AddTournament },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        ) { Text("Tournament", maxLines = 1, overflow = TextOverflow.Clip) }
                     }
                     Text(
                         "Enabled adds that source's games to Library and Practice. Library adds the source to the Library source filter for quick switching. Up to ${LibrarySourceStateStore.MAX_PINNED_SOURCES} sources can appear in Library at once.",
@@ -242,6 +286,11 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
                                     "Imported venue • ${if (count == 1) "1 game" else "$count games"}"
                                 }
 
+                                LibrarySourceType.TOURNAMENT -> {
+                                    val count = source.machineIds.size
+                                    "Match Play tournament • ${if (count == 1) "1 game" else "$count games"}"
+                                }
+
                                 LibrarySourceType.CATEGORY -> "Category"
                             },
                             enabled = sourceState.enabledSourceIds.contains(source.id),
@@ -260,15 +309,42 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
                             },
                             onRefresh = if (source.type == LibrarySourceType.VENUE) {
                                 {
-                                    runCatching {
-                                        val machineIds = PinballMapClient.fetchVenueMachineIds(source.providerSourceId)
-                                        ImportedSourcesStore.upsert(
-                                            context,
-                                            source.copy(machineIds = machineIds, lastSyncedAtMs = System.currentTimeMillis()),
-                                        )
-                                        afterSourceMutation()
-                                    }.onFailure {
-                                        error = "Venue refresh failed: ${it.message ?: "Unknown error"}"
+                                    scope.launch {
+                                        runCatching {
+                                            withContext(Dispatchers.IO) {
+                                                PinballMapClient.fetchVenueMachineIds(source.providerSourceId)
+                                            }
+                                        }.onSuccess { machineIds ->
+                                            ImportedSourcesStore.upsert(
+                                                context,
+                                                source.copy(machineIds = machineIds, lastSyncedAtMs = System.currentTimeMillis()),
+                                            )
+                                            afterSourceMutation()
+                                        }.onFailure {
+                                            error = "Venue refresh failed: ${it.message ?: "Unknown error"}"
+                                        }
+                                    }
+                                }
+                            } else if (source.type == LibrarySourceType.TOURNAMENT) {
+                                {
+                                    scope.launch {
+                                        runCatching {
+                                            withContext(Dispatchers.IO) {
+                                                MatchPlayClient.fetchTournament(source.providerSourceId)
+                                            }
+                                        }.onSuccess { tournament ->
+                                            ImportedSourcesStore.upsert(
+                                                context,
+                                                source.copy(
+                                                    name = tournament.name,
+                                                    machineIds = tournament.machineIds,
+                                                    lastSyncedAtMs = System.currentTimeMillis(),
+                                                ),
+                                            )
+                                            afterSourceMutation()
+                                        }.onFailure {
+                                            error = "Tournament refresh failed: ${it.message ?: "Unknown error"}"
+                                        }
                                     }
                                 }
                             } else null,
@@ -542,6 +618,16 @@ private fun List<CatalogManufacturerOption>.filteredForBucket(
     }
 }
 
+private fun extractTournamentId(raw: String): String? {
+    val trimmed = raw.trim()
+    if (trimmed.isBlank()) return null
+    if (trimmed.all { it.isDigit() }) return trimmed
+    return Regex("""tournaments/(\d+)""")
+        .find(trimmed)
+        ?.groupValues
+        ?.getOrNull(1)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddVenueScreen(
@@ -703,6 +789,76 @@ private fun AddVenueScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AddTournamentScreen(
+    contentPadding: PaddingValues,
+    onBack: () -> Unit,
+    onImport: (MatchPlayTournamentImportResult) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    var rawTournamentId by remember { mutableStateOf("") }
+    var importing by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val tournamentId = remember(rawTournamentId) { extractTournamentId(rawTournamentId) }
+
+    AppScreen(contentPadding) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = onBack) { Text("Back") }
+                Text("Add Tournament", fontWeight = FontWeight.SemiBold)
+            }
+            LinkedHtmlText(
+                html = """Import powered by <a href="https://matchplay.events">Match Play</a>""",
+            )
+            OutlinedTextField(
+                value = rawTournamentId,
+                onValueChange = { rawTournamentId = it },
+                label = { Text("Tournament ID or URL") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+            )
+            Text(
+                "Enter a Match Play tournament ID or URL to import its arena list into Library and Practice.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(
+                onClick = {
+                    scope.launch {
+                        importing = true
+                        error = null
+                        val resolvedId = tournamentId
+                        if (resolvedId == null) {
+                            error = "Enter a valid tournament ID."
+                            importing = false
+                            return@launch
+                        }
+                        runCatching {
+                            withContext(Dispatchers.IO) { MatchPlayClient.fetchTournament(resolvedId) }
+                        }.onSuccess { result ->
+                            if (result.machineIds.isEmpty()) {
+                                error = "No OPDB-linked arenas were found for that tournament."
+                            } else {
+                                onImport(result)
+                            }
+                        }.onFailure {
+                            error = it.message ?: "Tournament import failed."
+                        }
+                        importing = false
+                    }
+                },
+                enabled = !importing && tournamentId != null,
+            ) {
+                Text(if (importing) "Importing..." else "Import Tournament")
+            }
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         }
     }
 }

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-02-26T13:08:04.380Z",
+  "generatedAt": "2026-03-02T17:29:14.409Z",
   "source": "shared/pinball",
-  "totalFiles": 845,
+  "totalFiles": 848,
   "files": {
     "/pinball/.DS_Store": {
       "hash": "3ec35a175210023f6ab21627917491d35256f0d1245ba843d742c09557d316fb",
@@ -13,7 +13,7 @@
     "/pinball/data/Avenue Pinball - Current.csv": {
       "hash": "0a0e1787965d5e85ad06b7c669ed49eeae1023982d9583f1f9e0565ff64a4760",
       "size": 13473,
-      "mtimeMs": 1772110411929,
+      "mtimeMs": 1772472538784,
       "contentType": "text/csv"
     },
     "/pinball/data/Codex Pinball Library - Current.csv": {
@@ -52,6 +52,12 @@
       "mtimeMs": 1771809981686,
       "contentType": "application/json"
     },
+    "/pinball/data/opdb_catalog_v1.json": {
+      "hash": "86d35275abe006ce72f8e30f4a8fc4c1688db01285c60f4cee96b9783b6e80ee",
+      "size": 1883554,
+      "mtimeMs": 1772472553355,
+      "contentType": "application/json"
+    },
     "/pinball/data/pinball_library.csv": {
       "hash": "c34abadbabac422a5d1df22a87834c5a431437b40bf647b4e9e033d87e6b4c86",
       "size": 21499,
@@ -61,19 +67,25 @@
     "/pinball/data/pinball_library.json": {
       "hash": "4bd7da5c8a3f12b32564713cb526fe9c4f74c5bf547350890fc547827bb01e78",
       "size": 35872,
-      "mtimeMs": 1772111281408,
+      "mtimeMs": 1772472539712,
       "contentType": "application/json"
     },
+    "/pinball/data/pinball_library_seed_v1.sqlite": {
+      "hash": "c04ad3359c29f51c33c5645f8ff99673bf6ee6a0acd89701004350d2ffc6d621",
+      "size": 1191936,
+      "mtimeMs": 1772472553456,
+      "contentType": "application/octet-stream"
+    },
     "/pinball/data/pinball_library_v2.json": {
-      "hash": "88f629de906231e19c21fbbbe2e58c8a079d81291f311107517c382077bbd328",
+      "hash": "925e02de061e3daeb015ece1a600d645748992a36d9248e94185bff594a43bdd",
       "size": 213582,
-      "mtimeMs": 1772111283125,
+      "mtimeMs": 1772472541447,
       "contentType": "application/json"
     },
     "/pinball/data/pinball_library_v3.json": {
-      "hash": "c6dc357bf5cb6942e6c9c8c09bc3ea89ccd165c1108fecdb63b230e684b66e58",
+      "hash": "80a88d11fb6d0dffd2f812bf069fe1edd65ee13337c096f6e498727b92451ac5",
       "size": 213228,
-      "mtimeMs": 1772111283548,
+      "mtimeMs": 1772472541853,
       "contentType": "application/json"
     },
     "/pinball/data/pinside_group_map.json": {
@@ -105,6 +117,12 @@
       "size": 21,
       "mtimeMs": 1770931494143,
       "contentType": "text/csv"
+    },
+    "/pinball/data/rulesheet_link_audit.json": {
+      "hash": "bee4391e28b9ab33ba3752bf149c629f6bc4b4ef0f9024a6a0156d79235deee3",
+      "size": 1488358,
+      "mtimeMs": 1772472553588,
+      "contentType": "application/json"
     },
     "/pinball/gameinfo/G2Lkd-gameinfo.md": {
       "hash": "37ba0aea0825978fa3645e33c026adb55eefc7a90fd07f45a6f8a5fe32df0ea1",

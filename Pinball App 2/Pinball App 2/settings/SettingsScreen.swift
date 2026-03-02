@@ -4,6 +4,7 @@ import Combine
 private enum SettingsRoute: Hashable {
     case addManufacturer
     case addVenue
+    case addTournament
 }
 
 @MainActor
@@ -122,6 +123,26 @@ final class SettingsViewModel: ObservableObject {
         postPinballLibrarySourcesDidChange()
     }
 
+    func importTournament(result: MatchPlayTournamentImportResult) {
+        let sourceID = "tournament--mp-\(result.id)"
+        let record = PinballImportedSourceRecord(
+            id: sourceID,
+            name: result.name,
+            type: .tournament,
+            provider: .matchPlay,
+            providerSourceID: result.id,
+            machineIDs: result.machineIDs,
+            lastSyncedAt: Date(),
+            searchQuery: nil,
+            distanceMiles: nil
+        )
+        PinballImportedSourcesStore.upsert(record)
+        PinballLibrarySourceStateStore.upsertSource(id: sourceID, enable: true, pinIfPossible: true)
+        importedSources = PinballImportedSourcesStore.load()
+        sourceState = PinballLibrarySourceStateStore.load()
+        postPinballLibrarySourcesDidChange()
+    }
+
     func removeImportedSource(_ sourceID: String) {
         PinballImportedSourcesStore.remove(id: sourceID)
         importedSources = PinballImportedSourcesStore.load()
@@ -141,6 +162,22 @@ final class SettingsViewModel: ObservableObject {
             postPinballLibrarySourcesDidChange()
         } catch {
             errorMessage = "Venue refresh failed: \(error.localizedDescription)"
+        }
+    }
+
+    func refreshTournament(_ source: PinballImportedSourceRecord) async {
+        guard source.type == .tournament else { return }
+        do {
+            let tournament = try await MatchPlayClient.fetchTournament(id: source.providerSourceID)
+            var updated = source
+            updated.name = tournament.name
+            updated.machineIDs = tournament.machineIDs
+            updated.lastSyncedAt = Date()
+            PinballImportedSourcesStore.upsert(updated)
+            importedSources = PinballImportedSourcesStore.load()
+            postPinballLibrarySourcesDidChange()
+        } catch {
+            errorMessage = "Tournament refresh failed: \(error.localizedDescription)"
         }
     }
 }
@@ -182,6 +219,8 @@ struct SettingsScreen: View {
                     AddManufacturerScreen(viewModel: viewModel)
                 case .addVenue:
                     AddVenueScreen(viewModel: viewModel)
+                case .addTournament:
+                    AddTournamentScreen(viewModel: viewModel)
                 }
             }
             .alert("Library", isPresented: Binding(
@@ -202,14 +241,23 @@ struct SettingsScreen: View {
             Text("Library")
                 .font(.headline)
 
+            Text("Add:")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
             HStack(spacing: 8) {
-                Button("Add Manufacturer") {
+                Button("Manufacturer") {
                     navigationPath.append(.addManufacturer)
                 }
                 .buttonStyle(.glass)
 
-                Button("Add Venue") {
+                Button("Venue") {
                     navigationPath.append(.addVenue)
+                }
+                .buttonStyle(.glass)
+
+                Button("Tournament") {
+                    navigationPath.append(.addTournament)
                 }
                 .buttonStyle(.glass)
             }
@@ -234,7 +282,7 @@ struct SettingsScreen: View {
     private var sourceTable: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                Text("Venue")
+                Text("Source")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -292,6 +340,10 @@ struct SettingsScreen: View {
             let count = source.machineIDs.count
             let label = count == 1 ? "1 game" : "\(count) games"
             return "Imported venue • \(label)"
+        case .tournament:
+            let count = source.machineIDs.count
+            let label = count == 1 ? "1 game" : "\(count) games"
+            return "Match Play tournament • \(label)"
         case .category:
             return "Category"
         }
@@ -316,6 +368,17 @@ struct SettingsScreen: View {
                             Button("Refresh") {
                                 if let imported = viewModel.importedSources.first(where: { $0.id == source.id }) {
                                     Task { await viewModel.refreshVenue(imported) }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .modifier(CompactRowActionButtonStyle())
+                            .accessibilityLabel("Refresh \(source.title)")
+                        }
+
+                        if source.sourceType == .tournament {
+                            Button("Refresh") {
+                                if let imported = viewModel.importedSources.first(where: { $0.id == source.id }) {
+                                    Task { await viewModel.refreshTournament(imported) }
                                 }
                             }
                             .buttonStyle(.plain)
@@ -682,6 +745,73 @@ private struct AddVenueScreen: View {
     }
 }
 
+private struct AddTournamentScreen: View {
+    @ObservedObject var viewModel: SettingsViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var rawTournamentID: String = ""
+    @State private var isImporting = false
+    @State private var errorMessage: String?
+
+    private var tournamentID: String? {
+        extractTournamentID(from: rawTournamentID)
+    }
+
+    var body: some View {
+        List {
+            Section {
+                TextField("Tournament ID or URL", text: $rawTournamentID)
+                    .submitLabel(.done)
+
+                Text("Enter a Match Play tournament ID or URL to import its arena list into Library and Practice.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Button(isImporting ? "Importing..." : "Import Tournament") {
+                    Task { await importTournament() }
+                }
+                .disabled(isImporting || tournamentID == nil)
+            } header: {
+                HStack(spacing: 0) {
+                    Text("Import powered by ")
+                    Link("Match Play", destination: URL(string: "https://matchplay.events")!)
+                }
+                .font(.caption)
+                .textCase(nil)
+            }
+        }
+        .navigationTitle("Add Tournament")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("Match Play", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {
+                errorMessage = nil
+            }
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    private func importTournament() async {
+        guard let tournamentID else { return }
+        isImporting = true
+        defer { isImporting = false }
+
+        do {
+            let tournament = try await MatchPlayClient.fetchTournament(id: tournamentID)
+            guard !tournament.machineIDs.isEmpty else {
+                errorMessage = "No OPDB-linked arenas were found for that tournament."
+                return
+            }
+            viewModel.importTournament(result: tournament)
+            dismiss()
+        } catch {
+            errorMessage = "Tournament import failed: \(error.localizedDescription)"
+        }
+    }
+}
+
 private struct ManagedSourceRow: Identifiable {
     let id: String
     let title: String
@@ -708,4 +838,20 @@ private struct CompactRowActionButtonStyle: ViewModifier {
                     )
             )
     }
+}
+
+private func extractTournamentID(from rawValue: String) -> String? {
+    let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+
+    if trimmed.allSatisfy(\.isNumber) {
+        return trimmed
+    }
+
+    if let match = trimmed.range(of: #"tournaments/(\d+)"#, options: .regularExpression) {
+        let matched = String(trimmed[match])
+        return matched.components(separatedBy: "/").last
+    }
+
+    return nil
 }
