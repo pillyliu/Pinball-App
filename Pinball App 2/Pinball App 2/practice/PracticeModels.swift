@@ -347,21 +347,25 @@ struct CustomGameGroup: Identifiable, Codable {
 struct PracticeSettings: Codable {
     var playerName: String
     var comparisonPlayerName: String
+    var ifpaPlayerID: String
     var selectedGroupID: UUID?
 
     private enum CodingKeys: String, CodingKey {
         case playerName
         case comparisonPlayerName
+        case ifpaPlayerID
         case selectedGroupID
     }
 
     init(
         playerName: String,
         comparisonPlayerName: String,
+        ifpaPlayerID: String,
         selectedGroupID: UUID?
     ) {
         self.playerName = playerName
         self.comparisonPlayerName = comparisonPlayerName
+        self.ifpaPlayerID = ifpaPlayerID
         self.selectedGroupID = selectedGroupID
     }
 
@@ -369,12 +373,14 @@ struct PracticeSettings: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         playerName = try container.decodeIfPresent(String.self, forKey: .playerName) ?? ""
         comparisonPlayerName = try container.decodeIfPresent(String.self, forKey: .comparisonPlayerName) ?? ""
+        ifpaPlayerID = try container.decodeIfPresent(String.self, forKey: .ifpaPlayerID) ?? ""
         selectedGroupID = try container.decodeIfPresent(UUID.self, forKey: .selectedGroupID)
     }
 
     static let defaults = PracticeSettings(
         playerName: "",
         comparisonPlayerName: "",
+        ifpaPlayerID: "",
         selectedGroupID: nil
     )
 }

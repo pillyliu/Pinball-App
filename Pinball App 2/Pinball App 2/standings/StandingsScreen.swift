@@ -272,11 +272,12 @@ private struct StandingsRowView: View {
     let nightsWidth: CGFloat
     let bankWidth: CGFloat
     let largeText: Bool
+    @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
 
     var body: some View {
         HStack(spacing: 0) {
             rowCell(rank.formatted(), width: rankWidth, color: rankColor, monospaced: true, weight: rank <= 3 ? .bold : .regular)
-            rowCell(standing.displayPlayer, width: playerWidth, weight: rank <= 8 ? .semibold : .regular)
+            rowCell(displayLPLPlayerName(standing.rawPlayer), width: playerWidth, weight: rank <= 8 ? .semibold : .regular)
             rowCell(formatRounded(standing.seasonTotal), width: pointsWidth, monospaced: true)
             rowCell(standing.eligible, width: eligibleWidth)
             rowCell(standing.nights, width: nightsWidth, monospaced: true)
@@ -286,6 +287,11 @@ private struct StandingsRowView: View {
             }
         }
         .frame(height: largeText ? 40 : 36)
+    }
+
+    private func displayLPLPlayerName(_ raw: String) -> String {
+        _ = showFullLPLLastNames
+        return formatLPLPlayerNameForDisplay(raw)
     }
 
     private var rankColor: Color {
@@ -356,7 +362,6 @@ private final class StandingsViewModel: ObservableObject {
             Standing(
                 id: $0.player,
                 rawPlayer: $0.player,
-                displayPlayer: redactPlayerNameForDisplay($0.player),
                 seasonTotal: $0.total,
                 eligible: $0.eligible,
                 nights: $0.nights,
@@ -448,11 +453,14 @@ private final class StandingsViewModel: ObservableObject {
 private struct Standing: Identifiable {
     let id: String
     let rawPlayer: String
-    let displayPlayer: String
     let seasonTotal: Double
     let eligible: String
     let nights: String
     let banks: [Double]
+
+    var displayPlayer: String {
+        formatLPLPlayerNameForDisplay(rawPlayer)
+    }
 }
 
 private struct StandingsCSVRow {

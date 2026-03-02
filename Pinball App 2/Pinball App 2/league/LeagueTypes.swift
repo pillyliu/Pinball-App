@@ -86,10 +86,13 @@ struct LeagueTargetPreviewRow {
 struct LeagueStandingsPreviewRow: Identifiable {
     let rank: Int
     let rawPlayer: String
-    let displayPlayer: String
     let points: Double
 
     var id: String { "\(rank)-\(rawPlayer)" }
+
+    var displayPlayer: String {
+        formatLPLPlayerNameForDisplay(rawPlayer)
+    }
 }
 
 struct LeagueStatsPreviewRow: Identifiable {

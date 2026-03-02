@@ -1,6 +1,6 @@
-# Pinball App Android
+# PinProf Android
 
-Android app for the Pinball project.
+Android app for PinProf.
 
 ## Open in Android Studio
 - File -> Open -> select this folder.
@@ -21,4 +21,4 @@ Android app for the Pinball project.
 ## Current state
 - Compose app with 4 working tabs: `Stats`, `Standings`, `Targets`, `Library`.
 - Data is loaded from `https://pillyliu.com/pinball/...` with local cache support.
-- Main source: `app/src/main/java/com/pillyliu/pinballandroid`.
+- Main source: `app/src/main/java/com/pillyliu/pinprofandroid`.

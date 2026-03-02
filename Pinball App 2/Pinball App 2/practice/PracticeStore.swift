@@ -98,7 +98,7 @@ struct LeagueImportResult {
     let sourcePath: String
 
     var summaryLine: String {
-        "League import for \(redactPlayerNameForDisplay(selectedPlayer)): \(imported) imported, \(duplicatesSkipped) skipped, \(unmatchedRows) unmatched."
+        "League import for \(formatLPLPlayerNameForDisplay(selectedPlayer)): \(imported) imported, \(duplicatesSkipped) skipped, \(unmatchedRows) unmatched."
     }
 }
 
@@ -118,7 +118,6 @@ final class PracticeStore: ObservableObject {
     @Published var state = PracticePersistedState.empty
     @Published var lastErrorMessage: String?
 
-    static let libraryPath = "/pinball/data/pinball_library_v3.json"
     static let leagueStatsPath = "/pinball/data/LPL_Stats.csv"
     static let leagueTargetsPath = "/pinball/data/LPL_Targets.csv"
     static let storageKey = "practice-state-json"

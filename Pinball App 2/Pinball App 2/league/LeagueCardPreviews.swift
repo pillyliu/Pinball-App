@@ -4,6 +4,7 @@ import Combine
 struct LeagueCard: View {
     let destination: LeagueDestination
     @ObservedObject var previewModel: LeaguePreviewModel
+    @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
 
     @State private var targetMetricIndex: Int = 0
     @State private var standingsModeIndex: Int = 0
@@ -94,10 +95,15 @@ struct LeagueCard: View {
             StatsPreview(
                 rows: previewModel.statsRecentRows,
                 bankLabel: previewModel.statsRecentBankLabel,
-                playerLabel: previewModel.statsPlayerLabel,
+                playerLabel: displayLPLPlayerName(previewModel.statsPlayerRawName),
                 showScore: statsValueIndex == 0
             )
         }
+    }
+
+    private func displayLPLPlayerName(_ raw: String) -> String {
+        _ = showFullLPLLastNames
+        return formatLPLPlayerNameForDisplay(raw)
     }
 }
 
@@ -163,6 +169,7 @@ private struct StandingsPreview: View {
     let topRows: [LeagueStandingsPreviewRow]
     let aroundRows: [LeagueStandingsPreviewRow]
     let currentPlayerRow: LeagueStandingsPreviewRow?
+    @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -255,7 +262,7 @@ private struct StandingsPreview: View {
                 .foregroundStyle(rankColor(row.rank))
                 .frame(width: 32, alignment: .leading)
 
-            Text(row.displayPlayer)
+            Text(displayLPLPlayerName(row.rawPlayer))
                 .font(.footnote.weight(emphasized ? .semibold : .regular))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -269,6 +276,11 @@ private struct StandingsPreview: View {
                 .lineLimit(1)
                 .frame(width: 78, alignment: .trailing)
         }
+    }
+
+    private func displayLPLPlayerName(_ raw: String) -> String {
+        _ = showFullLPLLastNames
+        return formatLPLPlayerNameForDisplay(raw)
     }
 
     private func rankColor(_ rank: Int) -> Color {

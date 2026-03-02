@@ -45,7 +45,7 @@ Build release AAB
 [bundle exec] fastlane android internal
 ```
 
-Upload release AAB to Google Play internal track
+Upload release AAB to Google Play internal track using the existing Gradle version
 
 ### android closed
 
@@ -53,7 +53,7 @@ Upload release AAB to Google Play internal track
 [bundle exec] fastlane android closed
 ```
 
-Upload release AAB to Google Play closed testing (alpha track)
+Upload release AAB to Google Play closed testing (alpha track) using the existing Gradle version
 
 ----
 

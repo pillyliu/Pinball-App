@@ -31,10 +31,16 @@ struct LibraryScreen: View {
         let totalSpacing = gridSpacing * CGFloat(max(0, columnCount - 1))
         return max(0, (contentAvailableWidth - totalSpacing) / CGFloat(columnCount))
     }
-    var cardImageHeight: CGFloat {
-        // Use a shorter viewport than 16:9 so the 16:9 source fills width and crops vertically.
-        max(84, estimatedColumnWidth * 0.50)
+    var cardTargetHeight: CGFloat {
+        max(112, estimatedColumnWidth * 0.75)
     }
+    var cardInfoHeight: CGFloat {
+        min(88, max(68, cardTargetHeight * 0.58))
+    }
+    var cardImageHeight: CGFloat {
+        max(52, cardTargetHeight - cardInfoHeight)
+    }
+    var cardTotalHeight: CGFloat { cardTargetHeight }
     var gridColumns: [GridItem] {
         return Array(repeating: GridItem(.flexible(minimum: 0, maximum: .infinity), spacing: gridSpacing), count: columnCount)
     }
@@ -90,6 +96,12 @@ struct LibraryScreen: View {
             .task {
                 await viewModel.loadIfNeeded()
                 consumeLibraryDeepLink()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .pinballLibrarySourcesDidChange)) { _ in
+                Task {
+                    await viewModel.refresh()
+                    consumeLibraryDeepLink()
+                }
             }
             .onChange(of: appNavigation.libraryGameIDToOpen) { _, _ in
                 consumeLibraryDeepLink()

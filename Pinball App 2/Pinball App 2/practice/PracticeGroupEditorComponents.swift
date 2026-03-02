@@ -856,44 +856,6 @@ struct GroupGameSelectionScreen: View {
     }
 }
 
-struct SelectedGameMiniCard: View {
-    let game: PinballGame
-    var cardWidth: CGFloat = 122
-    var imageHeight: CGFloat = 36
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            FallbackAsyncImageView(
-                candidates: game.miniPlayfieldCandidates,
-                emptyMessage: nil,
-                contentMode: .fill
-            )
-            .frame(maxWidth: .infinity)
-            .frame(height: imageHeight)
-            .clipped()
-            .clipShape(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 8,
-                    bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0,
-                    topTrailingRadius: 8,
-                    style: .continuous
-                )
-            )
-
-            Text(game.name)
-                .font(.caption2)
-                .lineLimit(1)
-                .padding(.horizontal, 6)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(width: cardWidth, alignment: .leading)
-        .padding(.top, 0)
-        .padding(.bottom, 12)
-        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-}
-
 private func inferPracticeLibrarySourcesForGroupPicker(from games: [PinballGame]) -> [PinballLibrarySource] {
     var seen = Set<String>()
     var out: [PinballLibrarySource] = []

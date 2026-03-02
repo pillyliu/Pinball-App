@@ -9,14 +9,10 @@ extension PracticeStore {
         defer { isLoadingGames = false }
 
         do {
-            let cached = try await PinballDataCache.shared.loadText(path: Self.libraryPath)
-            guard let text = cached.text,
-                  let data = text.data(using: .utf8) else {
-                throw URLError(.cannotDecodeRawData)
-            }
-            let payload = try decodeLibraryPayload(data: data)
+            let extraction = try await loadLibraryExtraction()
+            let payload = extraction.payload
             let savedSourceID = UserDefaults.standard.string(forKey: Self.preferredLibrarySourceDefaultsKey)
-            let preferredCandidates = [savedSourceID] + Self.avenueSourceCandidates.map(Optional.some)
+            let preferredCandidates = [extraction.state.selectedSourceID, savedSourceID] + Self.avenueSourceCandidates.map(Optional.some)
             let selectedSource =
                 preferredCandidates.compactMap { $0 }.first(where: { id in payload.sources.contains(where: { $0.id == id }) })
                     .flatMap { id in payload.sources.first(where: { $0.id == id }) }
@@ -27,6 +23,9 @@ extension PracticeStore {
             defaultPracticeSourceID = selectedSource?.id
             if let selectedSource {
                 UserDefaults.standard.set(selectedSource.id, forKey: Self.preferredLibrarySourceDefaultsKey)
+                var state = extraction.state
+                state.selectedSourceID = selectedSource.id
+                PinballLibrarySourceStateStore.save(state)
             }
             if let selectedSource {
                 games = payload.games.filter { $0.sourceId == selectedSource.id }
@@ -84,7 +83,7 @@ extension PracticeStore {
             let eighth = row[eighthIndex].replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
             guard let great = Double(second), let main = Double(fourth), let floor = Double(eighth) else { continue }
 
-            targets[normalizeMachineName(game)] = LeagueTargetScores(great: great, main: main, floor: floor)
+            targets[LibraryGameLookup.normalizeMachineName(game)] = LeagueTargetScores(great: great, main: main, floor: floor)
         }
 
         return targets
@@ -98,10 +97,16 @@ extension PracticeStore {
             games = pool.filter { $0.sourceId == selectedSource.id }
             defaultPracticeSourceID = selectedSource.id
             UserDefaults.standard.set(selectedSource.id, forKey: Self.preferredLibrarySourceDefaultsKey)
+            var state = PinballLibrarySourceStateStore.load()
+            state.selectedSourceID = selectedSource.id
+            PinballLibrarySourceStateStore.save(state)
         } else {
             games = pool
             defaultPracticeSourceID = nil
             UserDefaults.standard.removeObject(forKey: Self.preferredLibrarySourceDefaultsKey)
+            var state = PinballLibrarySourceStateStore.load()
+            state.selectedSourceID = nil
+            PinballLibrarySourceStateStore.save(state)
         }
     }
 }

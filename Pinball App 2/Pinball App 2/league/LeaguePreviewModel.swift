@@ -12,7 +12,7 @@ final class LeaguePreviewModel: ObservableObject {
     @Published private(set) var currentPlayerStanding: LeagueStandingsPreviewRow?
     @Published private(set) var statsRecentRows: [LeagueStatsPreviewRow] = []
     @Published private(set) var statsRecentBankLabel: String = "Most Recent Bank"
-    @Published private(set) var statsPlayerLabel: String = ""
+    @Published private(set) var statsPlayerRawName: String = ""
 
     var hasAroundYouStandings: Bool { !standingsAroundRows.isEmpty }
 
@@ -21,7 +21,6 @@ final class LeaguePreviewModel: ObservableObject {
     private static let targetsPath = "/pinball/data/LPL_Targets.csv"
     private static let standingsPath = "/pinball/data/LPL_Standings.csv"
     private static let statsPath = "/pinball/data/LPL_Stats.csv"
-    private static let libraryPath = "/pinball/data/pinball_library_v3.json"
 
     func loadIfNeeded() async {
         guard !didLoad else { return }
@@ -34,14 +33,17 @@ final class LeaguePreviewModel: ObservableObject {
             async let targetsResult = PinballDataCache.shared.loadText(path: Self.targetsPath)
             async let standingsResult = PinballDataCache.shared.loadText(path: Self.standingsPath, allowMissing: true)
             async let statsResult = PinballDataCache.shared.loadText(path: Self.statsPath, allowMissing: true)
-            async let libraryResult = PinballDataCache.shared.loadText(path: Self.libraryPath, allowMissing: true)
+            async let libraryExtraction = loadLibraryExtraction()
 
-            let (targetsTextResult, standingsTextResult, statsTextResult, libraryTextResult) = try await (targetsResult, standingsResult, statsResult, libraryResult)
+            let (targetsTextResult, standingsTextResult, statsTextResult, extraction) = try await (targetsResult, standingsResult, statsResult, libraryExtraction)
             let selectedPlayer = loadPreferredLeaguePlayerName()
 
             if let targetsText = targetsTextResult.text {
                 let targetRows = parseTargetRows(targetsText)
-                let mergedRows = mergeTargetsWithLibrary(targetRows: targetRows, libraryJSON: libraryTextResult.text)
+                let mergedRows = mergeTargetsWithLibrary(
+                    targetRows: targetRows,
+                    libraryEntries: LibraryGameLookup.buildEntries(games: extraction.payload.games)
+                )
                 let availableBanks = Set(mergedRows.compactMap(\.bank))
                 if let nextBank = resolveNextBank(
                     statsCSV: statsTextResult.text,
@@ -70,7 +72,7 @@ final class LeaguePreviewModel: ObservableObject {
             } else {
                 statsRecentRows = []
                 statsRecentBankLabel = "Most Recent Bank"
-                statsPlayerLabel = ""
+                statsPlayerRawName = ""
             }
 
         } catch {
@@ -82,7 +84,7 @@ final class LeaguePreviewModel: ObservableObject {
             standingsSeasonLabel = "Season"
             statsRecentRows = []
             statsRecentBankLabel = "Most Recent Bank"
-            statsPlayerLabel = ""
+            statsPlayerRawName = ""
         }
     }
 
@@ -119,7 +121,6 @@ final class LeaguePreviewModel: ObservableObject {
             LeagueStandingsPreviewRow(
                 rank: row.rank ?? (index + 1),
                 rawPlayer: row.player,
-                displayPlayer: redactPlayerNameForDisplay(row.player),
                 points: row.total
             )
         }
@@ -161,7 +162,7 @@ final class LeaguePreviewModel: ObservableObject {
         guard !rows.isEmpty else {
             statsRecentRows = []
             statsRecentBankLabel = "Most Recent Bank"
-            statsPlayerLabel = ""
+            statsPlayerRawName = ""
             return
         }
 
@@ -172,7 +173,7 @@ final class LeaguePreviewModel: ObservableObject {
         guard !selectedRows.isEmpty else {
             statsRecentRows = []
             statsRecentBankLabel = "Most Recent Bank"
-            statsPlayerLabel = ""
+            statsPlayerRawName = ""
             return
         }
 
@@ -188,7 +189,7 @@ final class LeaguePreviewModel: ObservableObject {
               let sample = mostRecentRows.first else {
             statsRecentRows = []
             statsRecentBankLabel = "Most Recent Bank"
-            statsPlayerLabel = ""
+            statsPlayerRawName = ""
             return
         }
 
@@ -215,7 +216,7 @@ final class LeaguePreviewModel: ObservableObject {
 
         statsRecentRows = previewRows
         statsRecentBankLabel = "Most Recent • S\(sample.season) B\(sample.bankNumber)"
-        statsPlayerLabel = redactPlayerNameForDisplay(sample.player)
+        statsPlayerRawName = sample.player
     }
 
     private func resolvePlayerForStats(preferredPlayer: String?, rows: [ParsedStatsRow]) -> String {
@@ -369,36 +370,12 @@ final class LeaguePreviewModel: ObservableObject {
         }
     }
 
-    private func mergeTargetsWithLibrary(targetRows: [LeagueTargetPreviewRow], libraryJSON: String?) -> [LeagueTargetPreviewRow] {
-        guard let libraryJSON,
-              let data = libraryJSON.data(using: .utf8),
-              let root = try? JSONDecoder().decode(LeagueLibraryGameRoot.self, from: data) else {
-            return targetRows
-        }
-        let games = root.items
-
-        let normalizedLibrary: [(normalizedName: String, bank: Int?, order: Int)] = games.enumerated().map { index, game in
-            let weightedOrder: Int
-            if let group = game.group, let position = game.position {
-                weightedOrder = (group * 1000) + position
-            } else {
-                weightedOrder = 100_000 + index
-            }
-            return (normalizeMachineName(game.name), game.bank, weightedOrder)
-        }
-
+    private func mergeTargetsWithLibrary(
+        targetRows: [LeagueTargetPreviewRow],
+        libraryEntries: [LibraryGameLookupEntry]
+    ) -> [LeagueTargetPreviewRow] {
         return targetRows.map { row in
-            let normalizedTarget = normalizeMachineName(row.game)
-            let aliases = Self.aliases[normalizedTarget] ?? []
-            let candidateKeys = [normalizedTarget] + aliases
-
-            let bestMatch = normalizedLibrary.first { entry in
-                candidateKeys.contains(entry.normalizedName)
-            } ?? normalizedLibrary.first { entry in
-                candidateKeys.contains { key in
-                    entry.normalizedName.contains(key) || key.contains(entry.normalizedName)
-                }
-            }
+            let bestMatch = LibraryGameLookup.bestMatch(gameName: row.game, entries: libraryEntries)
 
             guard let bestMatch else { return row }
 
@@ -459,23 +436,6 @@ final class LeaguePreviewModel: ObservableObject {
             .joined(separator: " ")
     }
 
-    private func normalizeMachineName(_ raw: String) -> String {
-        let lowered = raw.lowercased().replacingOccurrences(of: "&", with: " and ")
-        return lowered.unicodeScalars
-            .filter { CharacterSet.alphanumerics.contains($0) }
-            .map(String.init)
-            .joined()
-    }
-
-    private static let aliases: [String: [String]] = [
-        "tmnt": ["teenagemutantninjaturtles"],
-        "thegetaway": ["thegetawayhighspeedii"],
-        "starwars2017": ["starwars"],
-        "jurassicparkstern2019": ["jurassicpark", "jurassicpark2019"],
-        "attackfrommars": ["attackfrommarsremake"],
-        "dungeonsanddragons": ["dungeonsdragons"]
-    ]
-
     private static let eventDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -501,43 +461,4 @@ private struct ParsedStatsRow {
     let points: Double
     let eventDate: Date?
     let sourceOrder: Int
-}
-
-private struct LeagueLibraryGame: Decodable {
-    enum CodingKeys: String, CodingKey {
-        case name
-        case game
-        case area
-        case location
-        case group
-        case position
-        case bank
-    }
-
-    let name: String
-    let area: String?
-    let group: Int?
-    let position: Int?
-    let bank: Int?
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let decodedName = try container.decodeIfPresent(String.self, forKey: .name) {
-            name = decodedName
-        } else {
-            name = try container.decode(String.self, forKey: .game)
-        }
-        area = (
-            try container.decodeIfPresent(String.self, forKey: .area) ??
-                container.decodeIfPresent(String.self, forKey: .location)
-            )?.trimmingCharacters(in: .whitespacesAndNewlines)
-        group = try container.decodeIfPresent(Int.self, forKey: .group)
-        position = try container.decodeIfPresent(Int.self, forKey: .position)
-        bank = try container.decodeIfPresent(Int.self, forKey: .bank)
-    }
-
-}
-
-private struct LeagueLibraryGameRoot: Decodable {
-    let items: [LeagueLibraryGame]
 }

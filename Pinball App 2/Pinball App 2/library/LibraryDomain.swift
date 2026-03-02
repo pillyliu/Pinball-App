@@ -260,9 +260,10 @@ enum LoadStatus {
     case error
 }
 
-enum PinballLibrarySourceType: String, CaseIterable {
+enum PinballLibrarySourceType: String, CaseIterable, Codable {
     case venue
     case category
+    case manufacturer
 }
 
 struct PinballLibrarySource: Identifiable {
@@ -276,6 +277,8 @@ struct PinballLibrarySource: Identifiable {
             return .area
         case .category:
             return .alphabetical
+        case .manufacturer:
+            return .year
         }
     }
 }
@@ -307,19 +310,59 @@ final class PinballLibraryViewModel: ObservableObject {
     @Published private(set) var games: [PinballGame] = []
     @Published private(set) var sources: [PinballLibrarySource] = []
     @Published var selectedSourceID: String = "the-avenue"
-    @Published var query: String = ""
-    @Published var sortOption: PinballLibrarySortOption = .area
-    @Published var selectedBank: Int?
+    @Published var query: String = "" {
+        didSet {
+            if query != oldValue {
+                resetVisibleGameLimit()
+            }
+        }
+    }
+    @Published var sortOption: PinballLibrarySortOption = .area {
+        didSet {
+            if sortOption != oldValue {
+                resetVisibleGameLimit()
+            }
+        }
+    }
+    @Published var yearSortDescending: Bool = false {
+        didSet {
+            if yearSortDescending != oldValue {
+                resetVisibleGameLimit()
+            }
+        }
+    }
+    @Published var selectedBank: Int? {
+        didSet {
+            if selectedBank != oldValue {
+                resetVisibleGameLimit()
+            }
+        }
+    }
     @Published private(set) var errorMessage: String?
     @Published private(set) var isLoading: Bool = false
 
     private var didLoad = false
+    private let initialVisibleGameCount = 48
+    private let visibleGamePageSize = 36
+    @Published private(set) var visibleGameLimit = 48
     private static let libraryPath = "/pinball/data/pinball_library_v3.json"
+    private static let opdbCatalogPath = "/pinball/data/opdb_catalog_v1.json"
     private static let preferredSourceDefaultsKey = "preferred-library-source-id"
     private static let avenueSourceCandidates = ["venue--the-avenue-cafe", "the-avenue"]
 
     var selectedSource: PinballLibrarySource? {
         sources.first(where: { $0.id == selectedSourceID }) ?? sources.first
+    }
+
+    var visibleSources: [PinballLibrarySource] {
+        let state = PinballLibrarySourceStateStore.load()
+        let pinned = state.pinnedSourceIDs.compactMap { id in
+            sources.first(where: { $0.id == id })
+        }
+        if let selectedSource, !pinned.contains(where: { $0.id == selectedSource.id }) {
+            return pinned + [selectedSource]
+        }
+        return pinned.isEmpty ? sources : pinned
     }
 
     var sourceScopedGames: [PinballGame] {
@@ -332,8 +375,8 @@ final class PinballLibraryViewModel: ObservableObject {
             return [.area, .alphabetical]
         }
         switch selectedSource.type {
-        case .category:
-            return [.alphabetical, .year]
+        case .category, .manufacturer:
+            return [.year, .alphabetical]
         case .venue:
             let hasBank = sourceScopedGames.contains { ($0.bank ?? 0) > 0 }
             var options: [PinballLibrarySortOption] = [.area]
@@ -362,7 +405,7 @@ final class PinballLibraryViewModel: ObservableObject {
     }
 
     var selectedSortLabel: String {
-        sortOption.menuLabel
+        menuLabel(for: sortOption)
     }
 
     var filteredGames: [PinballGame] {
@@ -409,12 +452,28 @@ final class PinballLibraryViewModel: ObservableObject {
                     ?? false
             }
         case .year:
-            return filteredGames.sorted {
-                byOptionalAscending($0.year, $1.year)
-                    ?? byAscending($0.name.lowercased(), $1.name.lowercased())
-                    ?? false
+            if yearSortDescending {
+                return filteredGames.sorted {
+                    byOptionalDescending($0.year, $1.year)
+                        ?? byAscending($0.name.lowercased(), $1.name.lowercased())
+                        ?? false
+                }
+            } else {
+                return filteredGames.sorted {
+                    byOptionalAscending($0.year, $1.year)
+                        ?? byAscending($0.name.lowercased(), $1.name.lowercased())
+                        ?? false
+                }
             }
         }
+    }
+
+    var visibleSortedFilteredGames: [PinballGame] {
+        Array(sortedFilteredGames.prefix(visibleGameLimit))
+    }
+
+    var hasMoreVisibleGames: Bool {
+        visibleSortedFilteredGames.count < sortedFilteredGames.count
     }
 
     var showGroupedView: Bool {
@@ -435,7 +494,7 @@ final class PinballLibraryViewModel: ObservableObject {
             }
         }()
 
-        for game in sortedFilteredGames {
+        for game in visibleSortedFilteredGames {
             let (locationKey, groupKey) = groupingKey(game)
             if let last = out.last, last.locationKey == locationKey, last.groupKey == groupKey {
                 var mutable = last
@@ -467,25 +526,91 @@ final class PinballLibraryViewModel: ObservableObject {
         return lhs < rhs
     }
 
+    private func byOptionalDescending<T: Comparable>(_ lhs: T?, _ rhs: T?) -> Bool? {
+        switch (lhs, rhs) {
+        case let (l?, r?):
+            return byDescending(l, r)
+        case (nil, nil):
+            return nil
+        case (nil, _?):
+            return false
+        case (_?, nil):
+            return true
+        }
+    }
+
+    private func byDescending<T: Comparable>(_ lhs: T, _ rhs: T) -> Bool? {
+        if lhs == rhs { return nil }
+        return lhs > rhs
+    }
+
     func loadIfNeeded() async {
         guard !didLoad else { return }
         didLoad = true
         await loadGames()
     }
 
+    func refresh() async {
+        await loadGames()
+    }
+
     func selectSource(_ sourceID: String) {
         selectedSourceID = sourceID
+        resetVisibleGameLimit()
         UserDefaults.standard.set(sourceID, forKey: Self.preferredSourceDefaultsKey)
+        var state = PinballLibrarySourceStateStore.load()
+        state.selectedSourceID = sourceID
+        PinballLibrarySourceStateStore.save(state)
         if let selectedSource {
             let options = sortOptions
-            if !options.contains(sortOption) {
-                sortOption = selectedSource.defaultSortOption
+            if selectedSource.type == .manufacturer {
+                sortOption = .year
+                yearSortDescending = true
+            } else {
+                sortOption = preferredDefaultSortOption(for: selectedSource, games: sourceScopedGames)
                 if !options.contains(sortOption), let first = options.first {
                     sortOption = first
                 }
+                yearSortDescending = preferredDefaultYearSortDescending(for: selectedSource, games: sourceScopedGames)
             }
         }
         selectedBank = nil
+    }
+
+    func selectSortOption(_ option: PinballLibrarySortOption) {
+        if option == .year, sortOption == .year {
+            yearSortDescending.toggle()
+            return
+        }
+        sortOption = option
+        if option == .year {
+            yearSortDescending = false
+        }
+    }
+
+    func menuLabel(for option: PinballLibrarySortOption) -> String {
+        if option == .year {
+            return yearSortDescending ? "Sort: Year (New-Old)" : "Sort: Year (Old-New)"
+        }
+        return option.menuLabel
+    }
+
+    func loadMoreGamesIfNeeded(currentGameID: String?) {
+        guard hasMoreVisibleGames else { return }
+        guard let currentGameID else {
+            visibleGameLimit += visibleGamePageSize
+            return
+        }
+        let thresholdIndex = max(0, visibleSortedFilteredGames.count - 12)
+        guard let currentIndex = visibleSortedFilteredGames.firstIndex(where: { $0.id == currentGameID }),
+              currentIndex >= thresholdIndex else {
+            return
+        }
+        visibleGameLimit += visibleGamePageSize
+    }
+
+    private func resetVisibleGameLimit() {
+        visibleGameLimit = initialVisibleGameCount
     }
 
     private func loadGames() async {
@@ -493,30 +618,28 @@ final class PinballLibraryViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            let cached = try await PinballDataCache.shared.loadText(path: Self.libraryPath)
-            guard let text = cached.text,
-                  let data = text.data(using: .utf8) else {
-                throw URLError(.cannotDecodeRawData)
-            }
-
-            let payload = try decodeLibraryPayload(data: data)
+            let extraction = try await loadLibraryExtraction()
+            let payload = extraction.payload
             games = payload.games
             sources = payload.sources
+            resetVisibleGameLimit()
             let savedSourceID = UserDefaults.standard.string(forKey: Self.preferredSourceDefaultsKey)
-            let preferredCandidates = [savedSourceID, selectedSourceID] + Self.avenueSourceCandidates.map(Optional.some)
+            let preferredCandidates = [extraction.state.selectedSourceID, savedSourceID, selectedSourceID] + Self.avenueSourceCandidates.map(Optional.some)
             let preferredSourceID = preferredCandidates
                 .compactMap { $0 }
                 .first(where: { id in sources.contains(where: { $0.id == id }) })
             if let selected = sources.first(where: { $0.id == preferredSourceID }) ?? sources.first(where: { $0.id == selectedSourceID }) ?? sources.first {
                 selectedSourceID = selected.id
                 UserDefaults.standard.set(selected.id, forKey: Self.preferredSourceDefaultsKey)
+                var state = extraction.state
+                state.selectedSourceID = selected.id
+                PinballLibrarySourceStateStore.save(state)
                 let options = sortOptions
-                if !options.contains(sortOption) {
-                    sortOption = selected.defaultSortOption
-                    if !options.contains(sortOption), let first = options.first {
-                        sortOption = first
-                    }
+                sortOption = preferredDefaultSortOption(for: selected, games: sourceScopedGames)
+                if !options.contains(sortOption), let first = options.first {
+                    sortOption = first
                 }
+                yearSortDescending = preferredDefaultYearSortDescending(for: selected, games: sourceScopedGames)
                 if !supportsBankFilter {
                     selectedBank = nil
                 }
@@ -527,6 +650,25 @@ final class PinballLibraryViewModel: ObservableObject {
             sources = []
             errorMessage = "Failed to load pinball library: \(error.localizedDescription)"
         }
+    }
+
+    private func preferredDefaultSortOption(for source: PinballLibrarySource, games: [PinballGame]) -> PinballLibrarySortOption {
+        switch source.type {
+        case .manufacturer:
+            return .year
+        case .category:
+            return .alphabetical
+        case .venue:
+            let hasArea = games.contains {
+                guard let area = $0.area?.trimmingCharacters(in: .whitespacesAndNewlines) else { return false }
+                return !area.isEmpty && area.lowercased() != "null"
+            }
+            return hasArea ? .area : .alphabetical
+        }
+    }
+
+    private func preferredDefaultYearSortDescending(for source: PinballLibrarySource, games: [PinballGame]) -> Bool {
+        preferredDefaultSortOption(for: source, games: games) == .year && source.type == .manufacturer
     }
 }
 
@@ -583,13 +725,16 @@ final class PinballGameInfoViewModel: ObservableObject {
 @MainActor
 final class RulesheetScreenModel: ObservableObject {
     @Published private(set) var status: LoadStatus = .idle
-    @Published private(set) var markdownText: String?
+    @Published private(set) var content: RulesheetRenderContent?
+    @Published private(set) var webFallbackURL: URL?
 
     private let pathCandidates: [String]
+    private let externalSource: RulesheetRemoteSource?
     private var didLoad = false
 
-    init(pathCandidates: [String]) {
+    init(pathCandidates: [String], externalSource: RulesheetRemoteSource? = nil) {
         self.pathCandidates = pathCandidates.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        self.externalSource = externalSource
     }
 
     convenience init(slug: String) {
@@ -604,7 +749,8 @@ final class RulesheetScreenModel: ObservableObject {
 
     private func load() async {
         status = .loading
-        markdownText = nil
+        content = nil
+        webFallbackURL = nil
 
         do {
             var sawMissing = false
@@ -619,12 +765,41 @@ final class RulesheetScreenModel: ObservableObject {
                     continue
                 }
 
-                markdownText = Self.normalizeRulesheet(text)
+                content = RulesheetRenderContent(
+                    kind: .markdown,
+                    body: Self.normalizeRulesheet(text),
+                    baseURL: URL(string: "https://pillyliu.com")
+                )
                 status = .loaded
                 return
             }
+
+            if let externalSource {
+                do {
+                    content = try await RemoteRulesheetLoader.load(from: externalSource)
+                    status = .loaded
+                    return
+                } catch {
+                    webFallbackURL = externalSource.url
+                    status = webFallbackURL == nil ? .error : .loaded
+                    return
+                }
+            }
+
             status = sawMissing ? .missing : .error
         } catch {
+            if let externalSource {
+                do {
+                    content = try await RemoteRulesheetLoader.load(from: externalSource)
+                    status = .loaded
+                    return
+                } catch {
+                    webFallbackURL = externalSource.url
+                    status = webFallbackURL == nil ? .error : .loaded
+                    return
+                }
+            }
+
             status = .error
         }
     }
@@ -678,32 +853,7 @@ private struct PinballLibrarySourcePayload: Decodable {
 }
 
 func decodeLibraryPayload(data: Data) throws -> PinballLibraryPayload {
-    let decoder = JSONDecoder()
-
-    if let root = try? decoder.decode(PinballLibraryRoot.self, from: data) {
-        let games = root.games ?? root.items ?? []
-        let sourcePayloads = root.sources ?? root.libraries ?? []
-        let decodedSources = sourcePayloads.compactMap { (payload: PinballLibrarySourcePayload) -> PinballLibrarySource? in
-            guard let id = (payload.id ?? payload.libraryID)?
-                .trimmingCharacters(in: .whitespacesAndNewlines), !id.isEmpty else {
-                return nil
-            }
-            let rawName = payload.name ?? payload.libraryName
-            let trimmedName = rawName?.trimmingCharacters(in: .whitespacesAndNewlines)
-            let normalizedName = (trimmedName?.isEmpty == false) ? trimmedName : nil
-            return PinballLibrarySource(
-                id: id,
-                name: normalizedName ?? id,
-                type: parseSourceType(payload.type ?? payload.libraryType)
-            )
-        }
-        let sources = decodedSources.isEmpty ? inferSources(from: games) : decodedSources
-        return PinballLibraryPayload(games: games, sources: sources)
-    }
-
-    let games = try decoder.decode([PinballGame].self, from: data)
-    let sources = inferSources(from: games)
-    return PinballLibraryPayload(games: games, sources: sources)
+    try decodeLibraryPayloadWithState(data: data).payload
 }
 
 private func inferSources(from games: [PinballGame]) -> [PinballLibrarySource] {
@@ -722,7 +872,10 @@ private func inferSources(from games: [PinballGame]) -> [PinballLibrarySource] {
 
 private func parseSourceType(_ raw: String?) -> PinballLibrarySourceType {
     let normalized = raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    if normalized == "category" || normalized == "manufacturer" {
+    if normalized == "manufacturer" {
+        return .manufacturer
+    }
+    if normalized == "category" {
         return .category
     }
     return .venue
@@ -752,6 +905,19 @@ struct PinballGroupSection {
 }
 
 struct PinballGame: Identifiable, Decodable {
+    struct ReferenceLink: Identifiable, Decodable {
+        let label: String
+        let url: String
+
+        var id: String {
+            "\(label)|\(url)"
+        }
+
+        var destinationURL: URL? {
+            URL(string: url)
+        }
+    }
+
     struct PlayableVideo: Identifiable {
         let id: String
         let label: String
@@ -810,9 +976,13 @@ struct PinballGame: Identifiable, Decodable {
         case practiceIdentity = "practice_identity"
         case playfieldImageUrl
         case playfieldImageUrlV2 = "playfield_image_url"
+        case primaryImageUrl = "primary_image_url"
+        case primaryImageLargeUrl = "primary_image_large_url"
         case playfieldLocal
         case rulesheetUrl
         case rulesheetUrlV2 = "rulesheet_url"
+        case rulesheetLinks = "rulesheet_links"
+        case playfieldSourceLabel = "playfield_source_label"
         case assets
         case videos
     }
@@ -851,12 +1021,16 @@ struct PinballGame: Identifiable, Decodable {
     let libraryEntryID: String?
     let opdbID: String?
     let practiceIdentity: String?
+    let primaryImageUrl: String?
+    let primaryImageLargeUrl: String?
     let playfieldImageUrl: String?
+    let playfieldSourceLabel: String?
     let playfieldLocalOriginal: String?
     let playfieldLocal: String?
     let gameinfoLocal: String?
     let rulesheetLocal: String?
     let rulesheetUrl: String?
+    let rulesheetLinks: [ReferenceLink]
     let videos: [Video]
 
     init(from decoder: Decoder) throws {
@@ -907,6 +1081,8 @@ struct PinballGame: Identifiable, Decodable {
         libraryEntryID = try container.decodeIfPresent(String.self, forKey: .libraryEntryId)
         opdbID = try container.decodeIfPresent(String.self, forKey: .opdbId)
         practiceIdentity = try container.decodeIfPresent(String.self, forKey: .practiceIdentity)
+        primaryImageUrl = try container.decodeIfPresent(String.self, forKey: .primaryImageUrl)
+        primaryImageLargeUrl = try container.decodeIfPresent(String.self, forKey: .primaryImageLargeUrl)
         let assets = try container.decodeIfPresent(Assets.self, forKey: .assets)
         playfieldImageUrl = try container.decodeIfPresent(String.self, forKey: .playfieldImageUrl)
             ?? (try container.decodeIfPresent(String.self, forKey: .playfieldImageUrlV2))
@@ -919,7 +1095,46 @@ struct PinballGame: Identifiable, Decodable {
         rulesheetLocal = assets?.rulesheetLocalPractice ?? assets?.rulesheetLocalLegacy
         rulesheetUrl = try container.decodeIfPresent(String.self, forKey: .rulesheetUrl)
             ?? (try container.decodeIfPresent(String.self, forKey: .rulesheetUrlV2))
+        playfieldSourceLabel = try container.decodeIfPresent(String.self, forKey: .playfieldSourceLabel)
+        let decodedRulesheetLinks = try container.decodeIfPresent([ReferenceLink].self, forKey: .rulesheetLinks)
+        if let decodedRulesheetLinks {
+            rulesheetLinks = decodedRulesheetLinks
+        } else if let rulesheetUrl {
+            rulesheetLinks = [ReferenceLink(label: "Rulesheet (source)", url: rulesheetUrl)]
+        } else {
+            rulesheetLinks = []
+        }
         videos = try container.decodeIfPresent([Video].self, forKey: .videos) ?? []
+    }
+
+    nonisolated init(record: ResolvedCatalogRecord) {
+        sourceId = record.sourceID
+        sourceName = record.sourceName
+        sourceType = record.sourceType
+        area = record.area
+        areaOrder = record.areaOrder
+        group = record.groupNumber
+        pos = record.position
+        bank = record.bank
+        name = record.name
+        variant = record.variant
+        manufacturer = record.manufacturer
+        year = record.year
+        slug = record.slug
+        libraryEntryID = "\(record.sourceID)--\(record.opdbID ?? record.practiceIdentity)"
+        opdbID = record.opdbID
+        practiceIdentity = record.practiceIdentity
+        primaryImageUrl = record.primaryImageURL
+        primaryImageLargeUrl = record.primaryImageLargeURL
+        playfieldImageUrl = record.playfieldImageURL
+        playfieldSourceLabel = record.playfieldSourceLabel
+        playfieldLocalOriginal = Self.normalizeCachePath(record.playfieldLocalPath)
+        playfieldLocal = Self.normalizePlayfieldLocalPath(record.playfieldLocalPath)
+        gameinfoLocal = record.gameinfoLocalPath
+        rulesheetLocal = record.rulesheetLocalPath
+        rulesheetUrl = record.rulesheetURL
+        rulesheetLinks = record.rulesheetLinks
+        videos = record.videos
     }
 
     var id: String { libraryEntryID ?? opdbID ?? practiceIdentity ?? slug }
@@ -978,7 +1193,7 @@ struct PinballGame: Identifiable, Decodable {
         if let bank, bank > 0 {
             parts.append("Bank \(bank)")
         }
-        return parts.isEmpty ? "-" : parts.joined(separator: " • ")
+        return parts.joined(separator: " • ")
     }
 
     var locationText: String? {
@@ -1002,12 +1217,27 @@ struct PinballGame: Identifiable, Decodable {
         return Self.resolveURL(pathOrURL: playfieldLocalOriginal)
     }
 
+    var primaryImageSourceURL: URL? {
+        guard let primaryImageUrl else { return nil }
+        return URL(string: primaryImageUrl)
+    }
+
+    var primaryImageLargeSourceURL: URL? {
+        guard let primaryImageLargeUrl else { return nil }
+        return URL(string: primaryImageLargeUrl)
+    }
+
     var libraryPlayfieldCandidates: [URL] {
-        [derivedPlayfieldURL(width: 700), Self.fallbackPlayfieldURL(width: 700)].compactMap { $0 }
+        [
+            primaryImageSourceURL,
+            Self.fallbackPlayfieldURL(width: 700)
+        ].compactMap { $0 }
     }
 
     var miniPlayfieldCandidates: [URL] {
         [
+            primaryImageSourceURL,
+            primaryImageLargeSourceURL,
             derivedPlayfieldURL(width: 700),
             playfieldLocalURL,
             playfieldImageSourceURL,
@@ -1019,6 +1249,8 @@ struct PinballGame: Identifiable, Decodable {
 
     var gamePlayfieldCandidates: [URL] {
         [
+            primaryImageLargeSourceURL,
+            primaryImageSourceURL,
             derivedPlayfieldURL(width: 1400),
             derivedPlayfieldURL(width: 700),
             Self.fallbackPlayfieldURL(width: 700)
@@ -1032,6 +1264,15 @@ struct PinballGame: Identifiable, Decodable {
             derivedPlayfieldURL(width: 1400),
             derivedPlayfieldURL(width: 700),
             Self.fallbackPlayfieldURL(width: 700)
+        ].compactMap { $0 }
+    }
+
+    var actualFullscreenPlayfieldCandidates: [URL] {
+        [
+            playfieldLocalOriginalURL,
+            playfieldImageSourceURL,
+            derivedPlayfieldURL(width: 1400),
+            derivedPlayfieldURL(width: 700)
         ].compactMap { $0 }
     }
 
@@ -1069,7 +1310,15 @@ struct PinballGame: Identifiable, Decodable {
         return Array(NSOrderedSet(array: paths)) as? [String] ?? paths
     }
 
-    private static func resolveURL(pathOrURL: String) -> URL? {
+    var hasRulesheetResource: Bool {
+        Self.normalizeCachePath(rulesheetLocal) != nil || !rulesheetLinks.isEmpty || rulesheetSourceURL != nil
+    }
+
+    var hasPlayfieldResource: Bool {
+        !actualFullscreenPlayfieldCandidates.isEmpty
+    }
+
+    nonisolated private static func resolveURL(pathOrURL: String) -> URL? {
         if let direct = URL(string: pathOrURL), direct.scheme != nil {
             return direct
         }
@@ -1081,7 +1330,7 @@ struct PinballGame: Identifiable, Decodable {
         return URL(string: "https://pillyliu.com/\(pathOrURL)")
     }
 
-    private static func normalizeCachePath(_ pathOrURL: String?) -> String? {
+    nonisolated private static func normalizeCachePath(_ pathOrURL: String?) -> String? {
         guard let raw = pathOrURL?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
             return nil
         }
@@ -1092,11 +1341,11 @@ struct PinballGame: Identifiable, Decodable {
         return "/" + raw
     }
 
-    private static func fallbackPlayfieldURL(width: Int) -> URL? {
+    nonisolated private static func fallbackPlayfieldURL(width: Int) -> URL? {
         resolveURL(pathOrURL: "/pinball/images/playfields/fallback-whitewood-playfield_\(width).webp")
     }
 
-    private static func normalizePlayfieldLocalPath(_ pathOrURL: String?) -> String? {
+    nonisolated private static func normalizePlayfieldLocalPath(_ pathOrURL: String?) -> String? {
         guard let raw = pathOrURL?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
             return nil
         }

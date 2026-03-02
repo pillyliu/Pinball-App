@@ -3,7 +3,7 @@ require "json"
 
 platform :ios do
   private_lane :resolve_ios_simulator_id do |options|
-    scheme = options[:scheme] || "Pinball App 2"
+    scheme = options[:scheme] || "PinProf"
     project = options[:project] || "../Pinball App 2.xcodeproj"
     destinations_json = sh(
       "xcodebuild -project '#{project}' -scheme '#{scheme}' -showdestinations -json 2>/dev/null || true"
@@ -55,7 +55,7 @@ platform :ios do
 
   desc "Run practice migration XCTest suite"
   lane :test do |options|
-    scheme = options[:scheme] || "Pinball App 2"
+    scheme = options[:scheme] || "PinProf"
     project = options[:project] || "../Pinball App 2.xcodeproj"
     simulator_id = resolve_ios_simulator_id(project: project, scheme: scheme)
     UI.message("Using simulator id: #{simulator_id}")
@@ -71,7 +71,7 @@ platform :ios do
     test(options)
     build_app(
       project: options[:project] || "../Pinball App 2.xcodeproj",
-      scheme: options[:scheme] || "Pinball App 2",
+      scheme: options[:scheme] || "PinProf",
       clean: true,
       export_method: "app-store"
     )
@@ -91,7 +91,7 @@ platform :ios do
 
     build_app(
       project: options[:project] || "../Pinball App 2.xcodeproj",
-      scheme: options[:scheme] || "Pinball App 2",
+      scheme: options[:scheme] || "PinProf",
       clean: true,
       export_method: "app-store"
     )
@@ -116,7 +116,7 @@ platform :ios do
 
     build_app(
       project: options[:project] || "../Pinball App 2.xcodeproj",
-      scheme: options[:scheme] || "Pinball App 2",
+      scheme: options[:scheme] || "PinProf",
       clean: true,
       export_method: "app-store"
     )

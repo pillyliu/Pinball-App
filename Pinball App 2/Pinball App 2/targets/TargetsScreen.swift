@@ -491,8 +491,6 @@ private final class TargetsViewModel: ObservableObject {
         LPLTargetRow(target: target, area: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: index)
     }
 
-    private static let libraryPath = "/pinball/data/pinball_library_v3.json"
-
     var bankOptions: [Int] {
         Array(Set(allRows.compactMap(\.bank))).sorted()
     }
@@ -509,15 +507,8 @@ private final class TargetsViewModel: ObservableObject {
 
     private func loadLibraryOrdering() async {
         do {
-            let cached = try await PinballDataCache.shared.loadText(path: Self.libraryPath)
-            guard let text = cached.text,
-                  let data = text.data(using: .utf8) else {
-                throw URLError(.cannotDecodeRawData)
-            }
-
-            let libraryRoot = try JSONDecoder().decode(LibraryGameRoot.self, from: data)
-            let libraryGames = libraryRoot.items
-            let rowsWithLibrary = mergeTargetsWithLibrary(libraryGames: libraryGames)
+            let extraction = try await loadLibraryExtraction()
+            let rowsWithLibrary = mergeTargetsWithLibrary(libraryEntries: LibraryGameLookup.buildEntries(games: extraction.payload.games))
 
             allRows = rowsWithLibrary
             applySortAndFilter()
@@ -528,40 +519,16 @@ private final class TargetsViewModel: ObservableObject {
         }
     }
 
-    private func mergeTargetsWithLibrary(libraryGames: [LibraryGame]) -> [LPLTargetRow] {
-        let normalizedLibrary: [(index: Int, normalized: String, area: String?, bank: Int?, group: Int?, position: Int?)] = libraryGames.enumerated().map { index, game in
-            (index, normalize(game.name), game.area, game.bank, game.group, game.position)
-        }
-
+    private func mergeTargetsWithLibrary(libraryEntries: [LibraryGameLookupEntry]) -> [LPLTargetRow] {
         return LPLTarget.rows.enumerated().map { fallbackIndex, target in
-            let normalizedTarget = normalize(target.game)
-            let aliasKeys = aliases[normalizedTarget] ?? []
-            let candidateKeys = [normalizedTarget] + aliasKeys
-
-            if let exact = normalizedLibrary.first(where: { candidateKeys.contains($0.normalized) }) {
+            if let exact = LibraryGameLookup.bestMatch(gameName: target.game, entries: libraryEntries) {
                 return LPLTargetRow(
                     target: target,
                     area: exact.area,
                     bank: exact.bank,
                     group: exact.group,
                     position: exact.position,
-                    libraryOrder: exact.index,
-                    fallbackOrder: fallbackIndex
-                )
-            }
-
-            if let loose = normalizedLibrary.first(where: { entry in
-                candidateKeys.contains { key in
-                    entry.normalized.contains(key) || key.contains(entry.normalized)
-                }
-            }) {
-                return LPLTargetRow(
-                    target: target,
-                    area: loose.area,
-                    bank: loose.bank,
-                    group: loose.group,
-                    position: loose.position,
-                    libraryOrder: loose.index,
+                    libraryOrder: exact.order,
                     fallbackOrder: fallbackIndex
                 )
             }
@@ -626,65 +593,6 @@ private final class TargetsViewModel: ObservableObject {
         return lhs < rhs
     }
 
-    private func normalize(_ name: String) -> String {
-        let lowered = name.lowercased()
-            .replacingOccurrences(of: "&", with: " and ")
-
-        return lowered.unicodeScalars
-            .filter { CharacterSet.alphanumerics.contains($0) }
-            .map(String.init)
-            .joined()
-    }
-
-    private var aliases: [String: [String]] {
-        [
-            "tmnt": ["teenagemutantninjaturtles"],
-            "thegetaway": ["thegetawayhighspeedii"],
-            "starwars2017": ["starwars"],
-            "jurassicparkstern2019": ["jurassicpark", "jurassicpark2019"],
-            "attackfrommars": ["attackfrommarsremake"],
-            "dungeonsanddragons": ["dungeonsdragons"]
-        ]
-    }
-}
-
-private struct LibraryGame: Decodable {
-    enum CodingKeys: String, CodingKey {
-        case name
-        case game
-        case area
-        case location
-        case group
-        case position
-        case bank
-    }
-
-    let name: String
-    let area: String?
-    let group: Int?
-    let position: Int?
-    let bank: Int?
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let decodedName = try container.decodeIfPresent(String.self, forKey: .name) {
-            name = decodedName
-        } else {
-            name = try container.decode(String.self, forKey: .game)
-        }
-        area = (
-            try container.decodeIfPresent(String.self, forKey: .area) ??
-                container.decodeIfPresent(String.self, forKey: .location)
-            )?.trimmingCharacters(in: .whitespacesAndNewlines)
-        group = try container.decodeIfPresent(Int.self, forKey: .group)
-        position = try container.decodeIfPresent(Int.self, forKey: .position)
-        bank = try container.decodeIfPresent(Int.self, forKey: .bank)
-    }
-
-}
-
-private struct LibraryGameRoot: Decodable {
-    let items: [LibraryGame]
 }
 
 private struct LPLTarget: Identifiable {

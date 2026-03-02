@@ -17,5 +17,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Pinball App Android"
+rootProject.name = "PinProf"
 include(":app")

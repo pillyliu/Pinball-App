@@ -159,7 +159,7 @@ extension PracticeScreen {
             isLoadingHeadToHead: isLoadingHeadToHead,
             headToHead: headToHead,
             redactName: { name in
-                redactPlayerNameForDisplay(name)
+                formatLPLPlayerNameForDisplay(name)
             },
             onRefreshHeadToHead: {
                 await refreshHeadToHead()
@@ -202,13 +202,19 @@ extension PracticeScreen {
     var settingsScreen: some View {
         PracticeSettingsSectionView(
             playerName: $playerName,
+            ifpaPlayerID: $ifpaPlayerID,
             leaguePlayerName: $leaguePlayerName,
             leaguePlayerOptions: leaguePlayerOptions,
             leagueImportStatus: leagueImportStatus,
             cloudSyncEnabled: $cloudSyncEnabled,
-            redactName: { name in redactPlayerNameForDisplay(name) },
+            redactName: { name in formatLPLPlayerNameForDisplay(name) },
             onSaveProfile: {
                 store.updatePracticeSettings(playerName: playerName)
+            },
+            onSaveIFPAID: {
+                let sanitized = ifpaPlayerID.filter(\.isNumber)
+                ifpaPlayerID = sanitized
+                store.updatePracticeSettings(ifpaPlayerID: sanitized)
             },
             onImportLeagueCSV: {
                 Task {

@@ -162,10 +162,15 @@ extension PracticeStore {
         saveState()
     }
 
-    func updatePracticeSettings(playerName: String, comparisonPlayerName: String? = nil) {
-        state.practiceSettings.playerName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
+    func updatePracticeSettings(playerName: String? = nil, comparisonPlayerName: String? = nil, ifpaPlayerID: String? = nil) {
+        if let playerName {
+            state.practiceSettings.playerName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
         if let comparisonPlayerName {
             state.practiceSettings.comparisonPlayerName = comparisonPlayerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if let ifpaPlayerID {
+            state.practiceSettings.ifpaPlayerID = ifpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         saveState()
     }

@@ -35,6 +35,7 @@ struct PracticeScreen: View {
     @State var mechanicsNote: String = ""
 
     @State var playerName: String = ""
+    @State var ifpaPlayerID: String = ""
     @State var insightsOpponentName: String = ""
     @State var insightsOpponentOptions: [String] = []
     @State var leaguePlayerName: String = ""
@@ -179,6 +180,7 @@ struct PracticeScreen: View {
         }
 
         playerName = store.state.practiceSettings.playerName
+        ifpaPlayerID = store.state.practiceSettings.ifpaPlayerID
         insightsOpponentName = store.state.practiceSettings.comparisonPlayerName
         leaguePlayerName = store.state.leagueSettings.playerName
         cloudSyncEnabled = store.state.syncSettings.cloudSyncEnabled

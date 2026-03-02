@@ -14,15 +14,15 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.pillyliu.pinballandroid"
+    namespace = "com.pillyliu.pinprofandroid"
     compileSdk = 36
 
     defaultConfig {
         applicationId = "com.pillyliu.pinballandroid"
         minSdk = 26
         targetSdk = 36
-        versionCode = 30
-        versionName = "2.1.9"
+        versionCode = 35
+        versionName = "3.0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

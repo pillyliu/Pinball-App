@@ -693,15 +693,18 @@ private func formatJournalScoreInputWithCommas(_ raw: String) -> String {
 
 struct PracticeSettingsSectionView: View {
     @Binding var playerName: String
+    @Binding var ifpaPlayerID: String
     @Binding var leaguePlayerName: String
     let leaguePlayerOptions: [String]
     let leagueImportStatus: String
     @Binding var cloudSyncEnabled: Bool
     let redactName: (String) -> String
     let onSaveProfile: () -> Void
+    let onSaveIFPAID: () -> Void
     let onImportLeagueCSV: () -> Void
     let onCloudSyncChanged: (Bool) -> Void
     let onResetPracticeLog: () -> Void
+    @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -723,6 +726,30 @@ struct PracticeSettingsSectionView: View {
             .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 8) {
+                Text("IFPA")
+                    .font(.headline)
+
+                TextField("IFPA number", text: $ifpaPlayerID)
+                    .keyboardType(.numberPad)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .appControlStyle()
+
+                Text("Save your IFPA player number to unlock a quick stats profile from the Practice home header.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Button("Save IFPA ID", action: onSaveIFPAID)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .buttonStyle(.glass)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .appPanelStyle()
+
+            VStack(alignment: .leading, spacing: 8) {
                 Text("League Import")
                     .font(.headline)
 
@@ -734,14 +761,14 @@ struct PracticeSettingsSectionView: View {
                         Text("No player names found")
                     } else {
                         ForEach(leaguePlayerOptions, id: \.self) { name in
-                            Button(redactName(name)) {
+                            Button(displayLPLPlayerName(name)) {
                                 leaguePlayerName = name
                             }
                         }
                     }
                 } label: {
                     HStack(spacing: 8) {
-                        Text(leaguePlayerName.isEmpty ? "Select league player" : redactName(leaguePlayerName))
+                        Text(leaguePlayerName.isEmpty ? "Select league player" : displayLPLPlayerName(leaguePlayerName))
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .lineLimit(1)
@@ -772,10 +799,10 @@ struct PracticeSettingsSectionView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .appPanelStyle()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Defaults")
@@ -811,5 +838,10 @@ struct PracticeSettingsSectionView: View {
             .appPanelStyle()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func displayLPLPlayerName(_ raw: String) -> String {
+        _ = showFullLPLLastNames
+        return formatLPLPlayerNameForDisplay(raw)
     }
 }

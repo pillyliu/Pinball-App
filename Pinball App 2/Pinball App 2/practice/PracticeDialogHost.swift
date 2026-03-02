@@ -5,8 +5,15 @@ extension PracticeScreen {
         PracticeHomeRootView(
             isLoadingGames: store.isLoadingGames,
             greetingName: greetingName,
+            hasIFPAProfileAccess: !ifpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             onOpenSettings: {
                 openPracticeSettings = true
+            },
+            onOpenIFPAProfile: {
+                let target = PracticeNavRoute.ifpaProfile
+                if gameNavigationPath.last != target {
+                    gameNavigationPath.append(target)
+                }
             },
             resumeGame: resumeGame,
             allGames: store.games,
@@ -98,6 +105,13 @@ extension PracticeScreen {
                     })
                     .onAppear { selectedGameID = gameID }
                     .navigationTransition(.zoom(sourceID: gameTransitionSourceID ?? gameID, in: gameTransition))
+                case .ifpaProfile:
+                    practiceScreen("IFPA Profile") {
+                        PracticeIFPAProfileScreen(
+                            playerName: playerName,
+                            ifpaPlayerID: ifpaPlayerID
+                        )
+                    }
                 }
             }
             .navigationDestination(isPresented: $openPracticeSettings) {
@@ -226,6 +240,12 @@ extension PracticeScreen {
             .onChange(of: journalFilterRaw) { _, _ in
                 selectedJournalItemIDs.removeAll()
                 isEditingJournalEntries = false
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .pinballLibrarySourcesDidChange)) { _ in
+                Task {
+                    await store.loadGames()
+                    applyDefaultsAfterLoad()
+                }
             }
     }
 }
