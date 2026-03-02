@@ -1,5 +1,5 @@
 import XCTest
-@testable import Pinball_App_2
+@testable import PinProf
 
 final class PracticeStateCodecTests: XCTestCase {
     func testCanonicalFixtureDecodesWithMillisecondsStrategy() throws {
