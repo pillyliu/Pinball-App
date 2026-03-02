@@ -36,6 +36,7 @@ private const val PRACTICE_TOPBAR_ALL_GAMES_SOURCE_ID = "__practice_topbar_all_g
 internal fun PracticeTopBar(
     route: PracticeRoute,
     playerName: String,
+    ifpaPlayerID: String,
     editingGroupID: String?,
     selectedGameName: String?,
     games: List<PinballGame>,
@@ -47,6 +48,7 @@ internal fun PracticeTopBar(
     onGameSelected: (PinballGame) -> Unit,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenIfpaProfile: () -> Unit,
     isJournalSelectionMode: Boolean = false,
     onToggleJournalSelectionMode: (() -> Unit)? = null,
 ) {
@@ -133,16 +135,26 @@ internal fun PracticeTopBar(
                 }
             }
         } else {
-            Text(
-                text = practiceTopTitle(route, playerName, editingGroupID),
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 20.sp,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = if (route == PracticeRoute.Home) 8.dp else 0.dp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (route == PracticeRoute.Home) {
+                PracticeWelcomeTitle(
+                    playerName = playerName,
+                    onOpenIfpaProfile = onOpenIfpaProfile,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp),
+                )
+            } else {
+                Text(
+                    text = practiceTopTitle(route, editingGroupID),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 20.sp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 0.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         if (route == PracticeRoute.Journal && onToggleJournalSelectionMode != null) {
             if (isJournalSelectionMode) {
@@ -167,11 +179,10 @@ internal fun PracticeTopBar(
 
 private fun practiceTopTitle(
     route: PracticeRoute,
-    playerName: String,
     editingGroupID: String?,
 ): String {
     return when (route) {
-        PracticeRoute.Home -> practiceWelcomeTitle(playerName)
+        PracticeRoute.IfpaProfile -> "IFPA Profile"
         PracticeRoute.GroupDashboard -> "Group Dashboard"
         PracticeRoute.GroupEditor -> if (editingGroupID == null) "Create Group" else "Edit Group"
         PracticeRoute.Journal -> "Journal Timeline"
@@ -182,14 +193,53 @@ private fun practiceTopTitle(
     }
 }
 
-private fun practiceWelcomeTitle(playerName: String): String {
+@Composable
+private fun PracticeWelcomeTitle(
+    playerName: String,
+    onOpenIfpaProfile: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val trimmed = playerName.trim()
-    if (trimmed.isBlank()) return "Welcome back"
+    if (trimmed.isBlank()) {
+        Text(
+            text = "Welcome back",
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 20.sp,
+            modifier = modifier,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        return
+    }
     val redacted = redactPlayerNameForDisplay(trimmed)
     val display = if (redacted != trimmed) {
         redacted
     } else {
         trimmed.split(Regex("\\s+")).firstOrNull().orEmpty().ifBlank { trimmed }
     }
-    return "Welcome back, $display"
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Welcome back, ",
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 20.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        TextButton(
+            onClick = onOpenIfpaProfile,
+            contentPadding = PaddingValues(0.dp),
+        ) {
+            Text(
+                text = display,
+                color = androidx.compose.ui.graphics.Color(0xFF7DC4FA),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 20.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
 }

@@ -36,6 +36,7 @@ import java.util.Locale
 
 internal enum class PracticeRoute {
     Home,
+    IfpaProfile,
     GroupDashboard,
     GroupEditor,
     Journal,
@@ -196,6 +197,7 @@ fun PracticeScreen(contentPadding: PaddingValues) {
             PracticeTopBar(
                 route = uiState.route,
                 playerName = store.playerName,
+                ifpaPlayerID = store.ifpaPlayerID,
                 editingGroupID = uiState.editingGroupID,
                 selectedGameName = selectedGame?.name,
                 games = store.games,
@@ -216,6 +218,7 @@ fun PracticeScreen(contentPadding: PaddingValues) {
                 },
                 onBack = uiState::goBack,
                 onOpenSettings = { uiState.navigateTo(PracticeRoute.Settings) },
+                onOpenIfpaProfile = { uiState.navigateTo(PracticeRoute.IfpaProfile) },
                 isJournalSelectionMode = uiState.journalSelectionMode,
                 onToggleJournalSelectionMode = if (uiState.route == PracticeRoute.Journal) {
                     {

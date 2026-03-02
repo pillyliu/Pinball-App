@@ -93,6 +93,7 @@ internal data class CanonicalAnalyticsSettings(
 
 internal data class CanonicalPracticeSettings(
     val playerName: String,
+    val ifpaPlayerID: String,
     val comparisonPlayerName: String,
     val selectedGroupID: String?,
 )
@@ -138,7 +139,7 @@ internal fun emptyCanonicalPracticePersistedState(): CanonicalPracticePersistedS
         rulesheetResumeOffsets = emptyMap(),
         videoResumeHints = emptyMap(),
         gameSummaryNotes = emptyMap(),
-        practiceSettings = CanonicalPracticeSettings(playerName = "", comparisonPlayerName = "", selectedGroupID = null),
+        practiceSettings = CanonicalPracticeSettings(playerName = "", ifpaPlayerID = "", comparisonPlayerName = "", selectedGroupID = null),
     )
 }
 
@@ -253,6 +254,7 @@ internal fun buildCanonicalPracticeStateJson(state: CanonicalPracticePersistedSt
     })
     root.put("practiceSettings", JSONObject().apply {
         put("playerName", state.practiceSettings.playerName)
+        put("ifpaPlayerID", state.practiceSettings.ifpaPlayerID)
         put("comparisonPlayerName", state.practiceSettings.comparisonPlayerName)
         state.practiceSettings.selectedGroupID?.let { put("selectedGroupID", it) }
     })
@@ -307,6 +309,7 @@ internal fun canonicalPracticeStateFromRuntimeAndShadow(
         gameSummaryNotes = runtime.gameSummaryNotes,
         practiceSettings = shadow.practiceSettings.copy(
             playerName = runtime.playerName,
+            ifpaPlayerID = runtime.ifpaPlayerID,
             comparisonPlayerName = runtime.comparisonPlayerName,
             selectedGroupID = runtime.selectedGroupID,
         ),
@@ -368,6 +371,7 @@ internal fun runtimePracticeStateFromCanonicalState(
     }
     return PracticePersistedState(
         playerName = canonical.practiceSettings.playerName,
+        ifpaPlayerID = canonical.practiceSettings.ifpaPlayerID,
         comparisonPlayerName = canonical.practiceSettings.comparisonPlayerName,
         leaguePlayerName = canonical.leagueSettings.playerName,
         cloudSyncEnabled = canonical.syncSettings.cloudSyncEnabled,
@@ -454,6 +458,7 @@ internal fun canonicalPracticeStateFromLegacyState(legacy: PracticePersistedStat
         gameSummaryNotes = legacy.gameSummaryNotes,
         practiceSettings = CanonicalPracticeSettings(
             playerName = legacy.playerName,
+            ifpaPlayerID = legacy.ifpaPlayerID,
             comparisonPlayerName = legacy.comparisonPlayerName,
             selectedGroupID = remappedSelectedGroupId,
         ),
@@ -820,6 +825,7 @@ private fun parseCanonicalPracticeState(root: JSONObject): CanonicalPracticePers
         practiceSettings = root.optJSONObject("practiceSettings")?.let { obj ->
             CanonicalPracticeSettings(
                 playerName = obj.optString("playerName", ""),
+                ifpaPlayerID = obj.optString("ifpaPlayerID", ""),
                 comparisonPlayerName = obj.optString("comparisonPlayerName", ""),
                 selectedGroupID = obj.optString("selectedGroupID").takeIf { it.isNotBlank() && it != "null" }?.let { validUuidOrStable("group", it) },
             )

@@ -91,6 +91,13 @@ internal fun PracticeScreenRouteContent(
             )
         }
 
+        PracticeRoute.IfpaProfile -> {
+            PracticeIfpaProfileScreen(
+                playerName = store.playerName,
+                ifpaPlayerID = store.ifpaPlayerID,
+            )
+        }
+
         PracticeRoute.Game -> {
             PracticeGameSection(
                 store = store,

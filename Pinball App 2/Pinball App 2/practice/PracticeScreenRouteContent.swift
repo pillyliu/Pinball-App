@@ -202,6 +202,7 @@ extension PracticeScreen {
     var settingsScreen: some View {
         PracticeSettingsSectionView(
             playerName: $playerName,
+            ifpaPlayerID: $ifpaPlayerID,
             leaguePlayerName: $leaguePlayerName,
             leaguePlayerOptions: leaguePlayerOptions,
             leagueImportStatus: leagueImportStatus,
@@ -209,6 +210,11 @@ extension PracticeScreen {
             redactName: { name in formatLPLPlayerNameForDisplay(name) },
             onSaveProfile: {
                 store.updatePracticeSettings(playerName: playerName)
+            },
+            onSaveIFPAID: {
+                let sanitized = ifpaPlayerID.filter(\.isNumber)
+                ifpaPlayerID = sanitized
+                store.updatePracticeSettings(ifpaPlayerID: sanitized)
             },
             onImportLeagueCSV: {
                 Task {

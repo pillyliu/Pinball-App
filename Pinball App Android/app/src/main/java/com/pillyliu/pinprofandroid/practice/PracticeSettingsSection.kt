@@ -55,6 +55,24 @@ internal fun PracticeSettingsSection(
     }
 
     CardContainer {
+        Text("IFPA", fontWeight = FontWeight.SemiBold)
+        var draftIfpaId by remember(store.ifpaPlayerID) { mutableStateOf(store.ifpaPlayerID) }
+        OutlinedTextField(
+            value = draftIfpaId,
+            onValueChange = { draftIfpaId = it.filter(Char::isDigit) },
+            label = { Text("IFPA number") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+        )
+        Text(
+            "Save your IFPA player number to unlock a quick stats profile from the Practice home header.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Button(onClick = { store.updateIfpaPlayerID(draftIfpaId.filter(Char::isDigit)) }) { Text("Save IFPA ID") }
+    }
+
+    CardContainer {
         Text("League Import", fontWeight = FontWeight.SemiBold)
         var players by remember { mutableStateOf(listOf<String>()) }
         LaunchedEffect(Unit) {

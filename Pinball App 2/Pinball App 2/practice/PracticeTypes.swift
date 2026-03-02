@@ -39,6 +39,7 @@ enum PracticeHubDestination: String, CaseIterable, Identifiable, Hashable {
 enum PracticeNavRoute: Hashable {
     case destination(PracticeHubDestination)
     case game(String)
+    case ifpaProfile
 }
 
 enum QuickEntrySheet: String, Identifiable {

@@ -3,7 +3,9 @@ import SwiftUI
 struct PracticeHomeRootView: View {
     let isLoadingGames: Bool
     let greetingName: String?
+    let hasIFPAProfileAccess: Bool
     let onOpenSettings: () -> Void
+    let onOpenIFPAProfile: () -> Void
 
     let resumeGame: PinballGame?
     let allGames: [PinballGame]
@@ -34,8 +36,7 @@ struct PracticeHomeRootView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack {
-                            Text(greetingName == nil ? "Welcome back" : "Welcome back, \(greetingName!)")
-                                .font(.title3.weight(.semibold))
+                            greetingHeader
                             Spacer()
                             Button(action: onOpenSettings) {
                                 Image(systemName: "gearshape")
@@ -89,5 +90,24 @@ struct PracticeHomeRootView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    @ViewBuilder
+    private var greetingHeader: some View {
+        if let greetingName {
+            HStack(spacing: 0) {
+                Text("Welcome back, ")
+                Button(action: onOpenIFPAProfile) {
+                    Text(greetingName)
+                        .foregroundStyle(Color(red: 0.49, green: 0.77, blue: 0.98))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(hasIFPAProfileAccess ? "Open IFPA profile for \(greetingName)" : "Open IFPA setup for \(greetingName)")
+            }
+            .font(.title3.weight(.semibold))
+        } else {
+            Text("Welcome back")
+                .font(.title3.weight(.semibold))
+        }
     }
 }
