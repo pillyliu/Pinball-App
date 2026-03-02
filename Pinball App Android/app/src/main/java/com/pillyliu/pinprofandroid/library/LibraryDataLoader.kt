@@ -31,7 +31,12 @@ private suspend fun loadHostedLibraryExtraction(context: Context): LegacyCatalog
     return if (opdbText != null) {
         decodeMergedLibraryPayloadWithState(context, libraryText, opdbText)
     } else {
-        decodeLibraryPayloadWithState(context, libraryText)
+        val bundledOpdbText = loadBundledPinballText(context, "/pinball/data/opdb_catalog_v1.json")
+        if (!bundledOpdbText.isNullOrBlank()) {
+            decodeMergedLibraryPayloadWithState(context, libraryText, bundledOpdbText)
+        } else {
+            LibrarySeedDatabase.loadExtraction(context)
+        }
     }
 }
 
@@ -84,6 +89,7 @@ internal fun decodeMergedLibraryPayloadWithState(
 private fun filterPayload(payload: ParsedLibraryData, state: LibrarySourceState): ParsedLibraryData {
     val enabled = state.enabledSourceIds.toSet()
     val filteredSources = payload.sources.filter { it.id in enabled }
+    if (filteredSources.isEmpty()) return payload
     val sourceIds = filteredSources.map { it.id }.toSet()
     val filteredGames = payload.games.filter { it.sourceId in sourceIds }
     return ParsedLibraryData(games = filteredGames, sources = filteredSources)
@@ -216,7 +222,8 @@ private fun resolveMergedCatalog(
                         }
                 }
 
-                LibrarySourceType.VENUE -> {
+                LibrarySourceType.VENUE,
+                LibrarySourceType.TOURNAMENT -> {
                     importedSource.machineIds.forEach { machineId ->
                         val machine = preferredMachineForSourceLookup(
                             requestedMachineId = machineId,

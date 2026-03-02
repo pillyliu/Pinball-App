@@ -125,7 +125,7 @@ extension PracticeScreen {
             isEditingEntries: $isEditingJournalEntries,
             selectedItemIDs: $selectedJournalItemIDs,
             gameTransition: gameTransition,
-            onTapItem: { gameID in goToGame(gameID) },
+            onTapItem: { gameID, sourceID in goToGame(gameID, zoomSourceID: sourceID) },
             onEditJournalEntry: { entry in openJournalEntryEditor(entry) },
             onDeleteJournalEntries: { entries in deleteJournalEntries(entries) }
         )

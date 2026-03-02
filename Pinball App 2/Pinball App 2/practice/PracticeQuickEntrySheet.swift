@@ -222,14 +222,18 @@ struct PracticeQuickEntrySheet: View {
                                 styledMultilineTextEditor("Optional notes", text: $noteText)
                             case .tutorialVideo, .gameplayVideo:
                                 Menu {
-                                    ForEach(videoSourceOptions, id: \.self) { source in
-                                        Button {
-                                            selectedVideoSource = source
-                                        } label: {
-                                            if selectedVideoSource == source {
-                                                Label(source, systemImage: "checkmark")
-                                            } else {
-                                                Text(source)
+                                    if videoSourceOptions.isEmpty {
+                                        Text("No video sources")
+                                    } else {
+                                        ForEach(videoSourceOptions, id: \.self) { source in
+                                            Button {
+                                                selectedVideoSource = source
+                                            } label: {
+                                                if selectedVideoSource == source {
+                                                    Label(source, systemImage: "checkmark")
+                                                } else {
+                                                    Text(source)
+                                                }
                                             }
                                         }
                                     }

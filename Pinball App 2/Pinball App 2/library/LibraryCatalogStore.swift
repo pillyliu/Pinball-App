@@ -1,5 +1,22 @@
 import Foundation
 
+private let canonicalBuiltinSourceIDs = [
+    "venue--rlm-amusements",
+    "venue--the-avenue-cafe",
+]
+
+private let legacySourceIDAliases: [String: String] = [
+    "the-avenue": "venue--the-avenue-cafe",
+    "rlm-amusements": "venue--rlm-amusements",
+]
+
+private func canonicalLibrarySourceID(_ rawID: String?) -> String? {
+    guard let trimmed = rawID?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+        return nil
+    }
+    return legacySourceIDAliases[trimmed] ?? trimmed
+}
+
 struct PinballLibrarySourceState: Codable {
     var enabledSourceIDs: [String]
     var pinnedSourceIDs: [String]
@@ -21,11 +38,24 @@ enum PinballLibrarySourceStateStore {
     static let maxPinnedSources = 10
 
     static func load() -> PinballLibrarySourceState {
-        guard let data = UserDefaults.standard.data(forKey: defaultsKey),
-              let state = try? JSONDecoder().decode(PinballLibrarySourceState.self, from: data) else {
+        guard let data = UserDefaults.standard.data(forKey: defaultsKey) else {
             return .empty
         }
-        return state
+        if let state = try? JSONDecoder().decode(PinballLibrarySourceState.self, from: data) {
+            return normalized(state)
+        }
+        guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            return .empty
+        }
+        return normalized(
+            PinballLibrarySourceState(
+                enabledSourceIDs: (root["enabledSourceIDs"] as? [Any])?.compactMap { canonicalLibrarySourceID(String(describing: $0)) } ?? [],
+                pinnedSourceIDs: (root["pinnedSourceIDs"] as? [Any])?.compactMap { canonicalLibrarySourceID(String(describing: $0)) } ?? [],
+                selectedSourceID: canonicalLibrarySourceID(root["selectedSourceID"] as? String),
+                selectedSortBySource: normalizeStringMap(root["selectedSortBySource"] as? [String: Any]),
+                selectedBankBySource: normalizeIntMap(root["selectedBankBySource"] as? [String: Any])
+            )
+        )
     }
 
     static func save(_ state: PinballLibrarySourceState) {
@@ -38,6 +68,9 @@ enum PinballLibrarySourceStateStore {
         var state = load()
         state.enabledSourceIDs = filteredKnownIDs(state.enabledSourceIDs, validIDs: validIDs)
         state.pinnedSourceIDs = Array(filteredKnownIDs(state.pinnedSourceIDs, validIDs: validIDs).prefix(maxPinnedSources))
+        for sourceID in canonicalBuiltinSourceIDs where validIDs.contains(sourceID) && !state.enabledSourceIDs.contains(sourceID) {
+            state.enabledSourceIDs.append(sourceID)
+        }
 
         if state.enabledSourceIDs.isEmpty {
             state.enabledSourceIDs = payloadSources.map(\.id)
@@ -47,17 +80,30 @@ enum PinballLibrarySourceStateStore {
             state.pinnedSourceIDs = Array(payloadSources.prefix(maxPinnedSources).map(\.id))
         }
 
-        if let selectedSourceID = state.selectedSourceID, !validIDs.contains(selectedSourceID) {
+        if let selectedSourceID = canonicalLibrarySourceID(state.selectedSourceID), validIDs.contains(selectedSourceID) {
+            state.selectedSourceID = selectedSourceID
+        } else {
             state.selectedSourceID = nil
         }
 
-        state.selectedSortBySource = state.selectedSortBySource.filter { validIDs.contains($0.key) }
-        state.selectedBankBySource = state.selectedBankBySource.filter { validIDs.contains($0.key) }
+        state.selectedSortBySource = Dictionary(
+            uniqueKeysWithValues: state.selectedSortBySource.compactMap { key, value in
+                guard let canonicalKey = canonicalLibrarySourceID(key), validIDs.contains(canonicalKey) else { return nil }
+                return (canonicalKey, value)
+            }
+        )
+        state.selectedBankBySource = Dictionary(
+            uniqueKeysWithValues: state.selectedBankBySource.compactMap { key, value in
+                guard let canonicalKey = canonicalLibrarySourceID(key), validIDs.contains(canonicalKey) else { return nil }
+                return (canonicalKey, value)
+            }
+        )
         save(state)
         return state
     }
 
     static func upsertSource(id: String, enable: Bool = true, pinIfPossible: Bool = true) {
+        guard let id = canonicalLibrarySourceID(id) else { return }
         var state = load()
         if enable, !state.enabledSourceIDs.contains(id) {
             state.enabledSourceIDs.append(id)
@@ -69,6 +115,7 @@ enum PinballLibrarySourceStateStore {
     }
 
     static func setEnabled(sourceID: String, isEnabled: Bool) {
+        guard let sourceID = canonicalLibrarySourceID(sourceID) else { return }
         var state = load()
         if isEnabled {
             if !state.enabledSourceIDs.contains(sourceID) {
@@ -85,6 +132,7 @@ enum PinballLibrarySourceStateStore {
     }
 
     static func setPinned(sourceID: String, isPinned: Bool) -> Bool {
+        guard let sourceID = canonicalLibrarySourceID(sourceID) else { return false }
         var state = load()
         if isPinned {
             if state.pinnedSourceIDs.contains(sourceID) {
@@ -106,9 +154,23 @@ enum PinballLibrarySourceStateStore {
 
     private static func filteredKnownIDs(_ ids: [String], validIDs: Set<String>) -> [String] {
         var seen = Set<String>()
-        return ids.filter { id in
+        return ids.compactMap(canonicalLibrarySourceID).filter { id in
             validIDs.contains(id) && seen.insert(id).inserted
         }
+    }
+
+    private static func normalized(_ state: PinballLibrarySourceState) -> PinballLibrarySourceState {
+        PinballLibrarySourceState(
+            enabledSourceIDs: Array(NSOrderedSet(array: state.enabledSourceIDs.compactMap(canonicalLibrarySourceID))) as? [String] ?? [],
+            pinnedSourceIDs: Array(NSOrderedSet(array: state.pinnedSourceIDs.compactMap(canonicalLibrarySourceID))) as? [String] ?? [],
+            selectedSourceID: canonicalLibrarySourceID(state.selectedSourceID),
+            selectedSortBySource: Dictionary(uniqueKeysWithValues: state.selectedSortBySource.compactMap { key, value in
+                canonicalLibrarySourceID(key).map { ($0, value) }
+            }),
+            selectedBankBySource: Dictionary(uniqueKeysWithValues: state.selectedBankBySource.compactMap { key, value in
+                canonicalLibrarySourceID(key).map { ($0, value) }
+            })
+        )
     }
 }
 
@@ -123,6 +185,7 @@ func postPinballLibrarySourcesDidChange() {
 enum PinballImportedSourceProvider: String, Codable {
     case opdb
     case pinballMap = "pinball_map"
+    case matchPlay = "match_play"
 }
 
 struct PinballImportedSourceRecord: Codable, Identifiable, Hashable {
@@ -141,9 +204,45 @@ enum PinballImportedSourcesStore {
     private static let defaultsKey = "pinball-imported-sources-v1"
 
     static func load() -> [PinballImportedSourceRecord] {
-        guard let data = UserDefaults.standard.data(forKey: defaultsKey),
-              let records = try? JSONDecoder().decode([PinballImportedSourceRecord].self, from: data) else {
+        guard let data = UserDefaults.standard.data(forKey: defaultsKey) else {
             return []
+        }
+        if let records = try? JSONDecoder().decode([PinballImportedSourceRecord].self, from: data) {
+            return records.sorted {
+                ($0.type.rawValue, $0.name.lowercased()) < ($1.type.rawValue, $1.name.lowercased())
+            }
+        }
+        guard let array = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] else {
+            return []
+        }
+        let iso = ISO8601DateFormatter()
+        let records = array.compactMap { item -> PinballImportedSourceRecord? in
+            guard let id = canonicalLibrarySourceID(item["id"] as? String),
+                  let name = (item["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty,
+                  let typeRaw = item["type"] as? String,
+                  let type = PinballLibrarySourceType(rawValue: typeRaw),
+                  let providerSourceID = (item["providerSourceID"] as? String ?? item["providerSourceId"] as? String)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                  !providerSourceID.isEmpty else {
+                return nil
+            }
+            let provider = (item["provider"] as? String).flatMap(PinballImportedSourceProvider.init(rawValue:))
+                ?? inferredImportedSourceProvider(type: type, id: id)
+            let lastSyncedAt = (item["lastSyncedAt"] as? String).flatMap { iso.date(from: $0) }
+            let machineIDs = (item["machineIDs"] as? [Any] ?? item["machineIds"] as? [Any] ?? []).compactMap {
+                ($0 as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            }.filter { !$0.isEmpty }
+            return PinballImportedSourceRecord(
+                id: id,
+                name: name,
+                type: type,
+                provider: provider,
+                providerSourceID: providerSourceID,
+                machineIDs: machineIDs,
+                lastSyncedAt: lastSyncedAt,
+                searchQuery: (item["searchQuery"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                distanceMiles: item["distanceMiles"] as? Int
+            )
         }
         return records.sorted {
             ($0.type.rawValue, $0.name.lowercased()) < ($1.type.rawValue, $1.name.lowercased())
@@ -157,15 +256,27 @@ enum PinballImportedSourcesStore {
 
     static func upsert(_ record: PinballImportedSourceRecord) {
         var records = load()
-        if let index = records.firstIndex(where: { $0.id == record.id }) {
-            records[index] = record
+        let canonicalRecord = PinballImportedSourceRecord(
+            id: canonicalLibrarySourceID(record.id) ?? record.id,
+            name: record.name,
+            type: record.type,
+            provider: record.provider,
+            providerSourceID: record.providerSourceID,
+            machineIDs: record.machineIDs,
+            lastSyncedAt: record.lastSyncedAt,
+            searchQuery: record.searchQuery,
+            distanceMiles: record.distanceMiles
+        )
+        if let index = records.firstIndex(where: { $0.id == canonicalRecord.id }) {
+            records[index] = canonicalRecord
         } else {
-            records.append(record)
+            records.append(canonicalRecord)
         }
         save(records)
     }
 
     static func remove(id: String) {
+        guard let id = canonicalLibrarySourceID(id) else { return }
         var records = load()
         records.removeAll { $0.id == id }
         save(records)
@@ -177,6 +288,35 @@ enum PinballImportedSourcesStore {
             state.selectedSourceID = nil
         }
         PinballLibrarySourceStateStore.save(state)
+    }
+}
+
+private func normalizeStringMap(_ raw: [String: Any]?) -> [String: String] {
+    Dictionary(uniqueKeysWithValues: (raw ?? [:]).compactMap { key, value in
+        guard let canonicalKey = canonicalLibrarySourceID(key), let stringValue = value as? String else { return nil }
+        return (canonicalKey, stringValue)
+    })
+}
+
+private func normalizeIntMap(_ raw: [String: Any]?) -> [String: Int] {
+    Dictionary(uniqueKeysWithValues: (raw ?? [:]).compactMap { key, value in
+        guard let canonicalKey = canonicalLibrarySourceID(key) else { return nil }
+        if let intValue = value as? Int { return (canonicalKey, intValue) }
+        if let numberValue = value as? NSNumber { return (canonicalKey, numberValue.intValue) }
+        return nil
+    })
+}
+
+private func inferredImportedSourceProvider(type: PinballLibrarySourceType, id: String) -> PinballImportedSourceProvider {
+    switch type {
+    case .manufacturer:
+        return .opdb
+    case .tournament:
+        return .matchPlay
+    case .venue:
+        return id.hasPrefix("venue--pm-") ? .pinballMap : .opdb
+    case .category:
+        return .opdb
     }
 }
 
@@ -668,7 +808,7 @@ private func resolveMergedCatalog(
             )
         case .category:
             continue
-        case .venue:
+        case .venue, .tournament:
             let sourceMachines = importedSource.machineIDs.compactMap { machineID in
                 catalogPreferredMachineForSourceLookup(
                     requestedMachineID: machineID,

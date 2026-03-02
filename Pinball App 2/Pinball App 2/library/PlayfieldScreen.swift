@@ -19,6 +19,7 @@ struct FallbackAsyncImageView: View {
     @State private var didFailCurrent = false
 
     var body: some View {
+        let candidateKey = candidates.map(\.absoluteString).joined(separator: "|")
         let currentURL = candidates.indices.contains(index) ? candidates[index] : nil
 
         ZStack {
@@ -42,8 +43,13 @@ struct FallbackAsyncImageView: View {
                         } else {
                             ProgressView()
                         }
-                    }
+                }
             }
+        }
+        .task(id: candidateKey) {
+            index = 0
+            image = nil
+            didFailCurrent = false
         }
         .task(id: currentURL) {
             guard let currentURL else {

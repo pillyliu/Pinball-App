@@ -269,7 +269,8 @@ internal object LibrarySeedDatabase {
                         }
                 }
 
-                LibrarySourceType.VENUE -> {
+                LibrarySourceType.VENUE,
+                LibrarySourceType.TOURNAMENT -> {
                     source.machineIds.forEach { machineId ->
                         val preferred = machineById[machineId]
                             ?: preferredSeedGroupMachine(groupedByPracticeIdentity[machineId].orEmpty())

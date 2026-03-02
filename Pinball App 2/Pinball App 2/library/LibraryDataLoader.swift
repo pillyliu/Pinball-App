@@ -38,7 +38,12 @@ private func loadHostedLibraryExtraction() async throws -> LegacyCatalogExtracti
        !opdbData.isEmpty {
         return try decodeMergedLibraryPayloadWithState(libraryData: libraryData, opdbCatalogData: opdbData)
     }
-    return try decodeLibraryPayloadWithState(data: libraryData)
+    if let bundledOPDBText = try loadBundledPinballText(path: LibraryDataLoader.opdbCatalogPath),
+       let bundledOPDBData = bundledOPDBText.data(using: .utf8),
+       !bundledOPDBData.isEmpty {
+        return try decodeMergedLibraryPayloadWithState(libraryData: libraryData, opdbCatalogData: bundledOPDBData)
+    }
+    return try await LibrarySeedDatabase.shared.loadExtraction()
 }
 
 private func loadBundledLibraryExtraction() throws -> LegacyCatalogExtraction? {

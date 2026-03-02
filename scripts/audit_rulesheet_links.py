@@ -6,6 +6,7 @@ import argparse
 import html
 import json
 import re
+import hashlib
 import socket
 import sys
 import time
@@ -43,6 +44,25 @@ class RulesheetLink:
     practice_identity: str
     label: str
     priority: int
+
+
+def normalize_provider_arg(value: str) -> str:
+    normalized = value.strip().lower()
+    aliases = {
+        "tf": "tf",
+        "tiltforums": "tf",
+        "pp": "pp",
+        "primer": "pp",
+        "pinballprimer": "pp",
+        "bob": "bob",
+        "bobs": "bob",
+        "papa": "papa",
+        "pinball.org": "papa",
+        "pinballorg": "papa",
+    }
+    if normalized not in aliases:
+        raise argparse.ArgumentTypeError(f"Unsupported provider: {value}")
+    return aliases[normalized]
 
 
 def iso_now() -> str:
@@ -122,6 +142,19 @@ def build_url_inventory(links: list[RulesheetLink]) -> list[dict[str, Any]]:
         )
     inventory.sort(key=lambda row: (row["provider"], row["normalized_url"]))
     return inventory
+
+
+def inventory_signature(item: dict[str, Any]) -> str:
+    payload = {
+        "provider": item["provider"],
+        "normalized_url": item["normalized_url"],
+        "raw_urls": item["raw_urls"],
+        "practice_identities": item["practice_identities"],
+        "references": item["references"],
+        "seen_count": item["seen_count"],
+    }
+    serialized = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 def fetch_document(url: str) -> tuple[str, int | None, str, str | None]:
@@ -260,10 +293,12 @@ def audit_one_url(item: dict[str, Any]) -> dict[str, Any]:
     normalized_url = item["normalized_url"]
     fetch_url = normalized_url
     parse_kind = "html"
+    content_mode = "html"
 
     try:
         if provider == "tf":
             parse_kind = "tiltforums_json"
+            content_mode = "html"
             fetch_url = tiltforums_api_url(normalized_url)
             payload_text, http_status, final_url, mime_type = fetch_document(fetch_url)
             payload = json.loads(payload_text)
@@ -281,6 +316,7 @@ def audit_one_url(item: dict[str, Any]) -> dict[str, Any]:
                     "http_status": http_status,
                     "mime_type": mime_type,
                     "parse_kind": parse_kind,
+                    "content_mode": content_mode,
                     "content_text_length": 0,
                     "last_error": "Tilt Forums payload missing cooked HTML",
                 }
@@ -294,11 +330,13 @@ def audit_one_url(item: dict[str, Any]) -> dict[str, Any]:
                 "http_status": http_status,
                 "mime_type": mime_type,
                 "parse_kind": parse_kind,
+                "content_mode": content_mode,
                 "content_text_length": visible_text_length(cooked),
                 "last_error": None,
             }
 
         if provider == "pp":
+            content_mode = "html"
             payload_text, http_status, final_url, mime_type = fetch_document(fetch_url)
             cleaned = cleanup_primer_html(payload_text)
             if not looks_parsed(cleaned):
@@ -312,6 +350,7 @@ def audit_one_url(item: dict[str, Any]) -> dict[str, Any]:
                     "http_status": http_status,
                     "mime_type": mime_type,
                     "parse_kind": parse_kind,
+                    "content_mode": content_mode,
                     "content_text_length": visible_text_length(cleaned),
                     "last_error": "Primer HTML cleanup produced too little readable content",
                 }
@@ -325,12 +364,14 @@ def audit_one_url(item: dict[str, Any]) -> dict[str, Any]:
                 "http_status": http_status,
                 "mime_type": mime_type,
                 "parse_kind": parse_kind,
+                "content_mode": content_mode,
                 "content_text_length": visible_text_length(cleaned),
                 "last_error": None,
             }
 
         fetch_url = legacy_fetch_url(provider, normalized_url)
         payload_text, http_status, final_url, mime_type = fetch_document(fetch_url)
+        content_mode = "plain_text" if should_treat_as_plain_text(payload_text, mime_type) else "html"
         cleaned = cleanup_legacy_html(payload_text, mime_type, provider)
         if not looks_parsed(cleaned):
             return {
@@ -343,6 +384,7 @@ def audit_one_url(item: dict[str, Any]) -> dict[str, Any]:
                 "http_status": http_status,
                 "mime_type": mime_type,
                 "parse_kind": "legacy_html",
+                "content_mode": content_mode,
                 "content_text_length": visible_text_length(cleaned),
                 "last_error": "Legacy HTML cleanup produced too little readable content",
             }
@@ -356,6 +398,7 @@ def audit_one_url(item: dict[str, Any]) -> dict[str, Any]:
             "http_status": http_status,
             "mime_type": mime_type,
             "parse_kind": "legacy_html",
+            "content_mode": content_mode,
             "content_text_length": visible_text_length(cleaned),
             "last_error": None,
         }
@@ -371,6 +414,7 @@ def audit_one_url(item: dict[str, Any]) -> dict[str, Any]:
             "http_status": exc.code,
             "mime_type": exc.headers.get_content_type() if exc.headers else None,
             "parse_kind": parse_kind,
+            "content_mode": content_mode,
             "content_text_length": 0,
             "last_error": f"HTTP {exc.code}",
         }
@@ -390,6 +434,7 @@ def audit_one_url(item: dict[str, Any]) -> dict[str, Any]:
             "http_status": None,
             "mime_type": None,
             "parse_kind": parse_kind,
+            "content_mode": content_mode,
             "content_text_length": 0,
             "last_error": str(reason),
         }
@@ -404,6 +449,7 @@ def audit_one_url(item: dict[str, Any]) -> dict[str, Any]:
             "http_status": None,
             "mime_type": None,
             "parse_kind": parse_kind,
+            "content_mode": content_mode,
             "content_text_length": 0,
             "last_error": str(exc),
         }
@@ -418,6 +464,7 @@ def audit_one_url(item: dict[str, Any]) -> dict[str, Any]:
             "http_status": None,
             "mime_type": None,
             "parse_kind": parse_kind,
+            "content_mode": content_mode,
             "content_text_length": 0,
             "last_error": str(exc),
         }
@@ -454,6 +501,7 @@ def merge_with_history(
     return {
         "normalized_url": inventory_item["normalized_url"],
         "provider": inventory_item["provider"],
+        "inventory_signature": inventory_signature(inventory_item),
         "raw_urls": inventory_item["raw_urls"],
         "practice_identities": inventory_item["practice_identities"],
         "references": inventory_item["references"],
@@ -470,6 +518,7 @@ def merge_with_history(
         "http_status": current_result["http_status"],
         "mime_type": current_result["mime_type"],
         "parse_kind": current_result["parse_kind"],
+        "content_mode": current_result["content_mode"],
         "content_text_length": current_result["content_text_length"],
         "last_error": current_result["last_error"],
     }
@@ -489,6 +538,8 @@ def summarize(results: list[dict[str, Any]], raw_rows: int) -> dict[str, Any]:
     return {
         "raw_rows": raw_rows,
         "unique_urls": len(results),
+        "audited_urls": sum(1 for row in results if not row.get("reused_unchanged")),
+        "reused_unchanged_urls": sum(1 for row in results if row.get("reused_unchanged")),
         "ok": sum(1 for row in results if not row["broken"]),
         "broken": sum(1 for row in results if row["broken"]),
         "statuses": by_status,
@@ -502,13 +553,29 @@ def run_audit(
     mirror_output_path: Path | None,
     max_workers: int,
     limit: int | None,
+    providers: set[str] | None,
+    statuses: set[str] | None,
+    force_full: bool,
 ) -> dict[str, Any]:
     catalog = load_json(catalog_path)
     links = collect_rulesheet_links(catalog)
     inventory = build_url_inventory(links)
+    if providers:
+        inventory = [item for item in inventory if item["provider"] in providers]
     if limit is not None:
         inventory = inventory[: max(0, limit)]
     previous_payload = load_json(output_path) if output_path.exists() else {"results": []}
+    if statuses:
+        previous_by_url_all = {
+            row["normalized_url"]: row
+            for row in previous_payload.get("results", [])
+            if isinstance(row, dict) and row.get("normalized_url")
+        }
+        inventory = [
+            item
+            for item in inventory
+            if previous_by_url_all.get(item["normalized_url"], {}).get("current_status") in statuses
+        ]
     previous_by_url = {
         row["normalized_url"]: row
         for row in previous_payload.get("results", [])
@@ -516,17 +583,46 @@ def run_audit(
     }
     checked_at = iso_now()
 
+    reused_results: dict[str, dict[str, Any]] = {}
+    inventory_to_audit: list[dict[str, Any]] = []
+    for item in inventory:
+        previous = previous_by_url.get(item["normalized_url"])
+        if force_full or not previous:
+            inventory_to_audit.append(item)
+            continue
+        if previous.get("current_status") != "ok":
+            inventory_to_audit.append(item)
+            continue
+        if previous.get("inventory_signature") != inventory_signature(item):
+            inventory_to_audit.append(item)
+            continue
+
+        reused_row = dict(previous)
+        reused_row["provider"] = item["provider"]
+        reused_row["inventory_signature"] = inventory_signature(item)
+        reused_row["raw_urls"] = item["raw_urls"]
+        reused_row["practice_identities"] = item["practice_identities"]
+        reused_row["references"] = item["references"]
+        reused_row["seen_count"] = item["seen_count"]
+        reused_row["reused_unchanged"] = True
+        reused_results[item["normalized_url"]] = reused_row
+
     current_by_url: dict[str, dict[str, Any]] = {}
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_map = {executor.submit(audit_one_url, item): item for item in inventory}
+        future_map = {executor.submit(audit_one_url, item): item for item in inventory_to_audit}
         for future in as_completed(future_map):
             item = future_map[future]
             current_by_url[item["normalized_url"]] = future.result()
 
-    results = [
-        merge_with_history(item, current_by_url[item["normalized_url"]], previous_by_url, checked_at)
-        for item in inventory
-    ]
+    results: list[dict[str, Any]] = []
+    for item in inventory:
+        normalized_url = item["normalized_url"]
+        if normalized_url in reused_results:
+            results.append(reused_results[normalized_url])
+            continue
+        merged = merge_with_history(item, current_by_url[normalized_url], previous_by_url, checked_at)
+        merged["reused_unchanged"] = False
+        results.append(merged)
     results.sort(key=lambda row: (row["broken"], row["provider"], row["normalized_url"]))
 
     payload = {
@@ -552,7 +648,12 @@ def main() -> int:
     parser.add_argument("--skip-android", action="store_true")
     parser.add_argument("--max-workers", type=int, default=8)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--provider", action="append", type=normalize_provider_arg, dest="providers")
+    parser.add_argument("--status", action="append", dest="statuses")
+    parser.add_argument("--full", action="store_true", help="Re-audit all matching URLs instead of reusing unchanged passing results.")
     args = parser.parse_args()
+
+    statuses = {value.strip() for value in (args.statuses or []) if value and value.strip()}
 
     payload = run_audit(
         catalog_path=args.catalog,
@@ -560,10 +661,14 @@ def main() -> int:
         mirror_output_path=None if args.skip_android else args.android_output,
         max_workers=max(1, args.max_workers),
         limit=args.limit,
+        providers=set(args.providers or []),
+        statuses=statuses,
+        force_full=args.full,
     )
     summary = payload["summary"]
     print(
         f"wrote audit: raw_rows={summary['raw_rows']} unique_urls={summary['unique_urls']} "
+        f"audited={summary['audited_urls']} reused={summary['reused_unchanged_urls']} "
         f"ok={summary['ok']} broken={summary['broken']}"
     )
     return 0

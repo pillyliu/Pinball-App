@@ -25,11 +25,10 @@ struct PracticeJournalSectionView: View {
     @Binding var isEditingEntries: Bool
     @Binding var selectedItemIDs: Set<String>
     let gameTransition: Namespace.ID
-    let onTapItem: (String) -> Void
+    let onTapItem: (String, String) -> Void
     let onEditJournalEntry: (JournalEntry) -> Void
     let onDeleteJournalEntries: ([JournalEntry]) -> Void
     @State private var revealedSwipeItemID: String?
-    @State private var suppressNextRowTap = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -109,14 +108,6 @@ struct PracticeJournalSectionView: View {
                     .scrollContentBackground(.hidden)
                     .environment(\.defaultMinListRowHeight, 1)
                     .environment(\.defaultMinListHeaderHeight, 1)
-                    .highPriorityGesture(
-                        TapGesture().onEnded {
-                            if revealedSwipeItemID != nil {
-                                revealedSwipeItemID = nil
-                                suppressNextRowTap = true
-                            }
-                        }
-                    )
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -196,13 +187,8 @@ struct PracticeJournalSectionView: View {
         .padding(.vertical, 2)
         .contentShape(Rectangle())
         .onTapGesture {
-            if suppressNextRowTap {
-                suppressNextRowTap = false
-                return
-            }
             if revealedSwipeItemID != nil {
                 revealedSwipeItemID = nil
-                suppressNextRowTap = true
                 return
             }
             if isEditingEntries {
@@ -211,7 +197,8 @@ struct PracticeJournalSectionView: View {
                 else { selectedItemIDs.insert(entry.id) }
                 return
             }
-            onTapItem(entry.gameID)
+            let sourceID = "\(entry.gameID)-\(entry.id)"
+            onTapItem(entry.gameID, sourceID)
         }
         .matchedTransitionSource(id: "\(entry.gameID)-\(entry.id)", in: gameTransition)
     }

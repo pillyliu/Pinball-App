@@ -242,7 +242,8 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
 private fun preferredDefaultSortOption(source: LibrarySource, games: List<PinballGame>): LibrarySortOption {
     return when (source.type) {
         LibrarySourceType.MANUFACTURER -> LibrarySortOption.YEAR
-        LibrarySourceType.CATEGORY -> LibrarySortOption.ALPHABETICAL
+        LibrarySourceType.CATEGORY,
+        LibrarySourceType.TOURNAMENT -> LibrarySortOption.ALPHABETICAL
         LibrarySourceType.VENUE -> {
             val hasArea = games.any {
                 val area = it.area?.trim()
