@@ -25,7 +25,7 @@ jobs:
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug
       - name: Run practice migration tests
-        run: ./gradlew :app:testDebugUnitTest --tests com.pillyliu.pinballandroid.practice.PracticeCanonicalPersistenceTest
+        run: ./gradlew :app:testDebugUnitTest --tests com.pillyliu.pinprofandroid.practice.PracticeCanonicalPersistenceTest
 
   ios-build:
     name: iOS Build + Tests
@@ -44,12 +44,12 @@ jobs:
           echo "Using simulator destination: ${DESTINATION}"
           xcodebuild \
             -project "Pinball App 2.xcodeproj" \
-            -scheme "Pinball App 2" \
+            -scheme "PinProf" \
             -sdk iphonesimulator \
             -destination "${DESTINATION}" \
             build || {
               echo "iOS build failed; available destinations:"
-              xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations || true
+              xcodebuild -project "Pinball App 2.xcodeproj" -scheme "PinProf" -showdestinations || true
               exit 1
             }
       - name: Run practice migration tests
@@ -59,12 +59,12 @@ jobs:
           echo "Using simulator destination: ${DESTINATION}"
           xcodebuild \
             -project "Pinball App 2.xcodeproj" \
-            -scheme "Pinball App 2" \
+            -scheme "PinProf" \
             -sdk iphonesimulator \
             -destination "${DESTINATION}" \
             -only-testing:"Pinball App 2Tests/PracticeStateCodecTests" \
             test || {
               echo "iOS tests failed; available destinations:"
-              xcodebuild -project "Pinball App 2.xcodeproj" -scheme "Pinball App 2" -showdestinations || true
+              xcodebuild -project "Pinball App 2.xcodeproj" -scheme "PinProf" -showdestinations || true
               exit 1
             }
