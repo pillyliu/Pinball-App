@@ -140,7 +140,6 @@ internal fun LibraryDetailVideosCard(
     onActiveVideoIdChange: (String?) -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     CardContainer {
         SectionTitle("Video References")
         val playableVideos = game.videos.mapNotNull { v ->
@@ -196,7 +195,11 @@ internal fun LibraryDetailVideosCard(
                         label = "Open in YouTube",
                         onClick = {
                             selectedVideo?.first?.let { id ->
-                                uriHandler.openUri("https://www.youtube.com/watch?v=$id")
+                                openYoutubeInApp(
+                                    context = context,
+                                    url = "https://www.youtube.com/watch?v=$id",
+                                    fallbackVideoId = id,
+                                )
                             }
                         },
                     )
