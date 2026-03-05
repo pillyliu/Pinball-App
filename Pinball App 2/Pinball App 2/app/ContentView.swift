@@ -9,9 +9,9 @@ import SwiftUI
 import Combine
 
 enum RootTab: Hashable {
-    case about
     case league
     case library
+    case gameroom
     case practice
     case settings
 }
@@ -51,10 +51,10 @@ struct ContentView: View {
                     Label("Practice", systemImage: "figure.play")
                 }
 
-            AboutScreen()
-                .tag(RootTab.about)
+            GameRoomScreen()
+                .tag(RootTab.gameroom)
                 .tabItem {
-                    Label("About", systemImage: "info.circle")
+                    Label("GameRoom", systemImage: "arcade.stick.console")
                 }
 
             SettingsScreen()

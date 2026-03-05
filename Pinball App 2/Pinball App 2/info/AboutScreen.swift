@@ -5,7 +5,20 @@ private enum LPLLinks {
     static let facebook = URL(string: "https://www.facebook.com/groups/LansingPinLeague/")!
 }
 
-struct AboutScreen: View {
+struct LPLLogoView: View {
+    var body: some View {
+        if
+            let url = Bundle.main.url(forResource: "LPLLogo", withExtension: "png"),
+            let uiImage = UIImage(contentsOfFile: url.path)
+        {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFit()
+        }
+    }
+}
+
+struct LPLAboutContent: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var viewportWidth: CGFloat = 0
 
@@ -33,87 +46,79 @@ struct AboutScreen: View {
         isLargeTablet ? .title3.weight(.semibold) : .subheadline.weight(.semibold)
     }
 
-    private var aboutLogo: Image? {
-        guard
-            let url = Bundle.main.url(forResource: "LPLLogo", withExtension: "png"),
-            let uiImage = UIImage(contentsOfFile: url.path)
-        else {
-            return nil
-        }
-        return Image(uiImage: uiImage)
-    }
+    var body: some View {
+        ZStack {
+            AppBackground()
 
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        LPLLogoView()
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: 120, maxHeight: 220)
+
+                        Text("Pinball in the Capital City")
+                            .font(aboutTitleFont)
+                            .foregroundStyle(.primary)
+
+                        Text("The Lansing Pinball League is the Capital City's IFPA-endorsed pinball league, open to players of all skill levels. New players are always welcome. We're a friendly, casual group with everyone from first-timers to seasoned competitors.")
+                            .font(aboutBodyFont)
+                            .foregroundStyle(.primary)
+
+                        Text(
+                            "We meet the 2nd and 4th Tuesdays at \(Text("The Avenue Cafe").bold()) (2021 E. Michigan Ave, Lansing), about halfway between MSU and the Capitol. We're currently in \(Text("Season 24").bold()), which started in January. New members can join during the first 5 meetings, and players must attend at least 4 of the 8 meetings to qualify for finals. Guests are welcome at any session. \(Text("Season dues are $10").bold()), paid in cash."
+                        )
+                        .font(aboutBodyFont)
+                        .foregroundStyle(.primary)
+
+                        Text(
+                            "We also run a side tournament, \(Text("Tuesday Night Smackdown").bold()), played on a single game. Qualifying starts around \(Text("6 pm").bold()), with finals (top 8 players) after league play finishes, usually around \(Text("9:30 pm").bold())."
+                        )
+                        .font(aboutBodyFont)
+                        .foregroundStyle(.primary)
+
+                        HStack(spacing: 10) {
+                            Link("lansingpinleague.com", destination: LPLLinks.website)
+                                .font(aboutLinkFont)
+                                .frame(maxWidth: .infinity)
+                                .buttonStyle(.glass)
+
+                            Link("Facebook Group", destination: LPLLinks.facebook)
+                                .font(aboutLinkFont)
+                                .frame(maxWidth: .infinity)
+                                .buttonStyle(.glass)
+                        }
+                    }
+                    .appReadableWidth(maxWidth: readableContentWidth)
+                    .padding(.horizontal, contentHorizontalPadding)
+                    .padding(.top, 8)
+                    .padding(.bottom, 14)
+                }
+
+                Text("Source: lansingpinleague.com")
+                    .font(isLargeTablet ? .footnote : .caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.bottom, 4)
+            }
+        }
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { viewportWidth = geo.size.width }
+                    .onChange(of: geo.size.width) { _, newValue in
+                        viewportWidth = newValue
+                    }
+            }
+        )
+    }
+}
+
+struct AboutScreen: View {
     var body: some View {
         NavigationStack {
-            ZStack {
-                AppBackground()
-
-                VStack(spacing: 0) {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 14) {
-                            if let aboutLogo {
-                                aboutLogo
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(maxWidth: .infinity)
-                                    .frame(minHeight: 120, maxHeight: 220)
-                            }
-
-                            Text("Pinball in the Capital City")
-                                .font(aboutTitleFont)
-                                .foregroundStyle(.primary)
-
-                            Text("The Lansing Pinball League is the Capital City's IFPA-endorsed pinball league, open to players of all skill levels. New players are always welcome. We're a friendly, casual group with everyone from first-timers to seasoned competitors.")
-                                .font(aboutBodyFont)
-                                .foregroundStyle(.primary)
-
-                            Text(
-                                "We meet the 2nd and 4th Tuesdays at \(Text("The Avenue Cafe").bold()) (2021 E. Michigan Ave, Lansing), about halfway between MSU and the Capitol. We're currently in \(Text("Season 24").bold()), which started in January. New members can join during the first 5 meetings, and players must attend at least 4 of the 8 meetings to qualify for finals. Guests are welcome at any session. \(Text("Season dues are $10").bold()), paid in cash."
-                            )
-                            .font(aboutBodyFont)
-                            .foregroundStyle(.primary)
-
-                            Text(
-                                "We also run a side tournament, \(Text("Tuesday Night Smackdown").bold()), played on a single game. Qualifying starts around \(Text("6 pm").bold()), with finals (top 8 players) after league play finishes, usually around \(Text("9:30 pm").bold())."
-                            )
-                            .font(aboutBodyFont)
-                            .foregroundStyle(.primary)
-
-                            HStack(spacing: 10) {
-                                Link("lansingpinleague.com", destination: LPLLinks.website)
-                                    .font(aboutLinkFont)
-                                    .frame(maxWidth: .infinity)
-                                    .buttonStyle(.glass)
-
-                                Link("Facebook Group", destination: LPLLinks.facebook)
-                                    .font(aboutLinkFont)
-                                    .frame(maxWidth: .infinity)
-                                    .buttonStyle(.glass)
-                            }
-                        }
-                        .appReadableWidth(maxWidth: readableContentWidth)
-                        .padding(.horizontal, contentHorizontalPadding)
-                        .padding(.top, 8)
-                        .padding(.bottom, 14)
-                    }
-
-                    Text("Source: lansingpinleague.com")
-                        .font(isLargeTablet ? .footnote : .caption2)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.bottom, 4)
-                }
-            }
-            .background(
-                GeometryReader { geo in
-                    Color.clear
-                        .onAppear { viewportWidth = geo.size.width }
-                        .onChange(of: geo.size.width) { _, newValue in
-                            viewportWidth = newValue
-                        }
-                }
-            )
-            .toolbar(.hidden, for: .navigationBar)
+            LPLAboutContent()
+                .toolbar(.hidden, for: .navigationBar)
         }
     }
 }

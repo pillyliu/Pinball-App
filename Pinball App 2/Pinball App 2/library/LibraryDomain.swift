@@ -362,10 +362,15 @@ final class PinballLibraryViewModel: ObservableObject {
         let pinned = state.pinnedSourceIDs.compactMap { id in
             sources.first(where: { $0.id == id })
         }
-        if let selectedSource, !pinned.contains(where: { $0.id == selectedSource.id }) {
-            return pinned + [selectedSource]
+        var visible = pinned
+        if let selectedSource, !visible.contains(where: { $0.id == selectedSource.id }) {
+            visible.append(selectedSource)
         }
-        return pinned.isEmpty ? sources : pinned
+        if let gameRoomSource = sources.first(where: { $0.id == "venue--gameroom" }),
+           !visible.contains(where: { $0.id == gameRoomSource.id }) {
+            visible.append(gameRoomSource)
+        }
+        return visible.isEmpty ? sources : visible
     }
 
     var sourceScopedGames: [PinballGame] {

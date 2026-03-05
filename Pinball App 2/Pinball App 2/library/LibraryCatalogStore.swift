@@ -923,14 +923,26 @@ private func catalogPreferredMachineForLegacyGame(
     machineByOPDBID: [String: CatalogMachineRecord],
     machineByPracticeIdentity: [String: [CatalogMachineRecord]]
 ) -> CatalogMachineRecord? {
+    let requestedVariant = catalogNormalizedOptionalString(legacyGame.normalizedVariant)
     let preferredGroupMachine = catalogNormalizedOptionalString(legacyGame.practiceIdentity ?? legacyGame.opdbGroupID)
         .flatMap { practiceIdentity in
-            machineByPracticeIdentity[practiceIdentity]?.min(by: catalogPreferredManufacturerMachine)
+            catalogPreferredMachineForVariant(
+                candidates: machineByPracticeIdentity[practiceIdentity] ?? [],
+                requestedVariant: requestedVariant
+            )
         }
 
     guard let requestedMachineID = catalogNormalizedOptionalString(legacyGame.opdbID),
           let exactMachine = machineByOPDBID[requestedMachineID] else {
         return preferredGroupMachine
+    }
+
+    if let requestedVariant,
+       let variantMatch = catalogPreferredMachineForVariant(
+           candidates: machineByPracticeIdentity[exactMachine.practiceIdentity] ?? [],
+           requestedVariant: requestedVariant
+       ) {
+        return variantMatch
     }
 
     let exactHasPrimary = exactMachine.primaryImage?.mediumURL != nil || exactMachine.primaryImage?.largeURL != nil
@@ -1096,6 +1108,59 @@ nonisolated private func catalogPreferredManufacturerMachine(_ lhs: CatalogMachi
     }
 
     return (lhs.opdbMachineID ?? lhs.practiceIdentity) < (rhs.opdbMachineID ?? rhs.practiceIdentity)
+}
+
+private func catalogPreferredMachineForVariant(
+    candidates: [CatalogMachineRecord],
+    requestedVariant: String?
+) -> CatalogMachineRecord? {
+    guard !candidates.isEmpty else { return nil }
+    guard let requestedVariant = requestedVariant?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+          !requestedVariant.isEmpty else {
+        return candidates.min(by: catalogPreferredManufacturerMachine)
+    }
+
+    return candidates.max { lhs, rhs in
+        let lhsScore = catalogVariantMatchScore(machineVariant: lhs.variant, requestedVariant: requestedVariant)
+        let rhsScore = catalogVariantMatchScore(machineVariant: rhs.variant, requestedVariant: requestedVariant)
+        if lhsScore != rhsScore { return lhsScore < rhsScore }
+
+        let lhsHasPrimary = lhs.primaryImage?.mediumURL != nil || lhs.primaryImage?.largeURL != nil
+        let rhsHasPrimary = rhs.primaryImage?.mediumURL != nil || rhs.primaryImage?.largeURL != nil
+        if lhsHasPrimary != rhsHasPrimary { return !lhsHasPrimary && rhsHasPrimary }
+
+        let lhsYear = lhs.year ?? Int.max
+        let rhsYear = rhs.year ?? Int.max
+        if lhsYear != rhsYear { return lhsYear > rhsYear }
+
+        return (lhs.opdbMachineID ?? lhs.practiceIdentity) > (rhs.opdbMachineID ?? rhs.practiceIdentity)
+    }
+}
+
+private func catalogVariantMatchScore(machineVariant: String?, requestedVariant: String) -> Int {
+    let normalizedMachineVariant = machineVariant?
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .lowercased() ?? ""
+    guard !normalizedMachineVariant.isEmpty else { return 0 }
+    if normalizedMachineVariant == requestedVariant { return 100 }
+
+    let machineTokens = Set(
+        normalizedMachineVariant
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+    )
+    let requestTokens = Set(
+        requestedVariant
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+    )
+    if !machineTokens.isDisjoint(with: requestTokens) {
+        return 70
+    }
+    if normalizedMachineVariant.contains(requestedVariant) || requestedVariant.contains(normalizedMachineVariant) {
+        return 40
+    }
+    return 0
 }
 
 private func resolveImportedRulesheetLinks(
