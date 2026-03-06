@@ -93,11 +93,8 @@ Interaction:
 - selected cards/rows should show highlight plus accent outline
 
 Selected summary card:
-- shows selected machine identity + location + status line
-- quick actions in summary:
-  - `Open Machine`
-  - `Log Issue`
-  - `Service`
+- shows selected machine identity + location plus the same read-only snapshot fields used in Machine View summary
+- contains no quick actions; machine actions/logging stay in Machine View input
 
 Variant badge behavior:
 - show badge where variant is available (summary/list/tile where space allows)

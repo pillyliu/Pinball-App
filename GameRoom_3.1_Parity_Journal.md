@@ -93,7 +93,8 @@ GameRoom Home:
 - uses compact 2-column mini cards in tile mode
 - first tap selects/highlights a mini card
 - second tap on the selected card opens `Machine View`
-- summary card shows selected machine details (title/variant, location, issue/due/last service line)
+- summary card shows selected machine details (title/variant, location) plus the same read-only snapshot fields shown in `Machine View > Summary`
+- summary card has no quick-action buttons; maintenance/logging actions stay in `Machine View > Input`
 - selected summary title row can show a right-aligned variant pill tag (`LE`, `Premium`, `Pro`) when detectable
 
 Mini-card status dots:
@@ -320,11 +321,11 @@ Files:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/gameroom/GameRoomScreen.swift`
 
-### Milestone 5 (In Progress)
+### Milestone 5
 Status:
-- in progress on iOS
+- completed on iOS
 
-Current outcome:
+Outcome:
 - `GameRoom Home` now renders real collection data from `GameRoomStore` instead of placeholder cards
 - collection supports `Tiles` and `List` layouts via segmented toggle
 - tile/list rows are interactive:
@@ -415,11 +416,11 @@ Current outcome:
     - other images in the same catalog group
     - same-title fallback matches
 
-### Milestone 11 (In Progress)
+### Milestone 11
 Status:
-- in progress on iOS
+- completed on iOS
 
-Current outcome:
+Outcome:
 - `Import` in `GameRoom Settings` is now a real flow (no longer placeholder)
 - input accepts either:
   - Pinside username
@@ -454,11 +455,11 @@ Current outcome:
   - import review captures raw text and normalized first-of-month
   - machine summary displays normalized purchase date and raw imported date text when present
 
-### Milestone 12 (In Progress)
+### Milestone 12
 Status:
-- in progress on iOS
+- completed on iOS
 
-Current outcome:
+Outcome:
 - `Add Photo/Video` input now supports real media picking from Photos library
   - photo picker for photo mode
   - video picker for video mode

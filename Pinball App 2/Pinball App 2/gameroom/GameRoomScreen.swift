@@ -107,8 +107,7 @@ private struct GameRoomHomeView: View {
                     GameRoomSelectedSummaryCard(
                         store: store,
                         catalogLoader: catalogLoader,
-                        selectedMachine: selectedMachine,
-                        onOpenMachineView: onOpenMachineView
+                        selectedMachine: selectedMachine
                     )
                     GameRoomCollectionCard(
                         store: store,
@@ -163,7 +162,6 @@ private struct GameRoomSelectedSummaryCard: View {
     @ObservedObject var store: GameRoomStore
     @ObservedObject var catalogLoader: GameRoomCatalogLoader
     let selectedMachine: OwnedMachine?
-    let onOpenMachineView: (UUID) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -186,30 +184,19 @@ private struct GameRoomSelectedSummaryCard: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                Text(statusLine(for: selectedMachine))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                Text("Current Snapshot")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.top, 2)
+
+                ForEach(snapshotLines(for: selectedMachine), id: \.self) { line in
+                    Text(line)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             } else {
                 Text("Select a machine from the collection below.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-            }
-
-            HStack(spacing: 10) {
-                Button("Open Machine") {
-                    guard let selectedMachine else { return }
-                    onOpenMachineView(selectedMachine.id)
-                }
-                .buttonStyle(.glass)
-                .disabled(selectedMachine == nil)
-
-                Button("Log Issue") {}
-                    .buttonStyle(.glass)
-                    .disabled(selectedMachine == nil)
-
-                Button("Service") {}
-                    .buttonStyle(.glass)
-                    .disabled(selectedMachine == nil)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -224,10 +211,23 @@ private struct GameRoomSelectedSummaryCard: View {
         return "Location: \(areaName) • Group \(group) • Position \(position)"
     }
 
-    private func statusLine(for machine: OwnedMachine) -> String {
+    private func snapshotLines(for machine: OwnedMachine) -> [String] {
         let snapshot = store.snapshot(for: machine.id)
-        let lastService = snapshot.lastServiceAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"
-        return "Open issues: \(snapshot.openIssueCount) • Due: \(snapshot.dueTaskCount) • Last service: \(lastService)"
+        let pitchText = snapshot.currentPitchValue.map { String(format: "%.1f", $0) } ?? "—"
+        var lines = [
+            "Open issues: \(snapshot.openIssueCount)",
+            "Current plays: \(snapshot.currentPlayCount)",
+            "Due tasks: \(snapshot.dueTaskCount)",
+            "Last service: \(snapshot.lastServiceAt?.formatted(date: .abbreviated, time: .omitted) ?? "None")",
+            "Pitch: \(pitchText)",
+            "Last level: \(snapshot.lastLeveledAt?.formatted(date: .abbreviated, time: .omitted) ?? "None")",
+            "Last inspection: \(snapshot.lastGeneralInspectionAt?.formatted(date: .abbreviated, time: .omitted) ?? "None")",
+            "Purchase date: \(machine.purchaseDate?.formatted(date: .abbreviated, time: .omitted) ?? "—")"
+        ]
+        if let raw = machine.purchaseDateRawText, !raw.isEmpty {
+            lines.append("Purchase (raw): \(raw)")
+        }
+        return lines
     }
 
     private func variantBadgeLabel(for machine: OwnedMachine) -> String? {
@@ -3224,15 +3224,27 @@ private struct GameRoomVideoThumbnailView: View {
     private func loadVideoThumbnail(from url: URL?) async -> UIImage? {
         guard let url else { return nil }
         return await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let asset = AVURLAsset(url: url)
-                let generator = AVAssetImageGenerator(asset: asset)
-                generator.appliesPreferredTrackTransform = true
-                generator.maximumSize = CGSize(width: 600, height: 600)
-                do {
-                    let cgImage = try generator.copyCGImage(at: .zero, actualTime: nil)
-                    continuation.resume(returning: UIImage(cgImage: cgImage))
-                } catch {
+            let asset = AVURLAsset(url: url)
+            let generator = AVAssetImageGenerator(asset: asset)
+            generator.appliesPreferredTrackTransform = true
+            generator.maximumSize = CGSize(width: 600, height: 600)
+            let times = [NSValue(time: .zero)]
+            var resumed = false
+            generator.generateCGImagesAsynchronously(forTimes: times) { _, cgImage, _, result, _ in
+                guard !resumed else { return }
+                switch result {
+                case .succeeded:
+                    resumed = true
+                    if let cgImage {
+                        continuation.resume(returning: UIImage(cgImage: cgImage))
+                    } else {
+                        continuation.resume(returning: nil)
+                    }
+                case .failed, .cancelled:
+                    resumed = true
+                    continuation.resume(returning: nil)
+                @unknown default:
+                    resumed = true
                     continuation.resume(returning: nil)
                 }
             }
