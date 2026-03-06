@@ -188,8 +188,10 @@ private struct GameRoomSelectedSummaryCard: View {
                     .font(.subheadline.weight(.semibold))
                     .padding(.top, 2)
 
-                ForEach(snapshotLines(for: selectedMachine), id: \.self) { line in
-                    Text(line)
+                GameRoomSnapshotMetricGrid(items: snapshotMetrics(for: selectedMachine))
+
+                if let purchaseDateRawText = selectedMachine.purchaseDateRawText, !purchaseDateRawText.isEmpty {
+                    Text("Purchase (raw): \(purchaseDateRawText)")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -211,27 +213,57 @@ private struct GameRoomSelectedSummaryCard: View {
         return "Location: \(areaName) • Group \(group) • Position \(position)"
     }
 
-    private func snapshotLines(for machine: OwnedMachine) -> [String] {
+    private func snapshotMetrics(for machine: OwnedMachine) -> [GameRoomSnapshotMetric] {
         let snapshot = store.snapshot(for: machine.id)
         let pitchText = snapshot.currentPitchValue.map { String(format: "%.1f", $0) } ?? "—"
-        var lines = [
-            "Open issues: \(snapshot.openIssueCount)",
-            "Current plays: \(snapshot.currentPlayCount)",
-            "Due tasks: \(snapshot.dueTaskCount)",
-            "Last service: \(snapshot.lastServiceAt?.formatted(date: .abbreviated, time: .omitted) ?? "None")",
-            "Pitch: \(pitchText)",
-            "Last level: \(snapshot.lastLeveledAt?.formatted(date: .abbreviated, time: .omitted) ?? "None")",
-            "Last inspection: \(snapshot.lastGeneralInspectionAt?.formatted(date: .abbreviated, time: .omitted) ?? "None")",
-            "Purchase date: \(machine.purchaseDate?.formatted(date: .abbreviated, time: .omitted) ?? "—")"
+        return [
+            GameRoomSnapshotMetric(label: "Open Issues", value: "\(snapshot.openIssueCount)"),
+            GameRoomSnapshotMetric(label: "Current Plays", value: "\(snapshot.currentPlayCount)"),
+            GameRoomSnapshotMetric(label: "Due Tasks", value: "\(snapshot.dueTaskCount)"),
+            GameRoomSnapshotMetric(label: "Last Service", value: snapshot.lastServiceAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
+            GameRoomSnapshotMetric(label: "Pitch", value: pitchText),
+            GameRoomSnapshotMetric(label: "Last Level", value: snapshot.lastLeveledAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
+            GameRoomSnapshotMetric(label: "Last Inspection", value: snapshot.lastGeneralInspectionAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
+            GameRoomSnapshotMetric(label: "Purchase Date", value: machine.purchaseDate?.formatted(date: .abbreviated, time: .omitted) ?? "—")
         ]
-        if let raw = machine.purchaseDateRawText, !raw.isEmpty {
-            lines.append("Purchase (raw): \(raw)")
-        }
-        return lines
     }
 
     private func variantBadgeLabel(for machine: OwnedMachine) -> String? {
         gameRoomVariantBadgeLabel(variant: machine.displayVariant, title: machine.displayTitle)
+    }
+}
+
+private struct GameRoomSnapshotMetric: Identifiable {
+    let label: String
+    let value: String
+
+    var id: String { label }
+}
+
+private struct GameRoomSnapshotMetricGrid: View {
+    let items: [GameRoomSnapshotMetric]
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10),
+    ]
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+            ForEach(items) { item in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.label)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(item.value)
+                        .font(.footnote)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
     }
 }
 
@@ -2291,30 +2323,16 @@ private struct GameRoomMachineView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Current Snapshot")
                     .font(.headline)
-                Text("Open issues: \(snapshot.openIssueCount)")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Text("Current plays: \(snapshot.currentPlayCount)")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Text("Due tasks: \(snapshot.dueTaskCount)")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Text("Last service: \(snapshot.lastServiceAt?.formatted(date: .abbreviated, time: .omitted) ?? "None")")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Text("Pitch: \(snapshot.currentPitchValue.map { String(format: "%.1f", $0) } ?? "—")")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Text("Last level: \(snapshot.lastLeveledAt?.formatted(date: .abbreviated, time: .omitted) ?? "None")")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Text("Last inspection: \(snapshot.lastGeneralInspectionAt?.formatted(date: .abbreviated, time: .omitted) ?? "None")")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Text("Purchase date: \(machine.purchaseDate?.formatted(date: .abbreviated, time: .omitted) ?? "—")")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                GameRoomSnapshotMetricGrid(items: [
+                    GameRoomSnapshotMetric(label: "Open Issues", value: "\(snapshot.openIssueCount)"),
+                    GameRoomSnapshotMetric(label: "Current Plays", value: "\(snapshot.currentPlayCount)"),
+                    GameRoomSnapshotMetric(label: "Due Tasks", value: "\(snapshot.dueTaskCount)"),
+                    GameRoomSnapshotMetric(label: "Last Service", value: snapshot.lastServiceAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
+                    GameRoomSnapshotMetric(label: "Pitch", value: snapshot.currentPitchValue.map { String(format: "%.1f", $0) } ?? "—"),
+                    GameRoomSnapshotMetric(label: "Last Level", value: snapshot.lastLeveledAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
+                    GameRoomSnapshotMetric(label: "Last Inspection", value: snapshot.lastGeneralInspectionAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
+                    GameRoomSnapshotMetric(label: "Purchase Date", value: machine.purchaseDate?.formatted(date: .abbreviated, time: .omitted) ?? "—")
+                ])
                 if let purchaseDateRawText = machine.purchaseDateRawText, !purchaseDateRawText.isEmpty {
                     Text("Purchase (raw): \(purchaseDateRawText)")
                         .font(.footnote)

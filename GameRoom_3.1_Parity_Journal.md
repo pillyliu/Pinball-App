@@ -95,6 +95,7 @@ GameRoom Home:
 - second tap on the selected card opens `Machine View`
 - summary card shows selected machine details (title/variant, location) plus the same read-only snapshot fields shown in `Machine View > Summary`
 - summary card has no quick-action buttons; maintenance/logging actions stay in `Machine View > Input`
+- snapshot metrics in both GameRoom Home summary and Machine View summary render in a 2-column grid to reduce vertical height
 - selected summary title row can show a right-aligned variant pill tag (`LE`, `Premium`, `Pro`) when detectable
 
 Mini-card status dots:
