@@ -5,5 +5,6 @@
 - Detail view resources match across platforms.
 - Rulesheet fallback order matches across platforms.
 - Playfield fallback order matches across platforms.
+- V3-only local asset naming works on both platforms.
 - GameRoom overlay appears and sorts correctly.
 - Known drift, if any, is recorded in `ledger.md`.

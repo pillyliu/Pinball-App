@@ -365,7 +365,7 @@ private struct NormalizedLibraryRoot: Decodable {
     }
 }
 
-private struct CatalogManufacturerRecord: Decodable {
+struct CatalogManufacturerRecord: Decodable {
     let id: String
     let name: String
     let isModern: Bool?
@@ -381,7 +381,7 @@ private struct CatalogManufacturerRecord: Decodable {
     }
 }
 
-private struct CatalogMachineRecord: Decodable {
+struct CatalogMachineRecord: Decodable {
     struct RemoteImageSet: Decodable {
         let mediumURL: String?
         let largeURL: String?
@@ -469,7 +469,7 @@ private struct CatalogMembershipRecord: Decodable {
     }
 }
 
-private struct CatalogOverrideRecord: Decodable {
+struct CatalogOverrideRecord: Decodable {
     let practiceIdentity: String
     let rulesheetLocalPath: String?
     let playfieldLocalPath: String?
@@ -493,7 +493,7 @@ private struct CatalogOverrideRecord: Decodable {
     }
 }
 
-private struct CatalogRulesheetLinkRecord: Decodable {
+struct CatalogRulesheetLinkRecord: Decodable {
     let practiceIdentity: String
     let provider: String
     let label: String
@@ -511,7 +511,7 @@ private struct CatalogRulesheetLinkRecord: Decodable {
     }
 }
 
-private struct CatalogVideoLinkRecord: Decodable {
+struct CatalogVideoLinkRecord: Decodable {
     let practiceIdentity: String
     let provider: String
     let kind: String
@@ -557,7 +557,7 @@ struct ResolvedCatalogRecord {
     let videos: [PinballGame.Video]
 }
 
-private enum CatalogRulesheetProvider: String {
+enum CatalogRulesheetProvider: String {
     case local
     case tf
     case pp
@@ -566,7 +566,7 @@ private enum CatalogRulesheetProvider: String {
     case opdb
 }
 
-private enum CatalogVideoProvider: String {
+enum CatalogVideoProvider: String {
     case local
     case matchplay
 }
@@ -576,7 +576,7 @@ struct LegacyCatalogExtraction {
     let state: PinballLibrarySourceState
 }
 
-private struct LegacyCuratedOverride {
+struct LegacyCuratedOverride {
     let practiceIdentity: String
     var nameOverride: String?
     var variantOverride: String?
@@ -641,7 +641,7 @@ private func catalogInferSources(from games: [PinballGame]) -> [PinballLibrarySo
     return seen
 }
 
-nonisolated private func catalogNormalizedOptionalString(_ value: String?) -> String? {
+nonisolated func catalogNormalizedOptionalString(_ value: String?) -> String? {
     guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
         return nil
     }
@@ -1037,208 +1037,6 @@ private func buildLegacyCuratedOverrides(from games: [PinballGame]) -> [String: 
     return out
 }
 
-private func resolveImportedGame(
-    machine: CatalogMachineRecord,
-    source: PinballImportedSourceRecord,
-    manufacturerByID: [String: CatalogManufacturerRecord],
-    curatedOverride: LegacyCuratedOverride?,
-    opdbRulesheets: [CatalogRulesheetLinkRecord],
-    opdbVideos: [CatalogVideoLinkRecord]
-) -> PinballGame {
-    let manufacturerName = curatedOverride?.manufacturerOverride
-        ?? machine.manufacturerName
-        ?? machine.manufacturerID.flatMap { manufacturerByID[$0]?.name }
-    let resolvedRulesheet = resolveImportedRulesheetLinks(
-        curatedOverride: curatedOverride,
-        opdbRulesheetLinks: opdbRulesheets
-    )
-    let resolvedVideos = resolveImportedVideos(
-        curatedOverride: curatedOverride,
-        opdbVideoLinks: opdbVideos
-    )
-    let playfieldLocalPath = curatedOverride?.playfieldLocalPath
-    let playfieldSourceURL = curatedOverride?.playfieldSourceURL
-        ?? catalogNormalizedOptionalString(machine.playfieldImage?.largeURL ?? machine.playfieldImage?.mediumURL)
-    let record = ResolvedCatalogRecord(
-        sourceID: source.id,
-        sourceName: source.name,
-        sourceType: source.type,
-        area: nil,
-        areaOrder: nil,
-        groupNumber: nil,
-        position: nil,
-        bank: nil,
-        name: curatedOverride?.nameOverride ?? machine.name,
-        variant: source.type == .manufacturer ? nil : (curatedOverride?.variantOverride ?? catalogNormalizedOptionalString(machine.variant)),
-        manufacturer: catalogNormalizedOptionalString(manufacturerName),
-        year: curatedOverride?.yearOverride ?? machine.year,
-        slug: machine.slug,
-        opdbID: catalogNormalizedOptionalString(machine.opdbMachineID),
-        practiceIdentity: machine.practiceIdentity,
-        primaryImageURL: catalogNormalizedOptionalString(machine.primaryImage?.mediumURL),
-        primaryImageLargeURL: catalogNormalizedOptionalString(machine.primaryImage?.largeURL),
-        playfieldImageURL: playfieldSourceURL,
-        playfieldLocalPath: playfieldLocalPath,
-        playfieldSourceLabel: playfieldLocalPath == nil && machine.playfieldImage != nil ? "Playfield (OPDB)" : nil,
-        gameinfoLocalPath: curatedOverride?.gameinfoLocalPath,
-        rulesheetLocalPath: resolvedRulesheet.localPath,
-        rulesheetURL: resolvedRulesheet.links.first?.url,
-        rulesheetLinks: resolvedRulesheet.links,
-        videos: resolvedVideos
-    )
-    return PinballGame(record: record)
-}
-
-nonisolated private func catalogPreferredManufacturerMachine(_ lhs: CatalogMachineRecord, _ rhs: CatalogMachineRecord) -> Bool {
-    let lhsHasPrimary = lhs.primaryImage?.mediumURL != nil || lhs.primaryImage?.largeURL != nil
-    let rhsHasPrimary = rhs.primaryImage?.mediumURL != nil || rhs.primaryImage?.largeURL != nil
-    if lhsHasPrimary != rhsHasPrimary {
-        return lhsHasPrimary
-    }
-
-    let lhsVariant = catalogNormalizedVariant(lhs.variant)
-    let rhsVariant = catalogNormalizedVariant(rhs.variant)
-    if (lhsVariant == nil) != (rhsVariant == nil) {
-        return lhsVariant == nil
-    }
-
-    let leftYear = lhs.year ?? Int.max
-    let rightYear = rhs.year ?? Int.max
-    if leftYear != rightYear {
-        return leftYear < rightYear
-    }
-
-    let leftName = lhs.name.lowercased()
-    let rightName = rhs.name.lowercased()
-    if leftName != rightName {
-        return leftName < rightName
-    }
-
-    return (lhs.opdbMachineID ?? lhs.practiceIdentity) < (rhs.opdbMachineID ?? rhs.practiceIdentity)
-}
-
-nonisolated private func catalogPreferredGroupDefaultMachine(_ lhs: CatalogMachineRecord, _ rhs: CatalogMachineRecord) -> Bool {
-    let lhsVariant = catalogNormalizedVariant(lhs.variant)
-    let rhsVariant = catalogNormalizedVariant(rhs.variant)
-    if (lhsVariant == nil) != (rhsVariant == nil) {
-        return lhsVariant == nil
-    }
-
-    let leftYear = lhs.year ?? Int.max
-    let rightYear = rhs.year ?? Int.max
-    if leftYear != rightYear {
-        return leftYear < rightYear
-    }
-
-    let leftName = lhs.name.lowercased()
-    let rightName = rhs.name.lowercased()
-    if leftName != rightName {
-        return leftName < rightName
-    }
-
-    return (lhs.opdbMachineID ?? lhs.practiceIdentity) < (rhs.opdbMachineID ?? rhs.practiceIdentity)
-}
-
-nonisolated private func catalogNormalizedVariant(_ value: String?) -> String? {
-    guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
-        return nil
-    }
-    return trimmed
-}
-
-private func catalogPreferredMachineForVariant(
-    candidates: [CatalogMachineRecord],
-    requestedVariant: String?
-) -> CatalogMachineRecord? {
-    guard !candidates.isEmpty else { return nil }
-    guard let requestedVariant = requestedVariant?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
-          !requestedVariant.isEmpty else {
-        return candidates.min(by: catalogPreferredManufacturerMachine)
-    }
-    let ranked = candidates.sorted { lhs, rhs in
-        let lhsScore = catalogVariantMatchScore(machineVariant: lhs.variant, requestedVariant: requestedVariant)
-        let rhsScore = catalogVariantMatchScore(machineVariant: rhs.variant, requestedVariant: requestedVariant)
-        if lhsScore != rhsScore { return lhsScore > rhsScore }
-
-        let lhsHasPrimary = catalogMachineHasPrimaryImage(lhs)
-        let rhsHasPrimary = catalogMachineHasPrimaryImage(rhs)
-        if lhsHasPrimary != rhsHasPrimary { return lhsHasPrimary }
-
-        let lhsYear = lhs.year ?? Int.max
-        let rhsYear = rhs.year ?? Int.max
-        if lhsYear != rhsYear { return lhsYear < rhsYear }
-
-        return (lhs.opdbMachineID ?? lhs.practiceIdentity) < (rhs.opdbMachineID ?? rhs.practiceIdentity)
-    }
-    guard let best = ranked.first else { return nil }
-    let bestScore = catalogVariantMatchScore(machineVariant: best.variant, requestedVariant: requestedVariant)
-    // Only treat this as a variant match if there is a real variant/alias token match.
-    guard bestScore > 0 else { return nil }
-    return best
-}
-
-private func catalogMachineHasPrimaryImage(_ machine: CatalogMachineRecord) -> Bool {
-    machine.primaryImage?.mediumURL != nil || machine.primaryImage?.largeURL != nil
-}
-
-private func catalogVariantMatchScore(machineVariant: String?, requestedVariant: String) -> Int {
-    let normalizedMachineVariant = machineVariant?
-        .trimmingCharacters(in: .whitespacesAndNewlines)
-        .lowercased() ?? ""
-    guard !normalizedMachineVariant.isEmpty else { return 0 }
-    if normalizedMachineVariant == requestedVariant { return 100 }
-
-    let machineTokens = Set(
-        normalizedMachineVariant
-            .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { !$0.isEmpty }
-    )
-    let requestTokens = Set(
-        requestedVariant
-            .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { !$0.isEmpty }
-    )
-    if !machineTokens.isDisjoint(with: requestTokens) {
-        return 70
-    }
-    if normalizedMachineVariant.contains(requestedVariant) || requestedVariant.contains(normalizedMachineVariant) {
-        return 40
-    }
-    return 0
-}
-
-private func resolveImportedRulesheetLinks(
-    curatedOverride: LegacyCuratedOverride?,
-    opdbRulesheetLinks: [CatalogRulesheetLinkRecord]
-) -> (localPath: String?, links: [PinballGame.ReferenceLink]) {
-    if let localPath = catalogNormalizedOptionalString(curatedOverride?.rulesheetLocalPath) {
-        return (localPath, [])
-    }
-
-    if let curatedOverride, !curatedOverride.rulesheetLinks.isEmpty {
-        return (nil, curatedOverride.rulesheetLinks)
-    }
-
-    return resolveRulesheetLinks(override: nil, rulesheetLinks: opdbRulesheetLinks)
-}
-
-private func resolveImportedVideos(
-    curatedOverride: LegacyCuratedOverride?,
-    opdbVideoLinks: [CatalogVideoLinkRecord]
-) -> [PinballGame.Video] {
-    if let curatedOverride, !curatedOverride.videos.isEmpty {
-        return curatedOverride.videos
-    }
-    return resolveVideoLinks(videoLinks: opdbVideoLinks)
-}
-
-private func catalogDedupedSources(_ sources: [PinballLibrarySource]) -> [PinballLibrarySource] {
-    var seen = Set<String>()
-    return sources.filter { source in
-        seen.insert(source.id).inserted
-    }
-}
-
 private func resolveNormalizedCatalog(root: NormalizedLibraryRoot, machines: [CatalogMachineRecord]) -> PinballLibraryPayload {
     let machineByPracticeIdentity = Dictionary(uniqueKeysWithValues: machines.map { ($0.practiceIdentity, $0) })
     let manufacturerByID = Dictionary(uniqueKeysWithValues: (root.manufacturers ?? []).map { ($0.id, $0) })
@@ -1318,60 +1116,4 @@ private func resolveNormalizedCatalog(root: NormalizedLibraryRoot, machines: [Ca
     }
 
     return PinballLibraryPayload(games: resolvedGames, sources: sources)
-}
-
-private func resolveRulesheetLinks(
-    override: CatalogOverrideRecord?,
-    rulesheetLinks: [CatalogRulesheetLinkRecord]
-) -> (localPath: String?, links: [PinballGame.ReferenceLink]) {
-    if let local = catalogNormalizedOptionalString(override?.rulesheetLocalPath) {
-        return (local, [])
-    }
-
-    let sortedLinks = rulesheetLinks.sorted {
-        ($0.priority ?? Int.max, $0.label) < ($1.priority ?? Int.max, $1.label)
-    }
-    let links = sortedLinks.compactMap { link -> PinballGame.ReferenceLink? in
-        guard let url = catalogNormalizedOptionalString(link.url) else { return nil }
-        return PinballGame.ReferenceLink(label: catalogRulesheetLabel(providerRawValue: link.provider, fallback: link.label), url: url)
-    }
-    return (catalogNormalizedOptionalString(sortedLinks.first?.localPath), links)
-}
-
-private func resolveVideoLinks(videoLinks: [CatalogVideoLinkRecord]) -> [PinballGame.Video] {
-    let groupedByProvider = Dictionary(grouping: videoLinks) { link in
-        CatalogVideoProvider(rawValue: link.provider.lowercased()) ?? .matchplay
-    }
-    let preferred = groupedByProvider[.local]?.sorted(by: compareVideoLinks)
-        ?? groupedByProvider[.matchplay]?.sorted(by: compareVideoLinks)
-        ?? []
-    return preferred.map { link in
-        PinballGame.Video(kind: link.kind, label: link.label, url: link.url)
-    }
-}
-
-private func compareVideoLinks(_ lhs: CatalogVideoLinkRecord, _ rhs: CatalogVideoLinkRecord) -> Bool {
-    let left = lhs.priority ?? Int.max
-    let right = rhs.priority ?? Int.max
-    if left != right { return left < right }
-    return lhs.label.localizedCaseInsensitiveCompare(rhs.label) == .orderedAscending
-}
-
-private func catalogRulesheetLabel(providerRawValue: String, fallback: String) -> String {
-    switch CatalogRulesheetProvider(rawValue: providerRawValue.lowercased()) {
-    case .tf:
-        return "Rulesheet (TF)"
-    case .pp:
-        return "Rulesheet (PP)"
-    case .bob:
-        return "Rulesheet (Bob)"
-    case .papa:
-        return "Rulesheet (PAPA)"
-    case .opdb:
-        return "Rulesheet (OPDB)"
-    case .local:
-        return "Rulesheet"
-    case nil:
-        return fallback
-    }
 }
