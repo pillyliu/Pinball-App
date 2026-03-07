@@ -77,6 +77,7 @@ Android:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeIfpaProfileContext.kt` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGroupEditorRouteContext.kt` complete the Android route-seam split so `PracticeScreenRouteContent.kt` no longer needs a generic route-content context.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreenState.kt` now groups Android Practice UI state into navigation, journal, game, quick-entry, presentation, insights, and mechanics substate objects instead of keeping the whole surface as one flat mutable bag.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLeagueIntegration.kt` now isolates Android league targets, league-player lookup, league CSV import, and head-to-head comparison behind a dedicated store dependency seam.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeJournalIntegration.kt` now isolates Android journal filtering, edit-draft resolution, canonical journal mutation, and deletion logic behind a dedicated store dependency seam.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibrarySourceSelection.kt` now centralizes the Android "All games" source sentinel and normalization rules so top bar and home source selection do not drift.
 - Persistence and codec work has already been separated more clearly than on iOS.
 - Route model is more explicit via `PracticeRoute`, and `PracticeScreenState` is now grouped more intentionally, but the store still remains broader than the screen-state seam.
@@ -368,6 +369,8 @@ Android current wiring:
   - still owns too many persisted and derived concerns at once: notes, scores, groups, settings, analytics, and resource/game loading
 - `PracticeLeagueIntegration.kt`
   - owns league-target loading, league-player discovery, league CSV import, and head-to-head comparison for Android Practice
+- `PracticeJournalIntegration.kt`
+  - owns journal filtering, edit-draft resolution, canonical journal mutation, and deletion matching logic for Android Practice
 
 ## Target ownership model
 

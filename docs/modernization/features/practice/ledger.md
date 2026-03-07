@@ -161,6 +161,9 @@
 - Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLeagueIntegration.kt` so Android league targets, league-player lookup, league CSV import, and head-to-head comparison no longer live inline inside `PracticeStore.kt`.
 - Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt` by delegating the league/import/comparison slice to the dedicated integration seam while preserving the existing public store API.
 - Verified the Android grouped screen-state seam and first `PracticeStore.kt` responsibility extraction at compile time with `./gradlew app:assembleDebug`.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeJournalIntegration.kt` so Android journal filtering, edit-draft resolution, canonical journal mutation, and deletion logic no longer live inline inside `PracticeStore.kt`.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt` again by delegating the journal edit/delete slice to the dedicated journal integration seam while preserving the existing public store API.
+- Verified the Android journal store extraction together with the grouped screen-state seam and league integration seam at compile time with `./gradlew app:assembleDebug`.
 
 ## Next audit targets
 
@@ -168,5 +171,5 @@
 - top-bar behavior per route
 - state ownership split between screen, route model, and store
 - journal section state ownership and further row/editor extraction opportunities
-- deeper `PracticeStore.kt` decomposition beyond the league integration slice
+- deeper `PracticeStore.kt` decomposition beyond the league and journal integration slices
 - repeated resource/video/rulesheet UI patterns
