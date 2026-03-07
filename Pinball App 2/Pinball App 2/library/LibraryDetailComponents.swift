@@ -371,7 +371,11 @@ struct PinballVideoLaunchPanel: View {
                 return
             }
             metadata = nil
-            let fetched = await YouTubeVideoMetadataService.shared.metadata(for: selectedVideo)
+            guard let requestURL = selectedVideo.youtubeOEmbedURL else { return }
+            let fetched = await YouTubeVideoMetadataService.shared.metadata(
+                videoID: selectedVideo.id,
+                requestURL: requestURL
+            )
             guard !Task.isCancelled else { return }
             metadata = fetched
         }

@@ -2,250 +2,32 @@ import SwiftUI
 
 extension PracticeScreen {
     var practiceRootContent: some View {
-        PracticeHomeRootView(
-            isLoadingGames: store.isLoadingGames,
-            greetingName: greetingName,
-            hasIFPAProfileAccess: !ifpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-            onOpenSettings: {
-                openPracticeSettings = true
-            },
-            onOpenIFPAProfile: {
-                let target = PracticeNavRoute.ifpaProfile
-                if gameNavigationPath.last != target {
-                    gameNavigationPath.append(target)
-                }
-            },
-            resumeGame: resumeGame,
-            allGames: store.games,
-            librarySources: store.librarySources,
-            selectedLibrarySourceID: store.defaultPracticeSourceID,
-            activeGroups: store.state.customGroups.filter { $0.isActive && !$0.isArchived },
-            selectedGroupID: selectedGroup?.id,
-            groupGames: { group in
-                store.groupGames(for: group)
-            },
-            gameTransition: gameTransition,
-            onResume: { sourceID in
-                resumeToPracticeGame(zoomSourceID: sourceID)
-            },
-            onSelectLibrarySource: { sourceID in
-                let normalizedSourceID = (sourceID == "__practice_home_all_games__") ? nil : sourceID
-                store.selectPracticeLibrarySource(id: normalizedSourceID)
-                if store.gameForAnyID(selectedGameID) == nil || !store.games.contains(where: { $0.canonicalPracticeKey == store.canonicalPracticeGameID(selectedGameID) }) {
-                    selectedGameID = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first?.canonicalPracticeKey ?? ""
-                }
-            },
-            onPickGame: { gameID, sourceID in
-                goToGame(gameID, zoomSourceID: sourceID)
-            },
-            onQuickEntry: { sheet in
-                openQuickEntry(sheet)
-            },
-            showingNamePrompt: showingNamePrompt,
-            firstNamePromptValue: $firstNamePromptValue,
-            importLplStatsOnNameSave: $importLplStatsOnNameSave,
-            onNotNow: {
-                practiceNamePrompted = true
-                showingNamePrompt = false
-            },
-            onSaveName: { trimmedName, shouldImportLplStats in
-                playerName = trimmedName
-                store.updatePracticeSettings(playerName: trimmedName)
-                practiceNamePrompted = true
-                showingNamePrompt = false
-                guard shouldImportLplStats else { return }
-                Task {
-                    let normalizedInput = store.normalizeHumanName(trimmedName)
-                    let players = await store.availableLeaguePlayers()
-                    guard let matchedPlayer = players.first(where: {
-                        store.normalizeHumanName($0) == normalizedInput
-                    }) else { return }
-                    leaguePlayerName = matchedPlayer
-                    store.updateLeagueSettings(playerName: matchedPlayer, csvAutoFillEnabled: true)
-                    _ = await store.importLeagueScoresFromCSV()
-                }
-            }
-        )
-        .background(
-            GeometryReader { geo in
-                Color.clear
-                    .onAppear {
-                        viewportHeight = geo.size.height
-                    }
-                    .onChange(of: geo.size.height) { _, newHeight in
-                        viewportHeight = newHeight
-                }
-            }
-        )
-        .sheet(item: $quickSheet) { kind in
-            PracticeQuickEntrySheet(
-                kind: kind,
-                store: store,
-                selectedGameID: $selectedGameID,
-                onGameSelectionChanged: { sheet, gameID in
-                    rememberQuickEntryGame(sheet: sheet, gameID: gameID)
-                },
-                onEntrySaved: { gameID in
-                    markPracticeGameViewed(gameID)
-                }
-            )
-            .practiceEntrySheetStyle()
-        }
+        practiceHomeContent
     }
 
     func practiceDialogHost<Content: View>(_ content: Content) -> some View {
-        content
-            .navigationDestination(for: PracticeNavRoute.self) { route in
-                switch route {
-                case .destination(let destination):
-                    destinationView(for: destination)
-                case .game(let gameID):
-                    PracticeGameWorkspace(store: store, selectedGameID: $selectedGameID, onGameViewed: { viewedGameID in
-                        markPracticeGameViewed(viewedGameID)
-                    })
-                    .onAppear { selectedGameID = gameID }
-                    .navigationTransition(.zoom(sourceID: gameTransitionSourceID ?? gameID, in: gameTransition))
-                case .ifpaProfile:
-                    practiceScreen("IFPA Profile") {
-                        PracticeIFPAProfileScreen(
-                            playerName: playerName,
-                            ifpaPlayerID: ifpaPlayerID
-                        )
-                    }
-                }
-            }
-            .navigationDestination(isPresented: $openPracticeSettings) {
-                practiceScreen("Practice Settings") {
-                    settingsScreen
-                }
-                .alert("Reset Practice Log?", isPresented: $showingResetJournalPrompt) {
-                    TextField("Type reset", text: $resetJournalConfirmationText)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button("No", role: .cancel) {}
-                    Button("Yes, Reset", role: .destructive) {
-                        resetJournalConfirmationText = ""
-                        store.resetPracticeState()
-                        applyDefaultsAfterLoad()
-                        LibraryActivityLog.clearAll()
-                    }
-                    .disabled(resetJournalConfirmationText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() != "reset")
-                } message: {
-                    Text("This resets the full local Practice JSON log state. Type \"reset\" to enable confirmation.")
-                }
-            }
-            .sheet(isPresented: $openGroupEditor) {
-                NavigationStack {
-                    GroupEditorScreen(
-                        store: store,
-                        editingGroupID: editingGroupID
-                    ) {
-                        openGroupEditor = false
-                        editingGroupID = nil
-                    }
-                }
-                .practiceEntrySheetStyle()
-                .presentationBackground(.ultraThinMaterial)
-                .presentationDetents([.large])
-            }
-            .sheet(isPresented: $openCurrentGroupDateEditor) {
-                NavigationStack {
-                    VStack(alignment: .leading, spacing: 12) {
-                        DatePicker(
-                            currentGroupDateEditorField == .start ? "Start Date" : "End Date",
-                            selection: $currentGroupDateEditorValue,
-                            displayedComponents: .date
-                        )
-                        .datePickerStyle(.compact)
+        let presentationContext = practicePresentationContext
 
-                        HStack {
-                            Button("Clear", role: .destructive) {
-                                guard let groupID = currentGroupDateEditorGroupID else {
-                                    openCurrentGroupDateEditor = false
-                                    return
-                                }
-                                switch currentGroupDateEditorField {
-                                case .start:
-                                    store.updateGroup(id: groupID, replaceStartDate: true, startDate: nil)
-                                case .end:
-                                    store.updateGroup(id: groupID, replaceEndDate: true, endDate: nil)
-                                }
-                                openCurrentGroupDateEditor = false
-                            }
-                            .buttonStyle(.glass)
-
-                            Spacer()
-
-                            Button("Save") {
-                                guard let groupID = currentGroupDateEditorGroupID else {
-                                    openCurrentGroupDateEditor = false
-                                    return
-                                }
-                                switch currentGroupDateEditorField {
-                                case .start:
-                                    store.updateGroup(id: groupID, replaceStartDate: true, startDate: currentGroupDateEditorValue)
-                                case .end:
-                                    store.updateGroup(id: groupID, replaceEndDate: true, endDate: currentGroupDateEditorValue)
-                                }
-                                openCurrentGroupDateEditor = false
-                            }
-                            .buttonStyle(.glass)
+        return practiceLifecycleHost(
+            practiceResetAlert(
+                content
+                    .navigationDestination(for: PracticeRoute.self) { route in
+                        switch route {
+                        case .game(let gameID):
+                            PracticeGameWorkspace(store: store, selectedGameID: $uiState.selectedGameID, onGameViewed: { viewedGameID in
+                                markPracticeGameViewed(viewedGameID)
+                            })
+                            .onAppear { uiState.selectedGameID = gameID }
+                            .navigationTransition(.zoom(sourceID: uiState.gameTransitionSourceID ?? gameID, in: gameTransition))
+                        case .ifpaProfile, .groupDashboard, .journal, .insights, .mechanics, .settings:
+                            routeView(for: route)
                         }
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(AppBackground())
-                    .navigationTitle(currentGroupDateEditorField == .start ? "Set Start Date" : "Set End Date")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Cancel") {
-                                openCurrentGroupDateEditor = false
-                            }
-                        }
-                    }
-                }
-                .practiceEntrySheetStyle()
-                .presentationBackground(.ultraThinMaterial)
-            }
-            .sheet(item: $editingJournalEntry) { entry in
-                PracticeJournalEntryEditorSheet(
-                    entry: entry,
-                    store: store,
-                    onSave: { updated in
-                        saveEditedJournalEntry(updated)
-                    }
-                )
-                .practiceEntrySheetStyle()
-            }
-            .task {
-                guard !hasRunInitialPracticeLoad else { return }
-                hasRunInitialPracticeLoad = true
-                await store.loadIfNeeded()
-                applyDefaultsAfterLoad()
-                await refreshLeaguePlayerOptions()
-                await refreshHeadToHead()
-                let trimmedName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmedName.isEmpty {
-                    firstNamePromptValue = ""
-                    importLplStatsOnNameSave = true
-                    showingNamePrompt = true
-                }
-            }
-            .onChange(of: appNavigation.lastViewedLibraryGameID) { _, newValue in
-                let trimmed = newValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                guard !trimmed.isEmpty else { return }
-                libraryLastViewedGameTS = Date().timeIntervalSince1970
-            }
-            .onChange(of: journalFilterRaw) { _, _ in
-                selectedJournalItemIDs.removeAll()
-                isEditingJournalEntries = false
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .pinballLibrarySourcesDidChange)) { _ in
-                Task {
-                    await store.loadGames()
-                    applyDefaultsAfterLoad()
-                }
-            }
+                    .sheet(item: presentationContext.presentedSheet) { sheet in
+                        practiceSheetContent(for: sheet, context: presentationContext)
+                    },
+                context: presentationContext
+            )
+        )
     }
 }

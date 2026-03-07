@@ -1437,21 +1437,31 @@ struct PinballGame: Identifiable, Decodable {
     }
 }
 
-private struct YouTubeOEmbedResponse: Decodable {
-    let title: String
-    let author_name: String
-}
-
 actor YouTubeVideoMetadataService {
     static let shared = YouTubeVideoMetadataService()
 
     private var cache: [String: PinballGame.YouTubeMetadata] = [:]
 
-    func metadata(for video: PinballGame.PlayableVideo) async -> PinballGame.YouTubeMetadata? {
-        if let cached = cache[video.id] {
+    nonisolated private static func decodeYouTubeOEmbedMetadata(from data: Data) throws -> PinballGame.YouTubeMetadata? {
+        struct YouTubeOEmbedResponse: Decodable {
+            let title: String
+            let author_name: String
+        }
+
+        let decoded = try JSONDecoder().decode(YouTubeOEmbedResponse.self, from: data)
+        let title = decoded.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else { return nil }
+        let channelName = decoded.author_name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return PinballGame.YouTubeMetadata(
+            title: title,
+            channelName: channelName.isEmpty ? nil : channelName
+        )
+    }
+
+    func metadata(videoID: String, requestURL: URL) async -> PinballGame.YouTubeMetadata? {
+        if let cached = cache[videoID] {
             return cached
         }
-        guard let requestURL = video.youtubeOEmbedURL else { return nil }
 
         do {
             let (data, response) = try await URLSession.shared.data(from: requestURL)
@@ -1459,15 +1469,10 @@ actor YouTubeVideoMetadataService {
                   (200 ... 299).contains(httpResponse.statusCode) else {
                 return nil
             }
-            let decoded = try JSONDecoder().decode(YouTubeOEmbedResponse.self, from: data)
-            let title = decoded.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !title.isEmpty else { return nil }
-            let channelName = decoded.author_name.trimmingCharacters(in: .whitespacesAndNewlines)
-            let metadata = PinballGame.YouTubeMetadata(
-                title: title,
-                channelName: channelName.isEmpty ? nil : channelName
-            )
-            cache[video.id] = metadata
+            guard let metadata = try Self.decodeYouTubeOEmbedMetadata(from: data) else {
+                return nil
+            }
+            cache[videoID] = metadata
             return metadata
         } catch {
             return nil

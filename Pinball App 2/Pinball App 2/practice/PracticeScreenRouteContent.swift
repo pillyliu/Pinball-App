@@ -2,23 +2,22 @@ import SwiftUI
 
 extension PracticeScreen {
     @ViewBuilder
-    func destinationView(for destination: PracticeHubDestination) -> some View {
-        switch destination {
+    func routeView(for route: PracticeRoute) -> some View {
+        switch route {
         case .groupDashboard:
             practiceScreen("Group Dashboard") {
-                groupDashboardScreen
+                groupDashboardScreen(context: practiceGroupDashboardContext)
             }
         case .journal:
             practiceViewportScreen("Journal Timeline") {
-                journalScreen
+                journalScreen(context: practiceJournalContext)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        selectedJournalItemIDs.removeAll()
-                        isEditingJournalEntries.toggle()
+                        practiceJournalContext.onToggleEditing()
                     } label: {
-                        if isEditingJournalEntries {
+                        if practiceJournalContext.isEditingEntries.wrappedValue {
                             Text("Cancel")
                         } else {
                             Image(systemName: "pencil")
@@ -28,12 +27,25 @@ extension PracticeScreen {
             }
         case .insights:
             practiceScreen("Insights") {
-                insightsScreen
+                insightsScreen(context: practiceInsightsContext)
             }
         case .mechanics:
             practiceScreen("Mechanics") {
-                mechanicsScreen
+                mechanicsScreen(context: practiceMechanicsContext)
             }
+        case .settings:
+            practiceScreen("Practice Settings") {
+                settingsScreen(context: practiceSettingsContext)
+            }
+        case .ifpaProfile:
+            practiceScreen("IFPA Profile") {
+                PracticeIFPAProfileScreen(
+                    playerName: practiceSettingsContext.playerName.wrappedValue,
+                    ifpaPlayerID: practiceSettingsContext.ifpaPlayerID.wrappedValue
+                )
+            }
+        case .game:
+            EmptyView()
         }
     }
 
@@ -65,176 +77,158 @@ extension PracticeScreen {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    var groupDashboardScreen: some View {
+    func groupDashboardScreen(context: PracticeGroupDashboardContext) -> some View {
         PracticeGroupDashboardSectionView(
-            selectedGroup: selectedGroup,
-            allGroups: store.state.customGroups,
-            selectedGroupID: store.state.practiceSettings.selectedGroupID,
-            gameTransition: gameTransition,
+            selectedGroup: context.selectedGroup,
+            allGroups: context.store.state.customGroups,
+            selectedGroupID: context.store.state.practiceSettings.selectedGroupID,
+            gameTransition: context.gameTransition,
             onOpenCreateGroup: {
-                openGroupEditorForCreate()
+                context.onOpenCreateGroup()
             },
             onOpenEditSelectedGroup: {
-                openGroupEditorForSelection()
+                context.onOpenEditSelectedGroup()
             },
             onSelectGroup: { groupID in
-                store.setSelectedGroup(id: groupID)
+                context.store.setSelectedGroup(id: groupID)
             },
             onTogglePriority: { groupID, isPriority in
-                store.updateGroup(id: groupID, isPriority: isPriority)
+                context.store.updateGroup(id: groupID, isPriority: isPriority)
             },
             onSetGroupArchived: { groupID, isArchived in
-                store.updateGroup(id: groupID, isArchived: isArchived)
+                context.store.updateGroup(id: groupID, isArchived: isArchived)
             },
             onDeleteGroup: { groupID in
-                store.deleteGroup(id: groupID)
+                context.store.deleteGroup(id: groupID)
             },
             onUpdateGroupDate: { groupID, field, date in
                 switch field {
                 case .start:
-                    store.updateGroup(id: groupID, replaceStartDate: true, startDate: date)
+                    context.store.updateGroup(id: groupID, replaceStartDate: true, startDate: date)
                 case .end:
-                    store.updateGroup(id: groupID, replaceEndDate: true, endDate: date)
+                    context.store.updateGroup(id: groupID, replaceEndDate: true, endDate: date)
                 }
             },
             dashboardScoreForGroup: { group in
-                store.groupDashboardScore(for: group)
+                context.store.groupDashboardScore(for: group)
             },
             recommendedGameForGroup: { group in
-                store.recommendedGame(in: group)
+                context.store.recommendedGame(in: group)
             },
             groupProgressForGroup: { group in
-                store.groupProgress(for: group)
+                context.store.groupProgress(for: group)
             },
             onOpenGame: { gameID in
-                goToGame(gameID)
+                context.onOpenGame(gameID, nil)
             },
             onRemoveGameFromGroup: { gameID, groupID in
-                store.removeGame(gameID, fromGroup: groupID)
+                context.onRemoveGameFromGroup(gameID, groupID)
             }
         )
     }
 
-    var journalScreen: some View {
+    func journalScreen(context: PracticeJournalContext) -> some View {
         PracticeJournalSectionView(
-            journalFilter: Binding(
-                get: { journalFilter },
-                set: { journalFilterRaw = $0.rawValue }
-            ),
-            items: journalSectionItems,
-            isEditingEntries: $isEditingJournalEntries,
-            selectedItemIDs: $selectedJournalItemIDs,
-            gameTransition: gameTransition,
-            onTapItem: { gameID, sourceID in goToGame(gameID, zoomSourceID: sourceID) },
-            onEditJournalEntry: { entry in openJournalEntryEditor(entry) },
-            onDeleteJournalEntries: { entries in deleteJournalEntries(entries) }
+            journalFilter: context.journalFilter,
+            items: context.items,
+            isEditingEntries: context.isEditingEntries,
+            selectedItemIDs: context.selectedItemIDs,
+            gameTransition: context.gameTransition,
+            onTapItem: { gameID, sourceID in context.onOpenGame(gameID, sourceID) },
+            onEditJournalEntry: { entry in context.onEditJournalEntry(entry) },
+            onDeleteJournalEntries: { entries in context.onDeleteJournalEntries(entries) }
         )
     }
 
-    var insightsScreen: some View {
+    func insightsScreen(context: PracticeInsightsContext) -> some View {
         PracticeInsightsSectionView(
-            games: store.games,
-            librarySources: store.librarySources,
-            selectedLibrarySourceID: store.defaultPracticeSourceID,
+            games: context.games,
+            librarySources: context.librarySources,
+            selectedLibrarySourceID: context.selectedLibrarySourceID,
             onSelectLibrarySourceID: { sourceID in
-                store.selectPracticeLibrarySource(id: sourceID)
-                let canonical = store.canonicalPracticeGameID(selectedGameID)
-                if !canonical.isEmpty,
-                   store.games.contains(where: { $0.canonicalPracticeKey == canonical }) {
-                    selectedGameID = canonical
-                } else {
-                    selectedGameID = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first?.canonicalPracticeKey ?? ""
-                }
+                context.onSelectLibrarySourceID(sourceID)
             },
-            selectedGameID: $selectedGameID,
+            selectedGameID: context.selectedGameID,
             scoreSummaryForGame: { gameID in
-                store.scoreSummary(for: gameID)
+                context.scoreSummaryForGame(gameID)
             },
             scoreTrendValuesForGame: { gameID in
-                scoreTrendValues(for: gameID)
+                context.scoreTrendValuesForGame(gameID)
             },
-            playerName: playerName,
-            opponentName: $insightsOpponentName,
-            opponentOptions: insightsOpponentOptions,
-            isLoadingHeadToHead: isLoadingHeadToHead,
-            headToHead: headToHead,
+            playerName: context.playerName,
+            opponentName: context.opponentName,
+            opponentOptions: context.opponentOptions,
+            isLoadingHeadToHead: context.isLoadingHeadToHead,
+            headToHead: context.headToHead,
             redactName: { name in
-                formatLPLPlayerNameForDisplay(name)
+                context.redactName(name)
             },
             onRefreshHeadToHead: {
-                await refreshHeadToHead()
+                await context.onRefreshHeadToHead()
             },
             onRefreshOpponentOptions: {
-                await refreshInsightsOpponentOptions()
+                await context.onRefreshOpponentOptions()
             }
         )
     }
 
-    var mechanicsScreen: some View {
+    func mechanicsScreen(context: PracticeMechanicsContext) -> some View {
         PracticeMechanicsSectionView(
-            selectedMechanicSkill: $selectedMechanicSkill,
-            mechanicsComfort: $mechanicsComfort,
-            mechanicsNote: $mechanicsNote,
-            trackedSkills: store.allTrackedMechanicsSkills(),
-            detectedTags: store.detectedMechanicsTags(in: mechanicsNote),
+            selectedMechanicSkill: context.selectedMechanicSkill,
+            mechanicsComfort: context.mechanicsComfort,
+            mechanicsNote: context.mechanicsNote,
+            trackedSkills: context.trackedSkills,
+            detectedTags: context.detectedTags,
             summaryForSkill: { skill in
-                store.mechanicsSummary(for: skill)
+                context.summaryForSkill(skill)
             },
             allLogs: {
-                store.allMechanicsLogs()
+                context.allLogs()
             },
             logsForSkill: { skill in
-                store.mechanicsLogs(for: skill)
+                context.logsForSkill(skill)
             },
             gameNameForID: { gameID in
-                store.gameName(for: gameID)
+                context.gameNameForID(gameID)
             },
-            maxHistoryHeight: mechanicsHistoryMaxHeight(),
+            maxHistoryHeight: context.maxHistoryHeight,
             onLogMechanicsSession: { skill, comfort, note in
-                let prefix = skill.isEmpty ? "#mechanics" : "#\(skill.replacingOccurrences(of: " ", with: ""))"
-                let fullNote = "\(prefix) competency \(comfort)/5. \(note)"
-                store.addNote(gameID: "", category: .general, detail: skill, note: fullNote)
-                mechanicsNote = ""
+                context.onLogMechanicsSession(skill, comfort, note)
             }
         )
     }
 
-    var settingsScreen: some View {
+    func settingsScreen(context: PracticeSettingsContext) -> some View {
         PracticeSettingsSectionView(
-            playerName: $playerName,
-            ifpaPlayerID: $ifpaPlayerID,
-            leaguePlayerName: $leaguePlayerName,
-            leaguePlayerOptions: leaguePlayerOptions,
-            leagueImportStatus: leagueImportStatus,
-            cloudSyncEnabled: $cloudSyncEnabled,
-            redactName: { name in formatLPLPlayerNameForDisplay(name) },
+            playerName: context.playerName,
+            ifpaPlayerID: context.ifpaPlayerID,
+            leaguePlayerName: context.leaguePlayerName,
+            leaguePlayerOptions: context.leaguePlayerOptions,
+            leagueImportStatus: context.leagueImportStatus,
+            cloudSyncEnabled: context.cloudSyncEnabled,
+            redactName: { name in context.redactName(name) },
             onSaveProfile: {
-                store.updatePracticeSettings(playerName: playerName)
+                context.store.updatePracticeSettings(playerName: context.playerName.wrappedValue)
             },
             onSaveIFPAID: {
-                let sanitized = ifpaPlayerID.filter(\.isNumber)
-                ifpaPlayerID = sanitized
-                store.updatePracticeSettings(ifpaPlayerID: sanitized)
+                let sanitized = context.ifpaPlayerID.wrappedValue.filter(\.isNumber)
+                context.ifpaPlayerID.wrappedValue = sanitized
+                context.store.updatePracticeSettings(ifpaPlayerID: sanitized)
             },
             onImportLeagueCSV: {
-                Task {
-                    store.updateLeagueSettings(playerName: leaguePlayerName, csvAutoFillEnabled: true)
-                    let result = await store.importLeagueScoresFromCSV()
-                    leagueImportStatus = result.summaryLine
-                }
+                context.onImportLeagueCSV()
             },
             onCloudSyncChanged: { enabled in
-                store.updateSyncSettings(cloudSyncEnabled: enabled)
+                context.store.updateSyncSettings(cloudSyncEnabled: enabled)
             },
             onResetPracticeLog: {
-                resetJournalConfirmationText = ""
-                showingResetJournalPrompt = true
+                context.onResetPracticeLog()
             }
         )
     }
 
     func mechanicsHistoryMaxHeight() -> CGFloat {
-        let height = viewportHeight > 0 ? viewportHeight : 800
+        let height = uiState.viewportHeight > 0 ? uiState.viewportHeight : 800
         return max(200, height - 470)
     }
 }

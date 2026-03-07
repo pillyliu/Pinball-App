@@ -62,7 +62,7 @@ struct PracticeHomeRootView: View {
 
                         LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                             ForEach(PracticeHubDestination.allCases) { destination in
-                                NavigationLink(value: PracticeNavRoute.destination(destination)) {
+                                NavigationLink(value: destination.route) {
                                     PracticeHubMiniCard(destination: destination)
                                 }
                                 .buttonStyle(.plain)

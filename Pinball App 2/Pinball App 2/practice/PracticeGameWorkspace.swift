@@ -5,11 +5,15 @@ struct PracticeGameWorkspace: View {
     @Binding var selectedGameID: String
     var onGameViewed: ((String) -> Void)? = nil
 
-    var body: some View {
-        PracticeGameSection(
+    var workspaceContext: PracticeGameWorkspaceContext {
+        PracticeGameWorkspaceContext(
             store: store,
             selectedGameID: $selectedGameID,
             onGameViewed: onGameViewed
         )
+    }
+
+    var body: some View {
+        PracticeGameSection(context: workspaceContext)
     }
 }

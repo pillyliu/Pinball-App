@@ -38,10 +38,19 @@ Current Practice surfaces in code:
 ## Current architecture snapshot
 
 iOS:
-- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeScreen.swift` still owns a large amount of route state, modal state, preference state, and navigation wiring.
-- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` is a major UI hotspot.
-- Store responsibilities are partially split across helper files, but screen orchestration is still heavily centralized.
-- Route model is currently split between `PracticeNavRoute` and multiple boolean-driven sheets/destinations.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeScreen.swift` now uses a dedicated `PracticeScreenState.swift` value to group route, dialog, and transient UI state, but still owns most orchestration and mutation wiring.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardContext.swift` now isolates the `GroupDashboard` route dependency surface so iOS no longer routes non-game surfaces through one generic bundle.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeHomeContext.swift` now isolates the home-screen dependency surface so `PracticeScreen.swift` no longer assembles `PracticeHomeRootView` inline.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticePresentationContext.swift` now isolates sheet and reset-alert dependencies so iOS presentation wiring is no longer assembled ad hoc inside `PracticeDialogHost.swift`.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeInsightsContext.swift` now isolates the `Insights` route dependency surface from the rest of iOS Practice route wiring.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeJournalContext.swift` now isolates the `Journal` route dependency surface from the rest of iOS Practice route wiring.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeMechanicsContext.swift` now isolates the `Mechanics` route dependency surface from the rest of iOS Practice route wiring.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeSettingsContext.swift` now isolates the `Settings` route dependency surface from the rest of iOS Practice route wiring.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceContext.swift` now isolates the `Game` route dependency surface from the rest of iOS Practice screen wiring.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceState.swift` now groups `Game` route transient UI state instead of keeping it as scattered `@State` properties inside the route view.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` is still a major UI hotspot, but it now consumes an explicit workspace context and grouped state seam.
+- Store responsibilities are partially split across helper files, route dispatch is now driven by per-route contexts, but screen orchestration is still heavily centralized.
+- Route model is now more explicit than before via `PracticeRoute` and `PracticeSheet`, but the iOS product-surface contract is still incomplete compared with Android because some drill-ins remain local to subviews and root orchestration is still centralized.
 
 Android:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreen.kt` is better separated at the route layer than iOS.
@@ -173,7 +182,7 @@ Current resource content on both platforms:
 
 ### Group Editor
 
-- iOS: presented as a sheet, not a navigation route
+- iOS: presented as an explicit `PracticeSheet.groupEditor`, not an ad hoc boolean
 - Android: dedicated route
 - Titles:
   - iOS: `Create Group` or `Edit Group`
@@ -210,7 +219,8 @@ Current resource content on both platforms:
 
 ## Current structural divergence to remove
 
-- iOS models only three explicit navigation cases (`destination`, `game`, `ifpaProfile`) and pushes other surfaces through booleans/sheets.
+- iOS now models the main pushed surfaces explicitly via `PracticeRoute` and modal surfaces via `PracticeSheet`.
+- iOS still differs from Android because Android models more of the full product surface as one unified route layer.
 - Android models most primary surfaces as explicit routes.
 - Product behavior is broadly aligned, but the route architecture is not.
 - Modernization should normalize this into one explicit route contract per product surface, regardless of platform implementation details.
@@ -218,22 +228,26 @@ Current resource content on both platforms:
 ## Current state ownership snapshot
 
 iOS current split:
-- `PracticeScreen.swift`
-  - route path
-  - sheet/dialog presentation flags
-  - quick-entry remembered selections
-  - player/profile form state
-  - mechanics form state
+- `PracticeScreenState.swift`
+  - grouped route state
+  - explicit `PracticeRoute` navigation path
+  - explicit `PracticeSheet` presentation state
+  - transient form and draft state
   - journal edit-selection state
   - head-to-head loading state
   - viewport/layout state
+- `PracticeScreen.swift`
+  - owns the `PracticeScreenState` instance
+  - still performs most state mutation and route orchestration
+  - still mixes navigation helpers with screen/domain coordination
 - `PracticeStore`
   - persisted practice domain state
   - game/resource loading
   - analytics and derived summaries
   - journal mutation helpers
 - Result:
-  - too much ephemeral route/UI state still lives in the root screen
+  - better than before because route/UI state is grouped explicitly
+  - still too much orchestration logic lives in the root screen
 
 Android current split:
 - `PracticeScreenState.kt`
@@ -253,10 +267,139 @@ Android current split:
   - route/UI state is cleaner than iOS
   - domain/runtime state is still heavily concentrated in one store
 
+## Current file responsibility map
+
+iOS current wiring:
+- `PracticeScreenState.swift`
+  - groups route, modal, and transient UI state into one explicit seam
+  - is the first iOS equivalent in role to Android's `PracticeScreenState.kt`
+- `PracticeScreen.swift`
+  - owns root `NavigationStack`
+  - owns the `PracticeScreenState` instance and resume behavior
+  - still owns quick-entry remembered defaults via `AppStorage`
+  - now constructs explicit route, home, presentation, and lifecycle contexts
+  - still owns high-level cross-route coordination, but no longer carries every mutation helper inline
+- `PracticeScreenActions.swift`
+  - isolates navigation, quick-entry, journal mutation, group-editor, and insights refresh helpers from the root screen declaration
+- `PracticeHomeContext.swift`
+  - isolates the `Home` route dependency surface
+  - keeps home-screen closure assembly out of the root host
+- `PracticeDialogHost.swift`
+  - owns destination delivery for settings, group editor, date picker, and journal editor
+  - now delivers pushed surfaces via `PracticeRoute` and modal surfaces via `PracticeSheet`
+  - now delegates sheet and reset-alert content through `PracticePresentationContext.swift`
+  - now focuses on destination delivery instead of first-load effects and app-level observers
+- `PracticeLifecycleContext.swift`
+  - isolates first-load and root observer dependencies
+- `PracticeLifecycleHost.swift`
+  - owns first-load, sheet-dismiss, journal-filter, library-source-change, and last-viewed-library-game effect wiring
+- `PracticePresentationContext.swift`
+  - isolates sheet, reset-alert, and modal cleanup dependencies
+  - keeps modal content wiring out of the route host
+- `PracticeScreenRouteContent.swift`
+  - owns route body composition for group dashboard, journal, insights, mechanics, and settings
+  - now resolves explicit per-route dependency seams instead of closing over root-screen state directly
+- `PracticeGroupDashboardContext.swift`
+  - isolates the `GroupDashboard` route dependency surface
+- `PracticeJournalContext.swift`
+  - isolates the `Journal` route dependency surface
+- `PracticeInsightsContext.swift`
+  - isolates the `Insights` route dependency surface
+  - isolates game/library/opponent/head-to-head concerns from the rest of iOS Practice orchestration
+- `PracticeMechanicsContext.swift`
+  - isolates the `Mechanics` route dependency surface
+- `PracticeSettingsContext.swift`
+  - isolates the `Settings` and IFPA-profile dependency surface
+- `PracticeGameWorkspaceContext.swift`
+  - isolates the `Game` route dependency surface from the rest of the Practice screen
+- `PracticeGameWorkspaceState.swift`
+  - groups `Game` route transient UI state into one explicit seam
+- `PracticeGameWorkspace.swift`
+  - now builds an explicit game-workspace context instead of passing raw store and bindings directly into the section view
+- `PracticeTypes.swift`
+  - now defines explicit `PracticeRoute` and `PracticeSheet` enums
+  - still does not fully encode every Practice drill-in and sub-surface as one canonical product contract
+
+Android current wiring:
+- `PracticeScreen.kt`
+  - owns load orchestration, route switching, and top-level effects
+  - builds a large `PracticeRouteContentContext`
+  - coordinates route changes, back behavior, and drill-ins
+- `PracticeScreenState.kt`
+  - owns the clearest current seam for route state, modal flags, route history, and route-local drafts
+  - already models most product surfaces explicitly
+- `PracticeScreenRouteContent.kt`
+  - cleanly maps route to section composable
+  - still passes a very wide context object because screen state and store responsibilities are not narrow enough yet
+- `PracticeStore.kt`
+  - still owns too many persisted and derived concerns at once: notes, scores, groups, settings, analytics, and resource/game loading
+
+## Target ownership model
+
+Practice should be normalized into four ownership buckets on both platforms:
+
+1. Route state
+   - current route
+   - route history/path
+   - selected game identity
+   - drill-in payloads such as selected rulesheet/playfield target
+2. Dialog and transient presentation state
+   - quick-entry sheet visibility and preset
+   - group editor/date picker visibility and editing target
+   - reset confirmation and name-prompt visibility
+   - journal editor selection
+3. Route-local drafts
+   - game note draft
+   - journal selection/edit mode
+   - insights comparison opponent and loading state
+   - mechanics form draft values
+4. Store/domain state
+   - persisted practice log, scores, groups, settings, and sync state
+   - game/resource loading and fallback resolution
+   - analytics, summaries, and derived projections
+
+Modernization goal:
+- iOS should gain an explicit route-state seam equivalent in role to `PracticeScreenState.kt`.
+- Android should keep its route seam, but shrink the context and move more non-route logic out of `PracticeStore.kt`.
+- Both platforms should describe the same ownership model even if the concrete types and files differ.
+
+Current status:
+- the first iOS route-state seam now exists as `PracticeScreenState.swift`
+- iOS now also has explicit `PracticeRoute` and `PracticeSheet` enums for the main pushed and modal surfaces
+- iOS non-game routes now resolve explicit per-route contexts instead of sharing one generic route-content bundle
+- iOS home content now also resolves through an explicit `PracticeHomeContext.swift` seam
+- `GroupDashboard`, `Journal`, `Insights`, `Mechanics`, and `Settings` now each have dedicated iOS context seams
+- sheet and reset-alert presentation now also resolve through a dedicated iOS presentation context
+- the next iOS step is to reduce how much `PracticeScreen.swift` still directly owns first-load orchestration and cross-route mutation helpers
+
+## First implementation sequence
+
+1. Normalize iOS route state
+   - in progress: route identity, dialog flags, and transient UI state are now grouped in `PracticeScreenState.swift`
+   - in progress: iOS now uses `PracticeRoute` for pushed surfaces and `PracticeSheet` for modal surfaces instead of separate sheet booleans
+   - next: move remaining drill-in payloads and route orchestration into a cleaner explicit product-surface contract
+2. Separate modal state from route state
+   - quick entry, group editor, date picker, reset prompt, and journal editor should be tracked as presentation state rather than mixed into navigation decisions
+3. Split route-local drafts out of the root screen
+   - in progress: route content now resolves per-route contexts instead of pulling directly from root state
+   - in progress: `GroupDashboard`, `Journal`, `Insights`, `Mechanics`, and `Settings` now have dedicated contexts
+   - next: remaining coordination helpers and presentation orchestration should not all live in `PracticeScreen.swift` and `PracticeDialogHost.swift`
+4. Reduce Android store surface
+   - after route ownership is stabilized, decompose `PracticeStore.kt` by domain concern rather than adding more helpers to one file
+5. Only then start UI/design-system cleanup
+   - visual rework should follow a stable ownership model, not happen while route and draft state are still shifting
+
+## Do not change yet
+
+- do not redesign the Practice IA while route ownership is still unsettled
+- do not merge route state into the domain store to "simplify" file count
+- do not chase card styling parity before the navigation and draft-state contract is explicit
+- do not add more boolean presentation flags on iOS as new surfaces are introduced
+
 ## First refactor seams
 
 1. Extract a dedicated Practice route state model on iOS instead of storing all navigation and modal flags in `PracticeScreen.swift`.
-2. Split Practice Game workspace into explicit subcomponents shared by contract:
+2. Continue splitting Practice Game workspace into explicit subcomponents shared by contract:
    - summary
    - input
    - log
@@ -282,3 +425,8 @@ Android current split:
 - Practice route parity should be defined at the product-surface level first, then the navigation architecture should be normalized.
 - The Game route already has strong functional overlap across platforms; modernization should focus on section contracts, component boundaries, and state ownership rather than inventing new behavior.
 - The first real Practice refactor should target state ownership, not visuals.
+- The first code change should likely be an iOS route-state extraction, because it unlocks cleaner parity work without requiring immediate UI changes.
+- The first code change has now landed: iOS Practice state is grouped into `PracticeScreenState.swift` without changing product behavior.
+- The next code change has also landed: iOS Practice now uses explicit `PracticeRoute` and `PracticeSheet` models for the main pushed and modal surfaces, replacing the old route wrapper plus sheet booleans.
+- The next code change after that has also landed: iOS route sections moved behind explicit dependency seams instead of closing over `PracticeScreen.swift` directly.
+- The next code change after that has also landed: `GroupDashboard`, `Journal`, `Insights`, `Mechanics`, and `Settings` now each use their own route-specific context on iOS.

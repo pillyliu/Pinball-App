@@ -5,20 +5,7 @@ struct PracticeScreen: View {
     @EnvironmentObject var appNavigation: AppNavigationModel
     @Namespace var gameTransition
 
-    @State var selectedGameID: String = ""
-    @State var gameNavigationPath: [PracticeNavRoute] = []
-    @State var openPracticeSettings = false
-    @State var openGroupEditor = false
-    @State var editingGroupID: UUID?
-    @State var openCurrentGroupDateEditor = false
-    @State var currentGroupDateEditorGroupID: UUID?
-    @State var currentGroupDateEditorField: GroupEditorDateField = .start
-    @State var currentGroupDateEditorValue: Date = Date()
-    @State var gameTransitionSourceID: String?
-    @State var quickSheet: QuickEntrySheet?
-    @State var isEditingJournalEntries = false
-    @State var selectedJournalItemIDs: Set<String> = []
-    @State var editingJournalEntry: JournalEntry?
+    @State var uiState = PracticeScreenState()
 
     @AppStorage("practice-journal-filter") var journalFilterRaw: String = JournalFilter.all.rawValue
     @AppStorage("practice-quick-game-score") var quickScoreGameID: String = ""
@@ -30,26 +17,6 @@ struct PracticeScreen: View {
     @AppStorage("library-last-viewed-game-ts") var libraryLastViewedGameTS: Double = 0
     @AppStorage("practice-name-prompted") var practiceNamePrompted = false
 
-    @State var selectedMechanicSkill: String = ""
-    @State var mechanicsComfort: Double = 3
-    @State var mechanicsNote: String = ""
-
-    @State var playerName: String = ""
-    @State var ifpaPlayerID: String = ""
-    @State var insightsOpponentName: String = ""
-    @State var insightsOpponentOptions: [String] = []
-    @State var leaguePlayerName: String = ""
-    @State var leaguePlayerOptions: [String] = []
-    @State var leagueImportStatus: String = ""
-    @State var cloudSyncEnabled = false
-    @State var showingNamePrompt = false
-    @State var firstNamePromptValue: String = ""
-    @State var importLplStatsOnNameSave = true
-    @State var showingResetJournalPrompt = false
-    @State var resetJournalConfirmationText: String = ""
-    @State var headToHead: HeadToHeadComparison?
-    @State var isLoadingHeadToHead = false
-    @State var viewportHeight: CGFloat = 0
     @State var hasRunInitialPracticeLoad = false
     struct TimelineItem: Identifiable {
         let id: String
@@ -85,7 +52,7 @@ struct PracticeScreen: View {
     }
 
     var greetingName: String? {
-        let trimmed = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = uiState.playerName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         let redacted = redactPlayerNameForDisplay(trimmed)
         if redacted != trimmed {
@@ -169,221 +136,324 @@ struct PracticeScreen: View {
     }
 
     var body: some View {
-        NavigationStack(path: $gameNavigationPath) {
+        NavigationStack(path: $uiState.gameNavigationPath) {
             practiceDialogHost(practiceRootContent)
         }
     }
 
-    func applyDefaultsAfterLoad() {
-        if selectedGameID.isEmpty, let fallback = defaultPracticeGame {
-            selectedGameID = fallback.canonicalPracticeKey
-        }
-
-        playerName = store.state.practiceSettings.playerName
-        ifpaPlayerID = store.state.practiceSettings.ifpaPlayerID
-        insightsOpponentName = store.state.practiceSettings.comparisonPlayerName
-        leaguePlayerName = store.state.leagueSettings.playerName
-        cloudSyncEnabled = store.state.syncSettings.cloudSyncEnabled
-
-        let knownGroupIDs = Set(store.state.customGroups.map(\.id))
-        if let selectedGroupID = store.state.practiceSettings.selectedGroupID,
-           knownGroupIDs.contains(selectedGroupID) {
-            store.setSelectedGroup(id: selectedGroupID)
-        } else if let first = store.state.customGroups.first {
-            store.setSelectedGroup(id: first.id)
-        }
-
-    }
-    func goToGame(_ gameID: String, zoomSourceID: String? = nil) {
-        guard !gameID.isEmpty else { return }
-        let canonical = store.canonicalPracticeGameID(gameID)
-        gameTransitionSourceID = zoomSourceID
-        selectedGameID = canonical
-        markPracticeGameViewed(canonical)
-        let target = PracticeNavRoute.game(canonical)
-        if gameNavigationPath.last != target {
-            gameNavigationPath.append(target)
-        }
-    }
-    func resumeToPracticeGame(zoomSourceID: String? = nil) {
-        if let game = resumeGame {
-            goToGame(game.canonicalPracticeKey, zoomSourceID: zoomSourceID)
-        } else if let fallback = defaultPracticeGame {
-            goToGame(fallback.canonicalPracticeKey, zoomSourceID: zoomSourceID)
-        }
-    }
-    func openQuickEntry(_ sheet: QuickEntrySheet) {
-        let orderedGames = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true)
-        let remembered = store.canonicalPracticeGameID(rememberedQuickEntryGame(for: sheet))
-        if sheet == .mechanics {
-            selectedGameID = ""
-        } else if !remembered.isEmpty {
-            selectedGameID = remembered
-        } else if !selectedGameID.isEmpty {
-            // keep current selection
-        } else if let first = orderedGames.first {
-            selectedGameID = first.canonicalPracticeKey
-        }
-        quickSheet = sheet
-    }
-    func rememberedQuickEntryGame(for sheet: QuickEntrySheet) -> String {
-        switch sheet {
-        case .score:
-            return quickScoreGameID
-        case .study:
-            return quickStudyGameID
-        case .practice:
-            return quickPracticeGameID
-        case .mechanics:
-            return quickMechanicsGameID
-        }
-    }
-    func rememberQuickEntryGame(sheet: QuickEntrySheet, gameID: String) {
-        let canonical = store.canonicalPracticeGameID(gameID)
-        switch sheet {
-        case .score:
-            quickScoreGameID = canonical
-        case .study:
-            quickStudyGameID = canonical
-        case .practice:
-            quickPracticeGameID = canonical
-        case .mechanics:
-            quickMechanicsGameID = ""
-        }
-    }
-    func markPracticeGameViewed(_ gameID: String) {
-        let canonical = store.canonicalPracticeGameID(gameID)
-        guard !canonical.isEmpty else { return }
-        practiceLastViewedGameID = canonical
-        practiceLastViewedGameTS = Date().timeIntervalSince1970
-    }
-    func openGroupEditorForSelection() {
-        let selectedID = store.state.practiceSettings.selectedGroupID ?? store.state.customGroups.first?.id
-        guard let selectedID else { return }
-        store.setSelectedGroup(id: selectedID)
-        editingGroupID = selectedID
-        openGroupEditor = true
-    }
-    func openGroupEditorForCreate() {
-        editingGroupID = nil
-        openGroupEditor = true
-    }
-    func openCurrentGroupDateEditor(for groupID: UUID, field: GroupEditorDateField) {
-        currentGroupDateEditorGroupID = groupID
-        currentGroupDateEditorField = field
-        if let group = store.state.customGroups.first(where: { $0.id == groupID }) {
-            switch field {
-            case .start:
-                currentGroupDateEditorValue = group.startDate ?? Date()
-            case .end:
-                currentGroupDateEditorValue = group.endDate ?? Date()
+    var practiceHomeContext: PracticeHomeContext {
+        PracticeHomeContext(
+            store: store,
+            greetingName: greetingName,
+            hasIFPAProfileAccess: !uiState.ifpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            resumeGame: resumeGame,
+            allGames: store.games,
+            librarySources: store.librarySources,
+            selectedLibrarySourceID: store.defaultPracticeSourceID,
+            activeGroups: store.state.customGroups.filter { $0.isActive && !$0.isArchived },
+            selectedGroupID: selectedGroup?.id,
+            groupGames: { group in
+                store.groupGames(for: group)
+            },
+            gameTransition: gameTransition,
+            showingNamePrompt: uiState.showingNamePrompt,
+            firstNamePromptValue: $uiState.firstNamePromptValue,
+            importLplStatsOnNameSave: $uiState.importLplStatsOnNameSave,
+            onOpenSettings: {
+                openRoute(.settings)
+            },
+            onOpenIFPAProfile: {
+                openRoute(.ifpaProfile)
+            },
+            onResume: { sourceID in
+                resumeToPracticeGame(zoomSourceID: sourceID)
+            },
+            onSelectLibrarySource: { sourceID in
+                let normalizedSourceID = (sourceID == "__practice_home_all_games__") ? nil : sourceID
+                store.selectPracticeLibrarySource(id: normalizedSourceID)
+                if store.gameForAnyID(uiState.selectedGameID) == nil || !store.games.contains(where: { $0.canonicalPracticeKey == store.canonicalPracticeGameID(uiState.selectedGameID) }) {
+                    uiState.selectedGameID = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first?.canonicalPracticeKey ?? ""
+                }
+            },
+            onPickGame: { gameID, sourceID in
+                goToGame(gameID, zoomSourceID: sourceID)
+            },
+            onQuickEntry: { sheet in
+                openQuickEntry(sheet)
+            },
+            onNotNow: {
+                practiceNamePrompted = true
+                uiState.showingNamePrompt = false
+            },
+            onSaveName: { trimmedName, shouldImportLplStats in
+                uiState.playerName = trimmedName
+                store.updatePracticeSettings(playerName: trimmedName)
+                practiceNamePrompted = true
+                uiState.showingNamePrompt = false
+                guard shouldImportLplStats else { return }
+                Task {
+                    let normalizedInput = store.normalizeHumanName(trimmedName)
+                    let players = await store.availableLeaguePlayers()
+                    guard let matchedPlayer = players.first(where: {
+                        store.normalizeHumanName($0) == normalizedInput
+                    }) else { return }
+                    uiState.leaguePlayerName = matchedPlayer
+                    store.updateLeagueSettings(playerName: matchedPlayer, csvAutoFillEnabled: true)
+                    _ = await store.importLeagueScoresFromCSV()
+                }
+            },
+            onViewportHeightChanged: { height in
+                uiState.viewportHeight = height
             }
-        } else {
-            currentGroupDateEditorValue = Date()
-        }
-        openCurrentGroupDateEditor = true
+        )
     }
-    func openJournalEntryEditor(_ entry: JournalEntry) {
-        guard store.canEditJournalEntry(entry) else { return }
-        selectedJournalItemIDs.removeAll()
-        isEditingJournalEntries = false
-        editingJournalEntry = entry
-    }
-    func saveEditedJournalEntry(_ entry: JournalEntry) {
-        _ = store.updateJournalEntry(entry)
-    }
-    func deleteJournalEntries(_ entries: [JournalEntry]) {
-        guard !entries.isEmpty else { return }
-        let ids = Set(entries.map(\.id))
-        for entry in entries {
-            _ = store.deleteJournalEntry(id: entry.id)
-        }
-        selectedJournalItemIDs = Set(selectedJournalItemIDs.filter { itemID in
-            guard let journalID = journalEntryID(fromTimelineItemID: itemID) else { return false }
-            return !ids.contains(journalID)
-        })
-        if selectedJournalItemIDs.isEmpty {
-            isEditingJournalEntries = false
-        }
-    }
-    private func journalEntryID(fromTimelineItemID itemID: String) -> UUID? {
-        let prefix = "app-"
-        guard itemID.hasPrefix(prefix) else { return nil }
-        let raw = String(itemID.dropFirst(prefix.count))
-        return UUID(uuidString: raw)
-    }
-    func actionIcon(_ action: JournalActionType) -> String {
-        switch action {
-        case .rulesheetRead: return "book"
-        case .tutorialWatch: return "play.rectangle"
-        case .gameplayWatch: return "video"
-        case .playfieldViewed: return "photo"
-        case .gameBrowse: return "gamecontroller"
-        case .practiceSession: return "figure.run"
-        case .scoreLogged: return "number.circle"
-        case .noteAdded: return "note.text"
-        }
-    }
-    func libraryActivityIcon(_ kind: LibraryActivityKind) -> String {
-        switch kind {
-        case .browseGame:
-            return "rectangle.grid.2x2"
-        case .openRulesheet:
-            return "book"
-        case .openPlayfield:
-            return "photo"
-        case .tapVideo:
-            return "play.rectangle"
-        }
-    }
-    func libraryActivitySummary(_ event: LibraryActivityEvent) -> String {
-        switch event.kind {
-        case .browseGame:
-            return "Browsed \(event.gameName) in Library"
-        case .openRulesheet:
-            return "Opened \(event.gameName) rulesheet from Library"
-        case .openPlayfield:
-            return "Opened \(event.gameName) playfield image from Library"
-        case .tapVideo:
-            if let detail = event.detail, !detail.isEmpty {
-                return "Opened \(detail) video for \(event.gameName) in Library"
+
+    var practiceGroupDashboardContext: PracticeGroupDashboardContext {
+        PracticeGroupDashboardContext(
+            store: store,
+            selectedGroup: selectedGroup,
+            gameTransition: gameTransition,
+            onOpenCreateGroup: {
+                openGroupEditorForCreate()
+            },
+            onOpenEditSelectedGroup: {
+                openGroupEditorForSelection()
+            },
+            onOpenGame: { gameID, sourceID in
+                goToGame(gameID, zoomSourceID: sourceID)
+            },
+            onRemoveGameFromGroup: { gameID, groupID in
+                store.removeGame(gameID, fromGroup: groupID)
             }
-            return "Opened video for \(event.gameName) in Library"
-        }
-    }
-    func scoreTrendValues(for gameID: String) -> [Double] {
-        let gameID = store.canonicalPracticeGameID(gameID)
-        return store.state.scoreEntries
-            .filter { $0.gameID == gameID }
-            .sorted { $0.timestamp < $1.timestamp }
-            .map(\.score)
-    }
-    func refreshHeadToHead() async {
-        guard !playerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !insightsOpponentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            headToHead = nil
-            return
-        }
-
-        isLoadingHeadToHead = true
-        defer { isLoadingHeadToHead = false }
-        headToHead = await store.comparePlayers(yourName: playerName, opponentName: insightsOpponentName)
-    }
-    func refreshInsightsOpponentOptions() async {
-        let names = await store.availableLeaguePlayers()
-        let normalizedSelf = playerName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        insightsOpponentOptions = names.filter { $0.lowercased() != normalizedSelf }
-        if !insightsOpponentName.isEmpty, !insightsOpponentOptions.contains(insightsOpponentName) {
-            insightsOpponentName = ""
-        }
-    }
-    func refreshLeaguePlayerOptions() async {
-        leaguePlayerOptions = await store.availableLeaguePlayers()
-        if !leaguePlayerName.isEmpty, !leaguePlayerOptions.contains(leaguePlayerName) {
-            leaguePlayerName = ""
-        }
+        )
     }
 
+    var practiceJournalContext: PracticeJournalContext {
+        PracticeJournalContext(
+            journalFilter: Binding(
+                get: { journalFilter },
+                set: { journalFilterRaw = $0.rawValue }
+            ),
+            items: journalSectionItems,
+            isEditingEntries: $uiState.isEditingJournalEntries,
+            selectedItemIDs: $uiState.selectedJournalItemIDs,
+            gameTransition: gameTransition,
+            onToggleEditing: {
+                uiState.selectedJournalItemIDs.removeAll()
+                uiState.isEditingJournalEntries.toggle()
+            },
+            onOpenGame: { gameID, sourceID in
+                goToGame(gameID, zoomSourceID: sourceID)
+            },
+            onEditJournalEntry: { entry in
+                openJournalEntryEditor(entry)
+            },
+            onDeleteJournalEntries: { entries in
+                deleteJournalEntries(entries)
+            }
+        )
+    }
+
+    var practiceMechanicsContext: PracticeMechanicsContext {
+        PracticeMechanicsContext(
+            selectedMechanicSkill: $uiState.selectedMechanicSkill,
+            mechanicsComfort: $uiState.mechanicsComfort,
+            mechanicsNote: $uiState.mechanicsNote,
+            trackedSkills: store.allTrackedMechanicsSkills(),
+            detectedTags: store.detectedMechanicsTags(in: uiState.mechanicsNote),
+            summaryForSkill: { skill in
+                store.mechanicsSummary(for: skill)
+            },
+            allLogs: {
+                store.allMechanicsLogs()
+            },
+            logsForSkill: { skill in
+                store.mechanicsLogs(for: skill)
+            },
+            gameNameForID: { gameID in
+                store.gameName(for: gameID)
+            },
+            maxHistoryHeight: mechanicsHistoryMaxHeight(),
+            onLogMechanicsSession: { skill, comfort, note in
+                let prefix = skill.isEmpty ? "#mechanics" : "#\(skill.replacingOccurrences(of: " ", with: ""))"
+                let fullNote = "\(prefix) competency \(comfort)/5. \(note)"
+                store.addNote(gameID: "", category: .general, detail: skill, note: fullNote)
+                uiState.mechanicsNote = ""
+            }
+        )
+    }
+
+    var practiceSettingsContext: PracticeSettingsContext {
+        PracticeSettingsContext(
+            store: store,
+            playerName: $uiState.playerName,
+            ifpaPlayerID: $uiState.ifpaPlayerID,
+            leaguePlayerName: $uiState.leaguePlayerName,
+            leaguePlayerOptions: uiState.leaguePlayerOptions,
+            leagueImportStatus: uiState.leagueImportStatus,
+            cloudSyncEnabled: $uiState.cloudSyncEnabled,
+            redactName: { name in
+                formatLPLPlayerNameForDisplay(name)
+            },
+            onImportLeagueCSV: {
+                Task {
+                    store.updateLeagueSettings(playerName: uiState.leaguePlayerName, csvAutoFillEnabled: true)
+                    let result = await store.importLeagueScoresFromCSV()
+                    uiState.leagueImportStatus = result.summaryLine
+                }
+            },
+            onResetPracticeLog: {
+                uiState.resetJournalConfirmationText = ""
+                uiState.showingResetJournalPrompt = true
+            }
+        )
+    }
+
+    var practicePresentationContext: PracticePresentationContext {
+        PracticePresentationContext(
+            store: store,
+            selectedGameID: $uiState.selectedGameID,
+            presentedSheet: $uiState.presentedSheet,
+            quickEntryKind: uiState.quickEntryKind,
+            editingGroupID: uiState.editingGroupID,
+            currentGroupDateEditorTitle: uiState.currentGroupDateEditorField == .start ? "Start Date" : "End Date",
+            currentGroupDateEditorValue: $uiState.currentGroupDateEditorValue,
+            editingJournalEntry: uiState.editingJournalEntry,
+            showingResetJournalPrompt: $uiState.showingResetJournalPrompt,
+            resetJournalConfirmationText: $uiState.resetJournalConfirmationText,
+            onRememberQuickEntryGame: { sheet, gameID in
+                rememberQuickEntryGame(sheet: sheet, gameID: gameID)
+            },
+            onMarkGameViewed: { gameID in
+                markPracticeGameViewed(gameID)
+            },
+            onDismissPresentedSheet: {
+                uiState.presentedSheet = nil
+            },
+            onDismissGroupEditor: {
+                uiState.presentedSheet = nil
+                uiState.editingGroupID = nil
+            },
+            onClearEditedGroupDate: {
+                guard let groupID = uiState.currentGroupDateEditorGroupID else {
+                    uiState.presentedSheet = nil
+                    return
+                }
+                switch uiState.currentGroupDateEditorField {
+                case .start:
+                    store.updateGroup(id: groupID, replaceStartDate: true, startDate: nil)
+                case .end:
+                    store.updateGroup(id: groupID, replaceEndDate: true, endDate: nil)
+                }
+                uiState.presentedSheet = nil
+            },
+            onSaveEditedGroupDate: {
+                guard let groupID = uiState.currentGroupDateEditorGroupID else {
+                    uiState.presentedSheet = nil
+                    return
+                }
+                switch uiState.currentGroupDateEditorField {
+                case .start:
+                    store.updateGroup(id: groupID, replaceStartDate: true, startDate: uiState.currentGroupDateEditorValue)
+                case .end:
+                    store.updateGroup(id: groupID, replaceEndDate: true, endDate: uiState.currentGroupDateEditorValue)
+                }
+                uiState.presentedSheet = nil
+            },
+            onSaveEditedJournalEntry: { entry in
+                saveEditedJournalEntry(entry)
+            },
+            onConfirmResetPracticeLog: {
+                uiState.resetJournalConfirmationText = ""
+                store.resetPracticeState()
+                applyDefaultsAfterLoad()
+                LibraryActivityLog.clearAll()
+            },
+            onPresentedSheetDismissed: {
+                uiState.quickEntryKind = nil
+                uiState.editingJournalEntry = nil
+                uiState.editingGroupID = nil
+            }
+        )
+    }
+
+    var practiceLifecycleContext: PracticeLifecycleContext {
+        PracticeLifecycleContext(
+            lastViewedLibraryGameID: appNavigation.lastViewedLibraryGameID,
+            journalFilterRaw: journalFilterRaw,
+            presentedSheet: uiState.presentedSheet,
+            onInitialLoad: {
+                guard !hasRunInitialPracticeLoad else { return }
+                hasRunInitialPracticeLoad = true
+                await store.loadIfNeeded()
+                applyDefaultsAfterLoad()
+                await refreshLeaguePlayerOptions()
+                await refreshHeadToHead()
+                let trimmedName = uiState.playerName.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmedName.isEmpty {
+                    uiState.firstNamePromptValue = ""
+                    uiState.importLplStatsOnNameSave = true
+                    uiState.showingNamePrompt = true
+                }
+            },
+            onLibraryGameViewedChanged: { newValue in
+                let trimmed = newValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard !trimmed.isEmpty else { return }
+                libraryLastViewedGameTS = Date().timeIntervalSince1970
+            },
+            onJournalFilterChanged: {
+                uiState.selectedJournalItemIDs.removeAll()
+                uiState.isEditingJournalEntries = false
+            },
+            onPresentedSheetChanged: { newValue in
+                guard newValue == nil else { return }
+                practicePresentationContext.onPresentedSheetDismissed()
+            },
+            onLibrarySourcesChanged: {
+                await store.loadGames()
+                applyDefaultsAfterLoad()
+            }
+        )
+    }
+
+    var practiceInsightsContext: PracticeInsightsContext {
+        PracticeInsightsContext(
+            games: store.games,
+            librarySources: store.librarySources,
+            selectedLibrarySourceID: store.defaultPracticeSourceID,
+            onSelectLibrarySourceID: { sourceID in
+                store.selectPracticeLibrarySource(id: sourceID)
+                let canonical = store.canonicalPracticeGameID(uiState.selectedGameID)
+                if !canonical.isEmpty,
+                   store.games.contains(where: { $0.canonicalPracticeKey == canonical }) {
+                    uiState.selectedGameID = canonical
+                } else {
+                    uiState.selectedGameID = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first?.canonicalPracticeKey ?? ""
+                }
+            },
+            selectedGameID: $uiState.selectedGameID,
+            scoreSummaryForGame: { gameID in
+                store.scoreSummary(for: gameID)
+            },
+            scoreTrendValuesForGame: { gameID in
+                scoreTrendValues(for: gameID)
+            },
+            playerName: uiState.playerName,
+            opponentName: $uiState.insightsOpponentName,
+            opponentOptions: uiState.insightsOpponentOptions,
+            isLoadingHeadToHead: uiState.isLoadingHeadToHead,
+            headToHead: uiState.headToHead,
+            redactName: { name in
+                formatLPLPlayerNameForDisplay(name)
+            },
+            onRefreshHeadToHead: {
+                await refreshHeadToHead()
+            },
+            onRefreshOpponentOptions: {
+                await refreshInsightsOpponentOptions()
+            }
+        )
+    }
 }
 
 

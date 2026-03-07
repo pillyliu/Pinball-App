@@ -4,6 +4,7 @@
 
 - route structure
 - top bar behavior
+- state ownership contract
 - game/resource behavior
 - group lifecycle behavior
 - journal editing behavior
@@ -25,7 +26,7 @@ Practice routes that must exist and be documented on both platforms:
 - `Settings`
 
 Implementation note:
-- iOS currently delivers some of these surfaces through sheets/boolean destinations rather than one explicit route enum.
+- iOS now uses explicit `PracticeRoute` and `PracticeSheet` enums for the main pushed and modal surfaces.
 - Android currently models most of them as explicit routes.
 - That implementation difference is acceptable only temporarily; the product-surface contract must still match.
 
@@ -39,7 +40,7 @@ Implementation note:
 - Game-switcher behavior and library-source filtering from the Game route
 - group editing flows and date editor behavior
 - top-bar actions and back behavior by route
-- sheet-vs-route presentation drift for settings and group editor
+- remaining route-vs-local-drill-in drift for settings, group editor, rulesheet, and playfield handling
 
 ## Game route contract
 
@@ -55,6 +56,19 @@ For the selected game workspace, both platforms must match in:
 Allowed temporary differences:
 - where the game-switcher control sits in the top chrome
 - exact card boundaries and inner headings
+
+## Ownership parity target
+
+Both platforms should converge on the same conceptual state split:
+- route state
+- dialog/presentation state
+- route-local draft state
+- persisted domain/store state
+
+Implementation note:
+- file names and UI framework primitives may differ
+- ownership categories should not differ
+- if a behavior exists in one category on iOS and another on Android, that is modernization debt and should be written in `ledger.md`
 
 ## Known risk
 
