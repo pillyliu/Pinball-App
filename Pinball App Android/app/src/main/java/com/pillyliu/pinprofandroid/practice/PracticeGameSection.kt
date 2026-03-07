@@ -2,11 +2,6 @@ package com.pillyliu.pinprofandroid.practice
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import com.pillyliu.pinprofandroid.library.ConstrainedAsyncImagePreview
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.PlayableVideo
@@ -35,14 +30,11 @@ internal fun PracticeGameSection(
         return
     }
     val gameKey = game.practiceKey
+    val uiState = rememberPracticeGameSectionState(gameKey)
     val playableVideos = game.videos.mapNotNull { video ->
         val id = youtubeId(video.url) ?: return@mapNotNull null
         PlayableVideo(id = id, label = video.label ?: "Video")
     }
-    var editingDraft by remember { mutableStateOf<PracticeJournalEditDraft?>(null) }
-    var pendingDeleteEntry by remember { mutableStateOf<JournalEntry?>(null) }
-    var editValidation by remember { mutableStateOf<String?>(null) }
-    var revealedLogRowId by rememberSaveable(gameKey) { mutableStateOf<String?>(null) }
 
     ConstrainedAsyncImagePreview(
         urls = game.gameInlinePlayfieldCandidates(),
@@ -55,18 +47,11 @@ internal fun PracticeGameSection(
         game = game,
         gameSubview = gameSubview,
         onGameSubviewChange = onGameSubviewChange,
-        revealedLogRowId = revealedLogRowId,
-        onRevealedLogRowIdChange = { revealedLogRowId = it },
+        revealedLogRowId = uiState.revealedLogRowId,
+        onRevealedLogRowIdChange = { uiState.revealedLogRowId = it },
         onOpenQuickEntry = onOpenQuickEntry,
-        onEditLogEntry = { entry ->
-            revealedLogRowId = null
-            editingDraft = store.journalEditDraft(entry)
-            editValidation = null
-        },
-        onDeleteLogEntry = { entry ->
-            revealedLogRowId = null
-            pendingDeleteEntry = entry
-        },
+        onEditLogEntry = { entry -> uiState.beginEditing(store, entry) },
+        onDeleteLogEntry = { entry -> uiState.confirmDelete(entry) },
     )
 
     PracticeGameNoteCard(
@@ -88,13 +73,13 @@ internal fun PracticeGameSection(
 
     PracticeGameDialogs(
         store = store,
-        pendingDeleteEntry = pendingDeleteEntry,
-        onPendingDeleteEntryChange = { pendingDeleteEntry = it },
-        editingDraft = editingDraft,
-        onEditingDraftChange = { editingDraft = it },
-        editValidation = editValidation,
-        onEditValidationChange = { editValidation = it },
-        onEntryDeleted = { revealedLogRowId = null },
-        onEntryEdited = { revealedLogRowId = null },
+        pendingDeleteEntry = uiState.pendingDeleteEntry,
+        onPendingDeleteEntryChange = { uiState.pendingDeleteEntry = it },
+        editingDraft = uiState.editingDraft,
+        onEditingDraftChange = { uiState.editingDraft = it },
+        editValidation = uiState.editValidation,
+        onEditValidationChange = { uiState.editValidation = it },
+        onEntryDeleted = uiState::handleEntryDeleted,
+        onEntryEdited = uiState::handleEntryEdited,
     )
 }
