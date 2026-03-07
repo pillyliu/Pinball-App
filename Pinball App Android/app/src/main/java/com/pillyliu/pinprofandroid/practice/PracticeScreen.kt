@@ -238,18 +238,10 @@ fun PracticeScreen(contentPadding: PaddingValues) {
 
             val routeContentContext = PracticeRouteContentContext(
                 store = store,
-                onOpenGame = openPracticeGame,
                 editingGroupID = uiState.editingGroupID,
                 onEditingGroupIDChange = { uiState.editingGroupID = it },
                 onNavigateGroupEditor = { uiState.navigateTo(PracticeRoute.GroupEditor) },
                 onBack = uiState::goBack,
-                journalFilter = uiState.journalFilter,
-                onJournalFilterChange = { uiState.journalFilter = it },
-                journalSelectionMode = uiState.journalSelectionMode,
-                selectedJournalRowIds = uiState.selectedJournalRowIds,
-                onJournalSelectionModeChange = { uiState.journalSelectionMode = it },
-                onSelectedJournalRowIdsChange = { uiState.selectedJournalRowIds = it },
-                journalTimelineModifier = Modifier.fillMaxSize(),
             )
             val homeRouteContext = PracticeHomeRouteContext(
                 store = store,
@@ -323,6 +315,17 @@ fun PracticeScreen(contentPadding: PaddingValues) {
                 },
                 onOpenResetDialog = { uiState.openResetDialog = true },
             )
+            val journalRouteContext = PracticeJournalRouteContext(
+                store = store,
+                journalFilter = uiState.journalFilter,
+                onJournalFilterChange = { uiState.journalFilter = it },
+                journalSelectionMode = uiState.journalSelectionMode,
+                selectedJournalRowIds = uiState.selectedJournalRowIds,
+                onJournalSelectionModeChange = { uiState.journalSelectionMode = it },
+                onSelectedJournalRowIdsChange = { uiState.selectedJournalRowIds = it },
+                onOpenGame = openPracticeGame,
+                timelineModifier = Modifier.fillMaxSize(),
+            )
             val gameRouteContext = PracticeGameRouteContext(
                 store = store,
                 selectedGame = selectedGame,
@@ -360,6 +363,7 @@ fun PracticeScreen(contentPadding: PaddingValues) {
                 gameContext = gameRouteContext,
                 homeContext = homeRouteContext,
                 groupDashboardContext = groupDashboardContext,
+                journalContext = journalRouteContext,
                 insightsContext = insightsRouteContext,
                 mechanicsContext = mechanicsRouteContext,
                 settingsContext = settingsRouteContext,

@@ -143,11 +143,17 @@
 - Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreenRouteContent.kt` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreen.kt` so shared Android route wiring now carries only the remaining genuinely shared fields, while repeated "open game" and library-source selection rules are centralized once.
 - Removed dead Android wiring by dropping the unused `ifpaPlayerID` parameter from `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeTopBar.kt` and the unused `selectedGameSlug` parameter from `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeMechanicsSection.kt`.
 - Verified the Android non-game route-context split and shared selection-helper cleanup at compile time with `./gradlew app:assembleDebug`.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeJournalRouteContext.kt` so Android `Journal` route dependencies no longer widen the remaining shared `PracticeRouteContentContext`.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeJournalRows.kt` so Android journal timeline-row rendering and swipe-reveal behavior no longer live in the same file as section-level state orchestration.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeJournalEditDialog.kt` so Android journal entry editing no longer lives inline inside the main journal section file.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeJournalSection.kt` so it now focuses on route-level filtering, grouped timeline assembly, and section-local edit/delete state instead of also owning row rendering and dialog composition inline.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreenRouteContent.kt` again so `Journal` no longer leans on the shared route-content contract.
+- Verified the Android journal route-context split and journal-section file decomposition at compile time with `./gradlew app:assembleDebug`.
 
 ## Next audit targets
 
 - exact route-to-screen contract
 - top-bar behavior per route
 - state ownership split between screen, route model, and store
-- remaining shared route wiring in `Journal`
+- journal section state ownership and further row/editor extraction opportunities
 - repeated resource/video/rulesheet UI patterns

@@ -5,18 +5,10 @@ import androidx.compose.ui.Modifier
 
 internal data class PracticeRouteContentContext(
     val store: PracticeStore,
-    val onOpenGame: (String) -> Unit,
     val editingGroupID: String?,
     val onEditingGroupIDChange: (String?) -> Unit,
     val onNavigateGroupEditor: () -> Unit,
     val onBack: () -> Unit,
-    val journalFilter: JournalFilter,
-    val onJournalFilterChange: (JournalFilter) -> Unit,
-    val journalSelectionMode: Boolean,
-    val selectedJournalRowIds: Set<String>,
-    val onJournalSelectionModeChange: (Boolean) -> Unit,
-    val onSelectedJournalRowIdsChange: (Set<String>) -> Unit,
-    val journalTimelineModifier: Modifier,
 )
 
 @Composable
@@ -26,6 +18,7 @@ internal fun PracticeScreenRouteContent(
     gameContext: PracticeGameRouteContext,
     homeContext: PracticeHomeRouteContext,
     groupDashboardContext: PracticeGroupDashboardContext,
+    journalContext: PracticeJournalRouteContext,
     insightsContext: PracticeInsightsRouteContext,
     mechanicsContext: PracticeMechanicsRouteContext,
     settingsContext: PracticeSettingsRouteContext,
@@ -94,15 +87,15 @@ internal fun PracticeScreenRouteContent(
 
         PracticeRoute.Journal -> {
             PracticeJournalSection(
-                store = store,
-                journalFilter = context.journalFilter,
-                onJournalFilterChange = context.onJournalFilterChange,
-                isSelectionMode = context.journalSelectionMode,
-                selectedRowIds = context.selectedJournalRowIds,
-                onSelectionModeChange = context.onJournalSelectionModeChange,
-                onSelectedRowIdsChange = context.onSelectedJournalRowIdsChange,
-                onOpenGame = context.onOpenGame,
-                modifier = context.journalTimelineModifier,
+                store = journalContext.store,
+                journalFilter = journalContext.journalFilter,
+                onJournalFilterChange = journalContext.onJournalFilterChange,
+                isSelectionMode = journalContext.journalSelectionMode,
+                selectedRowIds = journalContext.selectedJournalRowIds,
+                onSelectionModeChange = journalContext.onJournalSelectionModeChange,
+                onSelectedRowIdsChange = journalContext.onSelectedJournalRowIdsChange,
+                onOpenGame = journalContext.onOpenGame,
+                modifier = journalContext.timelineModifier,
             )
         }
 
