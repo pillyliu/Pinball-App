@@ -14,6 +14,8 @@
 - Extracted iOS catalog imported-game, rulesheet, video, and machine-selection helpers into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryCatalogResolution.swift`.
 - Extracted Android catalog imported-game, rulesheet, video, and machine-selection helpers into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryCatalogResolution.kt`.
 - Left both main Library integration files smaller but still not “done”; remaining work is to keep reducing loader/store concentration and align seed-database assembly structure with the new resolution seam.
+- Rewired iOS seed-database imported-source loading in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibrarySeedDatabase.swift` to feed the shared catalog-resolution seam instead of assembling imported games inline.
+- Rewired Android seed-database imported-source loading in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedDatabase.kt` to feed the shared catalog-resolution seam instead of assembling imported games inline.
 
 ## Next audit targets
 
@@ -21,4 +23,4 @@
 - GameRoom overlay logic
 - rulesheet/playfield fallback ordering
 - repeated detail/resource UI
-- seed-database assembly seams
+- built-in seed-database assembly seams

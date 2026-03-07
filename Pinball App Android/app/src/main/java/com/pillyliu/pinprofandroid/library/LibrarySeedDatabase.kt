@@ -246,35 +246,38 @@ internal object LibrarySeedDatabase {
         importedSources: List<ImportedSourceRecord>,
     ): List<PinballGame> {
         if (importedSources.isEmpty()) return emptyList()
-        val manufacturersById = loadManufacturers(database)
+        val manufacturersById = loadManufacturers(database).mapValues { (_, row) -> row.toCatalogManufacturerRecord() }
         val overridesByPracticeIdentity = loadOverrides(database)
         val overrideRulesheets = loadOverrideRulesheets(database)
-        val catalogRulesheets = loadCatalogRulesheets(database)
+        val catalogRulesheets = loadCatalogRulesheetRecords(database)
         val overrideVideos = loadOverrideVideos(database)
-        val catalogVideos = loadCatalogVideos(database)
+        val catalogVideos = loadCatalogVideoRecords(database)
         val machineById = loadMachinesById(database)
-        val groupedByPracticeIdentity = machineById.values.groupBy { it.practiceIdentity }
+        val catalogMachineById = machineById.mapValues { (_, machine) -> machine.toCatalogMachineRecord() }
+        val catalogMachines = catalogMachineById.values.toList()
+        val groupedByPracticeIdentity = catalogMachines.groupBy { it.practiceIdentity }
 
         val out = mutableListOf<PinballGame>()
         importedSources.forEach { source ->
             when (source.type) {
                 LibrarySourceType.MANUFACTURER -> {
-                    val grouped = machineById.values
+                    val grouped = catalogMachines
                         .filter { it.manufacturerId == source.providerSourceId }
                         .groupBy { it.opdbGroupId ?: it.practiceIdentity }
                     grouped.values
-                        .mapNotNull { machines -> preferredSeedGroupMachine(machines) }
-                        .sortedWith(compareBy<SeedMachine> { it.year ?: Int.MAX_VALUE }.thenBy { it.name.lowercase() })
+                        .mapNotNull { machines -> machines.minWithOrNull(::comparePreferredMachine) }
+                        .sortedWith(compareBy<CatalogMachineRecord> { it.year ?: Int.MAX_VALUE }.thenBy { it.name.lowercase() })
                         .forEach { machine ->
                             out += resolveImportedGame(
                                 machine = machine,
                                 source = source,
-                                manufacturersById = manufacturersById,
-                                overrideRow = overridesByPracticeIdentity[machine.practiceIdentity],
-                                overrideRulesheets = overrideRulesheets[machine.practiceIdentity].orEmpty(),
-                                catalogRulesheets = catalogRulesheets[machine.practiceIdentity].orEmpty(),
-                                overrideVideos = overrideVideos[machine.practiceIdentity].orEmpty(),
-                                catalogVideos = catalogVideos[machine.practiceIdentity].orEmpty(),
+                                manufacturerById = manufacturersById,
+                                curatedOverride = overridesByPracticeIdentity[machine.practiceIdentity]?.toLegacyCuratedOverride(
+                                    rulesheetLinks = overrideRulesheets[machine.practiceIdentity].orEmpty(),
+                                    videos = overrideVideos[machine.practiceIdentity].orEmpty(),
+                                ),
+                                opdbRulesheets = catalogRulesheets[machine.practiceIdentity].orEmpty(),
+                                opdbVideos = catalogVideos[machine.practiceIdentity].orEmpty(),
                             )
                         }
                 }
@@ -282,18 +285,22 @@ internal object LibrarySeedDatabase {
                 LibrarySourceType.VENUE,
                 LibrarySourceType.TOURNAMENT -> {
                     source.machineIds.forEach { machineId ->
-                        val preferred = machineById[machineId]
-                            ?: preferredSeedGroupMachine(groupedByPracticeIdentity[machineId].orEmpty())
+                        val preferred = preferredMachineForSourceLookup(
+                            requestedMachineId = machineId,
+                            machineByOpdbId = catalogMachineById,
+                            machineByPracticeIdentity = groupedByPracticeIdentity,
+                        )
                             ?: return@forEach
                         out += resolveImportedGame(
                             machine = preferred,
                             source = source,
-                            manufacturersById = manufacturersById,
-                            overrideRow = overridesByPracticeIdentity[preferred.practiceIdentity],
-                            overrideRulesheets = overrideRulesheets[preferred.practiceIdentity].orEmpty(),
-                            catalogRulesheets = catalogRulesheets[preferred.practiceIdentity].orEmpty(),
-                            overrideVideos = overrideVideos[preferred.practiceIdentity].orEmpty(),
-                            catalogVideos = catalogVideos[preferred.practiceIdentity].orEmpty(),
+                            manufacturerById = manufacturersById,
+                            curatedOverride = overridesByPracticeIdentity[preferred.practiceIdentity]?.toLegacyCuratedOverride(
+                                rulesheetLinks = overrideRulesheets[preferred.practiceIdentity].orEmpty(),
+                                videos = overrideVideos[preferred.practiceIdentity].orEmpty(),
+                            ),
+                            opdbRulesheets = catalogRulesheets[preferred.practiceIdentity].orEmpty(),
+                            opdbVideos = catalogVideos[preferred.practiceIdentity].orEmpty(),
                         )
                     }
                 }
@@ -302,62 +309,6 @@ internal object LibrarySeedDatabase {
             }
         }
         return out
-    }
-
-    private fun resolveImportedGame(
-        machine: SeedMachine,
-        source: ImportedSourceRecord,
-        manufacturersById: Map<String, SeedManufacturer>,
-        overrideRow: SeedOverride?,
-        overrideRulesheets: List<ReferenceLink>,
-        catalogRulesheets: List<ReferenceLink>,
-        overrideVideos: List<Video>,
-        catalogVideos: List<Video>,
-    ): PinballGame {
-        val manufacturerName = overrideRow?.manufacturerOverride
-            ?: machine.manufacturerName
-            ?: machine.manufacturerId?.let { manufacturersById[it]?.name }
-        val localRulesheet = overrideRow?.rulesheetLocalPath
-        val rulesheetLinks = when {
-            !localRulesheet.isNullOrBlank() -> emptyList()
-            overrideRulesheets.isNotEmpty() -> overrideRulesheets
-            else -> catalogRulesheets
-        }
-        val videos = when {
-            overrideVideos.isNotEmpty() -> overrideVideos
-            else -> catalogVideos
-        }
-        val playfieldSource = overrideRow?.playfieldSourceUrl ?: machine.playfieldLargeUrl ?: machine.playfieldMediumUrl
-        return PinballGame(
-            libraryEntryId = "${source.id}:${machine.practiceIdentity}",
-            practiceIdentity = machine.practiceIdentity,
-            opdbId = machine.opdbMachineId,
-            opdbGroupId = machine.opdbGroupId,
-            variant = if (source.type == LibrarySourceType.MANUFACTURER) null else (overrideRow?.variantOverride ?: machine.variant),
-            sourceId = source.id,
-            sourceName = source.name,
-            sourceType = source.type,
-            area = null,
-            areaOrder = null,
-            group = null,
-            position = null,
-            bank = null,
-            name = overrideRow?.nameOverride ?: machine.name,
-            manufacturer = manufacturerName,
-            year = overrideRow?.yearOverride ?: machine.year,
-            slug = machine.slug,
-            primaryImageUrl = machine.primaryImageMediumUrl,
-            primaryImageLargeUrl = machine.primaryImageLargeUrl,
-            playfieldImageUrl = playfieldSource,
-            playfieldLocalOriginal = normalizeCachePath(overrideRow?.playfieldLocalPath),
-            playfieldLocal = normalizePlayfieldLocalPath(overrideRow?.playfieldLocalPath),
-            playfieldSourceLabel = if (overrideRow?.playfieldLocalPath.isNullOrBlank() && playfieldSource != null) "Playfield (OPDB)" else null,
-            gameinfoLocal = overrideRow?.gameinfoLocalPath,
-            rulesheetLocal = localRulesheet,
-            rulesheetUrl = rulesheetLinks.firstOrNull()?.url,
-            rulesheetLinks = rulesheetLinks,
-            videos = videos,
-        )
     }
 
     private fun loadManufacturers(database: SQLiteDatabase): Map<String, SeedManufacturer> {
@@ -450,6 +401,29 @@ internal object LibrarySeedDatabase {
     private fun loadCatalogRulesheets(database: SQLiteDatabase): Map<String, List<ReferenceLink>> =
         loadRulesheetLinks(database, "catalog_rulesheet_links")
 
+    private fun loadCatalogRulesheetRecords(database: SQLiteDatabase): Map<String, List<CatalogRulesheetLinkRecord>> {
+        database.rawQuery(
+            "SELECT practice_identity, provider, label, url, priority FROM catalog_rulesheet_links ORDER BY practice_identity ASC, priority ASC",
+            emptyArray(),
+        ).use { cursor ->
+            val out = linkedMapOf<String, MutableList<CatalogRulesheetLinkRecord>>()
+            while (cursor.moveToNext()) {
+                val practiceIdentity = cursor.getString(0)
+                out.getOrPut(practiceIdentity) { mutableListOf() }.add(
+                    CatalogRulesheetLinkRecord(
+                        practiceIdentity = practiceIdentity,
+                        provider = cursor.getString(1).orEmpty(),
+                        label = cursor.getNullableString(2) ?: "Rulesheet",
+                        url = cursor.getNullableString(3),
+                        localPath = null,
+                        priority = cursor.getIntOrNull(4),
+                    ),
+                )
+            }
+            return out
+        }
+    }
+
     private fun loadRulesheetLinks(database: SQLiteDatabase, tableName: String): Map<String, List<ReferenceLink>> {
         database.rawQuery(
             "SELECT practice_identity, label, url FROM $tableName ORDER BY practice_identity ASC, priority ASC",
@@ -471,6 +445,30 @@ internal object LibrarySeedDatabase {
 
     private fun loadCatalogVideos(database: SQLiteDatabase): Map<String, List<Video>> =
         loadVideos(database, "catalog_video_links")
+
+    private fun loadCatalogVideoRecords(database: SQLiteDatabase): Map<String, List<CatalogVideoLinkRecord>> {
+        database.rawQuery(
+            "SELECT practice_identity, kind, label, url, priority FROM catalog_video_links ORDER BY practice_identity ASC, priority ASC",
+            emptyArray(),
+        ).use { cursor ->
+            val out = linkedMapOf<String, MutableList<CatalogVideoLinkRecord>>()
+            while (cursor.moveToNext()) {
+                val practiceIdentity = cursor.getString(0)
+                val url = cursor.getNullableString(3) ?: continue
+                out.getOrPut(practiceIdentity) { mutableListOf() }.add(
+                    CatalogVideoLinkRecord(
+                        practiceIdentity = practiceIdentity,
+                        provider = "matchplay",
+                        kind = cursor.getNullableString(1),
+                        label = cursor.getNullableString(2) ?: "Tutorial 1",
+                        url = url,
+                        priority = cursor.getIntOrNull(4),
+                    ),
+                )
+            }
+            return out
+        }
+    }
 
     private fun loadVideos(database: SQLiteDatabase, tableName: String): Map<String, List<Video>> {
         database.rawQuery(
@@ -777,6 +775,47 @@ private fun isCanonicalTiltForumsLink(url: String?): Boolean {
     val normalized = url?.lowercase() ?: return false
     return normalized.contains("tiltforums.com/t/") && !normalized.contains(".json")
 }
+
+private fun SeedManufacturer.toCatalogManufacturerRecord(): CatalogManufacturerRecord =
+    CatalogManufacturerRecord(
+        id = id,
+        name = name,
+    )
+
+private fun SeedMachine.toCatalogMachineRecord(): CatalogMachineRecord =
+    CatalogMachineRecord(
+        practiceIdentity = practiceIdentity,
+        opdbMachineId = opdbMachineId,
+        opdbGroupId = opdbGroupId,
+        slug = slug,
+        name = name,
+        variant = variant,
+        manufacturerId = manufacturerId,
+        manufacturerName = manufacturerName,
+        year = year,
+        primaryImageMediumUrl = primaryImageMediumUrl,
+        primaryImageLargeUrl = primaryImageLargeUrl,
+        playfieldImageMediumUrl = playfieldMediumUrl,
+        playfieldImageLargeUrl = playfieldLargeUrl,
+    )
+
+private fun SeedOverride.toLegacyCuratedOverride(
+    rulesheetLinks: List<ReferenceLink>,
+    videos: List<Video>,
+): LegacyCuratedOverride =
+    LegacyCuratedOverride(
+        practiceIdentity = practiceIdentity,
+        nameOverride = nameOverride,
+        variantOverride = variantOverride,
+        manufacturerOverride = manufacturerOverride,
+        yearOverride = yearOverride,
+        playfieldLocalPath = playfieldLocalPath,
+        playfieldSourceUrl = playfieldSourceUrl,
+        gameinfoLocalPath = gameinfoLocalPath,
+        rulesheetLocalPath = rulesheetLocalPath,
+        rulesheetLinks = rulesheetLinks,
+        videos = videos,
+    )
 
 private fun android.database.Cursor.getNullableString(index: Int): String? =
     if (isNull(index)) null else getString(index)?.trim()?.ifBlank { null }

@@ -967,30 +967,6 @@ private func catalogPreferredMachineForLegacyGame(
     return preferredGroupMachine ?? variantMatch ?? exactMachine
 }
 
-private func catalogPreferredMachineForSourceLookup(
-    requestedMachineID: String,
-    machineByOPDBID: [String: CatalogMachineRecord],
-    machineByPracticeIdentity: [String: [CatalogMachineRecord]]
-) -> CatalogMachineRecord? {
-    let normalizedMachineID = catalogNormalizedOptionalString(requestedMachineID)
-    let preferredGroupMachine = normalizedMachineID.flatMap { machineID in
-        machineByPracticeIdentity[machineID]?.min(by: catalogPreferredManufacturerMachine)
-    }
-
-    guard let normalizedMachineID,
-          let exactMachine = machineByOPDBID[normalizedMachineID] else {
-        return preferredGroupMachine
-    }
-
-    let exactHasPrimary = exactMachine.primaryImage?.mediumURL != nil || exactMachine.primaryImage?.largeURL != nil
-    if exactHasPrimary {
-        return exactMachine
-    }
-
-    let exactGroupMachine = machineByPracticeIdentity[exactMachine.practiceIdentity]?.min(by: catalogPreferredManufacturerMachine)
-    return exactGroupMachine ?? preferredGroupMachine ?? exactMachine
-}
-
 private func buildLegacyCuratedOverrides(from games: [PinballGame]) -> [String: LegacyCuratedOverride] {
     var out: [String: LegacyCuratedOverride] = [:]
 

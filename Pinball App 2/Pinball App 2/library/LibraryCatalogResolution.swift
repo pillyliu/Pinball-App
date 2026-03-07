@@ -1,6 +1,6 @@
 import Foundation
 
-func resolveImportedGame(
+nonisolated func resolveImportedGame(
     machine: CatalogMachineRecord,
     source: PinballImportedSourceRecord,
     manufacturerByID: [String: CatalogManufacturerRecord],
@@ -109,7 +109,7 @@ nonisolated func catalogNormalizedVariant(_ value: String?) -> String? {
     return trimmed
 }
 
-func catalogPreferredMachineForVariant(
+nonisolated func catalogPreferredMachineForVariant(
     candidates: [CatalogMachineRecord],
     requestedVariant: String?
 ) -> CatalogMachineRecord? {
@@ -139,11 +139,30 @@ func catalogPreferredMachineForVariant(
     return best
 }
 
-func catalogMachineHasPrimaryImage(_ machine: CatalogMachineRecord) -> Bool {
+nonisolated func catalogPreferredMachineForSourceLookup(
+    requestedMachineID: String,
+    machineByOPDBID: [String: CatalogMachineRecord],
+    machineByPracticeIdentity: [String: [CatalogMachineRecord]]
+) -> CatalogMachineRecord? {
+    let normalizedMachineID = catalogNormalizedOptionalString(requestedMachineID)
+    let preferredGroupMachine = normalizedMachineID
+        .flatMap { machineByPracticeIdentity[$0]?.min(by: catalogPreferredManufacturerMachine) }
+    guard let normalizedMachineID,
+          let exactMachine = machineByOPDBID[normalizedMachineID] else {
+        return preferredGroupMachine
+    }
+    if catalogMachineHasPrimaryImage(exactMachine) {
+        return exactMachine
+    }
+    let exactGroupMachine = machineByPracticeIdentity[exactMachine.practiceIdentity]?.min(by: catalogPreferredManufacturerMachine)
+    return exactGroupMachine ?? preferredGroupMachine ?? exactMachine
+}
+
+nonisolated func catalogMachineHasPrimaryImage(_ machine: CatalogMachineRecord) -> Bool {
     machine.primaryImage?.mediumURL != nil || machine.primaryImage?.largeURL != nil
 }
 
-func catalogVariantMatchScore(machineVariant: String?, requestedVariant: String) -> Int {
+nonisolated func catalogVariantMatchScore(machineVariant: String?, requestedVariant: String) -> Int {
     let normalizedMachineVariant = machineVariant?
         .trimmingCharacters(in: .whitespacesAndNewlines)
         .lowercased() ?? ""
@@ -169,7 +188,7 @@ func catalogVariantMatchScore(machineVariant: String?, requestedVariant: String)
     return 0
 }
 
-func resolveImportedRulesheetLinks(
+nonisolated func resolveImportedRulesheetLinks(
     curatedOverride: LegacyCuratedOverride?,
     opdbRulesheetLinks: [CatalogRulesheetLinkRecord]
 ) -> (localPath: String?, links: [PinballGame.ReferenceLink]) {
@@ -184,7 +203,7 @@ func resolveImportedRulesheetLinks(
     return resolveRulesheetLinks(override: nil, rulesheetLinks: opdbRulesheetLinks)
 }
 
-func resolveImportedVideos(
+nonisolated func resolveImportedVideos(
     curatedOverride: LegacyCuratedOverride?,
     opdbVideoLinks: [CatalogVideoLinkRecord]
 ) -> [PinballGame.Video] {
@@ -194,14 +213,14 @@ func resolveImportedVideos(
     return resolveVideoLinks(videoLinks: opdbVideoLinks)
 }
 
-func catalogDedupedSources(_ sources: [PinballLibrarySource]) -> [PinballLibrarySource] {
+nonisolated func catalogDedupedSources(_ sources: [PinballLibrarySource]) -> [PinballLibrarySource] {
     var seen = Set<String>()
     return sources.filter { source in
         seen.insert(source.id).inserted
     }
 }
 
-func resolveRulesheetLinks(
+nonisolated func resolveRulesheetLinks(
     override: CatalogOverrideRecord?,
     rulesheetLinks: [CatalogRulesheetLinkRecord]
 ) -> (localPath: String?, links: [PinballGame.ReferenceLink]) {
@@ -219,7 +238,7 @@ func resolveRulesheetLinks(
     return (catalogNormalizedOptionalString(sortedLinks.first?.localPath), links)
 }
 
-func resolveVideoLinks(videoLinks: [CatalogVideoLinkRecord]) -> [PinballGame.Video] {
+nonisolated func resolveVideoLinks(videoLinks: [CatalogVideoLinkRecord]) -> [PinballGame.Video] {
     let groupedByProvider = Dictionary(grouping: videoLinks) { link in
         CatalogVideoProvider(rawValue: link.provider.lowercased()) ?? .matchplay
     }
@@ -231,14 +250,14 @@ func resolveVideoLinks(videoLinks: [CatalogVideoLinkRecord]) -> [PinballGame.Vid
     }
 }
 
-func compareVideoLinks(_ lhs: CatalogVideoLinkRecord, _ rhs: CatalogVideoLinkRecord) -> Bool {
+nonisolated func compareVideoLinks(_ lhs: CatalogVideoLinkRecord, _ rhs: CatalogVideoLinkRecord) -> Bool {
     let left = lhs.priority ?? Int.max
     let right = rhs.priority ?? Int.max
     if left != right { return left < right }
     return lhs.label.localizedCaseInsensitiveCompare(rhs.label) == .orderedAscending
 }
 
-func catalogRulesheetLabel(providerRawValue: String, fallback: String) -> String {
+nonisolated func catalogRulesheetLabel(providerRawValue: String, fallback: String) -> String {
     switch CatalogRulesheetProvider(rawValue: providerRawValue.lowercased()) {
     case .tf:
         return "Rulesheet (TF)"

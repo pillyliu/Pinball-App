@@ -363,89 +363,62 @@ actor LibrarySeedDatabase {
         guard !importedSources.isEmpty else { return [] }
 
         let machines = try loadCatalogMachines(database)
-        let manufacturersByID = try loadManufacturerNames(database)
+        let manufacturersByID = try loadManufacturerRecords(database)
         let overridesByPractice = try loadOverrides(database)
         let overrideRulesheets = try loadOverrideRulesheets(database)
         let overrideVideos = try loadOverrideVideos(database)
-        let catalogRulesheets = try loadCatalogRulesheets(database)
-        let catalogVideos = try loadCatalogVideos(database)
+        let catalogRulesheets = try loadCatalogRulesheetRecords(database)
+        let catalogVideos = try loadCatalogVideoRecords(database)
+        let catalogMachines = machines.map(catalogMachineRecord(from:))
+        let catalogMachinesByPracticeIdentity = Dictionary(grouping: catalogMachines, by: \.practiceIdentity)
+        let catalogMachinesByOPDBID: [String: CatalogMachineRecord] = Dictionary(uniqueKeysWithValues: catalogMachines.compactMap { machine in
+            guard let opdbMachineID = machine.opdbMachineID else { return nil }
+            return (opdbMachineID, machine)
+        })
 
         var games: [PinballGame] = []
         for source in importedSources {
-            let sourceMachines: [SeedCatalogMachineRow]
+            let sourceMachines: [CatalogMachineRecord]
             switch source.type {
             case .manufacturer:
-                let grouped = Dictionary(grouping: machines.filter { $0.manufacturerID == source.providerSourceID }) {
+                let grouped = Dictionary(grouping: catalogMachines.filter { $0.manufacturerID == source.providerSourceID }) {
                     $0.opdbGroupID ?? $0.practiceIdentity
                 }
                 sourceMachines = grouped.values.compactMap { group in
-                    group.min(by: { lhs, rhs in
-                        preferredManufacturerMachine(lhs, rhs)
-                    })
+                    group.min(by: catalogPreferredManufacturerMachine)
                 }
                 .sorted {
-                    ($0.year ?? Int.max, $0.name.lowercased(), $0.opdbMachineID ?? "")
-                        < ($1.year ?? Int.max, $1.name.lowercased(), $1.opdbMachineID ?? "")
+                    ($0.year ?? Int.max, $0.name.lowercased(), $0.opdbMachineID ?? $0.practiceIdentity)
+                        < ($1.year ?? Int.max, $1.name.lowercased(), $1.opdbMachineID ?? $1.practiceIdentity)
                 }
             case .venue, .tournament:
-                let ids = Set(source.machineIDs)
-                sourceMachines = machines.filter { machine in
-                    if let opdbMachineID = machine.opdbMachineID, ids.contains(opdbMachineID) {
-                        return true
-                    }
-                    return ids.contains(machine.practiceIdentity)
+                sourceMachines = source.machineIDs.compactMap { machineID in
+                    catalogPreferredMachineForSourceLookup(
+                        requestedMachineID: machineID,
+                        machineByOPDBID: catalogMachinesByOPDBID,
+                        machineByPracticeIdentity: catalogMachinesByPracticeIdentity
+                    )
                 }
             case .category:
                 sourceMachines = []
             }
 
             for machine in sourceMachines {
-                let override = overridesByPractice[machine.practiceIdentity]
-                let rulesheetLocalPath = override?.rulesheetLocalPath
-                let rulesheetLinks: [PinballGame.ReferenceLink]
-                if rulesheetLocalPath != nil {
-                    rulesheetLinks = []
-                } else if let curated = overrideRulesheets[machine.practiceIdentity], !curated.isEmpty {
-                    rulesheetLinks = curated
-                } else {
-                    rulesheetLinks = catalogRulesheets[machine.practiceIdentity] ?? []
-                }
-                let videos = overrideVideos[machine.practiceIdentity].flatMap { $0.isEmpty ? nil : $0 }
-                    ?? catalogVideos[machine.practiceIdentity]
-                    ?? []
-                let manufacturerName = override?.manufacturerOverride
-                    ?? machine.manufacturerName
-                    ?? machine.manufacturerID.flatMap { manufacturersByID[$0] }
-                let playfieldLocalPath = override?.playfieldLocalPath
-                let playfieldImageURL = override?.playfieldSourceURL ?? machine.playfieldImageLargeURL ?? machine.playfieldImageMediumURL
-                let record = ResolvedCatalogRecord(
-                    sourceID: source.id,
-                    sourceName: source.name,
-                    sourceType: source.type,
-                    area: nil,
-                    areaOrder: nil,
-                    groupNumber: nil,
-                    position: nil,
-                    bank: nil,
-                    name: override?.nameOverride ?? machine.name,
-                    variant: source.type == .manufacturer ? nil : (override?.variantOverride ?? machine.variant),
-                    manufacturer: manufacturerName,
-                    year: override?.yearOverride ?? machine.year,
-                    slug: machine.slug,
-                    opdbID: machine.opdbMachineID,
-                    practiceIdentity: machine.practiceIdentity,
-                    primaryImageURL: machine.primaryImageMediumURL,
-                    primaryImageLargeURL: machine.primaryImageLargeURL,
-                    playfieldImageURL: playfieldImageURL,
-                    playfieldLocalPath: playfieldLocalPath,
-                    playfieldSourceLabel: playfieldLocalPath == nil && playfieldImageURL != nil ? "Playfield (OPDB)" : nil,
-                    gameinfoLocalPath: override?.gameinfoLocalPath,
-                    rulesheetLocalPath: rulesheetLocalPath,
-                    rulesheetURL: rulesheetLinks.first?.url,
-                    rulesheetLinks: rulesheetLinks,
-                    videos: videos
+                let curatedOverride = seedLegacyCuratedOverride(
+                    row: overridesByPractice[machine.practiceIdentity],
+                    rulesheetLinks: overrideRulesheets[machine.practiceIdentity] ?? [],
+                    videos: overrideVideos[machine.practiceIdentity] ?? []
                 )
-                games.append(PinballGame(record: record))
+                games.append(
+                    resolveImportedGame(
+                        machine: machine,
+                        source: source,
+                        manufacturerByID: manufacturersByID,
+                        curatedOverride: curatedOverride,
+                        opdbRulesheets: catalogRulesheets[machine.practiceIdentity] ?? [],
+                        opdbVideos: catalogVideos[machine.practiceIdentity] ?? []
+                    )
+                )
             }
         }
 
@@ -487,7 +460,7 @@ actor LibrarySeedDatabase {
         return rows
     }
 
-    private func loadManufacturerNames(_ database: OpaquePointer) throws -> [String: String] {
+    private func loadManufacturerRecords(_ database: OpaquePointer) throws -> [String: CatalogManufacturerRecord] {
         let sql = "SELECT id, name FROM manufacturers"
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
@@ -495,10 +468,10 @@ actor LibrarySeedDatabase {
         }
         defer { sqlite3_finalize(statement) }
 
-        var out: [String: String] = [:]
+        var out: [String: CatalogManufacturerRecord] = [:]
         while sqlite3_step(statement) == SQLITE_ROW {
             if let id = sqliteString(statement, index: 0), let name = sqliteString(statement, index: 1) {
-                out[id] = name
+                out[id] = CatalogManufacturerRecord(id: id, name: name, isModern: nil, featuredRank: nil, gameCount: nil)
             }
         }
         return out
@@ -588,6 +561,31 @@ actor LibrarySeedDatabase {
         return out.mapValues(dedupeRulesheetLinks)
     }
 
+    private func loadCatalogRulesheetRecords(_ database: OpaquePointer) throws -> [String: [CatalogRulesheetLinkRecord]] {
+        let sql = "SELECT practice_identity, provider, label, url, priority FROM catalog_rulesheet_links ORDER BY practice_identity ASC, priority ASC"
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
+            throw SeedDatabaseError.prepareStatement(message: currentSQLiteMessage(from: database))
+        }
+        defer { sqlite3_finalize(statement) }
+
+        var out: [String: [CatalogRulesheetLinkRecord]] = [:]
+        while sqlite3_step(statement) == SQLITE_ROW {
+            guard let practiceIdentity = sqliteString(statement, index: 0) else { continue }
+            out[practiceIdentity, default: []].append(
+                CatalogRulesheetLinkRecord(
+                    practiceIdentity: practiceIdentity,
+                    provider: sqliteString(statement, index: 1) ?? "",
+                    label: sqliteString(statement, index: 2) ?? "Rulesheet",
+                    localPath: nil,
+                    url: sqliteString(statement, index: 3),
+                    priority: sqliteInt(statement, index: 4)
+                )
+            )
+        }
+        return out
+    }
+
     private func loadCatalogVideos(_ database: OpaquePointer) throws -> [String: [PinballGame.Video]] {
         let sql = "SELECT practice_identity, kind, label, url FROM catalog_video_links ORDER BY practice_identity ASC, priority ASC"
         var statement: OpaquePointer?
@@ -601,6 +599,32 @@ actor LibrarySeedDatabase {
             guard let practiceIdentity = sqliteString(statement, index: 0) else { continue }
             out[practiceIdentity, default: []].append(
                 .init(kind: sqliteString(statement, index: 1), label: sqliteString(statement, index: 2), url: sqliteString(statement, index: 3))
+            )
+        }
+        return out
+    }
+
+    private func loadCatalogVideoRecords(_ database: OpaquePointer) throws -> [String: [CatalogVideoLinkRecord]] {
+        let sql = "SELECT practice_identity, kind, label, url, priority FROM catalog_video_links ORDER BY practice_identity ASC, priority ASC"
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
+            throw SeedDatabaseError.prepareStatement(message: currentSQLiteMessage(from: database))
+        }
+        defer { sqlite3_finalize(statement) }
+
+        var out: [String: [CatalogVideoLinkRecord]] = [:]
+        while sqlite3_step(statement) == SQLITE_ROW {
+            guard let practiceIdentity = sqliteString(statement, index: 0),
+                  let url = sqliteString(statement, index: 3) else { continue }
+            out[practiceIdentity, default: []].append(
+                CatalogVideoLinkRecord(
+                    practiceIdentity: practiceIdentity,
+                    provider: "matchplay",
+                    kind: sqliteString(statement, index: 1) ?? "tutorial",
+                    label: sqliteString(statement, index: 2) ?? "Tutorial 1",
+                    url: url,
+                    priority: sqliteInt(statement, index: 4)
+                )
             )
         }
         return out
@@ -643,4 +667,41 @@ nonisolated private func parseSeedSourceType(_ raw: String?) -> PinballLibrarySo
     default:
         return .venue
     }
+}
+
+nonisolated private func catalogMachineRecord(from row: SeedCatalogMachineRow) -> CatalogMachineRecord {
+    CatalogMachineRecord(
+        practiceIdentity: row.practiceIdentity,
+        opdbMachineID: row.opdbMachineID,
+        opdbGroupID: row.opdbGroupID,
+        slug: row.slug,
+        name: row.name,
+        variant: row.variant,
+        manufacturerID: row.manufacturerID,
+        manufacturerName: row.manufacturerName,
+        year: row.year,
+        primaryImage: CatalogMachineRecord.RemoteImageSet(mediumURL: row.primaryImageMediumURL, largeURL: row.primaryImageLargeURL),
+        playfieldImage: CatalogMachineRecord.RemoteImageSet(mediumURL: row.playfieldImageMediumURL, largeURL: row.playfieldImageLargeURL)
+    )
+}
+
+nonisolated private func seedLegacyCuratedOverride(
+    row: SeedOverrideRow?,
+    rulesheetLinks: [PinballGame.ReferenceLink],
+    videos: [PinballGame.Video]
+) -> LegacyCuratedOverride? {
+    guard let row else { return nil }
+    return LegacyCuratedOverride(
+        practiceIdentity: row.practiceIdentity,
+        nameOverride: row.nameOverride,
+        variantOverride: row.variantOverride,
+        manufacturerOverride: row.manufacturerOverride,
+        yearOverride: row.yearOverride,
+        playfieldLocalPath: row.playfieldLocalPath,
+        playfieldSourceURL: row.playfieldSourceURL,
+        gameinfoLocalPath: row.gameinfoLocalPath,
+        rulesheetLocalPath: row.rulesheetLocalPath,
+        rulesheetLinks: rulesheetLinks,
+        videos: videos
+    )
 }
