@@ -36,7 +36,7 @@ private enum GameRoomCollectionLayout: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .tiles: return "Tiles"
+        case .tiles: return "Cards"
         case .list: return "List"
         }
     }
@@ -325,6 +325,7 @@ private struct GameRoomCollectionCard: View {
                     ForEach(store.activeMachines) { machine in
                         GameRoomListRow(
                             machine: machine,
+                            imageCandidates: catalogLoader.imageCandidates(for: machine),
                             snapshot: store.snapshot(for: machine.id),
                             areaName: store.area(for: machine.gameRoomAreaID)?.name,
                             isSelected: machine.id == selectedMachineID,
@@ -432,40 +433,80 @@ private struct GameRoomMiniCard: View {
 
 private struct GameRoomListRow: View {
     let machine: OwnedMachine
+    let imageCandidates: [URL]
     let snapshot: OwnedMachineSnapshot
     let areaName: String?
     let isSelected: Bool
     let onTap: () -> Void
+    private let cornerRadius: CGFloat = 10
 
     var body: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 8, height: 8)
+        ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(isSelected ? Color.white.opacity(0.14) : Color.white.opacity(0.08))
+                .overlay(
+                    ZStack {
+                        Rectangle()
+                            .fill(Color.black.opacity(0.82))
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(machine.displayTitle)
-                    .font(.subheadline.weight(.semibold))
+                        FallbackAsyncImageView(
+                            candidates: imageCandidates,
+                            emptyMessage: nil,
+                            contentMode: .fill,
+                            fillAlignment: .center,
+                            layoutMode: .fill
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .clipped()
 
-                Text(metaLine)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color.black.opacity(0.0), location: 0.0),
+                                .init(color: Color.black.opacity(0.0), location: 0.18),
+                                .init(color: Color.black.opacity(0.50), location: 0.40),
+                                .init(color: Color.black.opacity(0.78), location: 1.0)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .stroke(isSelected ? Color.accentColor.opacity(0.85) : Color.clear, lineWidth: 1.5)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 8, height: 8)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(machine.displayTitle)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(1.0), radius: 4, x: 0, y: 3)
+                        .lineLimit(1)
+
+                    Text(metaLine)
+                        .font(.footnote)
+                        .foregroundStyle(Color.white.opacity(0.86))
+                        .shadow(color: .black.opacity(1.0), radius: 3, x: 0, y: 2)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 6)
+
+                if let label = variantBadgeLabel {
+                    GameRoomVariantPill(label: label, style: .standard)
+                }
             }
-
-            Spacer()
-
-            if let label = variantBadgeLabel {
-                GameRoomVariantPill(label: label, style: .standard)
-            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(isSelected ? AppTheme.controlBg : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(isSelected ? Color.accentColor.opacity(0.8) : AppTheme.controlBorder, lineWidth: isSelected ? 1.5 : 1)
-        )
-        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .frame(height: 58)
+        .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .onTapGesture(perform: onTap)
     }
 
@@ -1294,10 +1335,12 @@ private struct GameRoomEditMachinesView: View {
 
                                     Spacer()
 
-                                    Button("Add") {
+                                    Button {
                                         store.addOwnedMachine(from: game)
                                         selectedMachineID = store.state.ownedMachines.last?.id
                                         syncDraftFromSelection()
+                                    } label: {
+                                        Image(systemName: "plus")
                                     }
                                     .buttonStyle(.glass)
                                 }
@@ -1392,13 +1435,8 @@ private struct GameRoomEditMachinesView: View {
                                 newAreaName = area.name
                                 newAreaOrder = area.areaOrder
                             } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(area.name)
-                                        .font(.subheadline.weight(.semibold))
-                                    Text("Area order \(area.areaOrder)")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
+                                Text("\(area.name) (\(area.areaOrder))")
+                                    .font(.subheadline.weight(.semibold))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .buttonStyle(.plain)
@@ -2127,7 +2165,7 @@ private struct GameRoomMachineView: View {
                     )
                     .gameRoomEntrySheetStyle()
                 case .logIssue:
-                    GameRoomLogIssueSheet { occurredAt, symptom, severity, subsystem, diagnosis in
+                    GameRoomLogIssueSheet { occurredAt, symptom, severity, subsystem, diagnosis, attachments in
                         let issueID = store.openIssue(
                             machineID: machine.id,
                             openedAt: occurredAt,
@@ -2145,6 +2183,24 @@ private struct GameRoomMachineView: View {
                             notes: diagnosis,
                             linkedIssueID: issueID
                         )
+                        for attachment in attachments {
+                            store.addAttachment(
+                                machineID: machine.id,
+                                ownerType: .issue,
+                                ownerID: issueID,
+                                kind: attachment.kind,
+                                uri: attachment.uri,
+                                caption: attachment.caption
+                            )
+                            store.addEvent(
+                                machineID: machine.id,
+                                type: attachment.kind == .photo ? .photoAdded : .videoAdded,
+                                category: .media,
+                                occurredAt: occurredAt,
+                                summary: attachment.kind == .photo ? "Issue photo added" : "Issue video added",
+                                linkedIssueID: issueID
+                            )
+                        }
                     }
                     .gameRoomEntrySheetStyle()
                 case .resolveIssue:
@@ -2739,15 +2795,28 @@ private struct GameRoomPlayCountEntrySheet: View {
     }
 }
 
+private struct GameRoomIssueAttachmentDraft: Identifiable {
+    let id = UUID()
+    let kind: MachineAttachmentKind
+    let uri: String
+    let caption: String?
+}
+
 private struct GameRoomLogIssueSheet: View {
-    let onSave: (Date, String, MachineIssueSeverity, MachineIssueSubsystem, String?) -> Void
+    let onSave: (Date, String, MachineIssueSeverity, MachineIssueSubsystem, String?, [GameRoomIssueAttachmentDraft]) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var openedAt = Date()
     @State private var symptom = ""
     @State private var severity: MachineIssueSeverity = .medium
-    @State private var subsystem: MachineIssueSubsystem = .other
+    @State private var subsystem: MachineIssueSubsystem = .flipper
     @State private var diagnosis = ""
+    @State private var selectedMediaItem: PhotosPickerItem?
+    @State private var pickerKind: MachineAttachmentKind = .photo
+    @State private var showMediaPicker = false
+    @State private var isImportingAsset = false
+    @State private var importErrorMessage: String?
+    @State private var attachments: [GameRoomIssueAttachmentDraft] = []
 
     var body: some View {
         NavigationStack {
@@ -2771,9 +2840,83 @@ private struct GameRoomLogIssueSheet: View {
 
                 TextField("Diagnosis / Notes", text: $diagnosis, axis: .vertical)
                     .lineLimit(3, reservesSpace: true)
+
+                HStack(spacing: 10) {
+                    Button {
+                        pickerKind = .photo
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                            showMediaPicker = true
+                        }
+                    } label: {
+                        Label("Add Photo", systemImage: "photo.on.rectangle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.glass)
+
+                    Button {
+                        pickerKind = .video
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                            showMediaPicker = true
+                        }
+                    } label: {
+                        Label("Add Video", systemImage: "video")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.glass)
+                }
+
+                if isImportingAsset {
+                    ProgressView("Importing media…")
+                        .font(.footnote)
+                }
+
+                if let importErrorMessage {
+                    Text(importErrorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+
+                if attachments.isEmpty {
+                    Text("No media selected.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(attachments) { attachment in
+                        HStack(spacing: 10) {
+                            Image(systemName: attachment.kind == .photo ? "photo" : "video")
+                                .foregroundStyle(.secondary)
+                            Text(attachment.caption ?? attachment.uri)
+                                .font(.footnote)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer()
+                            Button(role: .destructive) {
+                                attachments.removeAll { $0.id == attachment.id }
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                }
             }
             .navigationTitle("Log Issue")
             .navigationBarTitleDisplayMode(.inline)
+            .photosPicker(
+                isPresented: $showMediaPicker,
+                selection: $selectedMediaItem,
+                matching: pickerKind == .photo ? .images : .videos,
+                photoLibrary: .shared()
+            )
+            .onChange(of: selectedMediaItem) { _, item in
+                guard let item else { return }
+                if pickerKind == .photo {
+                    importPhoto(item)
+                } else {
+                    importVideo(item)
+                }
+                selectedMediaItem = nil
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -2782,7 +2925,14 @@ private struct GameRoomLogIssueSheet: View {
                     Button("Save") {
                         let trimmedSymptom = symptom.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmedSymptom.isEmpty else { return }
-                        onSave(openedAt, trimmedSymptom, severity, subsystem, normalizedOptional(diagnosis))
+                        onSave(
+                            openedAt,
+                            trimmedSymptom,
+                            severity,
+                            subsystem,
+                            normalizedOptional(diagnosis),
+                            attachments
+                        )
                         dismiss()
                     }
                     .disabled(symptom.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -2794,6 +2944,96 @@ private struct GameRoomLogIssueSheet: View {
     private func normalizedOptional(_ value: String) -> String? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func importPhoto(_ item: PhotosPickerItem) {
+        importErrorMessage = nil
+        isImportingAsset = true
+        Task {
+            do {
+                guard let data = try await item.loadTransferable(type: Data.self) else {
+                    throw URLError(.cannotDecodeRawData)
+                }
+                let url = try saveImportedMedia(data: data, preferredExtension: "jpg")
+                await MainActor.run {
+                    let caption = url.lastPathComponent
+                    attachments.append(
+                        GameRoomIssueAttachmentDraft(
+                            kind: .photo,
+                            uri: url.path,
+                            caption: caption.isEmpty ? nil : caption
+                        )
+                    )
+                    isImportingAsset = false
+                }
+            } catch {
+                await MainActor.run {
+                    importErrorMessage = "Could not import selected photo."
+                    isImportingAsset = false
+                }
+            }
+        }
+    }
+
+    private func importVideo(_ item: PhotosPickerItem) {
+        importErrorMessage = nil
+        isImportingAsset = true
+        Task {
+            do {
+                guard let movie = try await item.loadTransferable(type: MovieTransferable.self) else {
+                    throw URLError(.cannotDecodeRawData)
+                }
+                let copiedURL = try copyImportedMediaFile(from: movie.url)
+                await MainActor.run {
+                    let caption = copiedURL.lastPathComponent
+                    attachments.append(
+                        GameRoomIssueAttachmentDraft(
+                            kind: .video,
+                            uri: copiedURL.path,
+                            caption: caption.isEmpty ? nil : caption
+                        )
+                    )
+                    isImportingAsset = false
+                }
+            } catch {
+                await MainActor.run {
+                    importErrorMessage = "Could not import selected video."
+                    isImportingAsset = false
+                }
+            }
+        }
+    }
+
+    private func saveImportedMedia(data: Data, preferredExtension: String) throws -> URL {
+        let directory = try mediaStorageDirectory()
+        let targetURL = directory.appendingPathComponent("\(UUID().uuidString).\(preferredExtension)")
+        try data.write(to: targetURL, options: [.atomic])
+        return targetURL
+    }
+
+    private func copyImportedMediaFile(from sourceURL: URL) throws -> URL {
+        let directory = try mediaStorageDirectory()
+        let ext = sourceURL.pathExtension.isEmpty ? "mov" : sourceURL.pathExtension
+        let targetURL = directory.appendingPathComponent("\(UUID().uuidString).\(ext)")
+        if FileManager.default.fileExists(atPath: targetURL.path) {
+            try FileManager.default.removeItem(at: targetURL)
+        }
+        try FileManager.default.copyItem(at: sourceURL, to: targetURL)
+        return targetURL
+    }
+
+    private func mediaStorageDirectory() throws -> URL {
+        let base = try FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        let directory = base.appendingPathComponent("GameRoomMedia", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: directory.path) {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        }
+        return directory
     }
 }
 

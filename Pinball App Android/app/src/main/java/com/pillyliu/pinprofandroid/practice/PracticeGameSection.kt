@@ -319,35 +319,39 @@ internal fun PracticeGameSection(
     CardContainer {
         Text("Game Resources", fontWeight = FontWeight.SemiBold)
         Text(game.metaLine(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        PracticeResourceRow(label = "Rulesheet:") {
-            if (game.rulesheetLinks.isEmpty()) {
-                if (game.hasRulesheetResource) {
-                    PracticeResourceChip(label = "Local") { onOpenRulesheet(null) }
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            PracticeResourceRow(label = "Rulesheet:") {
+                if (game.rulesheetLinks.isEmpty()) {
+                    if (game.hasRulesheetResource) {
+                        PracticeResourceChip(label = "Local") { onOpenRulesheet(null) }
+                    } else {
+                        PracticeUnavailableResourceChip()
+                    }
                 } else {
-                    PracticeUnavailableResourceChip()
-                }
-            } else {
-                game.rulesheetLinks.forEach { link ->
-                    val destination = link.destinationUrl
-                    val embedded = link.embeddedRulesheetSource
-                    PracticeResourceChip(label = shortRulesheetTitle(link)) {
-                        when {
-                            embedded != null -> onOpenRulesheet(embedded)
-                            destination != null -> onOpenExternalRulesheet(destination)
-                            else -> onOpenRulesheet(null)
+                    game.rulesheetLinks.forEach { link ->
+                        val destination = link.destinationUrl
+                        val embedded = link.embeddedRulesheetSource
+                        PracticeResourceChip(label = shortRulesheetTitle(link)) {
+                            when {
+                                embedded != null -> onOpenRulesheet(embedded)
+                                destination != null -> onOpenExternalRulesheet(destination)
+                                else -> onOpenRulesheet(null)
+                            }
                         }
                     }
                 }
             }
-        }
-        PracticeResourceRow(label = "Playfield:") {
-            val playfieldCandidates = game.actualFullscreenPlayfieldCandidates
-            if (playfieldCandidates.isNotEmpty()) {
-                PracticeResourceChip(label = if (game.playfieldSourceLabel == "Playfield (OPDB)") "OPDB" else "Local") {
-                    onOpenPlayfield(playfieldCandidates)
+            PracticeResourceRow(label = "Playfield:") {
+                val playfieldCandidates = game.actualFullscreenPlayfieldCandidates
+                if (playfieldCandidates.isNotEmpty()) {
+                    PracticeResourceChip(label = if (game.playfieldSourceLabel == "Playfield (OPDB)") "OPDB" else "Local") {
+                        onOpenPlayfield(playfieldCandidates)
+                    }
+                } else {
+                    PracticeUnavailableResourceChip()
                 }
-            } else {
-                PracticeUnavailableResourceChip()
             }
         }
 

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Settings
@@ -29,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.data.redactPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.PinballGame
+import com.pillyliu.pinprofandroid.ui.AppBackButton
 
 private const val PRACTICE_TOPBAR_ALL_GAMES_SOURCE_ID = "__practice_topbar_all_games__"
 
@@ -55,9 +55,7 @@ internal fun PracticeTopBar(
     val orderedGames = orderedGamesForDropdown(games, collapseByPracticeIdentity = true)
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (route != PracticeRoute.Home) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-            }
+            AppBackButton(onClick = onBack)
         }
         if (route == PracticeRoute.Game) {
             androidx.compose.foundation.layout.Box(

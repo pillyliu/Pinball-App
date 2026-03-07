@@ -178,12 +178,36 @@ actor GameRoomPinsideImportService {
 
     private static func variantFromSlug(_ slug: String) -> String? {
         let lowered = slug.lowercased()
+        if let anniversary = anniversaryVariant(from: lowered) {
+            return anniversary
+        }
         if lowered.hasSuffix("-premium") { return "Premium" }
         if lowered.hasSuffix("-pro") { return "Pro" }
         if lowered.hasSuffix("-le") || lowered.contains("-limited-edition") { return "LE" }
         if lowered.hasSuffix("-ce") || lowered.contains("-collector") { return "CE" }
         if lowered.hasSuffix("-se") || lowered.contains("-special-edition") { return "SE" }
         return nil
+    }
+
+    private static func anniversaryVariant(from loweredSlug: String) -> String? {
+        let pattern = #"(\d+)(st|nd|rd|th)-anniversary"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return loweredSlug.contains("anniversary") ? "Anniversary" : nil
+        }
+        let nsRange = NSRange(loweredSlug.startIndex..<loweredSlug.endIndex, in: loweredSlug)
+        guard let match = regex.firstMatch(in: loweredSlug, options: [], range: nsRange) else {
+            return loweredSlug.contains("anniversary") ? "Anniversary" : nil
+        }
+        guard
+            match.numberOfRanges >= 3,
+            let numberRange = Range(match.range(at: 1), in: loweredSlug),
+            let suffixRange = Range(match.range(at: 2), in: loweredSlug)
+        else {
+            return "Anniversary"
+        }
+        let number = loweredSlug[numberRange]
+        let suffix = loweredSlug[suffixRange].lowercased()
+        return "\(number)\(suffix) Anniversary"
     }
 
     private static func humanizedTitle(fromSlug slug: String) -> String {

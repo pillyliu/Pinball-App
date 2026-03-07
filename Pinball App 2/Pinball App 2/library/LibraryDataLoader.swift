@@ -355,6 +355,41 @@ private func bestOPDBMediaRecord(
     guard !candidates.isEmpty else { return nil }
 
     let normalizedMachineVariant = normalizedGameRoomVariant(machine.displayVariant)
+    if let normalizedMachineVariant {
+        let variantMatches = candidates
+            .filter { opdbVariantMatchScore(recordVariant: $0.variant, requestedVariant: normalizedMachineVariant) > 0 }
+            .sorted { lhs, rhs in
+                let lhsScore = opdbVariantMatchScore(recordVariant: lhs.variant, requestedVariant: normalizedMachineVariant)
+                let rhsScore = opdbVariantMatchScore(recordVariant: rhs.variant, requestedVariant: normalizedMachineVariant)
+                if lhsScore != rhsScore { return lhsScore > rhsScore }
+                let lhsHasPrimary = opdbRecordHasPrimaryImage(lhs)
+                let rhsHasPrimary = opdbRecordHasPrimaryImage(rhs)
+                if lhsHasPrimary != rhsHasPrimary { return lhsHasPrimary }
+                let lhsYear = lhs.year ?? Int.max
+                let rhsYear = rhs.year ?? Int.max
+                if lhsYear != rhsYear { return lhsYear < rhsYear }
+                return lhs.practiceIdentity < rhs.practiceIdentity
+            }
+        if let withVariantArt = variantMatches.first(where: opdbRecordHasPrimaryImage) {
+            return withVariantArt
+        }
+    }
+
+    // Fallback ladder when variant art is unavailable: machine/group image with art, then best remaining candidate.
+    if let withAnyArt = candidates
+        .filter(opdbRecordHasPrimaryImage)
+        .max(by: { lhs, rhs in
+            let lhsScore = opdbMediaScore(lhs, machineVariant: nil)
+            let rhsScore = opdbMediaScore(rhs, machineVariant: nil)
+            if lhsScore != rhsScore { return lhsScore < rhsScore }
+            let lhsYear = lhs.year ?? Int.max
+            let rhsYear = rhs.year ?? Int.max
+            if lhsYear != rhsYear { return lhsYear > rhsYear }
+            return lhs.practiceIdentity > rhs.practiceIdentity
+        }) {
+        return withAnyArt
+    }
+
     return candidates.max { lhs, rhs in
         let lhsScore = opdbMediaScore(lhs, machineVariant: normalizedMachineVariant)
         let rhsScore = opdbMediaScore(rhs, machineVariant: normalizedMachineVariant)
@@ -370,8 +405,8 @@ private func opdbMediaScore(_ record: GameRoomOPDBMediaRecord, machineVariant: S
     let recordVariant = normalizedGameRoomVariant(record.variant)
     var score = 0
 
-    if machineVariant == recordVariant {
-        score += 200
+    if let machineVariant {
+        score += opdbVariantMatchScore(recordVariant: record.variant, requestedVariant: machineVariant)
     } else if machineVariant == nil && recordVariant == nil {
         score += 140
     } else if machineVariant == nil {
@@ -383,6 +418,31 @@ private func opdbMediaScore(_ record: GameRoomOPDBMediaRecord, machineVariant: S
     }
 
     return score
+}
+
+private func opdbVariantMatchScore(recordVariant: String?, requestedVariant: String) -> Int {
+    let normalizedRecordVariant = normalizedGameRoomVariant(recordVariant) ?? ""
+    guard !normalizedRecordVariant.isEmpty else { return 0 }
+    if normalizedRecordVariant == requestedVariant { return 200 }
+
+    let recordTokens = Set(
+        normalizedRecordVariant
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+    )
+    let requestTokens = Set(
+        requestedVariant
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+    )
+    if !recordTokens.isDisjoint(with: requestTokens) { return 120 }
+    if normalizedRecordVariant.contains(requestedVariant) || requestedVariant.contains(normalizedRecordVariant) { return 80 }
+    if requestedVariant.contains("premium") && normalizedRecordVariant == "le" { return 70 }
+    return 0
+}
+
+private func opdbRecordHasPrimaryImage(_ record: GameRoomOPDBMediaRecord) -> Bool {
+    record.primaryLargeURL != nil || record.primaryMediumURL != nil
 }
 
 private func variantPreferenceScore(_ normalizedVariant: String?) -> Int {

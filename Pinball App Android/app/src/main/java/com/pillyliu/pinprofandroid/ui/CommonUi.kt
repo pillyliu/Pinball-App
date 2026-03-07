@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ChevronLeft
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +57,26 @@ fun AppScreen(
             .padding(horizontal = horizontalPadding, vertical = 8.dp),
     ) {
         content()
+    }
+}
+
+@Composable
+fun AppBackButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 40.dp,
+    iconSize: Dp = 20.dp,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier.size(size),
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Back",
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(iconSize),
+        )
     }
 }
 
@@ -150,13 +170,7 @@ fun InsetFilterHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
-            IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    imageVector = Icons.Outlined.ChevronLeft,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            AppBackButton(onClick = onBack, size = 32.dp, iconSize = 18.dp)
         } else {
             Spacer(modifier = Modifier.width(32.dp))
         }

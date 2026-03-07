@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.FormatListNumbered
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -49,8 +50,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pillyliu.pinprofandroid.R
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.data.parseCsv
@@ -75,6 +79,7 @@ enum class LeagueDestination(val title: String, val subtitle: String, val icon: 
     Stats("Stats", "Player trends and machine performance", Icons.Outlined.BarChart),
     Standings("Standings", "Season standings and points view", Icons.Outlined.FormatListNumbered),
     Targets("Targets", "Great game, main target, and floor goals", Icons.Outlined.Flag),
+    AboutLpl("About Lansing Pinball League", "League info and links", Icons.Outlined.Info),
 }
 
 @Composable
@@ -176,6 +181,52 @@ fun LeagueScreen(
                                 valueSize = miniValueSize,
                             )
                         }
+                        LeagueDestination.AboutLpl -> {
+                            Text(
+                                text = "League details, schedule, and official links.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = miniLabelSize,
+                            )
+                        }
+                    }
+                }
+            }
+
+            @Composable
+            fun AboutFooterCard(modifier: Modifier = Modifier) {
+                CardContainer(
+                    modifier = Modifier
+                        .then(modifier)
+                        .fillMaxWidth()
+                        .clickable { onOpenDestination(LeagueDestination.AboutLpl) },
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        androidx.compose.foundation.Image(
+                            painter = painterResource(id = R.drawable.lpl_logo),
+                            contentDescription = "Lansing Pinball League logo",
+                            modifier = Modifier
+                                .width(42.dp)
+                                .height(28.dp),
+                            contentScale = ContentScale.Fit,
+                        )
+                        Text(
+                            text = "About Lansing Pinball League",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = if (tabletMode) 15.sp else 14.sp,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Icon(
+                            imageVector = Icons.Outlined.ChevronRight,
+                            contentDescription = "Open About Lansing Pinball League",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
@@ -218,7 +269,7 @@ fun LeagueScreen(
                                 .weight(1f)
                                 .fillMaxHeight(),
                         )
-                        Spacer(
+                        AboutFooterCard(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight(),
@@ -235,6 +286,7 @@ fun LeagueScreen(
                     DestinationCard(LeagueDestination.Stats)
                     DestinationCard(LeagueDestination.Standings)
                     DestinationCard(LeagueDestination.Targets)
+                    AboutFooterCard()
                 }
             }
         }

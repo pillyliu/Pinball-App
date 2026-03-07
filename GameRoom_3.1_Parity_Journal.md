@@ -549,3 +549,187 @@ Keep these rules aligned across platforms:
 
 - evaluate whether machine-name dropdown should also support text search in addition to area grouping for very large collections
 - variant-fidelity backlog (intentional deferral): decide if Practice and non-GameRoom venue rendering should move from OPDB-group defaults to per-variant identity/assets to avoid Pro vs Premium/LE strategy and playfield mismatches
+
+## Android 3.1 Parity Notes (Latest)
+
+Latest Android parity pass aligned these accepted iOS behaviors:
+- `Edit` heading/name flow:
+  - settings heading `Edit GameRoom`
+  - collapsible `Name` panel with `GameRoom Name` + persisted save
+  - GameRoom venue rename flows through to store/library source naming
+- Edit machine parity:
+  - machine selector inline with variant pill dropdown (`None` + OPDB variant options)
+  - inline editable ownership metadata (`Purchase Source`, `Serial Number`, `Ownership Notes`)
+  - action row parity (`Save`, `Delete`, `Archive`)
+- Variant pill parity:
+  - dynamic-width pill with truncation after `Premium` length
+  - visible on selected summary, home tiles/list rows, and machine view title
+- Log/edit parity:
+  - swipe edit/delete enabled on timeline rows
+  - selected-entry detail uses fixed-height container to avoid list jump
+  - edit flow supports date (`YYYY-MM-DD`) and persists `occurredAt`
+  - media log rows open linked media directly
+- Media parity:
+  - delete uses attachment+linked-event removal behavior
+  - media edit flow added (caption + linked event notes)
+- Store parity:
+  - added `updateVenueName`
+  - extended `updateMachine` with ownership metadata fields
+  - extended `updateEvent` to update event date/time
+  - added `updateAttachment` and `deleteAttachmentAndLinkedEvent`
+  - issue open/resolve event linkage now carries `linkedIssueID`
+- Catalog/edit-add parity:
+  - catalog loader now carries manufacturer metadata (`isModern`, `featuredRank`) and grouped ordering inputs for filter behavior
+  - add-machine filtering remains full-catalog and optional-manufacturer (no selection = search all)
+- Pinside import parity hardening:
+  - Android import service now mirrors iOS input/URL validation semantics and error taxonomy
+  - profile URLs without `/collection/...` now normalize to `/collection/current`
+  - Android direct fetch now classifies Cloudflare challenge pages and retries through `r.jina.ai` fallback before failing import
+  - fallback only bypasses retry for fatal states (`user not found`, `private collection`, invalid input/url)
+  - slug extraction and import record generation remain identical to iOS expectations (`slug` fingerprint, group-map title fallback, slug-derived variant)
+- GameRoom log swipe-row parity (Android Practice match):
+  - replaced `SwipeToDismissBox` interaction with Practice-style left-drag reveal row actions
+  - action rail now matches Practice contract (`Edit` + `Delete`, right-side reveal, single revealed row at a time)
+  - row tap behavior matches Practice (tap closes revealed row first, otherwise selects row)
+  - row chrome parity added (rounded container, reveal-fade background/border treatment)
+- GameRoom home tile-card visual parity (Android Practice-inspired):
+  - mini cards now mirror Practice mini-card image treatment (surface container, soft outline, full-image crop, and matching vertical gradient/shadowed title style)
+  - selection highlight is now a tight outer ring just outside the card edge rather than an expanded padded highlight region
+  - selected mini-card ring color is fixed to bright light blue for stronger active-state visibility
+  - attention indicator dot now has additional shadow/contrast treatment so status color remains readable over bright translite art
+  - GameRoom-specific signals remain intact (`attention` dot and variant pill)
+- GameRoom machine log typography/spacing parity (Android Practice-inspired):
+  - log row content now uses Practice journal summary/timestamp typography contract (`bodySmall` summary styling + `labelSmall` timestamp/meta)
+  - row content spacing now matches Practice (`8dp` horizontal, `4dp` vertical, `2dp` line spacing)
+  - selected-entry detail panel now uses Practice-aligned text scales and timestamp formatting for visual consistency
+- GameRoom machine-view segmented selector parity:
+  - `Summary / Input / Log` selector now uses the same `SingleChoiceSegmentedButtonRow` + `SegmentedButton` structure as Android Practice game view
+  - selection styling and hit targets now follow the same Material segmented-control behavior used in Practice
+- Pinside import matcher hardening (Android):
+  - scoring now includes a slug-derived title signal (`pinside_slug` normalized without variant suffixes) to anchor matches to intended machine groups
+  - prevented degenerate broad matches from empty/noisy titles by only applying contains/token title scoring when normalized raw title is non-blank
+  - intended effect: avoid bad fallback matches like unrelated classic titles when modern slugs (for example King Kong) are present
+- Library source visibility fix for GameRoom (Android):
+  - Library source picker no longer hides non-pinned sources when pinned sources exist
+  - pinned sources still appear first, but all available sources (including GameRoom venue) are now selectable in the filter list
+- Pinside import exact-slug resolver parity hardening (Android):
+  - catalog loader now stores OPDB `slug -> (group, practice identity, variant)` mappings
+  - import draft generation now prioritizes exact OPDB slug hits before fuzzy scoring
+  - exact slug hits are promoted to selected match immediately (high confidence), with fuzzy suggestions retained as alternates
+  - intended effect: prevent false matches (for example `King Kong: Myth of Terror Island` drifting to unrelated titles)
+- Library fallback overlay robustness (Android):
+  - SQLite seed-library fallback path now injects GameRoom overlay from persisted GameRoom state (same source id `venue--gameroom`)
+  - GameRoom source is now preserved in Library even when merged OPDB path is unavailable/fails
+  - overlay entries carry venue naming, area/group/position ordering, and template-linked media/rulesheet/art where available
+- Import parity + resolver hardening follow-up (Android):
+  - scoring behavior moved closer to iOS baseline (raw-title + variant scoring) to reduce cross-platform ranking drift
+  - deterministic pre-ranking now injects:
+    - exact title-normalized match candidate
+    - slug-derived catalog candidate (including normalized slug keys that tolerate manufacturer/year/variant suffix differences)
+  - collection fetch flow now prefers `r.jina.ai` fallback results when available (more stable collection-only slug extraction) and uses direct fetch as backup
+  - variant extraction now recognizes anniversary-style slugs (for example `70th-anniversary`) and defaults imported variant accordingly
+- Library source visibility resilience (Android):
+  - GameRoom source is now force-preserved during source-state filtering whenever GameRoom games are present
+  - this avoids stale source-state edge cases suppressing GameRoom from Library selector
+- Library overlay flow fix (Android):
+  - removed early-return path in merged catalog resolution that bypassed GameRoom overlay when imported sources were empty
+  - result: GameRoom can now appear in Library without requiring any imported venue/manufacturer source to exist first
+- Import parser precision fix (Android):
+  - slug extraction now uses collection-context patterns first (links associated with `View game on Pinside` / collection heading structure), then falls back to broad machine-link parsing only if strict extraction finds nothing
+  - this reduces false positives from non-collection machine links leaking into import rows
+- Import recommendation de-duplication (Android):
+  - import suggestion list now deduplicates by display title, not only catalog id
+  - avoids duplicate-title recommendations (for example multiple `Cabaret` groups) cluttering row match picks
+- Import search parity reset (Android -> iOS-equivalent):
+  - draft-row recommendation path now matches iOS behavior: suggestions are derived only from scored `rawTitle + variant` candidates
+  - removed Android-only pre-ranking hooks from suggestion selection path (slug/title pre-injection and title-based dedupe)
+  - direct Pinside fetch now remains the primary path (fallback only on failure), matching iOS preference order
+  - slug extraction reverted to iOS-equivalent broad machine-link regex behavior
+- iOS import variant parsing alignment:
+  - Pinside slug parsing now prioritizes anniversary token detection (for example `70th-anniversary`) before generic variant suffix matching
+  - imported raw variant can now default to `70th Anniversary` for relevant slugs (improves Godzilla 70th preselection/match behavior)
+- Catalog ID case-collision parity fix (Android):
+  - identified OPDB group-id collision where IDs differ only by case (for example `GEL0V` vs `GEL0v`)
+  - Android catalog lookup now requires exact-case match first and only allows case-insensitive fallback when unambiguous
+  - owned-machine duplicate detection now uses exact catalog-id equality (matching iOS behavior)
+  - group-map loader now reads JSON values by raw key before normalizing slug-key casing (avoids silent misses on mixed-case keys)
+  - this prevents wrong-machine resolution in import review (for example `King Kong: Myth of Terror Island` drifting to `Cabaret`)
+- Machine-view hero image fit parity (Android):
+  - GameRoom Machine View header now uses `ConstrainedAsyncImagePreview` (same image renderer contract as Library game view screenshot section)
+  - replaced fixed-height `ContentScale.Crop` hero with dynamic-aspect `ContentScale.Fit` preview to preserve full OPDB image framing
+  - candidate URL order remains variant-aware (`primary large`, `primary`, `playfield large`, `playfield`)
+- Edit/Add Machine result window parity (Android):
+  - `Settings > Edit GameRoom > Add Machine` now renders search results inside a constrained scroll box (fixed max height) instead of an unbounded column
+  - results now use an iOS-style sliding window model with `Show Previous 25` and `Show Next 25` controls inside the results list
+  - window range label now reports `Showing X-Y of Z` and query/manufacturer filter changes reset windowing to the first page
+  - next-page loading keeps a bounded rendered window (max 75) to avoid growing the in-memory/rendered list indefinitely
+- Area controls polish parity update:
+  - area list rows now render as single-line labels in both apps: `Area Name (Area Order)`
+  - Android Areas input row now mirrors iOS proportions: `Area Name` field remains wide/flexible while `Area Order` is constrained narrower
+  - Android area delete action in Areas list now uses a compact trash icon button instead of text `Delete`
+- Archive filter control parity (Android):
+  - Archive filter selector (`All / Sold / Traded / Archived`) now uses the same segmented button bar pattern as other Android GameRoom selectors (`Summary / Input / Log`)
+  - Archive settings now shows the same archive count line pattern as iOS (`Archived machines: N`, scoped to the current filter)
+- Collection list mini-card visual parity update:
+  - iOS GameRoom `Collection > List` rows now render as artwork-backed mini-card rows (same visual language as tile mini cards: full-bleed image + readability gradient + overlay text + variant pill)
+  - Android `Collection > List` now mirrors the same mini-card treatment and no longer uses the old plain row + thumbnail style
+  - Android list rows now place the attention/status light on the left (matching iOS list placement)
+  - Android list rows no longer show a trailing chevron arrow
+  - Android list rows removed the old selected-row buffer/divider styling and now use compact card spacing with a tight selection ring
+- Add Machine window paging scroll-restore parity (Android):
+  - `Show Previous 25` / `Show Next 25` in `Settings > Edit GameRoom > Add Machine` now preserve the visible position anchor (same behavior as iOS fixed flow)
+  - implemented keyed lazy-list restore to keep the previously top-visible game aligned after window shifts, instead of snapping to list top
+- Collection selector + row density polish:
+  - collection layout selector label `Tiles` has been renamed to `Cards` on both iOS and Android
+  - list-row cards in both iOS and Android were reduced in vertical height/padding for a tighter, text-fitted list presentation
+  - Android card view no longer renders location text (`area/group/position`) on cards; location remains visible in list view rows
+  - Android card title typography was increased for better prominence now that location is removed from card view
+- Add-machine + area action button polish:
+  - Add-machine action button in GameRoom settings (`Add Machine`) now uses a plus icon in both iOS and Android instead of text `Add`
+  - Android Areas delete action now renders the trash icon inside an outlined button container for clearer affordance
+- Machine View header + summary media parity follow-up:
+  - Android `Machine View` now uses `Machine View` in the top row and renders the machine metadata block directly under hero art (title, variant pill, and location/group/position/status line), matching iOS structure
+  - Android `Summary` now always renders the Media section; when empty it explicitly shows `No media attached yet.` instead of hiding the section
+- Log Issue media attachment parity (iOS + Android):
+  - iOS `Log Issue` sheet now supports inline `Add Photo` and `Add Video` actions using Photos picker, shows selected attachments in-sheet, and saves them with the issue
+  - Android `Log Issue` sheet now supports inline `Add Photo` and `Add Video` actions using native document pickers, shows/removes selected attachments in-sheet, and saves them with the issue
+  - for both platforms, issue-sheet attachments are persisted as issue-owned attachments and emit corresponding media timeline events linked to the created issue
+- Android input action clean-up + add-media affordance:
+  - removed `Issue Photo` and `Issue Video` quick actions from the Android `Input > Issue` action grid (Issue actions are now `Log Issue` and `Resolve Issue`)
+  - Android `Input > Ownership / Media > Add Photo/Video` sheet now includes explicit `Add Photo` and `Add Video` buttons that immediately launch the native picker flow (instead of relying on Save with blank URI)
+- iOS `Log Issue` media row layout refinement:
+  - media controls are no longer wrapped in a separate `Media` section
+  - `Add Photo` and `Add Video` now appear immediately after `Diagnosis / Notes`
+  - both controls are now equal-width row buttons with balanced spacing for consistent visual weight
+- iOS `Log Issue` subsystem menu default:
+  - default subsystem for new issue entries is now the first option (`Flipper`) instead of `Other`
+  - prevents the menu from initially opening anchored at the bottom of the subsystem list
+- Android log selected-entry actions:
+  - removed `Edit` and `Delete` buttons from the selected-entry detail card in `Machine View > Log`
+  - edit/delete remain available from row-level swipe actions in the timeline list
+- Android machine-header typography alignment:
+  - `Machine View` metadata row now keeps the variant pill directly after the machine name (left-aligned cluster) instead of pushing the pill to the far right edge
+  - location line under the title now uses smaller subtitle-style typography (`labelSmall`) to match iOS footnote/subtitle hierarchy
+- Android summary spacing/layout parity polish:
+  - `GameRoom Home > Selected Machine` now mirrors iOS hierarchy more closely:
+    - stronger title row hierarchy
+    - smaller location subtitle text
+    - explicit `Current Snapshot` subheading above metrics
+    - optional `Purchase (raw)` line shown in subdued subtitle style
+  - `Machine View > Summary` now uses separate snapshot and media cards (matching iOS section framing) instead of one dense combined block
+  - snapshot metric typography now matches iOS-style cadence better (`labelSmall` labels + `bodySmall` values with truncation)
+- Android GameRoom summary readability follow-up:
+  - increased `Location` line typography by one step in:
+    - `GameRoom Home > Selected Machine`
+    - `Machine View` metadata block
+  - increased `Current Snapshot` metric typography by one step:
+    - metric label: `labelSmall -> bodySmall`
+    - metric value: `bodySmall -> bodyMedium`
+- Android back-button parity normalization:
+  - introduced shared `AppBackButton` in common UI and routed Android back-arrow surfaces through it
+  - unified back-arrow appearance across `Practice`, `GameRoom`, and `Library` game/detail surfaces (including rulesheet/playfield overlays)
+  - result: a single back-button style across Android app navigation contexts
+- Android GameRoom collection typography follow-up:
+  - increased machine-name typography by one step in `Collection > Cards` (tile mini cards), matching the list-view readability bump
+- Android GameRoom home title alignment:
+  - GameRoom venue title now matches Practice home title hierarchy/placement (`fontSize 20sp`, semibold, single-line ellipsis, left inset parity)
