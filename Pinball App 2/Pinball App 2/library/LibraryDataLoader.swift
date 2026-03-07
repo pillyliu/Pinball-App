@@ -276,15 +276,12 @@ private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueNa
             var assets: [String: Any] = [:]
             if let playfieldLocalPath = template.playfieldLocalOriginal ?? template.playfieldLocal {
                 assets["playfield_local_practice"] = playfieldLocalPath
-                assets["playfield_local_legacy"] = playfieldLocalPath
             }
             if let rulesheetLocalPath = template.rulesheetLocal {
                 assets["rulesheet_local_practice"] = rulesheetLocalPath
-                assets["rulesheet_local_legacy"] = rulesheetLocalPath
             }
             if let gameinfoLocalPath = template.gameinfoLocal {
                 assets["gameinfo_local_practice"] = gameinfoLocalPath
-                assets["gameinfo_local_legacy"] = gameinfoLocalPath
             }
             if !assets.isEmpty {
                 row["assets"] = assets

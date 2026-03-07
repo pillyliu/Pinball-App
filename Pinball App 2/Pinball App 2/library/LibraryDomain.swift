@@ -1015,19 +1015,13 @@ struct PinballGame: Identifiable, Decodable {
 
     struct Assets: Decodable {
         let playfieldLocalPractice: String?
-        let playfieldLocalLegacy: String?
         let rulesheetLocalPractice: String?
-        let rulesheetLocalLegacy: String?
         let gameinfoLocalPractice: String?
-        let gameinfoLocalLegacy: String?
 
         enum CodingKeys: String, CodingKey {
             case playfieldLocalPractice = "playfield_local_practice"
-            case playfieldLocalLegacy = "playfield_local_legacy"
             case rulesheetLocalPractice = "rulesheet_local_practice"
-            case rulesheetLocalLegacy = "rulesheet_local_legacy"
             case gameinfoLocalPractice = "gameinfo_local_practice"
-            case gameinfoLocalLegacy = "gameinfo_local_legacy"
         }
     }
 
@@ -1114,11 +1108,10 @@ struct PinballGame: Identifiable, Decodable {
             ?? (try container.decodeIfPresent(String.self, forKey: .playfieldImageUrlV2))
         let rawPlayfieldLocal = try container.decodeIfPresent(String.self, forKey: .playfieldLocal)
             ?? assets?.playfieldLocalPractice
-            ?? assets?.playfieldLocalLegacy
         playfieldLocalOriginal = Self.normalizeCachePath(rawPlayfieldLocal)
         playfieldLocal = Self.normalizePlayfieldLocalPath(rawPlayfieldLocal)
-        gameinfoLocal = assets?.gameinfoLocalPractice ?? assets?.gameinfoLocalLegacy
-        rulesheetLocal = assets?.rulesheetLocalPractice ?? assets?.rulesheetLocalLegacy
+        gameinfoLocal = assets?.gameinfoLocalPractice
+        rulesheetLocal = assets?.rulesheetLocalPractice
         rulesheetUrl = try container.decodeIfPresent(String.self, forKey: .rulesheetUrl)
             ?? (try container.decodeIfPresent(String.self, forKey: .rulesheetUrlV2))
         playfieldSourceLabel = try container.decodeIfPresent(String.self, forKey: .playfieldSourceLabel)
@@ -1165,6 +1158,18 @@ struct PinballGame: Identifiable, Decodable {
 
     var id: String { libraryEntryID ?? opdbID ?? practiceIdentity ?? slug }
     var practiceKey: String { practiceIdentity ?? opdbGroupID ?? slug }
+
+    private var localAssetKey: String? {
+        if let practiceIdentity {
+            let trimmed = practiceIdentity.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { return trimmed }
+        }
+        if let opdbGroupID {
+            let trimmed = opdbGroupID.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { return trimmed }
+        }
+        return nil
+    }
 
     var opdbGroupID: String? {
         guard let opdbID else { return nil }
@@ -1255,18 +1260,14 @@ struct PinballGame: Identifiable, Decodable {
 
     var libraryPlayfieldCandidates: [URL] {
         [
-            primaryImageSourceURL,
+            derivedPlayfieldURL(width: 700),
             Self.fallbackPlayfieldURL(width: 700)
         ].compactMap { $0 }
     }
 
     var miniPlayfieldCandidates: [URL] {
         [
-            primaryImageSourceURL,
-            primaryImageLargeSourceURL,
             derivedPlayfieldURL(width: 700),
-            playfieldLocalURL,
-            playfieldImageSourceURL,
             derivedPlayfieldURL(width: 1400),
             Self.fallbackPlayfieldURL(width: 700),
             Self.fallbackPlayfieldURL(width: 1400)
@@ -1275,8 +1276,6 @@ struct PinballGame: Identifiable, Decodable {
 
     var gamePlayfieldCandidates: [URL] {
         [
-            primaryImageLargeSourceURL,
-            primaryImageSourceURL,
             derivedPlayfieldURL(width: 1400),
             derivedPlayfieldURL(width: 700),
             Self.fallbackPlayfieldURL(width: 700)
@@ -1285,8 +1284,6 @@ struct PinballGame: Identifiable, Decodable {
 
     var fullscreenPlayfieldCandidates: [URL] {
         [
-            playfieldLocalOriginalURL,
-            playfieldImageSourceURL,
             derivedPlayfieldURL(width: 1400),
             derivedPlayfieldURL(width: 700),
             Self.fallbackPlayfieldURL(width: 700)
@@ -1295,8 +1292,6 @@ struct PinballGame: Identifiable, Decodable {
 
     var actualFullscreenPlayfieldCandidates: [URL] {
         [
-            playfieldLocalOriginalURL,
-            playfieldImageSourceURL,
             derivedPlayfieldURL(width: 1400),
             derivedPlayfieldURL(width: 700)
         ].compactMap { $0 }
@@ -1314,30 +1309,22 @@ struct PinballGame: Identifiable, Decodable {
 
     var gameinfoPathCandidates: [String] {
         var paths: [String] = []
-        if let gameinfoLocalPath = Self.normalizeCachePath(gameinfoLocal) {
-            paths.append(gameinfoLocalPath)
+        if let localAssetKey {
+            paths.append("/pinball/gameinfo/\(localAssetKey)-gameinfo.md")
         }
-        if let practiceIdentity {
-            paths.append("/pinball/gameinfo/\(practiceIdentity)-gameinfo.md")
-        }
-        paths.append("/pinball/gameinfo/\(slug).md")
         return Array(NSOrderedSet(array: paths)) as? [String] ?? paths
     }
 
     var rulesheetPathCandidates: [String] {
         var paths: [String] = []
-        if let rulesheetLocalPath = Self.normalizeCachePath(rulesheetLocal) {
-            paths.append(rulesheetLocalPath)
+        if let localAssetKey {
+            paths.append("/pinball/rulesheets/\(localAssetKey)-rulesheet.md")
         }
-        if let practiceIdentity {
-            paths.append("/pinball/rulesheets/\(practiceIdentity)-rulesheet.md")
-        }
-        paths.append("/pinball/rulesheets/\(slug).md")
         return Array(NSOrderedSet(array: paths)) as? [String] ?? paths
     }
 
     var hasRulesheetResource: Bool {
-        Self.normalizeCachePath(rulesheetLocal) != nil || !rulesheetLinks.isEmpty || rulesheetSourceURL != nil
+        !rulesheetPathCandidates.isEmpty || !rulesheetLinks.isEmpty || rulesheetSourceURL != nil
     }
 
     var hasPlayfieldResource: Bool {
@@ -1388,29 +1375,8 @@ struct PinballGame: Identifiable, Decodable {
     }
 
     private func derivedPlayfieldURL(width: Int) -> URL? {
-        guard let playfieldLocal else { return nil }
-
-        let normalizedPath: String
-        if let url = URL(string: playfieldLocal), url.scheme != nil {
-            normalizedPath = url.path
-        } else {
-            normalizedPath = playfieldLocal
-        }
-
-        guard let slashIndex = normalizedPath.lastIndex(of: "/") else { return nil }
-        let directory = String(normalizedPath[..<slashIndex])
-        let filename = String(normalizedPath[normalizedPath.index(after: slashIndex)...])
-        let stemWithMaybeSuffix: String = {
-            if let dot = filename.lastIndex(of: ".") {
-                return String(filename[..<dot])
-            }
-            return filename
-        }()
-        let baseStem = stemWithMaybeSuffix
-            .replacingOccurrences(of: "_700", with: "")
-            .replacingOccurrences(of: "_1400", with: "")
-        let derived = "\(directory)/\(baseStem)_\(width).webp"
-        return Self.resolveURL(pathOrURL: derived)
+        guard let localAssetKey else { return nil }
+        return Self.resolveURL(pathOrURL: "/pinball/images/playfields/\(localAssetKey)-playfield_\(width).webp")
     }
 
     static func youtubeID(from raw: String) -> String? {

@@ -278,14 +278,11 @@ internal fun parseGames(array: JSONArray): List<PinballGame> {
         val assets = obj.optJSONObject("assets")
         val rawPlayfieldLocal = obj.optStringOrNull("playfieldLocal")
             ?: assets?.optStringOrNull("playfield_local_practice")
-            ?: assets?.optStringOrNull("playfield_local_legacy")
         val playfieldLocalOriginal = normalizeCachePath(rawPlayfieldLocal)
         val playfieldLocal = normalizePlayfieldLocalPath(rawPlayfieldLocal)
         val rulesheetLocal = obj.optStringOrNull("rulesheetLocal")
             ?: assets?.optStringOrNull("rulesheet_local_practice")
-            ?: assets?.optStringOrNull("rulesheet_local_legacy")
         val gameinfoLocal = assets?.optStringOrNull("gameinfo_local_practice")
-            ?: assets?.optStringOrNull("gameinfo_local_legacy")
         val rulesheetLinks = obj.optJSONArray("rulesheet_links")?.let { links ->
             (0 until links.length()).mapNotNull { idx ->
                 links.optJSONObject(idx)?.let { link ->
@@ -469,31 +466,15 @@ internal fun PinballGame.resolve(pathOrUrl: String?): String? {
 }
 
 internal fun PinballGame.derivedPlayfield(width: Int): String? {
-    val local = playfieldLocal ?: return null
-    val path = if (local.startsWith("http://") || local.startsWith("https://")) {
-        java.net.URI(local).path ?: return null
-    } else {
-        local
-    }
-    val slash = path.lastIndexOf('/')
-    if (slash < 0) return null
-    val directory = path.substring(0, slash)
-    val filename = path.substring(slash + 1)
-    val dot = filename.lastIndexOf('.')
-    val stem = if (dot > 0) filename.substring(0, dot) else filename
-    val baseStem = stem.removeSuffix("_700").removeSuffix("_1400")
-    return resolve("$directory/${baseStem}_${width}.webp")
+    val assetKey = localAssetKey ?: return null
+    return resolve("/pinball/images/playfields/$assetKey-playfield_${width}.webp")
 }
 
 internal fun PinballGame.libraryPlayfieldCandidate(): String? =
-    resolve(primaryImageUrl) ?: resolve(FALLBACK_WHITEWOOD_PLAYFIELD_700)
+    derivedPlayfield(700) ?: resolve(FALLBACK_WHITEWOOD_PLAYFIELD_700)
 internal fun PinballGame.miniCardPlayfieldCandidates(): List<String> =
     listOfNotNull(
-        resolve(primaryImageUrl),
-        resolve(primaryImageLargeUrl),
         derivedPlayfield(700),
-        resolve(playfieldLocal),
-        resolve(playfieldImageUrl),
         derivedPlayfield(1400),
         resolve(FALLBACK_WHITEWOOD_PLAYFIELD_700),
         resolve(FALLBACK_WHITEWOOD_PLAYFIELD_1400),
@@ -502,8 +483,6 @@ internal fun PinballGame.miniCardPlayfieldCandidate(): String? =
     miniCardPlayfieldCandidates().firstOrNull()
 internal fun PinballGame.gameInlinePlayfieldCandidates(): List<String> =
     listOfNotNull(
-        resolve(primaryImageLargeUrl),
-        resolve(primaryImageUrl),
         derivedPlayfield(1400),
         derivedPlayfield(700),
         resolve(FALLBACK_WHITEWOOD_PLAYFIELD_700),
@@ -511,8 +490,6 @@ internal fun PinballGame.gameInlinePlayfieldCandidates(): List<String> =
         .distinct()
 internal fun PinballGame.fullscreenPlayfieldCandidates(): List<String> =
     listOfNotNull(
-        resolve(playfieldLocalOriginal),
-        resolve(playfieldImageUrl),
         derivedPlayfield(1400),
         derivedPlayfield(700),
         resolve(FALLBACK_WHITEWOOD_PLAYFIELD_700),
@@ -526,21 +503,20 @@ internal val PinballGame.hasPlayfieldResource: Boolean
     get() = actualFullscreenPlayfieldCandidates.isNotEmpty()
 
 internal val PinballGame.hasRulesheetResource: Boolean
-    get() = !rulesheetLocal.isNullOrBlank() || rulesheetLinks.isNotEmpty() || !rulesheetUrl.isNullOrBlank()
+    get() = rulesheetPathCandidates.isNotEmpty() || rulesheetLinks.isNotEmpty() || !rulesheetUrl.isNullOrBlank()
 
 internal val PinballGame.rulesheetPathCandidates: List<String>
     get() = listOfNotNull(
-        rulesheetLocal,
-        practiceIdentity?.let { "/pinball/rulesheets/${it}-rulesheet.md" },
-        "/pinball/rulesheets/$slug.md",
+        localAssetKey?.let { "/pinball/rulesheets/${it}-rulesheet.md" },
     ).distinct()
 
 internal val PinballGame.gameinfoPathCandidates: List<String>
     get() = listOfNotNull(
-        gameinfoLocal,
-        practiceIdentity?.let { "/pinball/gameinfo/${it}-gameinfo.md" },
-        "/pinball/gameinfo/$slug.md",
+        localAssetKey?.let { "/pinball/gameinfo/${it}-gameinfo.md" },
     ).distinct()
+
+internal val PinballGame.localAssetKey: String?
+    get() = practiceIdentity?.ifBlank { null } ?: opdbGroupId?.ifBlank { null }
 
 internal val PinballGame.practiceKey: String
     get() = canonicalPracticeKey

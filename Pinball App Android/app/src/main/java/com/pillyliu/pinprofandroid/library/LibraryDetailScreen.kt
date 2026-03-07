@@ -139,11 +139,7 @@ internal fun LibraryDetailScreen(
 
     LaunchedEffect(game.slug) {
         if (infoStatus == "loaded" || infoStatus == "missing") return@LaunchedEffect
-        val candidates = listOfNotNull(
-            game.resolve(game.gameinfoLocal),
-            game.practiceIdentity?.let { "https://pillyliu.com/pinball/gameinfo/${it}-gameinfo.md" },
-            "https://pillyliu.com/pinball/gameinfo/${game.slug}.md",
-        ).distinct()
+        val candidates = game.gameinfoPathCandidates.mapNotNull { candidate -> game.resolve(candidate) }.distinct()
         var loaded = false
         var sawError = false
         for (candidate in candidates) {

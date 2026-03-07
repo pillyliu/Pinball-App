@@ -11,7 +11,7 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 IOS_DATA_DIR = REPO_ROOT / "Pinball App 2" / "Pinball App 2" / "PinballStarter.bundle" / "pinball" / "data"
 ANDROID_DATA_DIR = REPO_ROOT / "Pinball App Android" / "app" / "src" / "main" / "assets" / "starter-pack" / "pinball" / "data"
-LEGACY_JSON = IOS_DATA_DIR / "pinball_library_v3.json"
+LIBRARY_JSON = IOS_DATA_DIR / "pinball_library_v3.json"
 CATALOG_JSON = IOS_DATA_DIR / "opdb_catalog_v1.json"
 IOS_DB = IOS_DATA_DIR / "pinball_library_seed_v1.sqlite"
 ANDROID_DB = ANDROID_DATA_DIR / "pinball_library_seed_v1.sqlite"
@@ -41,12 +41,12 @@ def build_catalog_indexes(catalog: dict[str, Any]) -> tuple[dict[str, dict[str, 
     return machines_by_practice, machines_by_opdb, rulesheets_by_practice, videos_by_practice
 
 
-def curated_override_rows(legacy_games: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+def curated_override_rows(library_games: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     overrides: dict[str, dict[str, Any]] = {}
     override_rulesheets: list[dict[str, Any]] = []
     override_videos: list[dict[str, Any]] = []
 
-    for game in legacy_games:
+    for game in library_games:
         practice_identity = normalized(game.get("practice_identity"))
         if not practice_identity:
             opdb_id = normalized(game.get("opdb_id"))
@@ -56,9 +56,9 @@ def curated_override_rows(legacy_games: list[dict[str, Any]]) -> tuple[list[dict
             continue
 
         assets = game.get("assets") or {}
-        playfield_local = normalized(game.get("playfieldLocal")) or normalized(assets.get("playfield_local_practice")) or normalized(assets.get("playfield_local_legacy"))
-        rulesheet_local = normalized(assets.get("rulesheet_local_practice")) or normalized(assets.get("rulesheet_local_legacy"))
-        gameinfo_local = normalized(assets.get("gameinfo_local_practice")) or normalized(assets.get("gameinfo_local_legacy"))
+        playfield_local = normalized(game.get("playfieldLocal")) or normalized(assets.get("playfield_local_practice"))
+        rulesheet_local = normalized(assets.get("rulesheet_local_practice"))
+        gameinfo_local = normalized(assets.get("gameinfo_local_practice"))
         override = overrides.setdefault(
             practice_identity,
             {
@@ -122,11 +122,11 @@ def curated_override_rows(legacy_games: list[dict[str, Any]]) -> tuple[list[dict
 
 
 def resolved_builtin_rows(
-    legacy_games: list[dict[str, Any]],
+    library_games: list[dict[str, Any]],
     catalog: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     machines_by_practice, machines_by_opdb, rulesheets_by_practice, videos_by_practice = build_catalog_indexes(catalog)
-    overrides, override_rulesheets, override_videos = curated_override_rows(legacy_games)
+    overrides, override_rulesheets, override_videos = curated_override_rows(library_games)
     overrides_by_practice = {row["practice_identity"]: row for row in overrides}
     override_rules_by_practice: dict[str, list[dict[str, Any]]] = {}
     for row in override_rulesheets:
@@ -140,7 +140,7 @@ def resolved_builtin_rows(
     built_in_videos: list[dict[str, Any]] = []
     seen_library_entry_ids: dict[str, int] = {}
 
-    for game in legacy_games:
+    for game in library_games:
         library_entry_id = normalized(game.get("library_entry_id"))
         if not library_entry_id:
             continue
@@ -156,9 +156,9 @@ def resolved_builtin_rows(
         override = overrides_by_practice.get(practice_identity or "") if practice_identity else None
 
         assets = game.get("assets") or {}
-        playfield_local = normalized(game.get("playfieldLocal")) or normalized(assets.get("playfield_local_practice")) or normalized(assets.get("playfield_local_legacy"))
-        rulesheet_local = normalized(assets.get("rulesheet_local_practice")) or normalized(assets.get("rulesheet_local_legacy"))
-        gameinfo_local = normalized(assets.get("gameinfo_local_practice")) or normalized(assets.get("gameinfo_local_legacy"))
+        playfield_local = normalized(game.get("playfieldLocal")) or normalized(assets.get("playfield_local_practice"))
+        rulesheet_local = normalized(assets.get("rulesheet_local_practice"))
+        gameinfo_local = normalized(assets.get("gameinfo_local_practice"))
         playfield_image_url = normalized(game.get("playfield_image_url")) or normalized(game.get("playfieldImageUrl"))
 
         primary_image = (machine or {}).get("primary_image") or {}
@@ -391,14 +391,14 @@ def create_schema(conn: sqlite3.Connection) -> None:
     )
 
 
-def write_database(output_path: Path, legacy: dict[str, Any], catalog: dict[str, Any]) -> None:
+def write_database(output_path: Path, library: dict[str, Any], catalog: dict[str, Any]) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if output_path.exists():
         output_path.unlink()
 
-    legacy_sources = legacy.get("sources") or legacy.get("libraries") or []
-    legacy_games = legacy.get("items") or legacy.get("games") or []
-    built_in_games, built_in_rulesheets, built_in_videos, overrides, override_rulesheets, override_videos = resolved_builtin_rows(legacy_games, catalog)
+    library_sources = library.get("sources") or library.get("libraries") or []
+    library_games = library.get("items") or library.get("games") or []
+    built_in_games, built_in_rulesheets, built_in_videos, overrides, override_rulesheets, override_videos = resolved_builtin_rows(library_games, catalog)
 
     conn = sqlite3.connect(output_path)
     try:
@@ -470,7 +470,7 @@ def write_database(output_path: Path, legacy: dict[str, Any], catalog: dict[str,
                     "library_type": row.get("library_type"),
                     "sort_rank": index,
                 }
-                for index, row in enumerate(legacy_sources)
+                for index, row in enumerate(library_sources)
             ],
         )
         conn.executemany(
@@ -525,10 +525,10 @@ def write_database(output_path: Path, legacy: dict[str, Any], catalog: dict[str,
 
 
 def main() -> int:
-    legacy = load_json(LEGACY_JSON)
+    library = load_json(LIBRARY_JSON)
     catalog = load_json(CATALOG_JSON)
-    write_database(IOS_DB, legacy, catalog)
-    write_database(ANDROID_DB, legacy, catalog)
+    write_database(IOS_DB, library, catalog)
+    write_database(ANDROID_DB, library, catalog)
     print(f"wrote sqlite seed to {IOS_DB}")
     print(f"wrote sqlite seed to {ANDROID_DB}")
     return 0
