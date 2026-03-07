@@ -298,8 +298,10 @@ struct PinballVideoLaunchPanel: View {
     @State private var metadata: PinballGame.YouTubeMetadata?
 
     var body: some View {
+        let panelShape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+
         ZStack {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            panelShape
                 .fill(Color.black.opacity(0.82))
                 .overlay {
                     if let selectedVideo {
@@ -320,7 +322,7 @@ struct PinballVideoLaunchPanel: View {
                     )
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10)
+                    panelShape
                         .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
                 )
 
@@ -365,6 +367,7 @@ struct PinballVideoLaunchPanel: View {
             }
             .padding(16)
         }
+        .clipShape(panelShape)
         .task(id: selectedVideo?.id) {
             guard let selectedVideo else {
                 metadata = nil
