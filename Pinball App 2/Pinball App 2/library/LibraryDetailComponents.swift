@@ -284,26 +284,78 @@ private struct LibraryVideoLaunchPanel: View {
     let openURL: OpenURLAction
 
     var body: some View {
+        PinballVideoLaunchPanel(selectedVideo: selectedVideo, openURL: openURL)
+            .frame(maxWidth: .infinity)
+            .aspectRatio(16.0 / 9.0, contentMode: .fit)
+            .frame(minHeight: usesDesktopLandscapeLayout ? 260 : 0)
+    }
+}
+
+struct PinballVideoLaunchPanel: View {
+    let selectedVideo: PinballGame.PlayableVideo?
+    let openURL: OpenURLAction
+
+    @State private var metadata: PinballGame.YouTubeMetadata?
+
+    var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.regularMaterial)
+                .fill(Color.black.opacity(0.82))
+                .overlay {
+                    if let selectedVideo {
+                        LibraryYouTubeThumbnailView(candidates: selectedVideo.thumbnailCandidates)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .clipped()
+                    }
+                }
+                .overlay(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color.black.opacity(0.24), location: 0.0),
+                            .init(color: Color.black.opacity(0.48), location: 0.35),
+                            .init(color: Color.black.opacity(0.82), location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
                 )
 
-            VStack(spacing: 8) {
+            VStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(selectedVideo?.label ?? "Tap a video thumbnail")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .shadow(color: .black.opacity(0.95), radius: 4, x: 0, y: 2)
+
+                    if let title = metadata?.title {
+                        Text(title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .shadow(color: .black.opacity(0.95), radius: 4, x: 0, y: 2)
+                    }
+
+                    if let channelName = metadata?.channelName {
+                        Text(channelName)
+                            .font(.footnote)
+                            .foregroundStyle(Color.white.opacity(0.84))
+                            .lineLimit(1)
+                            .shadow(color: .black.opacity(0.95), radius: 4, x: 0, y: 2)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
                 Image(systemName: "play.rectangle")
                     .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(.primary)
-                Text(selectedVideo?.label ?? "Tap a video thumbnail")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                Text("Opens in YouTube")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.95), radius: 4, x: 0, y: 2)
+
                 Button("Open in YouTube") {
                     guard let selectedVideo, let youtubeURL = selectedVideo.youtubeWatchURL else { return }
                     openURL(youtubeURL)
@@ -313,9 +365,16 @@ private struct LibraryVideoLaunchPanel: View {
             }
             .padding(16)
         }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(16.0 / 9.0, contentMode: .fit)
-        .frame(minHeight: usesDesktopLandscapeLayout ? 260 : 0)
+        .task(id: selectedVideo?.id) {
+            guard let selectedVideo else {
+                metadata = nil
+                return
+            }
+            metadata = nil
+            let fetched = await YouTubeVideoMetadataService.shared.metadata(for: selectedVideo)
+            guard !Task.isCancelled else { return }
+            metadata = fetched
+        }
     }
 }
 

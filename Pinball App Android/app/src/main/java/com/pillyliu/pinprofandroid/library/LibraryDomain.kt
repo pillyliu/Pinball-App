@@ -7,6 +7,13 @@ import androidx.core.net.toUri
 import androidx.compose.ui.unit.dp
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.ConcurrentHashMap
 
 internal const val LIBRARY_URL = "https://pillyliu.com/pinball/data/pinball_library_v3.json"
 internal const val OPDB_CATALOG_URL = "https://pillyliu.com/pinball/data/opdb_catalog_v1.json"
@@ -92,6 +99,15 @@ internal data class ReferenceLink(
 }
 
 internal data class Video(val kind: String?, val label: String?, val url: String?)
+internal data class PlayableVideo(val id: String, val label: String) {
+    val watchUrl: String
+        get() = "https://www.youtube.com/watch?v=$id"
+
+    val thumbnailUrl: String
+        get() = "https://i.ytimg.com/vi/$id/hqdefault.jpg"
+}
+
+internal data class YouTubeVideoMetadata(val title: String, val channelName: String?)
 internal data class LibraryGroupSection(val groupKey: Int?, val games: List<PinballGame>)
 internal enum class LibraryRouteKind {
     LIST,
@@ -613,6 +629,44 @@ internal fun youtubeId(raw: String?): String? {
         }
     } catch (_: Throwable) {
         null
+    }
+}
+
+private val youTubeMetadataCache = ConcurrentHashMap<String, YouTubeVideoMetadata>()
+
+internal suspend fun loadYouTubeVideoMetadata(videoId: String): YouTubeVideoMetadata? {
+    youTubeMetadataCache[videoId]?.let { return it }
+
+    return withContext(Dispatchers.IO) {
+        try {
+            val watchUrl = "https://www.youtube.com/watch?v=$videoId"
+            val encodedWatchUrl = URLEncoder.encode(watchUrl, StandardCharsets.UTF_8.toString())
+            val requestUrl = URL("https://www.youtube.com/oembed?url=$encodedWatchUrl&format=json")
+            val connection = requestUrl.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 5_000
+            connection.readTimeout = 5_000
+            connection.setRequestProperty("Accept", "application/json")
+            try {
+                if (connection.responseCode !in 200..299) {
+                    return@withContext null
+                }
+                val body = connection.inputStream.bufferedReader().use { it.readText() }
+                val json = JSONObject(body)
+                val title = json.optString("title").trim()
+                if (title.isBlank()) {
+                    return@withContext null
+                }
+                val channelName = json.optString("author_name").trim().ifBlank { null }
+                YouTubeVideoMetadata(title = title, channelName = channelName).also {
+                    youTubeMetadataCache[videoId] = it
+                }
+            } finally {
+                connection.disconnect()
+            }
+        } catch (_: Throwable) {
+            null
+        }
     }
 }
 

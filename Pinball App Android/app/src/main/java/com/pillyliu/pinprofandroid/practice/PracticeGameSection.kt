@@ -48,6 +48,8 @@ import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.ui.platform.LocalContext
 import com.pillyliu.pinprofandroid.library.ConstrainedAsyncImagePreview
 import com.pillyliu.pinprofandroid.library.PinballGame
+import com.pillyliu.pinprofandroid.library.PlayableVideo
+import com.pillyliu.pinprofandroid.library.PinballVideoLaunchPanel
 import com.pillyliu.pinprofandroid.library.actualFullscreenPlayfieldCandidates
 import com.pillyliu.pinprofandroid.library.fullscreenPlayfieldCandidates
 import com.pillyliu.pinprofandroid.library.gameInlinePlayfieldCandidates
@@ -85,7 +87,7 @@ internal fun PracticeGameSection(
     val gameKey = game.practiceKey
     val playableVideos = game.videos.mapNotNull { video ->
         val id = youtubeId(video.url) ?: return@mapNotNull null
-        id to (video.label ?: "Video")
+        PlayableVideo(id = id, label = video.label ?: "Video")
     }
     var editingDraft by remember { mutableStateOf<PracticeJournalEditDraft?>(null) }
     var pendingDeleteEntry by remember { mutableStateOf<JournalEntry?>(null) }
@@ -374,52 +376,17 @@ internal fun PracticeGameSection(
                 Text("No videos listed.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            val selectedVideo = playableVideos.firstOrNull { it.first == activeGameVideoId } ?: playableVideos.firstOrNull()
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceContainerLow,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+            val selectedVideo = playableVideos.firstOrNull { it.id == activeGameVideoId } ?: playableVideos.firstOrNull()
+            PinballVideoLaunchPanel(
+                selectedVideo = selectedVideo,
+                onOpenVideo = { video ->
+                    openYoutubeInApp(
+                        context = context,
+                        url = video.watchUrl,
+                        fallbackVideoId = video.id,
                     )
-                    .border(
-                        1.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(16.dp),
-                ) {
-                    androidx.compose.material3.Icon(
-                        imageVector = Icons.Outlined.SmartDisplay,
-                        contentDescription = null,
-                    )
-                    Text(
-                        selectedVideo?.second ?: "Tap a video thumbnail",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text("Opens in YouTube", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    OutlinedButton(
-                        onClick = {
-                            selectedVideo?.first?.let { id ->
-                                openYoutubeInApp(
-                                    context = context,
-                                    url = "https://www.youtube.com/watch?v=$id",
-                                    fallbackVideoId = id,
-                                )
-                            }
-                        },
-                        enabled = selectedVideo != null,
-                    ) {
-                        Text("Open in YouTube")
-                    }
-                }
-            }
+                },
+            )
             val rows = playableVideos.chunked(2)
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 rows.forEach { rowItems ->
@@ -427,13 +394,12 @@ internal fun PracticeGameSection(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        rowItems.forEach { (id, label) ->
+                        rowItems.forEach { video ->
                             PracticeVideoTile(
-                                videoId = id,
-                                label = label,
-                                selected = activeGameVideoId == id,
+                                video = video,
+                                selected = activeGameVideoId == video.id,
                                 modifier = Modifier.weight(1f),
-                                onClick = { onActiveGameVideoIdChange(id) },
+                                onClick = { onActiveGameVideoIdChange(video.id) },
                             )
                         }
                         if (rowItems.size == 1) {

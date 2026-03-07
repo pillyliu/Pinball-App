@@ -268,8 +268,7 @@ private fun FallbackAsyncImage(
 
 @Composable
 internal fun VideoTile(
-    videoId: String,
-    label: String,
+    video: PlayableVideo,
     selected: Boolean,
     width: androidx.compose.ui.unit.Dp,
     onSelect: () -> Unit,
@@ -284,11 +283,11 @@ internal fun VideoTile(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         AsyncImage(
-            model = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg",
-            contentDescription = label,
+            model = video.thumbnailUrl,
+            contentDescription = video.label,
             modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
             contentScale = ContentScale.Crop,
         )
-        Text(label, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(video.label, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

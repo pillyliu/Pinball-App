@@ -191,37 +191,9 @@ struct PracticeVideoLaunchPanel: View {
     let onOpenURL: OpenURLAction
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.regularMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
-                )
-
-            VStack(spacing: 8) {
-                Image(systemName: "play.rectangle")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(.primary)
-                Text(selectedVideo?.label ?? "Tap a video thumbnail")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                Text("Opens in YouTube")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Button("Open in YouTube") {
-                    guard let selectedVideo, let youtubeURL = selectedVideo.youtubeWatchURL else { return }
-                    onOpenURL(youtubeURL)
-                }
-                .buttonStyle(.glass)
-                .disabled(selectedVideo?.youtubeWatchURL == nil)
-            }
-            .padding(16)
-        }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(16.0 / 9.0, contentMode: .fit)
+        PinballVideoLaunchPanel(selectedVideo: selectedVideo, openURL: onOpenURL)
+            .frame(maxWidth: .infinity)
+            .aspectRatio(16.0 / 9.0, contentMode: .fit)
     }
 }
 

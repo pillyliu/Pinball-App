@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
+import com.pillyliu.pinprofandroid.library.PlayableVideo
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -68,8 +69,7 @@ internal fun PracticeEmbeddedYouTubeView(videoId: String, modifier: Modifier = M
 
 @Composable
 internal fun PracticeVideoTile(
-    videoId: String,
-    label: String,
+    video: PlayableVideo,
     selected: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -92,8 +92,8 @@ internal fun PracticeVideoTile(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         AsyncImage(
-            model = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg",
-            contentDescription = label,
+            model = video.thumbnailUrl,
+            contentDescription = video.label,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
@@ -101,7 +101,7 @@ internal fun PracticeVideoTile(
                 .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp)),
         )
         Text(
-            text = label,
+            text = video.label,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,

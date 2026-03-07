@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,16 +30,24 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.halilibo.richtext.markdown.Markdown
 import com.halilibo.richtext.ui.RichTextStyle
 import com.halilibo.richtext.ui.material3.RichText
@@ -149,7 +158,7 @@ internal fun LibraryDetailVideosCard(
         val playableVideos = game.videos.mapNotNull { v ->
             youtubeId(v.url)?.let { id ->
                 val fallback = v.kind?.replaceFirstChar { c -> c.titlecase() } ?: "Video"
-                id to (v.label ?: fallback)
+                PlayableVideo(id = id, label = v.label ?: fallback)
             }
         }
         if (playableVideos.isEmpty()) {
@@ -167,48 +176,17 @@ internal fun LibraryDetailVideosCard(
                 Text("No video references listed.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            val selectedVideo = playableVideos.firstOrNull { it.first == activeVideoId } ?: playableVideos.firstOrNull()
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceContainerLow,
-                        RoundedCornerShape(10.dp),
+            val selectedVideo = playableVideos.firstOrNull { it.id == activeVideoId } ?: playableVideos.firstOrNull()
+            PinballVideoLaunchPanel(
+                selectedVideo = selectedVideo,
+                onOpenVideo = { video ->
+                    openYoutubeInApp(
+                        context = context,
+                        url = video.watchUrl,
+                        fallbackVideoId = video.id,
                     )
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(16.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                    )
-                    Text(
-                        selectedVideo?.second ?: "Tap a video thumbnail",
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center,
-                    )
-                    Text("Opens in YouTube", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    ResourceChipButton(
-                        label = "Open in YouTube",
-                        onClick = {
-                            selectedVideo?.first?.let { id ->
-                                openYoutubeInApp(
-                                    context = context,
-                                    url = "https://www.youtube.com/watch?v=$id",
-                                    fallbackVideoId = id,
-                                )
-                            }
-                        },
-                    )
-                }
-            }
+                },
+            )
             BoxWithConstraints {
                 val columnCount = 2
                 val tileWidth = (maxWidth - 10.dp) / columnCount
@@ -216,15 +194,14 @@ internal fun LibraryDetailVideosCard(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     rows.forEach { rowItems ->
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            rowItems.forEach { (id, label) ->
+                            rowItems.forEach { video ->
                                 VideoTile(
-                                    videoId = id,
-                                    label = label,
-                                    selected = activeVideoId == id,
+                                    video = video,
+                                    selected = activeVideoId == video.id,
                                     width = tileWidth,
                                     onSelect = {
-                                        onActiveVideoIdChange(id)
-                                        LibraryActivityLog.log(context, game.slug, game.name, LibraryActivityKind.TapVideo, label)
+                                        onActiveVideoIdChange(video.id)
+                                        LibraryActivityLog.log(context, game.slug, game.name, LibraryActivityKind.TapVideo, video.label)
                                     },
                                 )
                             }
@@ -234,6 +211,122 @@ internal fun LibraryDetailVideosCard(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun PinballVideoLaunchPanel(
+    selectedVideo: PlayableVideo?,
+    onOpenVideo: (PlayableVideo) -> Unit,
+    minHeight: androidx.compose.ui.unit.Dp = 0.dp,
+) {
+    val overlayTextShadow = Shadow(
+        color = Color.Black.copy(alpha = 0.9f),
+        offset = Offset(0f, 2f),
+        blurRadius = 6f,
+    )
+
+    val metadata by produceState<YouTubeVideoMetadata?>(initialValue = null, key1 = selectedVideo?.id) {
+        value = selectedVideo?.id?.let { loadYouTubeVideoMetadata(it) }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(16f / 9f)
+            .defaultMinSize(minHeight = minHeight)
+            .background(
+                MaterialTheme.colorScheme.surfaceContainerLow,
+                RoundedCornerShape(10.dp),
+            )
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        selectedVideo?.let { video ->
+            AsyncImage(
+                model = video.thumbnailUrl,
+                contentDescription = video.label,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(10.dp)),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.3f),
+                            Color.Black.copy(alpha = 0.56f),
+                            Color.Black.copy(alpha = 0.86f),
+                        ),
+                    ),
+                    RoundedCornerShape(10.dp),
+                ),
+        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(16.dp),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = selectedVideo?.label ?: "Tap a video thumbnail",
+                    style = MaterialTheme.typography.titleMedium.copy(shadow = overlayTextShadow),
+                    color = Color.White,
+                    textAlign = TextAlign.Start,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                metadata?.title?.let { title ->
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            shadow = overlayTextShadow,
+                        ),
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                metadata?.channelName?.let { channelName ->
+                    Text(
+                        text = channelName,
+                        style = MaterialTheme.typography.bodySmall.copy(shadow = overlayTextShadow),
+                        color = Color.White.copy(alpha = 0.9f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            Icon(
+                imageVector = Icons.Outlined.PlayArrow,
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+            )
+
+            OutlinedButton(
+                onClick = { selectedVideo?.let(onOpenVideo) },
+                enabled = selectedVideo != null,
+                modifier = Modifier.defaultMinSize(minHeight = 40.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    text = "Open in YouTube",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 18.sp,
+                )
             }
         }
     }
