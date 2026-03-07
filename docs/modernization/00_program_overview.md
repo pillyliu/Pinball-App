@@ -59,3 +59,56 @@ Modernize the iOS and Android apps so they have:
   - `/Users/pillyliu/Documents/Codex/Pinball App/GameRoom_3.1_Master_Plan.md`
   - `/Users/pillyliu/Documents/Codex/Pinball App/GameRoom_3.1_Parity_Journal.md`
   - `/Users/pillyliu/Documents/Codex/Pinball App/GameRoom_3.1_Android_Parity_Kickoff.md`
+
+## Current product map
+
+Root tabs on both platforms:
+- `League`
+- `Library`
+- `Practice`
+- `GameRoom`
+- `Settings`
+
+Nested League destinations:
+- `Stats`
+- `Standings`
+- `Targets`
+- `About Lansing Pinball League`
+
+Practice sub-surfaces currently present in code:
+- home
+- game workspace
+- quick entry
+- IFPA profile
+- groups dashboard/editor
+- journal
+- insights
+- mechanics
+- practice settings
+- rulesheet/playfield drill-ins
+
+Library sub-surfaces currently present in code:
+- game list
+- game detail
+- rulesheet
+- playfield
+- game info and resources
+- source filtering
+- GameRoom venue overlay integration
+
+## Current structural realities
+
+- iOS and Android share the same top-level tab model.
+- League is documented as one feature, but it owns multiple nested destinations and should be audited as a shell-plus-subfeatures bundle.
+- Practice is not one screen in product terms, even though it still contains large centralized screen/state surfaces in code.
+- Library acts as shared infrastructure for Practice and GameRoom, so Library changes have broader parity risk than the tab count suggests.
+- GameRoom has the best parity documentation so far, but still has oversized implementation files.
+
+## Initial modernization work order
+
+1. Audit and document the real app shell and feature map.
+2. Audit Practice as the highest drift-risk feature.
+3. Audit Library as the highest cross-feature dependency.
+4. Audit League shell plus nested destinations.
+5. Do post-ship GameRoom cleanup and screen splitting.
+6. Run a design-system pass across shell, cards, controls, and sheets.

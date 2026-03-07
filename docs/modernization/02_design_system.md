@@ -74,3 +74,9 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 2. shared component inventory
 3. native adaptation notes for iOS and Android
 4. branded visual direction references
+
+## Current gap to close
+
+- iOS already uses a light custom semantic layer in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppTheme.swift`.
+- Android still leans heavily on Material color-scheme defaults in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/PinballTheme.kt`.
+- The next design-system step is not a visual overhaul first. It is defining semantic roles that both files can implement consistently.

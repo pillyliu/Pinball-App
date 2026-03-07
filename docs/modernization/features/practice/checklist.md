@@ -1,10 +1,21 @@
 # Practice Checklist
 
 - Route list is written and verified.
+- `Home`, `Game`, `Rulesheet`, `Playfield`, `IfpaProfile`, `GroupDashboard`, `GroupEditor`, `Journal`, `Insights`, `Mechanics`, and `Settings` all exist or any intentional differences are recorded.
+- Top bar actions are documented for each route.
+- Home header behavior and profile/settings entry points match the written contract.
 - Home behavior matches across platforms.
+- Resume/recent game behavior matches across platforms.
+- Game route title and game-switcher behavior matches across platforms.
+- Game route section order matches the written contract.
+- `Summary`, `Input`, and `Log` subviews contain the same behaviors across platforms.
 - Quick entry behavior matches across platforms.
 - Resource chips and unavailable states match across platforms.
+- Rulesheet, playfield, and video launch behavior matches across platforms.
+- Game note save behavior matches across platforms.
 - Group create/edit/archive behavior matches across platforms.
 - Journal add/edit/delete behavior matches across platforms.
+- Journal filter behavior and timeline composition match across platforms.
 - Insights calculations and labels match across platforms.
+- Mechanics workflows and saved state behavior match across platforms.
 - Known drift, if any, is recorded in `ledger.md`.
