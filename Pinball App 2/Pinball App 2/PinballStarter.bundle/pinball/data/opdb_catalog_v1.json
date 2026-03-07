@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-03-02T17:29:13Z",
+  "generated_at": "2026-03-07T09:32:20Z",
   "manufacturers": [
     {
       "id": "manufacturer-12",
@@ -1483,6 +1483,16 @@
       "sort_name": "wico"
     },
     {
+      "id": "manufacturer-169",
+      "name": "Wonderland Amusements",
+      "opdb_manufacturer_id": "169",
+      "is_modern": false,
+      "featured_rank": null,
+      "game_count": 1,
+      "sort_bucket": 2,
+      "sort_name": "wonderland amusements"
+    },
+    {
       "id": "manufacturer-114",
       "name": "Zidware",
       "opdb_manufacturer_id": "114",
@@ -2664,6 +2674,20 @@
       },
       "playfield_image": null,
       "updated_at": "2022-01-25"
+    },
+    {
+      "practice_identity": "G8lqj",
+      "opdb_machine_id": "G8lqj-M61lr",
+      "opdb_group_id": "G8lqj",
+      "slug": "wonderland-amusements-alice-goes-to-wonderland-2025",
+      "name": "Alice Goes to Wonderland",
+      "variant": null,
+      "manufacturer_id": "manufacturer-169",
+      "manufacturer_name": "Wonderland Amusements",
+      "year": 2025,
+      "primary_image": null,
+      "playfield_image": null,
+      "updated_at": "2026-03-03"
     },
     {
       "practice_identity": "GkBXQ",
