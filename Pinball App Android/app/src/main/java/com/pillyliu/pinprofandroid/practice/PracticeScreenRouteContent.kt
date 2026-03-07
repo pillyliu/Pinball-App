@@ -1,29 +1,20 @@
 package com.pillyliu.pinprofandroid.practice
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-
-internal data class PracticeRouteContentContext(
-    val store: PracticeStore,
-    val editingGroupID: String?,
-    val onEditingGroupIDChange: (String?) -> Unit,
-    val onNavigateGroupEditor: () -> Unit,
-    val onBack: () -> Unit,
-)
 
 @Composable
 internal fun PracticeScreenRouteContent(
     route: PracticeRoute,
-    context: PracticeRouteContentContext,
     gameContext: PracticeGameRouteContext,
     homeContext: PracticeHomeRouteContext,
+    ifpaProfileContext: PracticeIfpaProfileContext,
     groupDashboardContext: PracticeGroupDashboardContext,
+    groupEditorContext: PracticeGroupEditorRouteContext,
     journalContext: PracticeJournalRouteContext,
     insightsContext: PracticeInsightsRouteContext,
     mechanicsContext: PracticeMechanicsRouteContext,
     settingsContext: PracticeSettingsRouteContext,
 ) {
-    val store = context.store
     when (route) {
         PracticeRoute.Home -> {
             PracticeHomeSection(
@@ -44,8 +35,8 @@ internal fun PracticeScreenRouteContent(
 
         PracticeRoute.IfpaProfile -> {
             PracticeIfpaProfileScreen(
-                playerName = store.playerName,
-                ifpaPlayerID = store.ifpaPlayerID,
+                playerName = ifpaProfileContext.playerName,
+                ifpaPlayerID = ifpaProfileContext.ifpaPlayerID,
             )
         }
 
@@ -78,10 +69,10 @@ internal fun PracticeScreenRouteContent(
 
         PracticeRoute.GroupEditor -> {
             GroupEditorScreen(
-                store = store,
-                editingGroupID = context.editingGroupID,
-                onCancel = context.onBack,
-                onSaved = context.onBack,
+                store = groupEditorContext.store,
+                editingGroupID = groupEditorContext.editingGroupID,
+                onCancel = groupEditorContext.onBack,
+                onSaved = groupEditorContext.onBack,
             )
         }
 

@@ -149,6 +149,13 @@
 - Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeJournalSection.kt` so it now focuses on route-level filtering, grouped timeline assembly, and section-local edit/delete state instead of also owning row rendering and dialog composition inline.
 - Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreenRouteContent.kt` again so `Journal` no longer leans on the shared route-content contract.
 - Verified the Android journal route-context split and journal-section file decomposition at compile time with `./gradlew app:assembleDebug`.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreenActions.kt` so Android root navigation, selection, quick-entry, route drill-in, reset, and import helpers no longer live inline in the main screen declaration.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLifecycleContext.kt` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLifecycleHost.kt` so Android first-load, back handling, observer sync, and route-triggered effect wiring no longer live inline in the main screen declaration.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticePresentationContext.kt` so Android sheet/dialog dependencies no longer get threaded through `PracticeDialogHost.kt` as a long raw parameter list.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeIfpaProfileContext.kt` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGroupEditorRouteContext.kt` so Android `IFPA Profile` and `GroupEditor` no longer depend on the last generic shared route-content context.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreen.kt` from the main concentration point for route effects, helper closures, and presentation wiring to a narrower orchestration layer that assembles explicit contexts.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreenRouteContent.kt` so it now resolves only explicit route contexts and no longer declares a generic Android `PracticeRouteContentContext`.
+- Verified the Android root-screen lifecycle/action/presentation split and final route-context cleanup at compile time with `./gradlew app:assembleDebug`.
 
 ## Next audit targets
 
@@ -156,4 +163,5 @@
 - top-bar behavior per route
 - state ownership split between screen, route model, and store
 - journal section state ownership and further row/editor extraction opportunities
+- remaining screen-state concentration in `PracticeScreenState.kt`
 - repeated resource/video/rulesheet UI patterns

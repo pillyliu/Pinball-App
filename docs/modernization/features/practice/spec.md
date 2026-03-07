@@ -71,6 +71,10 @@ Android:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeJournalRouteContext.kt` now isolates Android `Journal` route dependencies from the remaining shared route-content contract.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeJournalRows.kt` now isolates the Android journal timeline row, swipe-reveal actions, and row-body rendering from the main journal section file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeJournalEditDialog.kt` now isolates the Android journal edit modal from the main journal section file.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreenActions.kt` now isolates Android navigation, selection, quick-entry, route drill-in, and reset/import helpers from the main screen declaration.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLifecycleContext.kt` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLifecycleHost.kt` now isolate Android first-load, back handling, observer, and route-level effect wiring from the main screen declaration.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticePresentationContext.kt` now isolates Android sheet/dialog dependencies from the main screen declaration.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeIfpaProfileContext.kt` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGroupEditorRouteContext.kt` complete the Android route-seam split so `PracticeScreenRouteContent.kt` no longer needs a generic route-content context.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibrarySourceSelection.kt` now centralizes the Android "All games" source sentinel and normalization rules so top bar and home source selection do not drift.
 - Persistence and codec work has already been separated more clearly than on iOS.
 - Route model is more explicit via `PracticeRoute`, but still mixed with modal flags inside `PracticeScreenState`.
@@ -343,15 +347,21 @@ iOS current wiring:
 
 Android current wiring:
 - `PracticeScreen.kt`
-  - owns load orchestration, route switching, top-level effects, and shared selection/navigation helpers
-  - now builds dedicated contexts for `Home`, `GroupDashboard`, `Journal`, `Insights`, `Mechanics`, `Settings`, and `Game`
+  - now focuses on high-level state derivation and route-context assembly
+  - builds dedicated contexts for `Home`, `IFPA Profile`, `GroupDashboard`, `GroupEditor`, `Journal`, `Insights`, `Mechanics`, `Settings`, and `Game`
   - coordinates route changes, back behavior, and drill-ins
+- `PracticeScreenActions.kt`
+  - owns shared root navigation, selection, quick-entry, drill-in, reset, and import helpers
+- `PracticeLifecycleHost.kt`
+  - owns initial load, back handling, observer sync, and route-triggered effects
+- `PracticeDialogHost.kt`
+  - now consumes `PracticePresentationContext.kt` instead of taking a long raw parameter list
 - `PracticeScreenState.kt`
   - owns the clearest current seam for route state, modal flags, route history, and route-local drafts
   - already models most product surfaces explicitly
 - `PracticeScreenRouteContent.kt`
   - cleanly maps route to section composable
-  - shared context is now limited to the remaining group-editor/back-navigation contract because primary routes now have dedicated dependency seams
+  - no longer relies on a generic shared route-content context; primary routes now resolve explicit contexts directly
 - `PracticeStore.kt`
   - still owns too many persisted and derived concerns at once: notes, scores, groups, settings, analytics, and resource/game loading
 
