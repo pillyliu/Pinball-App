@@ -25,7 +25,6 @@ import kotlin.math.roundToInt
 @Composable
 internal fun PracticeMechanicsSection(
     store: PracticeStore,
-    selectedGameSlug: String?,
     mechanicsSelectedSkill: String,
     onMechanicsSelectedSkillChange: (String) -> Unit,
     mechanicsCompetency: Float,

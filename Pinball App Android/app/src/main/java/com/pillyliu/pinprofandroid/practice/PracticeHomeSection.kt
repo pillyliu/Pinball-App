@@ -44,8 +44,6 @@ import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.ui.CardContainer
 
-private const val PRACTICE_HOME_ALL_GAMES_SOURCE_ID = "__practice_home_all_games__"
-
 @Composable
 internal fun PracticeHomeSection(
     store: PracticeStore,
@@ -123,7 +121,7 @@ internal fun PracticeHomeSection(
                                 },
                                 onClick = {
                                     resumeLibraryExpanded = false
-                                    onSelectLibrarySourceId(PRACTICE_HOME_ALL_GAMES_SOURCE_ID)
+                                    onSelectLibrarySourceId(PRACTICE_ALL_GAMES_SOURCE_ID)
                                 },
                             )
                             librarySources.forEach { source ->

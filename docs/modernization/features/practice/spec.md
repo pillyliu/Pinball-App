@@ -66,6 +66,9 @@ Android:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDialogs.kt` now isolates Android delete/edit dialog wiring from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameSectionState.kt` now isolates Android `Game` route transient edit/delete/log-row UI state from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameRouteContext.kt` now isolates Android `Game` route dependencies from the shared route-content context so route-specific state is not threaded through every Practice destination.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeTopBarGamePickerContext.kt` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeTopBarGamePicker.kt` now isolate Android top-bar game/source picker behavior from the broader top-bar component.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeHomeRouteContext.kt`, `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGroupDashboardContext.kt`, `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeInsightsRouteContext.kt`, `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeMechanicsRouteContext.kt`, and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeSettingsRouteContext.kt` now isolate the main Android non-game route dependencies from the shared route-content context.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibrarySourceSelection.kt` now centralizes the Android "All games" source sentinel and normalization rules so top bar and home source selection do not drift.
 - Persistence and codec work has already been separated more clearly than on iOS.
 - Route model is more explicit via `PracticeRoute`, but still mixed with modal flags inside `PracticeScreenState`.
 
@@ -337,15 +340,15 @@ iOS current wiring:
 
 Android current wiring:
 - `PracticeScreen.kt`
-  - owns load orchestration, route switching, and top-level effects
-  - builds a large `PracticeRouteContentContext`
+  - owns load orchestration, route switching, top-level effects, and shared selection/navigation helpers
+  - now builds dedicated contexts for `Home`, `GroupDashboard`, `Insights`, `Mechanics`, `Settings`, and `Game`
   - coordinates route changes, back behavior, and drill-ins
 - `PracticeScreenState.kt`
   - owns the clearest current seam for route state, modal flags, route history, and route-local drafts
   - already models most product surfaces explicitly
 - `PracticeScreenRouteContent.kt`
   - cleanly maps route to section composable
-  - still passes a very wide context object because screen state and store responsibilities are not narrow enough yet
+  - shared context is materially narrower now that most non-game routes and the `Game` route each have dedicated dependency seams
 - `PracticeStore.kt`
   - still owns too many persisted and derived concerns at once: notes, scores, groups, settings, analytics, and resource/game loading
 
@@ -423,8 +426,9 @@ Current status:
    - keep note/resources and dialog wiring outside `PracticeGameSection.kt`
    - keep route-local transient state outside `PracticeGameSection.kt`
    - keep route-specific dependencies outside the shared route-content context
+   - keep top-bar game/source selection outside the broader top-bar component
    - avoid shifting those responsibilities into `PracticeStore.kt`
-   - next split should target top-bar/game selection ownership
+   - next split should target the remaining shared top-bar/state coupling
 3. Continue decomposing Android `PracticeStore.kt` into narrower state and mutation modules so it does not remain the second monolith after iOS screen cleanup.
 4. Normalize quick-entry, journal editing, and group-editor launch state so both platforms describe the same ownership model in docs.
 

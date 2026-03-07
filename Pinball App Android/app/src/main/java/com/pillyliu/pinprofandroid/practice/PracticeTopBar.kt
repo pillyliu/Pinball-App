@@ -1,17 +1,11 @@
 package com.pillyliu.pinprofandroid.practice
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -26,112 +20,31 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.data.redactPlayerNameForDisplay
-import com.pillyliu.pinprofandroid.library.LibrarySource
-import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.ui.AppBackButton
-
-private const val PRACTICE_TOPBAR_ALL_GAMES_SOURCE_ID = "__practice_topbar_all_games__"
 
 @Composable
 internal fun PracticeTopBar(
     route: PracticeRoute,
     playerName: String,
-    ifpaPlayerID: String,
     editingGroupID: String?,
-    selectedGameName: String?,
-    games: List<PinballGame>,
-    librarySources: List<LibrarySource>,
-    selectedLibrarySourceId: String?,
-    gamePickerExpanded: Boolean,
-    onGamePickerExpandedChange: (Boolean) -> Unit,
-    onLibrarySourceSelected: (String) -> Unit,
-    onGameSelected: (PinballGame) -> Unit,
+    gamePickerContext: PracticeTopBarGamePickerContext? = null,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenIfpaProfile: () -> Unit,
     isJournalSelectionMode: Boolean = false,
     onToggleJournalSelectionMode: (() -> Unit)? = null,
 ) {
-    val orderedGames = orderedGamesForDropdown(games, collapseByPracticeIdentity = true)
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (route != PracticeRoute.Home) {
             AppBackButton(onClick = onBack)
         }
-        if (route == PracticeRoute.Game) {
-            androidx.compose.foundation.layout.Box(
+        if (route == PracticeRoute.Game && gamePickerContext != null) {
+            PracticeTopBarGamePicker(
+                context = gamePickerContext,
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 0.dp),
-            ) {
-                TextButton(
-                    onClick = { onGamePickerExpandedChange(true) },
-                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = selectedGameName ?: "Game",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 20.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.Start,
-                        )
-                        Icon(
-                            imageVector = Icons.Filled.ArrowDropDown,
-                            contentDescription = "Select game",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                DropdownMenu(
-                    expanded = gamePickerExpanded,
-                    onDismissRequest = { onGamePickerExpandedChange(false) },
-                ) {
-                    if (librarySources.size > 1) {
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    (if (selectedLibrarySourceId == null) "✓ " else "") + "All games",
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            },
-                            onClick = {
-                                onLibrarySourceSelected(PRACTICE_TOPBAR_ALL_GAMES_SOURCE_ID)
-                            },
-                        )
-                        librarySources.forEach { source ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        (if (source.id == selectedLibrarySourceId) "✓ " else "") + source.name,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                },
-                                onClick = {
-                                    onLibrarySourceSelected(source.id)
-                                },
-                            )
-                        }
-                        HorizontalDivider()
-                    }
-                    orderedGames.forEach { game ->
-                        DropdownMenuItem(
-                            text = { Text(game.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                            onClick = {
-                                onGamePickerExpandedChange(false)
-                                onGameSelected(game)
-                            },
-                        )
-                    }
-                }
-            }
+            )
         } else {
             if (route == PracticeRoute.Home) {
                 PracticeWelcomeTitle(

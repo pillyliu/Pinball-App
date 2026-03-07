@@ -2,28 +2,10 @@ package com.pillyliu.pinprofandroid.practice
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.UriHandler
-import com.pillyliu.pinprofandroid.library.LibrarySource
-import com.pillyliu.pinprofandroid.library.RulesheetRemoteSource
 
 internal data class PracticeRouteContentContext(
     val store: PracticeStore,
-    val selectedGameSlug: String?,
-    val onSelectGameSlug: (String?) -> Unit,
-    val resumeOtherExpanded: Boolean,
-    val onResumeOtherExpandedChange: (Boolean) -> Unit,
-    val librarySources: List<LibrarySource>,
-    val selectedLibrarySourceId: String?,
-    val onSelectLibrarySourceId: (String) -> Unit,
-    val onOpenQuickEntry: (QuickActivity, QuickEntryOrigin, Boolean) -> Unit,
-    val onOpenGroupDashboard: () -> Unit,
-    val onOpenJournal: () -> Unit,
-    val onOpenInsights: () -> Unit,
-    val onOpenMechanics: () -> Unit,
-    val onOpenGameRoute: () -> Unit,
-    val onOpenRulesheet: (RulesheetRemoteSource?) -> Unit,
-    val onOpenExternalRulesheet: (String) -> Unit,
-    val onOpenPlayfield: (List<String>) -> Unit,
+    val onOpenGame: (String) -> Unit,
     val editingGroupID: String?,
     val onEditingGroupIDChange: (String?) -> Unit,
     val onNavigateGroupEditor: () -> Unit,
@@ -35,23 +17,6 @@ internal data class PracticeRouteContentContext(
     val onJournalSelectionModeChange: (Boolean) -> Unit,
     val onSelectedJournalRowIdsChange: (Set<String>) -> Unit,
     val journalTimelineModifier: Modifier,
-    val insightsOpponentName: String,
-    val insightsOpponentOptions: List<String>,
-    val onInsightsOpponentNameChange: (String) -> Unit,
-    val headToHead: HeadToHeadComparison?,
-    val isLoadingHeadToHead: Boolean,
-    val onRefreshHeadToHead: () -> Unit,
-    val mechanicsSelectedSkill: String,
-    val onMechanicsSelectedSkillChange: (String) -> Unit,
-    val mechanicsCompetency: Float,
-    val onMechanicsCompetencyChange: (Float) -> Unit,
-    val mechanicsNote: String,
-    val onMechanicsNoteChange: (String) -> Unit,
-    val uriHandler: UriHandler,
-    val importStatus: String,
-    val onImportLplCsv: () -> Unit,
-    val onOpenResetDialog: () -> Unit,
-    val onOpenGroupDatePicker: (String?, GroupDashboardDateField, Long?) -> Unit,
 )
 
 @Composable
@@ -59,29 +24,28 @@ internal fun PracticeScreenRouteContent(
     route: PracticeRoute,
     context: PracticeRouteContentContext,
     gameContext: PracticeGameRouteContext,
+    homeContext: PracticeHomeRouteContext,
+    groupDashboardContext: PracticeGroupDashboardContext,
+    insightsContext: PracticeInsightsRouteContext,
+    mechanicsContext: PracticeMechanicsRouteContext,
+    settingsContext: PracticeSettingsRouteContext,
 ) {
     val store = context.store
     when (route) {
         PracticeRoute.Home -> {
             PracticeHomeSection(
-                store = store,
-                resumeOtherExpanded = context.resumeOtherExpanded,
-                onResumeOtherExpandedChange = context.onResumeOtherExpandedChange,
-                librarySources = context.librarySources,
-                selectedLibrarySourceId = context.selectedLibrarySourceId,
-                onSelectLibrarySourceId = context.onSelectLibrarySourceId,
-                onOpenGame = { slug ->
-                    context.onSelectGameSlug(slug)
-                    store.markPracticeViewedGame(slug)
-                    context.onOpenGameRoute()
-                },
-                onOpenQuickEntry = { activity, origin ->
-                    context.onOpenQuickEntry(activity, origin, false)
-                },
-                onOpenGroupDashboard = context.onOpenGroupDashboard,
-                onOpenJournal = context.onOpenJournal,
-                onOpenInsights = context.onOpenInsights,
-                onOpenMechanics = context.onOpenMechanics,
+                store = homeContext.store,
+                resumeOtherExpanded = homeContext.resumeOtherExpanded,
+                onResumeOtherExpandedChange = homeContext.onResumeOtherExpandedChange,
+                librarySources = homeContext.librarySources,
+                selectedLibrarySourceId = homeContext.selectedLibrarySourceId,
+                onSelectLibrarySourceId = homeContext.onSelectLibrarySourceId,
+                onOpenGame = homeContext.onOpenGame,
+                onOpenQuickEntry = homeContext.onOpenQuickEntry,
+                onOpenGroupDashboard = homeContext.onOpenGroupDashboard,
+                onOpenJournal = homeContext.onOpenJournal,
+                onOpenInsights = homeContext.onOpenInsights,
+                onOpenMechanics = homeContext.onOpenMechanics,
             )
         }
 
@@ -111,21 +75,11 @@ internal fun PracticeScreenRouteContent(
 
         PracticeRoute.GroupDashboard -> {
             PracticeGroupDashboardSection(
-                store = store,
-                onCreateGroup = {
-                    context.onEditingGroupIDChange(null)
-                    context.onNavigateGroupEditor()
-                },
-                onEditSelectedGroup = { selectedId ->
-                    context.onEditingGroupIDChange(selectedId)
-                    context.onNavigateGroupEditor()
-                },
-                onOpenGroupDatePicker = context.onOpenGroupDatePicker,
-                onOpenGame = { slug ->
-                    context.onSelectGameSlug(slug)
-                    store.markPracticeViewedGame(slug)
-                    context.onOpenGameRoute()
-                },
+                store = groupDashboardContext.store,
+                onCreateGroup = groupDashboardContext.onCreateGroup,
+                onEditSelectedGroup = groupDashboardContext.onEditSelectedGroup,
+                onOpenGroupDatePicker = groupDashboardContext.onOpenGroupDatePicker,
+                onOpenGame = groupDashboardContext.onOpenGame,
             )
         }
 
@@ -147,49 +101,44 @@ internal fun PracticeScreenRouteContent(
                 selectedRowIds = context.selectedJournalRowIds,
                 onSelectionModeChange = context.onJournalSelectionModeChange,
                 onSelectedRowIdsChange = context.onSelectedJournalRowIdsChange,
-                onOpenGame = { slug ->
-                    context.onSelectGameSlug(slug)
-                    store.markPracticeViewedGame(slug)
-                    context.onOpenGameRoute()
-                },
+                onOpenGame = context.onOpenGame,
                 modifier = context.journalTimelineModifier,
             )
         }
 
         PracticeRoute.Insights -> {
             PracticeInsightsSection(
-                store = store,
-                selectedGameSlug = context.selectedGameSlug,
-                onSelectGameSlug = context.onSelectGameSlug,
-                insightsOpponentName = context.insightsOpponentName,
-                insightsOpponentOptions = context.insightsOpponentOptions,
-                onInsightsOpponentNameChange = context.onInsightsOpponentNameChange,
-                headToHead = context.headToHead,
-                isLoadingHeadToHead = context.isLoadingHeadToHead,
-                onRefreshHeadToHead = context.onRefreshHeadToHead,
+                store = insightsContext.store,
+                selectedGameSlug = insightsContext.selectedGameSlug,
+                onSelectGameSlug = insightsContext.onSelectGameSlug,
+                insightsOpponentName = insightsContext.insightsOpponentName,
+                insightsOpponentOptions = insightsContext.insightsOpponentOptions,
+                onInsightsOpponentNameChange = insightsContext.onInsightsOpponentNameChange,
+                headToHead = insightsContext.headToHead,
+                isLoadingHeadToHead = insightsContext.isLoadingHeadToHead,
+                onRefreshHeadToHead = insightsContext.onRefreshHeadToHead,
             )
         }
 
         PracticeRoute.Mechanics -> {
             PracticeMechanicsSection(
-                store = store,
-                selectedGameSlug = context.selectedGameSlug,
-                mechanicsSelectedSkill = context.mechanicsSelectedSkill,
-                onMechanicsSelectedSkillChange = context.onMechanicsSelectedSkillChange,
-                mechanicsCompetency = context.mechanicsCompetency,
-                onMechanicsCompetencyChange = context.onMechanicsCompetencyChange,
-                mechanicsNote = context.mechanicsNote,
-                onMechanicsNoteChange = context.onMechanicsNoteChange,
-                onOpenDeadFlipTutorials = { context.uriHandler.openUri("https://www.deadflip.com/tutorials") },
+                store = mechanicsContext.store,
+                mechanicsSelectedSkill = mechanicsContext.mechanicsSelectedSkill,
+                onMechanicsSelectedSkillChange = mechanicsContext.onMechanicsSelectedSkillChange,
+                mechanicsCompetency = mechanicsContext.mechanicsCompetency,
+                onMechanicsCompetencyChange = mechanicsContext.onMechanicsCompetencyChange,
+                mechanicsNote = mechanicsContext.mechanicsNote,
+                onMechanicsNoteChange = mechanicsContext.onMechanicsNoteChange,
+                onOpenDeadFlipTutorials = mechanicsContext.onOpenDeadFlipTutorials,
             )
         }
 
         PracticeRoute.Settings -> {
             PracticeSettingsSection(
-                store = store,
-                importStatus = context.importStatus,
-                onImportLplCsv = context.onImportLplCsv,
-                onOpenResetDialog = context.onOpenResetDialog,
+                store = settingsContext.store,
+                importStatus = settingsContext.importStatus,
+                onImportLplCsv = settingsContext.onImportLplCsv,
+                onOpenResetDialog = settingsContext.onOpenResetDialog,
             )
         }
 
