@@ -230,15 +230,8 @@ fun PracticeScreen(contentPadding: PaddingValues) {
 
             val routeContentContext = PracticeRouteContentContext(
                 store = store,
-                selectedGame = selectedGame,
                 selectedGameSlug = uiState.selectedGameSlug,
                 onSelectGameSlug = { uiState.selectedGameSlug = it },
-                gameSubview = uiState.gameSubview,
-                onGameSubviewChange = { updated -> uiState.gameSubview = updated },
-                gameSummaryDraft = uiState.gameSummaryDraft,
-                onGameSummaryDraftChange = { updated -> uiState.gameSummaryDraft = updated },
-                activeGameVideoId = uiState.activeGameVideoId,
-                onActiveGameVideoIdChange = { updated -> uiState.activeGameVideoId = updated },
                 resumeOtherExpanded = uiState.resumeOtherExpanded,
                 onResumeOtherExpandedChange = { expanded -> uiState.resumeOtherExpanded = expanded },
                 librarySources = store.librarySources,
@@ -321,9 +314,41 @@ fun PracticeScreen(contentPadding: PaddingValues) {
                     uiState.openGroupDateDialog = true
                 },
             )
+            val gameRouteContext = PracticeGameRouteContext(
+                store = store,
+                selectedGame = selectedGame,
+                gameSubview = uiState.gameSubview,
+                onGameSubviewChange = { updated -> uiState.gameSubview = updated },
+                gameSummaryDraft = uiState.gameSummaryDraft,
+                onGameSummaryDraftChange = { updated -> uiState.gameSummaryDraft = updated },
+                activeGameVideoId = uiState.activeGameVideoId,
+                onActiveGameVideoIdChange = { updated -> uiState.activeGameVideoId = updated },
+                onOpenQuickEntry = { activity, origin ->
+                    uiState.openQuickEntryFor(activity, origin, true)
+                },
+                onOpenRulesheet = { source ->
+                    if (selectedGame?.hasRulesheetResource == true) {
+                        uiState.selectedRulesheetSource = source
+                        uiState.selectedExternalRulesheetUrl = null
+                        uiState.navigateTo(PracticeRoute.Rulesheet)
+                    }
+                },
+                onOpenExternalRulesheet = { url ->
+                    if (selectedGame != null) {
+                        uiState.selectedRulesheetSource = null
+                        uiState.selectedExternalRulesheetUrl = url
+                        uiState.navigateTo(PracticeRoute.Rulesheet)
+                    }
+                },
+                onOpenPlayfield = { urls ->
+                    uiState.selectedPlayfieldUrls = urls
+                    uiState.navigateTo(PracticeRoute.Playfield)
+                },
+            )
             PracticeScreenRouteContent(
                 route = uiState.route,
                 context = routeContentContext,
+                gameContext = gameRouteContext,
             )
         }
     }

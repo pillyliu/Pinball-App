@@ -134,6 +134,8 @@
 - Verified the Android detail-card and dialog extraction at compile time with `./gradlew app:assembleDebug`.
 - Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameSectionState.kt` so Android `Game` route edit/delete/log-row UI state no longer lives as a group of local mutable variables inside `PracticeGameSection.kt`.
 - Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameSection.kt` so it now consumes an explicit route-local state seam instead of directly managing that transient UI state inline.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameRouteContext.kt` so Android `Game` route dependencies no longer live inside the shared `PracticeRouteContentContext`.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreenRouteContent.kt` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreen.kt` so route-specific `Game` wiring is assembled and passed separately instead of widening the shared route-content contract.
 
 ## Next audit targets
 

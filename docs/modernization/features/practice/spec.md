@@ -65,6 +65,7 @@ Android:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDetailCards.kt` now isolates the Android `Game Note` and `Game Resources` cards from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDialogs.kt` now isolates Android delete/edit dialog wiring from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameSectionState.kt` now isolates Android `Game` route transient edit/delete/log-row UI state from the main game route file.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameRouteContext.kt` now isolates Android `Game` route dependencies from the shared route-content context so route-specific state is not threaded through every Practice destination.
 - Persistence and codec work has already been separated more clearly than on iOS.
 - Route model is more explicit via `PracticeRoute`, but still mixed with modal flags inside `PracticeScreenState`.
 
@@ -421,8 +422,9 @@ Current status:
    - keep segmented workspace card outside `PracticeGameSection.kt`
    - keep note/resources and dialog wiring outside `PracticeGameSection.kt`
    - keep route-local transient state outside `PracticeGameSection.kt`
+   - keep route-specific dependencies outside the shared route-content context
    - avoid shifting those responsibilities into `PracticeStore.kt`
-   - next split should target `PracticeRouteContentContext` width and top-bar/game selection ownership
+   - next split should target top-bar/game selection ownership
 3. Continue decomposing Android `PracticeStore.kt` into narrower state and mutation modules so it does not remain the second monolith after iOS screen cleanup.
 4. Normalize quick-entry, journal editing, and group-editor launch state so both platforms describe the same ownership model in docs.
 

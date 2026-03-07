@@ -8,15 +8,8 @@ import com.pillyliu.pinprofandroid.library.RulesheetRemoteSource
 
 internal data class PracticeRouteContentContext(
     val store: PracticeStore,
-    val selectedGame: com.pillyliu.pinprofandroid.library.PinballGame?,
     val selectedGameSlug: String?,
     val onSelectGameSlug: (String?) -> Unit,
-    val gameSubview: PracticeGameSubview,
-    val onGameSubviewChange: (PracticeGameSubview) -> Unit,
-    val gameSummaryDraft: String,
-    val onGameSummaryDraftChange: (String) -> Unit,
-    val activeGameVideoId: String?,
-    val onActiveGameVideoIdChange: (String?) -> Unit,
     val resumeOtherExpanded: Boolean,
     val onResumeOtherExpandedChange: (Boolean) -> Unit,
     val librarySources: List<LibrarySource>,
@@ -65,6 +58,7 @@ internal data class PracticeRouteContentContext(
 internal fun PracticeScreenRouteContent(
     route: PracticeRoute,
     context: PracticeRouteContentContext,
+    gameContext: PracticeGameRouteContext,
 ) {
     val store = context.store
     when (route) {
@@ -100,20 +94,18 @@ internal fun PracticeScreenRouteContent(
 
         PracticeRoute.Game -> {
             PracticeGameSection(
-                store = store,
-                game = context.selectedGame,
-                gameSubview = context.gameSubview,
-                onGameSubviewChange = context.onGameSubviewChange,
-                gameSummaryDraft = context.gameSummaryDraft,
-                onGameSummaryDraftChange = context.onGameSummaryDraftChange,
-                activeGameVideoId = context.activeGameVideoId,
-                onActiveGameVideoIdChange = context.onActiveGameVideoIdChange,
-                onOpenQuickEntry = { activity, origin ->
-                    context.onOpenQuickEntry(activity, origin, true)
-                },
-                onOpenRulesheet = context.onOpenRulesheet,
-                onOpenExternalRulesheet = context.onOpenExternalRulesheet,
-                onOpenPlayfield = context.onOpenPlayfield,
+                store = gameContext.store,
+                game = gameContext.selectedGame,
+                gameSubview = gameContext.gameSubview,
+                onGameSubviewChange = gameContext.onGameSubviewChange,
+                gameSummaryDraft = gameContext.gameSummaryDraft,
+                onGameSummaryDraftChange = gameContext.onGameSummaryDraftChange,
+                activeGameVideoId = gameContext.activeGameVideoId,
+                onActiveGameVideoIdChange = gameContext.onActiveGameVideoIdChange,
+                onOpenQuickEntry = gameContext.onOpenQuickEntry,
+                onOpenRulesheet = gameContext.onOpenRulesheet,
+                onOpenExternalRulesheet = gameContext.onOpenExternalRulesheet,
+                onOpenPlayfield = gameContext.onOpenPlayfield,
             )
         }
 
