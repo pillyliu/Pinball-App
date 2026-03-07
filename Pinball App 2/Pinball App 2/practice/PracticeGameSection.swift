@@ -29,6 +29,16 @@ struct PracticeGameSection: View {
         nonmutating set { context.selectedGameID.wrappedValue = newValue }
     }
     private var onGameViewed: ((String) -> Void)? { context.onGameViewed }
+    private var lifecycleContext: PracticeGameLifecycleContext {
+        PracticeGameLifecycleContext(
+            store: store,
+            selectedGameID: context.selectedGameID,
+            gameSummaryDraft: $uiState.gameSummaryDraft,
+            activeVideoID: $uiState.activeVideoID,
+            onGameViewed: onGameViewed,
+            currentVideoFallbackID: { playableVideos.first?.id }
+        )
+    }
     private var presentationContext: PracticeGamePresentationContext {
         PracticeGamePresentationContext(
             store: store,
@@ -58,57 +68,59 @@ struct PracticeGameSection: View {
     }
 
     var body: some View {
-        PracticeGamePresentationHost(context: presentationContext) {
-            ZStack {
-                AppBackground()
+        PracticeGameLifecycleHost(context: lifecycleContext) {
+            PracticeGamePresentationHost(context: presentationContext) {
+                ZStack {
+                    AppBackground()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        PracticeGameScreenshotSection(game: selectedGame)
-
+                    ScrollView {
                         VStack(alignment: .leading, spacing: 12) {
-                            Picker("Mode", selection: $uiState.subview) {
-                                ForEach(PracticeGameSubview.allCases) { item in
-                                    Text(item.label).tag(item)
-                                }
-                            }
-                            .pickerStyle(.segmented)
+                            PracticeGameScreenshotSection(game: selectedGame)
 
-                            Group {
-                                switch uiState.subview {
-                                case .summary:
-                                    gameSummaryView
-                                case .input:
-                                    gameInputView
-                                case .log:
-                                    gameLogView
+                            VStack(alignment: .leading, spacing: 12) {
+                                Picker("Mode", selection: $uiState.subview) {
+                                    ForEach(PracticeGameSubview.allCases) { item in
+                                        Text(item.label).tag(item)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+
+                                Group {
+                                    switch uiState.subview {
+                                    case .summary:
+                                        gameSummaryView
+                                    case .input:
+                                        gameInputView
+                                    case .log:
+                                        gameLogView
+                                    }
                                 }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                            .appPanelStyle()
+
+                            PracticeGameNoteCard(
+                                note: $uiState.gameSummaryDraft,
+                                isDisabled: selectedGameID.isEmpty,
+                                onSave: {
+                                    store.updateGameSummaryNote(gameID: selectedGameID, note: uiState.gameSummaryDraft)
+                                    showSaveBanner("Game note saved")
+                                }
+                            )
+
+                            PracticeGameResourceCard(
+                                game: selectedGame,
+                                playableVideos: playableVideos,
+                                activeVideoID: $uiState.activeVideoID,
+                                onOpenURL: openURL
+                            )
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
-                        .appPanelStyle()
-
-                        PracticeGameNoteCard(
-                            note: $uiState.gameSummaryDraft,
-                            isDisabled: selectedGameID.isEmpty,
-                            onSave: {
-                                store.updateGameSummaryNote(gameID: selectedGameID, note: uiState.gameSummaryDraft)
-                                showSaveBanner("Game note saved")
-                            }
-                        )
-
-                        PracticeGameResourceCard(
-                            game: selectedGame,
-                            playableVideos: playableVideos,
-                            activeVideoID: $uiState.activeVideoID,
-                            onOpenURL: openURL
-                        )
+                        .padding(.horizontal, 14)
+                        .padding(.top, 6)
+                        .padding(.bottom, 12)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .padding(.top, 6)
-                    .padding(.bottom, 12)
                 }
             }
         }
@@ -120,27 +132,6 @@ struct PracticeGameSection: View {
             ToolbarItem(placement: .topBarTrailing) {
                 PracticeGameToolbarMenu(store: store, selectedGameID: context.selectedGameID)
             }
-        }
-        .onAppear {
-            if selectedGameID.isEmpty, let first = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first {
-                selectedGameID = first.canonicalPracticeKey
-            }
-            if !selectedGameID.isEmpty {
-                store.markGameBrowsed(gameID: selectedGameID)
-                onGameViewed?(selectedGameID)
-                uiState.gameSummaryDraft = store.gameSummaryNote(for: selectedGameID)
-            }
-            if uiState.activeVideoID == nil {
-                uiState.activeVideoID = playableVideos.first?.id
-            }
-        }
-        .onChange(of: selectedGameID) { _, newValue in
-            store.markGameBrowsed(gameID: newValue)
-            if !newValue.isEmpty {
-                onGameViewed?(newValue)
-            }
-            uiState.gameSummaryDraft = store.gameSummaryNote(for: newValue)
-            uiState.activeVideoID = playableVideos.first?.id
         }
     }
 
@@ -172,6 +163,7 @@ struct PracticeGameSection: View {
     private var gameSummaryView: some View {
         PracticeGameSummaryPanel(store: store, gameID: selectedGameID)
     }
+
     private func showSaveBanner(_ message: String) {
         uiState.saveBanner = message
         Task {

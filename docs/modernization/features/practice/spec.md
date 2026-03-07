@@ -52,6 +52,7 @@ iOS:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameEntrySheets.swift` now isolates the `Score`, `Note`, and task-entry sheets from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameToolbarMenu.swift` now isolates the game/source picker toolbar from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGamePresentationContext.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGamePresentationHost.swift` now isolate game-route sheets, alerts, and save-banner feedback from the main game route file.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleContext.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleHost.swift` now isolate game-route first-load and selected-game synchronization from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` is still a major UI hotspot, but it now consumes an explicit workspace context and grouped state seam, and no longer renders the three workspace subviews inline.
 - Store responsibilities are partially split across helper files, route dispatch is now driven by per-route contexts, but screen orchestration is still heavily centralized.
 - Route model is now more explicit than before via `PracticeRoute` and `PracticeSheet`, but the iOS product-surface contract is still incomplete compared with Android because some drill-ins remain local to subviews and root orchestration is still centralized.
@@ -408,9 +409,9 @@ Current status:
 
 1. Extract a dedicated Practice route state model on iOS instead of storing all navigation and modal flags in `PracticeScreen.swift`.
 2. Continue splitting Practice Game workspace into explicit subcomponents shared by contract:
-   - route chrome and lifecycle sync
-   - note
-   - resources
+   - route chrome
+   - note/resources contract
+   - remaining save-banner helper ownership
 3. Continue decomposing Android `PracticeStore.kt` into narrower state and mutation modules so it does not remain the second monolith after iOS screen cleanup.
 4. Normalize quick-entry, journal editing, and group-editor launch state so both platforms describe the same ownership model in docs.
 

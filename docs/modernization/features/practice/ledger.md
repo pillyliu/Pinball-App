@@ -119,6 +119,9 @@
 - Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGamePresentationContext.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGamePresentationHost.swift` to isolate `Game` route sheets, log-entry edit/delete presentation, and save-banner feedback from the main game route file.
 - Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` so it now focuses more tightly on route layout and local state synchronization instead of also owning modal and feedback presentation wiring.
 - Verified the game presentation extraction at compile time with `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleContext.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleHost.swift` to isolate `Game` route first-load defaults, selected-game sync, browse tracking, and active-video fallback behavior from the main game route file.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` so it no longer embeds `.onAppear` and `selectedGameID` change synchronization inline.
+- Verified the game lifecycle extraction at compile time with `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`.
 
 ## Next audit targets
 
