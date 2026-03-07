@@ -48,7 +48,8 @@ iOS:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeSettingsContext.swift` now isolates the `Settings` route dependency surface from the rest of iOS Practice route wiring.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceContext.swift` now isolates the `Game` route dependency surface from the rest of iOS Practice screen wiring.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceState.swift` now groups `Game` route transient UI state instead of keeping it as scattered `@State` properties inside the route view.
-- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` is still a major UI hotspot, but it now consumes an explicit workspace context and grouped state seam.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceSubviews.swift` now isolates the `Summary`, `Input`, and `Log` workspace subviews from the main game route file.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` is still a major UI hotspot, but it now consumes an explicit workspace context and grouped state seam, and no longer renders the three workspace subviews inline.
 - Store responsibilities are partially split across helper files, route dispatch is now driven by per-route contexts, but screen orchestration is still heavily centralized.
 - Route model is now more explicit than before via `PracticeRoute` and `PracticeSheet`, but the iOS product-surface contract is still incomplete compared with Android because some drill-ins remain local to subviews and root orchestration is still centralized.
 
@@ -316,6 +317,8 @@ iOS current wiring:
   - groups `Game` route transient UI state into one explicit seam
 - `PracticeGameWorkspace.swift`
   - now builds an explicit game-workspace context instead of passing raw store and bindings directly into the section view
+- `PracticeGameWorkspaceSubviews.swift`
+  - owns the `Summary`, `Input`, and `Log` workspace subviews so the main game route file no longer renders those panels inline
 - `PracticeTypes.swift`
   - now defines explicit `PracticeRoute` and `PracticeSheet` enums
   - still does not fully encode every Practice drill-in and sub-surface as one canonical product contract
@@ -400,11 +403,9 @@ Current status:
 
 1. Extract a dedicated Practice route state model on iOS instead of storing all navigation and modal flags in `PracticeScreen.swift`.
 2. Continue splitting Practice Game workspace into explicit subcomponents shared by contract:
-   - summary
-   - input
-   - log
    - note
    - resources
+   - entry sheets
 3. Continue decomposing Android `PracticeStore.kt` into narrower state and mutation modules so it does not remain the second monolith after iOS screen cleanup.
 4. Normalize quick-entry, journal editing, and group-editor launch state so both platforms describe the same ownership model in docs.
 

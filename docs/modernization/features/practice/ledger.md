@@ -107,6 +107,9 @@
 - Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceState.swift` so `Game` route transient UI state no longer lives as a long list of local `@State` properties in `PracticeGameSection.swift`.
 - Updated `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameWorkspace.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` so the workspace route now consumes explicit context plus grouped route-local state instead of raw store/binding plumbing plus scattered transient state.
 - Verified the `Game` route context/state extraction at compile time with `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceSubviews.swift` to isolate the `Summary`, `Input`, and `Log` workspace panels from the main game route file.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` so it now focuses on route chrome, route-local sheet state, and panel composition instead of rendering all three workspace panels inline.
+- Verified the workspace subview extraction at compile time with `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`.
 
 ## Next audit targets
 
