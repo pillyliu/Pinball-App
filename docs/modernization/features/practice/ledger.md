@@ -156,6 +156,11 @@
 - Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreen.kt` from the main concentration point for route effects, helper closures, and presentation wiring to a narrower orchestration layer that assembles explicit contexts.
 - Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreenRouteContent.kt` so it now resolves only explicit route contexts and no longer declares a generic Android `PracticeRouteContentContext`.
 - Verified the Android root-screen lifecycle/action/presentation split and final route-context cleanup at compile time with `./gradlew app:assembleDebug`.
+- Reworked `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreenState.kt` so Android Practice UI state is now grouped into navigation, journal, game, quick-entry, presentation, insights, and mechanics substate objects instead of one flat mutable state bag.
+- Updated `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreen.kt`, `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLifecycleHost.kt`, and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreenActions.kt` to consume those grouped Android state seams directly.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLeagueIntegration.kt` so Android league targets, league-player lookup, league CSV import, and head-to-head comparison no longer live inline inside `PracticeStore.kt`.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt` by delegating the league/import/comparison slice to the dedicated integration seam while preserving the existing public store API.
+- Verified the Android grouped screen-state seam and first `PracticeStore.kt` responsibility extraction at compile time with `./gradlew app:assembleDebug`.
 
 ## Next audit targets
 
@@ -163,5 +168,5 @@
 - top-bar behavior per route
 - state ownership split between screen, route model, and store
 - journal section state ownership and further row/editor extraction opportunities
-- remaining screen-state concentration in `PracticeScreenState.kt`
+- deeper `PracticeStore.kt` decomposition beyond the league integration slice
 - repeated resource/video/rulesheet UI patterns

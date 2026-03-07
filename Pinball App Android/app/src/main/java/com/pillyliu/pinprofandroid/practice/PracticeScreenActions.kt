@@ -15,7 +15,7 @@ internal class PracticeScreenActions(
     private val selectedGame: PinballGame?,
 ) {
     fun selectPracticeGame(slug: String) {
-        uiState.selectedGameSlug = slug
+        uiState.navigation.selectedGameSlug = slug
         store.markPracticeViewedGame(slug)
     }
 
@@ -26,8 +26,10 @@ internal class PracticeScreenActions(
 
     fun selectLibrarySource(sourceId: String) {
         store.setPreferredLibrarySource(normalizePracticeLibrarySourceId(sourceId))
-        if (uiState.selectedGameSlug != null && findGameByPracticeLookupKey(store.games, uiState.selectedGameSlug) == null) {
-            uiState.selectedGameSlug = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey
+        if (uiState.navigation.selectedGameSlug != null &&
+            findGameByPracticeLookupKey(store.games, uiState.navigation.selectedGameSlug) == null
+        ) {
+            uiState.navigation.selectedGameSlug = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey
         }
     }
 
@@ -40,40 +42,40 @@ internal class PracticeScreenActions(
     }
 
     fun toggleJournalSelectionMode() {
-        uiState.selectedJournalRowIds = emptySet()
-        uiState.journalSelectionMode = !uiState.journalSelectionMode
+        uiState.journal.selectedRowIds = emptySet()
+        uiState.journal.selectionMode = !uiState.journal.selectionMode
     }
 
     fun createGroup() {
-        uiState.editingGroupID = null
+        uiState.navigation.editingGroupID = null
         uiState.navigateTo(PracticeRoute.GroupEditor)
     }
 
     fun editGroup(groupId: String) {
-        uiState.editingGroupID = groupId
+        uiState.navigation.editingGroupID = groupId
         uiState.navigateTo(PracticeRoute.GroupEditor)
     }
 
     fun openGroupDatePicker(groupId: String?, field: GroupDashboardDateField, initialMs: Long?) {
-        uiState.groupDateDialogGroupID = groupId
-        uiState.groupDateDialogField = field
-        uiState.groupDatePickerInitialMs = initialMs
-        uiState.openGroupDateDialog = true
+        uiState.presentation.groupDateDialogGroupID = groupId
+        uiState.presentation.groupDateDialogField = field
+        uiState.presentation.groupDatePickerInitialMs = initialMs
+        uiState.presentation.openGroupDateDialog = true
     }
 
     fun selectInsightsOpponent(selected: String) {
-        uiState.insightsOpponentName = selected
+        uiState.insights.opponentName = selected
         store.updateComparisonPlayerName(selected)
     }
 
     suspend fun refreshHeadToHeadComparison() {
-        if (store.playerName.isBlank() || uiState.insightsOpponentName.isBlank()) {
-            uiState.headToHead = null
+        if (store.playerName.isBlank() || uiState.insights.opponentName.isBlank()) {
+            uiState.insights.headToHead = null
             return
         }
-        uiState.isLoadingHeadToHead = true
-        uiState.headToHead = store.comparePlayers(store.playerName, uiState.insightsOpponentName)
-        uiState.isLoadingHeadToHead = false
+        uiState.insights.isLoadingHeadToHead = true
+        uiState.insights.headToHead = store.comparePlayers(store.playerName, uiState.insights.opponentName)
+        uiState.insights.isLoadingHeadToHead = false
     }
 
     fun refreshHeadToHead() {
@@ -88,30 +90,30 @@ internal class PracticeScreenActions(
 
     fun importLplCsv() {
         scope.launch {
-            uiState.importStatus = store.importLeagueScoresFromCsv()
+            uiState.presentation.importStatus = store.importLeagueScoresFromCsv()
         }
     }
 
     fun openResetDialog() {
-        uiState.openResetDialog = true
+        uiState.presentation.openResetDialog = true
     }
 
     fun openRulesheet(source: RulesheetRemoteSource?) {
         if (selectedGame?.hasRulesheetResource != true) return
-        uiState.selectedRulesheetSource = source
-        uiState.selectedExternalRulesheetUrl = null
+        uiState.navigation.selectedRulesheetSource = source
+        uiState.navigation.selectedExternalRulesheetUrl = null
         uiState.navigateTo(PracticeRoute.Rulesheet)
     }
 
     fun openExternalRulesheet(url: String) {
         if (selectedGame == null) return
-        uiState.selectedRulesheetSource = null
-        uiState.selectedExternalRulesheetUrl = url
+        uiState.navigation.selectedRulesheetSource = null
+        uiState.navigation.selectedExternalRulesheetUrl = url
         uiState.navigateTo(PracticeRoute.Rulesheet)
     }
 
     fun openPlayfield(urls: List<String>) {
-        uiState.selectedPlayfieldUrls = urls
+        uiState.navigation.selectedPlayfieldUrls = urls
         uiState.navigateTo(PracticeRoute.Playfield)
     }
 }

@@ -10,21 +10,43 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.pillyliu.pinprofandroid.library.RulesheetRemoteSource
 
-internal class PracticeScreenState(initialJournalFilter: JournalFilter) {
+internal class PracticeNavigationState {
     var route by mutableStateOf(PracticeRoute.Home)
     var selectedGameSlug by mutableStateOf<String?>(null)
     var selectedPlayfieldUrls by mutableStateOf<List<String>>(emptyList())
     var selectedRulesheetSource by mutableStateOf<RulesheetRemoteSource?>(null)
     var selectedExternalRulesheetUrl by mutableStateOf<String?>(null)
-    var journalFilter by mutableStateOf(initialJournalFilter)
-    var journalSelectionMode by mutableStateOf(false)
-    var selectedJournalRowIds by mutableStateOf<Set<String>>(emptySet())
-    var gameSubview by mutableStateOf(PracticeGameSubview.Summary)
-    var quickPresetActivity by mutableStateOf(QuickActivity.Score)
-    var quickEntryOrigin by mutableStateOf(QuickEntryOrigin.Score)
-    var quickEntryFromGameView by mutableStateOf(false)
     var editingGroupID by mutableStateOf<String?>(null)
-    var openQuickEntry by mutableStateOf(false)
+    val routeHistory = mutableStateListOf<PracticeRoute>()
+}
+
+internal class PracticeJournalUiState(initialFilter: JournalFilter) {
+    var filter by mutableStateOf(initialFilter)
+    var selectionMode by mutableStateOf(false)
+    var selectedRowIds by mutableStateOf<Set<String>>(emptySet())
+
+    fun resetSelection() {
+        selectionMode = false
+        selectedRowIds = emptySet()
+    }
+}
+
+internal class PracticeGameUiState {
+    var subview by mutableStateOf(PracticeGameSubview.Summary)
+    var summaryDraft by mutableStateOf("")
+    var activeVideoId by mutableStateOf<String?>(null)
+    var resumeOtherExpanded by mutableStateOf(false)
+    var pickerExpanded by mutableStateOf(false)
+}
+
+internal class PracticeQuickEntryUiState {
+    var presetActivity by mutableStateOf(QuickActivity.Score)
+    var origin by mutableStateOf(QuickEntryOrigin.Score)
+    var fromGameView by mutableStateOf(false)
+    var isOpen by mutableStateOf(false)
+}
+
+internal class PracticePresentationState {
     var openResetDialog by mutableStateOf(false)
     var openGroupDateDialog by mutableStateOf(false)
     var groupDateDialogGroupID by mutableStateOf<String?>(null)
@@ -32,61 +54,69 @@ internal class PracticeScreenState(initialJournalFilter: JournalFilter) {
     var groupDatePickerInitialMs by mutableStateOf<Long?>(null)
     var openNamePrompt by mutableStateOf(false)
     var importStatus by mutableStateOf("")
-    var resumeOtherExpanded by mutableStateOf(false)
-    var gamePickerExpanded by mutableStateOf(false)
-    var insightsOpponentName by mutableStateOf("")
-    var insightsOpponentOptions by mutableStateOf<List<String>>(emptyList())
+}
+
+internal class PracticeInsightsUiState {
+    var opponentName by mutableStateOf("")
+    var opponentOptions by mutableStateOf<List<String>>(emptyList())
     var headToHead by mutableStateOf<HeadToHeadComparison?>(null)
     var isLoadingHeadToHead by mutableStateOf(false)
-    var mechanicsSelectedSkill by mutableStateOf("")
-    var mechanicsCompetency by mutableFloatStateOf(3f)
-    var mechanicsNote by mutableStateOf("")
-    var gameSummaryDraft by mutableStateOf("")
-    var activeGameVideoId by mutableStateOf<String?>(null)
-    val routeHistory = mutableStateListOf<PracticeRoute>()
+}
+
+internal class PracticeMechanicsUiState {
+    var selectedSkill by mutableStateOf("")
+    var competency by mutableFloatStateOf(3f)
+    var note by mutableStateOf("")
+}
+
+internal class PracticeScreenState(initialJournalFilter: JournalFilter) {
+    val navigation = PracticeNavigationState()
+    val journal = PracticeJournalUiState(initialJournalFilter)
+    val game = PracticeGameUiState()
+    val quickEntry = PracticeQuickEntryUiState()
+    val presentation = PracticePresentationState()
+    val insights = PracticeInsightsUiState()
+    val mechanics = PracticeMechanicsUiState()
 
     fun openQuickEntryFor(
         activity: QuickActivity,
-        origin: QuickEntryOrigin = quickEntryOrigin,
+        origin: QuickEntryOrigin = quickEntry.origin,
         fromGameView: Boolean = false,
     ) {
-        quickPresetActivity = activity
-        quickEntryOrigin = origin
-        quickEntryFromGameView = fromGameView
-        openQuickEntry = true
+        quickEntry.presetActivity = activity
+        quickEntry.origin = origin
+        quickEntry.fromGameView = fromGameView
+        quickEntry.isOpen = true
     }
 
     fun navigateTo(target: PracticeRoute) {
         if (target == PracticeRoute.Game) {
-            gameSubview = PracticeGameSubview.Summary
+            game.subview = PracticeGameSubview.Summary
         }
         if (target != PracticeRoute.Journal) {
-            journalSelectionMode = false
-            selectedJournalRowIds = emptySet()
+            journal.resetSelection()
         }
-        if (target == route) return
-        routeHistory.add(route)
-        route = target
+        if (target == navigation.route) return
+        navigation.routeHistory.add(navigation.route)
+        navigation.route = target
     }
 
     fun resetToHome() {
-        routeHistory.clear()
-        journalSelectionMode = false
-        selectedJournalRowIds = emptySet()
-        selectedRulesheetSource = null
-        selectedExternalRulesheetUrl = null
-        route = PracticeRoute.Home
+        navigation.routeHistory.clear()
+        journal.resetSelection()
+        navigation.selectedRulesheetSource = null
+        navigation.selectedExternalRulesheetUrl = null
+        navigation.route = PracticeRoute.Home
     }
 
     fun goBack() {
-        if (routeHistory.isNotEmpty()) {
-            route = routeHistory.removeAt(routeHistory.lastIndex)
+        navigation.route = if (navigation.routeHistory.isNotEmpty()) {
+            navigation.routeHistory.removeAt(navigation.routeHistory.lastIndex)
         } else {
-            route = PracticeRoute.Home
+            PracticeRoute.Home
         }
-        if (route != PracticeRoute.Journal) {
-            journalSelectionMode = false
-            selectedJournalRowIds = emptySet()
+        if (navigation.route != PracticeRoute.Journal) {
+            journal.resetSelection()
         }
     }
 }

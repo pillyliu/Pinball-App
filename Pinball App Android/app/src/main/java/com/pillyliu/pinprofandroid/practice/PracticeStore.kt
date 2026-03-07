@@ -12,8 +12,6 @@ import com.pillyliu.pinprofandroid.library.PinballGame
 import java.util.UUID
 import kotlin.math.abs
 
-private const val LEAGUE_TARGETS_PATH = "/pinball/data/LPL_Targets.csv"
-
 internal class PracticeStore(private val context: Context) {
     private companion object {
         val QUICK_GAME_PREF_KEYS = listOf(
@@ -77,8 +75,7 @@ internal class PracticeStore(private val context: Context) {
 
     private var rulesheetResumeOffsets: Map<String, Double> = emptyMap()
     private var canonicalPersistedState: CanonicalPracticePersistedState = emptyCanonicalPracticePersistedState()
-
-    private var leagueTargetsByNormalizedMachine: Map<String, LeagueTargetScores> = emptyMap()
+    private val leagueIntegration by lazy { PracticeLeagueIntegration(::gameName) }
 
     private val prefs by lazy { context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE) }
 
@@ -118,7 +115,7 @@ internal class PracticeStore(private val context: Context) {
         loadState()
         migrateLoadedStateToPracticeKeys()
         migratePreferenceGameKeysToPracticeKeys()
-        loadLeagueTargets()
+        leagueIntegration.loadTargets()
     }
 
     fun updatePlayerName(name: String) {
@@ -632,7 +629,10 @@ internal class PracticeStore(private val context: Context) {
     fun gameName(slug: String): String = gameNameForSlug(practiceLookupGames(), canonicalPracticeKey(slug, practiceLookupGames()))
 
     fun leagueTargetScoresFor(gameSlug: String): LeagueTargetScores? =
-        leagueTargetScoresForSlug(canonicalPracticeKey(gameSlug, practiceLookupGames()), practiceLookupGames(), ::leagueTargetScoresForGameName)
+        leagueIntegration.targetScoresFor(
+            gameSlug = canonicalPracticeKey(gameSlug, practiceLookupGames()),
+            games = practiceLookupGames(),
+        )
 
     fun saveRulesheetProgress(slug: String, ratio: Float) {
         val canonicalKey = canonicalPracticeKey(slug, practiceLookupGames())
@@ -662,10 +662,10 @@ internal class PracticeStore(private val context: Context) {
         }
     }
 
-    suspend fun availableLeaguePlayers(): List<String> = availableLeaguePlayersFromCsv()
+    suspend fun availableLeaguePlayers(): List<String> = leagueIntegration.availablePlayers()
 
     suspend fun importLeagueScoresFromCsv(): String {
-        val result = importLeagueScoresFromCsvData(
+        val result = leagueIntegration.importScores(
             selectedPlayer = leaguePlayerName.trim(),
             games = games,
             onAddScore = { slug, score, timestampMs ->
@@ -677,11 +677,10 @@ internal class PracticeStore(private val context: Context) {
     }
 
     suspend fun comparePlayers(yourName: String, opponentName: String): HeadToHeadComparison? {
-        return comparePlayersFromCsv(
+        return leagueIntegration.comparePlayers(
             yourName = yourName,
             opponentName = opponentName,
             games = games,
-            gameNameForSlug = ::gameName,
         )
     }
 
@@ -947,10 +946,4 @@ internal class PracticeStore(private val context: Context) {
             ?.index
     }
 
-    private suspend fun loadLeagueTargets() {
-        leagueTargetsByNormalizedMachine = loadLeagueTargetsMap(LEAGUE_TARGETS_PATH)
-    }
-
-    private fun leagueTargetScoresForGameName(gameName: String): LeagueTargetScores? =
-        resolveLeagueTargetScores(gameName, leagueTargetsByNormalizedMachine)
 }
