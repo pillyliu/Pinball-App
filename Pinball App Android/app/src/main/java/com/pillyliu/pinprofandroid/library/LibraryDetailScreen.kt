@@ -39,12 +39,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -95,6 +93,7 @@ import com.halilibo.richtext.ui.material3.RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.downloadTextAllowMissing
+import com.pillyliu.pinprofandroid.ui.AppBackButton
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
@@ -178,7 +177,7 @@ internal fun LibraryDetailScreen(
                     .fillMaxWidth()
                     .padding(top = 8.dp),
             ) {
-                GlassBackButton(
+                AppBackButton(
                     onClick = onBack,
                     modifier = Modifier.align(Alignment.CenterStart),
                 )
@@ -241,20 +240,7 @@ internal fun GlassBackButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    FilledTonalIconButton(
-        onClick = onClick,
-        modifier = modifier.size(40.dp),
-        colors = androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        ),
-    ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = "Back",
-            modifier = Modifier.size(18.dp),
-        )
-    }
+    AppBackButton(onClick = onClick, modifier = modifier)
 }
 
 @Composable

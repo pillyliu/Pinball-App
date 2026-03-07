@@ -10,6 +10,7 @@ import org.json.JSONObject
 private val canonicalBuiltinSourceIds = setOf(
     "venue--rlm-amusements",
     "venue--the-avenue-cafe",
+    "venue--gameroom",
 )
 
 private val legacySourceIdAliases = mapOf(

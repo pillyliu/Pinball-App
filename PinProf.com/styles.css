@@ -283,6 +283,29 @@ h1 {
   text-transform: uppercase;
 }
 
+.site-footer {
+  margin-top: 26px;
+  padding: 18px 22px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(5, 13, 22, 0.62);
+}
+
+.site-footer p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.site-footer p + p {
+  margin-top: 4px;
+}
+
+.site-footer a {
+  color: var(--text);
+}
+
 @media (max-width: 960px) {
   .hero,
   .story-block,

@@ -25,10 +25,15 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.getValue
@@ -67,35 +72,30 @@ internal fun CurrentGroupsCard(
 
     CardContainer(modifier = Modifier.padding(top = 2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Groups", fontWeight = FontWeight.SemiBold)
-            Row(
-                modifier = Modifier
-                    .padding(start = 10.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.88f),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-                    )
-                    .padding(2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(
-                    onClick = { showArchived = false },
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 1.dp),
+            Text("Groups", fontWeight = FontWeight.SemiBold)
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                SingleChoiceSegmentedButtonRow(
                     modifier = Modifier
-                        .background(
-                            if (!showArchived) MaterialTheme.colorScheme.surface else Color.Transparent,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-                        ),
-                ) { Text("Current", style = MaterialTheme.typography.labelSmall) }
-                TextButton(
-                    onClick = { showArchived = true },
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 1.dp),
-                    modifier = Modifier
-                        .background(
-                            if (showArchived) MaterialTheme.colorScheme.surface else Color.Transparent,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-                        ),
-                ) { Text("Archived", style = MaterialTheme.typography.labelSmall) }
+                        .padding(start = 10.dp),
+                ) {
+                    listOf("Current", "Archived").forEachIndexed { index, label ->
+                        val archived = index == 1
+                        SegmentedButton(
+                            selected = showArchived == archived,
+                            onClick = { showArchived = archived },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = 2),
+                            modifier = Modifier.height(32.dp),
+                            icon = {},
+                            label = {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                )
+                            },
+                        )
+                    }
+                }
             }
             Box(modifier = Modifier.weight(1f))
             IconButton(onClick = onCreateGroup) {

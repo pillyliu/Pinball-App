@@ -98,36 +98,40 @@ internal fun LibraryDetailSummaryCard(
             }
         }
         Text(game.metaLine(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        ResourceRow(label = "Rulesheet:") {
-            if (game.rulesheetLinks.isEmpty()) {
-                if (hasRulesheet) {
-                    ResourceChipButton(label = "Local") { onOpenRulesheet(null) }
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            ResourceRow(label = "Rulesheet:") {
+                if (game.rulesheetLinks.isEmpty()) {
+                    if (hasRulesheet) {
+                        ResourceChipButton(label = "Local") { onOpenRulesheet(null) }
+                    } else {
+                        UnavailableResourceChip()
+                    }
                 } else {
-                    UnavailableResourceChip()
-                }
-            } else {
-                game.rulesheetLinks.forEach { link ->
-                    val destination = link.destinationUrl
-                    val embedded = link.embeddedRulesheetSource
-                    ResourceChipButton(label = shortRulesheetTitle(link)) {
-                        LibraryActivityLog.log(context, game.slug, game.name, LibraryActivityKind.OpenRulesheet, link.label)
-                        when {
-                            embedded != null -> onOpenRulesheet(embedded)
-                            destination != null -> onOpenExternalRulesheet(destination)
-                            else -> onOpenRulesheet(null)
+                    game.rulesheetLinks.forEach { link ->
+                        val destination = link.destinationUrl
+                        val embedded = link.embeddedRulesheetSource
+                        ResourceChipButton(label = shortRulesheetTitle(link)) {
+                            LibraryActivityLog.log(context, game.slug, game.name, LibraryActivityKind.OpenRulesheet, link.label)
+                            when {
+                                embedded != null -> onOpenRulesheet(embedded)
+                                destination != null -> onOpenExternalRulesheet(destination)
+                                else -> onOpenRulesheet(null)
+                            }
                         }
                     }
                 }
             }
-        }
-        ResourceRow(label = "Playfield:") {
-            val playfieldCandidates = game.actualFullscreenPlayfieldCandidates
-            if (playfieldCandidates.isNotEmpty()) {
-                ResourceChipButton(label = if (game.playfieldSourceLabel == "Playfield (OPDB)") "OPDB" else "Local") {
-                    playfieldCandidates.firstOrNull()?.let(onOpenPlayfield)
+            ResourceRow(label = "Playfield:") {
+                val playfieldCandidates = game.actualFullscreenPlayfieldCandidates
+                if (playfieldCandidates.isNotEmpty()) {
+                    ResourceChipButton(label = if (game.playfieldSourceLabel == "Playfield (OPDB)") "OPDB" else "Local") {
+                        playfieldCandidates.firstOrNull()?.let(onOpenPlayfield)
+                    }
+                } else {
+                    UnavailableResourceChip()
                 }
-            } else {
-                UnavailableResourceChip()
             }
         }
     }
@@ -276,37 +280,41 @@ internal fun LibraryDetailSourcesSection(
     onOpenExternalRulesheet: (String) -> Unit,
     onOpenPlayfield: (String) -> Unit,
 ) {
-    ResourceRow(label = "Rulesheet:") {
-        if (game.rulesheetLinks.isNotEmpty()) {
-            game.rulesheetLinks.forEach { link ->
-                val destination = link.destinationUrl
-                val embedded = link.embeddedRulesheetSource
-                ResourceChipButton(label = shortRulesheetTitle(link)) {
-                    when {
-                        embedded != null -> onOpenRulesheet(embedded)
-                        destination != null -> onOpenExternalRulesheet(destination)
-                        else -> onOpenRulesheet(null)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        ResourceRow(label = "Rulesheet:") {
+            if (game.rulesheetLinks.isNotEmpty()) {
+                game.rulesheetLinks.forEach { link ->
+                    val destination = link.destinationUrl
+                    val embedded = link.embeddedRulesheetSource
+                    ResourceChipButton(label = shortRulesheetTitle(link)) {
+                        when {
+                            embedded != null -> onOpenRulesheet(embedded)
+                            destination != null -> onOpenExternalRulesheet(destination)
+                            else -> onOpenRulesheet(null)
+                        }
                     }
                 }
+            } else if (hasRulesheet) {
+                ResourceChipButton(label = "Local") { onOpenRulesheet(null) }
             }
-        } else if (hasRulesheet) {
-            ResourceChipButton(label = "Local") { onOpenRulesheet(null) }
         }
-    }
-    ResourceRow(label = "Playfield:") {
-        if (game.hasPlayfieldResource) {
-            if (game.playfieldImageUrl != null) {
-                val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
-                ResourceChipButton(label = if (game.playfieldSourceLabel == "Playfield (OPDB)") "OPDB" else "Local") {
-                    game.resolve(game.playfieldImageUrl)?.let(uriHandler::openUri)
+        ResourceRow(label = "Playfield:") {
+            if (game.hasPlayfieldResource) {
+                if (game.playfieldImageUrl != null) {
+                    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+                    ResourceChipButton(label = if (game.playfieldSourceLabel == "Playfield (OPDB)") "OPDB" else "Local") {
+                        game.resolve(game.playfieldImageUrl)?.let(uriHandler::openUri)
+                    }
+                } else {
+                    ResourceChipButton(label = if (game.playfieldSourceLabel == "Playfield (OPDB)") "OPDB" else "Local") {
+                        game.actualFullscreenPlayfieldCandidates.firstOrNull()?.let(onOpenPlayfield)
+                    }
                 }
             } else {
-                ResourceChipButton(label = if (game.playfieldSourceLabel == "Playfield (OPDB)") "OPDB" else "Local") {
-                    game.actualFullscreenPlayfieldCandidates.firstOrNull()?.let(onOpenPlayfield)
-                }
+                UnavailableResourceChip()
             }
-        } else {
-            UnavailableResourceChip()
         }
     }
 }

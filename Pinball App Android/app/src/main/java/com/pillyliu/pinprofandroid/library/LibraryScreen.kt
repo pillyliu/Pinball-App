@@ -44,11 +44,18 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
             sources
         } else {
             val selected = sources.firstOrNull { it.id == selectedSourceId }
-            if (selected != null && pinned.none { it.id == selected.id }) {
-                pinned + selected
-            } else {
-                pinned
+            val ordered = buildList {
+                addAll(pinned)
+                if (selected != null && none { it.id == selected.id }) {
+                    add(selected)
+                }
+                sources.forEach { source ->
+                    if (none { it.id == source.id }) {
+                        add(source)
+                    }
+                }
             }
+            ordered
         }
     }
 

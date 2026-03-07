@@ -49,7 +49,9 @@ struct LibraryDetailSummaryCard: View {
                             libraryRulesheetLinkButton(title: "Local", game: game, source: nil)
                         }
                     } else {
-                        libraryUnavailableResourceButton("Unavailable")
+                        libraryResourceRow("Rulesheet") {
+                            libraryUnavailableResourceButton("Unavailable")
+                        }
                     }
                 } else {
                     libraryResourceRow("Rulesheet") {
@@ -231,11 +233,17 @@ struct LibraryDetailSourcesCard: View {
                 .font(.headline)
                 .foregroundStyle(.primary)
 
-            if game.rulesheetLinks.isEmpty && game.hasRulesheetResource {
-                libraryResourceRow("Rulesheet") {
-                    libraryRulesheetLinkButton(title: "Local", game: game, source: nil)
+            if game.rulesheetLinks.isEmpty {
+                if game.hasRulesheetResource {
+                    libraryResourceRow("Rulesheet") {
+                        libraryRulesheetLinkButton(title: "Local", game: game, source: nil)
+                    }
+                } else {
+                    libraryResourceRow("Rulesheet") {
+                        libraryUnavailableResourceButton("Unavailable")
+                    }
                 }
-            } else if !game.rulesheetLinks.isEmpty {
+            } else {
                 libraryResourceRow("Rulesheet") {
                     ForEach(game.rulesheetLinks) { link in
                         libraryRulesheetLinkButton(link: link, game: game, title: libraryShortRulesheetTitle(for: link))
