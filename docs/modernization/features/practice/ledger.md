@@ -110,6 +110,9 @@
 - Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceSubviews.swift` to isolate the `Summary`, `Input`, and `Log` workspace panels from the main game route file.
 - Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` so it now focuses on route chrome, route-local sheet state, and panel composition instead of rendering all three workspace panels inline.
 - Verified the workspace subview extraction at compile time with `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameEntrySheets.swift` to isolate `GameScoreEntrySheet`, `GameNoteEntrySheet`, and `GameTaskEntrySheet` from the main game route file.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` so it now focuses on route composition and route-local state instead of embedding modal form implementations inline.
+- Verified the entry-sheet extraction at compile time with `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`.
 
 ## Next audit targets
 
