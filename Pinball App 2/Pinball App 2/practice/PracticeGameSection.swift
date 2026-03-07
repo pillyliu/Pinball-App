@@ -29,6 +29,18 @@ struct PracticeGameSection: View {
         nonmutating set { context.selectedGameID.wrappedValue = newValue }
     }
     private var onGameViewed: ((String) -> Void)? { context.onGameViewed }
+    private var presentationContext: PracticeGamePresentationContext {
+        PracticeGamePresentationContext(
+            store: store,
+            selectedGameID: selectedGameID,
+            entryTask: $uiState.entryTask,
+            showingScoreSheet: $uiState.showingScoreSheet,
+            editingLogEntry: $uiState.editingLogEntry,
+            pendingDeleteLogEntry: $uiState.pendingDeleteLogEntry,
+            saveBanner: uiState.saveBanner,
+            onShowSaveBanner: showSaveBanner
+        )
+    }
 
     private var selectedGame: PinballGame? {
         store.gameForAnyID(selectedGameID)
@@ -46,56 +58,58 @@ struct PracticeGameSection: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackground()
+        PracticeGamePresentationHost(context: presentationContext) {
+            ZStack {
+                AppBackground()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    PracticeGameScreenshotSection(game: selectedGame)
-
+                ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        Picker("Mode", selection: $uiState.subview) {
-                            ForEach(PracticeGameSubview.allCases) { item in
-                                Text(item.label).tag(item)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+                        PracticeGameScreenshotSection(game: selectedGame)
 
-                        Group {
-                            switch uiState.subview {
-                            case .summary:
-                                gameSummaryView
-                            case .input:
-                                gameInputView
-                            case .log:
-                                gameLogView
+                        VStack(alignment: .leading, spacing: 12) {
+                            Picker("Mode", selection: $uiState.subview) {
+                                ForEach(PracticeGameSubview.allCases) { item in
+                                    Text(item.label).tag(item)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+
+                            Group {
+                                switch uiState.subview {
+                                case .summary:
+                                    gameSummaryView
+                                case .input:
+                                    gameInputView
+                                case .log:
+                                    gameLogView
+                                }
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .appPanelStyle()
+
+                        PracticeGameNoteCard(
+                            note: $uiState.gameSummaryDraft,
+                            isDisabled: selectedGameID.isEmpty,
+                            onSave: {
+                                store.updateGameSummaryNote(gameID: selectedGameID, note: uiState.gameSummaryDraft)
+                                showSaveBanner("Game note saved")
+                            }
+                        )
+
+                        PracticeGameResourceCard(
+                            game: selectedGame,
+                            playableVideos: playableVideos,
+                            activeVideoID: $uiState.activeVideoID,
+                            onOpenURL: openURL
+                        )
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-                    .appPanelStyle()
-
-                    PracticeGameNoteCard(
-                        note: $uiState.gameSummaryDraft,
-                        isDisabled: selectedGameID.isEmpty,
-                        onSave: {
-                            store.updateGameSummaryNote(gameID: selectedGameID, note: uiState.gameSummaryDraft)
-                            showSaveBanner("Game note saved")
-                        }
-                    )
-
-                    PracticeGameResourceCard(
-                        game: selectedGame,
-                        playableVideos: playableVideos,
-                        activeVideoID: $uiState.activeVideoID,
-                        onOpenURL: openURL
-                    )
+                    .padding(.horizontal, 14)
+                    .padding(.top, 6)
+                    .padding(.bottom, 12)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 14)
-                .padding(.top, 6)
-                .padding(.bottom, 12)
             }
         }
         .navigationTitle(selectedGame?.name ?? "Game")
@@ -107,18 +121,6 @@ struct PracticeGameSection: View {
                 PracticeGameToolbarMenu(store: store, selectedGameID: context.selectedGameID)
             }
         }
-        .overlay(alignment: .top) {
-            if let saveBanner = uiState.saveBanner {
-                Text(saveBanner)
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.green.opacity(0.2), in: Capsule())
-                    .padding(.top, 4)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .animation(.easeInOut(duration: 0.25), value: uiState.saveBanner)
         .onAppear {
             if selectedGameID.isEmpty, let first = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first {
                 selectedGameID = first.canonicalPracticeKey
@@ -139,42 +141,6 @@ struct PracticeGameSection: View {
             }
             uiState.gameSummaryDraft = store.gameSummaryNote(for: newValue)
             uiState.activeVideoID = playableVideos.first?.id
-        }
-        .sheet(item: $uiState.entryTask, content: taskEntrySheet)
-        .sheet(isPresented: $uiState.showingScoreSheet) {
-            GameScoreEntrySheet(
-                gameID: selectedGameID,
-                store: store,
-                onSaved: {
-                    showSaveBanner("Score logged")
-                }
-            )
-            .practiceEntrySheetStyle()
-        }
-        .sheet(item: $uiState.editingLogEntry) { entry in
-            PracticeJournalEntryEditorSheet(entry: entry, store: store) { updated in
-                if store.updateJournalEntry(updated) {
-                    showSaveBanner("Entry updated")
-                }
-            }
-            .practiceEntrySheetStyle()
-        }
-        .alert("Delete entry?", isPresented: Binding(
-            get: { uiState.pendingDeleteLogEntry != nil },
-            set: { if !$0 { uiState.pendingDeleteLogEntry = nil } }
-        )) {
-            Button("Delete", role: .destructive) {
-                if let entry = uiState.pendingDeleteLogEntry {
-                    _ = store.deleteJournalEntry(id: entry.id)
-                    showSaveBanner("Entry deleted")
-                }
-                uiState.pendingDeleteLogEntry = nil
-            }
-            Button("Cancel", role: .cancel) {
-                uiState.pendingDeleteLogEntry = nil
-            }
-        } message: {
-            Text("This will remove the selected journal entry and linked practice data.")
         }
     }
 
@@ -206,18 +172,6 @@ struct PracticeGameSection: View {
     private var gameSummaryView: some View {
         PracticeGameSummaryPanel(store: store, gameID: selectedGameID)
     }
-
-    @ViewBuilder
-    private func taskEntrySheet(for task: StudyTaskKind) -> some View {
-        GameTaskEntrySheet(
-            task: task,
-            gameID: selectedGameID,
-            store: store,
-            onSaved: { message in showSaveBanner(message) }
-        )
-        .practiceEntrySheetStyle()
-    }
-
     private func showSaveBanner(_ message: String) {
         uiState.saveBanner = message
         Task {
