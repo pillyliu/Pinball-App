@@ -128,6 +128,10 @@
 - Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameWorkspacePanels.kt` to isolate the Android segmented workspace card plus the `Summary`, `Input`, and `Log` panels from the main game route file.
 - Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameSection.kt` so it now focuses more on route-level note/resources/dialog wiring instead of also owning the full workspace panel tree inline.
 - Verified the Android workspace-panel extraction at compile time with `./gradlew app:assembleDebug`.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDetailCards.kt` to isolate Android `Game Note` and `Game Resources` rendering plus resource helper chips from the main game route file.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDialogs.kt` to isolate Android delete/edit dialog wiring from the main game route file.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameSection.kt` so it now focuses on route-local state plus high-level composition instead of also owning detail-card and dialog implementations inline.
+- Verified the Android detail-card and dialog extraction at compile time with `./gradlew app:assembleDebug`.
 
 ## Next audit targets
 
