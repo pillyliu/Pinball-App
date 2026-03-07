@@ -16,17 +16,6 @@ enum PracticeGameSubview: String, CaseIterable, Identifiable {
     }
 }
 
-private func inferPracticeLibrarySourcesForWorkspace(from games: [PinballGame]) -> [PinballLibrarySource] {
-    var seen = Set<String>()
-    var out: [PinballLibrarySource] = []
-    for game in games {
-        if seen.insert(game.sourceId).inserted {
-            out.append(PinballLibrarySource(id: game.sourceId, name: game.sourceName, type: game.sourceType))
-        }
-    }
-    return out
-}
-
 struct PracticeGameSection: View {
     let context: PracticeGameWorkspaceContext
 
@@ -39,7 +28,6 @@ struct PracticeGameSection: View {
         get { context.selectedGameID.wrappedValue }
         nonmutating set { context.selectedGameID.wrappedValue = newValue }
     }
-    private var selectedGameIDBinding: Binding<String> { context.selectedGameID }
     private var onGameViewed: ((String) -> Void)? { context.onGameViewed }
 
     private var selectedGame: PinballGame? {
@@ -55,10 +43,6 @@ struct PracticeGameSection: View {
             }
             return PinballGame.PlayableVideo(id: id, label: video.label ?? "Video")
         }
-    }
-
-    private var availableLibrarySources: [PinballLibrarySource] {
-        store.librarySources.isEmpty ? inferPracticeLibrarySourcesForWorkspace(from: store.allLibraryGames.isEmpty ? store.games : store.allLibraryGames) : store.librarySources
     }
 
     var body: some View {
@@ -120,41 +104,7 @@ struct PracticeGameSection: View {
         .appEdgeBackGesture(dismiss: dismiss)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    let applyLibrarySelection: (String?) -> Void = { sourceID in
-                        store.selectPracticeLibrarySource(id: sourceID)
-                        let canonical = store.canonicalPracticeGameID(selectedGameID)
-                        if !canonical.isEmpty,
-                           store.games.contains(where: { $0.canonicalPracticeKey == canonical }) {
-                            selectedGameID = canonical
-                        } else {
-                            selectedGameID = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first?.canonicalPracticeKey ?? ""
-                        }
-                    }
-
-                    if availableLibrarySources.count > 1 {
-                        Button((store.defaultPracticeSourceID == nil ? "✓ " : "") + "All games") {
-                            applyLibrarySelection(nil)
-                        }
-                        ForEach(availableLibrarySources) { source in
-                            Button((source.id == store.defaultPracticeSourceID ? "✓ " : "") + source.name) {
-                                applyLibrarySelection(source.id)
-                            }
-                        }
-                        Divider()
-                    }
-                    Picker("Game", selection: selectedGameIDBinding) {
-                        if store.games.isEmpty {
-                            Text("No game data").tag("")
-                        } else {
-                            ForEach(orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true)) { game in
-                                Text(game.name).tag(game.canonicalPracticeKey)
-                            }
-                        }
-                    }
-                } label: {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                }
+                PracticeGameToolbarMenu(store: store, selectedGameID: context.selectedGameID)
             }
         }
         .overlay(alignment: .top) {

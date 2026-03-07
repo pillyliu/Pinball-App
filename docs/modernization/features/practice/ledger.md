@@ -113,6 +113,9 @@
 - Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameEntrySheets.swift` to isolate `GameScoreEntrySheet`, `GameNoteEntrySheet`, and `GameTaskEntrySheet` from the main game route file.
 - Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` so it now focuses on route composition and route-local state instead of embedding modal form implementations inline.
 - Verified the entry-sheet extraction at compile time with `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameToolbarMenu.swift` to isolate the game/source picker toolbar, source inference, and fallback selection behavior from the main game route file.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` so it no longer embeds the top-right game/source picker menu inline.
+- Verified the game toolbar extraction at compile time with `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`.
 
 ## Next audit targets
 
