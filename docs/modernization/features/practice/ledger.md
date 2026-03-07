@@ -122,6 +122,12 @@
 - Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleContext.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleHost.swift` to isolate `Game` route first-load defaults, selected-game sync, browse tracking, and active-video fallback behavior from the main game route file.
 - Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` so it no longer embeds `.onAppear` and `selectedGameID` change synchronization inline.
 - Verified the game lifecycle extraction at compile time with `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameRouteBody.swift` to isolate the `Game` route screenshot, segmented workspace card, note, and resource-card layout from the main game route file.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` so it no longer owns the bulk of the route's layout tree inline.
+- Verified the game route-body extraction at compile time with `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameWorkspacePanels.kt` to isolate the Android segmented workspace card plus the `Summary`, `Input`, and `Log` panels from the main game route file.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameSection.kt` so it now focuses more on route-level note/resources/dialog wiring instead of also owning the full workspace panel tree inline.
+- Verified the Android workspace-panel extraction at compile time with `./gradlew app:assembleDebug`.
 
 ## Next audit targets
 

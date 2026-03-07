@@ -1,21 +1,5 @@
 import SwiftUI
 
-enum PracticeGameSubview: String, CaseIterable, Identifiable {
-    case summary
-    case input
-    case log
-
-    var id: String { rawValue }
-
-    var label: String {
-        switch self {
-        case .summary: return "Summary"
-        case .input: return "Input"
-        case .log: return "Log"
-        }
-    }
-}
-
 struct PracticeGameSection: View {
     let context: PracticeGameWorkspaceContext
 
@@ -70,58 +54,22 @@ struct PracticeGameSection: View {
     var body: some View {
         PracticeGameLifecycleHost(context: lifecycleContext) {
             PracticeGamePresentationHost(context: presentationContext) {
-                ZStack {
-                    AppBackground()
-
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 12) {
-                            PracticeGameScreenshotSection(game: selectedGame)
-
-                            VStack(alignment: .leading, spacing: 12) {
-                                Picker("Mode", selection: $uiState.subview) {
-                                    ForEach(PracticeGameSubview.allCases) { item in
-                                        Text(item.label).tag(item)
-                                    }
-                                }
-                                .pickerStyle(.segmented)
-
-                                Group {
-                                    switch uiState.subview {
-                                    case .summary:
-                                        gameSummaryView
-                                    case .input:
-                                        gameInputView
-                                    case .log:
-                                        gameLogView
-                                    }
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                            .appPanelStyle()
-
-                            PracticeGameNoteCard(
-                                note: $uiState.gameSummaryDraft,
-                                isDisabled: selectedGameID.isEmpty,
-                                onSave: {
-                                    store.updateGameSummaryNote(gameID: selectedGameID, note: uiState.gameSummaryDraft)
-                                    showSaveBanner("Game note saved")
-                                }
-                            )
-
-                            PracticeGameResourceCard(
-                                game: selectedGame,
-                                playableVideos: playableVideos,
-                                activeVideoID: $uiState.activeVideoID,
-                                onOpenURL: openURL
-                            )
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 14)
-                        .padding(.top, 6)
-                        .padding(.bottom, 12)
-                    }
-                }
+                PracticeGameRouteBody(
+                    selectedGame: selectedGame,
+                    subview: $uiState.subview,
+                    gameSummaryDraft: $uiState.gameSummaryDraft,
+                    selectedGameID: selectedGameID,
+                    playableVideos: playableVideos,
+                    activeVideoID: $uiState.activeVideoID,
+                    onOpenURL: openURL,
+                    onSaveNote: {
+                        store.updateGameSummaryNote(gameID: selectedGameID, note: uiState.gameSummaryDraft)
+                        showSaveBanner("Game note saved")
+                    },
+                    summaryView: { gameSummaryView },
+                    inputView: { gameInputView },
+                    logView: { gameLogView }
+                )
             }
         }
         .navigationTitle(selectedGame?.name ?? "Game")

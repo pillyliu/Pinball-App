@@ -100,200 +100,24 @@ internal fun PracticeGameSection(
         emptyMessage = "No image",
     )
 
-    CardContainer(
-        modifier = Modifier.pointerInput(revealedLogRowId) {
-            detectTapGestures(
-                onTap = {
-                    if (revealedLogRowId != null) {
-                        revealedLogRowId = null
-                    }
-                }
-            )
-        }
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(
-                text = game.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            game.normalizedVariant?.let { variant ->
-                Text(
-                    text = variant,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .background(
-                            MaterialTheme.colorScheme.surfaceContainerHigh,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-                        )
-                        .border(
-                            width = 0.75.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-                        )
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                )
-            }
-        }
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            PracticeGameSubview.entries.forEachIndexed { index, option ->
-                SegmentedButton(
-                    selected = gameSubview == option,
-                    onClick = { onGameSubviewChange(option) },
-                    shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index, PracticeGameSubview.entries.size),
-                    label = { Text(option.label, maxLines = 1) },
-                )
-            }
-        }
-        when (gameSubview) {
-            PracticeGameSubview.Summary -> {
-                val summary = store.scoreSummaryFor(gameKey)
-                val activeGroup = store.activeGroupForGame(gameKey)
-                if (activeGroup != null) {
-                    val groupProgress = store.taskProgressForGame(gameKey, activeGroup)
-                    Row(
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        GroupProgressWheel(
-                            taskProgress = groupProgress,
-                            modifier = Modifier
-                                .height(46.dp)
-                                .aspectRatio(1f),
-                        )
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(activeGroup.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                            Text(
-                                progressSummary(groupProgress),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-                NextActionBlock(store = store, gameSlug = gameKey)
-                AlertsBlock(store = store, gameSlug = gameKey)
-                ConsistencyBlock(store = store, gameSlug = gameKey)
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Score Stats", fontWeight = FontWeight.SemiBold)
-                        if (summary == null) {
-                            Text("Log scores to unlock.", style = MaterialTheme.typography.bodySmall)
-                        } else {
-                            StatRow("High", formatScore(summary.high), tint = MaterialTheme.colorScheme.tertiary)
-                            StatRow("Low", formatScore(summary.low), tint = MaterialTheme.colorScheme.error)
-                            StatRow("Mean", formatScore(summary.mean), tint = MaterialTheme.colorScheme.primary)
-                            StatRow("Median", formatScore(summary.median), tint = MaterialTheme.colorScheme.primary)
-                            StatRow("St Dev", formatScore(summary.stdev))
-                        }
-                    }
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Target Scores", fontWeight = FontWeight.SemiBold)
-                        val targets = store.leagueTargetScoresFor(gameKey)
-                        if (targets == null) {
-                            Text("No target data yet.", style = MaterialTheme.typography.bodySmall)
-                        } else {
-                            StatRow("2nd", formatScore(targets.great), tint = MaterialTheme.colorScheme.tertiary)
-                            StatRow("4th", formatScore(targets.main), tint = MaterialTheme.colorScheme.primary)
-                            StatRow("8th", formatScore(targets.floor), tint = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                }
-            }
-
-            PracticeGameSubview.Input -> {
-                Text("Task-Specific Logging", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        PracticeInputGridButton(
-                            label = "Rulesheet",
-                            icon = Icons.Outlined.Book,
-                            modifier = Modifier.weight(1f),
-                        ) { onOpenQuickEntry(QuickActivity.Rulesheet, QuickEntryOrigin.Study) }
-                        PracticeInputGridButton(
-                            label = "Playfield",
-                            icon = Icons.Outlined.Image,
-                            modifier = Modifier.weight(1f),
-                        ) { onOpenQuickEntry(QuickActivity.Playfield, QuickEntryOrigin.Study) }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        PracticeInputGridButton(
-                            label = "Score",
-                            icon = Icons.Outlined.Tag,
-                            modifier = Modifier.weight(1f),
-                        ) { onOpenQuickEntry(QuickActivity.Score, QuickEntryOrigin.Score) }
-                        PracticeInputGridButton(
-                            label = "Tutorial",
-                            icon = Icons.Outlined.School,
-                            modifier = Modifier.weight(1f),
-                        ) { onOpenQuickEntry(QuickActivity.Tutorial, QuickEntryOrigin.Study) }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        PracticeInputGridButton(
-                            label = "Practice",
-                            icon = Icons.Outlined.SportsEsports,
-                            modifier = Modifier.weight(1f),
-                        ) { onOpenQuickEntry(QuickActivity.Practice, QuickEntryOrigin.Practice) }
-                        PracticeInputGridButton(
-                            label = "Gameplay",
-                            icon = Icons.Outlined.SmartDisplay,
-                            modifier = Modifier.weight(1f),
-                        ) { onOpenQuickEntry(QuickActivity.Gameplay, QuickEntryOrigin.Study) }
-                    }
-                }
-            }
-
-            PracticeGameSubview.Log -> {
-                Text("Log", fontWeight = FontWeight.SemiBold)
-                val logRows = store.journalItems(JournalFilter.All)
-                    .filter { it.gameSlug == gameKey }
-                    .map { row ->
-                        JournalTimelineRow(
-                            id = "app-${row.id}",
-                            gameSlug = row.gameSlug,
-                            summary = row.summary,
-                            timestampMs = row.timestampMs,
-                            journalEntry = row,
-                            isEditable = store.canEditJournalEntry(row),
-                        )
-                    }
-                if (logRows.isEmpty()) {
-                    Text("No actions logged yet.")
-                } else {
-                    LazyColumn(modifier = Modifier.height(280.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(logRows, key = { it.id }) { row ->
-                            JournalRow(
-                                row = row,
-                                revealedRowId = revealedLogRowId,
-                                onRevealedRowIdChange = { revealedLogRowId = it },
-                                isSelectionMode = false,
-                                isSelected = false,
-                                onToggleSelected = {},
-                                onOpenGame = {},
-                                onEdit = { entry ->
-                                    revealedLogRowId = null
-                                    editingDraft = store.journalEditDraft(entry)
-                                    editValidation = null
-                                },
-                                onDelete = { entry ->
-                                    revealedLogRowId = null
-                                    pendingDeleteEntry = entry
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
+    PracticeGameWorkspaceCard(
+        store = store,
+        game = game,
+        gameSubview = gameSubview,
+        onGameSubviewChange = onGameSubviewChange,
+        revealedLogRowId = revealedLogRowId,
+        onRevealedLogRowIdChange = { revealedLogRowId = it },
+        onOpenQuickEntry = onOpenQuickEntry,
+        onEditLogEntry = { entry ->
+            revealedLogRowId = null
+            editingDraft = store.journalEditDraft(entry)
+            editValidation = null
+        },
+        onDeleteLogEntry = { entry ->
+            revealedLogRowId = null
+            pendingDeleteEntry = entry
+        },
+    )
 
     CardContainer {
         Text("Game Note", fontWeight = FontWeight.SemiBold)
