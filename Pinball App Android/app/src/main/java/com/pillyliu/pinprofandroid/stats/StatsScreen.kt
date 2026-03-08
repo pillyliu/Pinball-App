@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -309,23 +310,43 @@ fun StatsScreen(
                     }
                 }
             } else {
-                CardContainer(modifier = Modifier.fillMaxWidth()) {
-                    StatsTable(
-                        filtered = filtered,
-                        showFullLplLastName = showFullLplLastName,
-                        isRefreshing = isRefreshing,
-                        initialLoadComplete = initialLoadComplete,
-                        maxVisibleRows = 11,
-                    )
-                }
-                CardContainer(modifier = Modifier.fillMaxWidth()) {
-                    MachineStatsPanel(
-                        machine = machine,
-                        bankNumber = bankNumber,
-                        season = season,
-                        bankStats = bankStats,
-                        historyStats = historyStats,
-                    )
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = true),
+                ) {
+                    val machinePanelHeight = if (machine.isBlank()) 72.dp else 212.dp
+                    val tableBodyMaxHeight = (maxHeight - machinePanelHeight - 28.dp).coerceAtLeast(120.dp)
+
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        CardContainer(modifier = Modifier.fillMaxWidth()) {
+                            StatsTable(
+                                filtered = filtered,
+                                showFullLplLastName = showFullLplLastName,
+                                isRefreshing = isRefreshing,
+                                initialLoadComplete = initialLoadComplete,
+                                maxBodyHeight = tableBodyMaxHeight,
+                            )
+                        }
+                        Spacer(modifier = Modifier.weight(1f, fill = true))
+                        CardContainer(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = machinePanelHeight, max = machinePanelHeight),
+                        ) {
+                            MachineStatsPanel(
+                                machine = machine,
+                                bankNumber = bankNumber,
+                                season = season,
+                                bankStats = bankStats,
+                                historyStats = historyStats,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -378,7 +399,8 @@ private fun StatsTable(
     showFullLplLastName: Boolean,
     isRefreshing: Boolean,
     initialLoadComplete: Boolean,
-    maxVisibleRows: Int,
+    maxVisibleRows: Int? = null,
+    maxBodyHeight: androidx.compose.ui.unit.Dp? = null,
     modifier: Modifier = Modifier,
 ) {
     val hState = rememberScrollState()
@@ -396,7 +418,12 @@ private fun StatsTable(
         val tableWidth = widths.season + widths.bank + widths.player + widths.machine + widths.score + widths.points
         val placeholderHeight = 96.dp
         val rowHeight = 35.dp
-        val tableBodyMaxHeight = (filtered.size.coerceAtMost(maxVisibleRows) * rowHeight.value).dp
+        val contentHeight = (filtered.size * rowHeight.value).dp
+        val tableBodyMaxHeight = when {
+            maxBodyHeight != null -> minOf(maxBodyHeight, contentHeight)
+            maxVisibleRows != null -> (filtered.size.coerceAtMost(maxVisibleRows) * rowHeight.value).dp
+            else -> contentHeight
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth().horizontalScroll(hState),
