@@ -536,9 +536,12 @@ struct GameRoomMachineView: View {
                             activeInputSheet = item.sheet
                         }) {
                             Text(item.title)
+                                .font(.caption)
                                 .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .appControlStyle()
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(.plain)
                         .disabled(!(machine.status == .active || machine.status == .loaned))
                     }
                 }
@@ -552,9 +555,12 @@ struct GameRoomMachineView: View {
                     ForEach(issueInputItems, id: \.title) { item in
                         Button(action: { activeInputSheet = item.sheet }) {
                             Text(item.title)
+                                .font(.caption)
                                 .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .appControlStyle()
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(.plain)
                         .disabled(item.sheet == .resolveIssue && !hasOpenIssues(for: machine.id))
                     }
                 }
@@ -568,9 +574,12 @@ struct GameRoomMachineView: View {
                     ForEach(ownershipAndMediaInputItems, id: \.title) { item in
                         Button(action: { activeInputSheet = item.sheet }) {
                             Text(item.title)
+                                .font(.caption)
                                 .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .appControlStyle()
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(.plain)
                     }
                 }
             }
