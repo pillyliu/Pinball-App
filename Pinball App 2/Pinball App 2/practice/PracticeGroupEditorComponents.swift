@@ -260,9 +260,7 @@ struct GroupEditorScreen: View {
                     .foregroundStyle(.secondary)
             case .bank:
                 if availableBanks.isEmpty {
-                    Text("No bank data found in library.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: "No bank data found in library.")
                 } else {
                     Picker("Bank", selection: $selectedTemplateBank) {
                         ForEach(availableBanks, id: \.self) { bank in
@@ -278,9 +276,7 @@ struct GroupEditorScreen: View {
                 }
             case .duplicate:
                 if duplicateCandidates.isEmpty {
-                    Text("No existing groups to duplicate.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: "No existing groups to duplicate.")
                 } else {
                     Picker("Group", selection: Binding<UUID?>(
                         get: { selectedDuplicateGroupID ?? duplicateCandidates.first?.id },
@@ -319,9 +315,7 @@ struct GroupEditorScreen: View {
             .buttonStyle(.plain)
 
             if selectedGames.isEmpty {
-                Text("No games selected.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "No games selected.")
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {

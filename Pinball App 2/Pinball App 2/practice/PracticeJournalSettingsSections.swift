@@ -743,7 +743,7 @@ struct PracticeSettingsSectionView: View {
                         leaguePlayerName = ""
                     }
                     if leaguePlayerOptions.isEmpty {
-                        Text("No player names found")
+                        AppSelectableMenuRow(text: "No player names found", isSelected: false)
                     } else {
                         ForEach(leaguePlayerOptions, id: \.self) { name in
                             Button(displayLPLPlayerName(name)) {

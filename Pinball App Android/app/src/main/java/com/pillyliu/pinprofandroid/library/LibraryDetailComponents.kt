@@ -164,19 +164,7 @@ internal fun LibraryDetailVideosCard(
             }
         }
         if (playableVideos.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceContainerLow,
-                        RoundedCornerShape(10.dp),
-                    )
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("No video references listed.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            AppPanelEmptyCard(text = "No video references listed.")
         } else {
             val selectedVideo = playableVideos.firstOrNull { it.id == activeVideoId } ?: playableVideos.firstOrNull()
             PinballVideoLaunchPanel(

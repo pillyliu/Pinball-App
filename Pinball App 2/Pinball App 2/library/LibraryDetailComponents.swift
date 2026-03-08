@@ -112,19 +112,7 @@ struct LibraryDetailVideosCard: View {
             AppSectionTitle(text: "Video References")
 
             if playableVideos.isEmpty {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(.regularMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
-                        )
-                    Text("No video references listed.")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                }
-                .frame(maxWidth: .infinity)
-                .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                AppPanelEmptyCard(text: "No video references listed.")
             } else {
                 LibraryVideoLaunchPanel(
                     selectedVideo: playableVideos.first(where: { $0.id == activeVideoID }) ?? playableVideos.first,
@@ -249,9 +237,7 @@ struct LibraryDetailSourcesCard: View {
             }
 
             if !game.hasRulesheetResource && !game.hasPlayfieldResource {
-                Text("No sources available.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "No sources available.")
             }
         }
         .font(.caption)

@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.LibraryActivityKind
 import com.pillyliu.pinprofandroid.library.LibraryActivityLog
 import com.pillyliu.pinprofandroid.ui.AppConfirmDialog
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import java.time.Instant
 import java.time.ZoneId
@@ -163,7 +164,7 @@ internal fun PracticeJournalSection(
             }
 
             if (rows.isEmpty()) {
-                Text("No matching journal events.")
+                AppPanelEmptyCard(text = "No matching journal events.")
             } else {
                 val grouped = rows.groupBy {
                     Instant.ofEpochMilli(it.timestampMs)

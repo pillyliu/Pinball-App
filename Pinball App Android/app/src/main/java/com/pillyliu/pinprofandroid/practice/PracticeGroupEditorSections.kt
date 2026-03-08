@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import java.util.Locale
 
@@ -79,7 +80,7 @@ internal fun GroupEditorTemplateCard(
         when (templateSource) {
             "bank" -> {
                 if (availableBanks.isEmpty()) {
-                    Text("No bank data found in library.", style = MaterialTheme.typography.bodySmall)
+                    AppPanelEmptyCard(text = "No bank data found in library.")
                 } else {
                     SimpleMenuDropdown(
                         title = "Bank",
@@ -94,7 +95,7 @@ internal fun GroupEditorTemplateCard(
 
             "duplicate" -> {
                 if (duplicateCandidates.isEmpty()) {
-                    Text("No existing groups to duplicate.", style = MaterialTheme.typography.bodySmall)
+                    AppPanelEmptyCard(text = "No existing groups to duplicate.")
                 } else {
                     if (selectedDuplicateGroupID.isBlank()) {
                         onSelectedDuplicateGroupIDChange(duplicateCandidates.first().id)

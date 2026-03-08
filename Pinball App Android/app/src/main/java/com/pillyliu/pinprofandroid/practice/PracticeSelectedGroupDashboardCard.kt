@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import java.util.Locale
 
@@ -78,7 +79,7 @@ internal fun SelectedGroupDashboardCard(
         }
         val games = store.groupGames(selected)
         if (games.isEmpty()) {
-            Text("No games in this group yet.")
+            AppPanelEmptyCard(text = "No games in this group yet.")
         } else {
             games.forEach { game ->
                 val progress = store.taskProgressForGame(game.practiceKey, selected)

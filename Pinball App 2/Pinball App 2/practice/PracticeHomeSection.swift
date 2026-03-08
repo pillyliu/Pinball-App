@@ -124,9 +124,7 @@ struct PracticeHomeSection: View {
 
                                 let games = groupGames(group)
                                 if games.isEmpty {
-                                    Text("No games in this group.")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    AppPanelEmptyCard(text: "No games in this group.")
                                 } else {
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: 8) {

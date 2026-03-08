@@ -56,9 +56,7 @@ struct PracticeGroupDashboardSectionView: View {
 
                     let snapshots = groupProgressForGroup(group)
                     if snapshots.isEmpty {
-                        Text("No games in this group yet.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        AppPanelEmptyCard(text: "No games in this group yet.")
                     } else {
                         ForEach(snapshots) { snapshot in
                             Button {
@@ -98,12 +96,7 @@ struct PracticeGroupDashboardSectionView: View {
                 .padding(12)
                 .appPanelStyle()
             } else {
-                Text("Create or select a group to populate the dashboard.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-                .appPanelStyle()
+                AppPanelEmptyCard(text: "Create or select a group to populate the dashboard.")
             }
         }
         .simultaneousGesture(
