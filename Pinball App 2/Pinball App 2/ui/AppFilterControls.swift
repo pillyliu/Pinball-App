@@ -1,5 +1,76 @@
 import SwiftUI
 
+struct AppPrimaryActionButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(AppTheme.brandInk.opacity(isEnabled ? 1 : 0.55))
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                    .fill(AppTheme.brandGold.opacity(isEnabled ? (configuration.isPressed ? 0.74 : 0.94) : 0.28))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                            .stroke(AppTheme.brandGold.opacity(isEnabled ? 0.48 : 0.22), lineWidth: 1)
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+struct AppSecondaryActionButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(AppTheme.brandInk.opacity(isEnabled ? 1 : 0.55))
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                    .fill(AppTheme.controlBg.opacity(configuration.isPressed ? 0.92 : 1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                            .stroke(AppTheme.brandGold.opacity(isEnabled ? 0.34 : 0.18), lineWidth: 1)
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
+            .opacity(isEnabled ? 1 : 0.72)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+struct AppDestructiveActionButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(isEnabled ? Color.red : Color.red.opacity(0.55))
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                    .fill(Color.red.opacity(configuration.isPressed ? 0.14 : 0.10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                            .stroke(Color.red.opacity(isEnabled ? 0.34 : 0.18), lineWidth: 1)
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
+            .opacity(isEnabled ? 1 : 0.72)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
 struct AppToolbarIconTriggerLabel: View {
     let systemName: String
 

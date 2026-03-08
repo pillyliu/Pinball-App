@@ -130,7 +130,7 @@ struct GameRoomImportSettingsView: View {
                 Button("Fetch Collection") {
                     fetchCollection()
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppPrimaryActionButtonStyle())
                 .disabled(isLoading || sourceInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
 
@@ -251,7 +251,7 @@ struct GameRoomImportSettingsView: View {
                 Button("Import Selected Matches") {
                     performImport()
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppPrimaryActionButtonStyle())
             }
 
             if let resultMessage {
@@ -692,7 +692,7 @@ struct GameRoomEditMachinesView: View {
                                 Button("Show Previous 25") {
                                     loadPreviousResultPage()
                                 }
-                                .buttonStyle(.glass)
+                                .buttonStyle(AppSecondaryActionButtonStyle())
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.vertical, 4)
                             }
@@ -727,7 +727,7 @@ struct GameRoomEditMachinesView: View {
                                 Button("Show Next 25") {
                                     loadNextResultPage()
                                 }
-                                .buttonStyle(.glass)
+                                .buttonStyle(AppSecondaryActionButtonStyle())
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.vertical, 4)
                             }
@@ -756,7 +756,7 @@ struct GameRoomEditMachinesView: View {
                     store.updateVenueName(venueNameDraft)
                     venueNameDraft = store.venueName
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppPrimaryActionButtonStyle())
 
                 Spacer()
             }
@@ -782,7 +782,7 @@ struct GameRoomEditMachinesView: View {
                     newAreaName = ""
                     newAreaOrder = 1
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppPrimaryActionButtonStyle())
 
                 Button("Edit") {
                     guard let areaID = selectedAreaID else { return }
@@ -791,7 +791,7 @@ struct GameRoomEditMachinesView: View {
                     newAreaName = ""
                     newAreaOrder = 1
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppSecondaryActionButtonStyle())
                 .disabled(selectedAreaID == nil)
 
                 Spacer()
@@ -942,7 +942,7 @@ struct GameRoomEditMachinesView: View {
                                     ownershipNotes: draftOwnershipNotes
                                 )
                             }
-                            .buttonStyle(.glass)
+                            .buttonStyle(AppPrimaryActionButtonStyle())
 
                             Button(role: .destructive) {
                                 store.deleteMachine(id: selectedMachine.id)
@@ -951,7 +951,7 @@ struct GameRoomEditMachinesView: View {
                             } label: {
                                 Text("Delete")
                             }
-                            .buttonStyle(.glass)
+                            .buttonStyle(AppDestructiveActionButtonStyle())
 
                             Spacer()
 
@@ -970,7 +970,7 @@ struct GameRoomEditMachinesView: View {
                                     )
                                     draftStatus = .archived
                                 }
-                                .buttonStyle(.glass)
+                                .buttonStyle(AppSecondaryActionButtonStyle())
                             }
                         }
                     }

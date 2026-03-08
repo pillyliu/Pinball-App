@@ -29,6 +29,7 @@
 - iOS Settings route destinations now live behind `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/settings/SettingsRouteContent.swift`, so `SettingsScreen.swift` is now reduced to the root shell, view-model lifecycle hooks, and navigation-path wiring instead of also owning the route switch inline.
 - Android Settings source-add buttons, hosted-data refresh, and Pinball Map / Match Play import CTAs now also use the shared `AppPrimaryButton` seam in `CommonUi.kt` instead of repeated feature-local `Button` styling in `SettingsHomeSections.kt` and `SettingsImportScreens.kt`.
 - Android Settings privacy full-name unlock CTA now also uses that same shared `AppPrimaryButton` seam in `CommonUi.kt`, removing the last obvious feature-local action-button styling pocket from `SettingsHomeSections.kt`.
+- iOS Settings source-add buttons, hosted-data refresh, Pinball Map / Match Play import CTAs, and the privacy full-name unlock action now also use shared `AppPrimaryActionButtonStyle` and `AppSecondaryActionButtonStyle` seams in `AppFilterControls.swift`, replacing the remaining feature-local `.glass` CTA styling pockets in `SettingsHomeSections.swift` and `SettingsImportScreens.swift`.
 
 ## Next audit targets
 

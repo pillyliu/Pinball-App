@@ -222,7 +222,7 @@ struct AddVenueScreen: View {
                         Button(isSearching ? "Searching..." : "Search Pinball Map") {
                             Task { await runSearch() }
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(AppPrimaryActionButtonStyle())
                         .disabled(isSearching || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                         if isSearching {
@@ -348,7 +348,7 @@ struct AddTournamentScreen: View {
                         Button(isImporting ? "Importing..." : "Import Tournament") {
                             Task { await importTournament() }
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(AppPrimaryActionButtonStyle())
                         .disabled(isImporting || tournamentID == nil)
 
                         if isImporting {

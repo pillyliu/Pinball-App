@@ -41,6 +41,7 @@
 - Android GameRoom machine-edit `Save` now also uses that shared `AppPrimaryButton` seam in `CommonUi.kt`, further reducing the remaining local action-row chrome in `GameRoomSettingsSections.kt`.
 - Android GameRoom input-sheet footers, media picker launch rows, issue-draft removal chips, add-machine pagination rows, and machine-edit `Delete` / `Archive` actions now also route through shared `AppPrimaryButton`, `AppSecondaryButton`, `AppInlineActionChip`, and `AppDestructiveButton` seams in `CommonUi.kt`, reducing the last prominent pockets of feature-local action-row chrome in `GameRoomPresentationHost.kt` and `GameRoomSettingsSections.kt`.
 - iOS and Android GameRoom snapshot metric rows now also route through shared metric-grid seams in `SharedTableUi.swift` and `CommonUi.kt`, so both the home selected-machine summary and the machine-detail `Current Snapshot` panel no longer keep feature-local two-column metadata layout helpers.
+- iOS GameRoom fetch/import, pagination, venue save, area save/edit, and machine save/archive/delete CTAs now also route through shared `AppPrimaryActionButtonStyle`, `AppSecondaryActionButtonStyle`, and `AppDestructiveActionButtonStyle` seams in `AppFilterControls.swift`, replacing the remaining feature-local `.glass` CTA styling pockets in `GameRoomSettingsComponents.swift`.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets

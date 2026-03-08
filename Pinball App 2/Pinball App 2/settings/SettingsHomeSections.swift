@@ -40,17 +40,17 @@ struct SettingsHomeContent: View {
                 Button("Manufacturer") {
                     navigationPath.append(.addManufacturer)
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppSecondaryActionButtonStyle())
 
                 Button("Venue") {
                     navigationPath.append(.addVenue)
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppSecondaryActionButtonStyle())
 
                 Button("Tournament") {
                     navigationPath.append(.addTournament)
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppSecondaryActionButtonStyle())
             }
 
             Text("Enabled adds that source's games to Library and Practice. Library adds the source to the Library source filter for quick switching. Up to \(PinballLibrarySourceStateStore.maxPinnedSources) sources can appear in Library at once.")
@@ -81,7 +81,7 @@ struct SettingsHomeContent: View {
             } label: {
                 Text(viewModel.isRefreshingHostedData ? "Refreshing Pinball Data…" : "Refresh Pinball Data")
             }
-            .buttonStyle(.glass)
+            .buttonStyle(AppPrimaryActionButtonStyle())
             .disabled(viewModel.isRefreshingHostedData)
 
             if let statusMessage = viewModel.hostedDataStatusMessage {
@@ -272,7 +272,7 @@ struct SettingsHomeContent: View {
                         lplNamePrivacyError = "Incorrect password."
                     }
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppPrimaryActionButtonStyle())
                 .disabled(lplNamePassword.isEmpty)
 
                 if let lplNamePrivacyError {
