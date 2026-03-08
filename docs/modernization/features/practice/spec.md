@@ -62,7 +62,7 @@ iOS:
 
 Android:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreen.kt` is better separated at the route layer than iOS.
-- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt` remains a responsibility concentration point, but its league, journal, progress-mutation, library-loading, and persistence slices now live behind dedicated seams.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt` remains a responsibility concentration point, but its league, journal, progress-mutation, library-loading, persistence, and derived-query slices now live behind dedicated seams.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameWorkspacePanels.kt` now isolates the segmented workspace card plus the `Summary`, `Input`, and `Log` panels from the main Android game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDetailCards.kt` now isolates the Android `Game Note` and `Game Resources` cards from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDialogs.kt` now isolates Android delete/edit dialog wiring from the main game route file.
@@ -83,7 +83,9 @@ Android:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeProgressIntegration.kt` now isolates Android score, study, note, and rulesheet-progress canonical mutation logic behind a dedicated store dependency seam.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibraryIntegration.kt` now isolates Android library loading, preferred-source resolution, and selected-source persistence behind a dedicated store dependency seam.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticePersistenceIntegration.kt` now isolates Android persisted-state load/save, migration, and last-viewed preference handling behind a dedicated store dependency seam.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeDerivedQueryIntegration.kt` now isolates Android score summaries, recommendations, mechanics projections, and group/game lookup helpers behind a dedicated store dependency seam.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibrarySourceSelection.kt` now centralizes the Android "All games" source sentinel plus preferred-source and visible-game selection rules so top bar, home, and store loading do not drift.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceModels.kt`, `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceCodec.kt`, and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceLegacyMigration.kt` now split Android canonical persistence into models/defaults, primary codec/runtime shaping, and legacy migration heuristics.
 - Persistence and codec work has already been separated more clearly than on iOS.
 - Route model is more explicit via `PracticeRoute`, and `PracticeScreenState` is now grouped more intentionally, but the store still remains broader than the screen-state seam.
 
@@ -373,7 +375,8 @@ Android current wiring:
   - cleanly maps route to section composable
   - no longer relies on a generic shared route-content context; primary routes now resolve explicit contexts directly
 - `PracticeStore.kt`
-  - still owns too many persisted and derived concerns at once: notes, scores, groups, settings, analytics, and resource/game loading
+  - still owns the runtime state surface for notes, scores, groups, settings, and resource/game loading
+  - now delegates league, journal, progress, library, persistence, and derived-query concerns through explicit integration seams
 - `PracticeLeagueIntegration.kt`
   - owns league-target loading, league-player discovery, league CSV import, and head-to-head comparison for Android Practice
 - `PracticeJournalIntegration.kt`
@@ -386,6 +389,14 @@ Android current wiring:
   - owns Android library loading, preferred-source resolution, and selected-source persistence for Practice
 - `PracticePersistenceIntegration.kt`
   - owns Android persisted-state load/save, preference-key migration, and last-viewed practice game persistence
+- `PracticeDerivedQueryIntegration.kt`
+  - owns Android read-side score summaries, recommendations, mechanics projections, and group/game lookup helpers
+- `PracticeCanonicalPersistenceModels.kt`
+  - owns canonical persistence models, schema version, and empty/default state construction
+- `PracticeCanonicalPersistenceCodec.kt`
+  - owns canonical JSON serialization, canonical parsing, runtime-state shaping, and canonical save shaping
+- `PracticeCanonicalPersistenceLegacyMigration.kt`
+  - owns legacy-practice-state to canonical conversion heuristics and stable-ID migration logic
 
 ## Target ownership model
 
@@ -438,7 +449,8 @@ Current status:
    - in progress: `GroupDashboard`, `Journal`, `Insights`, `Mechanics`, and `Settings` now have dedicated contexts
    - next: remaining coordination helpers and presentation orchestration should not all live in `PracticeDialogHost.swift` and `PracticeStore.swift`
 4. Reduce Android store surface
-   - after route ownership is stabilized, decompose `PracticeStore.kt` by domain concern rather than adding more helpers to one file
+   - in progress: `PracticeStore.kt` now delegates league, journal, progress, library, persistence, and derived-query concerns through dedicated seams
+   - next: review whether the remaining group/profile/runtime coordination is a healthy boundary or needs one more extraction
 5. Only then start UI/design-system cleanup
    - visual rework should follow a stable ownership model, not happen while route and draft state are still shifting
 
@@ -464,7 +476,7 @@ Current status:
    - keep top-bar game/source selection outside the broader top-bar component
    - avoid shifting those responsibilities into `PracticeStore.kt`
    - next split should target the remaining shared top-bar/state coupling
-3. Continue decomposing Android `PracticeStore.kt` into narrower persistence/loading and domain helper modules so it does not remain the second monolith after iOS screen cleanup.
+3. Continue decomposing Android `PracticeStore.kt` only where a real ownership seam exists; avoid moving trivial runtime-state mutation helpers out just to reduce line count.
 4. Normalize quick-entry, journal editing, and group-editor launch state so both platforms describe the same ownership model in docs.
 
 ## 3.2 focus
@@ -479,7 +491,7 @@ Current status:
 
 - Practice is a feature family, not a single screen.
 - iOS currently has more ephemeral UI state living in the top-level screen file than Android.
-- Android currently has a clearer route enum model, but its store remains large enough to become a second monolith if left unchecked.
+- Android currently has a clearer route enum model, but its store and canonical persistence path still need explicit boundaries to avoid re-forming into new monoliths.
 - Practice should be the first feature-level modernization audit because small parity drifts here are easy to miss and compound quickly.
 - Practice route parity should be defined at the product-surface level first, then the navigation architecture should be normalized.
 - The Game route already has strong functional overlap across platforms; modernization should focus on section contracts, component boundaries, and state ownership rather than inventing new behavior.

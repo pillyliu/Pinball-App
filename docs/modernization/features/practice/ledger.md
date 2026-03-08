@@ -177,11 +177,18 @@
 - Verified the Android progress-integration extraction and the iOS root-screen reduction at compile time with `./gradlew app:assembleDebug` and `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`.
 - Verified the Android library/persistence integration extraction at compile time with `./gradlew app:assembleDebug`.
 
+- Category: `Code`
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeDerivedQueryIntegration.kt` so Android score summaries, trend helpers, recommendations, mechanics projections, and group/game lookup helpers no longer live inline inside `PracticeStore.kt`.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt` again so its remaining role is closer to a runtime-state facade over explicit integrations instead of another mixed analytics/helper file.
+- Replaced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistence.kt` with `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceModels.kt`, `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceCodec.kt`, and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceLegacyMigration.kt` so Android canonical persistence models/defaults, primary codec/runtime shaping, and legacy migration heuristics no longer live in one 900-line file.
+- Verified the Android derived-query extraction and canonical-persistence split at compile time with `./gradlew app:assembleDebug`.
+
 ## Next audit targets
 
 - exact route-to-screen contract
 - top-bar behavior per route
 - state ownership split between screen, route model, and store
 - journal section state ownership and further row/editor extraction opportunities
-- deeper `PracticeStore.kt` decomposition beyond the league, journal, progress, library, and persistence integration slices
+- final review of whether remaining `PracticeStore.kt` helpers represent a healthy runtime-state boundary or need one more ownership split
+- review of the new Android canonical-persistence codec boundary before touching the iOS persistence path
 - repeated resource/video/rulesheet UI patterns

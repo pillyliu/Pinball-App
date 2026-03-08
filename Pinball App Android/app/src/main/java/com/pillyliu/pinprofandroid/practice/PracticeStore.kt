@@ -75,6 +75,7 @@ internal class PracticeStore(private val context: Context) {
     private val leagueIntegration by lazy { PracticeLeagueIntegration(::gameName) }
     private val journalIntegration by lazy { PracticeJournalIntegration(::practiceLookupGames, ::gameName) }
     private val progressIntegration by lazy { PracticeProgressIntegration() }
+    private val derivedQueryIntegration by lazy { PracticeDerivedQueryIntegration() }
     private val libraryIntegration by lazy {
         PracticeLibraryIntegration(
             context = context,
@@ -298,57 +299,49 @@ internal class PracticeStore(private val context: Context) {
     }
 
     fun scoreValuesFor(gameSlug: String): List<Double> =
-        scoreValuesForGame(scores, canonicalPracticeKey(gameSlug, practiceLookupGames()))
+        derivedQueryIntegration.scoreValues(scores, canonicalGameID(gameSlug))
 
     fun scoreTrendValues(gameSlug: String, limit: Int = 24): List<Double> =
-        scoreTrendValuesForGame(scores, canonicalPracticeKey(gameSlug, practiceLookupGames()), limit)
+        derivedQueryIntegration.scoreTrendValues(scores, canonicalGameID(gameSlug), limit)
 
-    fun scoreSummaryFor(gameSlug: String): ScoreSummary? = computeScoreSummaryForGame(scores, canonicalPracticeKey(gameSlug, practiceLookupGames()))
+    fun scoreSummaryFor(gameSlug: String): ScoreSummary? =
+        derivedQueryIntegration.scoreSummary(scores, canonicalGameID(gameSlug))
 
     fun groupDashboardScore(group: PracticeGroup): GroupDashboardScore =
-        computeGroupDashboardScore(group, games, scores, journal, rulesheetProgress)
+        derivedQueryIntegration.groupDashboardScore(group, games, scores, journal, rulesheetProgress)
 
     fun recommendedGame(group: PracticeGroup): PinballGame? =
-        computeRecommendedGame(group, games, scores, journal, rulesheetProgress)
+        derivedQueryIntegration.recommendedGame(group, games, scores, journal, rulesheetProgress)
 
     fun taskProgressForGame(gameSlug: String, group: PracticeGroup? = null): Map<String, Int> =
-        computeTaskProgressForGame(
-            journal = journal,
-            rulesheetProgress = rulesheetProgress,
-            gameSlug = canonicalPracticeKey(gameSlug, practiceLookupGames()),
-            startDateMs = group?.startDateMs,
-            endDateMs = group?.endDateMs,
-        )
+        derivedQueryIntegration.taskProgress(journal, rulesheetProgress, canonicalGameID(gameSlug), group)
 
-    fun mechanicsSkills(): List<String> = defaultMechanicsSkills()
+    fun mechanicsSkills(): List<String> = derivedQueryIntegration.mechanicsSkills()
 
-    fun detectedMechanicsTags(text: String): List<String> = detectMechanicsTags(text, mechanicsSkills())
+    fun detectedMechanicsTags(text: String): List<String> =
+        derivedQueryIntegration.detectedMechanicsTags(text, mechanicsSkills())
 
-    fun allTrackedMechanicsSkills(): List<String> = trackedMechanicsSkills(notes, mechanicsSkills())
+    fun allTrackedMechanicsSkills(): List<String> =
+        derivedQueryIntegration.trackedMechanicsSkills(notes, mechanicsSkills())
 
     fun mechanicsSummary(skill: String): MechanicsSkillSummary =
-        mechanicsSummaryForSkill(skill, notes, mechanicsSkills())
+        derivedQueryIntegration.mechanicsSummary(skill, notes, mechanicsSkills())
 
     fun mechanicsLogs(skill: String): List<NoteEntry> =
-        mechanicsLogsForSkill(skill, notes, mechanicsSkills())
+        derivedQueryIntegration.mechanicsLogs(skill, notes, mechanicsSkills())
 
-    fun activeGroups(): List<PracticeGroup> {
-        return activeGroupsFromList(groups)
-    }
+    fun activeGroups(): List<PracticeGroup> = derivedQueryIntegration.activeGroups(groups)
 
     fun activeGroupForGame(gameSlug: String): PracticeGroup? {
-        return activeGroupForGame(groups, canonicalPracticeKey(gameSlug, practiceLookupGames()))
+        return derivedQueryIntegration.activeGroupForGame(groups, canonicalGameID(gameSlug))
     }
 
     fun groupGames(group: PracticeGroup): List<PinballGame> {
-        val primary = games
-        val fallback = practiceLookupGames()
-        return group.gameSlugs.mapNotNull { key ->
-            findGameByPracticeLookupKey(primary, key) ?: findGameByPracticeLookupKey(fallback, key)
-        }
+        return derivedQueryIntegration.groupGames(group, games, practiceLookupGames())
     }
 
-    fun gameName(slug: String): String = gameNameForSlug(practiceLookupGames(), canonicalPracticeKey(slug, practiceLookupGames()))
+    fun gameName(slug: String): String =
+        derivedQueryIntegration.gameName(practiceLookupGames(), canonicalGameID(slug))
 
     fun leagueTargetScoresFor(gameSlug: String): LeagueTargetScores? =
         leagueIntegration.targetScoresFor(
@@ -463,13 +456,6 @@ internal class PracticeStore(private val context: Context) {
 
     private fun migratePreferenceGameKeysToPracticeKeys() {
         persistenceIntegration.migratePreferenceGameKeys(practiceLookupGames())
-    }
-
-    private fun autoArchiveExpiredGroupsIfNeeded() {
-        val updated = autoArchiveExpiredGroups(groups)
-        if (updated == groups) return
-        groups = updated
-        saveState()
     }
 
     private fun saveState() {
