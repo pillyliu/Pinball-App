@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 enum PracticeGameSubview: String, CaseIterable, Identifiable {
     case summary
@@ -24,6 +25,9 @@ struct PracticeGameRouteBody<Summary: View, Input: View, Log: View>: View {
     let playableVideos: [PinballGame.PlayableVideo]
     @Binding var activeVideoID: String?
     let onOpenURL: OpenURLAction
+    let onOpenRulesheet: (PinballGame, RulesheetRemoteSource?) -> Void
+    let onOpenExternalRulesheet: (PinballGame, URL) -> Void
+    let onOpenPlayfield: (PinballGame) -> Void
     let onSaveNote: () -> Void
     @ViewBuilder let summaryView: () -> Summary
     @ViewBuilder let inputView: () -> Input
@@ -54,7 +58,10 @@ struct PracticeGameRouteBody<Summary: View, Input: View, Log: View>: View {
                         game: selectedGame,
                         playableVideos: playableVideos,
                         activeVideoID: $activeVideoID,
-                        onOpenURL: onOpenURL
+                        onOpenURL: onOpenURL,
+                        onOpenRulesheet: onOpenRulesheet,
+                        onOpenExternalRulesheet: onOpenExternalRulesheet,
+                        onOpenPlayfield: onOpenPlayfield
                     )
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

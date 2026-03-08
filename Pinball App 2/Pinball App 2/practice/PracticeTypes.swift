@@ -47,8 +47,11 @@ enum PracticeHubDestination: String, CaseIterable, Identifiable, Hashable {
 
 enum PracticeRoute: Hashable {
     case game(String)
+    case rulesheet
+    case playfield
     case ifpaProfile
     case groupDashboard
+    case groupEditor
     case journal
     case insights
     case mechanics
@@ -57,7 +60,6 @@ enum PracticeRoute: Hashable {
 
 enum PracticeSheet: String, Identifiable {
     case quickEntry
-    case groupEditor
     case groupDateEditor
     case journalEntryEditor
 

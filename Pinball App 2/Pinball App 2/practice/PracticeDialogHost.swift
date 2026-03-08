@@ -16,10 +16,16 @@ extension PracticeScreen {
                         case .game(let gameID):
                             PracticeGameWorkspace(store: store, selectedGameID: $uiState.selectedGameID, onGameViewed: { viewedGameID in
                                 markPracticeGameViewed(viewedGameID)
+                            }, onOpenRulesheet: { game, source in
+                                openRulesheet(source: source, for: game)
+                            }, onOpenExternalRulesheet: { game, url in
+                                openExternalRulesheet(url: url, for: game)
+                            }, onOpenPlayfield: { game in
+                                openPlayfield(for: game)
                             })
                             .onAppear { uiState.selectedGameID = gameID }
                             .navigationTransition(.zoom(sourceID: uiState.gameTransitionSourceID ?? gameID, in: gameTransition))
-                        case .ifpaProfile, .groupDashboard, .journal, .insights, .mechanics, .settings:
+                        case .rulesheet, .playfield, .ifpaProfile, .groupDashboard, .groupEditor, .journal, .insights, .mechanics, .settings:
                             routeView(for: route)
                         }
                     }

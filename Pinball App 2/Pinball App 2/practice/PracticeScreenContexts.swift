@@ -175,7 +175,6 @@ extension PracticeScreen {
             selectedGameID: $uiState.selectedGameID,
             presentedSheet: $uiState.presentedSheet,
             quickEntryKind: uiState.quickEntryKind,
-            editingGroupID: uiState.editingGroupID,
             currentGroupDateEditorTitle: uiState.currentGroupDateEditorField == .start ? "Start Date" : "End Date",
             currentGroupDateEditorValue: $uiState.currentGroupDateEditorValue,
             editingJournalEntry: uiState.editingJournalEntry,
@@ -189,10 +188,6 @@ extension PracticeScreen {
             },
             onDismissPresentedSheet: {
                 uiState.presentedSheet = nil
-            },
-            onDismissGroupEditor: {
-                uiState.presentedSheet = nil
-                uiState.editingGroupID = nil
             },
             onClearEditedGroupDate: {
                 guard let groupID = uiState.currentGroupDateEditorGroupID else {

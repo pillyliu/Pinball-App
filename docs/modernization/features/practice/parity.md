@@ -27,8 +27,8 @@ Practice routes that must exist and be documented on both platforms:
 
 Implementation note:
 - iOS now uses explicit `PracticeRoute` and `PracticeSheet` enums for the main pushed and modal surfaces.
-- Android currently models most of them as explicit routes.
-- That implementation difference is acceptable only temporarily; the product-surface contract must still match.
+- Android models the same primary surfaces as explicit routes.
+- `GroupEditor`, `Rulesheet`, and `Playfield` are now normalized as pushed routes on both platforms; remaining route-vs-sheet differences should be limited to true modal editors.
 
 ## High-risk parity areas
 
@@ -40,7 +40,7 @@ Implementation note:
 - Game-switcher behavior and library-source filtering from the Game route
 - group editing flows and date editor behavior
 - top-bar actions and back behavior by route
-- remaining route-vs-local-drill-in drift for settings, group editor, rulesheet, and playfield handling
+- remaining route-vs-local-drill-in drift for settings and any future Practice sub-surface additions
 
 ## Game route contract
 

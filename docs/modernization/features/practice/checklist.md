@@ -4,6 +4,7 @@
 - State ownership buckets are written and every major Practice state field has an assigned owner.
 - iOS pushed surfaces are modeled through `PracticeRoute` and modal surfaces are modeled through `PracticeSheet`.
 - `Home`, `Game`, `Rulesheet`, `Playfield`, `IfpaProfile`, `GroupDashboard`, `GroupEditor`, `Journal`, `Insights`, `Mechanics`, and `Settings` all exist or any intentional differences are recorded.
+- `GroupEditor`, `Rulesheet`, and `Playfield` are pushed routes on both platforms instead of sheet/local-drill-in exceptions.
 - Top bar actions are documented for each route.
 - Route-vs-sheet exceptions are explicitly recorded instead of being implied in code.
 - Home header behavior and profile/settings entry points match the written contract.

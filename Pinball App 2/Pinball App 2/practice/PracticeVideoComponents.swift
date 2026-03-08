@@ -5,6 +5,9 @@ struct PracticeGameResourceCard: View {
     let playableVideos: [PinballGame.PlayableVideo]
     @Binding var activeVideoID: String?
     let onOpenURL: OpenURLAction
+    let onOpenRulesheet: (PinballGame, RulesheetRemoteSource?) -> Void
+    let onOpenExternalRulesheet: (PinballGame, URL) -> Void
+    let onOpenPlayfield: (PinballGame) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -44,8 +47,8 @@ struct PracticeGameResourceCard: View {
 
                 if game.hasPlayfieldResource {
                     PinballResourceRow("Playfield") {
-                        NavigationLink(playfieldButtonTitle(for: game)) {
-                            HostedImageView(imageCandidates: game.actualFullscreenPlayfieldCandidates)
+                        Button(playfieldButtonTitle(for: game)) {
+                            onOpenPlayfield(game)
                         }
                         .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
                     }
@@ -96,13 +99,8 @@ struct PracticeGameResourceCard: View {
     }
     @ViewBuilder
     private func practiceRulesheetLinkButton(title: String, game: PinballGame, source: RulesheetRemoteSource?) -> some View {
-        NavigationLink(title) {
-            RulesheetScreen(
-                slug: game.practiceKey,
-                gameName: game.name,
-                pathCandidates: source == nil ? game.rulesheetPathCandidates : [],
-                externalSource: source
-            )
+        Button(title) {
+            onOpenRulesheet(game, source)
         }
         .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
     }
@@ -110,18 +108,13 @@ struct PracticeGameResourceCard: View {
     @ViewBuilder
     private func practiceRulesheetLinkButton(link: PinballGame.ReferenceLink, game: PinballGame, title: String) -> some View {
         if let embeddedSource = link.embeddedRulesheetSource {
-            NavigationLink(title) {
-                RulesheetScreen(
-                    slug: game.practiceKey,
-                    gameName: game.name,
-                    pathCandidates: [],
-                    externalSource: embeddedSource
-                )
+            Button(title) {
+                onOpenRulesheet(game, embeddedSource)
             }
             .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
         } else if let destination = link.destinationURL {
-            NavigationLink(title) {
-                ExternalRulesheetWebScreen(title: game.name, url: destination)
+            Button(title) {
+                onOpenExternalRulesheet(game, destination)
             }
             .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
         }

@@ -1,12 +1,55 @@
 import SwiftUI
+import Foundation
 
 extension PracticeScreen {
     @ViewBuilder
     func routeView(for route: PracticeRoute) -> some View {
         switch route {
+        case .rulesheet:
+            if let game = store.gameForAnyID(uiState.selectedGameID) {
+                if let externalURL = uiState.selectedExternalRulesheetURL {
+                    ExternalRulesheetWebScreen(title: game.name, url: externalURL)
+                } else {
+                    RulesheetScreen(
+                        slug: game.practiceKey,
+                        gameName: game.name,
+                        pathCandidates: uiState.selectedRulesheetSource == nil ? game.rulesheetPathCandidates : [],
+                        externalSource: uiState.selectedRulesheetSource
+                    )
+                }
+            } else {
+                practiceScreen("Rulesheet") {
+                    AppPanelStatusCard(text: "Select a game to open the rulesheet.")
+                }
+            }
+        case .playfield:
+            if let game = store.gameForAnyID(uiState.selectedGameID) {
+                HostedImageView(
+                    imageCandidates: uiState.selectedPlayfieldImageURLs.isEmpty
+                        ? game.fullscreenPlayfieldCandidates
+                        : uiState.selectedPlayfieldImageURLs
+                )
+            } else {
+                practiceScreen("Playfield") {
+                    AppPanelStatusCard(text: "Select a game to open the playfield.")
+                }
+            }
         case .groupDashboard:
             practiceScreen("Group Dashboard") {
                 groupDashboardScreen(context: practiceGroupDashboardContext)
+            }
+        case .groupEditor:
+            practiceScreen(uiState.editingGroupID == nil ? "Create Group" : "Edit Group") {
+                GroupEditorScreen(
+                    store: store,
+                    editingGroupID: uiState.editingGroupID,
+                    onSaved: {
+                        if !uiState.gameNavigationPath.isEmpty {
+                            uiState.gameNavigationPath.removeLast()
+                        }
+                        uiState.editingGroupID = nil
+                    }
+                )
             }
         case .journal:
             practiceViewportScreen("Journal Timeline") {

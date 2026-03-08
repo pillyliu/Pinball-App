@@ -231,6 +231,8 @@
 - iOS Practice selected-group dashboard title now also uses the shared `AppCardSubheading` seam instead of a local `.headline` title in `PracticeGroupDashboardSection.swift`.
 - Shared `AppCardTitle` chrome now also backs the iOS Practice resources title and IFPA profile name, reducing the remaining medium-emphasis title drift in Practice detail surfaces.
 - Shared title hierarchy now also backs Practice home group names and Android selected-group dashboard titles, reducing the last remaining home-route semibold title drift in Practice.
+- iOS `GroupEditor` now matches Android as a pushed `PracticeRoute.groupEditor` destination instead of remaining a sheet-only exception in `PracticePresentationHost.swift`.
+- iOS `Rulesheet` and `Playfield` launches from the Practice game route now match Android as explicit `PracticeRoute.rulesheet` and `PracticeRoute.playfield` destinations instead of bypassing the Practice route model through direct `NavigationLink` pushes.
 
 ## Next audit targets
 

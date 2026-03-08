@@ -1,9 +1,13 @@
 import SwiftUI
+import Foundation
 
 struct PracticeScreenState {
     var selectedGameID: String = ""
     var gameNavigationPath: [PracticeRoute] = []
     var presentedSheet: PracticeSheet?
+    var selectedPlayfieldImageURLs: [URL] = []
+    var selectedRulesheetSource: RulesheetRemoteSource?
+    var selectedExternalRulesheetURL: URL?
     var editingGroupID: UUID?
     var currentGroupDateEditorGroupID: UUID?
     var currentGroupDateEditorField: GroupEditorDateField = .start

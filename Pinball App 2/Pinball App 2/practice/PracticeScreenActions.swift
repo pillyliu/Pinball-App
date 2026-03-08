@@ -39,6 +39,29 @@ extension PracticeScreen {
         }
     }
 
+    func openRulesheet(source: RulesheetRemoteSource?, for game: PinballGame) {
+        guard game.hasRulesheetResource || source != nil else { return }
+        uiState.selectedGameID = store.canonicalPracticeGameID(game.canonicalPracticeKey)
+        uiState.selectedRulesheetSource = source
+        uiState.selectedExternalRulesheetURL = nil
+        openRoute(.rulesheet)
+    }
+
+    func openExternalRulesheet(url: URL, for game: PinballGame) {
+        uiState.selectedGameID = store.canonicalPracticeGameID(game.canonicalPracticeKey)
+        uiState.selectedRulesheetSource = nil
+        uiState.selectedExternalRulesheetURL = url
+        openRoute(.rulesheet)
+    }
+
+    func openPlayfield(for game: PinballGame) {
+        let candidates = game.fullscreenPlayfieldCandidates
+        guard !candidates.isEmpty else { return }
+        uiState.selectedGameID = store.canonicalPracticeGameID(game.canonicalPracticeKey)
+        uiState.selectedPlayfieldImageURLs = candidates
+        openRoute(.playfield)
+    }
+
     func resumeToPracticeGame(zoomSourceID: String? = nil) {
         if let game = resumeGame {
             goToGame(game.canonicalPracticeKey, zoomSourceID: zoomSourceID)
@@ -102,12 +125,12 @@ extension PracticeScreen {
         guard let selectedID else { return }
         store.setSelectedGroup(id: selectedID)
         uiState.editingGroupID = selectedID
-        uiState.presentedSheet = .groupEditor
+        openRoute(.groupEditor)
     }
 
     func openGroupEditorForCreate() {
         uiState.editingGroupID = nil
-        uiState.presentedSheet = .groupEditor
+        openRoute(.groupEditor)
     }
 
     func openCurrentGroupDateEditor(for groupID: UUID, field: GroupEditorDateField) {

@@ -19,16 +19,6 @@ extension PracticeScreen {
                 )
                 .practiceEntrySheetStyle()
             }
-        case .groupEditor:
-            NavigationStack {
-                GroupEditorScreen(
-                    store: context.store,
-                    editingGroupID: context.editingGroupID
-                ) {
-                    context.onDismissGroupEditor()
-                }
-            }
-            .appSheetChrome(detents: [.large], background: .ultraThinMaterial)
         case .groupDateEditor:
             NavigationStack {
                 VStack(alignment: .leading, spacing: 12) {
