@@ -183,12 +183,7 @@ private fun GameRoomMachineSummaryPanel(
     val machineAttachments = store.attachmentsForMachine(machine.id)
 
     CardContainer {
-        Text(
-            text = "Current Snapshot",
-            color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
+        AppCardSubheading("Current Snapshot")
         SnapshotMetricGrid(
             metrics = listOf(
                 "Open Issues" to snapshot.openIssueCount.toString(),
@@ -211,12 +206,7 @@ private fun GameRoomMachineSummaryPanel(
     }
 
     CardContainer {
-        Text(
-            text = "Media",
-            color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
+        AppCardSubheading("Media")
         if (machineAttachments.isNotEmpty()) {
             MediaAttachmentGrid(
                 attachments = machineAttachments,

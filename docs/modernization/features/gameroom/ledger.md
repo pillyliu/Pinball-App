@@ -35,6 +35,7 @@
 - Android GameRoom log-row swipe actions now also use the shared swipe-action button seam in `CommonUi.kt` instead of a feature-local reveal-action helper in `GameRoomPresentationComponents.kt`.
 - iOS and Android GameRoom variant pills now also route through the shared resource-chrome variant-pill seams in `AppResourceChrome.swift` and `AppResourceChrome.kt`, replacing the remaining feature-local GameRoom variant badge implementation beside Library and Practice.
 - iOS and Android GameRoom selected-machine, collection, and machine-input card headings now also use the shared subheading seams in `SharedTableUi.swift` and `CommonUi.kt`, removing the last feature-local inner card-heading styling from the home and machine-detail routes.
+- iOS and Android GameRoom machine-summary headings for `Current Snapshot` and `Media` now also use those shared subheading seams in `GameRoomMachineView.swift` and `GameRoomMachineRoute.kt`, closing the remaining machine-detail card-heading drift.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets

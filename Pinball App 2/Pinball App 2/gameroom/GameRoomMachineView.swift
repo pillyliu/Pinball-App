@@ -451,8 +451,7 @@ struct GameRoomMachineView: View {
         ]
         return VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Current Snapshot")
-                    .font(.headline)
+                AppCardSubheading(text: "Current Snapshot")
                 GameRoomSnapshotMetricGrid(items: [
                     GameRoomSnapshotMetric(label: "Open Issues", value: "\(snapshot.openIssueCount)"),
                     GameRoomSnapshotMetric(label: "Current Plays", value: "\(snapshot.currentPlayCount)"),
@@ -474,8 +473,7 @@ struct GameRoomMachineView: View {
             .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Media")
-                    .font(.headline)
+                AppCardSubheading(text: "Media")
                 if recentAttachments.isEmpty {
                     AppPanelEmptyCard(text: "No media attached yet.")
                 } else {
