@@ -118,31 +118,12 @@ struct StandingsScreen: View {
     @ViewBuilder
     private var updatedStatusRow: some View {
         if let updatedAtLabel = viewModel.updatedAtLabel {
-            Button {
-                Task { await viewModel.refreshNow() }
-            } label: {
-                HStack(spacing: 5) {
-                    Text(updatedAtLabel)
-                    if viewModel.isRefreshing {
-                        ProgressView()
-                            .controlSize(.mini)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                            .opacity(viewModel.hasNewerData ? 0.35 : 1)
-                            .animation(
-                                viewModel.hasNewerData
-                                    ? .easeInOut(duration: 0.65).repeatForever(autoreverses: true)
-                                    : .default,
-                                value: viewModel.hasNewerData
-                            )
-                    }
-                }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .disabled(viewModel.isRefreshing)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            AppRefreshStatusRow(
+                updatedAtLabel: updatedAtLabel,
+                isRefreshing: viewModel.isRefreshing,
+                hasNewerData: viewModel.hasNewerData,
+                onRefresh: { Task { await viewModel.refreshNow() } }
+            )
         }
     }
 

@@ -97,6 +97,7 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 - Android confirm-alert and date-picker chrome now has shared seams in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppDialogs.kt`, with Practice delete/date flows moved onto them.
 - iOS sheet detent, drag-indicator, background, and keyboard-dismiss behavior now has a shared seam in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppPresentationChrome.swift`, with Practice and GameRoom sheet styles routing through it.
 - iOS toolbar summary labels now have shared chrome in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppFilterControls.swift`, with Stats, Standings, and Targets using the same summary-label treatment.
+- iOS refresh/status rows now also use the same shared seam in `AppFilterControls.swift`, with Stats and Standings using one shared “updated / refresh” strip instead of duplicating it.
 - iOS now exposes semantic color, spacing, and shape token groups in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppTheme.swift` instead of only flat globals.
 - iOS now exposes typography roles in the same theme file so dropdown and shell text sizing can stop drifting from ad hoc font choices.
 - iOS root tabs in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/app/ContentView.swift` now use one metadata-driven tab contract instead of repeating screen/title/icon wiring inline.

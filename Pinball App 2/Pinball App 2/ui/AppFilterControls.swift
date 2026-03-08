@@ -41,6 +41,39 @@ struct AppToolbarSummaryPair: View {
     }
 }
 
+struct AppRefreshStatusRow: View {
+    let updatedAtLabel: String
+    let isRefreshing: Bool
+    let hasNewerData: Bool
+    let onRefresh: () -> Void
+
+    var body: some View {
+        Button(action: onRefresh) {
+            HStack(spacing: 5) {
+                Text(updatedAtLabel)
+                if isRefreshing {
+                    ProgressView()
+                        .controlSize(.mini)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                        .opacity(hasNewerData ? 0.35 : 1)
+                        .animation(
+                            hasNewerData
+                                ? .easeInOut(duration: 0.65).repeatForever(autoreverses: true)
+                                : .default,
+                            value: hasNewerData
+                        )
+                }
+            }
+            .font(.caption2)
+            .foregroundStyle(AppTheme.shellUnselectedContent)
+        }
+        .buttonStyle(.plain)
+        .disabled(isRefreshing)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 struct AppDropdownMenuLabel: View {
     let text: String
     let isLargeTablet: Bool
