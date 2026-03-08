@@ -35,8 +35,7 @@ struct PracticeGameNoteCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Game Note")
-                .font(.headline)
+            AppCardSubheading(text: "Game Note")
 
             TextEditor(text: $note)
                 .frame(minHeight: 96)

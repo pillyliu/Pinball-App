@@ -73,6 +73,16 @@ struct AppSectionTitle: View {
     }
 }
 
+struct AppCardSubheading: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(AppTheme.brandInk)
+    }
+}
+
 struct AppInlineStatusMessage: View {
     let text: String
     var isError: Bool = false

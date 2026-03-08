@@ -254,6 +254,17 @@ fun SectionTitle(text: String) {
 }
 
 @Composable
+fun AppCardSubheading(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        color = PinballThemeTokens.colors.brandInk,
+        style = MaterialTheme.typography.bodySmall,
+        fontWeight = FontWeight.SemiBold,
+        modifier = modifier,
+    )
+}
+
+@Composable
 fun EmptyLabel(text: String) {
     Box(
         modifier = Modifier

@@ -35,6 +35,7 @@ import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.normalizedVariant
 import com.pillyliu.pinprofandroid.ui.AppVariantBadge
 import com.pillyliu.pinprofandroid.library.practiceKey
+import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
@@ -140,7 +141,7 @@ private fun PracticeGameSummaryPanel(
     ConsistencyBlock(store = store, gameSlug = gameKey)
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Score Stats", fontWeight = FontWeight.SemiBold)
+            AppCardSubheading("Score Stats")
             if (summary == null) {
                 Text("Log scores to unlock.", style = MaterialTheme.typography.bodySmall)
             } else {
@@ -152,7 +153,7 @@ private fun PracticeGameSummaryPanel(
             }
         }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Target Scores", fontWeight = FontWeight.SemiBold)
+            AppCardSubheading("Target Scores")
             val targets = store.leagueTargetScoresFor(gameKey)
             if (targets == null) {
                 AppPanelEmptyCard(text = "No target data yet.")
@@ -169,7 +170,7 @@ private fun PracticeGameSummaryPanel(
 private fun PracticeGameInputPanel(
     onOpenQuickEntry: (QuickActivity, QuickEntryOrigin) -> Unit,
 ) {
-    Text("Task-Specific Logging", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    AppCardSubheading("Task-Specific Logging")
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             PracticeInputGridButton(

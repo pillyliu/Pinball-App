@@ -144,8 +144,7 @@ struct PracticeGameSummaryPanel: View {
 
             if let next = nextAction(gameID: gameID) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Next Action")
-                        .font(.footnote.weight(.semibold))
+                    AppCardSubheading(text: "Next Action")
                     Text(next)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -155,8 +154,7 @@ struct PracticeGameSummaryPanel: View {
             let alerts = store.dashboardAlerts(for: gameID)
             if !alerts.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Alerts")
-                        .font(.footnote.weight(.semibold))
+                    AppCardSubheading(text: "Alerts")
                     ForEach(alerts) { alert in
                         Text("• \(alert.message)")
                             .font(.footnote)
@@ -166,8 +164,7 @@ struct PracticeGameSummaryPanel: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Consistency")
-                    .font(.footnote.weight(.semibold))
+                AppCardSubheading(text: "Consistency")
 
                 if let summary = store.scoreSummary(for: gameID), summary.median > 0 {
                     let spreadRatio = (summary.p75 - summary.floor) / summary.median
@@ -187,8 +184,7 @@ struct PracticeGameSummaryPanel: View {
 
             HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Score Stats")
-                        .font(.footnote.weight(.semibold))
+                    AppCardSubheading(text: "Score Stats")
 
                     if let stats = scoreStats(for: gameID) {
                         statRow("High", formatScore(stats.high), color: AppTheme.statsHigh)
@@ -205,8 +201,7 @@ struct PracticeGameSummaryPanel: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Target Scores")
-                        .font(.footnote.weight(.semibold))
+                    AppCardSubheading(text: "Target Scores")
 
                     if let targets = store.leagueTargetScores(for: gameID) {
                         statRow("2nd", formatScore(targets.great), color: AppTheme.targetGreat)

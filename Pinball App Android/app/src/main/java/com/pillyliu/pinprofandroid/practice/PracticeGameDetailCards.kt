@@ -31,6 +31,7 @@ import com.pillyliu.pinprofandroid.library.playfieldButtonLabel
 import com.pillyliu.pinprofandroid.ui.AppResourceChip
 import com.pillyliu.pinprofandroid.ui.AppResourceRow
 import com.pillyliu.pinprofandroid.ui.AppUnavailableResourceChip
+import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.appShortRulesheetTitle
 
@@ -42,7 +43,7 @@ internal fun PracticeGameNoteCard(
     onGameSummaryDraftChange: (String) -> Unit,
 ) {
     CardContainer {
-        Text("Game Note", fontWeight = FontWeight.SemiBold)
+        AppCardSubheading("Game Note")
         Text(
             "Freeform summary of how this game is going.",
             style = MaterialTheme.typography.bodySmall,
