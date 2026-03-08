@@ -78,6 +78,7 @@
 - Library list-card title and subtitle overlays now also route through shared `AppOverlayTitle` and `AppOverlaySubtitle` seams in `AppResourceChrome.swift` and `AppResourceChrome.kt`, so the card image overlays use one branded, high-contrast hierarchy instead of feature-local raw white text styling.
 - Library YouTube launch panels on both platforms now also route their label/title/channel hierarchy through those shared `AppOverlayTitle` and `AppOverlaySubtitle` seams instead of feature-local headline and semibold overlay text.
 - Library summary-card metadata subtitles now also use shared `AppCardSubheading` hierarchy on both platforms instead of local subtitle text styling.
+- Android Library route-missing recovery now also uses the shared `AppPanelEmptyCard` seam for its message state instead of one last local `EmptyLabel` pocket.
 
 ## Next audit targets
 

@@ -215,6 +215,7 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 - Shared overlay title and subtitle seams now also live in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppResourceChrome.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppResourceChrome.kt`, and Library list cards on both platforms now use that shared high-contrast overlay hierarchy instead of feature-local white text styling.
 - Settings source-management rows and Library video launch panels now also use shared hierarchy seams on both platforms, with Settings row titles and add labels moving onto shared card-subheading chrome and Library video launch overlays moving onto the shared overlay title/subtitle chrome instead of feature-local semibold text styling.
 - Library summary cards and Android Settings import result rows now also use shared subheading and empty-state seams, replacing the remaining local subtitle/result-title treatment in those feature surfaces.
+- Android Library route-missing recovery and Android Settings manufacturer empty-search treatment now also use shared panel-empty seams, and the iOS Settings venue minimum-game control now uses the shared subheading hierarchy instead of isolated local text styling.
 
 ## Next design-system steps
 

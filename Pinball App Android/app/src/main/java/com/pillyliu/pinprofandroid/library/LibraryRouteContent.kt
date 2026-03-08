@@ -133,13 +133,13 @@ private fun LibraryRouteMissingScreen(
             AppPanelEmptyCard(text = message)
         }
     } else {
-            AppScreen(contentPadding) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    EmptyLabel(message)
-                    AppSecondaryButton(onClick = onBack) {
-                        Text("Back to Library")
-                    }
+        AppScreen(contentPadding) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                AppPanelEmptyCard(text = message)
+                AppSecondaryButton(onClick = onBack) {
+                    Text("Back to Library")
                 }
             }
         }
+    }
 }

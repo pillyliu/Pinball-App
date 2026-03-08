@@ -35,6 +35,7 @@
 - iOS Settings import screens now also use shared card-subheading and panel-empty seams for bucket labels, results headings, and empty search states, and their provider captions now use the shared PinProf chalk/gold text treatment instead of remaining one-off semibold heading and neutral-link pockets.
 - Settings source-management add labels and source-row titles now also use shared `AppCardSubheading` hierarchy on both platforms instead of feature-local semibold/body text treatment.
 - Android Settings import result rows now also use shared `AppCardSubheading` and `AppPanelEmptyCard` seams for manufacturer/venue result titles and venue empty-filter states instead of local semibold text and ad hoc card copy.
+- Android Settings manufacturer empty-search state now also uses the shared `AppPanelEmptyCard` seam, and the iOS Settings venue minimum-game control now uses shared subheading hierarchy instead of a one-off subheadline row.
 
 ## Next audit targets
 

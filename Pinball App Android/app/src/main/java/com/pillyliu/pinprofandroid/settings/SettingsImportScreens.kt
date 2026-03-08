@@ -56,7 +56,6 @@ import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
-import com.pillyliu.pinprofandroid.ui.EmptyLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -109,9 +108,7 @@ internal fun AddManufacturerScreen(
                 )
             }
             if (filtered.isEmpty()) {
-                CardContainer {
-                    EmptyLabel("No manufacturers found for that search.")
-                }
+                AppPanelEmptyCard(text = "No manufacturers found for that search.")
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
                     items(filtered) { manufacturer ->

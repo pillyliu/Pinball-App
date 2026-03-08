@@ -201,12 +201,11 @@ struct AddVenueScreen: View {
 
                         Stepper(value: $minimumGameCount, in: 0 ... 50) {
                             HStack {
-                                Text("Minimum games")
+                                AppCardSubheading(text: "Minimum games")
                                 Spacer()
                                 Text(minimumGameCount == 0 ? "Any" : "\(minimumGameCount)")
                                     .foregroundStyle(.secondary)
                             }
-                            .font(.subheadline)
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
