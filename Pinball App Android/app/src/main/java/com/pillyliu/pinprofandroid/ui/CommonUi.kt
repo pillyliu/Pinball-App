@@ -219,6 +219,32 @@ fun AppInlineStatusMessage(
 }
 
 @Composable
+fun AppInlineTaskStatus(
+    text: String,
+    modifier: Modifier = Modifier,
+    showsProgress: Boolean = false,
+    isError: Boolean = false,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (showsProgress) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(12.dp),
+                strokeWidth = 1.75.dp,
+                color = if (isError) MaterialTheme.colorScheme.error else PinballThemeTokens.colors.shellUnselectedContent,
+            )
+        }
+        AppInlineStatusMessage(
+            text = text,
+            isError = isError,
+        )
+    }
+}
+
+@Composable
 fun InsetFilterHeader(
     summaryText: String,
     onFilterClick: () -> Unit,

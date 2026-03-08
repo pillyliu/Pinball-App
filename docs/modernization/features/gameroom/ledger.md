@@ -18,6 +18,8 @@
 - Android log-row reveal UI, media attachment grid, and full-screen media preview dialog were moved out of `GameRoomScreen.kt` into `GameRoomPresentationComponents.kt`.
 - iOS service-entry sheets, issue/media sheets, media preview/edit views, log-detail card, and event edit sheet were moved out of `GameRoomScreen.swift` into `GameRoomPresentationComponents.swift`.
 - Android GameRoom machine-route and settings-route headers now use the shared `AppScreenHeader` seam in `CommonUi.kt` instead of feature-local back-button plus title rows.
+- iOS GameRoom import fetch and catalog-search task-state messaging now uses the shared `AppInlineTaskStatus` seam in `SharedTableUi.swift` instead of local spinner-plus-error stacks.
+- Android GameRoom import fetch and catalog-search task-state messaging now uses the shared `AppInlineTaskStatus` seam in `CommonUi.kt`, and the edit surface now exposes catalog loading/error state explicitly instead of only a static result label.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets

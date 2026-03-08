@@ -44,6 +44,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
+import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
 import kotlin.math.max
@@ -66,6 +67,8 @@ internal data class GameRoomEditSettingsContext(
     val classicPopularManufacturers: List<GameRoomCatalogManufacturerOption>,
     val otherManufacturers: List<GameRoomCatalogManufacturerOption>,
     val onSelectManufacturer: (String?) -> Unit,
+    val catalogIsLoading: Boolean,
+    val catalogErrorMessage: String?,
     val resultWindowLabel: String,
     val displayedCatalogGames: List<GameRoomCatalogGame>,
     val filteredCatalogGamesSize: Int,
@@ -171,11 +174,10 @@ internal fun GameRoomImportSettingsSection(
             Text(if (importIsLoading) "Fetching..." else "Fetch Collection")
         }
     }
-    if (importErrorMessage != null) {
-        Text(
-            text = importErrorMessage,
-            color = Color(0xFFD14F4F),
-        )
+    if (importIsLoading) {
+        AppInlineTaskStatus(text = "Fetching collection…", showsProgress = true)
+    } else if (importErrorMessage != null) {
+        AppInlineTaskStatus(text = importErrorMessage, isError = true)
     }
     if (importRows.isNotEmpty()) {
         Text(
@@ -367,10 +369,14 @@ internal fun GameRoomEditSettingsSection(
                 otherOptions = context.otherManufacturers,
                 onSelect = context.onSelectManufacturer,
             )
-            Text(
-                text = context.resultWindowLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (context.catalogIsLoading) {
+                AppInlineTaskStatus(text = "Loading catalog data…", showsProgress = true)
+            } else {
+                AppInlineTaskStatus(text = context.resultWindowLabel)
+            }
+            context.catalogErrorMessage?.let { errorMessage ->
+                AppInlineTaskStatus(text = errorMessage, isError = true)
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

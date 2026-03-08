@@ -132,17 +132,12 @@ struct GameRoomImportSettingsView: View {
                 }
                 .buttonStyle(.glass)
                 .disabled(isLoading || sourceInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                if isLoading {
-                    ProgressView()
-                        .controlSize(.small)
-                }
             }
 
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
+            if isLoading {
+                AppInlineTaskStatus(text: "Fetching collection…", showsProgress: true)
+            } else if let errorMessage {
+                AppInlineTaskStatus(text: errorMessage, isError: true)
             }
 
             if !draftRows.isEmpty {
@@ -676,19 +671,14 @@ struct GameRoomEditMachinesView: View {
                 Spacer()
 
                 if catalogLoader.isLoading {
-                    ProgressView()
-                        .controlSize(.small)
+                    AppInlineTaskStatus(text: "Loading catalog data…", showsProgress: true)
                 } else {
-                    Text("\(filteredCatalogGames.count) matches")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppInlineTaskStatus(text: "\(filteredCatalogGames.count) matches")
                 }
             }
 
             if let errorMessage = catalogLoader.errorMessage {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
+                AppInlineTaskStatus(text: errorMessage, isError: true)
             }
 
             if filteredCatalogGames.isEmpty {

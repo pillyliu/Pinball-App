@@ -73,6 +73,22 @@ struct AppInlineStatusMessage: View {
     }
 }
 
+struct AppInlineTaskStatus: View {
+    let text: String
+    var showsProgress: Bool = false
+    var isError: Bool = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if showsProgress {
+                ProgressView()
+                    .controlSize(.small)
+            }
+            AppInlineStatusMessage(text: text, isError: isError)
+        }
+    }
+}
+
 struct AppTablePlaceholder: View {
     let text: String
     var minHeight: CGFloat = 64

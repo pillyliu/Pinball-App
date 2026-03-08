@@ -959,6 +959,8 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
                                 classicPopularManufacturers = classicPopularManufacturers,
                                 otherManufacturers = otherManufacturers,
                                 onSelectManufacturer = { addManufacturerFilter = it },
+                                catalogIsLoading = catalogLoader.isLoading,
+                                catalogErrorMessage = catalogLoader.errorMessage,
                                 resultWindowLabel = resultWindowLabel,
                                 displayedCatalogGames = displayedCatalogGames,
                                 filteredCatalogGamesSize = filteredCatalogGames.size,
