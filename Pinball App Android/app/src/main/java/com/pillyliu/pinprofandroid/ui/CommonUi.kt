@@ -960,17 +960,21 @@ fun AppDestructiveButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     val shapes = PinballThemeTokens.shapes
-    Button(
+    OutlinedButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.defaultMinSize(minHeight = minHeight),
         shape = RoundedCornerShape(shapes.controlCorner),
+        border = BorderStroke(
+            1.dp,
+            if (enabled) MaterialTheme.colorScheme.error.copy(alpha = 0.34f) else MaterialTheme.colorScheme.error.copy(alpha = 0.18f),
+        ),
         contentPadding = contentPadding,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.92f),
-            contentColor = MaterialTheme.colorScheme.onError,
-            disabledContainerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.24f),
-            disabledContentColor = MaterialTheme.colorScheme.onError.copy(alpha = 0.55f),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.10f),
+            contentColor = MaterialTheme.colorScheme.error,
+            disabledContainerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.06f),
+            disabledContentColor = MaterialTheme.colorScheme.error.copy(alpha = 0.55f),
         ),
         content = content,
     )
