@@ -83,6 +83,40 @@ struct AppCardSubheading: View {
     }
 }
 
+struct AppMetricItem: Identifiable {
+    let label: String
+    let value: String
+
+    var id: String { label }
+}
+
+struct AppMetricGrid: View {
+    let items: [AppMetricItem]
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10),
+    ]
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+            ForEach(items) { item in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.label)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(AppTheme.brandChalk)
+                    Text(item.value)
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.brandInk)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
 struct AppInlineStatusMessage: View {
     let text: String
     var isError: Bool = false

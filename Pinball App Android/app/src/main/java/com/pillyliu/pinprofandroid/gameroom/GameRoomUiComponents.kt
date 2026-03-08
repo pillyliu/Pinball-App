@@ -471,39 +471,6 @@ internal fun attentionColor(state: GameRoomAttentionState): Color {
 }
 
 @Composable
-internal fun SnapshotMetricGrid(
-    metrics: List<Pair<String, String>>,
-) {
-    val rows = metrics.chunked(2)
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        rows.forEach { rowMetrics ->
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                rowMetrics.forEach { (label, value) ->
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = value,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                if (rowMetrics.size == 1) {
-                    Box(modifier = Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
-@Composable
 internal fun SectionHeader(
     title: String,
     expanded: Boolean,

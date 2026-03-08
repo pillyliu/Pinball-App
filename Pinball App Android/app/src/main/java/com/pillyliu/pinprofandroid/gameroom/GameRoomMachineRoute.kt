@@ -27,6 +27,8 @@ import com.pillyliu.pinprofandroid.library.ConstrainedAsyncImagePreview
 import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
 import com.pillyliu.pinprofandroid.ui.AppCardSubheading
+import com.pillyliu.pinprofandroid.ui.AppMetricGrid
+import com.pillyliu.pinprofandroid.ui.AppMetricItem
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -184,16 +186,16 @@ private fun GameRoomMachineSummaryPanel(
 
     CardContainer {
         AppCardSubheading("Current Snapshot")
-        SnapshotMetricGrid(
-            metrics = listOf(
-                "Open Issues" to snapshot.openIssueCount.toString(),
-                "Current Plays" to snapshot.currentPlayCount.toString(),
-                "Due Tasks" to snapshot.dueTaskCount.toString(),
-                "Last Service" to formatDate(snapshot.lastServiceAtMs, "None"),
-                "Pitch" to (snapshot.currentPitchValue?.let { String.format("%.1f", it) } ?: "—"),
-                "Last Level" to formatDate(snapshot.lastLeveledAtMs, "None"),
-                "Last Inspection" to formatDate(snapshot.lastGeneralInspectionAtMs, "None"),
-                "Purchase Date" to formatDate(machine.purchaseDateMs, "—"),
+        AppMetricGrid(
+            items = listOf(
+                AppMetricItem("Open Issues", snapshot.openIssueCount.toString()),
+                AppMetricItem("Current Plays", snapshot.currentPlayCount.toString()),
+                AppMetricItem("Due Tasks", snapshot.dueTaskCount.toString()),
+                AppMetricItem("Last Service", formatDate(snapshot.lastServiceAtMs, "None")),
+                AppMetricItem("Pitch", snapshot.currentPitchValue?.let { String.format("%.1f", it) } ?: "—"),
+                AppMetricItem("Last Level", formatDate(snapshot.lastLeveledAtMs, "None")),
+                AppMetricItem("Last Inspection", formatDate(snapshot.lastGeneralInspectionAtMs, "None")),
+                AppMetricItem("Purchase Date", formatDate(machine.purchaseDateMs, "—")),
             ),
         )
         machine.purchaseDateRawText?.takeIf { it.isNotBlank() }?.let { raw ->

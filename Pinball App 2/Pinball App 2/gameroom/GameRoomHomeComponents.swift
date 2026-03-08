@@ -122,7 +122,7 @@ private struct GameRoomSelectedSummaryCard: View {
                     .font(.subheadline.weight(.semibold))
                     .padding(.top, 2)
 
-                GameRoomSnapshotMetricGrid(items: snapshotMetrics(for: selectedMachine))
+                AppMetricGrid(items: snapshotMetrics(for: selectedMachine))
 
                 if let purchaseDateRawText = selectedMachine.purchaseDateRawText, !purchaseDateRawText.isEmpty {
                     Text("Purchase (raw): \(purchaseDateRawText)")
@@ -147,57 +147,23 @@ private struct GameRoomSelectedSummaryCard: View {
         return "Location: \(areaName) • Group \(group) • Position \(position)"
     }
 
-    private func snapshotMetrics(for machine: OwnedMachine) -> [GameRoomSnapshotMetric] {
+    private func snapshotMetrics(for machine: OwnedMachine) -> [AppMetricItem] {
         let snapshot = store.snapshot(for: machine.id)
         let pitchText = snapshot.currentPitchValue.map { String(format: "%.1f", $0) } ?? "—"
         return [
-            GameRoomSnapshotMetric(label: "Open Issues", value: "\(snapshot.openIssueCount)"),
-            GameRoomSnapshotMetric(label: "Current Plays", value: "\(snapshot.currentPlayCount)"),
-            GameRoomSnapshotMetric(label: "Due Tasks", value: "\(snapshot.dueTaskCount)"),
-            GameRoomSnapshotMetric(label: "Last Service", value: snapshot.lastServiceAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
-            GameRoomSnapshotMetric(label: "Pitch", value: pitchText),
-            GameRoomSnapshotMetric(label: "Last Level", value: snapshot.lastLeveledAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
-            GameRoomSnapshotMetric(label: "Last Inspection", value: snapshot.lastGeneralInspectionAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
-            GameRoomSnapshotMetric(label: "Purchase Date", value: machine.purchaseDate?.formatted(date: .abbreviated, time: .omitted) ?? "—")
+            AppMetricItem(label: "Open Issues", value: "\(snapshot.openIssueCount)"),
+            AppMetricItem(label: "Current Plays", value: "\(snapshot.currentPlayCount)"),
+            AppMetricItem(label: "Due Tasks", value: "\(snapshot.dueTaskCount)"),
+            AppMetricItem(label: "Last Service", value: snapshot.lastServiceAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
+            AppMetricItem(label: "Pitch", value: pitchText),
+            AppMetricItem(label: "Last Level", value: snapshot.lastLeveledAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
+            AppMetricItem(label: "Last Inspection", value: snapshot.lastGeneralInspectionAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
+            AppMetricItem(label: "Purchase Date", value: machine.purchaseDate?.formatted(date: .abbreviated, time: .omitted) ?? "—")
         ]
     }
 
     private func variantBadgeLabel(for machine: OwnedMachine) -> String? {
         gameRoomVariantBadgeLabel(variant: machine.displayVariant, title: machine.displayTitle)
-    }
-}
-
-struct GameRoomSnapshotMetric: Identifiable {
-    let label: String
-    let value: String
-
-    var id: String { label }
-}
-
-struct GameRoomSnapshotMetricGrid: View {
-    let items: [GameRoomSnapshotMetric]
-
-    private let columns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10),
-    ]
-
-    var body: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-            ForEach(items) { item in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.label)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Text(item.value)
-                        .font(.footnote)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
     }
 }
 

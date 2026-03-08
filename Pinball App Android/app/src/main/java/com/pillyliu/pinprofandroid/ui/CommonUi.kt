@@ -271,6 +271,52 @@ fun AppCardSubheading(text: String, modifier: Modifier = Modifier) {
     )
 }
 
+data class AppMetricItem(
+    val label: String,
+    val value: String,
+)
+
+@Composable
+fun AppMetricGrid(
+    items: List<AppMetricItem>,
+    modifier: Modifier = Modifier,
+) {
+    val colors = PinballThemeTokens.colors
+    val rows = items.chunked(2)
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        rows.forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                rowItems.forEach { item ->
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = item.label,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.brandChalk,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = item.value,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.brandInk,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (rowItems.size == 1) {
+                    Box(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun EmptyLabel(text: String) {
     Box(

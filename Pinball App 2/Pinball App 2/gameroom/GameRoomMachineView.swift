@@ -452,15 +452,15 @@ struct GameRoomMachineView: View {
         return VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 6) {
                 AppCardSubheading(text: "Current Snapshot")
-                GameRoomSnapshotMetricGrid(items: [
-                    GameRoomSnapshotMetric(label: "Open Issues", value: "\(snapshot.openIssueCount)"),
-                    GameRoomSnapshotMetric(label: "Current Plays", value: "\(snapshot.currentPlayCount)"),
-                    GameRoomSnapshotMetric(label: "Due Tasks", value: "\(snapshot.dueTaskCount)"),
-                    GameRoomSnapshotMetric(label: "Last Service", value: snapshot.lastServiceAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
-                    GameRoomSnapshotMetric(label: "Pitch", value: snapshot.currentPitchValue.map { String(format: "%.1f", $0) } ?? "—"),
-                    GameRoomSnapshotMetric(label: "Last Level", value: snapshot.lastLeveledAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
-                    GameRoomSnapshotMetric(label: "Last Inspection", value: snapshot.lastGeneralInspectionAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
-                    GameRoomSnapshotMetric(label: "Purchase Date", value: machine.purchaseDate?.formatted(date: .abbreviated, time: .omitted) ?? "—")
+                AppMetricGrid(items: [
+                    AppMetricItem(label: "Open Issues", value: "\(snapshot.openIssueCount)"),
+                    AppMetricItem(label: "Current Plays", value: "\(snapshot.currentPlayCount)"),
+                    AppMetricItem(label: "Due Tasks", value: "\(snapshot.dueTaskCount)"),
+                    AppMetricItem(label: "Last Service", value: snapshot.lastServiceAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
+                    AppMetricItem(label: "Pitch", value: snapshot.currentPitchValue.map { String(format: "%.1f", $0) } ?? "—"),
+                    AppMetricItem(label: "Last Level", value: snapshot.lastLeveledAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
+                    AppMetricItem(label: "Last Inspection", value: snapshot.lastGeneralInspectionAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
+                    AppMetricItem(label: "Purchase Date", value: machine.purchaseDate?.formatted(date: .abbreviated, time: .omitted) ?? "—")
                 ])
                 if let purchaseDateRawText = machine.purchaseDateRawText, !purchaseDateRawText.isEmpty {
                     Text("Purchase (raw): \(purchaseDateRawText)")
