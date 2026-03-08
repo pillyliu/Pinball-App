@@ -49,6 +49,7 @@ import com.halilibo.richtext.ui.RichTextStyle
 import com.halilibo.richtext.ui.material3.RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
+import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.AppCardTitle
 import com.pillyliu.pinprofandroid.ui.AppOverlaySubtitle
 import com.pillyliu.pinprofandroid.ui.AppOverlayTitle
@@ -95,7 +96,7 @@ internal fun LibraryDetailSummaryCard(
                 AppVariantBadge(variant)
             }
         }
-        Text(game.metaLine(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        AppCardSubheading(game.metaLine())
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {

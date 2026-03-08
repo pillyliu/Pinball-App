@@ -48,6 +48,7 @@ import com.pillyliu.pinprofandroid.library.CatalogManufacturerOption
 import com.pillyliu.pinprofandroid.library.LibraryVenueSearchResult
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.AppCompactIconButton
+import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
@@ -121,7 +122,7 @@ internal fun AddManufacturerScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Text(manufacturer.name, fontWeight = FontWeight.SemiBold)
+                                    AppCardSubheading(manufacturer.name)
                                     if (manufacturer.isModern) {
                                         AppTintedStatusChip(
                                             text = "Modern",
@@ -280,13 +281,7 @@ internal fun AddVenueScreen(
                 prefs.edit().putInt("settings-add-venue-min-game-count", minimumGameCount).apply()
             }
             emptyResultsMessage?.let {
-                CardContainer {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                AppPanelEmptyCard(text = it)
             }
             if (!hasSearched && results.isEmpty() && !searching) {
                 AppPanelEmptyCard(text = "Search Pinball Map by city or ZIP, then import a venue as a Library source.")
@@ -295,7 +290,7 @@ internal fun AddVenueScreen(
                 items(filteredResults) { result ->
                     CardContainer {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(result.name, fontWeight = FontWeight.SemiBold)
+                            AppCardSubheading(result.name)
                             val locationLine = listOfNotNull(result.city, result.state, result.zip).joinToString(", ")
                             if (locationLine.isNotBlank()) {
                                 Text(locationLine, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

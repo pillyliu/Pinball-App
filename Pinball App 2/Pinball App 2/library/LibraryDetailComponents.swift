@@ -27,9 +27,7 @@ struct LibraryDetailSummaryCard: View {
                 Spacer(minLength: 0)
             }
 
-            Text(game.metaLine)
-                .font(.subheadline)
-                .foregroundStyle(.primary)
+            AppCardSubheading(text: game.metaLine)
 
             VStack(alignment: .leading, spacing: 10) {
                 if game.rulesheetLinks.isEmpty {
