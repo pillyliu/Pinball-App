@@ -215,6 +215,20 @@ struct AppCompactIconMenuLabel: View {
     }
 }
 
+struct AppExternalLinkButtonLabel: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(AppTheme.brandInk)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .appControlStyle()
+    }
+}
+
 struct AppCompactStackedMenuLabel: View {
     let title: String
     let value: String

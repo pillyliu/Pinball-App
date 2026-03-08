@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
+import com.pillyliu.pinprofandroid.ui.AppExternalLinkButton
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -191,11 +192,11 @@ internal fun PracticeIfpaProfileScreen(
                 }
             }
 
-            Button(onClick = {
+            AppExternalLinkButton(
+                text = "Open full IFPA profile",
+                onClick = {
                 uriHandler.openUri("https://www.ifpapinball.com/players/view.php?p=${loadedProfile.playerID}")
-            }) {
-                Text("Open full IFPA profile")
-            }
+            })
         }
 
         errorMessage != null -> {

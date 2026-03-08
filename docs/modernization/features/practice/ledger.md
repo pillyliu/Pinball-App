@@ -213,6 +213,7 @@
 - iOS and Android Practice dashboard, insights, and mechanics summary strips now also use shared metric-pill seams in `AppFilterControls.swift` and `CommonUi.kt`, replacing the last feature-local Practice metric cards and Android raw inline mechanics summary text.
 - iOS and Android Practice game-summary inner headings now also use shared subheading seams in `SharedTableUi.swift` and `CommonUi.kt`, replacing feature-local semibold text styling across the game note, next-action, alerts, consistency, score-stats, target-scores, and task-logging surfaces.
 - iOS and Android Practice `Game Resources` and `Log` headings now also use those shared subheading seams in `PracticeVideoComponents.swift`, `PracticeGameDetailCards.kt`, and `PracticeGameWorkspacePanels.kt`, removing the last feature-local inner card-heading styling from the Practice game route.
+- iOS and Android Practice external links now also use shared branded link-button seams in `AppFilterControls.swift` and `CommonUi.kt`, replacing mixed glass-link, plain-text-link, and outlined-button treatment in `PracticeIFPAProfileScreen.swift`, `PracticeIfpaProfileScreen.kt`, `PracticeMechanicsSection.swift`, and `PracticeMechanicsSection.kt`.
 
 ## Next audit targets
 

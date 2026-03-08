@@ -19,6 +19,7 @@
 - League nested route ownership is now explicit on both platforms: iOS routes through `LeagueDestinationView.swift`, Android routes through `LeagueDestinationHost.kt`, and `About Lansing Pinball League` is now part of the same League destination contract instead of a hidden special case on iOS.
 - League preview empty-state messaging now also uses the shared inline-status seams on both platforms instead of raw secondary `Text` blocks in `LeaguePreviewSections.swift` and `LeagueMiniPreviews.kt`.
 - League standings preview mode chips now also use the shared tinted status-chip seams on both platforms instead of a feature-local blue label on Android and a feature-local capsule on iOS.
+- The Lansing Pinball League `About` screen now also uses shared branded external-link button seams on both platforms instead of mixed glass-link and default tonal-button treatment in `AboutScreen.swift` and `AboutScreen.kt`.
 
 ## Next audit targets
 

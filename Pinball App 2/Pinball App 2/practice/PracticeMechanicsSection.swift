@@ -131,8 +131,10 @@ struct PracticeMechanicsSectionView: View {
             .appPanelStyle()
 
             if let tutorialsURL = URL(string: "https://www.deadflip.com/tutorials") {
-                Link("Dead Flip Tutorials", destination: tutorialsURL)
-                    .buttonStyle(.glass)
+                Link(destination: tutorialsURL) {
+                    AppExternalLinkButtonLabel(text: "Dead Flip Tutorials")
+                }
+                .buttonStyle(.plain)
             }
         }
     }

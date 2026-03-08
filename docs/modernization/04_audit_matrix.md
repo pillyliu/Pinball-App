@@ -15,7 +15,7 @@ Status values:
 
 | Feature | iOS status | Android status | Parity status | Notes |
 | --- | --- | --- | --- | --- |
-| League | in audit | in audit | in audit | Root tab is aligned, and both platforms now have explicit League shell-content seams instead of leaving home-card composition inside the root screen files. |
+| League | in audit | in audit | in audit | Root tab is aligned, both platforms now have explicit League shell-content seams instead of leaving home-card composition inside the root screen files, and the About screen now uses shared branded external-link controls. |
 | Library | stable | stable | stable | Shared dependency for Practice and GameRoom; v3 fallback/resource behavior is locked, hosted payload access now goes through dedicated platform seams, seed-db/query helpers are split out, and both platforms now have explicit browsing-state seams instead of mixing browse rules directly into the root feature screens. |
 | Practice | parity risk | parity risk | parity risk | Largest active drift surface after GameRoom; route/state complexity is still concentrated in a few large files, but shared state/media chrome, transient game-save feedback, and inner card-heading chrome are now aligned more closely across platforms. |
 | GameRoom | stable | stable | in audit | 3.1 shipped baseline exists; home/UI helper splits, machine-route splits, settings-surface extraction, and presentation-component extraction are in place. |

@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +21,7 @@ import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppMetricPill
 import com.pillyliu.pinprofandroid.ui.SectionTitle
+import com.pillyliu.pinprofandroid.ui.AppExternalLinkButton
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -140,7 +140,8 @@ internal fun PracticeMechanicsSection(
         }
     }
 
-    OutlinedButton(onClick = onOpenDeadFlipTutorials) {
-        Text("Dead Flip Tutorials")
-    }
+    AppExternalLinkButton(
+        text = "Dead Flip Tutorials",
+        onClick = onOpenDeadFlipTutorials,
+    )
 }

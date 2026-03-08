@@ -32,6 +32,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
@@ -466,6 +467,33 @@ fun AppControlCard(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         content = content,
     )
+}
+
+@Composable
+fun AppExternalLinkButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = PinballThemeTokens.colors
+    val shapes = PinballThemeTokens.shapes
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(shapes.controlCorner),
+        border = BorderStroke(1.dp, colors.brandGold.copy(alpha = 0.34f)),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = colors.controlBackground,
+            contentColor = colors.brandInk,
+        ),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
 }
 
 @Composable

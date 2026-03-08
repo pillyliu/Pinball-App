@@ -1,6 +1,5 @@
 package com.pillyliu.pinprofandroid.info
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,8 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.R
+import com.pillyliu.pinprofandroid.ui.AppExternalLinkButton
 import com.pillyliu.pinprofandroid.ui.AppScreen
-import com.pillyliu.pinprofandroid.ui.SectionTitle
 
 private const val WEBSITE_URL = "https://www.lansingpinleague.com/"
 private const val FACEBOOK_URL = "https://www.facebook.com/groups/LansingPinLeague/"
@@ -110,22 +107,16 @@ fun AboutScreen(contentPadding: PaddingValues) {
                         .padding(top = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Button(
+                    AppExternalLinkButton(
+                        text = "lansingpinleague.com",
                         onClick = { uriHandler.openUri(WEBSITE_URL) },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.filledTonalButtonColors(),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    ) {
-                        Text("lansingpinleague.com")
-                    }
-                    Button(
+                    )
+                    AppExternalLinkButton(
+                        text = "Facebook Group",
                         onClick = { uriHandler.openUri(FACEBOOK_URL) },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.filledTonalButtonColors(),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    ) {
-                        Text("Facebook Group")
-                    }
+                    )
                 }
             }
 

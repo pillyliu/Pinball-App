@@ -78,15 +78,17 @@ struct LPLAboutContent: View {
                         .foregroundStyle(.primary)
 
                         HStack(spacing: 10) {
-                            Link("lansingpinleague.com", destination: LPLLinks.website)
-                                .font(aboutLinkFont)
-                                .frame(maxWidth: .infinity)
-                                .buttonStyle(.glass)
+                            Link(destination: LPLLinks.website) {
+                                AppExternalLinkButtonLabel(text: "lansingpinleague.com")
+                                    .font(aboutLinkFont)
+                            }
+                            .buttonStyle(.plain)
 
-                            Link("Facebook Group", destination: LPLLinks.facebook)
-                                .font(aboutLinkFont)
-                                .frame(maxWidth: .infinity)
-                                .buttonStyle(.glass)
+                            Link(destination: LPLLinks.facebook) {
+                                AppExternalLinkButtonLabel(text: "Facebook Group")
+                                    .font(aboutLinkFont)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .appReadableWidth(maxWidth: readableContentWidth)

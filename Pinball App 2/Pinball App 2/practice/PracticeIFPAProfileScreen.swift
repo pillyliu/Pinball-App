@@ -165,9 +165,10 @@ struct PracticeIFPAProfileScreen: View {
         .appPanelStyle()
 
         if let profileURL = URL(string: "https://www.ifpapinball.com/players/view.php?p=\(profile.playerID)") {
-            Link("Open full IFPA profile", destination: profileURL)
-                .buttonStyle(.plain)
-                .foregroundStyle(Color(red: 0.49, green: 0.77, blue: 0.98))
+            Link(destination: profileURL) {
+                AppExternalLinkButtonLabel(text: "Open full IFPA profile")
+            }
+            .buttonStyle(.plain)
         }
     }
 
