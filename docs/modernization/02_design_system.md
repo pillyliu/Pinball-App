@@ -93,7 +93,9 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 - Android spacing and shell-bar geometry are now part of the same semantic token layer instead of being repeated as raw `dp` constants across root shell and shared UI.
 - Android typography roles are now part of the same token layer, and shared UI consumes them for section titles, empty states, filter headers, dropdowns, table cells, and shell labels.
 - Android filter-sheet chrome is now standardized through `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppFilterSheet.kt`, which is used by Library, Stats, Standings, and Targets.
+- Android search-plus-filter header chrome is now standardized through `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppSearchFilterBar.kt`, with Library now using the same token-driven search field and filter trigger instead of keeping a feature-local top control row.
 - iOS filter-toolbar triggers and dropdown menu labels are now standardized through `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppFilterControls.swift`, which is used by Stats, Standings, and Targets.
+- iOS toolbar icon triggers now share the same chrome in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppFilterControls.swift`, with Library now using shared search and filter trigger labels instead of raw toolbar images.
 - Android confirm-alert and date-picker chrome now has shared seams in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppDialogs.kt`, with Practice delete/date flows moved onto them.
 - iOS sheet detent, drag-indicator, background, and keyboard-dismiss behavior now has a shared seam in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppPresentationChrome.swift`, with Practice and GameRoom sheet styles routing through it.
 - iOS toolbar summary labels now have shared chrome in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppFilterControls.swift`, with Stats, Standings, and Targets using the same summary-label treatment.
@@ -105,5 +107,5 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 ## Next design-system steps
 
 1. Move more shared component families onto semantic spacing, typography, and shape tokens instead of ad hoc local constants.
-2. Normalize remaining top-bar, sheet, and dialog chrome across shared UI helpers on both platforms.
+2. Normalize remaining top-bar, header, sheet, and dialog chrome across shared UI helpers on both platforms.
 3. Start documenting motion roles before broader visual restyling.

@@ -1,11 +1,25 @@
 import SwiftUI
 
-struct AppToolbarFilterTriggerLabel: View {
+struct AppToolbarIconTriggerLabel: View {
+    let systemName: String
+
     var body: some View {
-        Image(systemName: "line.3.horizontal.decrease.circle.fill")
+        Image(systemName: systemName)
             .font(.title3)
             .frame(width: 34, height: 34)
             .foregroundStyle(AppTheme.shellSelectedContent)
+    }
+}
+
+struct AppToolbarFilterTriggerLabel: View {
+    var body: some View {
+        AppToolbarIconTriggerLabel(systemName: "line.3.horizontal.decrease.circle.fill")
+    }
+}
+
+struct AppToolbarSearchTriggerLabel: View {
+    var body: some View {
+        AppToolbarIconTriggerLabel(systemName: "magnifyingglass")
     }
 }
 

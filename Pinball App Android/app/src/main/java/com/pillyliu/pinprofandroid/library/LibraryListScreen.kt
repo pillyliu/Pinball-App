@@ -22,20 +22,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,16 +37,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
+import com.pillyliu.pinprofandroid.ui.AppSearchFilterBar
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CompactDropdownFilter
 
@@ -80,8 +70,6 @@ internal fun LibraryList(
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val searchFontSize = if (isLandscape) 14.sp else 13.sp
     val searchControlMinHeight = if (isLandscape) 48.dp else 48.dp
-    val searchContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    val searchTextStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = searchFontSize)
     val selectedSource = remember(sources, selectedSourceId) {
         sources.firstOrNull { it.id == selectedSourceId } ?: sources.firstOrNull()
     }
@@ -171,59 +159,15 @@ internal fun LibraryList(
                     .padding(top = controlsTopOffset),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = onQueryChange,
-                        placeholder = {
-                            Text(
-                                "Search games...",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = searchTextStyle,
-                                maxLines = 1,
-                            )
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(searchControlMinHeight)
-                            .shadow(10.dp, RoundedCornerShape(14.dp), clip = false),
-                        shape = RoundedCornerShape(14.dp),
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None),
-                        textStyle = searchTextStyle,
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            focusedLabelColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            cursorColor = MaterialTheme.colorScheme.onSurface,
-                            focusedContainerColor = searchContainerColor,
-                            unfocusedContainerColor = searchContainerColor,
-                            focusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        ),
-                    )
-                    FilledTonalIconButton(
-                        onClick = { showFilterSheet = true },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = searchContainerColor,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                        ),
-                        modifier = Modifier
-                            .height(searchControlMinHeight)
-                            .shadow(10.dp, RoundedCornerShape(14.dp), clip = false),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.FilterList,
-                            contentDescription = "Filters",
-                        )
-                    }
-                }
+                AppSearchFilterBar(
+                    query = query,
+                    onQueryChange = onQueryChange,
+                    placeholder = "Search games...",
+                    onFilterClick = { showFilterSheet = true },
+                    minHeight = searchControlMinHeight,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = searchFontSize),
+                    placeholderTextStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = searchFontSize),
+                )
             }
         }
     }
