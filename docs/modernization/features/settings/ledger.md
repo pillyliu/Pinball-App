@@ -27,6 +27,7 @@
 - iOS and Android Settings manufacturer highlight badges now also use shared tinted status-chip seams in `AppFilterControls.swift` and `CommonUi.kt` instead of feature-local “Modern” pills, aligning import-surface metadata highlights with the broader PinProf brand layer.
 - Android Settings root route/loading/error/hosted-refresh state now lives behind `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreenState.kt`, so `SettingsScreen.kt` now acts as a route shell instead of mixing mutable screen state, reload logic, and route switching inline.
 - iOS Settings route destinations now live behind `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/settings/SettingsRouteContent.swift`, so `SettingsScreen.swift` is now reduced to the root shell, view-model lifecycle hooks, and navigation-path wiring instead of also owning the route switch inline.
+- Android Settings source-add buttons, hosted-data refresh, and Pinball Map / Match Play import CTAs now also use the shared `AppPrimaryButton` seam in `CommonUi.kt` instead of repeated feature-local `Button` styling in `SettingsHomeSections.kt` and `SettingsImportScreens.kt`.
 
 ## Next audit targets
 

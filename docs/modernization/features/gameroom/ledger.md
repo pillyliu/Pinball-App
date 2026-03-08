@@ -37,6 +37,7 @@
 - iOS and Android GameRoom selected-machine, collection, and machine-input card headings now also use the shared subheading seams in `SharedTableUi.swift` and `CommonUi.kt`, removing the last feature-local inner card-heading styling from the home and machine-detail routes.
 - iOS and Android GameRoom machine-summary headings for `Current Snapshot` and `Media` now also use those shared subheading seams in `GameRoomMachineView.swift` and `GameRoomMachineRoute.kt`, closing the remaining machine-detail card-heading drift.
 - Android GameRoom home-route cards now also use the shared subheading and panel-empty seams for `Selected Machine`, `Current Snapshot`, and `Collection` in `GameRoomRouteContent.kt`, closing the last obvious GameRoom home chrome gap against the iOS home route.
+- Android GameRoom collection fetch/import CTAs plus the edit-name and area-save actions now also use the shared `AppPrimaryButton` seam in `CommonUi.kt`, and the area reset action now uses the shared `AppSecondaryButton` seam instead of keeping one more pocket of feature-local `Button` styling in `GameRoomSettingsSections.kt`.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets

@@ -52,6 +52,7 @@ import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
+import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 
@@ -157,15 +158,15 @@ private fun SettingsLibrarySection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Button(
+            AppPrimaryButton(
                 onClick = onOpenAddManufacturer,
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
             ) { Text("Manufacturer", maxLines = 1, overflow = TextOverflow.Clip) }
-            Button(
+            AppPrimaryButton(
                 onClick = onOpenAddVenue,
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
             ) { Text("Venue", maxLines = 1, overflow = TextOverflow.Clip) }
-            Button(
+            AppPrimaryButton(
                 onClick = onOpenAddTournament,
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
             ) { Text("Tournament", maxLines = 1, overflow = TextOverflow.Clip) }
@@ -225,7 +226,7 @@ private fun SettingsHostedRefreshSection(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(
+        AppPrimaryButton(
             onClick = onRefreshHostedData,
             enabled = !refreshingHostedData,
         ) {

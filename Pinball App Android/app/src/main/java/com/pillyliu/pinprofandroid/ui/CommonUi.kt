@@ -647,6 +647,33 @@ fun AppSecondaryButton(
 }
 
 @Composable
+fun AppPrimaryButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    minHeight: Dp = 40.dp,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+    content: @Composable RowScope.() -> Unit,
+) {
+    val colors = PinballThemeTokens.colors
+    val shapes = PinballThemeTokens.shapes
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.defaultMinSize(minHeight = minHeight),
+        shape = RoundedCornerShape(shapes.controlCorner),
+        contentPadding = contentPadding,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = colors.brandGold.copy(alpha = 0.92f),
+            contentColor = colors.brandInk,
+            disabledContainerColor = colors.brandGold.copy(alpha = 0.24f),
+            disabledContentColor = colors.brandInk.copy(alpha = 0.55f),
+        ),
+        content = content,
+    )
+}
+
+@Composable
 fun AppPassiveStatusChip(
     text: String,
     modifier: Modifier = Modifier,

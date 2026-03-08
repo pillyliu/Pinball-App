@@ -44,9 +44,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
-import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppControlCard
+import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.AppSelectionPill
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
@@ -171,7 +173,7 @@ internal fun GameRoomImportSettingsSection(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Button(
+        AppPrimaryButton(
             onClick = onFetchCollection,
             enabled = !importIsLoading && importSourceInput.trim().isNotEmpty(),
         ) {
@@ -285,7 +287,7 @@ internal fun GameRoomImportSettingsSection(
                 }
             }
         }
-        Button(
+        AppPrimaryButton(
             onClick = onPerformImport,
             enabled = importRows.isNotEmpty(),
         ) {
@@ -323,7 +325,7 @@ internal fun GameRoomEditSettingsSection(
                 label = { Text("GameRoom Name") },
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = context.onSaveVenueName) {
+                AppPrimaryButton(onClick = context.onSaveVenueName) {
                     Text("Save")
                 }
             }
@@ -489,8 +491,8 @@ internal fun GameRoomEditSettingsSection(
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = context.onSaveArea) { Text("Save") }
-                Button(onClick = context.onResetAreaDraft) { Text("Edit") }
+                AppPrimaryButton(onClick = context.onSaveArea) { Text("Save") }
+                AppSecondaryButton(onClick = context.onResetAreaDraft) { Text("Edit") }
             }
             context.store.state.areas.forEach { area ->
                 Row(
