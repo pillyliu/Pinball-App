@@ -115,7 +115,7 @@ struct PracticeGroupDashboardSectionView: View {
                     Text("Archived").tag(true)
                 }
                 .appSegmentedControlStyle()
-                .frame(width: 180)
+                .frame(width: 168)
                 Spacer()
                 Button(action: onOpenCreateGroup) {
                     Image(systemName: "plus")

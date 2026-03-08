@@ -166,7 +166,7 @@ internal fun AppOverlayMetadataBadge(
                 RoundedCornerShape(999.dp),
             )
             .border(0.7.dp, colors.brandGold.copy(alpha = 0.38f), RoundedCornerShape(999.dp))
-            .padding(horizontal = 5.dp, vertical = 2.dp),
+            .padding(horizontal = 5.dp, vertical = 1.dp),
     )
 }
 

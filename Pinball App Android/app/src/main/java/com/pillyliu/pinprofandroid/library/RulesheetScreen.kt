@@ -74,7 +74,6 @@ internal fun ExternalRulesheetWebScreen(
             AppScreenHeader(
                 title = title,
                 onBack = onBack,
-                modifier = Modifier.padding(top = 8.dp),
                 titleColor = MaterialTheme.colorScheme.onSurface,
             )
             ExternalRulesheetWebView(
@@ -245,7 +244,7 @@ internal fun RulesheetScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(contentPadding)
-                        .padding(start = 14.dp, end = 14.dp, top = 8.dp),
+                        .padding(start = 14.dp, end = 14.dp),
                 ) {
                     AppScreenHeader(
                         title = slug.replace('-', ' ').replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },

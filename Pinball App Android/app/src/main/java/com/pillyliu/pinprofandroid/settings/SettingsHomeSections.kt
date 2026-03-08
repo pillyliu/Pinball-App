@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -78,6 +80,7 @@ internal fun SettingsHomeContent(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (loading) {
@@ -391,16 +394,19 @@ private fun SettingsAboutSection() {
 
 @Composable
 internal fun LinkedHtmlText(html: String) {
-    val onBackground = MaterialTheme.colorScheme.onBackground.toArgb()
+    val bodyColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+    val linkColor = MaterialTheme.colorScheme.primary.toArgb()
     AndroidView(
         factory = { context ->
             TextView(context).apply {
                 movementMethod = LinkMovementMethod.getInstance()
+                setBackgroundColor(Color.Transparent.toArgb())
             }
         },
         update = { textView ->
             textView.text = HtmlCompat.fromHtml(html, HtmlCompat.FROM_HTML_MODE_LEGACY)
-            textView.setTextColor(onBackground)
+            textView.setTextColor(bodyColor)
+            textView.setLinkTextColor(linkColor)
         },
     )
 }

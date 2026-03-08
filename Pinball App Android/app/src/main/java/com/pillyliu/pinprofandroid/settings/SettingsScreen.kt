@@ -15,6 +15,7 @@ import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.LibrarySourceEvents
 import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.LibrarySourceType
+import com.pillyliu.pinprofandroid.ui.AppScreen
 import kotlinx.coroutines.launch
 
 sealed interface SettingsRoute {
@@ -87,58 +88,60 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
         SettingsRoute.Home -> Unit
     }
 
-    SettingsHomeContent(
-        builtinSources = builtinSources,
-        manufacturers = state.manufacturers,
-        importedSources = state.importedSources,
-        sourceState = state.sourceState,
-        loading = state.loading,
-        error = state.error,
-        refreshingHostedData = state.refreshingHostedData,
-        hostedDataStatusMessage = state.hostedDataStatusMessage,
-        hostedDataStatusIsError = state.hostedDataStatusIsError,
-        onOpenAddManufacturer = { state.route = SettingsRoute.AddManufacturer },
-        onOpenAddVenue = { state.route = SettingsRoute.AddVenue },
-        onOpenAddTournament = { state.route = SettingsRoute.AddTournament },
-        onToggleEnabled = { sourceId, isEnabled ->
-            LibrarySourceStateStore.setEnabled(context, sourceId, isEnabled)
-            state.afterSourceMutation()
-        },
-        onTogglePinned = { sourceId, isPinned ->
-            if (LibrarySourceStateStore.setPinned(context, sourceId, isPinned)) {
+    AppScreen(contentPadding) {
+        SettingsHomeContent(
+            builtinSources = builtinSources,
+            manufacturers = state.manufacturers,
+            importedSources = state.importedSources,
+            sourceState = state.sourceState,
+            loading = state.loading,
+            error = state.error,
+            refreshingHostedData = state.refreshingHostedData,
+            hostedDataStatusMessage = state.hostedDataStatusMessage,
+            hostedDataStatusIsError = state.hostedDataStatusIsError,
+            onOpenAddManufacturer = { state.route = SettingsRoute.AddManufacturer },
+            onOpenAddVenue = { state.route = SettingsRoute.AddVenue },
+            onOpenAddTournament = { state.route = SettingsRoute.AddTournament },
+            onToggleEnabled = { sourceId, isEnabled ->
+                LibrarySourceStateStore.setEnabled(context, sourceId, isEnabled)
                 state.afterSourceMutation()
-            } else {
-                state.error = "Pinned sources are limited to ${LibrarySourceStateStore.MAX_PINNED_SOURCES}."
-            }
-        },
-        onRefreshSource = { source ->
-            scope.launch {
-                when (source.type) {
-                    LibrarySourceType.VENUE -> {
-                        runCatching { refreshVenueSource(context, source) }
-                            .onSuccess(state::applySourceSnapshot)
-                            .onFailure {
-                                state.error = "Venue refresh failed: ${it.message ?: "Unknown error"}"
-                            }
-                    }
-
-                    LibrarySourceType.TOURNAMENT -> {
-                        runCatching { refreshTournamentSource(context, source) }
-                            .onSuccess(state::applySourceSnapshot)
-                            .onFailure {
-                                state.error = "Tournament refresh failed: ${it.message ?: "Unknown error"}"
-                            }
-                    }
-
-                    else -> Unit
+            },
+            onTogglePinned = { sourceId, isPinned ->
+                if (LibrarySourceStateStore.setPinned(context, sourceId, isPinned)) {
+                    state.afterSourceMutation()
+                } else {
+                    state.error = "Pinned sources are limited to ${LibrarySourceStateStore.MAX_PINNED_SOURCES}."
                 }
-            }
-        },
-        onDeleteSource = { sourceId ->
-            state.applySourceSnapshot(removeSettingsSource(context, sourceId))
-        },
-        onRefreshHostedData = {
-            scope.launch { state.refreshHostedLibraryData() }
-        },
-    )
+            },
+            onRefreshSource = { source ->
+                scope.launch {
+                    when (source.type) {
+                        LibrarySourceType.VENUE -> {
+                            runCatching { refreshVenueSource(context, source) }
+                                .onSuccess(state::applySourceSnapshot)
+                                .onFailure {
+                                    state.error = "Venue refresh failed: ${it.message ?: "Unknown error"}"
+                                }
+                        }
+
+                        LibrarySourceType.TOURNAMENT -> {
+                            runCatching { refreshTournamentSource(context, source) }
+                                .onSuccess(state::applySourceSnapshot)
+                                .onFailure {
+                                    state.error = "Tournament refresh failed: ${it.message ?: "Unknown error"}"
+                                }
+                        }
+
+                        else -> Unit
+                    }
+                }
+            },
+            onDeleteSource = { sourceId ->
+                state.applySourceSnapshot(removeSettingsSource(context, sourceId))
+            },
+            onRefreshHostedData = {
+                scope.launch { state.refreshHostedLibraryData() }
+            },
+        )
+    }
 }
