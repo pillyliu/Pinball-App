@@ -20,6 +20,8 @@
   - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryHostedData.kt`
 - Android Settings source import/remove/refresh persistence now lives behind `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsDataIntegration.kt`, so `SettingsScreen.kt` no longer owns hosted manufacturer reload, hosted-data force refresh, or imported-source mutation wiring inline.
 - iOS Settings source import/remove/refresh persistence now lives behind `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/settings/SettingsDataIntegration.swift`, so `SettingsViewModel` no longer owns hosted manufacturer reload, hosted-data force refresh, or imported-source mutation wiring inline.
+- iOS Settings add/import routes now live in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/settings/SettingsImportScreens.swift`, so `SettingsScreen.swift` no longer carries the Manufacturer/Venue/Tournament route bodies inline.
+- Android Settings add/import routes now live in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsImportScreens.kt`, so `SettingsScreen.kt` no longer carries the Manufacturer/Venue/Tournament route bodies inline.
 
 ## Next audit targets
 
