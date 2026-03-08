@@ -530,8 +530,7 @@ struct GameRoomMachineView: View {
 
         return VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Service")
-                    .font(.footnote.weight(.semibold))
+                AppCardSubheading(text: "Service")
                 LazyVGrid(columns: twoColumnGrid, spacing: 8) {
                     ForEach(serviceInputItems, id: \.title) { item in
                         Button(action: {
@@ -550,8 +549,7 @@ struct GameRoomMachineView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Issue")
-                    .font(.footnote.weight(.semibold))
+                AppCardSubheading(text: "Issue")
                 LazyVGrid(columns: twoColumnGrid, spacing: 8) {
                     ForEach(issueInputItems, id: \.title) { item in
                         Button(action: { activeInputSheet = item.sheet }) {
@@ -567,8 +565,7 @@ struct GameRoomMachineView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Ownership / Media")
-                    .font(.footnote.weight(.semibold))
+                AppCardSubheading(text: "Ownership / Media")
                 LazyVGrid(columns: twoColumnGrid, spacing: 8) {
                     ForEach(ownershipAndMediaInputItems, id: \.title) { item in
                         Button(action: { activeInputSheet = item.sheet }) {

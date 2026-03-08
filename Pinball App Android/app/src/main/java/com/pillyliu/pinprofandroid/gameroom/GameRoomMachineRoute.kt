@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.ConstrainedAsyncImagePreview
 import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
+import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -236,7 +237,7 @@ private fun GameRoomMachineInputPanel(
     onLogPlaysRequest: (String) -> Unit,
 ) {
     CardContainer {
-        Text("Service", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+        AppCardSubheading("Service")
         TwoColumnButtons(
             items = listOf(
                 "Clean Glass" to { onOpenInputSheet(GameRoomInputSheet.CleanGlass) },
@@ -248,7 +249,7 @@ private fun GameRoomMachineInputPanel(
             ),
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        Text("Issue", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+        AppCardSubheading("Issue")
         TwoColumnButtons(
             items = listOf(
                 "Log Issue" to { onOpenInputSheet(GameRoomInputSheet.LogIssue) },
@@ -263,7 +264,7 @@ private fun GameRoomMachineInputPanel(
             ),
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        Text("Ownership / Media", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+        AppCardSubheading("Ownership / Media")
         TwoColumnButtons(
             items = listOf(
                 "Ownership Update" to { onOpenInputSheet(GameRoomInputSheet.OwnershipUpdate) },

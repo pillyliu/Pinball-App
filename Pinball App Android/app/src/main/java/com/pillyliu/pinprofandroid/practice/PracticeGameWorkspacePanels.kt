@@ -220,7 +220,7 @@ private fun PracticeGameLogPanel(
     onEditLogEntry: (JournalEntry) -> Unit,
     onDeleteLogEntry: (JournalEntry) -> Unit,
 ) {
-    Text("Log", fontWeight = FontWeight.SemiBold)
+    AppCardSubheading("Log")
     val logRows = store.journalItems(JournalFilter.All)
         .filter { it.gameSlug == gameKey }
         .map { row ->

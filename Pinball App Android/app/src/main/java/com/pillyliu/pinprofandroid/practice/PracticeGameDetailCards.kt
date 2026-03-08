@@ -79,7 +79,7 @@ internal fun PracticeGameResourcesCard(
     val context = LocalContext.current
 
     CardContainer {
-        Text("Game Resources", fontWeight = FontWeight.SemiBold)
+        AppCardSubheading("Game Resources")
         Text(game.metaLine(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),

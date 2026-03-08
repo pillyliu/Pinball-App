@@ -20,8 +20,7 @@ struct PracticeGameResourceCard: View {
                     Spacer(minLength: 0)
                 }
             }
-            Text("Game Resources")
-                .font(.headline)
+            AppCardSubheading(text: "Game Resources")
 
             if let game {
                 Text(game.metaLine)
@@ -67,9 +66,7 @@ struct PracticeGameResourceCard: View {
                                 RoundedRectangle(cornerRadius: 10)
                                     .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
                             )
-                        Text("No video references listed.")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
+                        AppCardSubheading(text: "No video references listed.")
                     }
                     .frame(maxWidth: .infinity)
                     .aspectRatio(16.0 / 9.0, contentMode: .fit)
