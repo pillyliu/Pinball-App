@@ -315,7 +315,7 @@ fun StatsScreen(
                         showFullLplLastName = showFullLplLastName,
                         isRefreshing = isRefreshing,
                         initialLoadComplete = initialLoadComplete,
-                        maxVisibleRows = 8,
+                        maxVisibleRows = 11,
                     )
                 }
                 CardContainer(modifier = Modifier.fillMaxWidth()) {
