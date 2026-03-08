@@ -114,6 +114,29 @@ func PinballOverlayMetadataBadge(_ title: String) -> some View {
         )
 }
 
+@ViewBuilder
+func AppReadingProgressPill(
+    text: String,
+    saved: Bool,
+    pulseOpacity: Double = 1
+) -> some View {
+    let foreground = saved ? AppTheme.statsHigh : AppTheme.brandInk
+    let background = saved ? AppTheme.statsHigh.opacity(0.18) : AppTheme.controlBg.opacity(0.88)
+    let border = saved ? AppTheme.statsHigh.opacity(0.34) : AppTheme.brandChalk.opacity(0.24)
+
+    Text(text)
+        .font(.caption2.weight(.semibold))
+        .foregroundStyle(foreground)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(background, in: Capsule())
+        .overlay(
+            Capsule()
+                .stroke(border, lineWidth: 0.8)
+        )
+        .opacity(pulseOpacity)
+}
+
 func PinballShortRulesheetTitle(for link: PinballGame.ReferenceLink) -> String {
     let label = link.label.lowercased()
     if label.contains("(tf)") { return "TF" }

@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -166,6 +167,37 @@ internal fun AppOverlayMetadataBadge(
             )
             .border(0.7.dp, colors.brandGold.copy(alpha = 0.38f), RoundedCornerShape(999.dp))
             .padding(horizontal = 5.dp, vertical = 2.dp),
+    )
+}
+
+@Composable
+internal fun AppReadingProgressPill(
+    text: String,
+    saved: Boolean,
+    modifier: Modifier = Modifier,
+    alpha: Float = 1f,
+) {
+    val colors = PinballThemeTokens.colors
+    val foreground = if (saved) colors.statsHigh else colors.brandInk
+    val background = if (saved) {
+        colors.statsHigh.copy(alpha = 0.18f)
+    } else {
+        colors.controlBackground.copy(alpha = 0.88f)
+    }
+    val border = if (saved) {
+        colors.statsHigh.copy(alpha = 0.34f)
+    } else {
+        colors.brandChalk.copy(alpha = 0.24f)
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = foreground,
+        modifier = modifier
+            .graphicsLayer { this.alpha = alpha }
+            .background(background, RoundedCornerShape(999.dp))
+            .border(0.8.dp, border, RoundedCornerShape(999.dp))
+            .padding(horizontal = 9.dp, vertical = 5.dp),
     )
 }
 

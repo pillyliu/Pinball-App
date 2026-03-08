@@ -66,17 +66,11 @@ struct RulesheetScreen: View {
                             Button {
                                 saveCurrentProgress()
                             } label: {
-                                Text("\(currentProgressPercent)%")
-                                    .font(.caption2.weight(.semibold))
-                                    .foregroundStyle(progressPillForeground)
-                                    .padding(.horizontal, 9)
-                                    .padding(.vertical, 5)
-                                    .background(progressPillBackground, in: Capsule())
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(progressPillStroke, lineWidth: 0.7)
-                                    )
-                                    .opacity(progressNeedsSave ? (pulsePhase ? 0.52 : 1.0) : 1.0)
+                                AppReadingProgressPill(
+                                    text: "\(currentProgressPercent)%",
+                                    saved: !progressNeedsSave && savedProgress != nil,
+                                    pulseOpacity: progressNeedsSave ? (pulsePhase ? 0.52 : 1.0) : 1.0
+                                )
                             }
                             .buttonStyle(.plain)
                             .padding(.top, topInset + 30)
@@ -175,28 +169,6 @@ struct RulesheetScreen: View {
     private var progressNeedsSave: Bool {
         currentProgressPercent != savedProgressPercent
     }
-
-    private var progressPillBackground: Color {
-        if !progressNeedsSave, savedProgress != nil {
-            return Color.green.opacity(0.85)
-        }
-        return Color(uiColor: .secondarySystemBackground).opacity(0.88)
-    }
-
-    private var progressPillForeground: Color {
-        if !progressNeedsSave, savedProgress != nil {
-            return .white
-        }
-        return .primary
-    }
-
-    private var progressPillStroke: Color {
-        if !progressNeedsSave, savedProgress != nil {
-            return Color.green.opacity(0.9)
-        }
-        return Color.primary.opacity(0.16)
-    }
-
     private var progressStorageKey: String {
         "rulesheet-last-progress-\(slug)"
     }

@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.pillyliu.pinprofandroid.data.downloadTextAllowMissing
 import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
+import com.pillyliu.pinprofandroid.ui.AppReadingProgressPill
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
@@ -221,11 +222,7 @@ internal fun RulesheetScreen(
                     ),
                     label = "pulseAlpha",
                 )
-                Text(
-                    text = percentText,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
+                Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(top = 12.dp, end = 12.dp)
@@ -234,29 +231,14 @@ internal fun RulesheetScreen(
                             savedRatio = clamped
                             prefs.edit { putFloat("rulesheet-last-progress-$slug", clamped) }
                             onSavePracticeRatio?.invoke(clamped)
-                        }
-                        .background(
-                            if (needsSave) {
-                                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.76f)
-                            } else {
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.84f)
-                            },
-                            RoundedCornerShape(999.dp),
-                        )
-                        .border(
-                            width = 0.5.dp,
-                            color = if (needsSave) {
-                                MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
-                            } else {
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.9f)
-                            },
-                            shape = RoundedCornerShape(999.dp),
-                        )
-                        .graphicsLayer {
-                            alpha = if (needsSave) pulseAlpha else 1f
-                        }
-                        .padding(horizontal = 9.dp, vertical = 4.dp),
-                )
+                        },
+                ) {
+                    AppReadingProgressPill(
+                        text = percentText,
+                        saved = !needsSave && savedRatio > 0f,
+                        alpha = if (needsSave) pulseAlpha else 1f,
+                    )
+                }
             }
             if (chromeVisible) {
                 Box(
