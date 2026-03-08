@@ -238,8 +238,7 @@ struct SettingsScreen: View {
 
     private var librarySection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Library")
-                .font(.headline)
+            AppSectionTitle(text: "Library")
 
             Text("Add:")
                 .font(.subheadline.weight(.semibold))
@@ -425,8 +424,7 @@ struct SettingsScreen: View {
 
     private var privacySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Privacy")
-                .font(.headline)
+            AppSectionTitle(text: "Privacy")
 
             Text("Lansing Pinball League names are shown as first name plus last initial by default.")
                 .font(.caption)
@@ -467,8 +465,7 @@ struct SettingsScreen: View {
 
     private var aboutSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("About")
-                .font(.headline)
+            AppSectionTitle(text: "About")
             Image("LaunchLogo")
                 .resizable()
                 .scaledToFit()

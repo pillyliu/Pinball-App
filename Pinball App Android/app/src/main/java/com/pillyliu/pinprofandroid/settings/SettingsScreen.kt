@@ -76,6 +76,7 @@ import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
 import com.pillyliu.pinprofandroid.ui.EmptyLabel
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -228,7 +229,7 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
         ) {
             item {
                 CardContainer {
-                    Text("Library", fontWeight = FontWeight.SemiBold)
+                    SectionTitle("Library")
                     Text(
                         "Add:",
                         style = MaterialTheme.typography.bodyMedium,
@@ -369,7 +370,7 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
 
             item {
                 CardContainer {
-                    Text("About", fontWeight = FontWeight.SemiBold)
+                    SectionTitle("About")
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center,
@@ -453,7 +454,7 @@ private fun PrivacySection() {
     val showFullLastName = rememberShowFullLplLastName()
 
     CardContainer {
-        Text("Privacy", fontWeight = FontWeight.SemiBold)
+        SectionTitle("Privacy")
         Text(
             "Lansing Pinball League names are shown as first name plus last initial by default.",
             style = MaterialTheme.typography.bodySmall,
