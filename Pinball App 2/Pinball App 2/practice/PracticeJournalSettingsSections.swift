@@ -45,14 +45,14 @@ struct PracticeJournalSectionView: View {
                         guard let entry = selectedJournalEntries.first, selectedJournalEntries.count == 1 else { return }
                         onEditJournalEntry(entry)
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
                     .disabled(selectedEditableJournalEntries.count != 1)
 
                     Button("Delete", role: .destructive) {
                         guard !selectedEditableJournalEntries.isEmpty else { return }
                         onDeleteJournalEntries(selectedEditableJournalEntries)
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppDestructiveActionButtonStyle(fillsWidth: false))
                     .disabled(selectedEditableJournalEntries.isEmpty)
                 }
             }

@@ -152,7 +152,7 @@ struct StandingsScreen: View {
                 embeddedInNavigation: false
             )
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.plain)
         .disabled(viewModel.seasons.isEmpty)
     }
 

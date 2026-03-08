@@ -172,7 +172,7 @@ struct GameRoomLogIssueSheet: View {
                         Label("Add Photo", systemImage: "photo.on.rectangle")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppSecondaryActionButtonStyle())
 
                     Button {
                         pickerKind = .video
@@ -183,7 +183,7 @@ struct GameRoomLogIssueSheet: View {
                         Label("Add Video", systemImage: "video")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppSecondaryActionButtonStyle())
                 }
 
                 if isImportingAsset {

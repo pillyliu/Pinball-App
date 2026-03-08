@@ -44,6 +44,7 @@
 - iOS GameRoom fetch/import, pagination, venue save, area save/edit, and machine save/archive/delete CTAs now also route through shared `AppPrimaryActionButtonStyle`, `AppSecondaryActionButtonStyle`, and `AppDestructiveActionButtonStyle` seams in `AppFilterControls.swift`, replacing the remaining feature-local `.glass` CTA styling pockets in `GameRoomSettingsComponents.swift`.
 - The iOS GameRoom edit-name save action now also uses that shared primary CTA seam as a true full-width row instead of a button trapped inside a spacer-wrapped `HStack`, matching the rest of the GameRoom settings action layout.
 - The iOS GameRoom home settings gear now also uses the shared compact icon-button seam in `AppFilterControls.swift`, aligning the home-shell utility affordance with the newer shared action chrome used across Practice and Settings.
+- iOS GameRoom media import buttons and add-machine utility actions now also route through the shared secondary CTA and compact icon-button seams in `AppFilterControls.swift`, reducing another pocket of feature-local `.glass` chrome in presentation and settings flows.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets

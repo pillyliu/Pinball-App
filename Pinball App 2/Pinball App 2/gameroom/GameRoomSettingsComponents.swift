@@ -716,7 +716,7 @@ struct GameRoomEditMachinesView: View {
                                     } label: {
                                         Image(systemName: "plus")
                                     }
-                                    .buttonStyle(.glass)
+                                    .buttonStyle(AppCompactIconActionButtonStyle())
                                 }
                                 .padding(10)
                                 .appControlStyle()
@@ -825,7 +825,7 @@ struct GameRoomEditMachinesView: View {
                             } label: {
                                 Image(systemName: "trash")
                             }
-                            .buttonStyle(.glass)
+                            .buttonStyle(AppCompactIconActionButtonStyle())
                         }
                     }
                 }

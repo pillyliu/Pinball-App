@@ -47,7 +47,7 @@ struct PracticeGameNoteCard: View {
             HStack {
                 Spacer()
                 Button("Save Note", action: onSave)
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppPrimaryActionButtonStyle(fillsWidth: false))
                     .disabled(isDisabled)
             }
         }

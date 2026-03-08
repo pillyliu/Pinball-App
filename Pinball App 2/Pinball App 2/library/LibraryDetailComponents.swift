@@ -55,14 +55,14 @@ struct LibraryDetailSummaryCard: View {
 
                 if game.hasPlayfieldResource {
                     PinballResourceRow("Playfield") {
-                        NavigationLink(libraryPlayfieldButtonTitle(for: game)) {
-                            HostedImageView(imageCandidates: game.actualFullscreenPlayfieldCandidates)
+                    NavigationLink(libraryPlayfieldButtonTitle(for: game)) {
+                        HostedImageView(imageCandidates: game.actualFullscreenPlayfieldCandidates)
+                    }
+                    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openPlayfield)
                         }
-                        .buttonStyle(.glass)
-                        .simultaneousGesture(
-                            TapGesture().onEnded {
-                                LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openPlayfield)
-                            }
                         )
                     }
                 } else {

@@ -212,7 +212,7 @@ struct TargetsScreen: View {
                     .buttonStyle(.plain)
             } else {
                 sortDropdownMenu
-                    .buttonStyle(.glass)
+                    .buttonStyle(.plain)
             }
         }
         .frame(width: sortControlWidth)
@@ -225,7 +225,7 @@ struct TargetsScreen: View {
                     .buttonStyle(.plain)
             } else {
                 bankDropdownMenu
-                    .buttonStyle(.glass)
+                    .buttonStyle(.plain)
             }
         }
         .frame(width: bankControlWidth)

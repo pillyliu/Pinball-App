@@ -417,7 +417,7 @@ struct StatsScreen: View {
                 embeddedInNavigation: false
             )
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
     }
 
