@@ -46,6 +46,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
+import com.pillyliu.pinprofandroid.ui.AppOverlaySubtitle
+import com.pillyliu.pinprofandroid.ui.AppOverlayTitle
 import com.pillyliu.pinprofandroid.ui.AppVariantPill
 import com.pillyliu.pinprofandroid.ui.AppVariantPillStyle
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
@@ -327,14 +329,8 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.Top,
             ) {
-                Text(
-                    game.name,
-                    color = androidx.compose.ui.graphics.Color.White,
-                    maxLines = 2,
-                    minLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    fontSize = 16.sp,
-                    lineHeight = 17.sp,
+                AppOverlayTitle(
+                    text = game.name,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -346,14 +342,10 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        game.manufacturerYearLine(),
-                        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.95f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        fontSize = 12.sp,
-                        lineHeight = 14.sp,
+                    AppOverlaySubtitle(
+                        text = game.manufacturerYearLine(),
                         modifier = Modifier.widthIn(max = if (makerMaxWidth > 48.dp) makerMaxWidth else 48.dp),
+                        alpha = 0.95f,
                     )
                     variantText?.let { variant ->
                         AppVariantPill(
@@ -364,12 +356,9 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
                     }
                 }
             }
-            Text(
-                game.locationBankLine().ifBlank { " " },
-                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.88f),
-                maxLines = 1,
-                fontSize = 12.sp,
-                lineHeight = 14.sp,
+            AppOverlaySubtitle(
+                text = game.locationBankLine().ifBlank { " " },
+                alpha = 0.88f,
             )
         }
     }

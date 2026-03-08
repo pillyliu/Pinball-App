@@ -115,6 +115,24 @@ func PinballOverlayMetadataBadge(_ title: String) -> some View {
 }
 
 @ViewBuilder
+func AppOverlayTitle(_ title: String) -> some View {
+    Text(title)
+        .font(.system(size: 16, weight: .semibold))
+        .foregroundStyle(.white)
+        .shadow(color: .black.opacity(1.0), radius: 4, x: 0, y: 3)
+        .lineSpacing(-1)
+        .multilineTextAlignment(.leading)
+}
+
+@ViewBuilder
+func AppOverlaySubtitle(_ title: String, emphasis: Double = 0.96) -> some View {
+    Text(title)
+        .font(.caption)
+        .foregroundStyle(.white.opacity(emphasis))
+        .shadow(color: .black.opacity(0.9), radius: 3, x: 0, y: 1)
+}
+
+@ViewBuilder
 func AppReadingProgressPill(
     text: String,
     saved: Bool,

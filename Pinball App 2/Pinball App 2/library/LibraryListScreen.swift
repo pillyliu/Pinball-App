@@ -170,13 +170,9 @@ extension LibraryScreen {
     private func libraryCardOverlay(for game: PinballGame) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .top, spacing: 6) {
-                Text(game.name)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(1.0), radius: 4, x: 0, y: 3)
+                AppOverlayTitle(game.name)
                     .lineSpacing(-1)
                     .lineLimit(2)
-                    .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, minHeight: 40, alignment: .topLeading)
             }
@@ -184,10 +180,7 @@ extension LibraryScreen {
             .clipped()
 
             HStack(spacing: 4) {
-                Text(game.manufacturerYearLine)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.96))
-                    .shadow(color: .black.opacity(0.9), radius: 3, x: 0, y: 1)
+                AppOverlaySubtitle(game.manufacturerYearLine)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .layoutPriority(1)
@@ -199,10 +192,7 @@ extension LibraryScreen {
                 }
             }
 
-            Text(game.locationBankLine.isEmpty ? " " : game.locationBankLine)
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.9))
-                .shadow(color: .black.opacity(0.9), radius: 3, x: 0, y: 1)
+            AppOverlaySubtitle(game.locationBankLine.isEmpty ? " " : game.locationBankLine, emphasis: 0.9)
                 .lineLimit(1)
                 .opacity(game.locationBankLine.isEmpty ? 0 : 1)
         }

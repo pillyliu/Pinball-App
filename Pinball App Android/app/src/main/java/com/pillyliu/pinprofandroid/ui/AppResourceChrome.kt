@@ -26,7 +26,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -167,6 +169,51 @@ internal fun AppOverlayMetadataBadge(
             )
             .border(0.7.dp, colors.brandGold.copy(alpha = 0.38f), RoundedCornerShape(999.dp))
             .padding(horizontal = 5.dp, vertical = 1.dp),
+    )
+}
+
+@Composable
+internal fun AppOverlayTitle(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = text,
+        fontSize = 16.sp,
+        lineHeight = 17.sp,
+        color = Color.White,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        style = MaterialTheme.typography.titleSmall.copy(
+            shadow = Shadow(
+                color = Color.Black.copy(alpha = 1f),
+                blurRadius = 4f,
+            ),
+        ),
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun AppOverlaySubtitle(
+    text: String,
+    modifier: Modifier = Modifier,
+    alpha: Float = 0.96f,
+) {
+    Text(
+        text = text,
+        fontSize = 12.sp,
+        lineHeight = 14.sp,
+        color = Color.White.copy(alpha = alpha),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        style = MaterialTheme.typography.bodySmall.copy(
+            shadow = Shadow(
+                color = Color.Black.copy(alpha = 0.9f),
+                blurRadius = 3f,
+            ),
+        ),
+        modifier = modifier,
     )
 }
 

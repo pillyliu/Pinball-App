@@ -75,6 +75,7 @@
 - Android Library route-missing recovery now also uses the shared `AppSecondaryButton` seam in `CommonUi.kt` instead of a raw fallback button in `LibraryRouteContent.kt`.
 - Android Library rulesheet resume confirmation now also uses the shared `AppTextAction` seam in `CommonUi.kt` instead of raw `TextButton` confirm/dismiss actions in `RulesheetScreen.kt`.
 - Shared `AppCardTitle` chrome now also backs the Library summary title on both platforms instead of feature-local headline and semibold title styling.
+- Library list-card title and subtitle overlays now also route through shared `AppOverlayTitle` and `AppOverlaySubtitle` seams in `AppResourceChrome.swift` and `AppResourceChrome.kt`, so the card image overlays use one branded, high-contrast hierarchy instead of feature-local raw white text styling.
 
 ## Next audit targets
 
