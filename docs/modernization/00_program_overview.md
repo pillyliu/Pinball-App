@@ -51,6 +51,7 @@ Modernize the iOS and Android apps so they have:
 2. Create and maintain a real audit matrix.
 3. Prevent parity drift.
 4. Reduce oversized screens and mixed responsibilities.
+5. Establish cross-platform semantic theme tokens for shell and common controls.
 
 ## Canonical baseline
 
@@ -112,3 +113,9 @@ Library sub-surfaces currently present in code:
 4. Audit League shell plus nested destinations.
 5. Do post-ship GameRoom cleanup and screen splitting.
 6. Run a design-system pass across shell, cards, controls, and sheets.
+
+## Current phase shift
+
+- League and GameRoom structural cleanup are now at a stable baseline.
+- The active system-level phase is shell/theme/design-system groundwork.
+- The first concrete step in that phase is Android semantic tokenization for shell and shared controls.

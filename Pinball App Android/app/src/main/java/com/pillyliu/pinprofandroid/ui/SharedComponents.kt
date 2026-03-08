@@ -43,10 +43,11 @@ fun FixedWidthTableCell(
     horizontalPadding: Dp = 3.dp,
     overflow: TextOverflow = TextOverflow.Clip,
 ) {
+    val colors = PinballThemeTokens.colors
     Text(
         text = text,
         modifier = modifier.width(width.dp).padding(horizontal = horizontalPadding),
-        color = if (color == Color.Unspecified) MaterialTheme.colorScheme.onSurface else color,
+        color = if (color == Color.Unspecified) colors.shellSelectedContent else color,
         fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal,
         fontSize = fontSize,
         maxLines = maxLines,
@@ -66,6 +67,7 @@ fun CompactDropdownFilter(
     textSize: TextUnit = 12.sp,
     itemTextSize: TextUnit = 12.sp,
 ) {
+    val colors = PinballThemeTokens.colors
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -83,14 +85,14 @@ fun CompactDropdownFilter(
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 textStyle = LocalTextStyle.current.copy(fontSize = textSize),
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    focusedBorderColor = MaterialTheme.colorScheme.outline,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    focusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedContainerColor = colors.controlBackground,
+                    unfocusedContainerColor = colors.controlBackground,
+                    focusedBorderColor = colors.controlBorder,
+                    unfocusedBorderColor = colors.controlBorder,
+                    focusedTextColor = colors.shellSelectedContent,
+                    unfocusedTextColor = colors.shellSelectedContent,
+                    focusedTrailingIconColor = colors.shellUnselectedContent,
+                    unfocusedTrailingIconColor = colors.shellUnselectedContent,
                 ),
                 modifier = Modifier
                     .menuAnchor(type = MenuAnchorType.PrimaryNotEditable)
@@ -128,6 +130,7 @@ fun AnchoredDropdownFilter(
     buttonTextSize: TextUnit = 13.sp,
     itemTextSize: TextUnit = 12.sp,
 ) {
+    val colors = PinballThemeTokens.colors
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -142,14 +145,14 @@ fun AnchoredDropdownFilter(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             textStyle = LocalTextStyle.current.copy(fontSize = buttonTextSize),
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                focusedBorderColor = MaterialTheme.colorScheme.outline,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                focusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedContainerColor = colors.controlBackground,
+                unfocusedContainerColor = colors.controlBackground,
+                focusedBorderColor = colors.controlBorder,
+                unfocusedBorderColor = colors.controlBorder,
+                focusedTextColor = colors.shellSelectedContent,
+                unfocusedTextColor = colors.shellSelectedContent,
+                focusedTrailingIconColor = colors.shellUnselectedContent,
+                unfocusedTrailingIconColor = colors.shellUnselectedContent,
             ),
             modifier = Modifier
                 .menuAnchor(type = MenuAnchorType.PrimaryNotEditable)

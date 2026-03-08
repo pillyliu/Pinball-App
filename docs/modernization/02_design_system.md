@@ -80,3 +80,19 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 - iOS already uses a light custom semantic layer in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppTheme.swift`.
 - Android still leans heavily on Material color-scheme defaults in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/PinballTheme.kt`.
 - The next design-system step is not a visual overhaul first. It is defining semantic roles that both files can implement consistently.
+
+## 2026-03-07 baseline progress
+
+- Android now has an explicit semantic token layer in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/PinballDesignTokens.kt`.
+- `PinballTheme.kt` now provides semantic shell/panel/control/stat/target roles instead of exposing only raw Material scheme usage to the rest of the app.
+- Android shell and shared UI now consume those semantic tokens in:
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/MainActivity.kt`
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt`
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/SharedComponents.kt`
+- iOS still needs the equivalent expansion from color helpers toward a fuller semantic token inventory for spacing, radii, and shell roles.
+
+## Next design-system steps
+
+1. Expand iOS semantic tokens beyond color helpers so shell, panel, and control roles are explicit.
+2. Normalize root-shell chrome and bottom-bar semantics across `ContentView.swift` and `MainActivity.kt`.
+3. Move shared component families onto semantic tokens before any broader visual restyling.

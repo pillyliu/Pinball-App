@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -54,6 +55,7 @@ import com.pillyliu.pinprofandroid.practice.PracticeScreen
 import com.pillyliu.pinprofandroid.settings.SettingsScreen
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinprofandroid.ui.PinballTheme
+import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -87,7 +89,25 @@ private enum class PinballTab {
     Library,
     Practice,
     GameRoom,
-    Settings,
+    Settings;
+
+    val title: String
+        get() = when (this) {
+            League -> "League"
+            Library -> "Library"
+            Practice -> "Practice"
+            GameRoom -> "GameRoom"
+            Settings -> "Settings"
+        }
+
+    val icon: ImageVector
+        get() = when (this) {
+            League -> Icons.Outlined.BarChart
+            Library -> Icons.Outlined.AutoStories
+            Practice -> Icons.Outlined.SportsEsports
+            GameRoom -> Icons.Outlined.Home
+            Settings -> Icons.Outlined.Settings
+        }
 }
 
 @Composable
@@ -111,6 +131,7 @@ private fun PinballApp() {
     var leagueDestination by rememberSaveable { mutableStateOf<LeagueDestination?>(null) }
     val bottomBarVisible = rememberSaveable { mutableStateOf(true) }
     PinballTheme {
+        val colors = PinballThemeTokens.colors
         CompositionLocalProvider(LocalBottomBarVisible provides bottomBarVisible) {
             // Prevent system back/edge gestures from exiting the app at the root level.
             // Nested screens can still override this with their own BackHandler.
@@ -121,7 +142,7 @@ private fun PinballApp() {
             }
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = colors.background,
             ) { padding ->
                 Box(
                     modifier = Modifier
@@ -154,18 +175,18 @@ private fun PinballApp() {
 
                     if (bottomBarVisible.value) {
                         val tabItemColors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedIconColor = colors.shellSelectedContent,
+                            selectedTextColor = colors.shellSelectedContent,
+                            unselectedIconColor = colors.shellUnselectedContent,
+                            unselectedTextColor = colors.shellUnselectedContent,
+                            indicatorColor = colors.shellIndicator,
                         )
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .fillMaxWidth()
                                 .navigationBarsPadding()
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
+                                .background(colors.shellSurface),
                         ) {
                             NavigationBar(
                                 containerColor = Color.Transparent,
@@ -182,40 +203,40 @@ private fun PinballApp() {
                                         selectedTab = PinballTab.League
                                         leagueDestination = null
                                     },
-                                    icon = { Icon(Icons.Outlined.BarChart, contentDescription = "League") },
-                                    label = { Text("League") },
+                                    icon = { Icon(PinballTab.League.icon, contentDescription = PinballTab.League.title) },
+                                    label = { Text(PinballTab.League.title) },
                                     alwaysShowLabel = false,
                                     colors = tabItemColors,
                                 )
                                 NavigationBarItem(
                                     selected = selectedTab == PinballTab.Library,
                                     onClick = { selectedTab = PinballTab.Library },
-                                    icon = { Icon(Icons.Outlined.AutoStories, contentDescription = "Library") },
-                                    label = { Text("Library") },
+                                    icon = { Icon(PinballTab.Library.icon, contentDescription = PinballTab.Library.title) },
+                                    label = { Text(PinballTab.Library.title) },
                                     alwaysShowLabel = false,
                                     colors = tabItemColors,
                                 )
                                 NavigationBarItem(
                                     selected = selectedTab == PinballTab.Practice,
                                     onClick = { selectedTab = PinballTab.Practice },
-                                    icon = { Icon(Icons.Outlined.SportsEsports, contentDescription = "Practice") },
-                                    label = { Text("Practice") },
+                                    icon = { Icon(PinballTab.Practice.icon, contentDescription = PinballTab.Practice.title) },
+                                    label = { Text(PinballTab.Practice.title) },
                                     alwaysShowLabel = false,
                                     colors = tabItemColors,
                                 )
                                 NavigationBarItem(
                                     selected = selectedTab == PinballTab.GameRoom,
                                     onClick = { selectedTab = PinballTab.GameRoom },
-                                    icon = { Icon(Icons.Outlined.Home, contentDescription = "GameRoom") },
-                                    label = { Text("GameRoom") },
+                                    icon = { Icon(PinballTab.GameRoom.icon, contentDescription = PinballTab.GameRoom.title) },
+                                    label = { Text(PinballTab.GameRoom.title) },
                                     alwaysShowLabel = false,
                                     colors = tabItemColors,
                                 )
                                 NavigationBarItem(
                                     selected = selectedTab == PinballTab.Settings,
                                     onClick = { selectedTab = PinballTab.Settings },
-                                    icon = { Icon(Icons.Outlined.Settings, contentDescription = "Settings") },
-                                    label = { Text("Settings") },
+                                    icon = { Icon(PinballTab.Settings.icon, contentDescription = PinballTab.Settings.title) },
+                                    label = { Text(PinballTab.Settings.title) },
                                     alwaysShowLabel = false,
                                     colors = tabItemColors,
                                 )

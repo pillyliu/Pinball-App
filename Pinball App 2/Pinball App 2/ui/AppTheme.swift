@@ -32,13 +32,27 @@ enum AppTheme {
     }
 }
 
+enum AppSpacing {
+    static let screenHorizontal: CGFloat = 14
+    static let screenHorizontalLarge: CGFloat = 22
+    static let screenVerticalCompact: CGFloat = 8
+    static let panelPadding: CGFloat = 12
+    static let controlHorizontal: CGFloat = 12
+    static let controlVertical: CGFloat = 6
+}
+
+enum AppRadii {
+    static let panel: CGFloat = 12
+    static let control: CGFloat = 10
+}
+
 enum AppLayout {
     static func isLargeTablet(horizontalSizeClass: UserInterfaceSizeClass?, width: CGFloat) -> Bool {
         horizontalSizeClass == .regular && width >= 1000
     }
 
     static func contentHorizontalPadding(isLargeTablet: Bool) -> CGFloat {
-        return isLargeTablet ? 22 : 14
+        return isLargeTablet ? AppSpacing.screenHorizontalLarge : AppSpacing.screenHorizontal
     }
 
     static func maxReadableContentWidth(isLargeTablet: Bool) -> CGFloat? {
@@ -58,11 +72,11 @@ enum AppLayout {
     }
 
     static func dropdownHorizontalPadding(isLargeTablet: Bool) -> CGFloat {
-        isLargeTablet ? 14 : 12
+        isLargeTablet ? AppSpacing.screenHorizontal : AppSpacing.controlHorizontal
     }
 
     static func dropdownVerticalPadding(isLargeTablet: Bool) -> CGFloat {
-        isLargeTablet ? 8 : 6
+        isLargeTablet ? AppSpacing.screenVerticalCompact : AppSpacing.controlVertical
     }
 
     static var dropdownContentSpacing: CGFloat { 6 }
@@ -85,26 +99,26 @@ extension View {
         self
             .background(.regularMaterial)
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: AppRadii.panel)
                     .stroke(AppTheme.border.opacity(0.7), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: AppRadii.panel, style: .continuous))
     }
 
     func appControlStyle() -> some View {
         self
             .background(AppTheme.controlBg)
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: AppRadii.control)
                     .stroke(AppTheme.controlBorder, lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
     }
 
     func appGlassControlStyle() -> some View {
         self
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
                     .fill(.ultraThinMaterial)
                     .overlay(Color.black.opacity(0.24))
                     .overlay(
@@ -116,10 +130,10 @@ extension View {
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: AppRadii.control)
                     .stroke(Color.white.opacity(0.18), lineWidth: 1.0)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
             .shadow(color: Color.black.opacity(0.35), radius: 10, y: 4)
     }
 

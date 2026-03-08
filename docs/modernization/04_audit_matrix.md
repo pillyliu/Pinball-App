@@ -26,9 +26,9 @@ Status values:
 | File | Action | Reason |
 | --- | --- | --- |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/app/ContentView.swift` | in audit | Root tab shell is compact on iOS, but should be documented as the canonical top-level app map. |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/MainActivity.kt` | needs refactor | Android root shell owns tab chrome, League nested routing, and bottom-bar behavior in one file. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/MainActivity.kt` | in audit | Android root shell now delegates League nested route content, but it still owns tab chrome, shell layout, and bottom-bar behavior in one file. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppTheme.swift` | in audit | iOS already has semantic helpers, but they are incomplete and not yet a full system. |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/PinballTheme.kt` | needs refactor | Android theme still centers on Material defaults rather than explicit semantic token roles. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/PinballTheme.kt` | in audit | Android theme now provides semantic shell/panel/control/stat/target roles, but the rest of the app still needs broader adoption and iOS still needs a fuller matching token layer. |
 
 ## Initial file-level hotspots
 
@@ -147,13 +147,16 @@ Status values:
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueMiniPreviews.kt` | stable | Android League `Targets`, `Standings`, and `Stats` preview bodies now live outside the preview-card shell file. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewRotationState.kt` | stable | Android League rotating preview timers and display toggles now live outside the home shell. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueDestinationHost.kt` | stable | Android League nested route content now lives behind an explicit destination-host seam instead of staying embedded in `MainActivity.kt`. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/PinballDesignTokens.kt` | stable | Android semantic shell/panel/control/stat/target token roles now live behind a dedicated design-system seam instead of being inferred ad hoc from raw Material colors. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt` | in audit | Android shared shell/background/card/back-button helpers now consume semantic tokens, but more component families still need to migrate onto the same layer. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/SharedComponents.kt` | in audit | Android dropdown and shared table-cell styling now consume semantic tokens, but the rest of the shared component library still needs consistent adoption. |
 
 ## Current work order
 
 1. Practice state ownership and route-model normalization plan
 2. Library audit and dependency boundaries
 3. League shell and nested destination contract
-4. Settings consistency pass
+4. Shell/theme/design-system semantic token pass
 
 ## Next audit additions
 

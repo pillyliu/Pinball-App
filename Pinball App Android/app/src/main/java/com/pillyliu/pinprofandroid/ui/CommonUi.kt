@@ -48,11 +48,12 @@ fun AppScreen(
     horizontalPadding: Dp = 14.dp,
     content: @Composable () -> Unit,
 ) {
+    val colors = PinballThemeTokens.colors
     Box(
         modifier = Modifier
             .then(modifier)
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(colors.background)
             .padding(contentPadding)
             .padding(horizontal = horizontalPadding, vertical = 8.dp),
     ) {
@@ -67,6 +68,7 @@ fun AppBackButton(
     size: Dp = 40.dp,
     iconSize: Dp = 20.dp,
 ) {
+    val colors = PinballThemeTokens.colors
     IconButton(
         onClick = onClick,
         modifier = modifier.size(size),
@@ -74,7 +76,7 @@ fun AppBackButton(
         Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = "Back",
-            tint = MaterialTheme.colorScheme.onSurface,
+            tint = colors.shellSelectedContent,
             modifier = Modifier.size(iconSize),
         )
     }
@@ -127,11 +129,13 @@ fun Modifier.iosEdgeSwipeBack(
 
 @Composable
 fun CardContainer(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val colors = PinballThemeTokens.colors
+    val shapes = PinballThemeTokens.shapes
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.38f), RoundedCornerShape(12.dp))
+            .background(colors.panel, RoundedCornerShape(shapes.panelCorner))
+            .border(1.dp, colors.border.copy(alpha = 0.38f), RoundedCornerShape(shapes.panelCorner))
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -141,7 +145,7 @@ fun CardContainer(modifier: Modifier = Modifier, content: @Composable () -> Unit
 
 @Composable
 fun SectionTitle(text: String) {
-    Text(text = text, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+    Text(text = text, color = PinballThemeTokens.colors.shellSelectedContent, fontWeight = FontWeight.SemiBold)
 }
 
 @Composable
@@ -152,7 +156,7 @@ fun EmptyLabel(text: String) {
             .padding(vertical = 20.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = text, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = text, color = PinballThemeTokens.colors.shellUnselectedContent)
     }
 }
 
@@ -163,6 +167,7 @@ fun InsetFilterHeader(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
 ) {
+    val colors = PinballThemeTokens.colors
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -178,7 +183,7 @@ fun InsetFilterHeader(
         Text(
             text = summaryText,
             modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = colors.shellUnselectedContent,
             fontWeight = FontWeight.SemiBold,
             fontSize = 12.sp,
             maxLines = 1,
@@ -190,7 +195,7 @@ fun InsetFilterHeader(
             Icon(
                 imageVector = Icons.Outlined.FilterList,
                 contentDescription = "Filters",
-                tint = MaterialTheme.colorScheme.onSurface,
+                tint = colors.shellSelectedContent,
             )
         }
     }

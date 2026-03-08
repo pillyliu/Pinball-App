@@ -14,6 +14,26 @@ enum RootTab: Hashable {
     case gameroom
     case practice
     case settings
+
+    var title: String {
+        switch self {
+        case .league: return "League"
+        case .library: return "Library"
+        case .gameroom: return "GameRoom"
+        case .practice: return "Practice"
+        case .settings: return "Settings"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .league: return "chart.bar.xaxis"
+        case .library: return "books.vertical"
+        case .gameroom: return "arcade.stick.console"
+        case .practice: return "figure.play"
+        case .settings: return "slider.horizontal.3"
+        }
+    }
 }
 
 final class AppNavigationModel: ObservableObject {
@@ -36,31 +56,31 @@ struct ContentView: View {
             LeagueScreen()
                 .tag(RootTab.league)
                 .tabItem {
-                    Label("League", systemImage: "chart.bar.xaxis")
+                    Label(RootTab.league.title, systemImage: RootTab.league.systemImage)
                 }
 
             LibraryScreen()
                 .tag(RootTab.library)
                 .tabItem {
-                    Label("Library", systemImage: "books.vertical")
+                    Label(RootTab.library.title, systemImage: RootTab.library.systemImage)
                 }
 
             PracticeScreen()
                 .tag(RootTab.practice)
                 .tabItem {
-                    Label("Practice", systemImage: "figure.play")
+                    Label(RootTab.practice.title, systemImage: RootTab.practice.systemImage)
                 }
 
             GameRoomScreen()
                 .tag(RootTab.gameroom)
                 .tabItem {
-                    Label("GameRoom", systemImage: "arcade.stick.console")
+                    Label(RootTab.gameroom.title, systemImage: RootTab.gameroom.systemImage)
                 }
 
             SettingsScreen()
                 .tag(RootTab.settings)
                 .tabItem {
-                    Label("Settings", systemImage: "slider.horizontal.3")
+                    Label(RootTab.settings.title, systemImage: RootTab.settings.systemImage)
                 }
         }
         .environmentObject(appNavigation)
