@@ -28,9 +28,7 @@ extension PracticeScreen {
                     context.onDismissGroupEditor()
                 }
             }
-            .practiceEntrySheetStyle()
-            .presentationBackground(.ultraThinMaterial)
-            .presentationDetents([.large])
+            .appSheetChrome(detents: [.large], background: .ultraThinMaterial)
         case .groupDateEditor:
             NavigationStack {
                 VStack(alignment: .leading, spacing: 12) {
@@ -68,8 +66,7 @@ extension PracticeScreen {
                     }
                 }
             }
-            .practiceEntrySheetStyle()
-            .presentationBackground(.ultraThinMaterial)
+            .appSheetChrome(detents: [.medium, .large], background: .ultraThinMaterial)
         case .journalEntryEditor:
             if let entry = context.editingJournalEntry {
                 PracticeJournalEntryEditorSheet(

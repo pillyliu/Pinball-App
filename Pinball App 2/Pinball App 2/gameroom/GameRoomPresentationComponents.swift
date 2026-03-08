@@ -1073,15 +1073,11 @@ extension MachineEventType {
 
 extension View {
     func gameRoomEntrySheetStyle() -> some View {
-        presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-            .dismissKeyboardOnTap()
+        appSheetChrome(detents: [.medium, .large], background: .clear)
     }
 
     func gameRoomMediaSheetStyle() -> some View {
-        presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-            .dismissKeyboardOnTap()
+        appSheetChrome(detents: [.medium, .large], background: .clear)
     }
 }
 
