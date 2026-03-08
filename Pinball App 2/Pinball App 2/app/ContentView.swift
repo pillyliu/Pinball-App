@@ -77,6 +77,7 @@ struct ContentView: View {
                     }
             }
         }
+        .tint(AppTheme.brandGold)
         .environmentObject(appNavigation)
     }
 }
