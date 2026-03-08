@@ -101,7 +101,7 @@ import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.library.rememberCachedImageModel
 import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
-import com.pillyliu.pinprofandroid.ui.AppBackButton
+import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -768,17 +768,11 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AppBackButton(onClick = { route = GameRoomRoute.Home })
-                        Text(
-                            text = "GameRoom Settings",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
+                    AppScreenHeader(
+                        title = "GameRoom Settings",
+                        onBack = { route = GameRoomRoute.Home },
+                        titleColor = MaterialTheme.colorScheme.onSurface,
+                    )
 
                     CardContainer {
                         Row(

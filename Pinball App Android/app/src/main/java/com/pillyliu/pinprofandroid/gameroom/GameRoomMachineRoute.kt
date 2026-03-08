@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.ConstrainedAsyncImagePreview
 import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
-import com.pillyliu.pinprofandroid.ui.AppBackButton
+import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
 
 @Composable
@@ -60,19 +60,11 @@ internal fun GameRoomMachineRoute(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AppBackButton(onClick = onBack)
-            Text(
-                text = "Machine View",
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        AppScreenHeader(
+            title = "Machine View",
+            onBack = onBack,
+            titleColor = MaterialTheme.colorScheme.onSurface,
+        )
 
         if (selectedMachine != null) {
             val machineHeroCandidates = listOfNotNull(
