@@ -9,7 +9,10 @@ struct PracticeHubMiniCard: View {
                 Image(systemName: destination.icon)
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(AppTheme.brandGold)
-                AppCardTitle(text: destination.label, lineLimit: 1)
+                Text(destination.label)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AppTheme.brandInk)
+                    .lineLimit(1)
             }
             Text(destination.subtitle)
                 .font(.caption)
