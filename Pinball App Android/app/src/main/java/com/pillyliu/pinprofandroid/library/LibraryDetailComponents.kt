@@ -52,6 +52,7 @@ import com.halilibo.richtext.ui.string.RichTextStringStyle
 import com.pillyliu.pinprofandroid.ui.AppResourceChip
 import com.pillyliu.pinprofandroid.ui.AppResourceRow
 import com.pillyliu.pinprofandroid.ui.AppUnavailableResourceChip
+import com.pillyliu.pinprofandroid.ui.AppVariantBadge
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -90,22 +91,7 @@ internal fun LibraryDetailSummaryCard(
                 modifier = Modifier.weight(1f),
             )
             game.normalizedVariant?.let { variant ->
-                Text(
-                    text = variant,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .background(
-                            MaterialTheme.colorScheme.surfaceContainerHigh,
-                            shape = RoundedCornerShape(999.dp),
-                        )
-                        .border(
-                            width = 0.75.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                            shape = RoundedCornerShape(999.dp),
-                        )
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                )
+                AppVariantBadge(variant)
             }
         }
         Text(game.metaLine(), color = MaterialTheme.colorScheme.onSurfaceVariant)

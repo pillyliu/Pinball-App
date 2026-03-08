@@ -25,15 +25,7 @@ struct LibraryDetailSummaryCard: View {
                     .foregroundStyle(.primary)
                     .lineLimit(2)
                 if let variant = game.variant?.trimmingCharacters(in: .whitespacesAndNewlines), !variant.isEmpty {
-                    Text(variant)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.primary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color(uiColor: .secondarySystemFill), in: Capsule())
-                        .overlay(
-                            Capsule().stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 0.8)
-                        )
+                    PinballVariantBadge(variant)
                 }
                 Spacer(minLength: 0)
             }

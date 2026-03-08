@@ -31,6 +31,20 @@ func PinballUnavailableResourceChip(_ title: String = "Unavailable") -> some Vie
         .allowsHitTesting(false)
 }
 
+@ViewBuilder
+func PinballVariantBadge(_ title: String) -> some View {
+    Text(title)
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(AppTheme.brandInk)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(AppTheme.brandGold.opacity(0.16), in: Capsule())
+        .overlay(
+            Capsule()
+                .stroke(AppTheme.brandGold.opacity(0.34), lineWidth: 0.8)
+        )
+}
+
 func PinballShortRulesheetTitle(for link: PinballGame.ReferenceLink) -> String {
     let label = link.label.lowercased()
     if label.contains("(tf)") { return "TF" }

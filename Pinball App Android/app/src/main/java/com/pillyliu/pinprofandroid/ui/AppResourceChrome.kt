@@ -93,6 +93,23 @@ internal fun AppUnavailableResourceChip() {
     )
 }
 
+@Composable
+internal fun AppVariantBadge(label: String) {
+    val colors = PinballThemeTokens.colors
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelSmall,
+        color = colors.brandInk,
+        modifier = Modifier
+            .background(
+                colors.brandGold.copy(alpha = 0.16f),
+                RoundedCornerShape(999.dp),
+            )
+            .border(1.dp, colors.brandGold.copy(alpha = 0.34f), RoundedCornerShape(999.dp))
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+    )
+}
+
 internal fun appShortRulesheetTitle(link: ReferenceLink): String {
     val label = link.label.lowercase(Locale.US)
     return when {

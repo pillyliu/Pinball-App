@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.normalizedVariant
+import com.pillyliu.pinprofandroid.ui.AppVariantBadge
 import com.pillyliu.pinprofandroid.library.practiceKey
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -75,22 +76,7 @@ internal fun PracticeGameWorkspaceCard(
                 modifier = Modifier.weight(1f),
             )
             game.normalizedVariant?.let { variant ->
-                Text(
-                    text = variant,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .background(
-                            MaterialTheme.colorScheme.surfaceContainerHigh,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-                        )
-                        .border(
-                            width = 0.75.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-                        )
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                )
+                AppVariantBadge(variant)
             }
         }
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
