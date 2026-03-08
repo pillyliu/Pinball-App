@@ -343,8 +343,9 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
             onAppear()
         }
         Box(modifier = Modifier.fillMaxSize()) {
+            val artworkCandidates = game.cardArtworkCandidates()
             AsyncImage(
-                model = game.libraryPlayfieldCandidate(),
+                model = artworkCandidates.firstOrNull(),
                 contentDescription = game.name,
                 modifier = Modifier
                     .fillMaxWidth()

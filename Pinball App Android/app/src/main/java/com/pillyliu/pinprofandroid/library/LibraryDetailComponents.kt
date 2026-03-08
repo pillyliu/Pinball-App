@@ -59,7 +59,7 @@ import java.util.Locale
 @Composable
 internal fun LibraryDetailScreenshotSection(game: PinballGame) {
     ConstrainedAsyncImagePreview(
-        urls = game.gameInlinePlayfieldCandidates(),
+        urls = game.detailArtworkCandidates(),
         contentDescription = game.name,
         emptyMessage = "No image",
     )

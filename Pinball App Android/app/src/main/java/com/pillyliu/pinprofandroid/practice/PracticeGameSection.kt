@@ -3,9 +3,9 @@ package com.pillyliu.pinprofandroid.practice
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import com.pillyliu.pinprofandroid.library.ConstrainedAsyncImagePreview
+import com.pillyliu.pinprofandroid.library.detailArtworkCandidates
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.PlayableVideo
-import com.pillyliu.pinprofandroid.library.gameInlinePlayfieldCandidates
 import com.pillyliu.pinprofandroid.library.practiceKey
 import com.pillyliu.pinprofandroid.library.RulesheetRemoteSource
 import com.pillyliu.pinprofandroid.library.youtubeId
@@ -37,7 +37,7 @@ internal fun PracticeGameSection(
     }
 
     ConstrainedAsyncImagePreview(
-        urls = game.gameInlinePlayfieldCandidates(),
+        urls = game.detailArtworkCandidates(),
         contentDescription = game.name,
         emptyMessage = "No image",
     )

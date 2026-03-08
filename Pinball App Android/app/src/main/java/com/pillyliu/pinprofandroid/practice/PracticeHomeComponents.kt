@@ -43,8 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.library.PinballGame
-import com.pillyliu.pinprofandroid.library.fullscreenPlayfieldCandidates
-import com.pillyliu.pinprofandroid.library.miniCardPlayfieldCandidates
+import com.pillyliu.pinprofandroid.library.cardArtworkCandidates
 import com.pillyliu.pinprofandroid.library.rememberCachedImageModel
 
 @Composable
@@ -144,7 +143,7 @@ internal fun SelectedGameMiniCard(
     bottomPadding: Dp = 12.dp,
     titleVerticalPadding: Dp = 4.dp,
 ) {
-    val imageUrls = game.miniCardPlayfieldCandidates()
+    val imageUrls = game.cardArtworkCandidates()
     val cardShape = RoundedCornerShape(10.dp)
     Box(
         modifier = modifier

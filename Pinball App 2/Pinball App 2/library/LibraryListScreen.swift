@@ -130,8 +130,8 @@ extension LibraryScreen {
                         .fill(Color.black.opacity(0.82))
 
                     FallbackAsyncImageView(
-                        candidates: game.libraryPlayfieldCandidates,
-                        emptyMessage: game.playfieldLocalURL == nil ? "No image" : nil,
+                        candidates: game.cardArtworkCandidates,
+                        emptyMessage: game.cardArtworkCandidates.isEmpty ? "No image" : nil,
                         contentMode: .fill,
                         fillAlignment: .center,
                         layoutMode: .widthFillTopCropBottom

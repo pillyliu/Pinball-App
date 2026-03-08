@@ -73,12 +73,12 @@ extension PinballGame {
 
     var playfieldImageSourceURL: URL? {
         guard let playfieldImageUrl else { return nil }
-        return URL(string: playfieldImageUrl)
+        return libraryResolveURL(pathOrURL: playfieldImageUrl)
     }
 
     var rulesheetSourceURL: URL? {
         guard let rulesheetUrl else { return nil }
-        return URL(string: rulesheetUrl)
+        return libraryResolveURL(pathOrURL: rulesheetUrl)
     }
 
     var playfieldLocalURL: URL? {
@@ -97,6 +97,27 @@ extension PinballGame {
                 remotePlayfieldCandidates.map(Optional.some) + [
                     libraryFallbackPlayfieldURL(width: 700)
                 ]
+        )
+    }
+
+    var primaryArtworkCandidates: [URL] {
+        deduplicatedPlayfieldURLs([
+            primaryImageLargeSourceURL,
+            primaryImageSourceURL
+        ])
+    }
+
+    var cardArtworkCandidates: [URL] {
+        deduplicatedPlayfieldURLs(
+            primaryArtworkCandidates.map(Optional.some) +
+                miniPlayfieldCandidates.map(Optional.some)
+        )
+    }
+
+    var detailArtworkCandidates: [URL] {
+        deduplicatedPlayfieldURLs(
+            primaryArtworkCandidates.map(Optional.some) +
+                gamePlayfieldCandidates.map(Optional.some)
         )
     }
 
@@ -158,10 +179,13 @@ extension PinballGame {
     }
 
     var playfieldButtonLabel: String {
-        guard let firstCandidate = actualFullscreenPlayfieldCandidates.first else {
-            return "View"
+        if let explicit = normalizedPlayfieldSourceLabel {
+            return explicit == "Playfield (OPDB)" ? "OPDB" : "Local"
         }
-        return firstCandidate.path.hasPrefix("/pinball/images/playfields/") ? "Local" : "OPDB"
+        if hasCuratedPlayfieldSource {
+            return "Local"
+        }
+        return playfieldImageSourceURL == nil ? "View" : "OPDB"
     }
 
     var localAssetKey: String? {
@@ -201,6 +225,25 @@ extension PinballGame {
         append(localAssetKey)
         append(opdbGroupID)
         return keys
+    }
+
+    private var normalizedPlayfieldSourceLabel: String? {
+        let trimmed = playfieldSourceLabel?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed?.isEmpty == false ? trimmed : nil
+    }
+
+    private var hasCuratedPlayfieldSource: Bool {
+        playfieldLocalURL != nil ||
+            playfieldLocalOriginalURL != nil ||
+            isPillyliuPlayfieldURL(playfieldImageSourceURL)
+    }
+
+    private func isPillyliuPlayfieldURL(_ url: URL?) -> Bool {
+        guard let url,
+              let host = url.host?.lowercased() else {
+            return false
+        }
+        return host == "pillyliu.com" && url.path.hasPrefix("/pinball/images/playfields/")
     }
 
     private var remotePlayfieldCandidates: [URL] {

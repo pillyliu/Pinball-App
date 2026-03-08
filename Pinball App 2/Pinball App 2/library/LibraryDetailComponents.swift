@@ -5,7 +5,7 @@ struct LibraryDetailScreenshotSection: View {
 
     var body: some View {
         ConstrainedAsyncImagePreview(
-            candidates: game.gamePlayfieldCandidates,
+            candidates: game.detailArtworkCandidates,
             emptyMessage: "No image",
             maxAspectRatio: 4.0 / 3.0,
             imagePadding: 0
@@ -415,10 +415,7 @@ private struct LibraryYouTubeThumbnailView: View {
 }
 
 private func libraryPlayfieldButtonTitle(for game: PinballGame) -> String {
-    guard let firstCandidate = game.actualFullscreenPlayfieldCandidates.first else {
-        return "View"
-    }
-    return firstCandidate.path.hasPrefix("/pinball/images/playfields/") ? "Local" : "OPDB"
+    game.playfieldButtonLabel
 }
 
 private func libraryShortRulesheetTitle(for link: PinballGame.ReferenceLink) -> String {

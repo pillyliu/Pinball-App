@@ -103,6 +103,7 @@ struct PracticeGameResourceCard: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .font(.caption)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .appPanelStyle()
@@ -167,7 +168,7 @@ struct PracticeGameResourceCard: View {
     }
 
     private func playfieldButtonTitle(for game: PinballGame) -> String {
-        game.playfieldSourceLabel == "Playfield (OPDB)" ? "OPDB" : "Local"
+        game.playfieldButtonLabel
     }
 
     private func practiceResourceRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {

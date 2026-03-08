@@ -1218,12 +1218,12 @@ struct PinballGame: Identifiable, Decodable {
 
     var primaryImageSourceURL: URL? {
         guard let primaryImageUrl else { return nil }
-        return URL(string: primaryImageUrl)
+        return libraryResolveURL(pathOrURL: primaryImageUrl)
     }
 
     var primaryImageLargeSourceURL: URL? {
         guard let primaryImageLargeUrl else { return nil }
-        return URL(string: primaryImageLargeUrl)
+        return libraryResolveURL(pathOrURL: primaryImageLargeUrl)
     }
 
     static func youtubeID(from raw: String) -> String? {

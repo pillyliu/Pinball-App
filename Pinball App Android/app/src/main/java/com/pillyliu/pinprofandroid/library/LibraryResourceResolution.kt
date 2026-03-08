@@ -30,6 +30,12 @@ internal fun resolveLibraryUrl(pathOrUrl: String?): String? {
 internal fun PinballGame.resolve(pathOrUrl: String?): String? =
     resolveLibraryUrl(pathOrUrl)
 
+internal val PinballGame.primaryArtworkCandidates: List<String>
+    get() = listOfNotNull(
+        resolveLibraryUrl(primaryImageLargeUrl),
+        resolveLibraryUrl(primaryImageUrl),
+    ).distinct()
+
 internal fun normalizeLibraryPlayfieldLocalPath(path: String?): String? {
     val raw = path?.trim()?.takeIf { it.isNotEmpty() } ?: return null
     val target = when {
@@ -114,6 +120,9 @@ internal val PinballGame.playfieldLocalOriginalURL: String?
 internal fun PinballGame.libraryPlayfieldCandidate(): String? =
     libraryPlayfieldCandidates().firstOrNull()
 
+internal fun PinballGame.cardArtworkCandidates(): List<String> =
+    (primaryArtworkCandidates + miniCardPlayfieldCandidates()).distinct()
+
 internal fun PinballGame.libraryPlayfieldCandidates(): List<String> =
     (localPlayfieldCandidates(listOf(700)) + remotePlayfieldCandidates + listOfNotNull(
         fallbackPlayfieldUrl(700),
@@ -131,6 +140,9 @@ internal fun PinballGame.miniCardPlayfieldCandidate(): String? =
 internal fun PinballGame.gameInlinePlayfieldCandidates(): List<String> =
     (actualFullscreenPlayfieldCandidates + listOfNotNull(fallbackPlayfieldUrl(700))).distinct()
 
+internal fun PinballGame.detailArtworkCandidates(): List<String> =
+    (primaryArtworkCandidates + gameInlinePlayfieldCandidates()).distinct()
+
 internal fun PinballGame.fullscreenPlayfieldCandidates(): List<String> =
     (actualFullscreenPlayfieldCandidates + listOfNotNull(fallbackPlayfieldUrl(700))).distinct()
 
@@ -142,13 +154,23 @@ internal val PinballGame.hasPlayfieldResource: Boolean
 
 internal val PinballGame.playfieldButtonLabel: String
     get() {
-        val firstCandidate = actualFullscreenPlayfieldCandidates.firstOrNull() ?: return "View"
-        return if (runCatching { URL(firstCandidate).path.startsWith("/pinball/images/playfields/") }.getOrDefault(false)) {
-            "Local"
-        } else {
-            "OPDB"
+        val explicitLabel = playfieldSourceLabel?.trim()?.takeIf { it.isNotEmpty() }
+        if (explicitLabel != null) {
+            return if (explicitLabel == "Playfield (OPDB)") "OPDB" else "Local"
         }
+        if (playfieldLocalURL != null || playfieldLocalOriginalURL != null || isCuratedPlayfieldUrl(resolveLibraryUrl(playfieldImageUrl))) {
+            return "Local"
+        }
+        return if (playfieldImageUrl.isNullOrBlank()) "View" else "OPDB"
     }
+
+private fun isCuratedPlayfieldUrl(url: String?): Boolean {
+    val resolved = url ?: return false
+    return runCatching {
+        val parsed = URL(resolved)
+        parsed.host.equals("pillyliu.com", ignoreCase = true) && parsed.path.startsWith("/pinball/images/playfields/")
+    }.getOrDefault(false)
+}
 
 internal val PinballGame.rulesheetPathCandidates: List<String>
     get() = listOfNotNull(

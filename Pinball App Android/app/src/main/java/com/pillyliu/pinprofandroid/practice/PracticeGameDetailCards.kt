@@ -6,13 +6,16 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -23,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.PinballVideoLaunchPanel
 import com.pillyliu.pinprofandroid.library.PlayableVideo
@@ -32,6 +37,7 @@ import com.pillyliu.pinprofandroid.library.actualFullscreenPlayfieldCandidates
 import com.pillyliu.pinprofandroid.library.hasRulesheetResource
 import com.pillyliu.pinprofandroid.library.metaLine
 import com.pillyliu.pinprofandroid.library.openYoutubeInApp
+import com.pillyliu.pinprofandroid.library.playfieldButtonLabel
 import com.pillyliu.pinprofandroid.ui.CardContainer
 
 @Composable
@@ -107,7 +113,7 @@ internal fun PracticeGameResourcesCard(
             PracticeResourceRow(label = "Playfield:") {
                 val playfieldCandidates = game.actualFullscreenPlayfieldCandidates
                 if (playfieldCandidates.isNotEmpty()) {
-                    PracticeResourceChip(label = if (game.playfieldSourceLabel == "Playfield (OPDB)") "OPDB" else "Local") {
+                    PracticeResourceChip(label = game.playfieldButtonLabel) {
                         onOpenPlayfield(playfieldCandidates)
                     }
                 } else {
@@ -180,7 +186,7 @@ private fun PracticeResourceRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium)
+        Text(label, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
@@ -198,8 +204,18 @@ private fun PracticeResourceChip(
     label: String,
     onClick: () -> Unit,
 ) {
-    OutlinedButton(onClick = onClick) {
-        Text(label)
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.defaultMinSize(minHeight = 32.dp),
+        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(999.dp),
+    ) {
+        Text(label, fontSize = 12.sp)
     }
 }
 
@@ -207,17 +223,17 @@ private fun PracticeResourceChip(
 private fun PracticeUnavailableResourceChip() {
     Text(
         "Unavailable",
-        style = MaterialTheme.typography.bodySmall,
+        fontSize = 12.sp,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
             .background(
                 MaterialTheme.colorScheme.surfaceContainerLow,
-                androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
+                RoundedCornerShape(999.dp),
             )
             .border(
                 1.dp,
                 MaterialTheme.colorScheme.outlineVariant,
-                androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
+                RoundedCornerShape(999.dp),
             )
             .padding(horizontal = 10.dp, vertical = 7.dp),
     )

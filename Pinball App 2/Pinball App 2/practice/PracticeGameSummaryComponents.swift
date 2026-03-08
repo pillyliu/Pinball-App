@@ -7,7 +7,7 @@ struct PracticeGameScreenshotSection: View {
         Group {
             if let game {
                 ConstrainedAsyncImagePreview(
-                    candidates: game.gamePlayfieldCandidates,
+                    candidates: game.detailArtworkCandidates,
                     emptyMessage: "No image",
                     maxAspectRatio: 4.0 / 3.0,
                     imagePadding: 0
