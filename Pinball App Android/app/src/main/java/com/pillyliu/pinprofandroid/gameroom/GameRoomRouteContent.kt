@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.AppSelectionPill
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -82,18 +83,9 @@ internal fun GameRoomHomeRoute(
         }
 
         CardContainer {
-            Text(
-                text = "Selected Machine",
-                color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
+            AppCardSubheading("Selected Machine")
             if (selectedMachine == null) {
-                Text(
-                    text = "Select a machine from the collection below.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                AppPanelEmptyCard(text = "Select a machine from the collection below.")
             } else {
                 val snapshot = store.snapshot(selectedMachine.id)
                 val areaName = store.area(selectedMachine.gameRoomAreaID)?.name ?: "No area"
@@ -120,11 +112,8 @@ internal fun GameRoomHomeRoute(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                Text(
+                AppCardSubheading(
                     text = "Current Snapshot",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(top = 2.dp),
                 )
                 SnapshotMetricGrid(
@@ -154,10 +143,8 @@ internal fun GameRoomHomeRoute(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
+                AppCardSubheading(
                     text = "Collection",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                 )
                 Row(
