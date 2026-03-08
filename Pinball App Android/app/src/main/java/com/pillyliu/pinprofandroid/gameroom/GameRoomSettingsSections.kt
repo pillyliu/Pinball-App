@@ -23,7 +23,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.draw.clip
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -45,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.AppControlCard
+import com.pillyliu.pinprofandroid.ui.AppDestructiveButton
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
@@ -409,7 +409,7 @@ internal fun GameRoomEditSettingsSection(
                 ) {
                     if (context.hasPreviousFilteredResults) {
                         item(key = "show_previous_25") {
-                            TextButton(
+                            AppSecondaryButton(
                                 onClick = { context.onShowPreviousResults(resolveTopVisibleGameID()) },
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
@@ -442,7 +442,7 @@ internal fun GameRoomEditSettingsSection(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                 }
-                                Button(onClick = { context.onAddMachine(game) }) {
+                                AppSecondaryButton(onClick = { context.onAddMachine(game) }) {
                                     Icon(
                                         imageVector = Icons.Outlined.Add,
                                         contentDescription = "Add machine",
@@ -454,7 +454,7 @@ internal fun GameRoomEditSettingsSection(
 
                     if (context.hasNextFilteredResults) {
                         item(key = "show_next_25") {
-                            TextButton(
+                            AppSecondaryButton(
                                 onClick = { context.onShowNextResults(resolveTopVisibleGameID()) },
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
@@ -616,9 +616,9 @@ internal fun GameRoomEditSettingsSection(
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AppPrimaryButton(onClick = context.onSaveMachine) { Text("Save") }
-                    Button(onClick = context.onDeleteMachine) { Text("Delete") }
+                    AppDestructiveButton(onClick = context.onDeleteMachine) { Text("Delete") }
                     if (context.onArchiveMachine != null) {
-                        Button(onClick = context.onArchiveMachine) { Text("Archive") }
+                        AppSecondaryButton(onClick = context.onArchiveMachine) { Text("Archive") }
                     }
                 }
             }

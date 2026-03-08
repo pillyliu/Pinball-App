@@ -39,6 +39,7 @@
 - Android GameRoom home-route cards now also use the shared subheading and panel-empty seams for `Selected Machine`, `Current Snapshot`, and `Collection` in `GameRoomRouteContent.kt`, closing the last obvious GameRoom home chrome gap against the iOS home route.
 - Android GameRoom collection fetch/import CTAs plus the edit-name and area-save actions now also use the shared `AppPrimaryButton` seam in `CommonUi.kt`, and the area reset action now uses the shared `AppSecondaryButton` seam instead of keeping one more pocket of feature-local `Button` styling in `GameRoomSettingsSections.kt`.
 - Android GameRoom machine-edit `Save` now also uses that shared `AppPrimaryButton` seam in `CommonUi.kt`, further reducing the remaining local action-row chrome in `GameRoomSettingsSections.kt`.
+- Android GameRoom input-sheet footers, media picker launch rows, issue-draft removal chips, add-machine pagination rows, and machine-edit `Delete` / `Archive` actions now also route through shared `AppPrimaryButton`, `AppSecondaryButton`, `AppInlineActionChip`, and `AppDestructiveButton` seams in `CommonUi.kt`, reducing the last prominent pockets of feature-local action-row chrome in `GameRoomPresentationHost.kt` and `GameRoomSettingsSections.kt`.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets

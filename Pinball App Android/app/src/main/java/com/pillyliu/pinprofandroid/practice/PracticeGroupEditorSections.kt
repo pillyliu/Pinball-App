@@ -10,11 +10,13 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppDestructiveButton
+import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
+import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -31,11 +33,11 @@ internal fun GroupEditorActionRow(
     CardContainer {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Spacer(modifier = Modifier.weight(1f))
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            AppSecondaryButton(onClick = onCancel) { Text("Cancel") }
             if (isEditing) {
-                TextButton(onClick = onDelete) { Text("Delete") }
+                AppDestructiveButton(onClick = onDelete) { Text("Delete") }
             }
-            TextButton(onClick = onSave) { Text(if (isEditing) "Save" else "Create") }
+            AppPrimaryButton(onClick = onSave) { Text(if (isEditing) "Save" else "Create") }
         }
     }
 }
@@ -90,7 +92,7 @@ internal fun GroupEditorTemplateCard(
                         formatOptionLabel = { "Bank $it" },
                         onSelect = { onSelectedTemplateBankChange(it.toIntOrNull() ?: selectedTemplateBank) },
                     )
-                    TextButton(onClick = onApplyBankTemplate) { Text("Apply Bank Template") }
+                    AppSecondaryButton(onClick = onApplyBankTemplate) { Text("Apply Bank Template") }
                 }
             }
 
@@ -108,7 +110,7 @@ internal fun GroupEditorTemplateCard(
                         formatOptionLabel = { id -> duplicateCandidates.firstOrNull { it.id == id }?.name ?: id },
                         onSelect = onSelectedDuplicateGroupIDChange,
                     )
-                    TextButton(onClick = onApplyDuplicateTemplate) { Text("Apply Duplicate Group") }
+                    AppSecondaryButton(onClick = onApplyDuplicateTemplate) { Text("Apply Duplicate Group") }
                 }
             }
         }
@@ -167,19 +169,21 @@ internal fun GroupEditorStatusCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Position", modifier = Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(
+                AppInlineActionChip(
+                    text = "Up",
                     onClick = {
                         if (isEditing) onMoveEditedUp() else if (createGroupPosition > 1) onCreatePositionChange(createGroupPosition - 1)
                     },
                     enabled = if (isEditing) canMoveEditedUp else createGroupPosition > 1,
-                ) { Text("Up") }
+                )
                 Text(if (isEditing) editingPosition.toString() else createGroupPosition.toString(), style = MaterialTheme.typography.bodyMedium)
-                TextButton(
+                AppInlineActionChip(
+                    text = "Down",
                     onClick = {
                         if (isEditing) onMoveEditedDown() else if (createGroupPosition < maxCreatePosition) onCreatePositionChange(createGroupPosition + 1)
                     },
                     enabled = if (isEditing) canMoveEditedDown else createGroupPosition < maxCreatePosition,
-                ) { Text("Down") }
+                )
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -7,13 +7,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,7 +19,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
+import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.DropdownOption
 
 internal data class GameRoomInputSheetContext(
@@ -225,13 +226,13 @@ private fun GameRoomInputSheetHost(context: GameRoomInputSheetContext) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Button(
+                        AppSecondaryButton(
                             onClick = context.onLaunchIssuePhotoPicker,
                             modifier = Modifier.weight(1f),
                         ) {
                             Text("Add Photo")
                         }
-                        Button(
+                        AppSecondaryButton(
                             onClick = context.onLaunchIssueVideoPicker,
                             modifier = Modifier.weight(1f),
                         ) {
@@ -352,7 +353,7 @@ private fun GameRoomInputSheetHost(context: GameRoomInputSheetContext) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Button(
+                        AppSecondaryButton(
                             onClick = {
                                 val occurredAtMs = parseIsoDateMillis(context.inputDateDraft) ?: System.currentTimeMillis()
                                 context.onInputMediaKindDraftChange(MachineAttachmentKind.photo.name)
@@ -362,7 +363,7 @@ private fun GameRoomInputSheetHost(context: GameRoomInputSheetContext) {
                         ) {
                             Text("Add Photo")
                         }
-                        Button(
+                        AppSecondaryButton(
                             onClick = {
                                 val occurredAtMs = parseIsoDateMillis(context.inputDateDraft) ?: System.currentTimeMillis()
                                 context.onInputMediaKindDraftChange(MachineAttachmentKind.video.name)
@@ -396,7 +397,7 @@ private fun GameRoomInputSheetHost(context: GameRoomInputSheetContext) {
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(
+                AppSecondaryButton(
                     onClick = {
                         context.onIssueDraftAttachmentsChange(emptyList())
                         context.onDismiss()
@@ -404,7 +405,7 @@ private fun GameRoomInputSheetHost(context: GameRoomInputSheetContext) {
                 ) {
                     Text("Cancel")
                 }
-                Button(
+                AppPrimaryButton(
                     onClick = { saveGameRoomInputSheet(context) },
                     enabled = when (context.selectedSheet) {
                         GameRoomInputSheet.LogIssue -> context.inputIssueSymptomDraft.isNotBlank()
@@ -617,9 +618,7 @@ private fun GameRoomIssueAttachmentDraftRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        TextButton(onClick = onDelete) {
-            Text("Remove")
-        }
+        AppInlineActionChip(text = "Remove", onClick = onDelete, destructive = true)
     }
 }
 
@@ -661,8 +660,8 @@ private fun GameRoomEditEventSheet(context: GameRoomEditEventContext) {
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = context.onDismiss) { Text("Cancel") }
-                Button(
+                AppSecondaryButton(onClick = context.onDismiss) { Text("Cancel") }
+                AppPrimaryButton(
                     onClick = {
                         val occurredAtMs = parseIsoDateMillis(context.editEventDateDraft) ?: System.currentTimeMillis()
                         context.store.updateEvent(
@@ -725,8 +724,8 @@ private fun GameRoomAttachmentPresentationHost(context: GameRoomAttachmentPresen
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = context.onDismissAttachmentEdit) { Text("Cancel") }
-                    Button(
+                    AppSecondaryButton(onClick = context.onDismissAttachmentEdit) { Text("Cancel") }
+                    AppPrimaryButton(
                         onClick = {
                             context.store.updateAttachment(
                                 id = editingAttachment.id,
