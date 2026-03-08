@@ -16,7 +16,7 @@ Status values:
 | Feature | iOS status | Android status | Parity status | Notes |
 | --- | --- | --- | --- | --- |
 | League | in audit | in audit | in audit | Root tab is aligned, and both platforms now have explicit League shell-content seams instead of leaving home-card composition inside the root screen files. |
-| Library | in audit | in audit | in audit | Shared dependency for Practice and GameRoom; v3 fallback/resource behavior is locked, hosted payload access now goes through dedicated platform seams, and repeated markdown/content/query helpers are split out, but deeper domain/store cleanup is still incomplete. |
+| Library | stable | stable | stable | Shared dependency for Practice and GameRoom; v3 fallback/resource behavior is locked, hosted payload access now goes through dedicated platform seams, seed-db/query helpers are split out, and both platforms now have explicit browsing-state seams instead of mixing browse rules directly into the root feature screens. |
 | Practice | parity risk | parity risk | parity risk | Largest active drift surface after GameRoom; route/state complexity is still concentrated in a few large files. |
 | GameRoom | stable | stable | in audit | 3.1 shipped baseline exists; home/UI helper splits, machine-route splits, settings-surface extraction, and presentation-component extraction are in place. |
 | Settings | in audit | in audit | in audit | Smaller feature, but now part of the shared control-chrome pass as both platforms move import flows off feature-local picker/search/list treatment. |
@@ -132,7 +132,8 @@ Status values:
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDialogs.kt` | stable | Android delete/edit dialog wiring now lives outside the main game route file, reducing presentation concentration in `PracticeGameSection.kt`. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameSectionState.kt` | stable | Android `Game` route transient edit/delete/log-row UI state now lives behind an explicit seam instead of direct local mutable state in `PracticeGameSection.kt`. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryCatalogStore.swift` | in audit | Imported-game and media resolution helpers now live in a dedicated catalog-resolution file, but the store still coordinates filtering, payload merge, and downstream feature coupling. |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryListScreen.kt` | in audit | Android Library list now uses shared search-plus-filter plus panel-status/panel-empty seams instead of feature-local top control and empty-state chrome, but the screen still owns grouped-grid composition and paging behavior. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryListScreen.kt` | stable | Android Library list now consumes the shared `LibraryBrowseState` seam for source selection, sort labels, bank filters, grouped sections, and visible-game paging instead of recomputing browsing rules inline. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryBrowsingState.kt` | stable | Android Library visible-source ordering, source-scoped filtering, sort/bank options, grouped-section derivation, and default source/sort/bank resolution now live behind a dedicated browsing-state seam instead of staying split between `LibraryScreen.kt` and `LibraryListScreen.kt`. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDetailScreen.kt` | stable | Android Library detail screen title row now uses the shared `AppScreenHeader` seam instead of a feature-local back-button plus centered-title composition. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryScreen.swift` | in audit | iOS Library root now uses shared toolbar search/filter plus panel-status/panel-empty seams instead of feature-local trigger and fallback text styling, but the screen still owns search presentation and feature-local filter menu sections. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryDetailComponents.swift` | stable | iOS Library detail cards now use the shared section-title seam for `Video References`, `Game Info`, and `Sources`, and their empty/loading/error state surfaces now use shared inline-status/panel-empty chrome instead of feature-local fallback text. |
@@ -150,7 +151,8 @@ Status values:
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibrarySeedStorage.swift` | stable | iOS seed-db bootstrap, bundle/local sync rules, built-in source loading, and manufacturer-option query now live behind a dedicated seam instead of staying embedded in `LibrarySeedDatabase.swift`. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibrarySeedGameAssembly.swift` | stable | iOS built-in/imported seed-game assembly, catalog-machine loading, and override loading now live behind a dedicated seam instead of staying embedded in `LibrarySeedDatabase.swift`. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibrarySeedDatabase.swift` | in audit | Seed-db entry points are now mostly reduced to payload filtering and extraction orchestration, but final query composition and extraction flow still live here. |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryDomain.swift` | in audit | Resource fallback, video metadata fetch, payload parsing, markdown parsing, content-loading view models, and browsing-state derivation are now extracted, but remaining load/persistence flow and domain shaping are still concentrated here. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryDomain.swift` | stable | Resource fallback, video metadata fetch, payload parsing, markdown parsing, content-loading view models, and browsing-state derivation are now extracted; the file is now mostly load/persistence orchestration plus domain types instead of a mixed helper bucket. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryScreen.kt` | stable | Android Library root screen is now reduced to route shell, hosted reload wiring, and state persistence while browse derivation and default selection logic live behind dedicated Library seams. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt` | in audit | Imported-game and media resolution helpers now live in a dedicated catalog-resolution file, but the loader still coordinates payload merge, overlay assembly, and root parsing. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDetailComponents.kt` | stable | Android Library detail now uses the shared `SectionTitle` seam for all major detail blocks, and `Video References` / `Game Info` state surfaces now use shared inline-status/panel-empty chrome instead of feature-local fallback text. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/PlayfieldScreen.kt` | stable | Android playfield viewer title row now uses the shared `AppScreenHeader` seam instead of a feature-local back-button plus centered-title overlay. |
@@ -202,10 +204,9 @@ Status values:
 
 ## Current work order
 
-1. Library domain/store cleanup after hosted-data extraction
-2. Remaining shared state/resource/media chrome pass
-3. Settings persistence inventory and remaining shell cleanup
-4. Brand personality layer on top of the shared design system
+1. Remaining shared state/resource/media chrome pass
+2. Settings persistence inventory and remaining shell cleanup
+3. Brand personality layer on top of the shared design system
 
 ## Next audit additions
 

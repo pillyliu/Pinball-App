@@ -53,10 +53,11 @@
 - Extracted Android seed-db bootstrap, asset copy rules, and manufacturer-option query into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedStorage.kt`, so `LibrarySeedDatabase.kt` no longer mixes entry-point orchestration with file-sync and database-open mechanics.
 - Extracted Android built-in/imported seed-game assembly into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedGameAssembly.kt`, so `LibrarySeedDatabase.kt` is now closer to an extraction facade than a mixed loader and mapper bucket.
 - Extracted iOS Library browsing-state logic into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryPayloadParsing.swift`, so `LibraryDomain.swift` no longer owns inline visible-source derivation, filter/sort/group computations, sort-label shaping, and default-sort rules directly inside `PinballLibraryViewModel`.
+- Extracted Android Library browsing and source-selection rules into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryBrowsingState.kt`, so `LibraryScreen.kt` no longer owns visible-source ordering, default source/sort/bank resolution, or filter/sort/group browsing rules inline.
+- Rewired Android `LibraryListScreen.kt` and `LibraryRouteContent.kt` to consume the shared `LibraryBrowseState` seam instead of duplicating selected-source, sort-label, bank-filter, and grouped-section logic across the root screen and list screen.
+- Current Library builds are clean of feature-specific compiler warnings; the remaining Xcode simulator build warning is the external `appintentsmetadataprocessor` metadata-skip message, not a Library warning.
 
 ## Next audit targets
 
-- source-state synchronization
 - repeated detail/resource UI
-- remaining domain-shaping and load/persistence flow inside `LibraryDomain.swift`
-- remaining query composition and final extraction orchestration inside the two `LibrarySeedDatabase` files
+- optional future domain-shaping cleanup inside `LibraryDomain.swift` and `LibraryDomain.kt`

@@ -55,15 +55,9 @@ import com.pillyliu.pinprofandroid.ui.CompactDropdownFilter
 @Composable
 internal fun LibraryList(
     contentPadding: PaddingValues,
-    games: List<PinballGame>,
     isLoading: Boolean,
     errorMessage: String?,
-    sources: List<LibrarySource>,
-    selectedSourceId: String,
-    query: String,
-    sortOptionName: String,
-    yearSortDescending: Boolean,
-    selectedBank: Int?,
+    browseState: LibraryBrowseState,
     onSourceChange: (String) -> Unit,
     onQueryChange: (String) -> Unit,
     onSortOptionChange: (String) -> Unit,
@@ -74,55 +68,29 @@ internal fun LibraryList(
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val searchFontSize = if (isLandscape) 14.sp else 13.sp
     val searchControlMinHeight = if (isLandscape) 48.dp else 48.dp
-    val selectedSource = remember(sources, selectedSourceId) {
-        sources.firstOrNull { it.id == selectedSourceId } ?: sources.firstOrNull()
-    }
-    val sourceScopedGames = remember(games, selectedSource?.id) {
-        val sid = selectedSource?.id
-        if (sid == null) games else games.filter { it.sourceId == sid }
-    }
-    val sortOptions = remember(selectedSource, sourceScopedGames) {
-        selectedSource?.let { sortOptionsForSource(it, sourceScopedGames) }
-            ?: listOf(LibrarySortOption.AREA, LibrarySortOption.ALPHABETICAL)
-    }
-    val fallbackSort = remember(selectedSource, sortOptions) {
-        selectedSource?.defaultSortOption?.takeIf { sortOptions.contains(it) } ?: sortOptions.first()
-    }
-    val sortOption = remember(sortOptionName, sortOptions, fallbackSort) {
-        LibrarySortOption.entries.firstOrNull { it.name == sortOptionName }
-            ?.takeIf { sortOptions.contains(it) }
-            ?: fallbackSort
-    }
-    var visibleCount by remember(selectedSourceId, query, sortOptionName, yearSortDescending, selectedBank, games) { mutableIntStateOf(48) }
+    val selectedSource = browseState.selectedSource
+    val sortOptions = browseState.sortOptions
+    val fallbackSort = browseState.fallbackSort
+    val sortOption = browseState.sortOption
+    var visibleCount by remember(
+        browseState.selectedSourceId,
+        browseState.query,
+        browseState.sortOptionName,
+        browseState.yearSortDescending,
+        browseState.selectedBank,
+        browseState.games,
+    ) { mutableIntStateOf(48) }
     var showFilterSheet by remember { mutableStateOf(false) }
-    val supportsBankFilter = selectedSource?.type == LibrarySourceType.VENUE && sourceScopedGames.any { (it.bank ?: 0) > 0 }
-    val effectiveSelectedBank = if (supportsBankFilter) selectedBank else null
-    val bankOptions = sourceScopedGames.mapNotNull { it.bank }.filter { it > 0 }.toSet().sorted()
-    val filtered = sourceScopedGames.filter { game ->
-        val q = query.trim().lowercase()
-        val queryMatch = if (q.isBlank()) true else {
-            "${game.name} ${game.manufacturer.orEmpty()} ${game.year?.toString().orEmpty()}".lowercase().contains(q)
-        }
-        val bankMatch = effectiveSelectedBank == null || game.bank == effectiveSelectedBank
-        queryMatch && bankMatch
-    }
-    val sortedGames = remember(filtered, sortOption, yearSortDescending) { sortLibraryGames(filtered, sortOption, yearSortDescending) }
-    val visibleGames = remember(sortedGames, visibleCount) { sortedGames.take(visibleCount) }
-    val hasMoreGames = visibleGames.size < sortedGames.size
-    val showGroupedView = effectiveSelectedBank == null && (sortOption == LibrarySortOption.AREA || sortOption == LibrarySortOption.BANK)
-    val groupedSections = remember(visibleGames, sortOption) {
-        when (sortOption) {
-            LibrarySortOption.AREA -> buildSections(visibleGames) { it.group }
-            LibrarySortOption.BANK -> buildSections(visibleGames) { it.bank }
-            LibrarySortOption.ALPHABETICAL, LibrarySortOption.YEAR -> emptyList()
-        }
-    }
+    val visibleGames = remember(browseState, visibleCount) { browseState.visibleGames(visibleCount) }
+    val hasMoreGames = remember(browseState, visibleCount) { browseState.hasMoreGames(visibleCount) }
+    val showGroupedView = browseState.showGroupedView
+    val groupedSections = remember(browseState, visibleCount) { browseState.groupedSections(visibleCount) }
 
     AppScreen(contentPadding) {
         val controlsTopOffset = 2.dp
         val controlsTopInset = if (isLandscape) 64.dp else 64.dp
         Box(modifier = Modifier.fillMaxSize()) {
-            if (games.isNotEmpty()) {
+            if (browseState.games.isNotEmpty()) {
                 Column(
                     modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = controlsTopInset),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -183,7 +151,7 @@ internal fun LibraryList(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 AppSearchFilterBar(
-                    query = query,
+                    query = browseState.query,
                     onQueryChange = onQueryChange,
                     placeholder = "Search games...",
                     onFilterClick = { showFilterSheet = true },
@@ -200,12 +168,12 @@ internal fun LibraryList(
             title = "Library filters",
             onDismissRequest = { showFilterSheet = false },
         ) {
-            if (sources.isNotEmpty()) {
+            if (browseState.visibleSources.isNotEmpty()) {
                 CompactDropdownFilter(
                     selectedText = selectedSource?.name ?: "Library",
-                    options = sources.map { it.name },
+                    options = browseState.visibleSources.map { it.name },
                     onSelect = { selected ->
-                        val source = sources.firstOrNull { it.name == selected } ?: return@CompactDropdownFilter
+                        val source = browseState.visibleSources.firstOrNull { it.name == selected } ?: return@CompactDropdownFilter
                         onSourceChange(source.id)
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -215,11 +183,7 @@ internal fun LibraryList(
                 )
             }
             CompactDropdownFilter(
-                selectedText = when {
-                    sortOption == LibrarySortOption.YEAR && yearSortDescending -> "Sort: Year (New-Old)"
-                    sortOption == LibrarySortOption.YEAR -> "Sort: Year (Old-New)"
-                    else -> sortOption.label
-                },
+                selectedText = browseState.selectedSortLabel,
                 options = sortOptions.flatMap {
                     if (it == LibrarySortOption.YEAR) listOf("Sort: Year (Old-New)", "Sort: Year (New-Old)") else listOf(it.label)
                 },
@@ -238,10 +202,10 @@ internal fun LibraryList(
                 textSize = 12.sp,
                 itemTextSize = 12.sp,
             )
-            if (supportsBankFilter) {
+            if (browseState.supportsBankFilter) {
                 CompactDropdownFilter(
-                    selectedText = effectiveSelectedBank?.let { "Bank $it" } ?: "All banks",
-                    options = listOf("All banks") + bankOptions.map { "Bank $it" },
+                    selectedText = browseState.selectedBankLabel,
+                    options = listOf("All banks") + browseState.bankOptions.map { "Bank $it" },
                     onSelect = { selected ->
                         val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
                         onBankChange(bank)

@@ -39,26 +39,29 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var route by rememberSaveable(stateSaver = LibraryRouteSaver) { mutableStateOf<LibraryRoute>(LibraryRoute.List) }
     val avenueSourceCandidates = remember { listOf("venue--the-avenue-cafe", "the-avenue") }
-    val visibleSources = remember(sources, selectedSourceId, sourceVersion) {
-        val state = LibrarySourceStateStore.load(context)
-        val pinned = state.pinnedSourceIds.mapNotNull { pinnedId -> sources.firstOrNull { it.id == pinnedId } }
-        if (pinned.isEmpty()) {
-            sources
-        } else {
-            val selected = sources.firstOrNull { it.id == selectedSourceId }
-            val ordered = buildList {
-                addAll(pinned)
-                if (selected != null && none { it.id == selected.id }) {
-                    add(selected)
-                }
-                sources.forEach { source ->
-                    if (none { it.id == source.id }) {
-                        add(source)
-                    }
-                }
-            }
-            ordered
-        }
+    val pinnedSourceIds = remember(sources, selectedSourceId, sourceVersion) {
+        LibrarySourceStateStore.load(context).pinnedSourceIds
+    }
+    val browseState = remember(
+        games,
+        sources,
+        selectedSourceId,
+        query,
+        sortOptionName,
+        yearSortDescending,
+        selectedBank,
+        pinnedSourceIds,
+    ) {
+        LibraryBrowseState(
+            games = games,
+            sources = sources,
+            selectedSourceId = selectedSourceId,
+            query = query,
+            sortOptionName = sortOptionName,
+            yearSortDescending = yearSortDescending,
+            selectedBank = selectedBank,
+            pinnedSourceIds = pinnedSourceIds,
+        )
     }
 
     val goBack: () -> Unit = {
@@ -83,49 +86,19 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
             val sourceState = extraction.state
             games = payload.games
             sources = payload.sources
-            val savedSourceId = prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null)
-            val preferredSourceId = listOfNotNull(sourceState.selectedSourceId, savedSourceId, selectedSourceId)
-                .plus(avenueSourceCandidates)
-                .firstOrNull { candidate -> payload.sources.any { it.id == candidate } }
-            val chosenSource = payload.sources.firstOrNull { it.id == preferredSourceId } ?: payload.sources.firstOrNull()
-            if (chosenSource != null) {
-                selectedSourceId = chosenSource.id
-                prefs.edit { putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, chosenSource.id) }
-                LibrarySourceStateStore.setSelectedSource(context, chosenSource.id)
-                val sourceGames = payload.games.filter { it.sourceId == chosenSource.id }
-                val options = sortOptionsForSource(chosenSource, sourceGames)
-                val persistedSort = sourceState.selectedSortBySource[chosenSource.id]
-                val normalizedSort = when (persistedSort) {
-                    "YEAR_DESC" -> {
-                        yearSortDescending = true
-                        LibrarySortOption.YEAR.name
-                    }
-                    null -> null
-                    else -> {
-                        yearSortDescending = false
-                        persistedSort
-                    }
-                }
-                if (chosenSource.type == LibrarySourceType.MANUFACTURER) {
-                    sortOptionName = LibrarySortOption.YEAR.name
-                    yearSortDescending = true
-                } else if (normalizedSort != null && options.any { it.name == normalizedSort }) {
-                    sortOptionName = normalizedSort
-                    yearSortDescending = normalizedSort == LibrarySortOption.YEAR.name && persistedSort == "YEAR_DESC"
-                } else {
-                    val defaultSort = preferredDefaultSortOption(chosenSource, sourceGames)
-                    sortOptionName = (defaultSort.takeIf { options.contains(it) } ?: options.first()).name
-                    yearSortDescending = preferredDefaultYearSortDescending(chosenSource, sourceGames)
-                }
-                val persistedBank = sourceState.selectedBankBySource[chosenSource.id]
-                selectedBank = if (chosenSource.type == LibrarySourceType.VENUE && sourceGames.any { (it.bank ?: 0) > 0 }) {
-                    persistedBank
-                } else {
-                    null
-                }
-                if (chosenSource.type != LibrarySourceType.VENUE || sourceGames.none { (it.bank ?: 0) > 0 }) {
-                    selectedBank = null
-                }
+            resolveLibrarySelection(
+                payload = payload,
+                sourceState = sourceState,
+                savedSourceId = prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null),
+                currentSelectedSourceId = selectedSourceId,
+                avenueSourceCandidates = avenueSourceCandidates,
+            )?.let { resolution ->
+                selectedSourceId = resolution.selectedSourceId
+                sortOptionName = resolution.sortOptionName
+                yearSortDescending = resolution.yearSortDescending
+                selectedBank = resolution.selectedBank
+                prefs.edit { putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, resolution.selectedSourceId) }
+                LibrarySourceStateStore.setSelectedSource(context, resolution.selectedSourceId)
             }
         } catch (t: Throwable) {
             games = emptyList()
@@ -159,39 +132,24 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
             games = games,
             isLoading = isLoading,
             errorMessage = errorMessage,
-            visibleSources = visibleSources,
-            selectedSourceId = selectedSourceId,
-            query = query,
-            sortOptionName = sortOptionName,
-            yearSortDescending = yearSortDescending,
-            selectedBank = selectedBank,
+            browseState = browseState,
             route = route,
             routeGame = routeGame,
             onSourceChange = { sourceId ->
-                selectedSourceId = sourceId
-                prefs.edit { putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, sourceId) }
-                LibrarySourceStateStore.setSelectedSource(context, sourceId)
                 val source = sources.firstOrNull { it.id == sourceId }
                 if (source != null) {
-                    val sourceGames = games.filter { it.sourceId == source.id }
-                    val options = sortOptionsForSource(source, sourceGames)
-                    val persistedSort = LibrarySourceStateStore.load(context).selectedSortBySource[source.id]
-                    if (source.type == LibrarySourceType.MANUFACTURER) {
-                        sortOptionName = LibrarySortOption.YEAR.name
-                        yearSortDescending = true
-                    } else if (persistedSort == "YEAR_DESC") {
-                        sortOptionName = LibrarySortOption.YEAR.name
-                        yearSortDescending = true
-                    } else if (persistedSort != null && options.any { it.name == persistedSort }) {
-                        sortOptionName = persistedSort
-                        yearSortDescending = false
-                    } else {
-                        val defaultSort = preferredDefaultSortOption(source, sourceGames)
-                        sortOptionName = (defaultSort.takeIf { options.contains(it) }?.name ?: options.first().name)
-                        yearSortDescending = preferredDefaultYearSortDescending(source, sourceGames)
-                    }
+                    val resolution = resolveLibrarySelectionForSource(
+                        source = source,
+                        games = games,
+                        sourceState = LibrarySourceStateStore.load(context),
+                    )
+                    selectedSourceId = resolution.selectedSourceId
+                    sortOptionName = resolution.sortOptionName
+                    yearSortDescending = resolution.yearSortDescending
+                    selectedBank = resolution.selectedBank
+                    prefs.edit { putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, resolution.selectedSourceId) }
+                    LibrarySourceStateStore.setSelectedSource(context, resolution.selectedSourceId)
                 }
-                selectedBank = LibrarySourceStateStore.load(context).selectedBankBySource[sourceId]
             },
             onQueryChange = { query = it },
             onSortOptionChange = { sortName ->
@@ -254,21 +212,3 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
         )
     }
 }
-
-private fun preferredDefaultSortOption(source: LibrarySource, games: List<PinballGame>): LibrarySortOption {
-    return when (source.type) {
-        LibrarySourceType.MANUFACTURER -> LibrarySortOption.YEAR
-        LibrarySourceType.CATEGORY,
-        LibrarySourceType.TOURNAMENT -> LibrarySortOption.ALPHABETICAL
-        LibrarySourceType.VENUE -> {
-            val hasArea = games.any {
-                val area = it.area?.trim()
-                !area.isNullOrEmpty() && !area.equals("null", ignoreCase = true)
-            }
-            if (hasArea) LibrarySortOption.AREA else LibrarySortOption.ALPHABETICAL
-        }
-    }
-}
-
-private fun preferredDefaultYearSortDescending(source: LibrarySource, games: List<PinballGame>): Boolean =
-    source.type == LibrarySourceType.MANUFACTURER && preferredDefaultSortOption(source, games) == LibrarySortOption.YEAR
