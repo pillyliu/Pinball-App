@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
+import com.pillyliu.pinprofandroid.ui.AppTintedStatusChip
 import java.text.NumberFormat
 
 @Composable
@@ -133,7 +134,11 @@ internal fun StandingsMiniPreview(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(seasonLabel, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold, fontSize = labelSize)
                 Spacer(Modifier.width(6.dp))
-                Text(activeMode, color = Color(0xFF3A7BD5), fontSize = headerSize, fontWeight = FontWeight.SemiBold)
+                AppTintedStatusChip(
+                    text = activeMode,
+                    color = Color(0xFF3A7BD5),
+                    compact = true,
+                )
             }
 
             Row(modifier = Modifier.fillMaxWidth()) {

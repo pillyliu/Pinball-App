@@ -69,14 +69,13 @@ struct StandingsPreview: View {
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.secondary)
 
-                Text(mode.title)
-                    .id("standings-mode-title-\(mode.rawValue)")
-                    .transition(.opacity)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.statsMeanMedian)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(AppTheme.statsMeanMedian.opacity(0.14), in: Capsule())
+                AppTintedStatusChip(
+                    text: mode.title,
+                    foreground: AppTheme.statsMeanMedian,
+                    compact: true
+                )
+                .id("standings-mode-title-\(mode.rawValue)")
+                .transition(.opacity)
             }
 
             Group {
