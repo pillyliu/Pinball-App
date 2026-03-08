@@ -513,48 +513,76 @@ private struct AddManufacturerScreen: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
-            Picker("Manufacturer Bucket", selection: $selectedBucket) {
-                ForEach(ManufacturerBucket.allCases) { bucket in
-                    Text(bucket.label).tag(bucket)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
+        ZStack {
+            AppBackground()
 
-            List(filteredManufacturers) { manufacturer in
-                Button {
-                    viewModel.addManufacturer(manufacturer)
-                    dismiss()
-                } label: {
-                    HStack(spacing: 6) {
-                        HStack(spacing: 6) {
-                            Text(manufacturer.name)
-                            if manufacturer.isModern {
-                                Text("Modern")
-                                    .font(.caption2.weight(.semibold))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 3)
-                                    .background(Color.white.opacity(0.12), in: Capsule())
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Bucket")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        Menu {
+                            ForEach(ManufacturerBucket.allCases) { bucket in
+                                Button {
+                                    selectedBucket = bucket
+                                } label: {
+                                    AppSelectableMenuRow(text: bucket.label, isSelected: selectedBucket == bucket)
+                                }
                             }
-                            Text("\(manufacturer.gameCount) games")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        } label: {
+                            AppCompactDropdownLabel(text: selectedBucket.label)
                         }
-                        Spacer()
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                            .foregroundStyle(.tint)
+                        .buttonStyle(.plain)
+                    }
+                    .padding(12)
+                    .appPanelStyle()
+
+                    if filteredManufacturers.isEmpty {
+                        Text("No manufacturers found for that search.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                            .appPanelStyle()
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(Array(filteredManufacturers.enumerated()), id: \.element.id) { index, manufacturer in
+                                Button {
+                                    viewModel.addManufacturer(manufacturer)
+                                    dismiss()
+                                } label: {
+                                    SettingsImportResultRow(
+                                        title: manufacturer.name,
+                                        subtitle: manufacturerSubtitle(manufacturer),
+                                        accessorySystemName: "plus.circle.fill",
+                                        showsHighlightBadge: manufacturer.isModern,
+                                        highlightBadgeText: "Modern"
+                                    )
+                                }
+                                .buttonStyle(.plain)
+
+                                if index < filteredManufacturers.count - 1 {
+                                    AppTableRowDivider()
+                                }
+                            }
+                        }
+                        .padding(12)
+                        .appPanelStyle()
                     }
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
             }
-            .listStyle(.plain)
         }
         .searchable(text: $query, prompt: "Search manufacturers")
         .navigationTitle("Add Manufacturer")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func manufacturerSubtitle(_ manufacturer: PinballCatalogManufacturerOption) -> String {
+        manufacturer.gameCount == 1 ? "1 game" : "\(manufacturer.gameCount) games"
     }
 }
 
@@ -633,67 +661,104 @@ private struct AddVenueScreen: View {
     }
 
     var body: some View {
-        List {
-            Section {
-                TextField("City or ZIP code", text: $query)
-                    .submitLabel(.search)
-                    .onSubmit {
-                        Task { await runSearch() }
-                    }
+        ZStack {
+            AppBackground()
 
-                Picker("Distance", selection: $radiusMiles) {
-                    Text("10 miles").tag(10)
-                    Text("25 miles").tag(25)
-                    Text("50 miles").tag(50)
-                    Text("100 miles").tag(100)
-                }
-                .pickerStyle(.segmented)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        SettingsProviderCaption(prefix: "Search powered by ", linkText: "Pinball Map", urlString: "https://www.pinballmap.com")
 
-                Stepper(value: $minimumGameCount, in: 0 ... 50) {
-                    HStack {
-                        Text("Minimum games")
-                        Spacer()
-                        Text(minimumGameCount == 0 ? "Any" : "\(minimumGameCount)")
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                        TextField("City or ZIP code", text: $query)
+                            .submitLabel(.search)
+                            .onSubmit {
+                                Task { await runSearch() }
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .appControlStyle()
 
-                Button(isSearching ? "Searching..." : "Search Pinball Map") {
-                    Task { await runSearch() }
-                }
-                .disabled(isSearching || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            } header: {
-                HStack(spacing: 0) {
-                    Text("Search powered by ")
-                    Link("Pinball Map", destination: URL(string: "https://www.pinballmap.com")!)
-                }
-                .font(.caption)
-                .textCase(nil)
-            }
-
-            if let emptyResultsMessage {
-                Section {
-                    Text(emptyResultsMessage)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            if !filteredResults.isEmpty {
-                Section("Results") {
-                    ForEach(filteredResults) { venue in
-                        Button {
-                            Task { await importVenue(venue) }
+                        Menu {
+                            ForEach([10, 25, 50, 100], id: \.self) { miles in
+                                Button {
+                                    radiusMiles = miles
+                                } label: {
+                                    AppSelectableMenuRow(
+                                        text: "\(miles) miles",
+                                        isSelected: radiusMiles == miles
+                                    )
+                                }
+                            }
                         } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(venue.name)
-                                Text(venueSubtitle(venue))
-                                    .font(.caption)
+                            AppCompactStackedMenuLabel(
+                                title: "Distance",
+                                value: "\(radiusMiles) miles"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        Stepper(value: $minimumGameCount, in: 0 ... 50) {
+                            HStack {
+                                Text("Minimum games")
+                                Spacer()
+                                Text(minimumGameCount == 0 ? "Any" : "\(minimumGameCount)")
                                     .foregroundStyle(.secondary)
                             }
+                            .font(.subheadline)
                         }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .appControlStyle()
+
+                        Button(isSearching ? "Searching..." : "Search Pinball Map") {
+                            Task { await runSearch() }
+                        }
+                        .buttonStyle(.glass)
+                        .disabled(isSearching || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                    .padding(12)
+                    .appPanelStyle()
+
+                    if let emptyResultsMessage {
+                        Text(emptyResultsMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                            .appPanelStyle()
+                    }
+
+                    if !filteredResults.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Results")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.secondary)
+
+                            VStack(spacing: 0) {
+                                ForEach(Array(filteredResults.enumerated()), id: \.element.id) { index, venue in
+                                    Button {
+                                        Task { await importVenue(venue) }
+                                    } label: {
+                                        SettingsImportResultRow(
+                                            title: venue.name,
+                                            subtitle: venueSubtitle(venue),
+                                            accessorySystemName: "plus.circle.fill"
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if index < filteredResults.count - 1 {
+                                        AppTableRowDivider()
+                                    }
+                                }
+                            }
+                        }
+                        .padding(12)
+                        .appPanelStyle()
                     }
                 }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
             }
         }
         .navigationTitle("Add Venue")
@@ -757,26 +822,35 @@ private struct AddTournamentScreen: View {
     }
 
     var body: some View {
-        List {
-            Section {
-                TextField("Tournament ID or URL", text: $rawTournamentID)
-                    .submitLabel(.done)
+        ZStack {
+            AppBackground()
 
-                Text("Enter a Match Play tournament ID or URL to import its arena list into Library and Practice.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        SettingsProviderCaption(prefix: "Import powered by ", linkText: "Match Play", urlString: "https://matchplay.events")
 
-                Button(isImporting ? "Importing..." : "Import Tournament") {
-                    Task { await importTournament() }
+                        TextField("Tournament ID or URL", text: $rawTournamentID)
+                            .submitLabel(.done)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .appControlStyle()
+
+                        Text("Enter a Match Play tournament ID or URL to import its arena list into Library and Practice.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Button(isImporting ? "Importing..." : "Import Tournament") {
+                            Task { await importTournament() }
+                        }
+                        .buttonStyle(.glass)
+                        .disabled(isImporting || tournamentID == nil)
+                    }
+                    .padding(12)
+                    .appPanelStyle()
                 }
-                .disabled(isImporting || tournamentID == nil)
-            } header: {
-                HStack(spacing: 0) {
-                    Text("Import powered by ")
-                    Link("Match Play", destination: URL(string: "https://matchplay.events")!)
-                }
-                .font(.caption)
-                .textCase(nil)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
             }
         }
         .navigationTitle("Add Tournament")
@@ -818,6 +892,64 @@ private struct ManagedSourceRow: Identifiable {
     let subtitle: String
     let builtin: Bool
     let sourceType: PinballLibrarySourceType
+}
+
+private struct SettingsProviderCaption: View {
+    let prefix: String
+    let linkText: String
+    let urlString: String
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Text(prefix)
+            Link(linkText, destination: URL(string: urlString)!)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+}
+
+private struct SettingsImportResultRow: View {
+    let title: String
+    let subtitle: String
+    let accessorySystemName: String
+    var showsHighlightBadge = false
+    var highlightBadgeText = ""
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    if showsHighlightBadge {
+                        Text(highlightBadgeText)
+                            .font(.caption2.weight(.semibold))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.white.opacity(0.12), in: Capsule())
+                    }
+                }
+
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: accessorySystemName)
+                .font(.title3)
+                .foregroundStyle(.tint)
+        }
+        .padding(.vertical, 8)
+    }
 }
 
 private struct CompactRowActionButtonStyle: ViewModifier {

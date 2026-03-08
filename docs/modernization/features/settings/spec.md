@@ -17,3 +17,4 @@ Settings includes:
 - normalize list/grouping patterns
 - align visual treatment with the broader design system
 - document exact grouping and link behavior
+- move add/import flows onto shared compact menu and control chrome instead of keeping feature-local picker/search/list treatment
