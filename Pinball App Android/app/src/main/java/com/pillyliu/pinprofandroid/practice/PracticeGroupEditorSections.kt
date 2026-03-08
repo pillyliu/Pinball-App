@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -16,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
@@ -184,7 +184,7 @@ internal fun GroupEditorStatusCard(
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Start Date", modifier = Modifier.weight(1f))
-            OutlinedButton(
+            AppSecondaryButton(
                 onClick = {
                     if (!hasStartDate) onHasStartDateChange(true)
                     onOpenStartDatePicker()
@@ -200,7 +200,7 @@ internal fun GroupEditorStatusCard(
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("End Date", modifier = Modifier.weight(1f))
-            OutlinedButton(
+            AppSecondaryButton(
                 onClick = {
                     if (!hasEndDate) onHasEndDateChange(true)
                     onOpenEndDatePicker()

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +31,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
@@ -611,6 +613,37 @@ fun AppInlineActionChip(
             fontWeight = FontWeight.SemiBold,
         )
     }
+}
+
+@Composable
+fun AppSecondaryButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    minHeight: Dp = 40.dp,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+    content: @Composable RowScope.() -> Unit,
+) {
+    val colors = PinballThemeTokens.colors
+    val shapes = PinballThemeTokens.shapes
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.defaultMinSize(minHeight = minHeight),
+        shape = RoundedCornerShape(shapes.controlCorner),
+        border = BorderStroke(
+            1.dp,
+            if (enabled) colors.brandGold.copy(alpha = 0.38f) else colors.brandChalk.copy(alpha = 0.18f),
+        ),
+        contentPadding = contentPadding,
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = colors.controlBackground,
+            contentColor = colors.brandInk,
+            disabledContainerColor = colors.controlBackground.copy(alpha = 0.65f),
+            disabledContentColor = colors.brandChalk.copy(alpha = 0.7f),
+        ),
+        content = content,
+    )
 }
 
 @Composable

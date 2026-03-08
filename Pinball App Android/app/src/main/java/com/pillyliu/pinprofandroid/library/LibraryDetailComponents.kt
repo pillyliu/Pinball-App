@@ -23,7 +23,6 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -49,12 +48,13 @@ import com.halilibo.richtext.markdown.Markdown
 import com.halilibo.richtext.ui.RichTextStyle
 import com.halilibo.richtext.ui.material3.RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
-import com.pillyliu.pinprofandroid.ui.AppResourceChip
-import com.pillyliu.pinprofandroid.ui.AppResourceRow
-import com.pillyliu.pinprofandroid.ui.AppUnavailableResourceChip
-import com.pillyliu.pinprofandroid.ui.AppVariantBadge
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppResourceChip
+import com.pillyliu.pinprofandroid.ui.AppResourceRow
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
+import com.pillyliu.pinprofandroid.ui.AppUnavailableResourceChip
+import com.pillyliu.pinprofandroid.ui.AppVariantBadge
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import com.pillyliu.pinprofandroid.ui.appShortRulesheetTitle
@@ -290,7 +290,7 @@ internal fun PinballVideoLaunchPanel(
                 modifier = Modifier.size(28.dp),
             )
 
-            OutlinedButton(
+            AppSecondaryButton(
                 onClick = { selectedVideo?.let(onOpenVideo) },
                 enabled = selectedVideo != null,
                 modifier = Modifier.defaultMinSize(minHeight = 40.dp),
@@ -298,7 +298,6 @@ internal fun PinballVideoLaunchPanel(
             ) {
                 Text(
                     text = "Open in YouTube",
-                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     textAlign = TextAlign.Center,
                     lineHeight = 18.sp,
