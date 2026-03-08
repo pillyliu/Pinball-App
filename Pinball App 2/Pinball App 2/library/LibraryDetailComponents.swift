@@ -351,7 +351,7 @@ private func libraryRulesheetLinkButton(title: String, game: PinballGame, source
             externalSource: source
         )
     }
-    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+    .buttonStyle(AppCompactSecondaryActionButtonStyle())
     .simultaneousGesture(
         TapGesture().onEnded {
             LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: title)
@@ -370,7 +370,7 @@ private func libraryRulesheetLinkButton(link: PinballGame.ReferenceLink, game: P
                 externalSource: embeddedSource
             )
         }
-        .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+        .buttonStyle(AppCompactSecondaryActionButtonStyle())
         .simultaneousGesture(
             TapGesture().onEnded {
                 LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: link.label)
@@ -380,7 +380,7 @@ private func libraryRulesheetLinkButton(link: PinballGame.ReferenceLink, game: P
         NavigationLink(title) {
             ExternalRulesheetWebScreen(title: game.name, url: destination)
         }
-        .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+        .buttonStyle(AppCompactSecondaryActionButtonStyle())
         .simultaneousGesture(
             TapGesture().onEnded {
                 LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: link.label)
