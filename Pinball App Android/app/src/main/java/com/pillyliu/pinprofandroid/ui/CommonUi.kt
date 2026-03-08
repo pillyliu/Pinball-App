@@ -735,6 +735,7 @@ fun AppInlineActionChip(
     modifier: Modifier = Modifier,
     destructive: Boolean = false,
     enabled: Boolean = true,
+    showsBorder: Boolean = true,
 ) {
     val colors = PinballThemeTokens.colors
     val shapes = PinballThemeTokens.shapes
@@ -745,7 +746,7 @@ fun AppInlineActionChip(
         enabled = enabled,
         modifier = modifier,
         shape = RoundedCornerShape(shapes.controlCorner),
-        border = BorderStroke(1.dp, borderColor),
+        border = if (showsBorder) BorderStroke(1.dp, borderColor) else null,
         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp),
         colors = ButtonDefaults.textButtonColors(
             containerColor = colors.controlBackground,
@@ -864,7 +865,7 @@ fun AppSelectableRowButton(
     val shapes = PinballThemeTokens.shapes
     TextButton(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.defaultMinSize(minHeight = 0.dp),
         contentPadding = PaddingValues(0.dp),
         colors = ButtonDefaults.textButtonColors(
             contentColor = colors.brandInk,

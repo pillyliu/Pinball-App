@@ -3,6 +3,8 @@ package com.pillyliu.pinprofandroid.practice
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -10,9 +12,11 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AppDestructiveButton
 import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
@@ -179,27 +183,33 @@ internal fun GroupEditorStatusCard(
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Position", modifier = Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                AppInlineActionChip(
-                    text = "Down",
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.widthIn(min = 112.dp),
+            ) {
+                TextButton(
                     onClick = {
                         if (isEditing) onMoveEditedDown() else if (createGroupPosition < maxCreatePosition) onCreatePositionChange(createGroupPosition + 1)
                     },
                     enabled = if (isEditing) canMoveEditedDown else createGroupPosition < maxCreatePosition,
-                )
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                ) {
+                    Text("⌄", fontWeight = FontWeight.SemiBold)
+                }
+                Box(modifier = Modifier.width(24.dp), contentAlignment = Alignment.Center) {
                     Text(
                         if (isEditing) editingPosition.toString() else createGroupPosition.toString(),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
-                AppInlineActionChip(
-                    text = "Up",
+                TextButton(
                     onClick = {
                         if (isEditing) onMoveEditedUp() else if (createGroupPosition > 1) onCreatePositionChange(createGroupPosition - 1)
                     },
                     enabled = if (isEditing) canMoveEditedUp else createGroupPosition > 1,
-                )
+                ) {
+                    Text("⌃", fontWeight = FontWeight.SemiBold)
+                }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

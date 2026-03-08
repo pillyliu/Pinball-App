@@ -22,6 +22,8 @@ import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.RadioButtonChecked
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -262,7 +264,7 @@ internal fun CurrentGroupsCard(
                                 },
                             ) {
                                 Icon(
-                                    imageVector = if (group.isPriority) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
+                                    imageVector = if (group.isPriority) Icons.Outlined.RadioButtonChecked else Icons.Outlined.RadioButtonUnchecked,
                                     contentDescription = if (group.isPriority) "Priority on" else "Priority off",
                                     tint = if (group.isPriority) Color(0xFFFFA726) else MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -280,6 +282,7 @@ internal fun CurrentGroupsCard(
                                 offsetX = 0f
                             },
                             modifier = Modifier.width(dateColWidth),
+                            showsBorder = false,
                         )
                         AppInlineActionChip(
                             text = group.endDateMs?.let { formatShortDate(it) } ?: "-",
@@ -293,6 +296,7 @@ internal fun CurrentGroupsCard(
                                 offsetX = 0f
                             },
                             modifier = Modifier.width(dateColWidth),
+                            showsBorder = false,
                         )
                     }
                 }
