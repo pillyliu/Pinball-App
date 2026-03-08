@@ -1,7 +1,6 @@
 package com.pillyliu.pinprofandroid.library
 
 import android.content.Context
-import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.gameroom.GameRoomStateCodec
 import com.pillyliu.pinprofandroid.gameroom.GameRoomStore
 import com.pillyliu.pinprofandroid.gameroom.GameRoomArea
@@ -10,7 +9,6 @@ import com.pillyliu.pinprofandroid.gameroom.OwnedMachineStatus
 import org.json.JSONArray
 import org.json.JSONObject
 
-private const val HOSTED_LIBRARY_REFRESH_INTERVAL_MS = 24L * 60L * 60L * 1000L
 private const val GAME_ROOM_LIBRARY_SOURCE_ID = "venue--gameroom"
 
 internal suspend fun loadLibraryExtraction(context: Context): LegacyCatalogExtraction {
@@ -21,48 +19,32 @@ internal suspend fun loadLibraryExtraction(context: Context): LegacyCatalogExtra
     }
 }
 
-private suspend fun loadHostedLibraryExtraction(context: Context): LegacyCatalogExtraction {
-    val libraryCached = PinballDataCache.loadText(
-        url = LIBRARY_URL,
-        allowMissing = false,
-        maxCacheAgeMs = HOSTED_LIBRARY_REFRESH_INTERVAL_MS,
-    )
-    val opdbCached = PinballDataCache.loadText(
-        url = OPDB_CATALOG_URL,
-        allowMissing = true,
-        maxCacheAgeMs = HOSTED_LIBRARY_REFRESH_INTERVAL_MS,
-    )
-    val libraryText = libraryCached.text ?: error("Missing library payload")
-    val opdbText = opdbCached.text?.takeIf { it.isNotBlank() }
-    return if (opdbText != null) {
-        decodeMergedLibraryPayloadWithState(context, libraryText, opdbText)
-    } else {
-        val bundledOpdbText = loadBundledPinballText(context, "/pinball/data/opdb_catalog_v1.json")
-        if (!bundledOpdbText.isNullOrBlank()) {
-            decodeMergedLibraryPayloadWithState(context, libraryText, bundledOpdbText)
-        } else {
-            LibrarySeedDatabase.loadExtraction(context)
+internal fun decodeCatalogManufacturerOptions(raw: String): List<CatalogManufacturerOption> {
+    val root = parseNormalizedRoot(raw)
+    if (root.manufacturers.isEmpty()) return emptyList()
+
+    val groupCountsByManufacturerId = root.machines
+        .groupBy { it.manufacturerId.orEmpty() }
+        .mapValues { (_, machines) ->
+            machines.map { it.opdbGroupId ?: it.practiceIdentity }.toSet().size
         }
-    }
-}
 
-private fun loadBundledLibraryExtraction(context: Context): LegacyCatalogExtraction? {
-    val libraryText = loadBundledPinballText(context, "/pinball/data/pinball_library_v3.json") ?: return null
-    val opdbText = loadBundledPinballText(context, "/pinball/data/opdb_catalog_v1.json")
-    return if (!opdbText.isNullOrBlank()) {
-        decodeMergedLibraryPayloadWithState(context, libraryText, opdbText)
-    } else {
-        decodeLibraryPayloadWithState(context, libraryText)
-    }
-}
-
-private fun loadBundledPinballText(context: Context, path: String): String? {
-    val normalizedPath = if (path.startsWith("/")) path else "/$path"
-    if (!normalizedPath.startsWith("/pinball/")) return null
-    val assetPath = "starter-pack$normalizedPath"
-    return runCatching {
-        context.assets.open(assetPath).bufferedReader().use { it.readText() }
-    }.getOrNull()
+    return root.manufacturers
+        .map { manufacturer ->
+            CatalogManufacturerOption(
+                id = manufacturer.id,
+                name = manufacturer.name,
+                gameCount = groupCountsByManufacturerId[manufacturer.id] ?: 0,
+                isModern = false,
+                featuredRank = null,
+                sortBucket = 2,
+            )
+        }
+        .sortedWith(
+            compareBy<CatalogManufacturerOption> { it.sortBucket }
+                .thenBy { it.featuredRank ?: Int.MAX_VALUE }
+                .thenBy { it.name.lowercase() },
+        )
 }
 
 internal fun decodeLibraryPayloadWithState(context: Context, raw: String): LegacyCatalogExtraction {

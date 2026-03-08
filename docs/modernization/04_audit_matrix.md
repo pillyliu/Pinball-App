@@ -16,7 +16,7 @@ Status values:
 | Feature | iOS status | Android status | Parity status | Notes |
 | --- | --- | --- | --- | --- |
 | League | in audit | in audit | in audit | Root tab is aligned, and both platforms now have explicit League shell-content seams instead of leaving home-card composition inside the root screen files. |
-| Library | in audit | in audit | parity risk | Shared dependency for Practice and GameRoom; fallback/resource behavior must be locked before larger rewrites. |
+| Library | in audit | in audit | in audit | Shared dependency for Practice and GameRoom; v3 fallback/resource behavior is locked and hosted payload access now goes through dedicated platform seams, but deeper domain/store cleanup is still incomplete. |
 | Practice | parity risk | parity risk | parity risk | Largest active drift surface after GameRoom; route/state complexity is still concentrated in a few large files. |
 | GameRoom | stable | stable | in audit | 3.1 shipped baseline exists; home/UI helper splits, machine-route splits, settings-surface extraction, and presentation-component extraction are in place. |
 | Settings | in audit | in audit | in audit | Smaller feature, but now part of the shared control-chrome pass as both platforms move import flows off feature-local picker/search/list treatment. |
@@ -139,6 +139,7 @@ Status values:
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/PlayfieldScreen.swift` | stable | iOS playfield viewer now uses the shared fullscreen back-button seam instead of a duplicated floating back-button overlay. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/RulesheetScreen.swift` | stable | iOS rulesheet viewer now uses the shared fullscreen back-button seam instead of a duplicated floating back-button overlay. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryCatalogResolution.swift` | stable | iOS catalog imported-game, rulesheet, video, and machine-selection rules now live behind a dedicated seam instead of staying embedded in `LibraryCatalogStore.swift`. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryHostedData.swift` | stable | iOS hosted Library payload paths, hosted extraction loading, bundled extraction fallback, and OPDB manufacturer-option loading now live behind a dedicated seam instead of being split across `LibraryDataLoader.swift`, `SettingsScreen.swift`, and cache-refresh code. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryResourceResolution.swift` | stable | iOS resource URL normalization, bundled playfield-manifest lookup, and rulesheet/game-info/playfield fallback rules now live behind a dedicated seam instead of staying embedded in `LibraryDomain.swift`. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryVideoMetadata.swift` | stable | iOS YouTube oEmbed metadata fetch now lives behind a dedicated seam instead of staying embedded in `LibraryDomain.swift`. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibrarySeedDatabase.swift` | in audit | Seed-db imported-source loading and built-in row mapping now use clearer seams, but database-specific helpers and overlay assembly are still concentrated here. |
@@ -148,6 +149,7 @@ Status values:
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/PlayfieldScreen.kt` | stable | Android playfield viewer title row now uses the shared `AppScreenHeader` seam instead of a feature-local back-button plus centered-title overlay. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetScreen.kt` | stable | Android rulesheet header rows now use the shared `AppScreenHeader` seam instead of duplicating centered back-button plus title composition in the external-web and inline rulesheet variants. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryCatalogResolution.kt` | stable | Android catalog imported-game, rulesheet, video, and machine-selection rules now live behind a dedicated seam instead of staying embedded in `LibraryDataLoader.kt`. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryHostedData.kt` | stable | Android hosted Library payload paths, hosted extraction loading, bundled extraction fallback, and OPDB manufacturer-option loading now live behind a dedicated seam instead of being split across `LibraryDataLoader.kt`, `SettingsScreen.kt`, and cache-refresh code. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryResourceResolution.kt` | stable | Android resource URL normalization, bundled playfield-manifest lookup, and rulesheet/game-info/playfield fallback rules now live behind a dedicated seam instead of staying embedded in `LibraryDomain.kt`. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryPayloadParsing.kt` | stable | Android legacy payload JSON parsing now lives behind a dedicated seam instead of staying embedded in `LibraryDomain.kt`. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedDatabase.kt` | in audit | Seed-db imported-source loading and built-in row mapping now use clearer seams, but database-specific helpers and overlay assembly are still concentrated here. |
@@ -183,15 +185,15 @@ Status values:
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/SharedFullscreenChrome.kt` | in audit | Android fullscreen viewer status overlays now live behind a dedicated shared seam instead of staying embedded in Library playfield and rulesheet screens. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt` | in audit | Android shared shell/background/card/back-button/filter-header/refresh-row/legend-header/action-chip/screen-header/inline-status/task-status/panel-status/panel-empty helpers now consume semantic color, spacing, and typography tokens and now cover Library/Practice/Settings/GameRoom state surfaces, but more component families still need to migrate onto the same layer. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/SharedComponents.kt` | in audit | Android dropdown, grouped-dropdown, and shared table-cell styling now consume semantic color, spacing, and typography tokens, but the rest of the shared component library still needs consistent adoption. |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/settings/SettingsScreen.swift` | in audit | iOS add/import screens now use shared compact dropdown, selectable-row, action-chip, inline task-status, panel-status, and panel-empty chrome, and home section titles now use the shared section-title seam, but the rest of Settings still needs exact section and persistence review. |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreen.kt` | in audit | Android add/import screens now use shared dropdown, card, action-chip, header, inline task-status, panel-status, and panel-empty chrome, but the rest of Settings still needs exact section and persistence review. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/settings/SettingsScreen.swift` | in audit | iOS add/import screens now use shared compact dropdown, selectable-row, action-chip, inline task-status, panel-status, and panel-empty chrome; Settings home also exposes a manual hosted Library/OPDB force-refresh action and now loads hosted manufacturer options through the shared `LibraryHostedData.swift` seam, but the rest of the feature still needs exact section and persistence review. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreen.kt` | in audit | Android add/import screens now use shared dropdown, card, action-chip, header, inline task-status, and panel-state chrome; Settings home also exposes a manual hosted Library/OPDB force-refresh action and now loads hosted manufacturer options through the shared `LibraryHostedData.kt` seam, but the rest of the feature still needs exact section and persistence review. |
 
 ## Current work order
 
-1. Practice state ownership and route-model normalization plan
-2. Library audit and dependency boundaries
-3. League shell and nested destination contract
-4. Shell/theme/design-system semantic token and shared chrome pass
+1. Library domain/store cleanup after hosted-data extraction
+2. Remaining shared state/resource/media chrome pass
+3. Settings persistence inventory and remaining shell cleanup
+4. Brand personality layer on top of the shared design system
 
 ## Next audit additions
 

@@ -13,12 +13,12 @@ final class SettingsViewModel: ObservableObject {
     @Published private(set) var importedSources: [PinballImportedSourceRecord] = []
     @Published private(set) var sourceState: PinballLibrarySourceState = .empty
     @Published private(set) var isLoading = false
+    @Published private(set) var isRefreshingHostedData = false
+    @Published private(set) var hostedDataStatusMessage: String?
+    @Published private(set) var hostedDataStatusIsError = false
     @Published var errorMessage: String?
 
     private var didLoad = false
-    private let libraryPath = "/pinball/data/pinball_library_v3.json"
-    private let opdbCatalogPath = "/pinball/data/opdb_catalog_v1.json"
-
     let builtinSources: [PinballLibrarySource] = [
         .init(id: "venue--rlm-amusements", name: "RLM Amusements", type: .venue),
         .init(id: "venue--the-avenue-cafe", name: "The Avenue Cafe", type: .venue),
@@ -35,27 +35,31 @@ final class SettingsViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            do {
-                manufacturers = try await LibrarySeedDatabase.shared.loadManufacturerOptions()
-            } catch {
-                if let opdbText = try loadBundledPinballText(path: opdbCatalogPath),
-                   let opdbData = opdbText.data(using: .utf8) {
-                    manufacturers = try decodeCatalogManufacturerOptions(data: opdbData)
-                } else {
-                    let cached = try await PinballDataCache.shared.loadText(path: opdbCatalogPath, allowMissing: true)
-                    if let opdbText = cached.text,
-                       let opdbData = opdbText.data(using: .utf8) {
-                        manufacturers = try decodeCatalogManufacturerOptions(data: opdbData)
-                    } else {
-                        manufacturers = []
-                    }
-                }
-            }
+            manufacturers = try await loadManufacturerOptions()
             importedSources = PinballImportedSourcesStore.load()
             sourceState = PinballLibrarySourceStateStore.load()
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func forceRefreshHostedLibraryData() async {
+        guard !isRefreshingHostedData else { return }
+        isRefreshingHostedData = true
+        hostedDataStatusMessage = nil
+        hostedDataStatusIsError = false
+        defer { isRefreshingHostedData = false }
+
+        do {
+            try await PinballDataCache.shared.forceRefreshHostedLibraryData()
+            await refresh()
+            hostedDataStatusMessage = "Pinball data refreshed from pillyliu.com."
+            hostedDataStatusIsError = false
+            postPinballLibrarySourcesDidChange()
+        } catch {
+            hostedDataStatusMessage = "Hosted data refresh failed: \(error.localizedDescription)"
+            hostedDataStatusIsError = true
         }
     }
 
@@ -180,6 +184,10 @@ final class SettingsViewModel: ObservableObject {
             errorMessage = "Tournament refresh failed: \(error.localizedDescription)"
         }
     }
+
+    private func loadManufacturerOptions() async throws -> [PinballCatalogManufacturerOption] {
+        try await loadHostedCatalogManufacturerOptions()
+    }
 }
 
 struct SettingsScreen: View {
@@ -209,6 +217,7 @@ struct SettingsScreen: View {
                             )
                         }
                         librarySection
+                        hostedRefreshSection
                         privacySection
                         aboutSection
                     }
@@ -270,6 +279,40 @@ struct SettingsScreen: View {
 
             if viewModel.importedSources.isEmpty {
                 AppPanelEmptyCard(text: "No additional sources added yet.")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .appPanelStyle()
+    }
+
+    private var hostedRefreshSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            AppSectionTitle(text: "Pinball Data")
+
+            Text("Force-refresh the hosted Library and OPDB catalog from pillyliu.com.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Button {
+                Task { await viewModel.forceRefreshHostedLibraryData() }
+            } label: {
+                Text(viewModel.isRefreshingHostedData ? "Refreshing Pinball Data…" : "Refresh Pinball Data")
+            }
+            .buttonStyle(.glass)
+            .disabled(viewModel.isRefreshingHostedData)
+
+            if let statusMessage = viewModel.hostedDataStatusMessage {
+                AppInlineTaskStatus(
+                    text: statusMessage,
+                    showsProgress: viewModel.isRefreshingHostedData,
+                    isError: viewModel.hostedDataStatusIsError
+                )
+            } else if viewModel.isRefreshingHostedData {
+                AppInlineTaskStatus(
+                    text: "Refreshing hosted pinball data…",
+                    showsProgress: true
+                )
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -54,6 +54,7 @@ import android.text.method.LinkMovementMethod
 import android.widget.TextView
 import androidx.core.text.HtmlCompat
 import com.pillyliu.pinprofandroid.R
+import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.rememberLplFullNameAccessUnlocked
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinprofandroid.data.setShowFullLplLastName
@@ -62,13 +63,13 @@ import com.pillyliu.pinprofandroid.library.CatalogManufacturerOption
 import com.pillyliu.pinprofandroid.library.ImportedSourceProvider
 import com.pillyliu.pinprofandroid.library.ImportedSourceRecord
 import com.pillyliu.pinprofandroid.library.ImportedSourcesStore
-import com.pillyliu.pinprofandroid.library.LibrarySeedDatabase
 import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.LibrarySourceEvents
 import com.pillyliu.pinprofandroid.library.LibrarySourceState
 import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.library.LibraryVenueSearchResult
+import com.pillyliu.pinprofandroid.library.loadHostedCatalogManufacturerOptions
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
@@ -115,12 +116,15 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
     var sourceState by remember { mutableStateOf(LibrarySourceState()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    var refreshingHostedData by remember { mutableStateOf(false) }
+    var hostedDataStatusMessage by remember { mutableStateOf<String?>(null) }
+    var hostedDataStatusIsError by remember { mutableStateOf(false) }
 
     suspend fun reload() {
         loading = true
         error = null
         runCatching {
-            manufacturers = withContext(Dispatchers.IO) { LibrarySeedDatabase.loadManufacturerOptions(context) }
+            manufacturers = withContext(Dispatchers.IO) { loadHostedCatalogManufacturerOptions(context) }
             importedSources = ImportedSourcesStore.load(context)
             sourceState = LibrarySourceStateStore.load(context)
         }.onFailure { error = it.message ?: "Failed to load settings." }
@@ -131,6 +135,29 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
         importedSources = ImportedSourcesStore.load(context)
         sourceState = LibrarySourceStateStore.load(context)
         LibrarySourceEvents.notifyChanged()
+    }
+
+    fun refreshHostedLibraryData() {
+        if (refreshingHostedData) return
+        scope.launch {
+            refreshingHostedData = true
+            hostedDataStatusMessage = null
+            hostedDataStatusIsError = false
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    PinballDataCache.forceRefreshHostedLibraryData()
+                }
+            }.onSuccess {
+                reload()
+                hostedDataStatusMessage = "Pinball data refreshed from pillyliu.com."
+                hostedDataStatusIsError = false
+                LibrarySourceEvents.notifyChanged()
+            }.onFailure {
+                hostedDataStatusMessage = "Hosted data refresh failed: ${it.message ?: "Unknown error"}"
+                hostedDataStatusIsError = true
+            }
+            refreshingHostedData = false
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -365,6 +392,39 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
                     }
                     if (importedSources.isEmpty()) {
                         AppPanelEmptyCard(text = "No additional sources added yet.")
+                    }
+                }
+            }
+
+            item {
+                CardContainer {
+                    SectionTitle("Pinball Data")
+                    Text(
+                        "Force-refresh the hosted Library and OPDB catalog from pillyliu.com.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(
+                        onClick = ::refreshHostedLibraryData,
+                        enabled = !refreshingHostedData,
+                    ) {
+                        Text(if (refreshingHostedData) "Refreshing Pinball Data..." else "Refresh Pinball Data")
+                    }
+                    when {
+                        hostedDataStatusMessage != null -> {
+                            AppInlineTaskStatus(
+                                text = hostedDataStatusMessage.orEmpty(),
+                                showsProgress = refreshingHostedData,
+                                isError = hostedDataStatusIsError,
+                            )
+                        }
+
+                        refreshingHostedData -> {
+                            AppInlineTaskStatus(
+                                text = "Refreshing hosted pinball data…",
+                                showsProgress = true,
+                            )
+                        }
                     }
                 }
             }

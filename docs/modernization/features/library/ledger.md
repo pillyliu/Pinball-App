@@ -35,6 +35,11 @@
 - Standardized Library root/list loading and empty/error treatment on both platforms by moving iOS `LibraryListScreen.swift` and Android `LibraryListScreen.kt` / `LibraryRouteContent.kt` onto shared panel-status and panel-empty seams instead of feature-local fallback text, and Android Library now exposes real reload failures instead of silently clearing to an empty list.
 - Standardized Library detail `Game Info` loading/missing/error treatment on both platforms by moving `LibraryDetailComponents.swift` and `LibraryDetailComponents.kt` onto shared inline-status and panel-empty seams instead of feature-local fallback text.
 - Standardized Library detail video-empty and iOS sources-empty treatment by moving `LibraryDetailComponents.swift` and `LibraryDetailComponents.kt` onto shared panel-empty seams instead of feature-local empty-state surfaces.
+- Extracted hosted Library payload and OPDB catalog fetch/decode entry points into dedicated platform seams:
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryHostedData.swift`
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryHostedData.kt`
+- Rewired both `LibraryDataLoader` files to consume the new hosted-data seams instead of keeping hosted fetch paths, bundled fallback loading, and OPDB manufacturer-option decoding split across Library and Settings files.
+- Settings manual hosted-data refresh now routes through the same Library hosted-data seams on both platforms instead of maintaining a feature-local hosted fetch path.
 
 ## Next audit targets
 
