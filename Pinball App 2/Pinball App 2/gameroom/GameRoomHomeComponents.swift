@@ -333,13 +333,17 @@ private struct GameRoomMiniCard: View {
                 }
                 .overlay(
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .stroke(isSelected ? Color.accentColor.opacity(0.85) : Color.clear, lineWidth: 1.5)
+                        .stroke(isSelected ? AppTheme.brandGold.opacity(0.88) : Color.clear, lineWidth: 1.5)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
 
             HStack(spacing: 6) {
                 Circle()
                     .fill(statusColor)
+                    .overlay(
+                        Circle()
+                            .stroke(AppTheme.brandInk.opacity(0.35), lineWidth: 1)
+                    )
                     .frame(width: 8, height: 8)
             }
             .padding(.top, 8)
@@ -406,7 +410,7 @@ private struct GameRoomListRow: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .stroke(isSelected ? Color.accentColor.opacity(0.85) : Color.clear, lineWidth: 1.5)
+                        .stroke(isSelected ? AppTheme.brandGold.opacity(0.88) : Color.clear, lineWidth: 1.5)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
 
@@ -500,14 +504,13 @@ struct GameRoomVariantPill: View {
     var body: some View {
         Text(compactLabel)
             .font(style.font)
-            .foregroundStyle(.white)
+            .foregroundStyle(AppTheme.brandInk)
             .padding(.horizontal, style.horizontalPadding)
             .padding(.vertical, 3)
-            .background(Color.black.opacity(0.72), in: Capsule())
-            .shadow(color: .black.opacity(0.9), radius: 2, x: 0, y: 1)
+            .background(AppTheme.brandGold.opacity(0.22), in: Capsule())
             .overlay(
                 Capsule()
-                    .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                    .stroke(AppTheme.brandGold.opacity(0.52), lineWidth: 1)
             )
     }
 

@@ -169,11 +169,12 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 - Android shared confirm/date dialogs and filter sheets now also carry the PinProf layer through `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppDialogs.kt` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppFilterSheet.kt`, bringing presentation containers and action emphasis onto the same brand-aware seam.
 - iOS segmented pickers in Practice and GameRoom now route through a shared branded modifier in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppFilterControls.swift`, so segmented selected-state treatment no longer varies by screen.
 - Android segmented buttons in Practice and GameRoom now route through a shared brand-aware color seam in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/SharedComponents.kt`, so selected-state containers, borders, and text no longer fall back to default Material treatment.
+- iOS and Android GameRoom mini-card selection borders, list-row selection borders, attention-dot outlines, and variant pills now also consume PinProf brand roles in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/gameroom/GameRoomHomeComponents.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomUiComponents.kt`, replacing older cyan, black, and white highlight treatment with the shared gold, ink, and chalk system.
 - iOS root tabs in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/app/ContentView.swift` now use one metadata-driven tab contract instead of repeating screen/title/icon wiring inline.
 
 ## Next design-system steps
 
-1. Extend the new brand token layer into the remaining shared chrome: feature-level highlight surfaces and any last top-header treatments still outside the shared seams.
+1. Extend the new brand token layer into the remaining shared chrome: any last top-header treatments and feature-level highlight surfaces still outside the shared seams.
 2. Move more shared component families onto semantic spacing, typography, shape, and brand tokens instead of ad hoc local constants.
 3. Normalize remaining top-bar, header, sheet, and dialog chrome across shared UI helpers on both platforms.
 4. Start documenting motion roles before broader visual restyling.

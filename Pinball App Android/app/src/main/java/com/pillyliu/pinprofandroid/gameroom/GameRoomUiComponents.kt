@@ -50,6 +50,7 @@ import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.DropdownOption
 import com.pillyliu.pinprofandroid.ui.DropdownOptionGroup
 import com.pillyliu.pinprofandroid.ui.GroupedAnchoredDropdownFilter
+import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.Locale
@@ -62,12 +63,13 @@ internal fun MiniMachineCard(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val colors = PinballThemeTokens.colors
     val outerShape = RoundedCornerShape(12.dp)
     val innerShape = RoundedCornerShape(10.dp)
     val imageModel = rememberCachedImageModel(imageUrl)
     var imageLoaded by remember(imageUrl) { mutableStateOf(false) }
     var showMissingImage by remember(imageUrl) { mutableStateOf(imageUrl.isNullOrBlank()) }
-    val selectionHighlightColor = Color(0xFF7DD3FC)
+    val selectionHighlightColor = colors.brandGold.copy(alpha = 0.9f)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -76,7 +78,7 @@ internal fun MiniMachineCard(
             .border(width = 2.dp, color = if (selected) selectionHighlightColor else Color.Transparent, shape = outerShape)
             .padding(2.dp)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest, innerShape)
-            .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f), shape = innerShape)
+            .border(width = 1.dp, color = colors.brandChalk.copy(alpha = 0.22f), shape = innerShape)
             .graphicsLayer {
                 clip = true
                 shape = innerShape
@@ -137,7 +139,7 @@ internal fun MiniMachineCard(
                         .padding(start = 6.dp)
                         .size(10.dp)
                         .background(attentionColor(attentionState), RoundedCornerShape(999.dp))
-                        .border(1.dp, Color.Black.copy(alpha = 0.22f), RoundedCornerShape(999.dp)),
+                        .border(1.dp, colors.brandInk.copy(alpha = 0.24f), RoundedCornerShape(999.dp)),
                 )
             }
             Column {
@@ -170,11 +172,12 @@ internal fun MachineListRow(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val colors = PinballThemeTokens.colors
     val cardShape = RoundedCornerShape(10.dp)
     val imageModel = rememberCachedImageModel(imageUrl)
     var imageLoaded by remember(imageUrl) { mutableStateOf(false) }
     var showMissingImage by remember(imageUrl) { mutableStateOf(imageUrl.isNullOrBlank()) }
-    val selectionHighlightColor = Color(0xFF7DD3FC)
+    val selectionHighlightColor = colors.brandGold.copy(alpha = 0.9f)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -183,7 +186,7 @@ internal fun MachineListRow(
             .background(MaterialTheme.colorScheme.surfaceContainerHighest, cardShape)
             .border(
                 width = if (selected) 2.dp else 1.dp,
-                color = if (selected) selectionHighlightColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f),
+                color = if (selected) selectionHighlightColor else colors.brandChalk.copy(alpha = 0.22f),
                 shape = cardShape,
             )
             .graphicsLayer {
@@ -243,7 +246,7 @@ internal fun MachineListRow(
                 modifier = Modifier
                     .size(9.dp)
                     .background(attentionColor(attentionState), RoundedCornerShape(999.dp))
-                    .border(1.dp, Color.Black.copy(alpha = 0.22f), RoundedCornerShape(999.dp)),
+                    .border(1.dp, colors.brandInk.copy(alpha = 0.24f), RoundedCornerShape(999.dp)),
             )
             Spacer(modifier = Modifier.width(8.dp))
 
@@ -345,6 +348,7 @@ internal fun GameRoomVariantPill(
     style: VariantPillStyle,
     modifier: Modifier = Modifier,
 ) {
+    val colors = PinballThemeTokens.colors
     val textStyle = when (style) {
         VariantPillStyle.Mini -> MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
         VariantPillStyle.Standard -> MaterialTheme.typography.labelSmall
@@ -357,15 +361,15 @@ internal fun GameRoomVariantPill(
     }
     Text(
         text = compactVariantLabel(label),
-        color = Color.White,
+        color = colors.brandInk,
         style = textStyle,
         fontWeight = FontWeight.SemiBold,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier
             .widthIn(max = 84.dp)
-            .background(Color.Black.copy(alpha = 0.72f), RoundedCornerShape(999.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(999.dp))
+            .background(colors.brandGold.copy(alpha = 0.22f), RoundedCornerShape(999.dp))
+            .border(1.dp, colors.brandGold.copy(alpha = 0.52f), RoundedCornerShape(999.dp))
             .padding(horizontal = horizontalPadding, vertical = 3.dp),
     )
 }
