@@ -477,9 +477,7 @@ struct GameRoomMachineView: View {
                 Text("Media")
                     .font(.headline)
                 if recentAttachments.isEmpty {
-                    Text("No media attached yet.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: "No media attached yet.")
                 } else {
                     LazyVGrid(columns: mediaColumns, spacing: 8) {
                         ForEach(Array(recentAttachments.prefix(12))) { attachment in
@@ -658,9 +656,7 @@ struct GameRoomMachineView: View {
             .sorted { $0.occurredAt > $1.occurredAt }
         return VStack(alignment: .leading, spacing: 10) {
             if events.isEmpty {
-                Text("No history yet.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "No log entries yet.")
             } else {
                 if let selected = selectedLogEvent(from: events) {
                     GameRoomLogDetailCard(event: selected)

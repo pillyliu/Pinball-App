@@ -187,20 +187,15 @@ struct GameRoomLogIssueSheet: View {
                 }
 
                 if isImportingAsset {
-                    ProgressView("Importing media…")
-                        .font(.footnote)
+                    AppInlineTaskStatus(text: "Importing media…", showsProgress: true)
                 }
 
                 if let importErrorMessage {
-                    Text(importErrorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
+                    AppInlineStatusMessage(text: importErrorMessage, isError: true)
                 }
 
                 if attachments.isEmpty {
-                    Text("No media selected.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: "No media selected.")
                 } else {
                     ForEach(attachments) { attachment in
                         HStack(spacing: 10) {
@@ -543,14 +538,11 @@ struct GameRoomMediaEntrySheet: View {
                 }
 
                 if isImportingAsset {
-                    ProgressView("Importing media…")
-                        .font(.footnote)
+                    AppInlineTaskStatus(text: "Importing media…", showsProgress: true)
                 }
 
                 if let importErrorMessage {
-                    Text(importErrorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
+                    AppInlineStatusMessage(text: importErrorMessage, isError: true)
                 }
 
                 if kind == .photo, let previewURL = resolvedMediaURL {

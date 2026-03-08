@@ -21,6 +21,8 @@
 - iOS GameRoom import fetch and catalog-search task-state messaging now uses the shared `AppInlineTaskStatus` seam in `SharedTableUi.swift` instead of local spinner-plus-error stacks.
 - Android GameRoom import fetch and catalog-search task-state messaging now uses the shared `AppInlineTaskStatus` seam in `CommonUi.kt`, and the edit surface now exposes catalog loading/error state explicitly instead of only a static result label.
 - iOS and Android GameRoom now also use shared panel-empty cards for home and settings empty states instead of feature-local secondary text blocks inside cards.
+- iOS GameRoom machine media/log empties plus issue/media import state now also use shared `SharedTableUi.swift` seams instead of raw `Text` and `ProgressView("Importing media…")` blocks.
+- Android GameRoom machine media/log empties plus issue-draft media empties now also use the shared `CommonUi.kt` panel-empty seam instead of feature-local fallback text.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets

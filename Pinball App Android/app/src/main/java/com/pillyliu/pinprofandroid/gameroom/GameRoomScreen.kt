@@ -1264,10 +1264,7 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
                             }
                         }
                         if (issueDraftAttachments.isEmpty()) {
-                            Text(
-                                text = "No media selected.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            AppPanelEmptyCard(text = "No media selected.")
                         } else {
                             issueDraftAttachments.forEach { attachment ->
                                 Row(

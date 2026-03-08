@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.ConstrainedAsyncImagePreview
 import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
 
@@ -219,11 +220,7 @@ private fun GameRoomMachineSummaryPanel(
                 onOpen = onPreviewAttachment,
             )
         } else {
-            Text(
-                text = "No media attached yet.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            AppPanelEmptyCard(text = "No media attached yet.")
         }
     }
 }
@@ -350,10 +347,7 @@ private fun GameRoomMachineLogPanel(
             }
         }
         if (machineEvents.isEmpty()) {
-            Text(
-                text = "No log entries yet.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            AppPanelEmptyCard(text = "No log entries yet.")
         } else {
             Column(
                 modifier = Modifier
