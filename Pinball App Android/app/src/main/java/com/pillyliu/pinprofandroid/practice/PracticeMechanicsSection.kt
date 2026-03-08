@@ -83,7 +83,7 @@ internal fun PracticeMechanicsSection(
             val composed = "$prefix competency ${mechanicsCompetency.roundToInt()}/5. ${mechanicsNote.trim()}".trim()
             store.addPracticeNote("", "general", mechanicsSelectedSkill, composed)
             onMechanicsNoteChange("")
-        }) { Text("Log Mechanics Session") }
+        }, modifier = Modifier.fillMaxWidth()) { Text("Log Mechanics Session") }
     }
 
     CardContainer {
@@ -143,5 +143,6 @@ internal fun PracticeMechanicsSection(
     AppExternalLinkButton(
         text = "Dead Flip Tutorials",
         onClick = onOpenDeadFlipTutorials,
+        modifier = Modifier.fillMaxWidth(),
     )
 }

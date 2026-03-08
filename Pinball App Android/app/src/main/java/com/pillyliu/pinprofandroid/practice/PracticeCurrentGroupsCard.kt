@@ -2,24 +2,23 @@ package com.pillyliu.pinprofandroid.practice
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Archive
-import androidx.compose.material.icons.outlined.CheckBox
-import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.RadioButtonChecked
@@ -45,14 +44,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
 import com.pillyliu.pinprofandroid.ui.AppCompactIconButton
 import com.pillyliu.pinprofandroid.ui.AppSelectableRowButton
 import com.pillyliu.pinprofandroid.ui.AppSwipeRevealActionButton
@@ -78,51 +75,59 @@ internal fun CurrentGroupsCard(
     val selectedVisibleID = store.selectedGroupID?.takeIf { id -> visibleGroups.any { it.id == id } }
 
     CardContainer(modifier = Modifier.padding(top = 2.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionTitle("Groups")
-            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                SingleChoiceSegmentedButtonRow(
-                    modifier = Modifier
-                        .padding(start = 10.dp),
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SectionTitle("Groups")
+                Box(modifier = Modifier.weight(1f))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    listOf("Current", "Archived").forEachIndexed { index, label ->
-                        val archived = index == 1
-                        SegmentedButton(
-                            selected = showArchived == archived,
-                            onClick = { showArchived = archived },
-                            colors = pinballSegmentedButtonColors(),
-                            shape = SegmentedButtonDefaults.itemShape(index = index, count = 2),
-                            modifier = Modifier.height(32.dp),
-                            icon = {},
-                            label = {
-                                Text(
-                                    text = label,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 1,
-                                )
-                            },
-                        )
-                    }
+                    AppCompactIconButton(
+                        icon = Icons.Outlined.Add,
+                        contentDescription = "Add group",
+                        onClick = onCreateGroup,
+                        size = 28.dp,
+                        iconSize = 16.dp,
+                    )
+                    val selectedID = selectedVisibleID
+                    AppCompactIconButton(
+                        icon = Icons.Outlined.Edit,
+                        contentDescription = "Edit selected group",
+                        onClick = {
+                            if (selectedID != null) {
+                                onEditSelectedGroup(selectedID)
+                            }
+                        },
+                        enabled = selectedID != null,
+                        size = 28.dp,
+                        iconSize = 16.dp,
+                    )
                 }
             }
-            Box(modifier = Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                AppCompactIconButton(
-                    icon = Icons.Outlined.Add,
-                    contentDescription = "Add group",
-                    onClick = onCreateGroup,
-                )
-                val selectedID = selectedVisibleID
-                AppCompactIconButton(
-                    icon = Icons.Outlined.Edit,
-                    contentDescription = "Edit selected group",
-                    onClick = {
-                        if (selectedID != null) {
-                            onEditSelectedGroup(selectedID)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                    SingleChoiceSegmentedButtonRow {
+                        listOf("Current", "Archived").forEachIndexed { index, label ->
+                            val archived = index == 1
+                            SegmentedButton(
+                                selected = showArchived == archived,
+                                onClick = { showArchived = archived },
+                                colors = pinballSegmentedButtonColors(),
+                                shape = SegmentedButtonDefaults.itemShape(index = index, count = 2),
+                                modifier = Modifier.height(32.dp),
+                                icon = {},
+                                label = {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1,
+                                    )
+                                },
+                            )
                         }
-                    },
-                    enabled = selectedID != null,
-                )
+                    }
+                }
             }
         }
         if (visibleGroups.isEmpty()) {
@@ -250,7 +255,7 @@ internal fun CurrentGroupsCard(
                             },
                             modifier = Modifier
                                 .weight(1f)
-                                .padding(horizontal = 6.dp),
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
                         )
                         Box(
                             modifier = Modifier.width(priorityColWidth),
@@ -270,8 +275,9 @@ internal fun CurrentGroupsCard(
                                 )
                             }
                         }
-                        AppInlineActionChip(
+                        DashboardDateButton(
                             text = group.startDateMs?.let { formatShortDate(it) } ?: "-",
+                            width = dateColWidth,
                             onClick = {
                                 onOpenGroupDatePicker(
                                     group.id,
@@ -281,11 +287,10 @@ internal fun CurrentGroupsCard(
                                 onRevealedGroupIDChange(null)
                                 offsetX = 0f
                             },
-                            modifier = Modifier.width(dateColWidth),
-                            showsBorder = false,
                         )
-                        AppInlineActionChip(
+                        DashboardDateButton(
                             text = group.endDateMs?.let { formatShortDate(it) } ?: "-",
+                            width = dateColWidth,
                             onClick = {
                                 onOpenGroupDatePicker(
                                     group.id,
@@ -295,12 +300,28 @@ internal fun CurrentGroupsCard(
                                 onRevealedGroupIDChange(null)
                                 offsetX = 0f
                             },
-                            modifier = Modifier.width(dateColWidth),
-                            showsBorder = false,
                         )
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun DashboardDateButton(
+    text: String,
+    width: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit,
+) {
+    Text(
+        text = text,
+        modifier = Modifier
+            .width(width)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = 6.dp),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
 }

@@ -32,6 +32,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -199,27 +200,30 @@ fun AppCompactIconButton(
         colors.brandGold.copy(alpha = 0.28f)
     }
     val contentColor = tintOverride ?: if (destructive) MaterialTheme.colorScheme.error else colors.brandInk
-    IconButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier
-            .size(size)
-            .background(
-                colors.controlBackground.copy(alpha = if (enabled) 0.94f else 0.66f),
-                RoundedCornerShape(shapes.controlCorner),
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+        IconButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = modifier
+                .defaultMinSize(minWidth = 0.dp, minHeight = 0.dp)
+                .size(size)
+                .background(
+                    colors.controlBackground.copy(alpha = if (enabled) 0.94f else 0.66f),
+                    RoundedCornerShape(shapes.controlCorner),
+                )
+                .border(
+                    1.dp,
+                    borderColor.copy(alpha = if (enabled) borderColor.alpha else borderColor.alpha * 0.6f),
+                    RoundedCornerShape(shapes.controlCorner),
+                ),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = contentColor.copy(alpha = if (enabled) 1f else 0.5f),
+                modifier = Modifier.size(iconSize),
             )
-            .border(
-                1.dp,
-                borderColor.copy(alpha = if (enabled) borderColor.alpha else borderColor.alpha * 0.6f),
-                RoundedCornerShape(shapes.controlCorner),
-            ),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = contentColor.copy(alpha = if (enabled) 1f else 0.5f),
-            modifier = Modifier.size(iconSize),
-        )
+        }
     }
 }
 
@@ -863,34 +867,36 @@ fun AppSelectableRowButton(
 ) {
     val colors = PinballThemeTokens.colors
     val shapes = PinballThemeTokens.shapes
-    TextButton(
-        onClick = onClick,
-        modifier = modifier.defaultMinSize(minHeight = 0.dp),
-        contentPadding = PaddingValues(0.dp),
-        colors = ButtonDefaults.textButtonColors(
-            contentColor = colors.brandInk,
-        ),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    if (selected) colors.brandGold.copy(alpha = 0.14f) else Color.Transparent,
-                    shape = RoundedCornerShape(shapes.controlCorner),
-                )
-                .border(
-                    width = 1.dp,
-                    color = if (selected) colors.brandGold.copy(alpha = 0.42f) else Color.Transparent,
-                    shape = RoundedCornerShape(shapes.controlCorner),
-                )
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+        TextButton(
+            onClick = onClick,
+            modifier = modifier.defaultMinSize(minHeight = 0.dp),
+            contentPadding = PaddingValues(0.dp),
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = colors.brandInk,
+            ),
         ) {
-            Text(
-                text = text,
-                color = if (selected) colors.brandInk else colors.brandChalk,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        if (selected) colors.brandGold.copy(alpha = 0.14f) else Color.Transparent,
+                        shape = RoundedCornerShape(shapes.controlCorner),
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (selected) colors.brandGold.copy(alpha = 0.42f) else Color.Transparent,
+                        shape = RoundedCornerShape(shapes.controlCorner),
+                    )
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            ) {
+                Text(
+                    text = text,
+                    color = if (selected) colors.brandInk else colors.brandChalk,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
