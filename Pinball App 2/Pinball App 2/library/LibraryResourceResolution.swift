@@ -93,7 +93,7 @@ extension PinballGame {
 
     var libraryPlayfieldCandidates: [URL] {
         deduplicatedPlayfieldURLs(
-            localPlayfieldURLs(widths: [700]).map(Optional.some) +
+            preferredLocalPlayfieldCandidates.map(Optional.some) +
                 remotePlayfieldCandidates.map(Optional.some) + [
                     libraryFallbackPlayfieldURL(width: 700)
                 ]
@@ -123,7 +123,7 @@ extension PinballGame {
 
     var miniPlayfieldCandidates: [URL] {
         deduplicatedPlayfieldURLs(
-            localPlayfieldURLs(widths: [700, 1400]).map(Optional.some) +
+            preferredLocalPlayfieldCandidates.map(Optional.some) +
                 remotePlayfieldCandidates.map(Optional.some) + [
                     libraryFallbackPlayfieldURL(width: 700),
                     libraryFallbackPlayfieldURL(width: 1400)
@@ -149,7 +149,7 @@ extension PinballGame {
 
     var actualFullscreenPlayfieldCandidates: [URL] {
         deduplicatedPlayfieldURLs(
-            localPlayfieldURLs(widths: [1400, 700]).map(Optional.some) +
+            preferredLocalPlayfieldCandidates.map(Optional.some) +
                 remotePlayfieldCandidates.map(Optional.some)
         )
     }
@@ -249,6 +249,13 @@ extension PinballGame {
     private var remotePlayfieldCandidates: [URL] {
         guard let playfieldImageSourceURL else { return [] }
         return [playfieldImageSourceURL]
+    }
+
+    private var preferredLocalPlayfieldCandidates: [URL] {
+        deduplicatedPlayfieldURLs(
+            [playfieldLocalOriginalURL] +
+                localPlayfieldURLs(widths: [1400, 700]).map(Optional.some)
+        )
     }
 
     private func localPlayfieldURLs(widths: [Int]) -> [URL] {

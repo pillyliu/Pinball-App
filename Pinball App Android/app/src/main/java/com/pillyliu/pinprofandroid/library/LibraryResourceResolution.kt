@@ -98,6 +98,9 @@ private val PinballGame.playfieldAssetKeys: List<String>
 private val PinballGame.remotePlayfieldCandidates: List<String>
     get() = listOfNotNull(resolveLibraryUrl(playfieldImageUrl))
 
+private val PinballGame.preferredLocalPlayfieldCandidates: List<String>
+    get() = (listOfNotNull(playfieldLocalOriginalURL) + localPlayfieldCandidates(listOf(1400, 700))).distinct()
+
 private fun PinballGame.localPlayfieldCandidates(widths: List<Int>): List<String> {
     val candidates = LinkedHashSet<String>()
     playfieldAssetKeys.forEach { assetKey ->
@@ -124,12 +127,12 @@ internal fun PinballGame.cardArtworkCandidates(): List<String> =
     (primaryArtworkCandidates + miniCardPlayfieldCandidates()).distinct()
 
 internal fun PinballGame.libraryPlayfieldCandidates(): List<String> =
-    (localPlayfieldCandidates(listOf(700)) + remotePlayfieldCandidates + listOfNotNull(
+    (preferredLocalPlayfieldCandidates + remotePlayfieldCandidates + listOfNotNull(
         fallbackPlayfieldUrl(700),
     )).distinct()
 
 internal fun PinballGame.miniCardPlayfieldCandidates(): List<String> =
-    (localPlayfieldCandidates(listOf(700, 1400)) + remotePlayfieldCandidates + listOfNotNull(
+    (preferredLocalPlayfieldCandidates + remotePlayfieldCandidates + listOfNotNull(
         fallbackPlayfieldUrl(700),
         fallbackPlayfieldUrl(1400),
     )).distinct()
@@ -147,7 +150,7 @@ internal fun PinballGame.fullscreenPlayfieldCandidates(): List<String> =
     (actualFullscreenPlayfieldCandidates + listOfNotNull(fallbackPlayfieldUrl(700))).distinct()
 
 internal val PinballGame.actualFullscreenPlayfieldCandidates: List<String>
-    get() = (localPlayfieldCandidates(listOf(1400, 700)) + remotePlayfieldCandidates).distinct()
+    get() = (preferredLocalPlayfieldCandidates + remotePlayfieldCandidates).distinct()
 
 internal val PinballGame.hasPlayfieldResource: Boolean
     get() = actualFullscreenPlayfieldCandidates.isNotEmpty()
