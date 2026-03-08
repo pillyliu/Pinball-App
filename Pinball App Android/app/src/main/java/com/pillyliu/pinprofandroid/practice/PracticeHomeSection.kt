@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.LibrarySource
+import com.pillyliu.pinprofandroid.ui.AppPassiveStatusChip
 import com.pillyliu.pinprofandroid.ui.CardContainer
 
 @Composable
@@ -195,17 +196,7 @@ internal fun PracticeHomeSection(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(group.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     if (group.id == store.selectedGroup()?.id) {
-                        Text(
-                            "Selected",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-                                )
-                                .padding(horizontal = 6.dp, vertical = 3.dp),
-                        )
+                        AppPassiveStatusChip(text = "Selected")
                     }
                 }
                 val games = store.groupGames(group)

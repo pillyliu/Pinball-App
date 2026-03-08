@@ -193,17 +193,7 @@ extension LibraryScreen {
                     .layoutPriority(1)
 
                 if let variant = game.normalizedVariant {
-                    Text(variant)
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.92))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(Color.black.opacity(0.5), in: Capsule())
-                        .overlay {
-                            Capsule().stroke(Color.white.opacity(0.22), lineWidth: 0.7)
-                        }
+                    PinballOverlayMetadataBadge(variant)
                         .frame(maxWidth: 84, alignment: .leading)
                         .layoutPriority(0)
                 }

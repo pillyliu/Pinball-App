@@ -114,11 +114,7 @@ struct PracticeHomeSection: View {
                                     Text(group.name)
                                         .font(.subheadline.weight(.semibold))
                                     if group.id == selectedGroupID {
-                                        Text("Selected")
-                                            .font(.caption2.weight(.semibold))
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 3)
-                                            .background(Color.white.opacity(0.14), in: Capsule())
+                                        AppPassiveStatusChip(text: "Selected")
                                     }
                                 }
 

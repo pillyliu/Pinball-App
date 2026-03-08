@@ -110,6 +110,27 @@ internal fun AppVariantBadge(label: String) {
     )
 }
 
+@Composable
+internal fun AppOverlayMetadataBadge(
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    val colors = PinballThemeTokens.colors
+    Text(
+        text = label,
+        fontSize = 9.sp,
+        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.96f),
+        maxLines = 1,
+        modifier = modifier
+            .background(
+                colors.brandInk.copy(alpha = 0.54f),
+                RoundedCornerShape(999.dp),
+            )
+            .border(0.7.dp, colors.brandGold.copy(alpha = 0.38f), RoundedCornerShape(999.dp))
+            .padding(horizontal = 5.dp, vertical = 2.dp),
+    )
+}
+
 internal fun appShortRulesheetTitle(link: ReferenceLink): String {
     val label = link.label.lowercase(Locale.US)
     return when {

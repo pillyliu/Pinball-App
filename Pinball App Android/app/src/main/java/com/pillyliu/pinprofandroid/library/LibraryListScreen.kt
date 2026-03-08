@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
+import com.pillyliu.pinprofandroid.ui.AppOverlayMetadataBadge
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppSearchFilterBar
@@ -354,25 +355,9 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
                         modifier = Modifier.widthIn(max = if (makerMaxWidth > 48.dp) makerMaxWidth else 48.dp),
                     )
                     variantText?.let { variant ->
-                        Text(
-                            text = variant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.92f),
-                            fontSize = 9.sp,
-                            lineHeight = 10.sp,
-                            modifier = Modifier
-                                .widthIn(max = variantMaxWidth)
-                                .background(
-                                    androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.46f),
-                                    shape = RoundedCornerShape(999.dp),
-                                )
-                                .border(
-                                    width = 0.75.dp,
-                                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.22f),
-                                    shape = RoundedCornerShape(999.dp),
-                                )
-                                .padding(horizontal = 5.dp, vertical = 2.dp),
+                        AppOverlayMetadataBadge(
+                            label = variant,
+                            modifier = Modifier.widthIn(max = variantMaxWidth),
                         )
                     }
                 }

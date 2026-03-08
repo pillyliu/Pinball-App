@@ -202,6 +202,7 @@
 - Practice video-tile thumbnail loading and missing states now use shared media-preview placeholder seams instead of feature-local spinner and photo-icon fallback blocks in `PracticeVideoComponents.swift` and `PracticeVideoComponents.kt`.
 - iOS and Android Practice video thumbnail tiles now also use the shared branded resource-selection chrome instead of neutral fill and separator-outline styling, aligning media selection surfaces with the broader PinProf identity layer.
 - iOS and Android Practice game-summary variant badges now also use the shared branded resource chrome instead of neutral fill and outline styling, aligning machine metadata chips with the broader PinProf identity layer.
+- iOS and Android Practice group-selection chips now also use shared passive status-chip chrome instead of feature-local neutral highlight pills, aligning home-level selection state with the broader PinProf identity layer.
 - Android Practice home mini-card artwork fallback now also uses the shared media-preview placeholder seam in `PracticeHomeComponents.kt` instead of raw `AsyncImage` loading and terminal error behavior.
 - iOS Practice video-thumbnail loading/retry behavior and IFPA profile photo fallback now also route through the shared fallback image loader in `PracticeVideoComponents.swift` and `PracticeIFPAProfileScreen.swift` instead of feature-local `AsyncImage` placeholder blocks.
 

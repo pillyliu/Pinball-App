@@ -282,6 +282,26 @@ struct AppInlineActionChipStyle: ViewModifier {
     }
 }
 
+struct AppPassiveStatusChip: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(AppTheme.brandInk)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(AppTheme.controlBg)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(AppTheme.brandGold.opacity(0.35), lineWidth: 1)
+                    )
+            )
+    }
+}
+
 extension View {
     func appSegmentedControlStyle() -> some View {
         self

@@ -490,6 +490,28 @@ fun AppInlineActionChip(
 }
 
 @Composable
+fun AppPassiveStatusChip(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    val colors = PinballThemeTokens.colors
+    val shapes = PinballThemeTokens.shapes
+    Text(
+        text = text,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = colors.brandInk,
+        modifier = modifier
+            .background(
+                colors.controlBackground,
+                RoundedCornerShape(shapes.controlCorner),
+            )
+            .border(1.dp, colors.brandGold.copy(alpha = 0.38f), RoundedCornerShape(shapes.controlCorner))
+            .padding(horizontal = 6.dp, vertical = 3.dp),
+    )
+}
+
+@Composable
 fun AppThreeColumnLegendHeader(
     columns: List<Pair<String, String?>>,
     primaryColors: List<Color>,

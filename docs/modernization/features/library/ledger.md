@@ -66,6 +66,7 @@
 - iOS Library video-thumbnail loading and retry behavior now also routes through the shared fallback image loader in `LibraryDetailComponents.swift` instead of keeping a feature-local `AsyncImage` candidate-rotation view beside the shared media-preview placeholder seam.
 - iOS and Android Library video thumbnail tiles now also use the shared branded resource-selection chrome instead of neutral fill and separator-outline styling, aligning media selection surfaces with the broader PinProf identity layer.
 - iOS and Android Library summary variant badges now also use the shared branded resource chrome instead of neutral fill and outline styling, aligning game metadata chips with the broader PinProf identity layer.
+- iOS and Android Library list-card overlay variant badges now also use shared branded overlay-badge chrome instead of feature-local black/white pill styling, aligning list-level metadata chips with the broader PinProf identity layer.
 
 ## Next audit targets
 

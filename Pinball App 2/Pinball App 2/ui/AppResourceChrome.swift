@@ -45,6 +45,22 @@ func PinballVariantBadge(_ title: String) -> some View {
         )
 }
 
+@ViewBuilder
+func PinballOverlayMetadataBadge(_ title: String) -> some View {
+    Text(title)
+        .font(.system(size: 9, weight: .semibold))
+        .foregroundStyle(.white.opacity(0.96))
+        .lineLimit(1)
+        .truncationMode(.tail)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 2)
+        .background(AppTheme.brandInk.opacity(0.54), in: Capsule())
+        .overlay(
+            Capsule()
+                .stroke(AppTheme.brandGold.opacity(0.38), lineWidth: 0.7)
+        )
+}
+
 func PinballShortRulesheetTitle(for link: PinballGame.ReferenceLink) -> String {
     let label = link.label.lowercased()
     if label.contains("(tf)") { return "TF" }
