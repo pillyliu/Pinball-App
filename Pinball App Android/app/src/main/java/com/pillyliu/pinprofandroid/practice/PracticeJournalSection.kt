@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.LibraryActivityKind
 import com.pillyliu.pinprofandroid.library.LibraryActivityLog
+import com.pillyliu.pinprofandroid.ui.AppConfirmDialog
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import java.time.Instant
 import java.time.ZoneId
@@ -214,22 +215,18 @@ internal fun PracticeJournalSection(
     }
 
     if (pendingDeleteRows.isNotEmpty()) {
-        AlertDialog(
-            onDismissRequest = { pendingDeleteRows = emptyList() },
-            title = { Text(if (pendingDeleteRows.size == 1) "Delete entry?" else "Delete entries?") },
-            text = { Text("This will remove the selected journal entr${if (pendingDeleteRows.size == 1) "y" else "ies"} and linked practice data.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    pendingDeleteRows.forEach { store.deleteJournalEntry(it.id) }
-                    val removedIds = pendingDeleteRows.map { "app-${it.id}" }.toSet()
-                    onSelectedRowIdsChange(selectedRowIds - removedIds)
-                    pendingDeleteRows = emptyList()
-                    if ((selectedRowIds - removedIds).isEmpty()) onSelectionModeChange(false)
-                }) { Text("Delete") }
+        AppConfirmDialog(
+            title = if (pendingDeleteRows.size == 1) "Delete entry?" else "Delete entries?",
+            message = "This will remove the selected journal entr${if (pendingDeleteRows.size == 1) "y" else "ies"} and linked practice data.",
+            confirmLabel = "Delete",
+            onConfirm = {
+                pendingDeleteRows.forEach { store.deleteJournalEntry(it.id) }
+                val removedIds = pendingDeleteRows.map { "app-${it.id}" }.toSet()
+                onSelectedRowIdsChange(selectedRowIds - removedIds)
+                pendingDeleteRows = emptyList()
+                if ((selectedRowIds - removedIds).isEmpty()) onSelectionModeChange(false)
             },
-            dismissButton = {
-                TextButton(onClick = { pendingDeleteRows = emptyList() }) { Text("Cancel") }
-            },
+            onDismiss = { pendingDeleteRows = emptyList() },
         )
     }
 

@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -25,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.util.Locale
+import com.pillyliu.pinprofandroid.ui.AppDatePickerSheet
 
 @Composable
 internal fun PracticeNamePromptSheet(
@@ -113,7 +112,6 @@ private fun OverlaySectionRow(title: String, detail: String) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun GroupDashboardDateSheet(
     store: PracticeStore,
@@ -122,48 +120,34 @@ internal fun GroupDashboardDateSheet(
     initialSelectedDateMillis: Long?,
     onDismiss: () -> Unit,
 ) {
-    val pickerState = rememberDatePickerState(
+    AppDatePickerSheet(
         initialSelectedDateMillis = localDisplayMillisToDatePickerUtcMillis(
             initialSelectedDateMillis ?: System.currentTimeMillis(),
         ),
-    )
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                val group = store.groups.firstOrNull { it.id == groupId }
-                if (group != null) {
-                    val selectedMillis = pickerState.selectedDateMillis
-                    val updated = if (field == GroupDashboardDateField.Start) {
-                        group.copy(startDateMs = selectedMillis?.let(::datePickerUtcMillisToLocalDisplayMillis))
-                    } else {
-                        group.copy(endDateMs = selectedMillis?.let(::datePickerUtcMillisToLocalDisplayMillis))
-                    }
-                    store.updateGroup(updated)
+        onSave = { selectedMillis ->
+            val group = store.groups.firstOrNull { it.id == groupId }
+            if (group != null) {
+                val updated = if (field == GroupDashboardDateField.Start) {
+                    group.copy(startDateMs = selectedMillis?.let(::datePickerUtcMillisToLocalDisplayMillis))
+                } else {
+                    group.copy(endDateMs = selectedMillis?.let(::datePickerUtcMillisToLocalDisplayMillis))
                 }
-                onDismiss()
-            }) { Text("Save") }
-        },
-        dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = {
-                    val group = store.groups.firstOrNull { it.id == groupId }
-                    if (group != null) {
-                        val updated = if (field == GroupDashboardDateField.Start) {
-                            group.copy(startDateMs = null)
-                        } else {
-                            group.copy(endDateMs = null)
-                        }
-                        store.updateGroup(updated)
-                    }
-                    onDismiss()
-                }) { Text("Clear") }
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                store.updateGroup(updated)
             }
         },
-    ) {
-        DatePicker(state = pickerState)
-    }
+        onDismiss = onDismiss,
+        onClear = {
+            val group = store.groups.firstOrNull { it.id == groupId }
+            if (group != null) {
+                val updated = if (field == GroupDashboardDateField.Start) {
+                    group.copy(startDateMs = null)
+                } else {
+                    group.copy(endDateMs = null)
+                }
+                store.updateGroup(updated)
+            }
+        },
+    )
 }
 
 @Composable

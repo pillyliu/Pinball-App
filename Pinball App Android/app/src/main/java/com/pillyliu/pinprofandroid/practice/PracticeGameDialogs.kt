@@ -1,9 +1,7 @@
 package com.pillyliu.pinprofandroid.practice
 
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.pillyliu.pinprofandroid.ui.AppConfirmDialog
 
 @Composable
 internal fun PracticeGameDialogs(
@@ -18,20 +16,16 @@ internal fun PracticeGameDialogs(
     onEntryEdited: () -> Unit,
 ) {
     pendingDeleteEntry?.let { entry ->
-        AlertDialog(
-            onDismissRequest = { onPendingDeleteEntryChange(null) },
-            title = { Text("Delete entry?") },
-            text = { Text("This will remove the selected journal entry and linked practice data.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    store.deleteJournalEntry(entry.id)
-                    onPendingDeleteEntryChange(null)
-                    onEntryDeleted()
-                }) { Text("Delete") }
+        AppConfirmDialog(
+            title = "Delete entry?",
+            message = "This will remove the selected journal entry and linked practice data.",
+            confirmLabel = "Delete",
+            onConfirm = {
+                store.deleteJournalEntry(entry.id)
+                onPendingDeleteEntryChange(null)
+                onEntryDeleted()
             },
-            dismissButton = {
-                TextButton(onClick = { onPendingDeleteEntryChange(null) }) { Text("Cancel") }
-            },
+            onDismiss = { onPendingDeleteEntryChange(null) },
         )
     }
 
