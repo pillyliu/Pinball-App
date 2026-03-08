@@ -11,8 +11,8 @@ import Combine
 enum RootTab: Hashable, CaseIterable {
     case league
     case library
-    case gameroom
     case practice
+    case gameroom
     case settings
 
     var title: String {
