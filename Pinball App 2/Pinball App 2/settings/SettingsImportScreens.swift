@@ -28,9 +28,7 @@ struct AddManufacturerScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Bucket")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                        AppCardSubheading(text: "Bucket")
 
                         Menu {
                             ForEach(ManufacturerBucket.allCases) { bucket in
@@ -49,12 +47,7 @@ struct AddManufacturerScreen: View {
                     .appPanelStyle()
 
                     if filteredManufacturers.isEmpty {
-                        Text("No manufacturers found for that search.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                            .appPanelStyle()
+                        AppPanelEmptyCard(text: "No manufacturers found for that search.")
                     } else {
                         VStack(spacing: 0) {
                             ForEach(Array(filteredManufacturers.enumerated()), id: \.element.id) { index, manufacturer in
@@ -235,19 +228,12 @@ struct AddVenueScreen: View {
                     .appPanelStyle()
 
                     if let emptyResultsMessage {
-                        Text(emptyResultsMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                            .appPanelStyle()
+                        AppPanelEmptyCard(text: emptyResultsMessage)
                     }
 
                     if !filteredResults.isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Results")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
+                            AppCardSubheading(text: "Results")
 
                             VStack(spacing: 0) {
                                 ForEach(Array(filteredResults.enumerated()), id: \.element.id) { index, venue in
@@ -395,10 +381,11 @@ struct SettingsProviderCaption: View {
     var body: some View {
         HStack(spacing: 0) {
             Text(prefix)
+                .foregroundStyle(AppTheme.brandChalk)
             Link(linkText, destination: URL(string: urlString)!)
+                .foregroundStyle(AppTheme.brandGold)
         }
         .font(.caption)
-        .foregroundStyle(.secondary)
     }
 }
 
@@ -413,9 +400,7 @@ struct SettingsImportResultRow: View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
+                    AppCardSubheading(text: title)
                         .lineLimit(1)
                         .truncationMode(.tail)
 

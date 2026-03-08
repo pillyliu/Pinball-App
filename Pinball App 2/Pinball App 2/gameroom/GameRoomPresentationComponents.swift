@@ -968,14 +968,11 @@ struct GameRoomLogDetailCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Selected Log Entry")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.secondary)
+            AppCardSubheading(text: "Selected Log Entry")
 
             ScrollView(.vertical, showsIndicators: true) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(event.summary)
-                        .font(.subheadline.weight(.semibold))
+                    AppCardTitle(text: event.summary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     Text(event.occurredAt.formatted(date: .abbreviated, time: .shortened))
