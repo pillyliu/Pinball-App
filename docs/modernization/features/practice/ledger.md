@@ -165,11 +165,20 @@
 - Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt` again by delegating the journal edit/delete slice to the dedicated journal integration seam while preserving the existing public store API.
 - Verified the Android journal store extraction together with the grouped screen-state seam and league integration seam at compile time with `./gradlew app:assembleDebug`.
 
+- Category: `Code`
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeProgressIntegration.kt` so Android score, study, note, and rulesheet-progress canonical mutation logic no longer lives inline inside `PracticeStore.kt`.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt` again by delegating the progress-mutation slice to the dedicated integration seam while preserving the existing public store API.
+- Expanded `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibrarySourceSelection.kt` so Android practice source normalization, preferred-source resolution, and visible-game selection rules no longer live inline inside `PracticeStore.kt`.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeScreenDerivedData.swift` so iOS resume-game logic, greeting derivation, journal filtering, and mixed practice/library timeline shaping no longer live inline in the root screen declaration.
+- Added `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeScreenContexts.swift` so iOS route-context assembly no longer lives inline in the root screen declaration.
+- Reduced `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeScreen.swift` to stored state plus the root `NavigationStack`.
+- Verified the Android progress-integration extraction and the iOS root-screen reduction at compile time with `./gradlew app:assembleDebug` and `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`.
+
 ## Next audit targets
 
 - exact route-to-screen contract
 - top-bar behavior per route
 - state ownership split between screen, route model, and store
 - journal section state ownership and further row/editor extraction opportunities
-- deeper `PracticeStore.kt` decomposition beyond the league and journal integration slices
+- deeper `PracticeStore.kt` decomposition beyond the league, journal, and progress integration slices
 - repeated resource/video/rulesheet UI patterns

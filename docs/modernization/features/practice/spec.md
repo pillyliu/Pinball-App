@@ -38,7 +38,9 @@ Current Practice surfaces in code:
 ## Current architecture snapshot
 
 iOS:
-- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeScreen.swift` now uses a dedicated `PracticeScreenState.swift` value to group route, dialog, and transient UI state, but still owns most orchestration and mutation wiring.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeScreen.swift` now uses a dedicated `PracticeScreenState.swift` value to group route, dialog, and transient UI state, and has been reduced to stored state plus the root `NavigationStack`.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeScreenDerivedData.swift` now isolates iOS resume-game logic, journal filtering, and mixed practice/library timeline shaping from the root screen declaration.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeScreenContexts.swift` now isolates iOS route-context assembly from the root screen declaration.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardContext.swift` now isolates the `GroupDashboard` route dependency surface so iOS no longer routes non-game surfaces through one generic bundle.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeHomeContext.swift` now isolates the home-screen dependency surface so `PracticeScreen.swift` no longer assembles `PracticeHomeRootView` inline.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticePresentationContext.swift` now isolates sheet and reset-alert dependencies so iOS presentation wiring is no longer assembled ad hoc inside `PracticeDialogHost.swift`.
@@ -55,12 +57,12 @@ iOS:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleContext.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleHost.swift` now isolate game-route first-load and selected-game synchronization from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameRouteBody.swift` now isolates the screenshot, segmented workspace card, note, and resource-card layout from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` is still a major UI hotspot, but it now consumes an explicit workspace context and grouped state seam, and no longer renders the three workspace subviews inline.
-- Store responsibilities are partially split across helper files, route dispatch is now driven by per-route contexts, but screen orchestration is still heavily centralized.
+- Store responsibilities are partially split across helper files, route dispatch is now driven by per-route contexts, and the root screen declaration is no longer the orchestration catch-all it was before.
 - Route model is now more explicit than before via `PracticeRoute` and `PracticeSheet`, but the iOS product-surface contract is still incomplete compared with Android because some drill-ins remain local to subviews and root orchestration is still centralized.
 
 Android:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreen.kt` is better separated at the route layer than iOS.
-- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt` remains the main responsibility concentration point.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt` remains a responsibility concentration point, but its league, journal, and progress-mutation slices now live behind dedicated seams.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameWorkspacePanels.kt` now isolates the segmented workspace card plus the `Summary`, `Input`, and `Log` panels from the main Android game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDetailCards.kt` now isolates the Android `Game Note` and `Game Resources` cards from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDialogs.kt` now isolates Android delete/edit dialog wiring from the main game route file.
@@ -78,7 +80,8 @@ Android:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreenState.kt` now groups Android Practice UI state into navigation, journal, game, quick-entry, presentation, insights, and mechanics substate objects instead of keeping the whole surface as one flat mutable bag.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLeagueIntegration.kt` now isolates Android league targets, league-player lookup, league CSV import, and head-to-head comparison behind a dedicated store dependency seam.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeJournalIntegration.kt` now isolates Android journal filtering, edit-draft resolution, canonical journal mutation, and deletion logic behind a dedicated store dependency seam.
-- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibrarySourceSelection.kt` now centralizes the Android "All games" source sentinel and normalization rules so top bar and home source selection do not drift.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeProgressIntegration.kt` now isolates Android score, study, note, and rulesheet-progress canonical mutation logic behind a dedicated store dependency seam.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibrarySourceSelection.kt` now centralizes the Android "All games" source sentinel plus preferred-source and visible-game selection rules so top bar, home, and store loading do not drift.
 - Persistence and codec work has already been separated more clearly than on iOS.
 - Route model is more explicit via `PracticeRoute`, and `PracticeScreenState` is now grouped more intentionally, but the store still remains broader than the screen-state seam.
 
@@ -299,12 +302,14 @@ iOS current wiring:
   - is the first iOS equivalent in role to Android's `PracticeScreenState.kt`
 - `PracticeScreen.swift`
   - owns root `NavigationStack`
-  - owns the `PracticeScreenState` instance and resume behavior
-  - still owns quick-entry remembered defaults via `AppStorage`
-  - now constructs explicit route, home, presentation, and lifecycle contexts
-  - still owns high-level cross-route coordination, but no longer carries every mutation helper inline
+  - owns the `PracticeScreenState` instance and quick-entry remembered defaults via `AppStorage`
+  - is now reduced to the root shell instead of also carrying derived-data and context assembly
 - `PracticeScreenActions.swift`
   - isolates navigation, quick-entry, journal mutation, group-editor, and insights refresh helpers from the root screen declaration
+- `PracticeScreenDerivedData.swift`
+  - isolates resume-game logic, greeting derivation, journal filtering, and mixed practice/library timeline shaping
+- `PracticeScreenContexts.swift`
+  - isolates home, journal, mechanics, settings, presentation, lifecycle, and insights context assembly
 - `PracticeHomeContext.swift`
   - isolates the `Home` route dependency surface
   - keeps home-screen closure assembly out of the root host
@@ -371,6 +376,10 @@ Android current wiring:
   - owns league-target loading, league-player discovery, league CSV import, and head-to-head comparison for Android Practice
 - `PracticeJournalIntegration.kt`
   - owns journal filtering, edit-draft resolution, canonical journal mutation, and deletion matching logic for Android Practice
+- `PracticeProgressIntegration.kt`
+  - owns score, study, note, and rulesheet-progress canonical mutation logic for Android Practice
+- `PracticeLibrarySourceSelection.kt`
+  - owns Android practice source normalization, preferred-source resolution, and visible-game selection rules
 
 ## Target ownership model
 
@@ -408,7 +417,7 @@ Current status:
 - iOS home content now also resolves through an explicit `PracticeHomeContext.swift` seam
 - `GroupDashboard`, `Journal`, `Insights`, `Mechanics`, and `Settings` now each have dedicated iOS context seams
 - sheet and reset-alert presentation now also resolve through a dedicated iOS presentation context
-- the next iOS step is to reduce how much `PracticeScreen.swift` still directly owns first-load orchestration and cross-route mutation helpers
+- the next iOS step is to review whether any remaining root-only concerns should move out of `PracticeDialogHost.swift` and `PracticeStore.swift`, since `PracticeScreen.swift` itself is now minimal
 
 ## First implementation sequence
 
@@ -421,7 +430,7 @@ Current status:
 3. Split route-local drafts out of the root screen
    - in progress: route content now resolves per-route contexts instead of pulling directly from root state
    - in progress: `GroupDashboard`, `Journal`, `Insights`, `Mechanics`, and `Settings` now have dedicated contexts
-   - next: remaining coordination helpers and presentation orchestration should not all live in `PracticeScreen.swift` and `PracticeDialogHost.swift`
+   - next: remaining coordination helpers and presentation orchestration should not all live in `PracticeDialogHost.swift` and `PracticeStore.swift`
 4. Reduce Android store surface
    - after route ownership is stabilized, decompose `PracticeStore.kt` by domain concern rather than adding more helpers to one file
 5. Only then start UI/design-system cleanup
@@ -449,7 +458,7 @@ Current status:
    - keep top-bar game/source selection outside the broader top-bar component
    - avoid shifting those responsibilities into `PracticeStore.kt`
    - next split should target the remaining shared top-bar/state coupling
-3. Continue decomposing Android `PracticeStore.kt` into narrower state and mutation modules so it does not remain the second monolith after iOS screen cleanup.
+3. Continue decomposing Android `PracticeStore.kt` into narrower persistence/loading and domain helper modules so it does not remain the second monolith after iOS screen cleanup.
 4. Normalize quick-entry, journal editing, and group-editor launch state so both platforms describe the same ownership model in docs.
 
 ## 3.2 focus

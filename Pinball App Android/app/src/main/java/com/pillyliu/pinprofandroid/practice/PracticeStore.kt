@@ -9,8 +9,6 @@ import com.pillyliu.pinprofandroid.library.LibraryActivityLog
 import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.PinballGame
-import java.util.UUID
-
 internal class PracticeStore(private val context: Context) {
     private companion object {
         val QUICK_GAME_PREF_KEYS = listOf(
@@ -76,6 +74,7 @@ internal class PracticeStore(private val context: Context) {
     private var canonicalPersistedState: CanonicalPracticePersistedState = emptyCanonicalPracticePersistedState()
     private val leagueIntegration by lazy { PracticeLeagueIntegration(::gameName) }
     private val journalIntegration by lazy { PracticeJournalIntegration(::practiceLookupGames, ::gameName) }
+    private val progressIntegration by lazy { PracticeProgressIntegration() }
 
     private val prefs by lazy { context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE) }
 
@@ -86,6 +85,9 @@ internal class PracticeStore(private val context: Context) {
 
     private fun practiceLookupGames(): List<PinballGame> =
         if (allLibraryGames.isNotEmpty()) allLibraryGames else games
+
+    private fun canonicalGameID(gameSlug: String): String =
+        canonicalPracticeKey(gameSlug, practiceLookupGames())
 
     private fun applyPersistedState(payload: ParsedPracticeStatePayload) {
         canonicalPersistedState = payload.canonical
@@ -204,37 +206,15 @@ internal class PracticeStore(private val context: Context) {
     }
 
     fun addScore(gameSlug: String, score: Double, context: String, timestampMs: Long = System.currentTimeMillis(), leagueImported: Boolean = false) {
-        val canonicalKey = canonicalPracticeKey(gameSlug, practiceLookupGames())
+        val canonicalKey = canonicalGameID(gameSlug)
         if (canonicalKey.isBlank()) return
-        val (scoreContext, tournamentName) = splitCanonicalScoreContext(context)
-        val scoreEntry = CanonicalScoreLogEntry(
-            id = UUID.randomUUID().toString(),
-            gameID = canonicalKey,
+        canonicalPersistedState = progressIntegration.addScore(
+            canonicalState = canonicalPersistedState,
+            canonicalGameID = canonicalKey,
             score = score,
-            context = scoreContext,
-            tournamentName = tournamentName,
+            context = context,
             timestampMs = timestampMs,
             leagueImported = leagueImported,
-        )
-        val journalEntry = CanonicalJournalEntry(
-            id = UUID.randomUUID().toString(),
-            gameID = canonicalKey,
-            action = "scoreLogged",
-            task = null,
-            progressPercent = null,
-            videoKind = null,
-            videoValue = null,
-            score = score,
-            scoreContext = scoreContext,
-            tournamentName = tournamentName,
-            noteCategory = null,
-            noteDetail = null,
-            note = null,
-            timestampMs = timestampMs,
-        )
-        canonicalPersistedState = canonicalPersistedState.copy(
-            scoreEntries = canonicalPersistedState.scoreEntries + scoreEntry,
-            journalEntries = canonicalPersistedState.journalEntries + journalEntry,
         )
         refreshRuntimeFromCanonical()
         markPracticeViewedGame(canonicalKey)
@@ -242,120 +222,32 @@ internal class PracticeStore(private val context: Context) {
     }
 
     fun addStudy(gameSlug: String, category: String, value: String, note: String? = null) {
-        val canonicalKey = canonicalPracticeKey(gameSlug, practiceLookupGames())
+        val canonicalKey = canonicalGameID(gameSlug)
         if (canonicalKey.isBlank()) return
-        val timestampMs = System.currentTimeMillis()
-        val normalizedCategory = category.trim().lowercase()
-        val trimmedValue = value.trim()
-        if (trimmedValue.isBlank()) return
-        val trimmedNote = note?.trim()?.ifBlank { null }
-        val action = when (normalizedCategory) {
-            "rulesheet" -> "rulesheetRead"
-            "tutorial" -> "tutorialWatch"
-            "gameplay" -> "gameplayWatch"
-            "playfield" -> "playfieldViewed"
-            "practice" -> "practiceSession"
-            else -> if (normalizedCategory == "practice") "practiceSession" else "rulesheetRead"
-        }
-        val task = when (normalizedCategory) {
-            "rulesheet" -> "rulesheet"
-            "tutorial" -> "tutorialVideo"
-            "gameplay" -> "gameplayVideo"
-            "playfield" -> "playfield"
-            "practice" -> "practice"
-            else -> if (normalizedCategory == "practice") "practice" else "rulesheet"
-        }
-        val progressPercent = Regex("""(\d{1,3})\s*%?""").find(trimmedValue)?.groupValues?.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 100)
-            ?.takeIf { normalizedCategory == "rulesheet" || normalizedCategory == "tutorial" || normalizedCategory == "gameplay" }
-        val videoKind = if (normalizedCategory == "tutorial" || normalizedCategory == "gameplay") {
-            if (trimmedValue.contains(":")) "clock" else "percent"
-        } else {
-            null
-        }
-        val videoValue = if (normalizedCategory == "tutorial" || normalizedCategory == "gameplay") trimmedValue else null
-        val journalNote = when (normalizedCategory) {
-            "practice" -> trimmedNote ?: trimmedValue
-            else -> trimmedNote
-        }
-        val studyEvent = progressPercent?.let {
-            CanonicalStudyProgressEvent(
-                id = UUID.randomUUID().toString(),
-                gameID = canonicalKey,
-                task = task,
-                progressPercent = it,
-                timestampMs = timestampMs,
-            )
-        }
-        val videoEntry = if (!videoValue.isNullOrBlank()) {
-            CanonicalVideoProgressEntry(
-                id = UUID.randomUUID().toString(),
-                gameID = canonicalKey,
-                kind = videoKind ?: "percent",
-                value = videoValue,
-                timestampMs = timestampMs,
-            )
-        } else null
-        val journalEntry = CanonicalJournalEntry(
-            id = UUID.randomUUID().toString(),
-            gameID = canonicalKey,
-            action = action,
-            task = task,
-            progressPercent = progressPercent,
-            videoKind = videoKind,
-            videoValue = videoValue,
-            score = null,
-            scoreContext = null,
-            tournamentName = null,
-            noteCategory = null,
-            noteDetail = null,
-            note = journalNote,
-            timestampMs = timestampMs,
-        )
-        canonicalPersistedState = canonicalPersistedState.copy(
-            studyEvents = canonicalPersistedState.studyEvents + listOfNotNull(studyEvent),
-            videoProgressEntries = canonicalPersistedState.videoProgressEntries + listOfNotNull(videoEntry),
-            journalEntries = canonicalPersistedState.journalEntries + journalEntry,
-        )
+        canonicalPersistedState = progressIntegration.addStudy(
+            canonicalState = canonicalPersistedState,
+            canonicalGameID = canonicalKey,
+            category = category,
+            value = value,
+            note = note,
+            timestampMs = System.currentTimeMillis(),
+        ) ?: return
         refreshRuntimeFromCanonical()
         markPracticeViewedGame(canonicalKey)
         saveState()
     }
 
     fun addPracticeNote(gameSlug: String, category: String, detail: String?, note: String) {
-        val canonicalKey = canonicalPracticeKey(gameSlug, practiceLookupGames())
+        val canonicalKey = canonicalGameID(gameSlug)
         if (canonicalKey.isBlank()) return
-        val trimmedNote = note.trim()
-        if (trimmedNote.isBlank()) return
-        val timestampMs = System.currentTimeMillis()
-        val normalizedCategory = category.trim().ifBlank { "general" }
-        val noteEntry = CanonicalPracticeNoteEntry(
-            id = UUID.randomUUID().toString(),
-            gameID = canonicalKey,
-            category = normalizedCategory,
-            detail = detail?.trim()?.ifBlank { null },
-            note = trimmedNote,
-            timestampMs = timestampMs,
-        )
-        val journalEntry = CanonicalJournalEntry(
-            id = UUID.randomUUID().toString(),
-            gameID = canonicalKey,
-            action = "noteAdded",
-            task = null,
-            progressPercent = null,
-            videoKind = null,
-            videoValue = null,
-            score = null,
-            scoreContext = null,
-            tournamentName = null,
-            noteCategory = normalizedCategory,
-            noteDetail = noteEntry.detail,
-            note = trimmedNote,
-            timestampMs = timestampMs,
-        )
-        canonicalPersistedState = canonicalPersistedState.copy(
-            noteEntries = canonicalPersistedState.noteEntries + noteEntry,
-            journalEntries = canonicalPersistedState.journalEntries + journalEntry,
-        )
+        canonicalPersistedState = progressIntegration.addPracticeNote(
+            canonicalState = canonicalPersistedState,
+            canonicalGameID = canonicalKey,
+            category = category,
+            detail = detail,
+            note = note,
+            timestampMs = System.currentTimeMillis(),
+        ) ?: return
         refreshRuntimeFromCanonical()
         markPracticeViewedGame(canonicalKey)
         saveState()
@@ -438,28 +330,29 @@ internal class PracticeStore(private val context: Context) {
 
     fun leagueTargetScoresFor(gameSlug: String): LeagueTargetScores? =
         leagueIntegration.targetScoresFor(
-            gameSlug = canonicalPracticeKey(gameSlug, practiceLookupGames()),
+            gameSlug = canonicalGameID(gameSlug),
             games = practiceLookupGames(),
         )
 
     fun saveRulesheetProgress(slug: String, ratio: Float) {
-        val canonicalKey = canonicalPracticeKey(slug, practiceLookupGames())
+        val canonicalKey = canonicalGameID(slug)
+        if (canonicalKey.isBlank()) return
         mutateAndSave {
-            rulesheetResumeOffsets = updatedRulesheetProgress(
-                rulesheetResumeOffsets.mapValues { it.value.toFloat() },
-                canonicalKey,
-                ratio,
-            ).mapValues { it.value.toDouble() }
+            rulesheetResumeOffsets = progressIntegration.updatedRulesheetResumeOffsets(
+                currentOffsets = rulesheetResumeOffsets,
+                canonicalGameID = canonicalKey,
+                ratio = ratio,
+            )
         }
     }
 
     fun rulesheetSavedProgress(slug: String): Float =
-        (rulesheetResumeOffsets[canonicalPracticeKey(slug, practiceLookupGames())] ?: 0.0).toFloat()
+        (rulesheetResumeOffsets[canonicalGameID(slug)] ?: 0.0).toFloat()
 
-    fun gameSummaryNoteFor(slug: String): String = gameSummaryNoteForSlug(gameSummaryNotes, canonicalPracticeKey(slug, practiceLookupGames()))
+    fun gameSummaryNoteFor(slug: String): String = gameSummaryNoteForSlug(gameSummaryNotes, canonicalGameID(slug))
 
     fun updateGameSummaryNote(slug: String, note: String) {
-        val canonicalKey = canonicalPracticeKey(slug, practiceLookupGames())
+        val canonicalKey = canonicalGameID(slug)
         if (canonicalKey.isBlank()) return
         val trimmed = note.trim()
         val previous = gameSummaryNotes[canonicalKey]?.trim().orEmpty()
@@ -502,7 +395,7 @@ internal class PracticeStore(private val context: Context) {
     }
 
     fun markPracticeViewedGame(slug: String) {
-        val canonicalKey = canonicalPracticeKey(slug, practiceLookupGames())
+        val canonicalKey = canonicalGameID(slug)
         if (canonicalKey.isBlank()) return
         markPracticeLastViewedGame(prefs, canonicalKey, System.currentTimeMillis())
     }
@@ -512,38 +405,37 @@ internal class PracticeStore(private val context: Context) {
 
     fun setPreferredLibrarySource(sourceId: String?) {
         val pool = if (allLibraryGames.isNotEmpty()) allLibraryGames else games
-        val trimmed = sourceId?.trim().orEmpty()
-        val selected = if (trimmed.isBlank()) {
-            null
-        } else {
-            librarySources.firstOrNull { it.id == trimmed }
-        }
-        defaultPracticeSourceId = selected?.id
-        games = if (selected != null) pool.filter { it.sourceId == selected.id } else pool
+        val selection = applyPracticeLibrarySourceSelection(
+            sourceId = sourceId,
+            sources = librarySources,
+            allGames = pool,
+        )
+        defaultPracticeSourceId = selection.selectedSourceId
+        games = selection.visibleGames
         prefs.edit {
-            if (selected != null) {
-                putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, selected.id)
+            if (selection.selectedSourceId != null) {
+                putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, selection.selectedSourceId)
             } else {
                 remove(KEY_PREFERRED_LIBRARY_SOURCE_ID)
             }
         }
-        LibrarySourceStateStore.setSelectedSource(context, selected?.id)
+        LibrarySourceStateStore.setSelectedSource(context, selection.selectedSourceId)
     }
 
     suspend fun loadGames() {
         val loaded = loadPracticeGamesFromLibrary(context)
-        val avenueCandidates = listOf("venue--the-avenue-cafe", "the-avenue")
         val savedSourceId = prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null)
-        val preferredSource = listOfNotNull(savedSourceId, loaded.defaultSourceId)
-            .plus(avenueCandidates)
-            .firstOrNull { id -> loaded.sources.any { it.id == id } }
-            ?.let { id -> loaded.sources.firstOrNull { it.id == id } }
-            ?: loaded.sources.firstOrNull()
+        val preferredSource = resolvePreferredPracticeSource(loaded, savedSourceId)
+        val selection = applyPracticeLibrarySourceSelection(
+            sourceId = preferredSource?.id,
+            sources = loaded.sources,
+            allGames = loaded.allGames,
+        )
 
-        games = if (preferredSource != null) loaded.allGames.filter { it.sourceId == preferredSource.id } else loaded.games
+        games = selection.visibleGames.ifEmpty { loaded.games }
         allLibraryGames = loaded.allGames
         librarySources = loaded.sources
-        defaultPracticeSourceId = preferredSource?.id ?: loaded.defaultSourceId
+        defaultPracticeSourceId = selection.selectedSourceId ?: loaded.defaultSourceId
         defaultPracticeSourceId?.let { sourceId ->
             prefs.edit { putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, sourceId) }
         }
@@ -636,15 +528,6 @@ internal class PracticeStore(private val context: Context) {
     private fun refreshRuntimeFromCanonical() {
         rulesheetResumeOffsets = canonicalPersistedState.rulesheetResumeOffsets
         applyRuntimePersistedState(runtimePracticeStateFromCanonicalState(canonicalPersistedState, ::gameName))
-    }
-
-    private fun splitCanonicalScoreContext(raw: String): Pair<String, String?> {
-        val trimmed = raw.trim()
-        return if (trimmed.startsWith("tournament:")) {
-            "tournament" to trimmed.removePrefix("tournament:").trim().ifBlank { null }
-        } else {
-            trimmed.ifBlank { "practice" } to null
-        }
     }
 
 }
