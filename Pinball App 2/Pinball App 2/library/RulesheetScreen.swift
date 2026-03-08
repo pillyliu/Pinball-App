@@ -46,14 +46,11 @@ struct RulesheetScreen: View {
 
                 switch viewModel.status {
                 case .idle, .loading:
-                    Text("Loading rulesheet...")
-                        .foregroundStyle(.secondary)
+                    AppFullscreenStatusOverlay(text: "Loading rulesheet…", showsProgress: true)
                 case .missing:
-                    Text("Rulesheet not available.")
-                        .foregroundStyle(.secondary)
+                    AppFullscreenStatusOverlay(text: "Rulesheet not available.")
                 case .error:
-                    Text("Could not load rulesheet.")
-                        .foregroundStyle(.secondary)
+                    AppFullscreenStatusOverlay(text: "Could not load rulesheet.")
                 case .loaded:
                     if let content = viewModel.content {
                         ZStack(alignment: .topTrailing) {

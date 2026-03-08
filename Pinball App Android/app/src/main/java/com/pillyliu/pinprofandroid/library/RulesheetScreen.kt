@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.pillyliu.pinprofandroid.data.downloadTextAllowMissing
+import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
@@ -185,15 +186,9 @@ internal fun RulesheetScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             when (status) {
-                "loading" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Loading rulesheet...", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                "missing" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Rulesheet not available.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                "error" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Could not load rulesheet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                "loading" -> AppFullscreenStatusOverlay(text = "Loading rulesheet…", showsProgress = true)
+                "missing" -> AppFullscreenStatusOverlay(text = "Rulesheet not available.")
+                "error" -> AppFullscreenStatusOverlay(text = "Could not load rulesheet.")
                 else -> content?.let {
                     RulesheetContentWebView(
                         content = it,

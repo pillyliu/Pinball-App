@@ -99,3 +99,24 @@ struct AppFullscreenBackButton: View {
         .accessibilityLabel(accessibilityLabel)
     }
 }
+
+struct AppFullscreenStatusOverlay: View {
+    let text: String
+    var showsProgress: Bool = false
+    var foregroundColor: Color = .secondary
+
+    var body: some View {
+        VStack(spacing: 10) {
+            if showsProgress {
+                ProgressView()
+                    .tint(foregroundColor)
+            }
+            Text(text)
+                .font(.footnote)
+                .foregroundStyle(foregroundColor)
+                .multilineTextAlignment(.center)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    }
+}

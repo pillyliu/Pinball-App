@@ -167,7 +167,11 @@ struct HostedImageView: View {
                     }
                 }
             } else {
-                ProgressView()
+                AppFullscreenStatusOverlay(
+                    text: "Loading image…",
+                    showsProgress: true,
+                    foregroundColor: .white.opacity(0.9)
+                )
             }
 
             if chrome.isVisible {

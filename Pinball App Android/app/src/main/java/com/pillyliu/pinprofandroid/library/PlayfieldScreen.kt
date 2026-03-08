@@ -57,6 +57,7 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import coil.size.Size
 import com.pillyliu.pinprofandroid.data.PinballDataCache
+import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
@@ -420,10 +421,11 @@ private fun ZoomablePlayfieldImage(
         )
 
         if (!imageLoaded) {
-            CircularProgressIndicator(
+            AppFullscreenStatusOverlay(
+                text = "Loading image…",
                 modifier = Modifier.align(Alignment.Center),
-                color = Color.White.copy(alpha = 0.9f),
-                trackColor = Color.White.copy(alpha = 0.2f),
+                showsProgress = true,
+                foregroundColor = Color.White.copy(alpha = 0.9f),
             )
         }
     }
