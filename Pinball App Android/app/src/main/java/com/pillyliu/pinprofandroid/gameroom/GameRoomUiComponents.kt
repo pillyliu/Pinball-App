@@ -47,6 +47,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.library.rememberCachedImageModel
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
+import com.pillyliu.pinprofandroid.ui.AppVariantPill
+import com.pillyliu.pinprofandroid.ui.AppVariantPillStyle
 import com.pillyliu.pinprofandroid.ui.DropdownOption
 import com.pillyliu.pinprofandroid.ui.DropdownOptionGroup
 import com.pillyliu.pinprofandroid.ui.GroupedAnchoredDropdownFilter
@@ -348,29 +350,16 @@ internal fun GameRoomVariantPill(
     style: VariantPillStyle,
     modifier: Modifier = Modifier,
 ) {
-    val colors = PinballThemeTokens.colors
-    val textStyle = when (style) {
-        VariantPillStyle.Mini -> MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
-        VariantPillStyle.Standard -> MaterialTheme.typography.labelSmall
-        VariantPillStyle.MachineTitle -> MaterialTheme.typography.labelMedium
-        VariantPillStyle.EditSelector -> MaterialTheme.typography.bodyMedium
-    }
-    val horizontalPadding = when (style) {
-        VariantPillStyle.Mini -> 6.dp
-        VariantPillStyle.Standard, VariantPillStyle.MachineTitle, VariantPillStyle.EditSelector -> 8.dp
-    }
-    Text(
-        text = compactVariantLabel(label),
-        color = colors.brandInk,
-        style = textStyle,
-        fontWeight = FontWeight.SemiBold,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = modifier
-            .widthIn(max = 84.dp)
-            .background(colors.brandGold.copy(alpha = 0.22f), RoundedCornerShape(999.dp))
-            .border(1.dp, colors.brandGold.copy(alpha = 0.52f), RoundedCornerShape(999.dp))
-            .padding(horizontal = horizontalPadding, vertical = 3.dp),
+    AppVariantPill(
+        label = compactVariantLabel(label),
+        style = when (style) {
+            VariantPillStyle.Mini -> AppVariantPillStyle.Mini
+            VariantPillStyle.Standard -> AppVariantPillStyle.Standard
+            VariantPillStyle.MachineTitle -> AppVariantPillStyle.MachineTitle
+            VariantPillStyle.EditSelector -> AppVariantPillStyle.EditSelector
+        },
+        modifier = modifier,
+        maxWidth = if (style == VariantPillStyle.Mini) null else 84.dp,
     )
 }
 

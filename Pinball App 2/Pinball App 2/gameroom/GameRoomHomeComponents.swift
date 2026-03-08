@@ -475,25 +475,16 @@ struct GameRoomVariantPill: View {
         case machineTitle
         case editSelector
 
-        var font: Font {
+        var sharedStyle: AppVariantPillStyle {
             switch self {
             case .mini:
-                return .system(size: 10, weight: .semibold)
+                return .mini
             case .standard:
-                return .caption2.weight(.semibold)
+                return .standard
             case .machineTitle:
-                return .footnote.weight(.semibold)
+                return .machineTitle
             case .editSelector:
-                return .subheadline.weight(.semibold)
-            }
-        }
-
-        var horizontalPadding: CGFloat {
-            switch self {
-            case .mini:
-                return 6
-            case .standard, .machineTitle, .editSelector:
-                return 8
+                return .editSelector
             }
         }
     }
@@ -502,16 +493,11 @@ struct GameRoomVariantPill: View {
     var style: Style = .standard
 
     var body: some View {
-        Text(compactLabel)
-            .font(style.font)
-            .foregroundStyle(AppTheme.brandInk)
-            .padding(.horizontal, style.horizontalPadding)
-            .padding(.vertical, 3)
-            .background(AppTheme.brandGold.opacity(0.22), in: Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(AppTheme.brandGold.opacity(0.52), lineWidth: 1)
-            )
+        AppVariantPill(
+            title: compactLabel,
+            style: style.sharedStyle,
+            maxWidth: style == .mini ? nil : 84
+        )
     }
 
     private var compactLabel: String {

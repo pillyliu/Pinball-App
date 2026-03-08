@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,10 +26,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.library.ReferenceLink
 import java.util.Locale
+
+internal enum class AppVariantPillStyle {
+    Resource,
+    Mini,
+    Standard,
+    MachineTitle,
+    EditSelector,
+}
 
 @Composable
 internal fun AppResourceRow(
@@ -95,18 +106,45 @@ internal fun AppUnavailableResourceChip() {
 
 @Composable
 internal fun AppVariantBadge(label: String) {
+    AppVariantPill(label = label, style = AppVariantPillStyle.Resource)
+}
+
+@Composable
+internal fun AppVariantPill(
+    label: String,
+    style: AppVariantPillStyle = AppVariantPillStyle.Resource,
+    modifier: Modifier = Modifier,
+    maxWidth: Dp? = null,
+) {
     val colors = PinballThemeTokens.colors
+    val textStyle = when (style) {
+        AppVariantPillStyle.Resource -> MaterialTheme.typography.labelSmall
+        AppVariantPillStyle.Mini -> MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+        AppVariantPillStyle.Standard -> MaterialTheme.typography.labelSmall
+        AppVariantPillStyle.MachineTitle -> MaterialTheme.typography.labelMedium
+        AppVariantPillStyle.EditSelector -> MaterialTheme.typography.bodyMedium
+    }
+    val horizontalPadding = when (style) {
+        AppVariantPillStyle.Mini -> 6.dp
+        AppVariantPillStyle.Resource,
+        AppVariantPillStyle.Standard,
+        AppVariantPillStyle.MachineTitle,
+        AppVariantPillStyle.EditSelector -> 8.dp
+    }
     Text(
         text = label,
-        style = MaterialTheme.typography.labelSmall,
+        style = textStyle,
         color = colors.brandInk,
-        modifier = Modifier
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+            .then(if (maxWidth != null) Modifier.widthIn(max = maxWidth) else Modifier)
             .background(
                 colors.brandGold.copy(alpha = 0.16f),
                 RoundedCornerShape(999.dp),
             )
             .border(1.dp, colors.brandGold.copy(alpha = 0.34f), RoundedCornerShape(999.dp))
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+            .padding(horizontal = horizontalPadding, vertical = if (style == AppVariantPillStyle.Resource) 5.dp else 3.dp),
     )
 }
 

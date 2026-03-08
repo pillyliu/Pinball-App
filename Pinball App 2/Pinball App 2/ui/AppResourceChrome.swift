@@ -1,5 +1,46 @@
 import SwiftUI
 
+enum AppVariantPillStyle {
+    case resource
+    case mini
+    case standard
+    case machineTitle
+    case editSelector
+
+    var font: Font {
+        switch self {
+        case .resource:
+            return .caption.weight(.semibold)
+        case .mini:
+            return .system(size: 10, weight: .semibold)
+        case .standard:
+            return .caption2.weight(.semibold)
+        case .machineTitle:
+            return .footnote.weight(.semibold)
+        case .editSelector:
+            return .subheadline.weight(.semibold)
+        }
+    }
+
+    var horizontalPadding: CGFloat {
+        switch self {
+        case .mini:
+            return 6
+        case .resource, .standard, .machineTitle, .editSelector:
+            return 8
+        }
+    }
+
+    var verticalPadding: CGFloat {
+        switch self {
+        case .resource:
+            return 4
+        case .mini, .standard, .machineTitle, .editSelector:
+            return 3
+        }
+    }
+}
+
 @ViewBuilder
 func PinballResourceRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
     HStack(alignment: .center, spacing: 8) {
@@ -33,11 +74,23 @@ func PinballUnavailableResourceChip(_ title: String = "Unavailable") -> some Vie
 
 @ViewBuilder
 func PinballVariantBadge(_ title: String) -> some View {
+    AppVariantPill(title: title, style: .resource)
+}
+
+@ViewBuilder
+func AppVariantPill(
+    title: String,
+    style: AppVariantPillStyle = .resource,
+    maxWidth: CGFloat? = nil
+) -> some View {
     Text(title)
-        .font(.caption.weight(.semibold))
+        .font(style.font)
         .foregroundStyle(AppTheme.brandInk)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
+        .lineLimit(1)
+        .truncationMode(.tail)
+        .padding(.horizontal, style.horizontalPadding)
+        .padding(.vertical, style.verticalPadding)
+        .frame(maxWidth: maxWidth)
         .background(AppTheme.brandGold.opacity(0.16), in: Capsule())
         .overlay(
             Capsule()
