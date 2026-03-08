@@ -44,7 +44,7 @@ struct LeagueShellContent: View {
 
     @ViewBuilder
     private var destinationLinks: some View {
-        ForEach(LeagueDestination.allCases) { destination in
+        ForEach(LeagueDestination.primaryDestinations) { destination in
             NavigationLink {
                 destinationView(destination)
             } label: {
@@ -56,9 +56,7 @@ struct LeagueShellContent: View {
 
     private var aboutFooterLink: some View {
         NavigationLink {
-            LPLAboutContent()
-                .navigationTitle("About Lansing Pinball League")
-                .navigationBarTitleDisplayMode(.inline)
+            destinationView(.footerDestination)
         } label: {
             LeagueAboutFooterCard()
         }

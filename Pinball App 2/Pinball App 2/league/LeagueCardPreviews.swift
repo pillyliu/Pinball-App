@@ -65,6 +65,10 @@ struct LeagueCard: View {
                 playerLabel: displayLPLPlayerName(previewModel.statsPlayerRawName),
                 showScore: rotationState.showStatsScore
             )
+        case .aboutLpl:
+            Text("League details, schedule, and official links.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
     }
 

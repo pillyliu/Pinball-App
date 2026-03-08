@@ -137,6 +137,7 @@ Status values:
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/league/LeagueCardPreviews.swift` | stable | iOS League preview-card shell now lives apart from the section-specific preview bodies and rotation-state owner. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/league/LeaguePreviewRotationState.swift` | stable | iOS League timer-driven preview rotation state now lives behind a dedicated seam instead of staying inline in the preview-card shell. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/league/LeaguePreviewSections.swift` | stable | iOS League `Targets`, `Standings`, and `Stats` preview bodies now live outside the preview-card shell file. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/league/LeagueDestinationView.swift` | stable | iOS League nested route content now lives behind an explicit destination-view seam, and `About Lansing Pinball League` is part of the same destination contract as the other League routes. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueScreen.kt` | stable | Android League root file now acts as a compact feature shell while preview-state loading stays separate from shell-content composition. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueShellContent.kt` | stable | Android League home card stack/grid, destination links, and About footer now live behind a dedicated shell-content seam. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewModels.kt` | stable | Android League preview-specific display models now live outside the home shell. |
@@ -145,6 +146,7 @@ Status values:
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewCards.kt` | stable | Android League preview-card shell now lives apart from the section-specific preview bodies. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueMiniPreviews.kt` | stable | Android League `Targets`, `Standings`, and `Stats` preview bodies now live outside the preview-card shell file. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewRotationState.kt` | stable | Android League rotating preview timers and display toggles now live outside the home shell. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueDestinationHost.kt` | stable | Android League nested route content now lives behind an explicit destination-host seam instead of staying embedded in `MainActivity.kt`. |
 
 ## Current work order
 

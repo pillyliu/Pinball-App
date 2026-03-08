@@ -116,7 +116,7 @@ internal fun LeagueShellContent(
                 modifier = Modifier
                     .then(modifier)
                     .fillMaxWidth()
-                    .clickable { onOpenDestination(LeagueDestination.AboutLpl) },
+                    .clickable { onOpenDestination(LeagueDestination.footerDestination) },
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -163,13 +163,13 @@ internal fun LeagueShellContent(
                     horizontalArrangement = Arrangement.spacedBy(cardGap),
                 ) {
                     DestinationCard(
-                        LeagueDestination.Stats,
+                        LeagueDestination.primaryDestinations[0],
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
                     )
                     DestinationCard(
-                        LeagueDestination.Standings,
+                        LeagueDestination.primaryDestinations[1],
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
@@ -182,7 +182,7 @@ internal fun LeagueShellContent(
                     horizontalArrangement = Arrangement.spacedBy(cardGap),
                 ) {
                     DestinationCard(
-                        LeagueDestination.Targets,
+                        LeagueDestination.primaryDestinations[2],
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
@@ -201,9 +201,9 @@ internal fun LeagueShellContent(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(cardGap),
             ) {
-                DestinationCard(LeagueDestination.Stats)
-                DestinationCard(LeagueDestination.Standings)
-                DestinationCard(LeagueDestination.Targets)
+                LeagueDestination.primaryDestinations.forEach { destination ->
+                    DestinationCard(destination)
+                }
                 AboutFooterCard()
             }
         }

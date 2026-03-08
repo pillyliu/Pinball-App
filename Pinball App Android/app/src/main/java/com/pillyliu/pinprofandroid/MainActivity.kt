@@ -47,13 +47,11 @@ import com.pillyliu.pinprofandroid.data.refreshRedactedPlayersFromCsv
 import com.pillyliu.pinprofandroid.gameroom.GameRoomScreen
 import com.pillyliu.pinprofandroid.info.AboutScreen
 import com.pillyliu.pinprofandroid.league.LeagueDestination
+import com.pillyliu.pinprofandroid.league.LeagueDestinationHost
 import com.pillyliu.pinprofandroid.league.LeagueScreen
 import com.pillyliu.pinprofandroid.library.LibraryScreen
 import com.pillyliu.pinprofandroid.practice.PracticeScreen
 import com.pillyliu.pinprofandroid.settings.SettingsScreen
-import com.pillyliu.pinprofandroid.standings.StandingsScreen
-import com.pillyliu.pinprofandroid.stats.StatsScreen
-import com.pillyliu.pinprofandroid.targets.TargetsScreen
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinprofandroid.ui.PinballTheme
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
@@ -144,29 +142,11 @@ private fun PinballApp() {
                                     contentPadding = paddedForTabBar,
                                     onOpenDestination = { leagueDestination = it },
                                 )
-                                LeagueDestination.Stats -> Box(modifier = Modifier.fillMaxSize()) {
-                                    StatsScreen(
-                                        contentPadding = contentPaddingWithExtra(padding, extraBottom = 74.dp),
-                                        onBack = { leagueDestination = null },
-                                    )
-                                }
-                                LeagueDestination.Standings -> Box(modifier = Modifier.fillMaxSize()) {
-                                    StandingsScreen(
-                                        contentPadding = contentPaddingWithExtra(padding, extraBottom = 74.dp),
-                                        onBack = { leagueDestination = null },
-                                    )
-                                }
-                                LeagueDestination.Targets -> Box(modifier = Modifier.fillMaxSize()) {
-                                    TargetsScreen(
-                                        contentPadding = contentPaddingWithExtra(padding, extraBottom = 74.dp),
-                                        onBack = { leagueDestination = null },
-                                    )
-                                }
-                                LeagueDestination.AboutLpl -> Box(modifier = Modifier.fillMaxSize()) {
-                                    AboutScreen(
-                                        contentPadding = contentPaddingWithExtra(padding, extraBottom = 74.dp),
-                                    )
-                                }
+                                else -> LeagueDestinationHost(
+                                    destination = leagueDestination!!,
+                                    contentPadding = contentPaddingWithExtra(padding, extraBottom = 74.dp),
+                                    onBack = { leagueDestination = null },
+                                )
                             }
                         }
                         PinballTab.Library -> LibraryScreen(contentPadding = padding)

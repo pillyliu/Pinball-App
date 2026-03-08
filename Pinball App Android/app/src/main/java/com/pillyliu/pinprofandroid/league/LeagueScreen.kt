@@ -20,6 +20,12 @@ enum class LeagueDestination(val title: String, val subtitle: String, val icon: 
     Standings("Standings", "Season standings and points view", Icons.Outlined.FormatListNumbered),
     Targets("Targets", "Great game, main target, and floor goals", Icons.Outlined.Flag),
     AboutLpl("About Lansing Pinball League", "League info and links", Icons.Outlined.Info),
+    ;
+
+    companion object {
+        val primaryDestinations: List<LeagueDestination> = listOf(Stats, Standings, Targets)
+        val footerDestination: LeagueDestination = AboutLpl
+    }
 }
 
 @Composable

@@ -4,6 +4,7 @@ enum LeagueDestination: String, CaseIterable, Identifiable {
     case stats
     case standings
     case targets
+    case aboutLpl
 
     var id: String { rawValue }
 
@@ -12,6 +13,7 @@ enum LeagueDestination: String, CaseIterable, Identifiable {
         case .stats: return "Stats"
         case .standings: return "Standings"
         case .targets: return "Targets"
+        case .aboutLpl: return "About Lansing Pinball League"
         }
     }
 
@@ -20,6 +22,7 @@ enum LeagueDestination: String, CaseIterable, Identifiable {
         case .stats: return "Player trends and machine performance"
         case .standings: return "Season standings and bank breakdown"
         case .targets: return "Great game, main target, and floor goals"
+        case .aboutLpl: return "League info and links"
         }
     }
 
@@ -28,8 +31,12 @@ enum LeagueDestination: String, CaseIterable, Identifiable {
         case .stats: return "chart.xyaxis.line"
         case .standings: return "list.number"
         case .targets: return "scope"
+        case .aboutLpl: return "info.circle"
         }
     }
+
+    static let primaryDestinations: [LeagueDestination] = [.stats, .standings, .targets]
+    static let footerDestination: LeagueDestination = .aboutLpl
 }
 
 enum LeagueTargetMetric: Int, CaseIterable {

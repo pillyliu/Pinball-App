@@ -6,7 +6,7 @@ struct LeagueScreen: View {
     var body: some View {
         NavigationStack {
             LeagueShellContent(previewModel: previewModel) { destination in
-                AnyView(destinationView(for: destination))
+                AnyView(LeagueDestinationView(destination: destination))
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
@@ -15,27 +15,6 @@ struct LeagueScreen: View {
             await previewModel.loadIfNeeded()
         }
     }
-
-    private func destinationView(for destination: LeagueDestination) -> AnyView {
-        switch destination {
-        case .stats:
-            AnyView(
-                StatsScreen(embeddedInNavigation: true)
-                    .navigationBarTitleDisplayMode(.inline)
-            )
-        case .standings:
-            AnyView(
-                StandingsScreen(embeddedInNavigation: true)
-                    .navigationBarTitleDisplayMode(.inline)
-            )
-        case .targets:
-            AnyView(
-                TargetsScreen(embeddedInNavigation: true)
-                    .navigationBarTitleDisplayMode(.inline)
-            )
-        }
-    }
-
 }
 
 
