@@ -777,21 +777,6 @@ struct PracticeSettingsSectionView: View {
         .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 8) {
-                AppSectionTitle(text: "Defaults")
-
-                Toggle("Enable optional cloud sync", isOn: $cloudSyncEnabled)
-                    .onChange(of: cloudSyncEnabled) { _, newValue in
-                        onCloudSyncChanged(newValue)
-                    }
-                Text("Placeholder for Phase 2 sync to pillyliu.com. Data stays on-device today.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .appPanelStyle()
-
-            VStack(alignment: .leading, spacing: 8) {
                 AppSectionTitle(text: "Reset")
 
                 Text("Erase the full local Practice log state.")

@@ -164,25 +164,6 @@ internal fun PracticeSettingsSection(
     }
 
     CardContainer {
-        SectionTitle("Defaults")
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text("Enable optional cloud sync")
-            Switch(
-                checked = store.cloudSyncEnabled,
-                onCheckedChange = { store.updateCloudSyncEnabled(it) },
-            )
-        }
-        Text(
-            "Placeholder for Phase 2 sync to pillyliu.com. Data stays on-device today.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-    }
-
-    CardContainer {
         SectionTitle("Reset")
         Text("Erase the full local Practice log state.")
         AppPrimaryButton(onClick = onOpenResetDialog) { Text("Reset Practice Log") }
