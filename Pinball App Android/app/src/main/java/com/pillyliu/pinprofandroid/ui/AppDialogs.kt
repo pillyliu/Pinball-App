@@ -3,6 +3,7 @@ package com.pillyliu.pinprofandroid.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,15 +23,24 @@ fun AppConfirmDialog(
     onDismiss: () -> Unit,
     dismissLabel: String = "Cancel",
 ) {
+    val colors = PinballThemeTokens.colors
+    val typography = PinballThemeTokens.typography
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(message) },
+        containerColor = colors.panel,
+        title = { Text(title, color = colors.brandInk, style = typography.sectionTitle) },
+        text = { Text(message, color = colors.brandChalk, style = typography.emptyState) },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text(confirmLabel) }
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(contentColor = colors.brandGold),
+            ) { Text(confirmLabel) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(dismissLabel) }
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(contentColor = colors.brandChalk),
+            ) { Text(dismissLabel) }
         },
     )
 }
@@ -46,16 +56,21 @@ fun AppDatePickerSheet(
     clearLabel: String = "Clear",
     dismissLabel: String = "Cancel",
 ) {
+    val colors = PinballThemeTokens.colors
+    val typography = PinballThemeTokens.typography
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = initialSelectedDateMillis,
     )
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = {
-                onSave(datePickerState.selectedDateMillis)
-                onDismiss()
-            }) { Text(confirmLabel) }
+            TextButton(
+                onClick = {
+                    onSave(datePickerState.selectedDateMillis)
+                    onDismiss()
+                },
+                colors = ButtonDefaults.textButtonColors(contentColor = colors.brandGold),
+            ) { Text(confirmLabel, style = typography.shellLabel) }
         },
         dismissButton = {
             Row(
@@ -63,12 +78,18 @@ fun AppDatePickerSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (onClear != null) {
-                    TextButton(onClick = {
-                        onClear()
-                        onDismiss()
-                    }) { Text(clearLabel) }
+                    TextButton(
+                        onClick = {
+                            onClear()
+                            onDismiss()
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = colors.brandGold),
+                    ) { Text(clearLabel, style = typography.shellLabel) }
                 }
-                TextButton(onClick = onDismiss) { Text(dismissLabel) }
+                TextButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.textButtonColors(contentColor = colors.brandChalk),
+                ) { Text(dismissLabel, style = typography.shellLabel) }
             }
         },
     ) {

@@ -7,8 +7,8 @@ enum AppTableLayout {
 }
 
 enum AppDividerStyle {
-    static let tableHeader = Color(uiColor: .separator).opacity(0.35)
-    static let tableRow = Color(uiColor: .separator).opacity(0.22)
+    static let tableHeader = AppTheme.brandChalk.opacity(0.38)
+    static let tableRow = AppTheme.brandChalk.opacity(0.18)
     static let section = AppTheme.brandChalk.opacity(0.55)
 }
 
@@ -45,7 +45,7 @@ struct AppHeaderCell: View {
         let adjustedWidth = AppTableLayout.adjustedCellWidth(width, horizontalPadding: horizontalPadding)
         Text(title)
             .font((largeText ? Font.footnote : Font.caption).weight(.semibold))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(AppTheme.brandChalk)
             .frame(width: adjustedWidth, alignment: alignment)
             .padding(.horizontal, horizontalPadding)
     }
@@ -95,6 +95,7 @@ struct AppInlineTaskStatus: View {
             if showsProgress {
                 ProgressView()
                     .controlSize(.small)
+                    .tint(isError ? .red : AppTheme.brandGold)
             }
             AppInlineStatusMessage(text: text, isError: isError)
         }
@@ -108,7 +109,7 @@ struct AppTablePlaceholder: View {
     var body: some View {
         Text(text)
             .font(.footnote)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(AppTheme.brandChalk)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             .frame(minHeight: minHeight)
@@ -147,7 +148,7 @@ struct AppPanelStatusCard: View {
                 }
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadii.panel)
-                        .stroke(AppTheme.border.opacity(0.7), lineWidth: 1)
+                        .stroke(AppTheme.brandChalk.opacity(0.28), lineWidth: 1)
                 )
         )
         .clipShape(RoundedRectangle(cornerRadius: AppRadii.panel, style: .continuous))

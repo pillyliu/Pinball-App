@@ -21,9 +21,14 @@ fun AppFilterSheet(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val colors = PinballThemeTokens.colors
     val spacing = PinballThemeTokens.spacing
     val typography = PinballThemeTokens.typography
-    ModalBottomSheet(onDismissRequest = onDismissRequest) {
+    ModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        containerColor = colors.panel,
+        contentColor = colors.brandInk,
+    ) {
         Column(
             modifier = modifier
                 .fillMaxWidth()
@@ -32,7 +37,7 @@ fun AppFilterSheet(
         ) {
             Text(
                 text = title,
-                color = PinballThemeTokens.colors.shellSelectedContent,
+                color = colors.brandInk,
                 style = typography.sectionTitle,
             )
             content()
@@ -40,7 +45,7 @@ fun AppFilterSheet(
                 onClick = onDismissRequest,
                 modifier = Modifier.align(Alignment.End),
             ) {
-                Text("Done", style = typography.shellLabel)
+                Text("Done", style = typography.shellLabel, color = colors.brandGold)
             }
         }
     }
