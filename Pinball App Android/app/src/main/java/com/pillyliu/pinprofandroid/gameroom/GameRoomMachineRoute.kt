@@ -288,12 +288,7 @@ private fun GameRoomMachineLogPanel(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(
-                        text = "Selected Entry",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    AppCardSubheading(text = "Selected Entry")
                     StyledPracticeJournalSummaryText(
                         summary = selectedLogEvent.summary,
                         style = MaterialTheme.typography.bodySmall,
@@ -321,12 +316,7 @@ private fun GameRoomMachineLogPanel(
                         )
                     }
                     if (selectedEntryAttachments.isNotEmpty()) {
-                        Text(
-                            text = "Media (${selectedEntryAttachments.size})",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                        AppCardSubheading(text = "Media (${selectedEntryAttachments.size})")
                         MediaAttachmentGrid(
                             attachments = selectedEntryAttachments,
                             onOpen = onPreviewAttachment,
