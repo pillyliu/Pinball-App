@@ -87,12 +87,12 @@ struct AppFullscreenBackButton: View {
         Button(action: action) {
             Image(systemName: "chevron.left")
                 .font(.title2.weight(.semibold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppTheme.brandInk)
                 .padding(14)
                 .background(.regularMaterial, in: Circle())
                 .overlay(
                     Circle()
-                        .stroke(Color(uiColor: .separator).opacity(0.75), lineWidth: 1)
+                        .stroke(AppTheme.brandGold.opacity(0.45), lineWidth: 1)
                 )
                 .clipShape(Circle())
         }
@@ -103,20 +103,32 @@ struct AppFullscreenBackButton: View {
 struct AppFullscreenStatusOverlay: View {
     let text: String
     var showsProgress: Bool = false
-    var foregroundColor: Color = .secondary
+    var foregroundColor: Color = AppTheme.brandChalk
 
     var body: some View {
-        VStack(spacing: 10) {
-            if showsProgress {
-                ProgressView()
-                    .tint(foregroundColor)
+        VStack {
+            VStack(spacing: 10) {
+                if showsProgress {
+                    ProgressView()
+                        .tint(AppTheme.brandGold)
+                }
+                Text(text)
+                    .font(.footnote)
+                    .foregroundStyle(foregroundColor)
+                    .multilineTextAlignment(.center)
             }
-            Text(text)
-                .font(.footnote)
-                .foregroundStyle(foregroundColor)
-                .multilineTextAlignment(.center)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(.regularMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(AppTheme.brandGold.opacity(0.24), lineWidth: 1)
+            )
         }
-        .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .padding(20)
     }
 }

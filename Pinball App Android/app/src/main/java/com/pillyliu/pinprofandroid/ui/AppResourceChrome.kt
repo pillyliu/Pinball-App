@@ -35,11 +35,16 @@ internal fun AppResourceRow(
     label: String,
     content: @Composable () -> Unit,
 ) {
+    val colors = PinballThemeTokens.colors
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.labelSmall)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = colors.brandChalk,
+        )
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -55,15 +60,16 @@ internal fun AppResourceChip(
     label: String,
     onClick: () -> Unit,
 ) {
+    val colors = PinballThemeTokens.colors
     OutlinedButton(
         onClick = onClick,
         modifier = Modifier.defaultMinSize(minHeight = 32.dp),
         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            containerColor = colors.controlBackground,
+            contentColor = colors.brandInk,
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(1.dp, colors.brandGold.copy(alpha = 0.34f)),
         shape = RoundedCornerShape(999.dp),
     ) {
         Text(label, fontSize = 12.sp)
@@ -72,16 +78,17 @@ internal fun AppResourceChip(
 
 @Composable
 internal fun AppUnavailableResourceChip() {
+    val colors = PinballThemeTokens.colors
     Text(
         "Unavailable",
         fontSize = 12.sp,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = colors.brandChalk,
         modifier = Modifier
             .background(
-                MaterialTheme.colorScheme.surfaceContainerLow,
+                colors.brandGold.copy(alpha = 0.08f),
                 RoundedCornerShape(999.dp),
             )
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
+            .border(1.dp, colors.brandGold.copy(alpha = 0.22f), RoundedCornerShape(999.dp))
             .padding(horizontal = 10.dp, vertical = 7.dp),
     )
 }
@@ -104,10 +111,12 @@ internal fun AppMediaPreviewPlaceholder(
     message: String? = null,
     showsProgress: Boolean = false,
 ) {
+    val colors = PinballThemeTokens.colors
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(12.dp)),
+            .background(colors.atmosphereBottom, RoundedCornerShape(12.dp))
+            .border(1.dp, colors.brandChalk.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center,
     ) {
         androidx.compose.foundation.layout.Column(
@@ -119,19 +128,19 @@ internal fun AppMediaPreviewPlaceholder(
                 CircularProgressIndicator(
                     modifier = Modifier.defaultMinSize(minWidth = 18.dp, minHeight = 18.dp),
                     strokeWidth = 1.75.dp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.brandGold,
                 )
             } else {
                 Icon(
                     imageVector = Icons.Outlined.Photo,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = colors.brandGold,
                 )
             }
             message?.let {
                 Text(
                     text = it,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.brandChalk,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }

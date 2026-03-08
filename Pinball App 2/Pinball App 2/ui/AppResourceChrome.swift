@@ -5,7 +5,7 @@ func PinballResourceRow<Content: View>(_ title: String, @ViewBuilder content: ()
     HStack(alignment: .center, spacing: 8) {
         Text("\(title):")
             .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(AppTheme.brandChalk)
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 content()
@@ -21,11 +21,11 @@ func PinballUnavailableResourceChip(_ title: String = "Unavailable") -> some Vie
     Text(title)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .foregroundStyle(.secondary.opacity(0.9))
-        .background(Color.white.opacity(0.06), in: Capsule())
+        .foregroundStyle(AppTheme.brandChalk.opacity(0.92))
+        .background(AppTheme.brandGold.opacity(0.08), in: Capsule())
         .overlay(
             Capsule()
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                .stroke(AppTheme.brandGold.opacity(0.22), lineWidth: 1)
         )
         .opacity(0.7)
         .allowsHitTesting(false)
@@ -48,21 +48,25 @@ func PinballMediaPreviewPlaceholder(
     showsProgress: Bool = false
 ) -> some View {
     ZStack {
-        Color(uiColor: .tertiarySystemBackground)
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(AppTheme.atmosphereBottom.opacity(0.95))
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .stroke(AppTheme.brandChalk.opacity(0.2), lineWidth: 1)
 
         VStack(spacing: 8) {
             if showsProgress {
                 ProgressView()
                     .controlSize(.small)
+                    .tint(AppTheme.brandGold)
             } else {
                 Image(systemName: "photo")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.brandGold)
             }
 
             if let message {
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.brandChalk)
                     .multilineTextAlignment(.center)
             }
         }
