@@ -617,11 +617,23 @@ internal fun GameRoomEditSettingsSection(
                     label = { Text("Ownership Notes") },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AppPrimaryButton(onClick = context.onSaveMachine) { Text("Save") }
-                    AppDestructiveButton(onClick = context.onDeleteMachine) { Text("Delete") }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    AppPrimaryButton(
+                        onClick = context.onSaveMachine,
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Save") }
+                    AppDestructiveButton(
+                        onClick = context.onDeleteMachine,
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Delete") }
                     if (context.onArchiveMachine != null) {
-                        AppSecondaryButton(onClick = context.onArchiveMachine) { Text("Archive") }
+                        AppSecondaryButton(
+                            onClick = context.onArchiveMachine,
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Archive") }
                     }
                 }
             }
