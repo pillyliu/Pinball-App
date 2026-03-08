@@ -48,6 +48,7 @@ import com.pillyliu.pinprofandroid.library.rememberCachedImageModel
 import com.pillyliu.pinprofandroid.ui.AppCardTitle
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
+import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 
 @Composable
@@ -111,7 +112,7 @@ internal fun HomeMiniCard(
                     imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.height(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = PinballThemeTokens.colors.brandGold,
                 )
                 AppCardTitle(
                     text = label,
