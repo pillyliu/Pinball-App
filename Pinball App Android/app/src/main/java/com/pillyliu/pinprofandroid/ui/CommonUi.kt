@@ -3,6 +3,7 @@ package com.pillyliu.pinprofandroid.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -508,6 +509,34 @@ fun AppPassiveStatusChip(
             )
             .border(1.dp, colors.brandGold.copy(alpha = 0.38f), RoundedCornerShape(shapes.controlCorner))
             .padding(horizontal = 6.dp, vertical = 3.dp),
+    )
+}
+
+@Composable
+fun AppSelectionPill(
+    text: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val colors = PinballThemeTokens.colors
+    Text(
+        text = text,
+        fontSize = 12.sp,
+        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+        color = if (selected) colors.brandInk else MaterialTheme.colorScheme.onSurface,
+        modifier = modifier
+            .background(
+                if (selected) colors.brandGold.copy(alpha = 0.22f) else colors.controlBackground,
+                RoundedCornerShape(999.dp),
+            )
+            .border(
+                1.dp,
+                if (selected) colors.brandGold.copy(alpha = 0.52f) else colors.brandChalk.copy(alpha = 0.35f),
+                RoundedCornerShape(999.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
     )
 }
 

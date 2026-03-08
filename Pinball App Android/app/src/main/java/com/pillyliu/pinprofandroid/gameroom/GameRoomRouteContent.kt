@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppSelectionPill
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import androidx.compose.material.icons.Icons
@@ -165,27 +166,11 @@ internal fun GameRoomHomeRoute(
                 ) {
                     GameRoomCollectionLayout.entries.forEach { mode ->
                         val selected = mode == context.collectionLayout
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    RoundedCornerShape(999.dp),
-                                )
-                                .border(
-                                    1.dp,
-                                    if (selected) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outlineVariant,
-                                    RoundedCornerShape(999.dp),
-                                )
-                                .clickable { context.onCollectionLayoutChange(mode) }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = mode.label,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                            )
-                        }
+                        AppSelectionPill(
+                            text = mode.label,
+                            selected = selected,
+                            onClick = { context.onCollectionLayoutChange(mode) },
+                        )
                     }
                 }
             }
@@ -301,28 +286,12 @@ internal fun GameRoomSettingsRoute(
             ) {
                 GameRoomSettingsSection.entries.forEach { section ->
                     val selected = section == selectedSettingsSection
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(
-                                if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                RoundedCornerShape(999.dp),
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = if (selected) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outlineVariant,
-                                shape = RoundedCornerShape(999.dp),
-                            )
-                            .clickable { onSelectedSettingsSectionChange(section) }
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = section.label,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                        )
-                    }
+                    AppSelectionPill(
+                        text = section.label,
+                        selected = selected,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSelectedSettingsSectionChange(section) },
+                    )
                 }
             }
         }
