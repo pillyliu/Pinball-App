@@ -18,6 +18,7 @@
 - That manual hosted-data refresh now consumes the shared Library hosted-data seams instead of keeping duplicate hosted fetch/decode logic inside Settings:
   - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryHostedData.swift`
   - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryHostedData.kt`
+- Android Settings source import/remove/refresh persistence now lives behind `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsDataIntegration.kt`, so `SettingsScreen.kt` no longer owns hosted manufacturer reload, hosted-data force refresh, or imported-source mutation wiring inline.
 
 ## Next audit targets
 

@@ -54,13 +54,11 @@ import android.text.method.LinkMovementMethod
 import android.widget.TextView
 import androidx.core.text.HtmlCompat
 import com.pillyliu.pinprofandroid.R
-import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.rememberLplFullNameAccessUnlocked
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinprofandroid.data.setShowFullLplLastName
 import com.pillyliu.pinprofandroid.data.unlockLplFullNameAccess
 import com.pillyliu.pinprofandroid.library.CatalogManufacturerOption
-import com.pillyliu.pinprofandroid.library.ImportedSourceProvider
 import com.pillyliu.pinprofandroid.library.ImportedSourceRecord
 import com.pillyliu.pinprofandroid.library.ImportedSourcesStore
 import com.pillyliu.pinprofandroid.library.LibrarySource
@@ -69,7 +67,6 @@ import com.pillyliu.pinprofandroid.library.LibrarySourceState
 import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.library.LibraryVenueSearchResult
-import com.pillyliu.pinprofandroid.library.loadHostedCatalogManufacturerOptions
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
@@ -120,20 +117,33 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
     var hostedDataStatusMessage by remember { mutableStateOf<String?>(null) }
     var hostedDataStatusIsError by remember { mutableStateOf(false) }
 
+    fun applySnapshot(snapshot: SettingsDataSnapshot) {
+        manufacturers = snapshot.manufacturers
+        importedSources = snapshot.importedSources
+        sourceState = snapshot.sourceState
+    }
+
+    fun applySourceSnapshot(snapshot: SettingsSourceSnapshot) {
+        importedSources = snapshot.importedSources
+        sourceState = snapshot.sourceState
+    }
+
     suspend fun reload() {
         loading = true
         error = null
-        runCatching {
-            manufacturers = withContext(Dispatchers.IO) { loadHostedCatalogManufacturerOptions(context) }
-            importedSources = ImportedSourcesStore.load(context)
-            sourceState = LibrarySourceStateStore.load(context)
-        }.onFailure { error = it.message ?: "Failed to load settings." }
+        runCatching { loadSettingsDataSnapshot(context) }
+            .onSuccess(::applySnapshot)
+            .onFailure { error = it.message ?: "Failed to load settings." }
         loading = false
     }
 
     fun afterSourceMutation() {
-        importedSources = ImportedSourcesStore.load(context)
-        sourceState = LibrarySourceStateStore.load(context)
+        applySourceSnapshot(
+            SettingsSourceSnapshot(
+                importedSources = ImportedSourcesStore.load(context),
+                sourceState = LibrarySourceStateStore.load(context),
+            ),
+        )
         LibrarySourceEvents.notifyChanged()
     }
 
@@ -143,15 +153,11 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
             refreshingHostedData = true
             hostedDataStatusMessage = null
             hostedDataStatusIsError = false
-            runCatching {
-                withContext(Dispatchers.IO) {
-                    PinballDataCache.forceRefreshHostedLibraryData()
-                }
-            }.onSuccess {
-                reload()
+            runCatching { forceRefreshHostedSettingsData(context) }
+                .onSuccess { snapshot ->
+                applySnapshot(snapshot)
                 hostedDataStatusMessage = "Pinball data refreshed from pillyliu.com."
                 hostedDataStatusIsError = false
-                LibrarySourceEvents.notifyChanged()
             }.onFailure {
                 hostedDataStatusMessage = "Hosted data refresh failed: ${it.message ?: "Unknown error"}"
                 hostedDataStatusIsError = true
@@ -176,18 +182,7 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
                 manufacturers = manufacturers,
                 onBack = { route = SettingsRoute.Home },
                 onAdd = { manufacturer ->
-                    val record = ImportedSourceRecord(
-                        id = "manufacturer--${manufacturer.id}",
-                        name = manufacturer.name,
-                        type = LibrarySourceType.MANUFACTURER,
-                        provider = ImportedSourceProvider.OPDB,
-                        providerSourceId = manufacturer.id,
-                        machineIds = emptyList(),
-                        lastSyncedAtMs = System.currentTimeMillis(),
-                    )
-                    ImportedSourcesStore.upsert(context, record)
-                    LibrarySourceStateStore.upsertSource(context, record.id, enable = true, pinIfPossible = true)
-                    afterSourceMutation()
+                    applySourceSnapshot(addManufacturerSource(context, manufacturer))
                     route = SettingsRoute.Home
                 },
             )
@@ -199,20 +194,7 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
                 contentPadding = contentPadding,
                 onBack = { route = SettingsRoute.Home },
                 onImport = { result, machineIds, query, radiusMiles ->
-                    val record = ImportedSourceRecord(
-                        id = result.id,
-                        name = result.name,
-                        type = LibrarySourceType.VENUE,
-                        provider = ImportedSourceProvider.PINBALL_MAP,
-                        providerSourceId = result.id.removePrefix("venue--pm-"),
-                        machineIds = machineIds,
-                        lastSyncedAtMs = System.currentTimeMillis(),
-                        searchQuery = query,
-                        distanceMiles = radiusMiles,
-                    )
-                    ImportedSourcesStore.upsert(context, record)
-                    LibrarySourceStateStore.upsertSource(context, record.id, enable = true, pinIfPossible = true)
-                    afterSourceMutation()
+                    applySourceSnapshot(addVenueSource(context, result, machineIds, query, radiusMiles))
                     route = SettingsRoute.Home
                 },
             )
@@ -224,18 +206,7 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
                 contentPadding = contentPadding,
                 onBack = { route = SettingsRoute.Home },
                 onImport = { result ->
-                    val record = ImportedSourceRecord(
-                        id = "tournament--mp-${result.id}",
-                        name = result.name,
-                        type = LibrarySourceType.TOURNAMENT,
-                        provider = ImportedSourceProvider.MATCH_PLAY,
-                        providerSourceId = result.id,
-                        machineIds = result.machineIds,
-                        lastSyncedAtMs = System.currentTimeMillis(),
-                    )
-                    ImportedSourcesStore.upsert(context, record)
-                    LibrarySourceStateStore.upsertSource(context, record.id, enable = true, pinIfPossible = true)
-                    afterSourceMutation()
+                    applySourceSnapshot(addTournamentSource(context, result))
                     route = SettingsRoute.Home
                 },
             )
@@ -346,17 +317,9 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
                             onRefresh = if (source.type == LibrarySourceType.VENUE) {
                                 {
                                     scope.launch {
-                                        runCatching {
-                                            withContext(Dispatchers.IO) {
-                                                PinballMapClient.fetchVenueMachineIds(source.providerSourceId)
-                                            }
-                                        }.onSuccess { machineIds ->
-                                            ImportedSourcesStore.upsert(
-                                                context,
-                                                source.copy(machineIds = machineIds, lastSyncedAtMs = System.currentTimeMillis()),
-                                            )
-                                            afterSourceMutation()
-                                        }.onFailure {
+                                        runCatching { refreshVenueSource(context, source) }
+                                            .onSuccess(::applySourceSnapshot)
+                                            .onFailure {
                                             error = "Venue refresh failed: ${it.message ?: "Unknown error"}"
                                         }
                                     }
@@ -364,29 +327,16 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
                             } else if (source.type == LibrarySourceType.TOURNAMENT) {
                                 {
                                     scope.launch {
-                                        runCatching {
-                                            withContext(Dispatchers.IO) {
-                                                MatchPlayClient.fetchTournament(source.providerSourceId)
-                                            }
-                                        }.onSuccess { tournament ->
-                                            ImportedSourcesStore.upsert(
-                                                context,
-                                                source.copy(
-                                                    name = tournament.name,
-                                                    machineIds = tournament.machineIds,
-                                                    lastSyncedAtMs = System.currentTimeMillis(),
-                                                ),
-                                            )
-                                            afterSourceMutation()
-                                        }.onFailure {
+                                        runCatching { refreshTournamentSource(context, source) }
+                                            .onSuccess(::applySourceSnapshot)
+                                            .onFailure {
                                             error = "Tournament refresh failed: ${it.message ?: "Unknown error"}"
                                         }
                                     }
                                 }
                             } else null,
                             onDelete = {
-                                ImportedSourcesStore.remove(context, source.id)
-                                afterSourceMutation()
+                                applySourceSnapshot(removeSettingsSource(context, source.id))
                             },
                         )
                     }
