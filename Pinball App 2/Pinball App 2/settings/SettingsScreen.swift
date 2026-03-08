@@ -24,6 +24,17 @@ final class SettingsViewModel: ObservableObject {
         .init(id: "venue--the-avenue-cafe", name: "The Avenue Cafe", type: .venue),
     ]
 
+    private func applySnapshot(_ snapshot: SettingsDataSnapshot) {
+        manufacturers = snapshot.manufacturers
+        importedSources = snapshot.importedSources
+        sourceState = snapshot.sourceState
+    }
+
+    private func applySourceSnapshot(_ snapshot: SettingsSourceSnapshot) {
+        importedSources = snapshot.importedSources
+        sourceState = snapshot.sourceState
+    }
+
     func loadIfNeeded() async {
         guard !didLoad else { return }
         didLoad = true
@@ -35,9 +46,7 @@ final class SettingsViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            manufacturers = try await loadManufacturerOptions()
-            importedSources = PinballImportedSourcesStore.load()
-            sourceState = PinballLibrarySourceStateStore.load()
+            applySnapshot(try await loadSettingsDataSnapshot())
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
@@ -52,8 +61,7 @@ final class SettingsViewModel: ObservableObject {
         defer { isRefreshingHostedData = false }
 
         do {
-            try await PinballDataCache.shared.forceRefreshHostedLibraryData()
-            await refresh()
+            applySnapshot(try await forceRefreshHostedSettingsData())
             hostedDataStatusMessage = "Pinball data refreshed from pillyliu.com."
             hostedDataStatusIsError = false
             postPinballLibrarySourcesDidChange()
@@ -88,81 +96,36 @@ final class SettingsViewModel: ObservableObject {
     }
 
     func addManufacturer(_ manufacturer: PinballCatalogManufacturerOption) {
-        let sourceID = "manufacturer--\(manufacturer.id)"
-        let record = PinballImportedSourceRecord(
-            id: sourceID,
-            name: manufacturer.name,
-            type: .manufacturer,
-            provider: .opdb,
-            providerSourceID: manufacturer.id,
-            machineIDs: [],
-            lastSyncedAt: Date(),
-            searchQuery: nil,
-            distanceMiles: nil
-        )
-        PinballImportedSourcesStore.upsert(record)
-        PinballLibrarySourceStateStore.upsertSource(id: sourceID, enable: true, pinIfPossible: true)
-        importedSources = PinballImportedSourcesStore.load()
-        sourceState = PinballLibrarySourceStateStore.load()
+        applySourceSnapshot(addManufacturerSource(manufacturer))
         postPinballLibrarySourcesDidChange()
     }
 
     func importVenue(result: PinballLibraryVenueSearchResult, machineIDs: [String], searchQuery: String, radiusMiles: Int) {
-        let locationID = result.id.replacingOccurrences(of: "venue--pm-", with: "")
-        let record = PinballImportedSourceRecord(
-            id: result.id,
-            name: result.name,
-            type: .venue,
-            provider: .pinballMap,
-            providerSourceID: locationID,
-            machineIDs: machineIDs,
-            lastSyncedAt: Date(),
-            searchQuery: searchQuery,
-            distanceMiles: radiusMiles
+        applySourceSnapshot(
+            addVenueSource(
+                result: result,
+                machineIDs: machineIDs,
+                searchQuery: searchQuery,
+                radiusMiles: radiusMiles
+            )
         )
-        PinballImportedSourcesStore.upsert(record)
-        PinballLibrarySourceStateStore.upsertSource(id: result.id, enable: true, pinIfPossible: true)
-        importedSources = PinballImportedSourcesStore.load()
-        sourceState = PinballLibrarySourceStateStore.load()
         postPinballLibrarySourcesDidChange()
     }
 
     func importTournament(result: MatchPlayTournamentImportResult) {
-        let sourceID = "tournament--mp-\(result.id)"
-        let record = PinballImportedSourceRecord(
-            id: sourceID,
-            name: result.name,
-            type: .tournament,
-            provider: .matchPlay,
-            providerSourceID: result.id,
-            machineIDs: result.machineIDs,
-            lastSyncedAt: Date(),
-            searchQuery: nil,
-            distanceMiles: nil
-        )
-        PinballImportedSourcesStore.upsert(record)
-        PinballLibrarySourceStateStore.upsertSource(id: sourceID, enable: true, pinIfPossible: true)
-        importedSources = PinballImportedSourcesStore.load()
-        sourceState = PinballLibrarySourceStateStore.load()
+        applySourceSnapshot(addTournamentSource(result))
         postPinballLibrarySourcesDidChange()
     }
 
     func removeImportedSource(_ sourceID: String) {
-        PinballImportedSourcesStore.remove(id: sourceID)
-        importedSources = PinballImportedSourcesStore.load()
-        sourceState = PinballLibrarySourceStateStore.load()
+        applySourceSnapshot(removeSettingsSource(sourceID))
         postPinballLibrarySourcesDidChange()
     }
 
     func refreshVenue(_ source: PinballImportedSourceRecord) async {
         guard source.type == .venue else { return }
         do {
-            let machineIDs = try await PinballMapClient.fetchVenueMachineIDs(locationID: source.providerSourceID)
-            var updated = source
-            updated.machineIDs = machineIDs
-            updated.lastSyncedAt = Date()
-            PinballImportedSourcesStore.upsert(updated)
-            importedSources = PinballImportedSourcesStore.load()
+            applySourceSnapshot(try await refreshVenueSource(source))
             postPinballLibrarySourcesDidChange()
         } catch {
             errorMessage = "Venue refresh failed: \(error.localizedDescription)"
@@ -172,21 +135,11 @@ final class SettingsViewModel: ObservableObject {
     func refreshTournament(_ source: PinballImportedSourceRecord) async {
         guard source.type == .tournament else { return }
         do {
-            let tournament = try await MatchPlayClient.fetchTournament(id: source.providerSourceID)
-            var updated = source
-            updated.name = tournament.name
-            updated.machineIDs = tournament.machineIDs
-            updated.lastSyncedAt = Date()
-            PinballImportedSourcesStore.upsert(updated)
-            importedSources = PinballImportedSourcesStore.load()
+            applySourceSnapshot(try await refreshTournamentSource(source))
             postPinballLibrarySourcesDidChange()
         } catch {
             errorMessage = "Tournament refresh failed: \(error.localizedDescription)"
         }
-    }
-
-    private func loadManufacturerOptions() async throws -> [PinballCatalogManufacturerOption] {
-        try await loadHostedCatalogManufacturerOptions()
     }
 }
 
