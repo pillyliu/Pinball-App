@@ -33,6 +33,7 @@ import com.pillyliu.pinprofandroid.ui.AppSelectionPill
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppHeaderIconButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
@@ -285,18 +286,16 @@ internal fun GameRoomSettingsRoute(
             }
         }
 
-        CardContainer {
-            AppCardSubheading(
-                text = when (selectedSettingsSection) {
-                    GameRoomSettingsSection.Import -> "Import from Pinside"
-                    GameRoomSettingsSection.Edit -> "Edit GameRoom"
-                    GameRoomSettingsSection.Archive -> "Machine Archive"
-                },
-            )
+        SectionTitle(
+            text = when (selectedSettingsSection) {
+                GameRoomSettingsSection.Import -> "Import from Pinside"
+                GameRoomSettingsSection.Edit -> "Edit GameRoom"
+                GameRoomSettingsSection.Archive -> "Machine Archive"
+            },
+        )
 
-            if (selectedSettingsSection == GameRoomSettingsSection.Import) {
-                importContent()
-            }
+        if (selectedSettingsSection == GameRoomSettingsSection.Import) {
+            importContent()
         }
 
         if (selectedSettingsSection == GameRoomSettingsSection.Edit) {
