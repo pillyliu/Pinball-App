@@ -31,6 +31,7 @@
 - Android Settings privacy full-name unlock CTA now also uses that same shared `AppPrimaryButton` seam in `CommonUi.kt`, removing the last obvious feature-local action-button styling pocket from `SettingsHomeSections.kt`.
 - iOS Settings source-add buttons, hosted-data refresh, Pinball Map / Match Play import CTAs, and the privacy full-name unlock action now also use shared `AppPrimaryActionButtonStyle` and `AppSecondaryActionButtonStyle` seams in `AppFilterControls.swift`, replacing the remaining feature-local `.glass` CTA styling pockets in `SettingsHomeSections.swift` and `SettingsImportScreens.swift`.
 - iOS Settings source-add buttons now use the compact shared secondary-action seam so `Manufacturer`, `Venue`, and `Tournament` no longer consume unnecessary width in the Library card, and the shared primary-action seam now uses the dedicated dark-on-gold foreground token so `Refresh Pinball Data`, `Unlock Full Names`, and import CTAs keep readable contrast.
+- iOS Settings source-row `Refresh` and `Delete` actions now use a shared inline action-chip button seam instead of plain buttons wrapped in a local chip modifier, so the source table no longer keeps one last feature-local row-action implementation beside the broader shared CTA system.
 
 ## Next audit targets
 

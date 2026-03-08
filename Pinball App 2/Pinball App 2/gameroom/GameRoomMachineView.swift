@@ -112,7 +112,7 @@ struct GameRoomMachineView: View {
                 .padding(.vertical, 10)
             }
         }
-        .navigationTitle("Machine View")
+        .navigationTitle(machine?.displayTitle ?? "Machine")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $editingEvent) { event in
             GameRoomEventEditSheet(

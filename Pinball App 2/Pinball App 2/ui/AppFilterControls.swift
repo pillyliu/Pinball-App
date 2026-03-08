@@ -51,6 +51,31 @@ struct AppSecondaryActionButtonStyle: ButtonStyle {
     }
 }
 
+struct AppCompactSecondaryActionButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(AppTheme.brandInk.opacity(isEnabled ? 1 : 0.55))
+            .lineLimit(1)
+            .minimumScaleFactor(0.85)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                    .fill(AppTheme.controlBg.opacity(configuration.isPressed ? 0.92 : 1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                            .stroke(AppTheme.brandGold.opacity(isEnabled ? 0.34 : 0.18), lineWidth: 1)
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
+            .opacity(isEnabled ? 1 : 0.72)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
 struct AppDestructiveActionButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     var fillsWidth: Bool = true
@@ -414,6 +439,17 @@ struct AppInlineActionChipStyle: ViewModifier {
                             .stroke(isDestructive ? Color.red.opacity(0.28) : AppTheme.brandGold.opacity(0.35), lineWidth: 1)
                     )
             )
+    }
+}
+
+struct AppInlineActionChipButtonStyle: ButtonStyle {
+    var isDestructive = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .modifier(AppInlineActionChipStyle(isDestructive: isDestructive))
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 

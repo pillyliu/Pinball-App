@@ -40,17 +40,17 @@ struct SettingsHomeContent: View {
                 Button("Manufacturer") {
                     navigationPath.append(.addManufacturer)
                 }
-                .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+                .buttonStyle(AppCompactSecondaryActionButtonStyle())
 
                 Button("Venue") {
                     navigationPath.append(.addVenue)
                 }
-                .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+                .buttonStyle(AppCompactSecondaryActionButtonStyle())
 
                 Button("Tournament") {
                     navigationPath.append(.addTournament)
                 }
-                .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+                .buttonStyle(AppCompactSecondaryActionButtonStyle())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -194,8 +194,7 @@ struct SettingsHomeContent: View {
                                     Task { await viewModel.refreshVenue(imported) }
                                 }
                             }
-                            .buttonStyle(.plain)
-                            .modifier(AppInlineActionChipStyle())
+                            .buttonStyle(AppInlineActionChipButtonStyle())
                             .accessibilityLabel("Refresh \(source.title)")
                         }
 
@@ -205,16 +204,14 @@ struct SettingsHomeContent: View {
                                     Task { await viewModel.refreshTournament(imported) }
                                 }
                             }
-                            .buttonStyle(.plain)
-                            .modifier(AppInlineActionChipStyle())
+                            .buttonStyle(AppInlineActionChipButtonStyle())
                             .accessibilityLabel("Refresh \(source.title)")
                         }
 
                         Button("Delete", role: .destructive) {
                             viewModel.removeImportedSource(source.id)
                         }
-                        .buttonStyle(.plain)
-                        .modifier(AppInlineActionChipStyle(isDestructive: true))
+                        .buttonStyle(AppInlineActionChipButtonStyle(isDestructive: true))
                         .accessibilityLabel("Remove \(source.title)")
                     }
                 }

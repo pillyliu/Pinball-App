@@ -52,6 +52,7 @@
 - iOS GameRoom settings section headings now also use the shared `AppSectionTitle` seam instead of a local `.headline` title in `GameRoomSettingsComponents.swift`.
 - Shared `AppCardTitle` and `AppCardSubheading` chrome now also back the iOS GameRoom venue and selected-machine summary hierarchy instead of feature-local `.title3` and `.subheadline` title styling.
 - Shared title hierarchy now also backs the iOS machine-detail title and Android GameRoom home-route venue/selected-machine titles, reducing the remaining title drift between GameRoom home and machine routes.
+- iOS GameRoom machine detail now also uses the owned machine title as the navigation title instead of a generic `Machine View` label, closing another small parity gap against the Android machine route and the branded shared title hierarchy.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets
