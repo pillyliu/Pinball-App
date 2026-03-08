@@ -1,18 +1,10 @@
 import SwiftUI
-import Combine
 
 struct LeagueCard: View {
     let destination: LeagueDestination
     @ObservedObject var previewModel: LeaguePreviewModel
     @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
-
-    @State private var targetMetricIndex: Int = 0
-    @State private var standingsModeIndex: Int = 0
-    @State private var statsValueIndex: Int = 0
-
-    private let targetMetricTimer = Timer.publish(every: 4.0, on: .main, in: .common).autoconnect()
-    private let standingsModeTimer = Timer.publish(every: 4.0, on: .main, in: .common).autoconnect()
-    private let statsValueTimer = Timer.publish(every: 4.0, on: .main, in: .common).autoconnect()
+    @StateObject private var rotationState = LeaguePreviewRotationState()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -42,45 +34,20 @@ struct LeagueCard: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
         .appPanelStyle()
-        .onReceive(targetMetricTimer) { _ in
-            guard destination == .targets else { return }
-            withAnimation(.easeInOut(duration: 1.0)) {
-                targetMetricIndex = (targetMetricIndex + 1) % LeagueTargetMetric.allCases.count
-            }
-        }
-        .onReceive(standingsModeTimer) { _ in
-            guard destination == .standings else { return }
-            guard previewModel.hasAroundYouStandings else { return }
-            withAnimation(.easeInOut(duration: 1.0)) {
-                standingsModeIndex = (standingsModeIndex + 1) % LeagueStandingsPreviewMode.allCases.count
-            }
-        }
-        .onReceive(statsValueTimer) { _ in
-            guard destination == .stats else { return }
-            withAnimation(.easeInOut(duration: 1.0)) {
-                statsValueIndex = (statsValueIndex + 1) % 2
-            }
-        }
     }
 
     @ViewBuilder
     private var preview: some View {
         switch destination {
         case .targets:
-            let metric = LeagueTargetMetric.allCases[targetMetricIndex]
             TargetsPreview(
                 rows: previewModel.nextBankTargets,
                 bankLabel: previewModel.nextBankLabel,
-                metric: metric
+                metric: rotationState.targetMetric
             )
 
         case .standings:
-            let mode: LeagueStandingsPreviewMode = {
-                if previewModel.hasAroundYouStandings {
-                    return LeagueStandingsPreviewMode.allCases[standingsModeIndex]
-                }
-                return .topFive
-            }()
+            let mode = rotationState.standingsMode(hasAroundYouStandings: previewModel.hasAroundYouStandings)
             StandingsPreview(
                 seasonLabel: previewModel.standingsSeasonLabel,
                 mode: mode,
@@ -96,7 +63,7 @@ struct LeagueCard: View {
                 rows: previewModel.statsRecentRows,
                 bankLabel: previewModel.statsRecentBankLabel,
                 playerLabel: displayLPLPlayerName(previewModel.statsPlayerRawName),
-                showScore: statsValueIndex == 0
+                showScore: rotationState.showStatsScore
             )
         }
     }

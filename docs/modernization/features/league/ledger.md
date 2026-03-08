@@ -15,6 +15,7 @@
 - Android League preview loading now mirrors that shape more closely: `LeaguePreviewLoader.kt` focuses on fetch/snapshot assembly, while `LeaguePreviewParsing.kt` owns CSV parsing and preview-shaping rules.
 - iOS League preview-card shell and timer-driven state stay in `LeagueCardPreviews.swift`, while the `Targets`, `Standings`, and `Stats` preview bodies now live in `LeaguePreviewSections.swift`.
 - Android League now mirrors that rendering split more closely: `LeaguePreviewCards.kt` owns the preview-card shell, while `LeagueMiniPreviews.kt` owns the `Targets`, `Standings`, and `Stats` preview bodies.
+- iOS League timer-driven preview rotation state now lives in `LeaguePreviewRotationState.swift`, bringing that ownership seam in line with Android’s existing `LeaguePreviewRotationState.kt`.
 
 ## Next audit targets
 

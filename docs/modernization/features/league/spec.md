@@ -28,7 +28,8 @@ League includes:
   - `LeagueShellContent.swift` for the responsive card stack/grid, destination links, and About footer
   - `LeaguePreviewLoader.swift` for preview data fetch and snapshot assembly
   - `LeaguePreviewParsing.swift` for CSV parsing and preview-shaping rules
-  - `LeagueCardPreviews.swift` for the preview-card shell and rotation state
+  - `LeagueCardPreviews.swift` for the preview-card shell
+  - `LeaguePreviewRotationState.swift` for timer-driven preview rotation state
   - `LeaguePreviewSections.swift` for `Targets`, `Standings`, and `Stats` preview bodies
 - Android League home now splits into:
   - `LeagueScreen.kt` for the root feature shell and preview-state loading
