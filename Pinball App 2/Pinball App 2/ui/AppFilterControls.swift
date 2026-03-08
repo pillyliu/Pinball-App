@@ -201,6 +201,19 @@ struct AppToolbarSummaryPair: View {
     }
 }
 
+struct AppInlineLinkAction: View {
+    let text: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(text)
+                .foregroundStyle(AppTheme.brandGold)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 struct AppRefreshStatusRow: View {
     let updatedAtLabel: String
     let isRefreshing: Bool

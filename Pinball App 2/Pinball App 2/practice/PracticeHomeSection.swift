@@ -195,12 +195,11 @@ struct PracticeWelcomeOverlay: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Welcome to Practice")
-                .font(.title3.weight(.bold))
+            AppCardTitle(text: "Welcome to Practice")
 
             Text("Enter your player name to get started.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.brandChalk)
 
             TextField("Player name", text: $firstNamePromptValue)
                 .textInputAutocapitalization(.words)
@@ -249,11 +248,10 @@ struct PracticeWelcomeOverlay: View {
 
     private func overlaySectionRow(_ title: String, detail: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
+            AppCardSubheading(text: title)
             Text(detail)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.brandChalk)
         }
     }
 }

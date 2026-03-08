@@ -233,6 +233,7 @@
 - Shared title hierarchy now also backs Practice home group names and Android selected-group dashboard titles, reducing the last remaining home-route semibold title drift in Practice.
 - iOS `GroupEditor` now matches Android as a pushed `PracticeRoute.groupEditor` destination instead of remaining a sheet-only exception in `PracticePresentationHost.swift`.
 - iOS `Rulesheet` and `Playfield` launches from the Practice game route now match Android as explicit `PracticeRoute.rulesheet` and `PracticeRoute.playfield` destinations instead of bypassing the Practice route model through direct `NavigationLink` pushes.
+- iOS Practice home greeting, mini-card titles, and the welcome overlay now also route through shared `AppInlineLinkAction`, `AppCardTitle`, and `AppCardSubheading` seams instead of older local cyan link text and raw semibold title styling, reducing another visible hierarchy gap against the newer shared PinProf chrome.
 
 ## Next audit targets
 

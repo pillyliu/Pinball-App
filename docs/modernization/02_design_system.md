@@ -210,6 +210,7 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 - Shared cross-platform `AppCardTitle` seams now back medium-emphasis titles in Library, Practice, GameRoom, and League, replacing the remaining mix of feature-local `.headline`, `.title3`, and semibold `Text` styling in those card and home-header surfaces.
 - Those shared card-title and subheading seams now also back the remaining selected-group and machine-title hierarchy in Practice and GameRoom home/detail routes, reducing the last obvious home-route title drift across platforms.
 - iOS shared action chrome now also includes a dedicated compact secondary CTA seam plus a real inline action-chip button seam in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppFilterControls.swift`, so short Settings source-add controls and source-row refresh/delete actions no longer mix full-size buttons with plain-button chip wrappers.
+- iOS shared action chrome now also includes a branded inline link-action seam in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppFilterControls.swift`, and Practice home now uses the shared card-title/subheading hierarchy plus that link seam instead of older local cyan link text and raw semibold title blocks.
 
 ## Next design-system steps
 

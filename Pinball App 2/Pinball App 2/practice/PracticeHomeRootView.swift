@@ -100,17 +100,15 @@ struct PracticeHomeRootView: View {
         if let greetingName {
             HStack(spacing: 0) {
                 Text("Welcome back, ")
-                Button(action: onOpenIFPAProfile) {
-                    Text(greetingName)
-                        .foregroundStyle(Color(red: 0.49, green: 0.77, blue: 0.98))
-                }
-                .buttonStyle(.plain)
+                AppInlineLinkAction(text: greetingName, action: onOpenIFPAProfile)
                 .accessibilityLabel(hasIFPAProfileAccess ? "Open IFPA profile for \(greetingName)" : "Open IFPA setup for \(greetingName)")
             }
             .font(.title3.weight(.semibold))
+            .foregroundStyle(AppTheme.brandInk)
         } else {
             Text("Welcome back")
                 .font(.title3.weight(.semibold))
+                .foregroundStyle(AppTheme.brandInk)
         }
     }
 }
