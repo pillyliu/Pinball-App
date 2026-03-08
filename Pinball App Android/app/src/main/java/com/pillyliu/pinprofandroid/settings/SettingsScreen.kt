@@ -72,6 +72,8 @@ import com.pillyliu.pinprofandroid.library.LibraryVenueSearchResult
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -217,17 +219,19 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
     }
 
     AppScreen(contentPadding) {
-        if (loading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-            return@AppScreen
-        }
-
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (loading) {
+                item {
+                    AppPanelStatusCard(
+                        text = "Loading settings…",
+                        showsProgress = true,
+                    )
+                }
+            }
+
             item {
                 CardContainer {
                     SectionTitle("Library")
@@ -360,7 +364,7 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
                         )
                     }
                     if (importedSources.isEmpty()) {
-                        Text("No additional sources added yet.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        AppPanelEmptyCard(text = "No additional sources added yet.")
                     }
                 }
             }
@@ -395,9 +399,10 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
 
             error?.let { message ->
                 item {
-                    CardContainer {
-                        Text(message, color = MaterialTheme.colorScheme.error)
-                    }
+                    AppPanelStatusCard(
+                        text = message,
+                        isError = true,
+                    )
                 }
             }
         }

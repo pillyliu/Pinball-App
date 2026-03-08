@@ -240,9 +240,7 @@ private struct GameRoomCollectionCard: View {
                 .foregroundStyle(.secondary)
 
             if store.activeMachines.isEmpty {
-                Text("No active machines yet. Add one in GameRoom Settings > Edit.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "No active machines yet. Add one in GameRoom Settings > Edit.")
             } else if collectionLayout == .tiles {
                 LazyVGrid(columns: columns, spacing: 10) {
                     ForEach(store.activeMachines) { machine in

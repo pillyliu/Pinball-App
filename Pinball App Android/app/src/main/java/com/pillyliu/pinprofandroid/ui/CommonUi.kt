@@ -245,6 +245,40 @@ fun AppInlineTaskStatus(
 }
 
 @Composable
+fun AppPanelStatusCard(
+    text: String,
+    modifier: Modifier = Modifier,
+    showsProgress: Boolean = false,
+    isError: Boolean = false,
+) {
+    CardContainer(modifier = modifier) {
+        AppInlineTaskStatus(
+            text = text,
+            showsProgress = showsProgress,
+            isError = isError,
+        )
+    }
+}
+
+@Composable
+fun AppPanelEmptyCard(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    val colors = PinballThemeTokens.colors
+    val shapes = PinballThemeTokens.shapes
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(colors.controlBackground, RoundedCornerShape(shapes.controlCorner))
+            .border(1.dp, colors.controlBorder, RoundedCornerShape(shapes.controlCorner))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+    ) {
+        EmptyLabel(text)
+    }
+}
+
+@Composable
 fun InsetFilterHeader(
     summaryText: String,
     onFilterClick: () -> Unit,

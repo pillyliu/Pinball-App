@@ -44,6 +44,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
@@ -674,10 +675,7 @@ internal fun GameRoomArchiveSettingsSection(
         }
 
         if (filteredArchivedMachines.isEmpty()) {
-            Text(
-                text = "No archived machines for this filter.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            AppPanelEmptyCard(text = "No archived machines for this filter.")
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
                 filteredArchivedMachines.forEachIndexed { index, machine ->

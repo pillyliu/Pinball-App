@@ -102,3 +102,31 @@ struct AppTablePlaceholder: View {
             .frame(minHeight: minHeight)
     }
 }
+
+struct AppPanelStatusCard: View {
+    let text: String
+    var showsProgress: Bool = false
+    var isError: Bool = false
+
+    var body: some View {
+        AppInlineTaskStatus(
+            text: text,
+            showsProgress: showsProgress,
+            isError: isError
+        )
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appPanelStyle()
+    }
+}
+
+struct AppPanelEmptyCard: View {
+    let text: String
+
+    var body: some View {
+        AppTablePlaceholder(text: text, minHeight: 0)
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .appControlStyle()
+    }
+}

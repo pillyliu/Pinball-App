@@ -12,6 +12,8 @@
 - Settings home section titles now use the shared section-title seams on both platforms instead of feature-local title styling.
 - Android `Add Manufacturer`, `Add Venue`, and `Add Tournament` now also use the shared `AppScreenHeader` seam instead of feature-local back-button plus centered-title rows.
 - iOS and Android `Add Venue` / `Add Tournament` now also use shared inline task-status messaging for search/import progress and local errors instead of keeping feature-local alerts and text blocks.
+- iOS and Android Settings home now also use shared panel-status messaging for loading and root library-source errors instead of a feature-local alert/full-screen spinner split.
+- iOS and Android Settings home now also use shared panel-empty cards for the “no additional sources” state instead of feature-local secondary text blocks inside the Library card.
 
 ## Next audit targets
 

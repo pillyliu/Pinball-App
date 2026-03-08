@@ -802,9 +802,7 @@ struct GameRoomEditMachinesView: View {
             }
 
             if store.state.areas.isEmpty {
-                Text("No areas yet. Add an area like Upstairs or Basement to keep area order consistent across machines.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "No areas yet. Add an area like Upstairs or Basement to keep area order consistent across machines.")
             } else {
                 VStack(spacing: 8) {
                     ForEach(store.state.areas) { area in
@@ -846,9 +844,7 @@ struct GameRoomEditMachinesView: View {
     private var machineManagementPanel: some View {
         VStack(alignment: .leading, spacing: 10) {
             if allMachines.isEmpty {
-                Text("No machines in the collection yet. Add a machine above to start organizing the GameRoom.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "No machines in the collection yet. Add a machine above to start organizing the GameRoom.")
             } else {
                 HStack(spacing: 10) {
                     Menu {
@@ -1239,9 +1235,7 @@ struct GameRoomArchiveSettingsView: View {
             .pickerStyle(.segmented)
 
             if filteredMachines.isEmpty {
-                Text("No archived machine instances yet.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "No archived machine instances yet.")
             } else {
                 ForEach(filteredMachines) { machine in
                     Button(action: { onOpenMachineView(machine.id) }) {

@@ -103,6 +103,7 @@ import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
@@ -677,10 +678,7 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         if (activeMachines.isEmpty()) {
-                            Text(
-                                text = "No active machines yet. Add one in GameRoom Settings > Edit.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            AppPanelEmptyCard(text = "No active machines yet. Add one in GameRoom Settings > Edit.")
                         } else {
                             if (collectionLayout == GameRoomCollectionLayout.Tiles) {
                                 val leftColumn = activeMachines.filterIndexed { index, _ -> index % 2 == 0 }

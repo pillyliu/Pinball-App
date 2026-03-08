@@ -197,6 +197,17 @@ struct SettingsScreen: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
+                        if viewModel.isLoading {
+                            AppPanelStatusCard(
+                                text: "Loading settings…",
+                                showsProgress: true
+                            )
+                        } else if let errorMessage = viewModel.errorMessage {
+                            AppPanelStatusCard(
+                                text: errorMessage,
+                                isError: true
+                            )
+                        }
                         librarySection
                         privacySection
                         aboutSection
@@ -222,16 +233,6 @@ struct SettingsScreen: View {
                 case .addTournament:
                     AddTournamentScreen(viewModel: viewModel)
                 }
-            }
-            .alert("Library", isPresented: Binding(
-                get: { viewModel.errorMessage != nil },
-                set: { if !$0 { viewModel.errorMessage = nil } }
-            )) {
-                Button("OK", role: .cancel) {
-                    viewModel.errorMessage = nil
-                }
-            } message: {
-                Text(viewModel.errorMessage ?? "")
             }
         }
     }
@@ -268,9 +269,7 @@ struct SettingsScreen: View {
             sourceTable
 
             if viewModel.importedSources.isEmpty {
-                Text("No additional sources added yet.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "No additional sources added yet.")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
