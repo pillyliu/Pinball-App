@@ -487,11 +487,10 @@ struct GroupEditorScreen: View {
     @ViewBuilder
     private func sectionCard<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
+            AppSectionTitle(text: title)
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .appPanelStyle()
     }
 
     private func populateFromEditingGroupIfNeeded() {
