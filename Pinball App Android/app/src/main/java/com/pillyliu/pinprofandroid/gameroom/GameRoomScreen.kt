@@ -188,7 +188,7 @@ internal data class ImportDraftRow(
     val normalizedPurchaseDateMs: Long?,
 )
 
-private data class IssueInputAttachmentDraft(
+internal data class IssueInputAttachmentDraft(
     val id: String,
     val kind: MachineAttachmentKind,
     val uri: String,
@@ -875,628 +875,116 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
         }
     }
 
-    if (activeInputSheet != null && selectedMachineFromAll != null) {
-        val selectedSheet = activeInputSheet ?: GameRoomInputSheet.CleanGlass
-        val openIssues = store.state.issues
-            .filter { it.ownedMachineID == selectedMachineFromAll.id && it.status != MachineIssueStatus.resolved }
-            .sortedByDescending { it.openedAtMs }
-
-        ModalBottomSheet(
-            onDismissRequest = { activeInputSheet = null },
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = selectedSheet.title,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                OutlinedTextField(
-                    value = inputDateDraft,
-                    onValueChange = { inputDateDraft = it },
-                    label = { Text("Date (YYYY-MM-DD)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-
-                when (selectedSheet) {
-                    GameRoomInputSheet.CleanGlass,
-                    GameRoomInputSheet.CleanPlayfield,
-                    GameRoomInputSheet.SwapBalls,
-                    GameRoomInputSheet.LevelMachine,
-                    GameRoomInputSheet.GeneralInspection -> {
-                        if (selectedSheet == GameRoomInputSheet.CleanGlass || selectedSheet == GameRoomInputSheet.CleanPlayfield) {
-                            OutlinedTextField(
-                                value = inputConsumableDraft,
-                                onValueChange = { inputConsumableDraft = it },
-                                label = { Text("Cleaner / Consumable") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                            )
+    GameRoomPresentationHost(
+        inputSheetContext = activeInputSheet?.let { selectedSheet ->
+            selectedMachineFromAll?.let { selectedMachine ->
+                GameRoomInputSheetContext(
+                    store = store,
+                    selectedMachine = selectedMachine,
+                    selectedSheet = selectedSheet,
+                    inputDateDraft = inputDateDraft,
+                    onInputDateDraftChange = { inputDateDraft = it },
+                    inputNotesDraft = inputNotesDraft,
+                    onInputNotesDraftChange = { inputNotesDraft = it },
+                    inputConsumableDraft = inputConsumableDraft,
+                    onInputConsumableDraftChange = { inputConsumableDraft = it },
+                    inputPitchValueDraft = inputPitchValueDraft,
+                    onInputPitchValueDraftChange = { inputPitchValueDraft = it },
+                    inputPitchPointDraft = inputPitchPointDraft,
+                    onInputPitchPointDraftChange = { inputPitchPointDraft = it },
+                    inputIssueSymptomDraft = inputIssueSymptomDraft,
+                    onInputIssueSymptomDraftChange = { inputIssueSymptomDraft = it },
+                    inputIssueSeverityDraft = inputIssueSeverityDraft,
+                    onInputIssueSeverityDraftChange = { inputIssueSeverityDraft = it },
+                    inputIssueSubsystemDraft = inputIssueSubsystemDraft,
+                    onInputIssueSubsystemDraftChange = {
+                        inputIssueSubsystemDraft = it
+                    },
+                    inputIssueDiagnosisDraft = inputIssueDiagnosisDraft,
+                    onInputIssueDiagnosisDraftChange = { inputIssueDiagnosisDraft = it },
+                    inputResolveIssueIDDraft = inputResolveIssueIDDraft,
+                    onInputResolveIssueIDDraftChange = { inputResolveIssueIDDraft = it },
+                    inputOwnershipTypeDraft = inputOwnershipTypeDraft,
+                    onInputOwnershipTypeDraftChange = {
+                        inputOwnershipTypeDraft = it
+                        if (inputSummaryDraft.isBlank()) {
+                            inputSummaryDraft = it.replaceFirstChar { ch -> ch.uppercase() }
                         }
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    GameRoomInputSheet.CheckPitch -> {
-                        OutlinedTextField(
-                            value = inputPitchValueDraft,
-                            onValueChange = { inputPitchValueDraft = it },
-                            label = { Text("Pitch Value") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = inputPitchPointDraft,
-                            onValueChange = { inputPitchPointDraft = it },
-                            label = { Text("Measurement Point") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    GameRoomInputSheet.LogIssue -> {
-                        OutlinedTextField(
-                            value = inputIssueSymptomDraft,
-                            onValueChange = { inputIssueSymptomDraft = it },
-                            label = { Text("Symptom") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        AnchoredDropdownFilter(
-                            selectedText = inputIssueSeverityDraft.replaceFirstChar { it.uppercase() },
-                            options = MachineIssueSeverity.entries.map {
-                                DropdownOption(it.name, it.name.replaceFirstChar { ch -> ch.uppercase() })
-                            },
-                            onSelect = { inputIssueSeverityDraft = it },
-                        )
-                        AnchoredDropdownFilter(
-                            selectedText = inputIssueSubsystemDraft.replaceFirstChar { it.uppercase() },
-                            options = MachineIssueSubsystem.entries.map {
-                                DropdownOption(it.name, it.name.replaceFirstChar { ch -> ch.uppercase() })
-                            },
-                            onSelect = { inputIssueSubsystemDraft = it },
-                        )
-                        OutlinedTextField(
-                            value = inputIssueDiagnosisDraft,
-                            onValueChange = { inputIssueDiagnosisDraft = it },
-                            label = { Text("Diagnosis / Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Button(
-                                onClick = { issuePhotoDraftLauncher.launch(arrayOf("image/*")) },
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text("Add Photo")
-                            }
-                            Button(
-                                onClick = { issueVideoDraftLauncher.launch(arrayOf("video/*")) },
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text("Add Video")
-                            }
-                        }
-                        if (issueDraftAttachments.isEmpty()) {
-                            AppPanelEmptyCard(text = "No media selected.")
+                    },
+                    inputSummaryDraft = inputSummaryDraft,
+                    onInputSummaryDraftChange = { inputSummaryDraft = it },
+                    inputDetailsDraft = inputDetailsDraft,
+                    onInputDetailsDraftChange = { inputDetailsDraft = it },
+                    inputPlayTotalDraft = inputPlayTotalDraft,
+                    onInputPlayTotalDraftChange = { inputPlayTotalDraft = it.filter { ch -> ch.isDigit() } },
+                    inputMediaKindDraft = inputMediaKindDraft,
+                    onInputMediaKindDraftChange = { inputMediaKindDraft = it },
+                    inputMediaURIDraft = inputMediaURIDraft,
+                    onInputMediaURIDraftChange = { inputMediaURIDraft = it },
+                    inputMediaCaptionDraft = inputMediaCaptionDraft,
+                    onInputMediaCaptionDraftChange = { inputMediaCaptionDraft = it },
+                    issueDraftAttachments = issueDraftAttachments,
+                    onIssueDraftAttachmentsChange = { issueDraftAttachments = it },
+                    onLaunchIssuePhotoPicker = { issuePhotoDraftLauncher.launch(arrayOf("image/*")) },
+                    onLaunchIssueVideoPicker = { issueVideoDraftLauncher.launch(arrayOf("video/*")) },
+                    onLaunchPendingMediaPicker = { kind, occurredAtMs ->
+                        pendingMediaMachineID = selectedMachine.id
+                        pendingMediaOwnerType = MachineAttachmentOwnerType.event.name
+                        pendingMediaOwnerID = null
+                        pendingMediaOccurredAtMs = occurredAtMs
+                        pendingMediaCaptionDraft = inputMediaCaptionDraft
+                        pendingMediaNotesDraft = inputNotesDraft
+                        activeInputSheet = null
+                        if (kind == MachineAttachmentKind.photo) {
+                            addPhotoLauncher.launch(arrayOf("image/*"))
                         } else {
-                            issueDraftAttachments.forEach { attachment ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Text(
-                                        text = attachment.caption ?: attachment.uri,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    TextButton(
-                                        onClick = {
-                                            issueDraftAttachments = issueDraftAttachments.filterNot { it.id == attachment.id }
-                                        },
-                                    ) { Text("Remove") }
-                                }
-                            }
+                            addVideoLauncher.launch(arrayOf("video/*"))
                         }
-                    }
-
-                    GameRoomInputSheet.ResolveIssue -> {
-                        AnchoredDropdownFilter(
-                            selectedText = openIssues.firstOrNull { it.id == inputResolveIssueIDDraft }?.symptom ?: "Select Issue",
-                            options = openIssues.map { DropdownOption(it.id, it.symptom) },
-                            onSelect = { inputResolveIssueIDDraft = it },
-                        )
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Resolution Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    GameRoomInputSheet.OwnershipUpdate -> {
-                        AnchoredDropdownFilter(
-                            selectedText = inputOwnershipTypeDraft.replaceFirstChar { it.uppercase() },
-                            options = listOf(
-                                MachineEventType.purchased,
-                                MachineEventType.moved,
-                                MachineEventType.loanedOut,
-                                MachineEventType.returned,
-                                MachineEventType.listedForSale,
-                                MachineEventType.sold,
-                                MachineEventType.traded,
-                                MachineEventType.reacquired,
-                            ).map { DropdownOption(it.name, it.name.replaceFirstChar { ch -> ch.uppercase() }) },
-                            onSelect = {
-                                inputOwnershipTypeDraft = it
-                                if (inputSummaryDraft.isBlank()) inputSummaryDraft = it.replaceFirstChar { ch -> ch.uppercase() }
-                            },
-                        )
-                        OutlinedTextField(
-                            value = inputSummaryDraft,
-                            onValueChange = { inputSummaryDraft = it },
-                            label = { Text("Summary") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    GameRoomInputSheet.InstallMod,
-                    GameRoomInputSheet.ReplacePart -> {
-                        OutlinedTextField(
-                            value = inputSummaryDraft,
-                            onValueChange = { inputSummaryDraft = it },
-                            label = { Text("Summary") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedTextField(
-                            value = inputDetailsDraft,
-                            onValueChange = { inputDetailsDraft = it },
-                            label = { Text(if (selectedSheet == GameRoomInputSheet.InstallMod) "Mod / Details" else "Part Replaced") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    GameRoomInputSheet.LogPlays -> {
-                        OutlinedTextField(
-                            value = inputPlayTotalDraft,
-                            onValueChange = { inputPlayTotalDraft = it.filter { ch -> ch.isDigit() } },
-                            label = { Text("Total Plays") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    GameRoomInputSheet.AddMedia -> {
-                        AnchoredDropdownFilter(
-                            selectedText = inputMediaKindDraft.replaceFirstChar { it.uppercase() },
-                            options = MachineAttachmentKind.entries.map {
-                                DropdownOption(it.name, it.name.replaceFirstChar { ch -> ch.uppercase() })
-                            },
-                            onSelect = { inputMediaKindDraft = it },
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Button(
-                                onClick = {
-                                    val occurredAtMs = parseIsoDateMillis(inputDateDraft) ?: System.currentTimeMillis()
-                                    inputMediaKindDraft = MachineAttachmentKind.photo.name
-                                    pendingMediaMachineID = selectedMachineFromAll.id
-                                    pendingMediaOwnerType = MachineAttachmentOwnerType.event.name
-                                    pendingMediaOwnerID = null
-                                    pendingMediaOccurredAtMs = occurredAtMs
-                                    pendingMediaCaptionDraft = inputMediaCaptionDraft
-                                    pendingMediaNotesDraft = inputNotesDraft
-                                    activeInputSheet = null
-                                    addPhotoLauncher.launch(arrayOf("image/*"))
-                                },
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text("Add Photo")
-                            }
-                            Button(
-                                onClick = {
-                                    val occurredAtMs = parseIsoDateMillis(inputDateDraft) ?: System.currentTimeMillis()
-                                    inputMediaKindDraft = MachineAttachmentKind.video.name
-                                    pendingMediaMachineID = selectedMachineFromAll.id
-                                    pendingMediaOwnerType = MachineAttachmentOwnerType.event.name
-                                    pendingMediaOwnerID = null
-                                    pendingMediaOccurredAtMs = occurredAtMs
-                                    pendingMediaCaptionDraft = inputMediaCaptionDraft
-                                    pendingMediaNotesDraft = inputNotesDraft
-                                    activeInputSheet = null
-                                    addVideoLauncher.launch(arrayOf("video/*"))
-                                },
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text("Add Video")
-                            }
-                        }
-                        OutlinedTextField(
-                            value = inputMediaURIDraft,
-                            onValueChange = { inputMediaURIDraft = it },
-                            label = { Text("Media URI (optional)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = inputMediaCaptionDraft,
-                            onValueChange = { inputMediaCaptionDraft = it },
-                            label = { Text("Caption") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(
-                        onClick = {
-                            issueDraftAttachments = emptyList()
-                            activeInputSheet = null
-                        },
-                    ) { Text("Cancel") }
-                    Button(
-                        onClick = {
-                            val occurredAtMs = parseIsoDateMillis(inputDateDraft) ?: System.currentTimeMillis()
-                            when (selectedSheet) {
-                                GameRoomInputSheet.CleanGlass -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.glassCleaned,
-                                    category = MachineEventCategory.service,
-                                    summary = "Clean Glass",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                    consumablesUsed = inputConsumableDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.CleanPlayfield -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.playfieldCleaned,
-                                    category = MachineEventCategory.service,
-                                    summary = "Clean Playfield",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                    consumablesUsed = inputConsumableDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.SwapBalls -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.ballsReplaced,
-                                    category = MachineEventCategory.service,
-                                    summary = "Swap Balls",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.CheckPitch -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.pitchChecked,
-                                    category = MachineEventCategory.service,
-                                    summary = "Check Pitch",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                    pitchValue = inputPitchValueDraft.toDoubleOrNull(),
-                                    pitchMeasurementPoint = inputPitchPointDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.LevelMachine -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.machineLeveled,
-                                    category = MachineEventCategory.service,
-                                    summary = "Level Machine",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.GeneralInspection -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.generalInspection,
-                                    category = MachineEventCategory.service,
-                                    summary = "General Inspection",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.LogIssue -> {
-                                    val issueID = store.openIssue(
-                                        machineID = selectedMachineFromAll.id,
-                                        symptom = inputIssueSymptomDraft,
-                                        severity = runCatching { MachineIssueSeverity.valueOf(inputIssueSeverityDraft) }.getOrDefault(MachineIssueSeverity.medium),
-                                        subsystem = runCatching { MachineIssueSubsystem.valueOf(inputIssueSubsystemDraft) }.getOrDefault(MachineIssueSubsystem.other),
-                                        openedAtMs = occurredAtMs,
-                                        diagnosis = inputIssueDiagnosisDraft.ifBlank { null },
-                                    )
-                                    var lastAttachmentEventID: String? = null
-                                    issueDraftAttachments.forEach { attachment ->
-                                        lastAttachmentEventID = store.addEvent(
-                                            machineID = selectedMachineFromAll.id,
-                                            type = if (attachment.kind == MachineAttachmentKind.photo) MachineEventType.photoAdded else MachineEventType.videoAdded,
-                                            category = MachineEventCategory.media,
-                                            summary = if (attachment.kind == MachineAttachmentKind.photo) "Issue photo added" else "Issue video added",
-                                            occurredAtMs = occurredAtMs,
-                                            linkedIssueID = issueID,
-                                        )
-                                        store.addAttachment(
-                                            machineID = selectedMachineFromAll.id,
-                                            ownerType = MachineAttachmentOwnerType.issue,
-                                            ownerID = issueID,
-                                            kind = attachment.kind,
-                                            uri = attachment.uri,
-                                            caption = attachment.caption,
-                                        )
-                                    }
-                                    if (lastAttachmentEventID != null) {
-                                        selectedLogEventID = lastAttachmentEventID
-                                        machineSubview = GameRoomMachineSubview.Log
-                                    }
-                                }
-                                GameRoomInputSheet.ResolveIssue -> {
-                                    val issueID = inputResolveIssueIDDraft
-                                    if (!issueID.isNullOrBlank()) {
-                                        store.resolveIssue(issueID, inputNotesDraft.ifBlank { null }, resolvedAtMs = occurredAtMs)
-                                    }
-                                }
-                                GameRoomInputSheet.OwnershipUpdate -> {
-                                    val type = runCatching { MachineEventType.valueOf(inputOwnershipTypeDraft) }.getOrDefault(MachineEventType.moved)
-                                    store.addEvent(
-                                        machineID = selectedMachineFromAll.id,
-                                        type = type,
-                                        category = MachineEventCategory.ownership,
-                                        summary = inputSummaryDraft.ifBlank { type.name.replaceFirstChar { it.uppercase() } },
-                                        occurredAtMs = occurredAtMs,
-                                        notes = inputNotesDraft.ifBlank { null },
-                                    )
-                                }
-                                GameRoomInputSheet.InstallMod -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.modInstalled,
-                                    category = MachineEventCategory.mod,
-                                    summary = inputSummaryDraft.ifBlank { "Install Mod" },
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                    partsUsed = inputDetailsDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.ReplacePart -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.partReplaced,
-                                    category = MachineEventCategory.service,
-                                    summary = inputSummaryDraft.ifBlank { "Replace Part" },
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                    partsUsed = inputDetailsDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.LogPlays -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.custom,
-                                    category = MachineEventCategory.custom,
-                                    summary = "Log Plays (Total ${inputPlayTotalDraft.toIntOrNull() ?: 0})",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                    playCountAtEvent = inputPlayTotalDraft.toIntOrNull(),
-                                )
-                                GameRoomInputSheet.AddMedia -> {
-                                    val kind = runCatching { MachineAttachmentKind.valueOf(inputMediaKindDraft) }.getOrDefault(MachineAttachmentKind.photo)
-                                    val manualURI = inputMediaURIDraft.trim()
-                                    if (manualURI.isNotBlank()) {
-                                        val summary = if (kind == MachineAttachmentKind.photo) "Photo added" else "Video added"
-                                        val eventID = store.addEvent(
-                                            machineID = selectedMachineFromAll.id,
-                                            type = if (kind == MachineAttachmentKind.photo) MachineEventType.photoAdded else MachineEventType.videoAdded,
-                                            category = MachineEventCategory.media,
-                                            summary = summary,
-                                            occurredAtMs = occurredAtMs,
-                                            notes = inputNotesDraft.ifBlank { null },
-                                        )
-                                        store.addAttachment(
-                                            machineID = selectedMachineFromAll.id,
-                                            ownerType = MachineAttachmentOwnerType.event,
-                                            ownerID = eventID,
-                                            kind = kind,
-                                            uri = manualURI,
-                                            caption = inputMediaCaptionDraft.ifBlank { null },
-                                        )
-                                    } else {
-                                        pendingMediaMachineID = selectedMachineFromAll.id
-                                        pendingMediaOwnerType = MachineAttachmentOwnerType.event.name
-                                        pendingMediaOwnerID = null
-                                        pendingMediaOccurredAtMs = occurredAtMs
-                                        pendingMediaCaptionDraft = inputMediaCaptionDraft
-                                        pendingMediaNotesDraft = inputNotesDraft
-                                        if (kind == MachineAttachmentKind.photo) {
-                                            addPhotoLauncher.launch(arrayOf("image/*"))
-                                        } else {
-                                            addVideoLauncher.launch(arrayOf("video/*"))
-                                        }
-                                    }
-                                }
-                            }
-
-                            inputNotesDraft = ""
-                            inputConsumableDraft = ""
-                            inputPitchValueDraft = ""
-                            inputPitchPointDraft = ""
-                            inputIssueSymptomDraft = ""
-                            inputIssueDiagnosisDraft = ""
-                            inputSummaryDraft = ""
-                            inputDetailsDraft = ""
-                            inputMediaCaptionDraft = ""
-                            inputMediaKindDraft = MachineAttachmentKind.photo.name
-                            inputMediaURIDraft = ""
-                            issueDraftAttachments = emptyList()
-                            activeInputSheet = null
-                        },
-                        enabled = when (selectedSheet) {
-                            GameRoomInputSheet.LogIssue -> inputIssueSymptomDraft.isNotBlank()
-                            GameRoomInputSheet.ResolveIssue -> !inputResolveIssueIDDraft.isNullOrBlank()
-                            GameRoomInputSheet.LogPlays -> inputPlayTotalDraft.isNotBlank()
-                            else -> true
-                        },
-                    ) {
-                        Text("Save")
-                    }
-                }
+                    },
+                    onSelectedLogEventIDChange = { selectedLogEventID = it },
+                    onMachineSubviewChange = { machineSubview = it },
+                    onDismiss = { activeInputSheet = null },
+                )
             }
-        }
-    }
-
-    if (editingEventID != null) {
-        ModalBottomSheet(
-            onDismissRequest = { editingEventID = null },
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "Edit Log Entry",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                OutlinedTextField(
-                    value = editEventDateDraft,
-                    onValueChange = { editEventDateDraft = it },
-                    label = { Text("Date (YYYY-MM-DD)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = editEventSummaryDraft,
-                    onValueChange = { editEventSummaryDraft = it },
-                    label = { Text("Summary") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = editEventNotesDraft,
-                    onValueChange = { editEventNotesDraft = it },
-                    label = { Text("Notes") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { editingEventID = null }) { Text("Cancel") }
-                    Button(
-                        onClick = {
-                            val id = editingEventID ?: return@Button
-                            val occurredAtMs = parseIsoDateMillis(editEventDateDraft) ?: System.currentTimeMillis()
-                            store.updateEvent(id, occurredAtMs, editEventSummaryDraft, editEventNotesDraft)
-                            editingEventID = null
-                        },
-                        enabled = editEventSummaryDraft.isNotBlank(),
-                    ) {
-                        Text("Save")
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-    }
-
-    if (mediaPreviewAttachment != null) {
-        MediaPreviewDialog(
-            attachment = mediaPreviewAttachment,
-            onClose = { mediaPreviewAttachmentID = null },
-            onEdit = {
-                editingAttachmentID = mediaPreviewAttachment.id
-                editAttachmentCaptionDraft = mediaPreviewAttachment.caption.orEmpty()
-                val linkedNotes = if (mediaPreviewAttachment.ownerType == MachineAttachmentOwnerType.event) {
-                    store.state.events.firstOrNull { it.id == mediaPreviewAttachment.ownerID }?.notes.orEmpty()
+        },
+        editEventContext = editingEventID?.let { eventID ->
+            GameRoomEditEventContext(
+                store = store,
+                editingEventID = eventID,
+                editEventDateDraft = editEventDateDraft,
+                onEditEventDateDraftChange = { editEventDateDraft = it },
+                editEventSummaryDraft = editEventSummaryDraft,
+                onEditEventSummaryDraftChange = { editEventSummaryDraft = it },
+                editEventNotesDraft = editEventNotesDraft,
+                onEditEventNotesDraftChange = { editEventNotesDraft = it },
+                onDismiss = { editingEventID = null },
+            )
+        },
+        attachmentContext = GameRoomAttachmentPresentationContext(
+            store = store,
+            mediaPreviewAttachment = mediaPreviewAttachment,
+            editingAttachment = editingAttachment,
+            editAttachmentCaptionDraft = editAttachmentCaptionDraft,
+            onEditAttachmentCaptionDraftChange = { editAttachmentCaptionDraft = it },
+            editAttachmentNotesDraft = editAttachmentNotesDraft,
+            onEditAttachmentNotesDraftChange = { editAttachmentNotesDraft = it },
+            onClosePreview = { mediaPreviewAttachmentID = null },
+            onBeginAttachmentEdit = { attachment ->
+                editingAttachmentID = attachment.id
+                editAttachmentCaptionDraft = attachment.caption.orEmpty()
+                editAttachmentNotesDraft = if (attachment.ownerType == MachineAttachmentOwnerType.event) {
+                    store.state.events.firstOrNull { it.id == attachment.ownerID }?.notes.orEmpty()
                 } else {
                     ""
                 }
-                editAttachmentNotesDraft = linkedNotes
             },
-            onDelete = {
-                store.deleteAttachmentAndLinkedEvent(mediaPreviewAttachment.id)
+            onDeleteAttachment = { attachment ->
+                store.deleteAttachmentAndLinkedEvent(attachment.id)
                 mediaPreviewAttachmentID = null
             },
-        )
-    }
-
-    if (editingAttachment != null) {
-        ModalBottomSheet(
-            onDismissRequest = { editingAttachmentID = null },
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "Edit Media",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                OutlinedTextField(
-                    value = editAttachmentCaptionDraft,
-                    onValueChange = { editAttachmentCaptionDraft = it },
-                    label = { Text("Caption") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = editAttachmentNotesDraft,
-                    onValueChange = { editAttachmentNotesDraft = it },
-                    label = { Text("Notes") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { editingAttachmentID = null }) { Text("Cancel") }
-                    Button(onClick = {
-                        val attachment = editingAttachment ?: return@Button
-                        store.updateAttachment(
-                            id = attachment.id,
-                            caption = editAttachmentCaptionDraft,
-                            notes = editAttachmentNotesDraft,
-                        )
-                        editingAttachmentID = null
-                    }) {
-                        Text("Save")
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-    }
+            onDismissAttachmentEdit = { editingAttachmentID = null },
+        ),
+    )
 }
 
 internal fun makeImportDraftRow(

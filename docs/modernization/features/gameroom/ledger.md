@@ -18,6 +18,7 @@
 - Android log-row reveal UI, media attachment grid, and full-screen media preview dialog were moved out of `GameRoomScreen.kt` into `GameRoomPresentationComponents.kt`.
 - iOS service-entry sheets, issue/media sheets, media preview/edit views, log-detail card, and event edit sheet were moved out of `GameRoomScreen.swift` into `GameRoomPresentationComponents.swift`.
 - Android home-route and settings-route shell composition were moved out of `GameRoomScreen.kt` into `GameRoomRouteContent.kt`, so the root file now focuses on state, lifecycle, route switching, and modal orchestration instead of also owning the inline route bodies.
+- Android input-sheet composition, event-edit sheet, and attachment preview/edit presentation were moved out of `GameRoomScreen.kt` into `GameRoomPresentationHost.kt`, so the root file now wires presentation state instead of still embedding the sheet bodies inline.
 - Android GameRoom machine-route and settings-route headers now use the shared `AppScreenHeader` seam in `CommonUi.kt` instead of feature-local back-button plus title rows.
 - iOS GameRoom import fetch and catalog-search task-state messaging now uses the shared `AppInlineTaskStatus` seam in `SharedTableUi.swift` instead of local spinner-plus-error stacks.
 - Android GameRoom import fetch and catalog-search task-state messaging now uses the shared `AppInlineTaskStatus` seam in `CommonUi.kt`, and the edit surface now exposes catalog loading/error state explicitly instead of only a static result label.
