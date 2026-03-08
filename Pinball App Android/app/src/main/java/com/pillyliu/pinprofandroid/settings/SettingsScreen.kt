@@ -11,11 +11,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.pillyliu.pinprofandroid.library.CatalogManufacturerOption
-import com.pillyliu.pinprofandroid.library.ImportedSourceRecord
-import com.pillyliu.pinprofandroid.library.ImportedSourcesStore
 import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.LibrarySourceEvents
-import com.pillyliu.pinprofandroid.library.LibrarySourceState
 import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import kotlinx.coroutines.launch
@@ -31,90 +28,33 @@ sealed interface SettingsRoute {
 internal fun SettingsScreen(contentPadding: PaddingValues) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val state = rememberSettingsScreenState(context)
     val builtinSources = remember {
         listOf(
             LibrarySource(id = "venue--rlm-amusements", name = "RLM Amusements", type = LibrarySourceType.VENUE),
             LibrarySource(id = "venue--the-avenue-cafe", name = "The Avenue Cafe", type = LibrarySourceType.VENUE),
         )
     }
-    var route by remember { mutableStateOf<SettingsRoute>(SettingsRoute.Home) }
     val sourceVersion by LibrarySourceEvents.version.collectAsState()
-    var manufacturers by remember { mutableStateOf<List<CatalogManufacturerOption>>(emptyList()) }
-    var importedSources by remember { mutableStateOf<List<ImportedSourceRecord>>(emptyList()) }
-    var sourceState by remember { mutableStateOf(LibrarySourceState()) }
-    var loading by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var refreshingHostedData by remember { mutableStateOf(false) }
-    var hostedDataStatusMessage by remember { mutableStateOf<String?>(null) }
-    var hostedDataStatusIsError by remember { mutableStateOf(false) }
-
-    fun applySnapshot(snapshot: SettingsDataSnapshot) {
-        manufacturers = snapshot.manufacturers
-        importedSources = snapshot.importedSources
-        sourceState = snapshot.sourceState
-    }
-
-    fun applySourceSnapshot(snapshot: SettingsSourceSnapshot) {
-        importedSources = snapshot.importedSources
-        sourceState = snapshot.sourceState
-    }
-
-    suspend fun reload() {
-        loading = true
-        error = null
-        runCatching { loadSettingsDataSnapshot(context) }
-            .onSuccess(::applySnapshot)
-            .onFailure { error = it.message ?: "Failed to load settings." }
-        loading = false
-    }
-
-    fun afterSourceMutation() {
-        applySourceSnapshot(
-            SettingsSourceSnapshot(
-                importedSources = ImportedSourcesStore.load(context),
-                sourceState = LibrarySourceStateStore.load(context),
-            ),
-        )
-        LibrarySourceEvents.notifyChanged()
-    }
-
-    fun refreshHostedLibraryData() {
-        if (refreshingHostedData) return
-        scope.launch {
-            refreshingHostedData = true
-            hostedDataStatusMessage = null
-            hostedDataStatusIsError = false
-            runCatching { forceRefreshHostedSettingsData(context) }
-                .onSuccess { snapshot ->
-                applySnapshot(snapshot)
-                hostedDataStatusMessage = "Pinball data refreshed from pillyliu.com."
-                hostedDataStatusIsError = false
-            }.onFailure {
-                hostedDataStatusMessage = "Hosted data refresh failed: ${it.message ?: "Unknown error"}"
-                hostedDataStatusIsError = true
-            }
-            refreshingHostedData = false
-        }
-    }
 
     LaunchedEffect(Unit) {
-        reload()
+        state.reload()
     }
     LaunchedEffect(sourceVersion) {
         if (sourceVersion != 0L) {
-            reload()
+            state.reload()
         }
     }
 
-    when (route) {
+    when (state.route) {
         SettingsRoute.AddManufacturer -> {
             AddManufacturerScreen(
                 contentPadding = contentPadding,
-                manufacturers = manufacturers,
-                onBack = { route = SettingsRoute.Home },
+                manufacturers = state.manufacturers,
+                onBack = { state.route = SettingsRoute.Home },
                 onAdd = { manufacturer ->
-                    applySourceSnapshot(addManufacturerSource(context, manufacturer))
-                    route = SettingsRoute.Home
+                    state.applySourceSnapshot(addManufacturerSource(context, manufacturer))
+                    state.route = SettingsRoute.Home
                 },
             )
             return
@@ -123,10 +63,10 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
         SettingsRoute.AddVenue -> {
             AddVenueScreen(
                 contentPadding = contentPadding,
-                onBack = { route = SettingsRoute.Home },
+                onBack = { state.route = SettingsRoute.Home },
                 onImport = { result, machineIds, query, radiusMiles ->
-                    applySourceSnapshot(addVenueSource(context, result, machineIds, query, radiusMiles))
-                    route = SettingsRoute.Home
+                    state.applySourceSnapshot(addVenueSource(context, result, machineIds, query, radiusMiles))
+                    state.route = SettingsRoute.Home
                 },
             )
             return
@@ -135,10 +75,10 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
         SettingsRoute.AddTournament -> {
             AddTournamentScreen(
                 contentPadding = contentPadding,
-                onBack = { route = SettingsRoute.Home },
+                onBack = { state.route = SettingsRoute.Home },
                 onImport = { result ->
-                    applySourceSnapshot(addTournamentSource(context, result))
-                    route = SettingsRoute.Home
+                    state.applySourceSnapshot(addTournamentSource(context, result))
+                    state.route = SettingsRoute.Home
                 },
             )
             return
@@ -149,26 +89,26 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
 
     SettingsHomeContent(
         builtinSources = builtinSources,
-        manufacturers = manufacturers,
-        importedSources = importedSources,
-        sourceState = sourceState,
-        loading = loading,
-        error = error,
-        refreshingHostedData = refreshingHostedData,
-        hostedDataStatusMessage = hostedDataStatusMessage,
-        hostedDataStatusIsError = hostedDataStatusIsError,
-        onOpenAddManufacturer = { route = SettingsRoute.AddManufacturer },
-        onOpenAddVenue = { route = SettingsRoute.AddVenue },
-        onOpenAddTournament = { route = SettingsRoute.AddTournament },
+        manufacturers = state.manufacturers,
+        importedSources = state.importedSources,
+        sourceState = state.sourceState,
+        loading = state.loading,
+        error = state.error,
+        refreshingHostedData = state.refreshingHostedData,
+        hostedDataStatusMessage = state.hostedDataStatusMessage,
+        hostedDataStatusIsError = state.hostedDataStatusIsError,
+        onOpenAddManufacturer = { state.route = SettingsRoute.AddManufacturer },
+        onOpenAddVenue = { state.route = SettingsRoute.AddVenue },
+        onOpenAddTournament = { state.route = SettingsRoute.AddTournament },
         onToggleEnabled = { sourceId, isEnabled ->
             LibrarySourceStateStore.setEnabled(context, sourceId, isEnabled)
-            afterSourceMutation()
+            state.afterSourceMutation()
         },
         onTogglePinned = { sourceId, isPinned ->
             if (LibrarySourceStateStore.setPinned(context, sourceId, isPinned)) {
-                afterSourceMutation()
+                state.afterSourceMutation()
             } else {
-                error = "Pinned sources are limited to ${LibrarySourceStateStore.MAX_PINNED_SOURCES}."
+                state.error = "Pinned sources are limited to ${LibrarySourceStateStore.MAX_PINNED_SOURCES}."
             }
         },
         onRefreshSource = { source ->
@@ -176,17 +116,17 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
                 when (source.type) {
                     LibrarySourceType.VENUE -> {
                         runCatching { refreshVenueSource(context, source) }
-                            .onSuccess(::applySourceSnapshot)
+                            .onSuccess(state::applySourceSnapshot)
                             .onFailure {
-                                error = "Venue refresh failed: ${it.message ?: "Unknown error"}"
+                                state.error = "Venue refresh failed: ${it.message ?: "Unknown error"}"
                             }
                     }
 
                     LibrarySourceType.TOURNAMENT -> {
                         runCatching { refreshTournamentSource(context, source) }
-                            .onSuccess(::applySourceSnapshot)
+                            .onSuccess(state::applySourceSnapshot)
                             .onFailure {
-                                error = "Tournament refresh failed: ${it.message ?: "Unknown error"}"
+                                state.error = "Tournament refresh failed: ${it.message ?: "Unknown error"}"
                             }
                     }
 
@@ -195,8 +135,10 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
             }
         },
         onDeleteSource = { sourceId ->
-            applySourceSnapshot(removeSettingsSource(context, sourceId))
+            state.applySourceSnapshot(removeSettingsSource(context, sourceId))
         },
-        onRefreshHostedData = ::refreshHostedLibraryData,
+        onRefreshHostedData = {
+            scope.launch { state.refreshHostedLibraryData() }
+        },
     )
 }

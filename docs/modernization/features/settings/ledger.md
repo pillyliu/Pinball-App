@@ -25,6 +25,7 @@
 - iOS Settings home/library/privacy/about sections now live in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/settings/SettingsHomeSections.swift`, so `SettingsScreen.swift` is closer to a root navigation and state shell than a feature-wide composition bucket.
 - Android Settings home/library/privacy/about sections now live in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsHomeSections.kt`, so `SettingsScreen.kt` is closer to a root route/state shell than a feature-wide composition bucket.
 - iOS and Android Settings manufacturer highlight badges now also use shared tinted status-chip seams in `AppFilterControls.swift` and `CommonUi.kt` instead of feature-local “Modern” pills, aligning import-surface metadata highlights with the broader PinProf brand layer.
+- Android Settings root route/loading/error/hosted-refresh state now lives behind `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreenState.kt`, so `SettingsScreen.kt` now acts as a route shell instead of mixing mutable screen state, reload logic, and route switching inline.
 
 ## Next audit targets
 

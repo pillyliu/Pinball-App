@@ -19,7 +19,7 @@ Status values:
 | Library | stable | stable | stable | Shared dependency for Practice and GameRoom; v3 fallback/resource behavior is locked, hosted payload access now goes through dedicated platform seams, seed-db/query helpers are split out, and both platforms now have explicit browsing-state seams instead of mixing browse rules directly into the root feature screens. |
 | Practice | parity risk | parity risk | parity risk | Largest active drift surface after GameRoom; route/state complexity is still concentrated in a few large files. |
 | GameRoom | stable | stable | in audit | 3.1 shipped baseline exists; home/UI helper splits, machine-route splits, settings-surface extraction, and presentation-component extraction are in place. |
-| Settings | in audit | in audit | in audit | Smaller feature, but now part of the shared control-chrome pass as both platforms move import flows and home-shell composition off feature-local picker/search/list treatment. |
+| Settings | in audit | stable | in audit | Smaller feature, but now part of the shared control-chrome pass as both platforms move import flows and home-shell composition off feature-local picker/search/list treatment, with Android root state now extracted behind a dedicated screen-state seam. |
 
 ## Shell and theme hotspots
 
@@ -211,12 +211,13 @@ Status values:
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsDataIntegration.kt` | stable | Android Settings hosted-data reload, hosted-data force refresh, and imported-source add/remove/refresh mutations now live behind a dedicated persistence seam instead of staying embedded in `SettingsScreen.kt`. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsImportScreens.kt` | stable | Android Settings `Add Manufacturer`, `Add Venue`, and `Add Tournament` route bodies plus their import/search helpers now live outside the root settings screen file, with manufacturer highlight badges now using the shared tinted status-chip seam. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsHomeSections.kt` | stable | Android Settings home library/source table, hosted-data card, privacy card, and about card now live outside the root settings screen file. |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreen.kt` | in audit | Android add/import routes, source mutation wiring, and home-shell composition are now extracted into dedicated seams, but the root route and state boundary still needs final review. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreen.kt` | stable | Android Settings root file now acts as a compact route shell after add/import routes, source mutation wiring, home-shell composition, and root route/loading/refresh state moved into dedicated seams. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreenState.kt` | stable | Android Settings root route, hosted-refresh state, load/error state, and source snapshot application now live behind a dedicated screen-state seam instead of staying inline in `SettingsScreen.kt`. |
 
 ## Current work order
 
 1. Remaining shared state/resource/media chrome pass
-2. Settings persistence inventory and remaining shell cleanup
+2. Final feature parity/polish review
 3. Brand personality layer on top of the shared design system
 
 ## Next audit additions
