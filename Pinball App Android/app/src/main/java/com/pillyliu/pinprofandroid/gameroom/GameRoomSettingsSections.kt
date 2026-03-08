@@ -42,6 +42,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
+import com.pillyliu.pinprofandroid.ui.AppCardSubheading
+import com.pillyliu.pinprofandroid.ui.AppCardTitle
 import com.pillyliu.pinprofandroid.ui.AppControlCard
 import com.pillyliu.pinprofandroid.ui.AppCompactIconButton
 import com.pillyliu.pinprofandroid.ui.AppDestructiveButton
@@ -186,11 +188,7 @@ internal fun GameRoomImportSettingsSection(
         AppInlineTaskStatus(text = importErrorMessage, isError = true)
     }
     if (importRows.isNotEmpty()) {
-        Text(
-            text = "Review matches (${importRows.size})",
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold,
-        )
+        AppCardSubheading(text = "Review matches (${importRows.size})")
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -214,12 +212,9 @@ internal fun GameRoomImportSettingsSection(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
+                            AppCardTitle(
                                 text = row.rawTitle,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f),
                             )
                             MatchConfidenceBadge(row.matchConfidence)

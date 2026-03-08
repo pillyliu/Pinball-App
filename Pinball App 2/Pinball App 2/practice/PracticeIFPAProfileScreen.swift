@@ -83,14 +83,10 @@ struct PracticeIFPAProfileScreen: View {
             VStack(alignment: .leading, spacing: 8) {
                 AppCardTitle(text: displayName(for: profile))
 
-                Text("IFPA #\(profile.playerID)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                AppCardSubheading(text: "IFPA #\(profile.playerID)")
 
                 if let location = profile.location {
-                    Text(location)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    AppCardSubheading(text: location)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -142,8 +138,7 @@ struct PracticeIFPAProfileScreen: View {
             } else {
                 ForEach(profile.recentTournaments) { tournament in
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(tournament.name)
-                            .font(.subheadline.weight(.semibold))
+                        AppCardSubheading(text: tournament.name)
                         HStack(alignment: .top) {
                             infoColumn(label: "Date", value: tournament.dateLabel)
                             Spacer()
@@ -176,8 +171,7 @@ struct PracticeIFPAProfileScreen: View {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text(value)
-                .font(.headline)
+            AppCardTitle(text: value)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)

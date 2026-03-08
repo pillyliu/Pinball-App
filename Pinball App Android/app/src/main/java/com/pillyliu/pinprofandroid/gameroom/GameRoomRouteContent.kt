@@ -276,14 +276,12 @@ internal fun GameRoomSettingsRoute(
         }
 
         CardContainer {
-            Text(
+            AppCardSubheading(
                 text = when (selectedSettingsSection) {
                     GameRoomSettingsSection.Import -> "Import from Pinside"
                     GameRoomSettingsSection.Edit -> "Edit GameRoom"
                     GameRoomSettingsSection.Archive -> "Machine Archive"
                 },
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.SemiBold,
             )
 
             if (selectedSettingsSection == GameRoomSettingsSection.Import) {

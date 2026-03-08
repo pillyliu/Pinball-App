@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppExternalLinkButton
+import com.pillyliu.pinprofandroid.ui.AppCardSubheading
+import com.pillyliu.pinprofandroid.ui.AppCardTitle
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
@@ -119,19 +121,10 @@ internal fun PracticeIfpaProfileScreen(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
-                            text = playerName.trim().ifBlank { loadedProfile.displayName },
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = "IFPA #${loadedProfile.playerID}",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        AppCardTitle(text = playerName.trim().ifBlank { loadedProfile.displayName })
+                        AppCardSubheading(text = "IFPA #${loadedProfile.playerID}")
                         loadedProfile.location?.let {
-                            Text(
-                                text = it,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            AppCardSubheading(text = it)
                         }
                     }
 
@@ -173,7 +166,7 @@ internal fun PracticeIfpaProfileScreen(
                 } else {
                     loadedProfile.recentTournaments.forEachIndexed { index, tournament ->
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(tournament.name, fontWeight = FontWeight.SemiBold)
+                            AppCardSubheading(text = tournament.name)
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 IfpaInfoColumn(label = "Date", value = tournament.dateLabel)
                                 IfpaInfoColumn(label = "Finish", value = tournament.finish)
@@ -225,7 +218,7 @@ private fun IfpaStatCard(
 ) {
     CardContainer(modifier = modifier) {
         Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, fontWeight = FontWeight.SemiBold)
+        AppCardTitle(text = value)
     }
 }
 
