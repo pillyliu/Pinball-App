@@ -145,6 +145,40 @@ fun AppBackButton(
 }
 
 @Composable
+fun AppHeaderIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 38.dp,
+    iconSize: Dp = 18.dp,
+) {
+    val colors = PinballThemeTokens.colors
+    val shapes = PinballThemeTokens.shapes
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .size(size)
+            .background(
+                colors.controlBackground.copy(alpha = 0.92f),
+                RoundedCornerShape(shapes.controlCorner),
+            )
+            .border(
+                1.dp,
+                colors.brandGold.copy(alpha = 0.32f),
+                RoundedCornerShape(shapes.controlCorner),
+            ),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = colors.brandInk,
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}
+
+@Composable
 fun AppScreenHeader(
     title: String,
     onBack: () -> Unit,
@@ -688,6 +722,29 @@ fun AppTextAction(
         Text(
             text = text,
             fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+fun AppInlineLinkAction(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier,
+        contentPadding = PaddingValues(0.dp),
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = Color(0xFF7DC4FA),
+        ),
+    ) {
+        Text(
+            text = text,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

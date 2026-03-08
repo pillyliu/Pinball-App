@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +28,7 @@ import com.pillyliu.pinprofandroid.ui.AppMetricGrid
 import com.pillyliu.pinprofandroid.ui.AppMetricItem
 import com.pillyliu.pinprofandroid.ui.AppSelectionPill
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
+import com.pillyliu.pinprofandroid.ui.AppHeaderIconButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
@@ -75,13 +74,11 @@ internal fun GameRoomHomeRoute(
                     .weight(1f)
                     .padding(start = 8.dp),
             )
-            IconButton(onClick = context.onOpenSettings) {
-                Icon(
-                    imageVector = Icons.Outlined.Settings,
-                    contentDescription = "GameRoom Settings",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            AppHeaderIconButton(
+                icon = Icons.Outlined.Settings,
+                contentDescription = "GameRoom Settings",
+                onClick = context.onOpenSettings,
+            )
         }
 
         CardContainer {

@@ -6,21 +6,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.data.redactPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.ui.AppBackButton
+import com.pillyliu.pinprofandroid.ui.AppHeaderIconButton
+import com.pillyliu.pinprofandroid.ui.AppInlineLinkAction
 import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 
@@ -75,14 +72,18 @@ internal fun PracticeTopBar(
             if (isJournalSelectionMode) {
                 AppTextAction(text = "Cancel", onClick = onToggleJournalSelectionMode)
             } else {
-                IconButton(onClick = onToggleJournalSelectionMode) {
-                    Icon(Icons.Outlined.Edit, contentDescription = "Edit journal entries", tint = colors.brandInk)
-                }
+                AppHeaderIconButton(
+                    icon = Icons.Outlined.Edit,
+                    contentDescription = "Edit journal entries",
+                    onClick = onToggleJournalSelectionMode,
+                )
             }
         } else if (route == PracticeRoute.Home) {
-            IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = colors.brandInk)
-            }
+            AppHeaderIconButton(
+                icon = Icons.Outlined.Settings,
+                contentDescription = "Settings",
+                onClick = onOpenSettings,
+            )
         }
     }
 }
@@ -141,18 +142,9 @@ private fun PracticeWelcomeTitle(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        TextButton(
+        AppInlineLinkAction(
+            text = display,
             onClick = onOpenIfpaProfile,
-            contentPadding = PaddingValues(0.dp),
-        ) {
-            Text(
-                text = display,
-                color = androidx.compose.ui.graphics.Color(0xFF7DC4FA),
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 20.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        )
     }
 }
