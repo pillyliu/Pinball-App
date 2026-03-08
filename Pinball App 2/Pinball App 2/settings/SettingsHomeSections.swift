@@ -50,19 +50,19 @@ struct SettingsHomeContent: View {
                     Button("Manufacturer") {
                         navigationPath.append(.addManufacturer)
                     }
-                    .buttonStyle(AppCompactSecondaryActionButtonStyle())
+                    .buttonStyle(AppCompactSecondaryActionButtonStyle(fillsWidth: true))
                     .frame(width: manufacturerWidth)
 
                     Button("Venue") {
                         navigationPath.append(.addVenue)
                     }
-                    .buttonStyle(AppCompactSecondaryActionButtonStyle())
+                    .buttonStyle(AppCompactSecondaryActionButtonStyle(fillsWidth: true))
                     .frame(width: venueWidth)
 
                     Button("Tournament") {
                         navigationPath.append(.addTournament)
                     }
-                    .buttonStyle(AppCompactSecondaryActionButtonStyle())
+                    .buttonStyle(AppCompactSecondaryActionButtonStyle(fillsWidth: true))
                     .frame(width: tournamentWidth)
                 }
             }

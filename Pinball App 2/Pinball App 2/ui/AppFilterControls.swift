@@ -53,6 +53,7 @@ struct AppSecondaryActionButtonStyle: ButtonStyle {
 
 struct AppCompactSecondaryActionButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    var fillsWidth: Bool = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -60,6 +61,7 @@ struct AppCompactSecondaryActionButtonStyle: ButtonStyle {
             .foregroundStyle(AppTheme.brandInk.opacity(isEnabled ? 1 : 0.55))
             .lineLimit(1)
             .minimumScaleFactor(0.85)
+            .frame(maxWidth: fillsWidth ? .infinity : nil)
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
             .background(
