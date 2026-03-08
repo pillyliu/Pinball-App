@@ -261,12 +261,11 @@ struct PracticeGroupDashboardSectionView: View {
     }()
 
     private func statusChip(_ text: String, color: Color, font: Font = .caption) -> some View {
-        Text(text)
-            .font(font)
-            .foregroundStyle(color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(Color.white.opacity(0.12), in: Capsule())
+        AppTintedStatusChip(
+            text: text,
+            foreground: color,
+            compact: font == .caption2
+        )
     }
 
     private func formatGroupDate(_ date: Date) -> String {

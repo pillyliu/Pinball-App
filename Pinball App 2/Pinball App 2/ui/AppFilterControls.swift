@@ -302,6 +302,28 @@ struct AppPassiveStatusChip: View {
     }
 }
 
+struct AppTintedStatusChip: View {
+    let text: String
+    let foreground: Color
+    var compact = false
+
+    var body: some View {
+        Text(text)
+            .font((compact ? Font.caption2 : Font.caption).weight(.semibold))
+            .foregroundStyle(foreground)
+            .padding(.horizontal, compact ? 6 : 8)
+            .padding(.vertical, compact ? 3 : 5)
+            .background(
+                Capsule()
+                    .fill(foreground.opacity(0.16))
+                    .overlay(
+                        Capsule()
+                            .stroke(foreground.opacity(0.28), lineWidth: 1)
+                    )
+            )
+    }
+}
+
 extension View {
     func appSegmentedControlStyle() -> some View {
         self

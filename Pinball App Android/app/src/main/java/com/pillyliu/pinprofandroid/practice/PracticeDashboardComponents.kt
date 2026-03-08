@@ -20,19 +20,14 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppTintedStatusChip
 
 @Composable
 internal fun DashboardStatusChip(text: String, color: Color, modifier: Modifier = Modifier) {
-    Text(
+    AppTintedStatusChip(
         text = text,
-        style = MaterialTheme.typography.labelSmall,
         color = color,
-        modifier = modifier
-            .background(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-            )
-            .padding(horizontal = 8.dp, vertical = 5.dp),
+        modifier = modifier,
     )
 }
 

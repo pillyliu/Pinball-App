@@ -3,12 +3,9 @@ package com.pillyliu.pinprofandroid.gameroom
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppTintedStatusChip
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneOffset
@@ -180,12 +177,9 @@ internal fun MatchConfidenceBadge(confidence: MachineImportMatchConfidence) {
         MachineImportMatchConfidence.low,
         MachineImportMatchConfidence.manual -> Color(0xFFE0524D)
     }
-    Text(
+    AppTintedStatusChip(
         text = confidence.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
-        color = Color.White,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier
-            .background(badgeColor, RoundedCornerShape(999.dp))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+        color = badgeColor,
+        compact = true,
     )
 }

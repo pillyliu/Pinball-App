@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppTintedStatusChip
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.HtmlCompat
 import com.pillyliu.pinprofandroid.library.CatalogManufacturerOption
@@ -121,16 +122,10 @@ internal fun AddManufacturerScreen(
                                 ) {
                                     Text(manufacturer.name, fontWeight = FontWeight.SemiBold)
                                     if (manufacturer.isModern) {
-                                        Text(
-                                            "Modern",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            modifier = Modifier
-                                                .background(
-                                                    MaterialTheme.colorScheme.surfaceContainerHigh,
-                                                    shape = CardDefaults.shape,
-                                                )
-                                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        AppTintedStatusChip(
+                                            text = "Modern",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            compact = true,
                                         )
                                     }
                                     Text(

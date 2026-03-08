@@ -420,11 +420,11 @@ struct SettingsImportResultRow: View {
                         .truncationMode(.tail)
 
                     if showsHighlightBadge {
-                        Text(highlightBadgeText)
-                            .font(.caption2.weight(.semibold))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Color.white.opacity(0.12), in: Capsule())
+                        AppTintedStatusChip(
+                            text: highlightBadgeText,
+                            foreground: AppTheme.brandGold,
+                            compact: true
+                        )
                     }
                 }
 

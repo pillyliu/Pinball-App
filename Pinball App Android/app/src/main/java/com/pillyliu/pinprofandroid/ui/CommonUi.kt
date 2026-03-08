@@ -541,6 +541,28 @@ fun AppSelectionPill(
 }
 
 @Composable
+fun AppTintedStatusChip(
+    text: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
+    Text(
+        text = text,
+        fontSize = if (compact) 11.sp else 12.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = color,
+        modifier = modifier
+            .background(
+                color.copy(alpha = 0.16f),
+                RoundedCornerShape(999.dp),
+            )
+            .border(1.dp, color.copy(alpha = 0.28f), RoundedCornerShape(999.dp))
+            .padding(horizontal = if (compact) 6.dp else 8.dp, vertical = if (compact) 3.dp else 5.dp),
+    )
+}
+
+@Composable
 fun AppThreeColumnLegendHeader(
     columns: List<Pair<String, String?>>,
     primaryColors: List<Color>,

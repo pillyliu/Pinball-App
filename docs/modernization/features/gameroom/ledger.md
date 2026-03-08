@@ -30,6 +30,7 @@
 - Android GameRoom collection-card artwork, machine-list artwork, attachment-tile thumbnails, and fullscreen media preview loading/missing states now also use shared media-preview and fullscreen-status seams instead of raw `AsyncImage` loading/error behavior in `GameRoomUiComponents.kt` and `GameRoomPresentationComponents.kt`.
 - iOS and Android GameRoom collection highlights now also use the PinProf brand layer, with mini-card selection borders, list-row selection borders, attention-dot outlines, and variant pills moving off older cyan, black, and white styling and onto the shared gold, ink, and chalk palette in `GameRoomHomeComponents.swift` and `GameRoomUiComponents.kt`.
 - Android GameRoom collection-layout pills, settings-tab pills, and import-review filter pills now also use the shared `AppSelectionPill` seam in `CommonUi.kt` instead of three separate neutral selected-state implementations across `GameRoomRouteContent.kt` and `GameRoomSettingsSections.kt`.
+- iOS and Android GameRoom import confidence pills now also use the shared tinted status-chip seams in `AppFilterControls.swift` and `CommonUi.kt` instead of feature-local colored capsules, aligning import scoring highlights with the broader PinProf brand layer.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets

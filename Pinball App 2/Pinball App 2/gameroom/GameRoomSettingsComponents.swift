@@ -296,12 +296,11 @@ struct GameRoomImportSettingsView: View {
             color = .red
         }
 
-        return Text(confidence.rawValue.capitalized)
-            .font(.caption2.weight(.semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(color.opacity(0.85), in: Capsule())
+        return AppTintedStatusChip(
+            text: confidence.rawValue.capitalized,
+            foreground: color,
+            compact: true
+        )
     }
 
     private func duplicateWarningMessage(for row: ImportDraftRow) -> String? {
