@@ -227,6 +227,7 @@ private fun SettingsHostedRefreshSection(
         )
         AppPrimaryButton(
             onClick = onRefreshHostedData,
+            modifier = Modifier.fillMaxWidth(),
             enabled = !refreshingHostedData,
         ) {
             Text(if (refreshingHostedData) "Refreshing Pinball Data..." else "Refresh Pinball Data")
@@ -354,6 +355,7 @@ private fun SettingsPrivacySection() {
                         error = "Incorrect password."
                     }
                 },
+                modifier = Modifier.fillMaxWidth(),
                 enabled = password.isNotBlank(),
             ) {
                 Text("Unlock Full Names")

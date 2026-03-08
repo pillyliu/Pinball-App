@@ -264,6 +264,7 @@ internal fun AddVenueScreen(
                 )
                 AppPrimaryButton(
                     onClick = { scope.launch { runSearch() } },
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !searching && query.isNotBlank(),
                 ) {
                     Text(if (searching) "Searching..." else "Search Pinball Map")
@@ -317,6 +318,7 @@ internal fun AddVenueScreen(
                                         searching = false
                                     }
                                 },
+                                modifier = Modifier.fillMaxWidth(),
                                 enabled = !searching,
                             ) {
                                 Text("Import Venue")
@@ -388,6 +390,7 @@ internal fun AddTournamentScreen(
                             importing = false
                         }
                     },
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !importing && tournamentId != null,
                 ) {
                     Text(if (importing) "Importing..." else "Import Tournament")

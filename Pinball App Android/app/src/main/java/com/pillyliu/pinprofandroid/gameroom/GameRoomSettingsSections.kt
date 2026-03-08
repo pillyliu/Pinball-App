@@ -177,6 +177,7 @@ internal fun GameRoomImportSettingsSection(
     ) {
         AppPrimaryButton(
             onClick = onFetchCollection,
+            modifier = Modifier.fillMaxWidth(),
             enabled = !importIsLoading && importSourceInput.trim().isNotEmpty(),
         ) {
             Text(if (importIsLoading) "Fetching..." else "Fetch Collection")
@@ -284,6 +285,7 @@ internal fun GameRoomImportSettingsSection(
         }
         AppPrimaryButton(
             onClick = onPerformImport,
+            modifier = Modifier.fillMaxWidth(),
             enabled = importRows.isNotEmpty(),
         ) {
             Text("Import Selected Matches")
@@ -319,8 +321,14 @@ internal fun GameRoomEditSettingsSection(
                 singleLine = true,
                 label = { Text("GameRoom Name") },
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AppPrimaryButton(onClick = context.onSaveVenueName) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                AppPrimaryButton(
+                    onClick = context.onSaveVenueName,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text("Save")
                 }
             }
@@ -488,9 +496,14 @@ internal fun GameRoomEditSettingsSection(
                     label = { Text("Area Order") },
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AppPrimaryButton(onClick = context.onSaveArea) { Text("Save") }
-                AppSecondaryButton(onClick = context.onResetAreaDraft) { Text("Edit") }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                AppPrimaryButton(
+                    onClick = context.onSaveArea,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Save") }
             }
             context.store.state.areas.forEach { area ->
                 Row(

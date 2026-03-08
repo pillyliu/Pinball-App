@@ -772,22 +772,12 @@ struct GameRoomEditMachinesView: View {
 
             HStack(spacing: 10) {
                 Button("Save") {
-                    store.upsertArea(name: newAreaName, areaOrder: max(1, newAreaOrder))
+                    store.upsertArea(id: selectedAreaID, name: newAreaName, areaOrder: max(1, newAreaOrder))
                     selectedAreaID = nil
                     newAreaName = ""
                     newAreaOrder = 1
                 }
                 .buttonStyle(AppPrimaryActionButtonStyle())
-
-                Button("Edit") {
-                    guard let areaID = selectedAreaID else { return }
-                    store.upsertArea(id: areaID, name: newAreaName, areaOrder: max(1, newAreaOrder))
-                    selectedAreaID = nil
-                    newAreaName = ""
-                    newAreaOrder = 1
-                }
-                .buttonStyle(AppSecondaryActionButtonStyle())
-                .disabled(selectedAreaID == nil)
 
                 Spacer()
             }
