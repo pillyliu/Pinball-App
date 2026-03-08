@@ -102,15 +102,15 @@ func AppVariantPill(
 func PinballOverlayMetadataBadge(_ title: String) -> some View {
     Text(title)
         .font(.system(size: 9, weight: .semibold))
-        .foregroundStyle(.white.opacity(0.96))
+        .foregroundStyle(AppTheme.brandInk)
         .lineLimit(1)
         .truncationMode(.tail)
-        .padding(.horizontal, 5)
-        .padding(.vertical, 2)
-        .background(AppTheme.brandInk.opacity(0.54), in: Capsule())
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2.5)
+        .background(AppTheme.brandGold.opacity(0.82), in: Capsule())
         .overlay(
             Capsule()
-                .stroke(AppTheme.brandGold.opacity(0.38), lineWidth: 0.7)
+                .stroke(AppTheme.brandGold.opacity(0.96), lineWidth: 0.8)
         )
 }
 
