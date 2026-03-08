@@ -77,7 +77,7 @@ internal fun MiniMachineCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(78.dp)
+            .height(64.dp)
             .clickable(onClick = onClick)
             .border(width = 2.dp, color = if (selected) selectionHighlightColor else Color.Transparent, shape = outerShape)
             .padding(2.dp)
