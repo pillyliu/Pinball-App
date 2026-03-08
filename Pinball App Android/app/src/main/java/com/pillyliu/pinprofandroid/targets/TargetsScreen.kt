@@ -40,6 +40,7 @@ import com.pillyliu.pinprofandroid.library.LibraryGameLookup
 import com.pillyliu.pinprofandroid.library.loadLibraryExtraction
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppScreen
+import com.pillyliu.pinprofandroid.ui.AppThreeColumnLegendHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.CompactDropdownFilter
 import com.pillyliu.pinprofandroid.ui.FixedWidthTableCell
@@ -127,24 +128,15 @@ fun TargetsScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                if (isLandscape) {
-                    Row {
-                        Text("2nd highest \"great game\"", color = targetAccentColor(TargetColorRole.Great), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                        Text("4th highest main target", color = targetAccentColor(TargetColorRole.Main), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                        Text("8th highest solid floor", color = targetAccentColor(TargetColorRole.Floor), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                    }
-                } else {
-                    Row {
-                        Text("2nd highest", color = targetAccentColor(TargetColorRole.Great), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                        Text("4th highest", color = targetAccentColor(TargetColorRole.Main), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                        Text("8th highest", color = targetAccentColor(TargetColorRole.Floor), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                    }
-                    Row {
-                        Text("\"great game\"", color = targetAccentColor(TargetColorRole.Great), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
-                        Text("main target", color = targetAccentColor(TargetColorRole.Main), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
-                        Text("solid floor", color = targetAccentColor(TargetColorRole.Floor), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
-                    }
-                }
+                AppThreeColumnLegendHeader(
+                    columns = targetLegendColumns(isLandscape),
+                    primaryColors = listOf(
+                        targetAccentColor(TargetColorRole.Great),
+                        targetAccentColor(TargetColorRole.Main),
+                        targetAccentColor(TargetColorRole.Floor),
+                    ),
+                    compact = !isLandscape,
+                )
             }
 
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -200,6 +192,22 @@ fun TargetsScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+    }
+}
+
+private fun targetLegendColumns(isLandscape: Boolean): List<Pair<String, String?>> {
+    return if (isLandscape) {
+        listOf(
+            "2nd highest \"great game\"" to null,
+            "4th highest main target" to null,
+            "8th highest solid floor" to null,
+        )
+    } else {
+        listOf(
+            "2nd highest" to "\"great game\"",
+            "4th highest" to "main target",
+            "8th highest" to "solid floor",
+        )
     }
 }
 

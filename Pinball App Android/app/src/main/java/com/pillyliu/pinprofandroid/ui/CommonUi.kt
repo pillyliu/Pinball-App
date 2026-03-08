@@ -31,6 +31,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -250,6 +251,48 @@ fun AppRefreshStatusRow(
                     tint = colors.shellUnselectedContent.copy(alpha = if (hasNewerData) pulseAlpha else 1f),
                     modifier = Modifier.size(12.dp),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun AppThreeColumnLegendHeader(
+    columns: List<Pair<String, String?>>,
+    primaryColors: List<Color>,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
+    require(columns.size == 3)
+    require(primaryColors.size == 3)
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Row {
+            columns.forEachIndexed { index, column ->
+                Text(
+                    text = column.first,
+                    color = primaryColors[index],
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = if (compact) 13.sp else 12.sp,
+                )
+            }
+        }
+        if (compact) {
+            Row {
+                columns.forEachIndexed { index, column ->
+                    Text(
+                        text = column.second.orEmpty(),
+                        color = primaryColors[index],
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f),
+                        fontSize = 11.sp,
+                    )
+                }
             }
         }
     }

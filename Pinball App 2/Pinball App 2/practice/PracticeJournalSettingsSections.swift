@@ -755,20 +755,9 @@ struct PracticeSettingsSectionView: View {
                         }
                     }
                 } label: {
-                    HStack(spacing: 8) {
-                        Text(leaguePlayerName.isEmpty ? "Select league player" : displayLPLPlayerName(leaguePlayerName))
-                            .foregroundStyle(.primary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .appControlStyle()
+                    AppCompactDropdownLabel(
+                        text: leaguePlayerName.isEmpty ? "Select league player" : displayLPLPlayerName(leaguePlayerName)
+                    )
                 }
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity, alignment: .leading)
