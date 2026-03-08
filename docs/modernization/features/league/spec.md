@@ -23,11 +23,14 @@ League includes:
 
 ## Structural baseline
 
-- iOS League remains a compact shell and navigation surface.
+- iOS League home now splits into:
+  - `LeagueScreen.swift` for the root navigation shell
+  - `LeagueShellContent.swift` for the responsive card stack/grid, destination links, and About footer
 - Android League home now splits into:
-  - `LeagueScreen.kt` for shell/layout and destination orchestration
+  - `LeagueScreen.kt` for the root feature shell and preview-state loading
+  - `LeagueShellContent.kt` for the responsive card stack/grid, destination links, and About footer
   - `LeaguePreviewLoader.kt` for preview data assembly
   - `LeaguePreviewModels.kt` for preview view models
   - `LeaguePreviewCards.kt` for card and mini-preview rendering
   - `LeaguePreviewRotationState.kt` for rotating preview state
-- Remaining Android follow-up should focus on exact contract parity and shell navigation boundaries, not putting preview behavior back into one file.
+- Remaining follow-up should focus on exact contract parity and nested destination boundaries, not putting preview or shell composition back into one file.

@@ -15,7 +15,7 @@ Status values:
 
 | Feature | iOS status | Android status | Parity status | Notes |
 | --- | --- | --- | --- | --- |
-| League | in audit | in audit | in audit | Root tab is aligned, and Android League home now has explicit preview-model, loader, and card seams instead of one large screen file. |
+| League | in audit | in audit | in audit | Root tab is aligned, and both platforms now have explicit League shell-content seams instead of leaving home-card composition inside the root screen files. |
 | Library | in audit | in audit | parity risk | Shared dependency for Practice and GameRoom; fallback/resource behavior must be locked before larger rewrites. |
 | Practice | parity risk | parity risk | parity risk | Largest active drift surface after GameRoom; route/state complexity is still concentrated in a few large files. |
 | GameRoom | stable | stable | in audit | 3.1 shipped baseline exists; home/UI helper splits, machine-route splits, settings-surface extraction, and presentation-component extraction are in place. |
@@ -129,8 +129,10 @@ Status values:
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryPayloadParsing.kt` | stable | Android legacy payload JSON parsing now lives behind a dedicated seam instead of staying embedded in `LibraryDomain.kt`. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedDatabase.kt` | in audit | Seed-db imported-source loading and built-in row mapping now use clearer seams, but database-specific helpers and overlay assembly are still concentrated here. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDomain.kt` | in audit | Resource fallback and payload parsing are now extracted, but metadata fetch and domain-facing formatting/helpers are still concentrated together. |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/league/LeagueScreen.swift` | in audit | Small file size, but it owns navigation into multiple nested subfeatures and should be specified as a shell contract. |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueScreen.kt` | in audit | Android League shell is much smaller after preview-model, loader, card, and rotation-state extraction, but it still owns destination layout and shell navigation. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/league/LeagueScreen.swift` | stable | iOS League root file now acts as a compact navigation shell while responsive card layout and About footer composition live in `LeagueShellContent.swift`. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/league/LeagueShellContent.swift` | stable | iOS League home card stack/grid, destination links, and About footer now live behind a dedicated shell-content seam. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueScreen.kt` | stable | Android League root file now acts as a compact feature shell while preview-state loading stays separate from shell-content composition. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueShellContent.kt` | stable | Android League home card stack/grid, destination links, and About footer now live behind a dedicated shell-content seam. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewModels.kt` | stable | Android League preview-specific display models now live outside the home shell. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewLoader.kt` | stable | Android League preview-data assembly now lives outside the home shell. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewCards.kt` | stable | Android League card and mini-preview rendering now lives outside the home shell. |
