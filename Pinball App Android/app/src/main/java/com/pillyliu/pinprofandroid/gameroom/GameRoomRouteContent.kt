@@ -303,6 +303,8 @@ internal fun GameRoomSettingsRoute(
             editContent()
         }
 
-        archiveContent()
+        if (selectedSettingsSection == GameRoomSettingsSection.Archive) {
+            archiveContent()
+        }
     }
 }

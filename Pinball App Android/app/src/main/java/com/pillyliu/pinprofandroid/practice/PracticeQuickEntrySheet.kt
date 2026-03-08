@@ -113,6 +113,7 @@ internal fun QuickEntrySheet(
     var videoTotalTime by remember { mutableStateOf("") }
     var videoPercent by remember { mutableFloatStateOf(100f) }
     var practiceMinutes by remember { mutableStateOf("") }
+    var practiceCategory by remember { mutableStateOf("general") }
     var noteText by remember { mutableStateOf("") }
     var mechanicsSkill by remember { mutableStateOf("Drop Catch") }
     var mechanicsCompetency by remember { mutableFloatStateOf(3f) }
@@ -261,6 +262,8 @@ internal fun QuickEntrySheet(
                     onVideoPercentChange = { videoPercent = it },
                     practiceMinutes = practiceMinutes,
                     onPracticeMinutesChange = { practiceMinutes = it },
+                    practiceCategory = practiceCategory,
+                    onPracticeCategoryChange = { practiceCategory = it },
                     noteText = noteText,
                     onNoteTextChange = { noteText = it },
                     mechanicsSkill = mechanicsSkill,
@@ -292,6 +295,7 @@ internal fun QuickEntrySheet(
                     videoTotalTime = videoTotalTime,
                     videoPercent = videoPercent,
                     practiceMinutes = practiceMinutes,
+                    practiceCategory = practiceCategory,
                     noteText = noteText,
                     mechanicsSkill = mechanicsSkill,
                     mechanicsCompetency = mechanicsCompetency,

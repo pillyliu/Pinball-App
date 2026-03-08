@@ -46,7 +46,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
-import com.pillyliu.pinprofandroid.ui.AppOverlayMetadataBadge
+import com.pillyliu.pinprofandroid.ui.AppVariantPill
+import com.pillyliu.pinprofandroid.ui.AppVariantPillStyle
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppSearchFilterBar
@@ -355,8 +356,9 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
                         modifier = Modifier.widthIn(max = if (makerMaxWidth > 48.dp) makerMaxWidth else 48.dp),
                     )
                     variantText?.let { variant ->
-                        AppOverlayMetadataBadge(
+                        AppVariantPill(
                             label = variant,
+                            style = AppVariantPillStyle.Standard,
                             modifier = Modifier.widthIn(max = variantMaxWidth),
                         )
                     }

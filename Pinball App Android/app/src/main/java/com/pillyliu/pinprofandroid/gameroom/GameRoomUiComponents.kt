@@ -350,8 +350,34 @@ internal fun GameRoomVariantPill(
     style: VariantPillStyle,
     modifier: Modifier = Modifier,
 ) {
+    val compactLabel = compactVariantLabel(label)
+    val colors = PinballThemeTokens.colors
+    if (style == VariantPillStyle.Mini || style == VariantPillStyle.Standard) {
+        Text(
+            text = compactLabel,
+            color = Color.White.copy(alpha = 0.98f),
+            style = if (style == VariantPillStyle.Mini) {
+                MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+            } else {
+                MaterialTheme.typography.labelSmall
+            },
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = modifier
+                .then(if (style == VariantPillStyle.Mini) Modifier else Modifier.widthIn(max = 84.dp))
+                .background(
+                    colors.brandGold.copy(alpha = 0.20f),
+                    RoundedCornerShape(999.dp),
+                )
+                .border(1.dp, colors.brandGold.copy(alpha = 0.42f), RoundedCornerShape(999.dp))
+                .padding(horizontal = if (style == VariantPillStyle.Mini) 6.dp else 8.dp, vertical = 3.dp),
+        )
+        return
+    }
+
     AppVariantPill(
-        label = compactVariantLabel(label),
+        label = compactLabel,
         style = when (style) {
             VariantPillStyle.Mini -> AppVariantPillStyle.Mini
             VariantPillStyle.Standard -> AppVariantPillStyle.Standard
@@ -359,7 +385,7 @@ internal fun GameRoomVariantPill(
             VariantPillStyle.EditSelector -> AppVariantPillStyle.EditSelector
         },
         modifier = modifier,
-        maxWidth = if (style == VariantPillStyle.Mini) null else 84.dp,
+        maxWidth = 84.dp,
     )
 }
 

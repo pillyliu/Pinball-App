@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.data.redactPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.ui.AppBackButton
+import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 
 @Composable
 internal fun PracticeTopBar(
@@ -34,6 +35,7 @@ internal fun PracticeTopBar(
     isJournalSelectionMode: Boolean = false,
     onToggleJournalSelectionMode: (() -> Unit)? = null,
 ) {
+    val colors = PinballThemeTokens.colors
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (route != PracticeRoute.Home) {
             AppBackButton(onClick = onBack)
@@ -57,6 +59,7 @@ internal fun PracticeTopBar(
             } else {
                 Text(
                     text = practiceTopTitle(route, editingGroupID),
+                    color = colors.brandInk,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 20.sp,
                     modifier = Modifier
@@ -73,16 +76,16 @@ internal fun PracticeTopBar(
                     onClick = onToggleJournalSelectionMode,
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                 ) {
-                    Text("Cancel", style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false)
+                    Text("Cancel", style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, color = colors.brandInk)
                 }
             } else {
                 IconButton(onClick = onToggleJournalSelectionMode) {
-                    Icon(Icons.Outlined.Edit, contentDescription = "Edit journal entries")
+                    Icon(Icons.Outlined.Edit, contentDescription = "Edit journal entries", tint = colors.brandInk)
                 }
             }
         } else if (route == PracticeRoute.Home) {
             IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+                Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = colors.brandInk)
             }
         }
     }
@@ -110,10 +113,12 @@ private fun PracticeWelcomeTitle(
     onOpenIfpaProfile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = PinballThemeTokens.colors
     val trimmed = playerName.trim()
     if (trimmed.isBlank()) {
         Text(
             text = "Welcome back",
+            color = colors.brandInk,
             fontWeight = FontWeight.SemiBold,
             fontSize = 20.sp,
             modifier = modifier,
@@ -134,6 +139,7 @@ private fun PracticeWelcomeTitle(
     ) {
         Text(
             text = "Welcome back, ",
+            color = colors.brandInk,
             fontWeight = FontWeight.SemiBold,
             fontSize = 20.sp,
             maxLines = 1,

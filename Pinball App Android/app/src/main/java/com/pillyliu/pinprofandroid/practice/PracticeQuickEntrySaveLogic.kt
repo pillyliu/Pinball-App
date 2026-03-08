@@ -22,6 +22,7 @@ internal fun saveQuickEntry(
     videoTotalTime: String,
     videoPercent: Float,
     practiceMinutes: String,
+    practiceCategory: String,
     noteText: String,
     mechanicsSkill: String,
     mechanicsCompetency: Float,
@@ -116,14 +117,35 @@ internal fun saveQuickEntry(
             if (minutes.isNotEmpty() && (minutes.toIntOrNull() == null || minutes.toInt() <= 0)) {
                 return QuickEntrySaveResult(validationMessage = "Practice minutes must be a whole number greater than 0.")
             }
+            val focusLine = practiceCategory
+                .trim()
+                .lowercase()
+                .takeUnless { it.isBlank() || it == "general" }
+                ?.let {
+                    "Focus: ${when (it) {
+                        "modes" -> "Modes"
+                        "multiball" -> "Multiball"
+                        "shots" -> "Shots"
+                        else -> "General"
+                    }}"
+                }
+            val noteTail = listOfNotNull(
+                focusLine,
+                noteText.trim().takeIf { it.isNotBlank() },
+            ).joinToString(". ")
             val practiceSummary = minutes.toIntOrNull()?.let { m ->
-                "Practice session: $m minute${if (m == 1) "" else "s"}"
-            } ?: "Practice session"
+                val prefix = "Practice session: $m minute${if (m == 1) "" else "s"}"
+                if (noteTail.isBlank()) prefix else "$prefix. $noteTail"
+            } ?: if (noteTail.isBlank()) {
+                "Practice session"
+            } else {
+                "Practice session. $noteTail"
+            }
             store.addStudy(
                 resolvedSelectedSlug,
                 "practice",
                 practiceSummary,
-                note = noteText.takeIf { it.isNotBlank() },
+                note = practiceSummary,
             )
             QuickEntrySaveResult(savedSlug = resolvedSelectedSlug)
         }

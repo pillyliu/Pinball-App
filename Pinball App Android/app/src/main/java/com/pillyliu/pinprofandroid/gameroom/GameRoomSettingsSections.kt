@@ -436,7 +436,10 @@ internal fun GameRoomEditSettingsSection(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                                     Text(
-                                        text = listOfNotNull(game.displayVariant, game.manufacturer, game.year?.toString()).joinToString(" • "),
+                                        text = listOfNotNull(
+                                            game.manufacturer?.takeUnless { it.equals("null", ignoreCase = true) || it.isBlank() },
+                                            game.year?.toString(),
+                                        ).joinToString(" • "),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,

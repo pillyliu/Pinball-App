@@ -49,6 +49,8 @@ internal fun QuickEntryModeFields(
     onVideoPercentChange: (Float) -> Unit,
     practiceMinutes: String,
     onPracticeMinutesChange: (String) -> Unit,
+    practiceCategory: String,
+    onPracticeCategoryChange: (String) -> Unit,
     noteText: String,
     onNoteTextChange: (String) -> Unit,
     mechanicsSkill: String,
@@ -172,6 +174,14 @@ internal fun QuickEntryModeFields(
         }
 
         QuickActivity.Practice -> {
+            SimpleMenuDropdown(
+                title = "Practice type",
+                options = listOf("general", "modes", "multiball", "shots"),
+                selected = practiceCategory,
+                selectedLabel = quickPracticeCategoryLabel(practiceCategory),
+                onSelect = onPracticeCategoryChange,
+                formatOptionLabel = ::quickPracticeCategoryLabel,
+            )
             OutlinedTextField(
                 value = practiceMinutes,
                 onValueChange = onPracticeMinutesChange,
@@ -212,6 +222,13 @@ internal fun QuickEntryModeFields(
             )
         }
     }
+}
+
+private fun quickPracticeCategoryLabel(category: String): String = when (category.trim().lowercase()) {
+    "modes" -> "Modes"
+    "multiball" -> "Multiball"
+    "shots" -> "Shots"
+    else -> "General"
 }
 
 private fun formatScoreInputWithCommasForQuickEntryField(raw: String): String {

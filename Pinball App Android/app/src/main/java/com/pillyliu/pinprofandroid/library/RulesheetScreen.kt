@@ -123,6 +123,7 @@ private fun ExternalRulesheetWebView(url: String, modifier: Modifier = Modifier)
 internal fun RulesheetScreen(
     contentPadding: PaddingValues,
     slug: String,
+    title: String? = null,
     remoteCandidates: List<String>? = null,
     externalSource: RulesheetRemoteSource? = null,
     onBack: () -> Unit,
@@ -243,11 +244,10 @@ internal fun RulesheetScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(contentPadding)
                         .padding(start = 14.dp, end = 14.dp),
                 ) {
                     AppScreenHeader(
-                        title = slug.replace('-', ' ').replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },
+                        title = title ?: slug.replace('-', ' ').replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },
                         onBack = onBack,
                         modifier = Modifier.align(Alignment.Center),
                         titleColor = MaterialTheme.colorScheme.onSurface,

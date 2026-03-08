@@ -30,12 +30,14 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.platform.LocalDensity
@@ -227,7 +229,9 @@ fun CardContainer(modifier: Modifier = Modifier, content: @Composable () -> Unit
             .padding(spacing.panelPadding),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        content()
+        CompositionLocalProvider(LocalContentColor provides colors.brandInk) {
+            content()
+        }
     }
 }
 
@@ -657,6 +661,7 @@ fun AppPrimaryButton(
 ) {
     val colors = PinballThemeTokens.colors
     val shapes = PinballThemeTokens.shapes
+    val buttonInk = Color(0xFF261700)
     Button(
         onClick = onClick,
         enabled = enabled,
@@ -665,9 +670,9 @@ fun AppPrimaryButton(
         contentPadding = contentPadding,
         colors = ButtonDefaults.buttonColors(
             containerColor = colors.brandGold.copy(alpha = 0.92f),
-            contentColor = colors.brandInk,
+            contentColor = buttonInk,
             disabledContainerColor = colors.brandGold.copy(alpha = 0.24f),
-            disabledContentColor = colors.brandInk.copy(alpha = 0.55f),
+            disabledContentColor = buttonInk.copy(alpha = 0.55f),
         ),
         content = content,
     )

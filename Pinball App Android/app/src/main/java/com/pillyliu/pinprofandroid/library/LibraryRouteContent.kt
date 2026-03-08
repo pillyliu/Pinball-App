@@ -77,6 +77,7 @@ internal fun LibraryRouteContent(
                 RulesheetScreen(
                     contentPadding = contentPadding,
                     slug = routeGame.practiceKey,
+                    title = routeGame.name,
                     remoteCandidates = routeGame.rulesheetPathCandidates.mapNotNull { candidate -> routeGame.resolve(candidate) }.distinct(),
                     externalSource = route.rulesheetSource(),
                     onBack = onBackToDetail,
