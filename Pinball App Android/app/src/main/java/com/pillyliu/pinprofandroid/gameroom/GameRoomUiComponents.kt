@@ -22,14 +22,8 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -52,6 +46,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.library.rememberCachedImageModel
+import com.pillyliu.pinprofandroid.ui.DropdownOption
+import com.pillyliu.pinprofandroid.ui.DropdownOptionGroup
+import com.pillyliu.pinprofandroid.ui.GroupedAnchoredDropdownFilter
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.Locale
@@ -238,7 +235,6 @@ internal enum class VariantPillStyle {
     EditSelector,
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ManufacturerFilterDropdown(
     selectedText: String,
@@ -248,57 +244,24 @@ internal fun ManufacturerFilterDropdown(
     onSelect: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        OutlinedTextField(
-            value = selectedText,
-            onValueChange = {},
-            readOnly = true,
-            singleLine = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                focusedBorderColor = MaterialTheme.colorScheme.outline,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                focusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            ),
-            modifier = Modifier
-                .menuAnchor(type = MenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth(),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.fillMaxWidth()) {
-            DropdownMenuItem(text = { Text("All Manufacturers") }, onClick = { onSelect(null); expanded = false })
-            if (modernOptions.isNotEmpty()) {
-                HorizontalDivider()
-                Text("Modern", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontSize = 12.sp)
-                modernOptions.forEach { option ->
-                    DropdownMenuItem(text = { Text(option.name) }, onClick = { onSelect(option.id); expanded = false })
-                }
-            }
-            if (classicPopularOptions.isNotEmpty()) {
-                HorizontalDivider()
-                Text("Classic Popular", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontSize = 12.sp)
-                classicPopularOptions.forEach { option ->
-                    DropdownMenuItem(text = { Text(option.name) }, onClick = { onSelect(option.id); expanded = false })
-                }
-            }
-            if (otherOptions.isNotEmpty()) {
-                HorizontalDivider()
-                Text("Other", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontSize = 12.sp)
-                otherOptions.forEach { option ->
-                    DropdownMenuItem(text = { Text(option.name) }, onClick = { onSelect(option.id); expanded = false })
-                }
-            }
+    val groups = buildList {
+        add(DropdownOptionGroup(options = listOf(DropdownOption("", "All Manufacturers"))))
+        if (modernOptions.isNotEmpty()) {
+            add(DropdownOptionGroup("Modern", modernOptions.map { DropdownOption(it.id, it.name) }))
+        }
+        if (classicPopularOptions.isNotEmpty()) {
+            add(DropdownOptionGroup("Classic Popular", classicPopularOptions.map { DropdownOption(it.id, it.name) }))
+        }
+        if (otherOptions.isNotEmpty()) {
+            add(DropdownOptionGroup("Other", otherOptions.map { DropdownOption(it.id, it.name) }))
         }
     }
+    GroupedAnchoredDropdownFilter(
+        selectedText = selectedText,
+        groups = groups,
+        onSelect = { selection -> onSelect(selection.ifEmpty { null }) },
+        modifier = modifier,
+    )
 }
 
 @Composable

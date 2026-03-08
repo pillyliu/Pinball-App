@@ -9,6 +9,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -29,6 +30,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 data class DropdownOption(val value: String, val label: String)
+
+data class DropdownOptionGroup(
+    val title: String? = null,
+    val options: List<DropdownOption>,
+)
 
 @Composable
 fun FixedWidthTableCell(
@@ -179,6 +185,79 @@ fun AnchoredDropdownFilter(
                         onSelect(option.value)
                     },
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GroupedAnchoredDropdownFilter(
+    selectedText: String,
+    groups: List<DropdownOptionGroup>,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    minHeight: Dp = 40.dp,
+    buttonTextSize: TextUnit = PinballThemeTokens.typography.dropdown.fontSize,
+    itemTextSize: TextUnit = PinballThemeTokens.typography.dropdownItem.fontSize,
+) {
+    val colors = PinballThemeTokens.colors
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        OutlinedTextField(
+            value = selectedText,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            label = label?.let { labelText -> { Text(labelText) } },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            textStyle = LocalTextStyle.current.copy(fontSize = buttonTextSize),
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                focusedContainerColor = colors.controlBackground,
+                unfocusedContainerColor = colors.controlBackground,
+                focusedBorderColor = colors.controlBorder,
+                unfocusedBorderColor = colors.controlBorder,
+                focusedTextColor = colors.shellSelectedContent,
+                unfocusedTextColor = colors.shellSelectedContent,
+                focusedTrailingIconColor = colors.shellUnselectedContent,
+                unfocusedTrailingIconColor = colors.shellUnselectedContent,
+            ),
+            modifier = Modifier
+                .menuAnchor(type = MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = minHeight),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            groups.filter { it.options.isNotEmpty() }.forEachIndexed { index, group ->
+                if (index > 0) {
+                    HorizontalDivider()
+                }
+                group.title?.let { title ->
+                    Text(
+                        text = title,
+                        fontSize = 12.sp,
+                        color = colors.shellUnselectedContent,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                }
+                group.options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option.label, fontSize = itemTextSize) },
+                        onClick = {
+                            expanded = false
+                            onSelect(option.value)
+                        },
+                    )
+                }
             }
         }
     }

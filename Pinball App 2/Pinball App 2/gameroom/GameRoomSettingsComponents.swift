@@ -216,9 +216,12 @@ struct GameRoomImportSettingsView: View {
                                         draftRows[index].selectedCatalogGameID = nil
                                     }
                                 } label: {
-                                    Label(matchMenuLabel(for: draftRows[index]), systemImage: "link")
+                                    AppCompactIconMenuLabel(
+                                        text: matchMenuLabel(for: draftRows[index]),
+                                        systemName: "link"
+                                    )
                                 }
-                                .buttonStyle(.glass)
+                                .buttonStyle(.plain)
 
                                 if let selectedCatalogGameID = draftRows[index].selectedCatalogGameID {
                                     let variants = catalogLoader.variantOptions(for: selectedCatalogGameID)
@@ -233,9 +236,12 @@ struct GameRoomImportSettingsView: View {
                                                 }
                                             }
                                         } label: {
-                                            Label("Variant: \(draftRows[index].selectedVariant ?? "None")", systemImage: "tag")
+                                            AppCompactIconMenuLabel(
+                                                text: "Variant: \(draftRows[index].selectedVariant ?? "None")",
+                                                systemName: "tag"
+                                            )
                                         }
-                                        .buttonStyle(.glass)
+                                        .buttonStyle(.plain)
                                     }
                                 }
                             }
@@ -866,15 +872,9 @@ struct GameRoomEditMachinesView: View {
                             }
                         }
                     } label: {
-                        HStack(spacing: 6) {
-                            Text(selectedMachine?.displayTitle ?? "Select Machine")
-                                .font(.subheadline.weight(.semibold))
-                                .lineLimit(1)
-                            Image(systemName: "chevron.down")
-                                .font(.caption2.weight(.semibold))
-                        }
+                        AppCompactDropdownLabel(text: selectedMachine?.displayTitle ?? "Select Machine")
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(.plain)
 
                     Spacer()
 
@@ -915,9 +915,9 @@ struct GameRoomEditMachinesView: View {
                                     }
                                 }
                             } label: {
-                                Label(selectedAreaLabel, systemImage: "map")
+                                AppCompactIconMenuLabel(text: selectedAreaLabel, systemName: "map")
                             }
-                            .buttonStyle(.glass)
+                            .buttonStyle(.plain)
 
                             Picker("Status", selection: $draftStatus) {
                                 ForEach(OwnedMachineStatus.allCases) { status in
