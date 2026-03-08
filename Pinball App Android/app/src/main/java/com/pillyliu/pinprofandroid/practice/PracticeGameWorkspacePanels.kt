@@ -86,6 +86,7 @@ internal fun PracticeGameWorkspaceCard(
                     selected = gameSubview == option,
                     onClick = { onGameSubviewChange(option) },
                     colors = pinballSegmentedButtonColors(),
+                    icon = {},
                     shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index, PracticeGameSubview.entries.size),
                     label = { Text(option.label, maxLines = 1) },
                 )

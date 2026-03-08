@@ -269,20 +269,19 @@ internal fun GameRoomSettingsRoute(
             titleColor = MaterialTheme.colorScheme.onSurface,
         )
 
-        CardContainer {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                GameRoomSettingsSection.entries.forEach { section ->
-                    val selected = section == selectedSettingsSection
-                    AppSelectionPill(
-                        text = section.label,
-                        selected = selected,
-                        modifier = Modifier.weight(1f),
-                        onClick = { onSelectedSettingsSectionChange(section) },
-                    )
-                }
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            GameRoomSettingsSection.entries.forEachIndexed { index, section ->
+                SegmentedButton(
+                    selected = section == selectedSettingsSection,
+                    onClick = { onSelectedSettingsSectionChange(section) },
+                    colors = pinballSegmentedButtonColors(),
+                    icon = {},
+                    shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
+                        index = index,
+                        count = GameRoomSettingsSection.entries.size,
+                    ),
+                    label = { Text(section.label, maxLines = 1) },
+                )
             }
         }
 
