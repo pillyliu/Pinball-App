@@ -33,6 +33,7 @@
 - Standardized Android Library screen header composition by moving the Library detail title row plus playfield/rulesheet viewer header rows onto the shared `AppScreenHeader` seam in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt` instead of keeping feature-local back-button plus centered-title rows in `LibraryDetailScreen.kt`, `PlayfieldScreen.kt`, and `RulesheetScreen.kt`.
 - Standardized iOS Library fullscreen back-button chrome by moving the playfield/rulesheet floating back-button overlay into the shared `AppFullscreenBackButton` seam in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/SharedFullscreenChrome.swift` instead of duplicating the same material-circle back control in `PlayfieldScreen.swift` and `RulesheetScreen.swift`.
 - Standardized Library root/list loading and empty/error treatment on both platforms by moving iOS `LibraryListScreen.swift` and Android `LibraryListScreen.kt` / `LibraryRouteContent.kt` onto shared panel-status and panel-empty seams instead of feature-local fallback text, and Android Library now exposes real reload failures instead of silently clearing to an empty list.
+- Standardized Library detail `Game Info` loading/missing/error treatment on both platforms by moving `LibraryDetailComponents.swift` and `LibraryDetailComponents.kt` onto shared inline-status and panel-empty seams instead of feature-local fallback text.
 
 ## Next audit targets
 

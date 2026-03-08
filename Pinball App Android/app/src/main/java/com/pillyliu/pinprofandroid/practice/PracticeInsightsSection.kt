@@ -25,6 +25,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
+import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 
@@ -47,7 +49,7 @@ internal fun PracticeInsightsSection(
     } ?: orderedGames.firstOrNull()?.also { onSelectGameSlug(it.practiceKey) }
 
     if (game == null) {
-        Text("No game data.")
+        AppPanelEmptyCard(text = "No game data.")
         return
     }
 
@@ -121,7 +123,7 @@ internal fun PracticeInsightsSection(
         val summary = store.scoreSummaryFor(game.practiceKey)
         val trendValues = store.scoreTrendValues(game.practiceKey)
         if (summary == null) {
-            Text("Log scores to unlock trends and consistency analytics.")
+            AppPanelEmptyCard(text = "Log scores to unlock trends and consistency analytics.")
         } else {
             StatRow("Average", formatScore(summary.mean))
             StatRow("Median", formatScore(summary.median))
@@ -182,11 +184,10 @@ internal fun PracticeInsightsSection(
         )
 
         when {
-            isLoadingHeadToHead -> Text("Loading player comparison...", style = MaterialTheme.typography.bodySmall)
-            insightsOpponentName.isBlank() -> Text("Select a player above to enable player-vs-player views.", style = MaterialTheme.typography.bodySmall)
-            headToHead == null -> Text(
-                "No shared machine history yet between ${if (store.playerName.isBlank()) "you" else formatLplPlayerNameForDisplay(store.playerName, showFullLplLastName)} and ${formatLplPlayerNameForDisplay(insightsOpponentName, showFullLplLastName)}.",
-                style = MaterialTheme.typography.bodySmall,
+            isLoadingHeadToHead -> AppInlineTaskStatus(text = "Loading player comparison…", showsProgress = true)
+            insightsOpponentName.isBlank() -> AppPanelEmptyCard(text = "Select a player above to enable player-vs-player views.")
+            headToHead == null -> AppPanelEmptyCard(
+                text = "No shared machine history yet between ${if (store.playerName.isBlank()) "you" else formatLplPlayerNameForDisplay(store.playerName, showFullLplLastName)} and ${formatLplPlayerNameForDisplay(insightsOpponentName, showFullLplLastName)}.",
             )
 
             else -> {

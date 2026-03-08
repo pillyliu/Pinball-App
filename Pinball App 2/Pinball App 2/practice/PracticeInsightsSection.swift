@@ -83,9 +83,7 @@ struct PracticeInsightsSectionView: View {
                         MetricPill(label: "Median", value: formattedScore(summary.median))
                     }
                 } else {
-                    Text("Log scores to unlock trends and consistency analytics.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: "Log scores to unlock trends and consistency analytics.")
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -108,12 +106,9 @@ struct PracticeInsightsSectionView: View {
                 insightsOpponentDropdown
 
                 if isLoadingHeadToHead {
-                    ProgressView("Loading player comparison...")
-                        .font(.footnote)
+                    AppInlineTaskStatus(text: "Loading player comparison…", showsProgress: true)
                 } else if opponentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("Select a player above to enable player-vs-player views.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: "Select a player above to enable player-vs-player views.")
                 } else if let scoped = headToHead {
                     HStack(spacing: 8) {
                         MetricPill(label: "Games", value: "\(scoped.totalGamesCompared)")
@@ -137,9 +132,7 @@ struct PracticeInsightsSectionView: View {
                     HeadToHeadDeltaBars(games: chartGames)
                         .frame(height: headToHeadPlotHeight(for: chartGames.count))
                 } else {
-                    Text("No shared machine history yet between \(playerName.isEmpty ? "you" : displayLPLPlayerName(playerName)) and \(displayLPLPlayerName(opponentName)).")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: "No shared machine history yet between \(playerName.isEmpty ? "you" : displayLPLPlayerName(playerName)) and \(displayLPLPlayerName(opponentName)).")
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

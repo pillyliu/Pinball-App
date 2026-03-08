@@ -52,6 +52,8 @@ import com.halilibo.richtext.markdown.Markdown
 import com.halilibo.richtext.ui.RichTextStyle
 import com.halilibo.richtext.ui.material3.RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
+import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import java.util.Locale
@@ -340,9 +342,9 @@ internal fun LibraryDetailGameInfoCard(
     CardContainer {
         SectionTitle("Game Info")
         when (infoStatus) {
-            "loading" -> Text("Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            "missing" -> Text("No game info yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            "error" -> Text("Could not load game info.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            "loading" -> AppInlineTaskStatus(text = "Loading…", showsProgress = true)
+            "missing" -> AppPanelEmptyCard(text = "No game info yet.")
+            "error" -> AppInlineTaskStatus(text = "Could not load game info.", isError = true)
             else -> CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
                 val linkColor = MaterialTheme.colorScheme.primary
                 val gameInfoStyle = remember {

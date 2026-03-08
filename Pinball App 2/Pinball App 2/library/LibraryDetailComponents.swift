@@ -197,17 +197,11 @@ struct LibraryDetailGameInfoCard: View {
 
             switch status {
             case .idle, .loading:
-                Text("Loading...")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                AppInlineTaskStatus(text: "Loading…", showsProgress: true)
             case .missing:
-                Text("No game info yet.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "No game info yet.")
             case .error:
-                Text("Could not load game info.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                AppInlineTaskStatus(text: "Could not load game info.", isError: true)
             case .loaded:
                 if let markdownText {
                     NativeMarkdownView(markdown: markdownText)
