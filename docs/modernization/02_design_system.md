@@ -219,6 +219,7 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 - Android Library route-missing recovery and Android Settings manufacturer empty-search treatment now also use shared panel-empty seams, and the iOS Settings venue minimum-game control now uses the shared subheading hierarchy instead of isolated local text styling.
 - Android Practice active-group rows and Android GameRoom machine-route headers now also use shared title and empty-state hierarchy, replacing remaining local semibold titles and generic route-title treatment in those home/detail surfaces.
 - Android Practice home mini-card titles and the remaining iOS GameRoom selected-machine empty state now also use shared title and panel-empty seams, removing another small pocket of feature-local hierarchy drift from the home routes.
+- Android `Stats` and `Targets` tables now cap to their visible row count with internal scrolling instead of stretching to fill the whole route height, matching the iOS table-height behavior more closely during the final parity pass.
 
 ## Next design-system steps
 

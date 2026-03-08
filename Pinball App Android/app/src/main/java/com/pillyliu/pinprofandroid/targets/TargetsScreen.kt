@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -142,13 +143,15 @@ fun TargetsScreen(
 
             error?.let { AppInlineStatusMessage(text = it, isError = true) }
 
-            CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
+            CardContainer(modifier = Modifier.fillMaxWidth()) {
                 BoxWithConstraints {
                     val baseWidth = 660f
                     val scale = (maxWidth.value / baseWidth).coerceIn(1f, 1.9f)
                     val gameWidth = (210 * scale).toInt()
                     val bankWidth = (44 * scale).toInt()
                     val scoreWidth = (136 * scale).toInt()
+                    val visibleRows = filteredRows.size.coerceAtMost(if (isLandscape) 10 else 8)
+                    val tableBodyMaxHeight = (visibleRows * 35).dp
 
                     Row(
                         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -156,7 +159,7 @@ fun TargetsScreen(
                     ) {
                         Column {
                             Header(gameWidth, bankWidth, scoreWidth)
-                            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                            Column(modifier = Modifier.heightIn(max = tableBodyMaxHeight).verticalScroll(rememberScrollState())) {
                                 filteredRows.forEachIndexed { index, row ->
                                     TargetRowView(index, row, gameWidth, bankWidth, scoreWidth)
                                 }

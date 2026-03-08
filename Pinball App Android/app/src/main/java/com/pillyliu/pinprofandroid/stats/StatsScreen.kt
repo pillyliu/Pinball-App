@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
@@ -284,7 +285,8 @@ fun StatsScreen(
             if (isLandscape) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = true),
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
                 ) {
                     CardContainer(modifier = Modifier.weight(0.6f, fill = true)) {
                         StatsTable(
@@ -292,7 +294,7 @@ fun StatsScreen(
                             showFullLplLastName = showFullLplLastName,
                             isRefreshing = isRefreshing,
                             initialLoadComplete = initialLoadComplete,
-                            modifier = Modifier.fillMaxSize(),
+                            maxVisibleRows = 10,
                         )
                     }
                     CardContainer(modifier = Modifier.weight(0.4f, fill = true)) {
@@ -302,18 +304,18 @@ fun StatsScreen(
                             season = season,
                             bankStats = bankStats,
                             historyStats = historyStats,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.heightIn(max = 420.dp),
                         )
                     }
                 }
             } else {
-                CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
+                CardContainer(modifier = Modifier.fillMaxWidth()) {
                     StatsTable(
                         filtered = filtered,
                         showFullLplLastName = showFullLplLastName,
                         isRefreshing = isRefreshing,
                         initialLoadComplete = initialLoadComplete,
-                        modifier = Modifier.fillMaxSize(),
+                        maxVisibleRows = 8,
                     )
                 }
                 CardContainer(modifier = Modifier.fillMaxWidth()) {
@@ -376,6 +378,7 @@ private fun StatsTable(
     showFullLplLastName: Boolean,
     isRefreshing: Boolean,
     initialLoadComplete: Boolean,
+    maxVisibleRows: Int,
     modifier: Modifier = Modifier,
 ) {
     val hState = rememberScrollState()
@@ -391,6 +394,9 @@ private fun StatsTable(
             points = (70 * scale).toInt(),
         )
         val tableWidth = widths.season + widths.bank + widths.player + widths.machine + widths.score + widths.points
+        val placeholderHeight = 96.dp
+        val rowHeight = 35.dp
+        val tableBodyMaxHeight = (filtered.size.coerceAtMost(maxVisibleRows) * rowHeight.value).dp
 
         Row(
             modifier = Modifier.fillMaxWidth().horizontalScroll(hState),
@@ -399,11 +405,15 @@ private fun StatsTable(
             Column(modifier = Modifier.width(tableWidth.dp)) {
                 HeaderRow(widths)
                 if (!initialLoadComplete && isRefreshing) {
-                    EmptyLabel("Loading data…")
+                    Column(modifier = Modifier.heightIn(min = placeholderHeight), verticalArrangement = Arrangement.Center) {
+                        EmptyLabel("Loading data…")
+                    }
                 } else if (filtered.isEmpty()) {
-                    EmptyLabel("No rows - check filters or data source.")
+                    Column(modifier = Modifier.heightIn(min = placeholderHeight), verticalArrangement = Arrangement.Center) {
+                        EmptyLabel("No rows - check filters or data source.")
+                    }
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(modifier = Modifier.heightIn(max = tableBodyMaxHeight)) {
                         itemsIndexed(filtered, key = { _, row -> row.id }) { _, row ->
                             Row(
                                 modifier = Modifier
