@@ -242,11 +242,7 @@ struct GameRoomImportSettingsView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(10)
-                            .background(AppTheme.controlBg, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .stroke(AppTheme.controlBorder, lineWidth: 1)
-                            )
+                            .appControlStyle()
                         }
                     }
                 }
@@ -722,7 +718,8 @@ struct GameRoomEditMachinesView: View {
                                     }
                                     .buttonStyle(.glass)
                                 }
-                                .padding(.vertical, 2)
+                                .padding(10)
+                                .appControlStyle()
                                 .id(game.id)
                             }
 

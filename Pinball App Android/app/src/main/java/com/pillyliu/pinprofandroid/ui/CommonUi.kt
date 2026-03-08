@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -371,6 +372,25 @@ fun AppPanelEmptyCard(
     ) {
         EmptyLabel(text)
     }
+}
+
+@Composable
+fun AppControlCard(
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val colors = PinballThemeTokens.colors
+    val shapes = PinballThemeTokens.shapes
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(colors.controlBackground, RoundedCornerShape(shapes.controlCorner))
+            .border(1.dp, colors.brandGold.copy(alpha = 0.28f), RoundedCornerShape(shapes.controlCorner))
+            .padding(contentPadding),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        content = content,
+    )
 }
 
 @Composable
