@@ -12,7 +12,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.LibrarySource
+import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import java.util.Locale
 
@@ -97,7 +97,7 @@ internal fun GroupGameSelectionScreen(
         CardContainer {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Select Titles", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                TextButton(onClick = onDone) { Text("Done") }
+                AppTextAction(text = "Done", onClick = onDone)
             }
         }
         CardContainer {

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.FilterList
@@ -688,6 +689,87 @@ fun AppTextAction(
             text = text,
             fontWeight = FontWeight.SemiBold,
         )
+    }
+}
+
+@Composable
+fun AppTopBarDropdownTrigger(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentDescription: String = "Open menu",
+) {
+    val colors = PinballThemeTokens.colors
+    TextButton(
+        onClick = onClick,
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = colors.brandInk,
+        ),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = text,
+                modifier = Modifier.weight(1f),
+                color = colors.brandInk,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Start,
+            )
+            Icon(
+                imageVector = Icons.Filled.ArrowDropDown,
+                contentDescription = contentDescription,
+                tint = colors.brandGold,
+            )
+        }
+    }
+}
+
+@Composable
+fun AppSelectableRowButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = PinballThemeTokens.colors
+    val shapes = PinballThemeTokens.shapes
+    TextButton(
+        onClick = onClick,
+        modifier = modifier,
+        contentPadding = PaddingValues(0.dp),
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = colors.brandInk,
+        ),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    if (selected) colors.brandGold.copy(alpha = 0.14f) else Color.Transparent,
+                    shape = RoundedCornerShape(shapes.controlCorner),
+                )
+                .border(
+                    width = 1.dp,
+                    color = if (selected) colors.brandGold.copy(alpha = 0.42f) else Color.Transparent,
+                    shape = RoundedCornerShape(shapes.controlCorner),
+                )
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+        ) {
+            Text(
+                text = text,
+                color = if (selected) colors.brandInk else colors.brandChalk,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

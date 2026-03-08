@@ -11,7 +11,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +26,7 @@ import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
+import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 
@@ -165,10 +165,11 @@ internal fun PracticeInsightsSection(
             Row(modifier = Modifier.weight(1f)) {
                 SectionTitle("Head-to-Head")
             }
-            TextButton(
+            AppTextAction(
+                text = "Refresh",
                 onClick = onRefreshHeadToHead,
                 enabled = !isLoadingHeadToHead,
-            ) { Text("Refresh") }
+            )
         }
 
         InsightsMenuDropdown(

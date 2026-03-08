@@ -1,28 +1,14 @@
 package com.pillyliu.pinprofandroid.practice
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.pillyliu.pinprofandroid.ui.AppTopBarDropdownTrigger
 
 @Composable
 internal fun PracticeTopBarGamePicker(
@@ -34,31 +20,11 @@ internal fun PracticeTopBarGamePicker(
     Box(
         modifier = modifier,
     ) {
-        TextButton(
+        AppTopBarDropdownTrigger(
+            text = context.selectedGameName ?: "Game",
             onClick = { context.onExpandedChange(true) },
-            contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = context.selectedGameName ?: "Game",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 20.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Start,
-                )
-                Icon(
-                    imageVector = Icons.Filled.ArrowDropDown,
-                    contentDescription = "Select game",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+            contentDescription = "Select game",
+        )
         DropdownMenu(
             expanded = context.expanded,
             onDismissRequest = { context.onExpandedChange(false) },

@@ -6,7 +6,6 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,7 +30,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -52,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
+import com.pillyliu.pinprofandroid.ui.AppSelectableRowButton
 import com.pillyliu.pinprofandroid.ui.AppSwipeRevealActionButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
@@ -233,33 +232,18 @@ internal fun CurrentGroupsCard(
                                 },
                             )
                     ) {
-                        TextButton(
+                        AppSelectableRowButton(
+                            text = group.name,
+                            selected = selectedID == group.id,
                             onClick = {
                                 store.setSelectedGroup(group.id)
                                 onRevealedGroupIDChange(null)
                                 offsetX = 0f
                             },
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(0.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 6.dp)
-                                    .background(
-                                        if (selectedID == group.id) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.62f) else Color.Transparent,
-                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                                    )
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                            ) {
-                                Text(
-                                    group.name,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    color = if (selectedID == group.id) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 6.dp),
+                        )
                         IconButton(
                             onClick = {
                                 store.updateGroup(group.copy(isPriority = !group.isPriority))
