@@ -95,6 +95,7 @@ import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.downloadTextAllowMissing
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
+import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
@@ -231,17 +232,78 @@ private fun FallbackAsyncImage(
     val candidates = urls.filter { it.isNotBlank() }.distinct()
     var activeIndex by remember(candidates) { mutableIntStateOf(0) }
     val model = rememberCachedImageModel(candidates.getOrNull(activeIndex))
-    AsyncImage(
-        model = model,
-        contentDescription = contentDescription,
-        modifier = modifier,
-        contentScale = contentScale,
-        onError = {
-            if (activeIndex < candidates.lastIndex) {
-                activeIndex += 1
-            }
-        },
-    )
+    var imageLoaded by remember(candidates, activeIndex) { mutableStateOf(false) }
+    var showMissingImage by remember(candidates, activeIndex) { mutableStateOf(candidates.isEmpty()) }
+    Box(modifier = modifier) {
+        if (candidates.isNotEmpty()) {
+            AsyncImage(
+                model = model,
+                contentDescription = contentDescription,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = contentScale,
+                onLoading = {
+                    imageLoaded = false
+                    showMissingImage = false
+                },
+                onSuccess = {
+                    imageLoaded = true
+                    showMissingImage = false
+                },
+                onError = {
+                    if (activeIndex < candidates.lastIndex) {
+                        activeIndex += 1
+                    } else {
+                        imageLoaded = false
+                        showMissingImage = true
+                    }
+                },
+            )
+        }
+
+        when {
+            candidates.isEmpty() -> AppMediaPreviewPlaceholder(message = "No image")
+            !imageLoaded && !showMissingImage -> AppMediaPreviewPlaceholder(showsProgress = true)
+            showMissingImage -> AppMediaPreviewPlaceholder(message = "No image")
+        }
+    }
+}
+
+@Composable
+private fun VideoTileThumbnail(
+    thumbnailUrl: String,
+    label: String,
+    modifier: Modifier,
+) {
+    var imageLoaded by remember(thumbnailUrl) { mutableStateOf(false) }
+    var showMissingImage by remember(thumbnailUrl) { mutableStateOf(thumbnailUrl.isBlank()) }
+    Box(modifier = modifier) {
+        if (thumbnailUrl.isNotBlank()) {
+            AsyncImage(
+                model = thumbnailUrl,
+                contentDescription = label,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                onLoading = {
+                    imageLoaded = false
+                    showMissingImage = false
+                },
+                onSuccess = {
+                    imageLoaded = true
+                    showMissingImage = false
+                },
+                onError = {
+                    imageLoaded = false
+                    showMissingImage = true
+                },
+            )
+        }
+
+        when {
+            thumbnailUrl.isBlank() -> AppMediaPreviewPlaceholder(message = "No image")
+            !imageLoaded && !showMissingImage -> AppMediaPreviewPlaceholder(showsProgress = true)
+            showMissingImage -> AppMediaPreviewPlaceholder()
+        }
+    }
 }
 
 @Composable
@@ -260,11 +322,10 @@ internal fun VideoTile(
             .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        AsyncImage(
-            model = video.thumbnailUrl,
-            contentDescription = video.label,
+        VideoTileThumbnail(
+            thumbnailUrl = video.thumbnailUrl,
+            label = video.label,
             modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
-            contentScale = ContentScale.Crop,
         )
         Text(video.label, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }

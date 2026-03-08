@@ -747,8 +747,7 @@ private struct GameRoomImageThumbnailView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
             } else {
-                ProgressView()
-                    .controlSize(.small)
+                PinballMediaPreviewPlaceholder(showsProgress: true)
             }
         }
         .task(id: url?.absoluteString ?? "") {
@@ -783,8 +782,7 @@ private struct GameRoomVideoThumbnailView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
             } else {
-                ProgressView()
-                    .controlSize(.small)
+                PinballMediaPreviewPlaceholder(showsProgress: true)
             }
         }
         .task(id: url?.absoluteString ?? "") {
@@ -836,9 +834,7 @@ struct GameRoomAttachmentPreviewSheet: View {
                     VideoPlayer(player: AVPlayer(url: url))
                         .aspectRatio(16.0 / 9.0, contentMode: .fit)
                 } else {
-                    Text("Media unavailable")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppFullscreenStatusOverlay(text: "Media unavailable")
                 }
             }
             .padding(14)

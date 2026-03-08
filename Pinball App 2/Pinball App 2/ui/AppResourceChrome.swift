@@ -41,3 +41,31 @@ func PinballShortRulesheetTitle(for link: PinballGame.ReferenceLink) -> String {
     if link.destinationURL == nil && link.embeddedRulesheetSource == nil { return "Local" }
     return "Local"
 }
+
+@ViewBuilder
+func PinballMediaPreviewPlaceholder(
+    message: String? = nil,
+    showsProgress: Bool = false
+) -> some View {
+    ZStack {
+        Color(uiColor: .tertiarySystemBackground)
+
+        VStack(spacing: 8) {
+            if showsProgress {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Image(systemName: "photo")
+                    .foregroundStyle(.secondary)
+            }
+
+            if let message {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(12)
+    }
+}

@@ -58,6 +58,7 @@ import coil.request.ImageRequest
 import coil.size.Size
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
+import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
@@ -101,7 +102,7 @@ internal fun ConstrainedAsyncImagePreview(
         contentAlignment = Alignment.Center,
     ) {
         if (candidates.isEmpty()) {
-            Text(emptyMessage, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            AppMediaPreviewPlaceholder(message = emptyMessage)
         } else {
             AsyncImage(
                 model = imageRequest,
@@ -137,11 +138,11 @@ internal fun ConstrainedAsyncImagePreview(
             )
 
             if (!imageLoaded && !showMissingImage) {
-                CircularProgressIndicator()
+                AppMediaPreviewPlaceholder(showsProgress = true)
             }
 
             if (showMissingImage) {
-                Text(emptyMessage, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                AppMediaPreviewPlaceholder(message = emptyMessage)
             }
         }
     }

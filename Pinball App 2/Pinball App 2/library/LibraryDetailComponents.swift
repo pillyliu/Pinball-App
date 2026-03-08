@@ -364,8 +364,7 @@ private struct LibraryYouTubeThumbnailView: View {
         AsyncImage(url: currentURL) { phase in
             switch phase {
             case .empty:
-                Color(uiColor: .tertiarySystemBackground)
-                    .overlay { ProgressView() }
+                PinballMediaPreviewPlaceholder(showsProgress: true)
             case .success(let image):
                 image
                     .resizable()
@@ -375,11 +374,7 @@ private struct LibraryYouTubeThumbnailView: View {
                     Color(uiColor: .tertiarySystemBackground)
                         .task { index += 1 }
                 } else {
-                    Color(uiColor: .tertiarySystemBackground)
-                        .overlay {
-                            Image(systemName: "photo")
-                                .foregroundStyle(.secondary)
-                        }
+                    PinballMediaPreviewPlaceholder()
                 }
             @unknown default:
                 Color(uiColor: .tertiarySystemBackground)

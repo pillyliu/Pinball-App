@@ -60,6 +60,7 @@
   - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppResourceChrome.swift`
   - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppResourceChrome.kt`
 - `LibraryDetailComponents.swift` and `LibraryDetailComponents.kt` now consume shared resource-row, unavailable-chip, and short-rulesheet-label helpers instead of carrying feature-local copies.
+- Library thumbnail and image-preview loading/missing states now also use shared media-preview placeholder seams instead of duplicated inline spinner and photo-icon fallback blocks in `PlayfieldScreen.swift`, `LibraryDetailComponents.swift`, `PlayfieldScreen.kt`, and `LibraryDetailScreen.kt`.
 
 ## Next audit targets
 

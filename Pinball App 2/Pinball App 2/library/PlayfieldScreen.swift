@@ -34,16 +34,10 @@ struct FallbackAsyncImageView: View {
                         )
                     )
             } else {
-                Color(uiColor: .tertiarySystemBackground)
-                    .overlay {
-                        if let emptyMessage, candidates.isEmpty || didFailCurrent {
-                            Text(emptyMessage)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ProgressView()
-                        }
-                }
+                PinballMediaPreviewPlaceholder(
+                    message: (candidates.isEmpty || didFailCurrent) ? emptyMessage : nil,
+                    showsProgress: !(candidates.isEmpty || didFailCurrent)
+                )
             }
         }
         .task(id: candidateKey) {
@@ -267,11 +261,9 @@ struct ConstrainedAsyncImagePreview: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(imagePadding)
             } else if loader.failed {
-                Text(emptyMessage ?? "No image")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                PinballMediaPreviewPlaceholder(message: emptyMessage ?? "No image")
             } else {
-                ProgressView()
+                PinballMediaPreviewPlaceholder(showsProgress: true)
             }
         }
         .aspectRatio(effectiveAspectRatio, contentMode: .fit)
