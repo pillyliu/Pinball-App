@@ -3,7 +3,6 @@ package com.pillyliu.pinprofandroid.library
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -18,11 +17,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -52,11 +49,14 @@ import com.halilibo.richtext.markdown.Markdown
 import com.halilibo.richtext.ui.RichTextStyle
 import com.halilibo.richtext.ui.material3.RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
+import com.pillyliu.pinprofandroid.ui.AppResourceChip
+import com.pillyliu.pinprofandroid.ui.AppResourceRow
+import com.pillyliu.pinprofandroid.ui.AppUnavailableResourceChip
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
-import java.util.Locale
+import com.pillyliu.pinprofandroid.ui.appShortRulesheetTitle
 
 @Composable
 internal fun LibraryDetailScreenshotSection(game: PinballGame) {
@@ -112,18 +112,18 @@ internal fun LibraryDetailSummaryCard(
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            ResourceRow(label = "Rulesheet:") {
+            AppResourceRow(label = "Rulesheet:") {
                 if (game.rulesheetLinks.isEmpty()) {
                     if (hasRulesheet) {
-                        ResourceChipButton(label = "Local") { onOpenRulesheet(null) }
+                        AppResourceChip(label = "Local") { onOpenRulesheet(null) }
                     } else {
-                        UnavailableResourceChip()
+                        AppUnavailableResourceChip()
                     }
                 } else {
                     game.rulesheetLinks.forEach { link ->
                         val destination = link.destinationUrl
                         val embedded = link.embeddedRulesheetSource
-                        ResourceChipButton(label = shortRulesheetTitle(link)) {
+                        AppResourceChip(label = appShortRulesheetTitle(link)) {
                             LibraryActivityLog.log(context, game.slug, game.name, LibraryActivityKind.OpenRulesheet, link.label)
                             when {
                                 embedded != null -> onOpenRulesheet(embedded)
@@ -134,14 +134,14 @@ internal fun LibraryDetailSummaryCard(
                     }
                 }
             }
-            ResourceRow(label = "Playfield:") {
+            AppResourceRow(label = "Playfield:") {
                 val playfieldCandidates = game.actualFullscreenPlayfieldCandidates
                 if (playfieldCandidates.isNotEmpty()) {
-                    ResourceChipButton(label = game.playfieldButtonLabel) {
+                    AppResourceChip(label = game.playfieldButtonLabel) {
                         playfieldCandidates.firstOrNull()?.let(onOpenPlayfield)
                     }
                 } else {
-                    UnavailableResourceChip()
+                    AppUnavailableResourceChip()
                 }
             }
         }
@@ -367,12 +367,12 @@ internal fun LibraryDetailSourcesSection(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         SectionTitle("Sources")
-        ResourceRow(label = "Rulesheet:") {
+        AppResourceRow(label = "Rulesheet:") {
             if (game.rulesheetLinks.isNotEmpty()) {
                 game.rulesheetLinks.forEach { link ->
                     val destination = link.destinationUrl
                     val embedded = link.embeddedRulesheetSource
-                    ResourceChipButton(label = shortRulesheetTitle(link)) {
+                    AppResourceChip(label = appShortRulesheetTitle(link)) {
                         when {
                             embedded != null -> onOpenRulesheet(embedded)
                             destination != null -> onOpenExternalRulesheet(destination)
@@ -381,86 +381,17 @@ internal fun LibraryDetailSourcesSection(
                     }
                 }
             } else if (hasRulesheet) {
-                ResourceChipButton(label = "Local") { onOpenRulesheet(null) }
+                AppResourceChip(label = "Local") { onOpenRulesheet(null) }
             }
         }
-        ResourceRow(label = "Playfield:") {
+        AppResourceRow(label = "Playfield:") {
             if (game.hasPlayfieldResource) {
-                ResourceChipButton(label = game.playfieldButtonLabel) {
+                AppResourceChip(label = game.playfieldButtonLabel) {
                     game.actualFullscreenPlayfieldCandidates.firstOrNull()?.let(onOpenPlayfield)
                 }
             } else {
-                UnavailableResourceChip()
+                AppUnavailableResourceChip()
             }
         }
-    }
-}
-
-@Composable
-internal fun ResourceRow(
-    label: String,
-    content: @Composable () -> Unit,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .horizontalScroll(rememberScrollState()),
-        ) {
-            content()
-        }
-        Spacer(modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
-internal fun ResourceChipButton(
-    label: String,
-    onClick: () -> Unit,
-) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = Modifier.defaultMinSize(minHeight = 32.dp),
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Text(label, fontSize = 12.sp)
-    }
-}
-
-@Composable
-internal fun UnavailableResourceChip() {
-    Text(
-        "Unavailable",
-        fontSize = 12.sp,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .background(
-                MaterialTheme.colorScheme.surfaceContainerLow,
-                RoundedCornerShape(999.dp),
-            )
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(999.dp))
-            .padding(horizontal = 10.dp, vertical = 7.dp),
-    )
-}
-
-internal fun shortRulesheetTitle(link: ReferenceLink): String {
-    val label = link.label.lowercase(Locale.US)
-    return when {
-        "(tf)" in label -> "TF"
-        "(pp)" in label -> "PP"
-        "(papa)" in label -> "PAPA"
-        "(bob)" in label -> "Bob"
-        "(local)" in label || "(source)" in label -> "Local"
-        else -> "Local"
     }
 }

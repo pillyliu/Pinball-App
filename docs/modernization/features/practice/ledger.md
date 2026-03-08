@@ -194,6 +194,10 @@
 - Standardized Practice group editor, group dashboard, home group summaries, and Android journal empty states by moving those surfaces onto shared panel-empty seams instead of feature-local fallback text in `PracticeGroupEditorComponents.swift`, `PracticeGroupEditorSections.kt`, `PracticeGroupDashboardSection.swift`, `PracticeSelectedGroupDashboardCard.kt`, `PracticeHomeSection.swift`, and `PracticeJournalSection.kt`.
 - Standardized the iOS Practice journal league-player empty-menu fallback by moving `PracticeJournalSettingsSections.swift` onto the shared selectable menu-row seam instead of a raw `Text` menu item.
 - Standardized Practice home, insights, mechanics, and group-dashboard section titles on both platforms by moving those surfaces onto the shared section-title seams in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/SharedTableUi.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt`, removing feature-local headline and semibold card-heading styling in `PracticeHomeSection.swift`, `PracticeInsightsSection.swift`, `PracticeMechanicsSection.swift`, `PracticeGroupDashboardSection.swift`, `PracticeHomeComponents.kt`, `PracticeInsightsSection.kt`, `PracticeMechanicsSection.kt`, and `PracticeCurrentGroupsCard.kt`.
+- Standardized Practice game-resource rulesheet/playfield chrome on both platforms by moving resource rows, unavailable chips, and compact rulesheet labels onto shared media/resource seams:
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppResourceChrome.swift`
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppResourceChrome.kt`
+- `PracticeVideoComponents.swift` and `PracticeGameDetailCards.kt` now consume shared resource-row, unavailable-chip, and short-rulesheet-label helpers instead of keeping feature-local copies beside the Library surfaces.
 
 ## Next audit targets
 

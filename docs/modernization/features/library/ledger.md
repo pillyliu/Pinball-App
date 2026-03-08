@@ -56,6 +56,10 @@
 - Extracted Android Library browsing and source-selection rules into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryBrowsingState.kt`, so `LibraryScreen.kt` no longer owns visible-source ordering, default source/sort/bank resolution, or filter/sort/group browsing rules inline.
 - Rewired Android `LibraryListScreen.kt` and `LibraryRouteContent.kt` to consume the shared `LibraryBrowseState` seam instead of duplicating selected-source, sort-label, bank-filter, and grouped-section logic across the root screen and list screen.
 - Current Library builds are clean of feature-specific compiler warnings; the remaining Xcode simulator build warning is the external `appintentsmetadataprocessor` metadata-skip message, not a Library warning.
+- Standardized Library rulesheet/playfield resource rows and chip chrome on both platforms by moving those helpers onto shared media/resource seams:
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppResourceChrome.swift`
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppResourceChrome.kt`
+- `LibraryDetailComponents.swift` and `LibraryDetailComponents.kt` now consume shared resource-row, unavailable-chip, and short-rulesheet-label helpers instead of carrying feature-local copies.
 
 ## Next audit targets
 

@@ -2,22 +2,15 @@ package com.pillyliu.pinprofandroid.practice
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,19 +19,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.PinballVideoLaunchPanel
 import com.pillyliu.pinprofandroid.library.PlayableVideo
-import com.pillyliu.pinprofandroid.library.ReferenceLink
 import com.pillyliu.pinprofandroid.library.RulesheetRemoteSource
 import com.pillyliu.pinprofandroid.library.actualFullscreenPlayfieldCandidates
 import com.pillyliu.pinprofandroid.library.hasRulesheetResource
 import com.pillyliu.pinprofandroid.library.metaLine
 import com.pillyliu.pinprofandroid.library.openYoutubeInApp
 import com.pillyliu.pinprofandroid.library.playfieldButtonLabel
+import com.pillyliu.pinprofandroid.ui.AppResourceChip
+import com.pillyliu.pinprofandroid.ui.AppResourceRow
+import com.pillyliu.pinprofandroid.ui.AppUnavailableResourceChip
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.appShortRulesheetTitle
 
 @Composable
 internal fun PracticeGameNoteCard(
@@ -89,18 +83,18 @@ internal fun PracticeGameResourcesCard(
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            PracticeResourceRow(label = "Rulesheet:") {
+            AppResourceRow(label = "Rulesheet:") {
                 if (game.rulesheetLinks.isEmpty()) {
                     if (game.hasRulesheetResource) {
-                        PracticeResourceChip(label = "Local") { onOpenRulesheet(null) }
+                        AppResourceChip(label = "Local") { onOpenRulesheet(null) }
                     } else {
-                        PracticeUnavailableResourceChip()
+                        AppUnavailableResourceChip()
                     }
                 } else {
                     game.rulesheetLinks.forEach { link ->
                         val destination = link.destinationUrl
                         val embedded = link.embeddedRulesheetSource
-                        PracticeResourceChip(label = shortRulesheetTitle(link)) {
+                        AppResourceChip(label = appShortRulesheetTitle(link)) {
                             when {
                                 embedded != null -> onOpenRulesheet(embedded)
                                 destination != null -> onOpenExternalRulesheet(destination)
@@ -110,14 +104,14 @@ internal fun PracticeGameResourcesCard(
                     }
                 }
             }
-            PracticeResourceRow(label = "Playfield:") {
+            AppResourceRow(label = "Playfield:") {
                 val playfieldCandidates = game.actualFullscreenPlayfieldCandidates
                 if (playfieldCandidates.isNotEmpty()) {
-                    PracticeResourceChip(label = game.playfieldButtonLabel) {
+                    AppResourceChip(label = game.playfieldButtonLabel) {
                         onOpenPlayfield(playfieldCandidates)
                     }
                 } else {
-                    PracticeUnavailableResourceChip()
+                    AppUnavailableResourceChip()
                 }
             }
         }
@@ -174,78 +168,5 @@ internal fun PracticeGameResourcesCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun PracticeResourceRow(
-    label: String,
-    content: @Composable () -> Unit,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .horizontalScroll(rememberScrollState()),
-        ) {
-            content()
-        }
-        Spacer(modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun PracticeResourceChip(
-    label: String,
-    onClick: () -> Unit,
-) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = Modifier.defaultMinSize(minHeight = 32.dp),
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shape = RoundedCornerShape(999.dp),
-    ) {
-        Text(label, fontSize = 12.sp)
-    }
-}
-
-@Composable
-private fun PracticeUnavailableResourceChip() {
-    Text(
-        "Unavailable",
-        fontSize = 12.sp,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .background(
-                MaterialTheme.colorScheme.surfaceContainerLow,
-                RoundedCornerShape(999.dp),
-            )
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant,
-                RoundedCornerShape(999.dp),
-            )
-            .padding(horizontal = 10.dp, vertical = 7.dp),
-    )
-}
-
-private fun shortRulesheetTitle(link: ReferenceLink): String {
-    val label = link.label.lowercase()
-    return when {
-        "(tf)" in label -> "TF"
-        "(pp)" in label -> "PP"
-        "(papa)" in label -> "PAPA"
-        "(bob)" in label -> "Bob"
-        else -> "Local"
     }
 }

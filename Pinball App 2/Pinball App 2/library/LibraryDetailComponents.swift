@@ -45,24 +45,24 @@ struct LibraryDetailSummaryCard: View {
             VStack(alignment: .leading, spacing: 10) {
                 if game.rulesheetLinks.isEmpty {
                     if game.hasRulesheetResource {
-                        libraryResourceRow("Rulesheet") {
+                        PinballResourceRow("Rulesheet") {
                             libraryRulesheetLinkButton(title: "Local", game: game, source: nil)
                         }
                     } else {
-                        libraryResourceRow("Rulesheet") {
-                            libraryUnavailableResourceButton("Unavailable")
+                        PinballResourceRow("Rulesheet") {
+                            PinballUnavailableResourceChip("Unavailable")
                         }
                     }
                 } else {
-                    libraryResourceRow("Rulesheet") {
+                    PinballResourceRow("Rulesheet") {
                         ForEach(game.rulesheetLinks) { link in
-                            libraryRulesheetLinkButton(link: link, game: game, title: libraryShortRulesheetTitle(for: link))
+                            libraryRulesheetLinkButton(link: link, game: game, title: PinballShortRulesheetTitle(for: link))
                         }
                     }
                 }
 
                 if game.hasPlayfieldResource {
-                    libraryResourceRow("Playfield") {
+                    PinballResourceRow("Playfield") {
                         NavigationLink(libraryPlayfieldButtonTitle(for: game)) {
                             HostedImageView(imageCandidates: game.actualFullscreenPlayfieldCandidates)
                         }
@@ -74,8 +74,8 @@ struct LibraryDetailSummaryCard: View {
                         )
                     }
                 } else {
-                    libraryResourceRow("Playfield") {
-                        libraryUnavailableResourceButton("Unavailable")
+                    PinballResourceRow("Playfield") {
+                        PinballUnavailableResourceChip("Unavailable")
                     }
                 }
             }
@@ -211,24 +211,24 @@ struct LibraryDetailSourcesCard: View {
 
             if game.rulesheetLinks.isEmpty {
                 if game.hasRulesheetResource {
-                    libraryResourceRow("Rulesheet") {
+                    PinballResourceRow("Rulesheet") {
                         libraryRulesheetLinkButton(title: "Local", game: game, source: nil)
                     }
                 } else {
-                    libraryResourceRow("Rulesheet") {
-                        libraryUnavailableResourceButton("Unavailable")
+                    PinballResourceRow("Rulesheet") {
+                        PinballUnavailableResourceChip("Unavailable")
                     }
                 }
             } else {
-                libraryResourceRow("Rulesheet") {
+                PinballResourceRow("Rulesheet") {
                     ForEach(game.rulesheetLinks) { link in
-                        libraryRulesheetLinkButton(link: link, game: game, title: libraryShortRulesheetTitle(for: link))
+                        libraryRulesheetLinkButton(link: link, game: game, title: PinballShortRulesheetTitle(for: link))
                     }
                 }
             }
 
             if game.hasPlayfieldResource {
-                libraryResourceRow("Playfield") {
+                PinballResourceRow("Playfield") {
                     NavigationLink(libraryPlayfieldButtonTitle(for: game)) {
                         HostedImageView(imageCandidates: game.actualFullscreenPlayfieldCandidates)
                     }
@@ -392,32 +392,6 @@ private func libraryPlayfieldButtonTitle(for game: PinballGame) -> String {
     game.playfieldButtonLabel
 }
 
-private func libraryShortRulesheetTitle(for link: PinballGame.ReferenceLink) -> String {
-    let label = link.label.lowercased()
-    if label.contains("(tf)") { return "TF" }
-    if label.contains("(pp)") { return "PP" }
-    if label.contains("(papa)") { return "PAPA" }
-    if label.contains("(bob)") { return "Bob" }
-    if label.contains("(local)") || label.contains("(source)") { return "Local" }
-    if link.destinationURL == nil && link.embeddedRulesheetSource == nil { return "Local" }
-    return "Local"
-}
-
-private func libraryResourceRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-    HStack(alignment: .center, spacing: 8) {
-        Text("\(title):")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                content()
-            }
-        }
-        .fixedSize(horizontal: false, vertical: true)
-        Spacer(minLength: 0)
-    }
-}
-
 @ViewBuilder
 private func libraryRulesheetLinkButton(title: String, game: PinballGame, source: RulesheetRemoteSource?) -> some View {
     NavigationLink(title) {
@@ -464,18 +438,4 @@ private func libraryRulesheetLinkButton(link: PinballGame.ReferenceLink, game: P
             }
         )
     }
-}
-
-private func libraryUnavailableResourceButton(_ title: String) -> some View {
-    Text(title)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .foregroundStyle(.secondary.opacity(0.9))
-        .background(Color.white.opacity(0.06), in: Capsule())
-        .overlay(
-            Capsule()
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
-        .opacity(0.7)
-        .allowsHitTesting(false)
 }
