@@ -44,10 +44,14 @@
 - Extracted iOS seed-db row models, rulesheet dedupe logic, SQLite helpers, and built-in-row-to-domain mapping into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibrarySeedDatabaseModels.swift`, reducing `LibrarySeedDatabase.swift` back toward database orchestration instead of mixed row-model plus helper ownership.
 - Extracted Android seed-db row models, cursor helpers, and built-in-row/domain mapping into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedModels.kt`, reducing `LibrarySeedDatabase.kt` back toward query/orchestration ownership.
 - Extracted Android seed-db GameRoom overlay decode/filter helpers into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedOverlay.kt`, so `LibrarySeedDatabase.kt` no longer carries both SQLite loading and GameRoom JSON overlay parsing inline.
+- Extracted iOS markdown block parsing, ordered-list handling, and markdown table parsing into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryMarkdownParsing.swift`, so `LibraryDomain.swift` no longer owns the native markdown parser inline.
+- Extracted iOS game-info and rulesheet loading state/view models into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryContentLoading.swift`, so `LibraryDomain.swift` is reduced further toward domain/resource ownership instead of mixed domain plus screen-loader state.
+- Extracted repeated iOS seed-db rulesheet/video query helpers into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibrarySeedQueryLoaders.swift`, reducing `LibrarySeedDatabase.swift` toward query orchestration instead of mixed query body duplication.
+- Extracted repeated Android seed-db rulesheet/video query helpers into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedQueries.kt`, reducing `LibrarySeedDatabase.kt` toward query orchestration instead of mixed query body duplication.
 
 ## Next audit targets
 
 - source-state synchronization
 - repeated detail/resource UI
-- remaining markdown/domain split inside `LibraryDomain.swift`
-- remaining query/helper concentration inside the two `LibrarySeedDatabase` files
+- remaining markdown/content-domain shaping inside `LibraryDomain.swift`
+- remaining query composition and orchestration inside the two `LibrarySeedDatabase` files
