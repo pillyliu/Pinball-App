@@ -75,6 +75,28 @@ internal class PracticeStore(private val context: Context) {
     private val leagueIntegration by lazy { PracticeLeagueIntegration(::gameName) }
     private val journalIntegration by lazy { PracticeJournalIntegration(::practiceLookupGames, ::gameName) }
     private val progressIntegration by lazy { PracticeProgressIntegration() }
+    private val libraryIntegration by lazy {
+        PracticeLibraryIntegration(
+            context = context,
+            preferredSourceId = { prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null) },
+            savePreferredSourceId = { sourceId ->
+                prefs.edit {
+                    if (sourceId != null) {
+                        putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, sourceId)
+                    } else {
+                        remove(KEY_PREFERRED_LIBRARY_SOURCE_ID)
+                    }
+                }
+            },
+        )
+    }
+    private val persistenceIntegration by lazy {
+        PracticePersistenceIntegration(
+            prefs = prefs,
+            gameNameForSlug = ::gameName,
+            quickGamePrefKeys = QUICK_GAME_PREF_KEYS,
+        )
+    }
 
     private val prefs by lazy { context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE) }
 
@@ -390,92 +412,57 @@ internal class PracticeStore(private val context: Context) {
         rulesheetResumeOffsets = emptyMap()
         applyRuntimePersistedState(emptyPracticePersistedState())
         LibraryActivityLog.clear(context)
-        clearPracticeState(prefs, PRACTICE_STATE_KEY)
+        persistenceIntegration.clearPrimaryState()
         saveState()
     }
 
     fun markPracticeViewedGame(slug: String) {
         val canonicalKey = canonicalGameID(slug)
         if (canonicalKey.isBlank()) return
-        markPracticeLastViewedGame(prefs, canonicalKey, System.currentTimeMillis())
+        persistenceIntegration.markViewedGame(canonicalKey, System.currentTimeMillis())
     }
 
     fun resumeSlugFromLibraryOrPractice(): String? =
-        resumeSlugFromLibraryOrPractice(prefs)?.let { canonicalPracticeKey(it, practiceLookupGames()) }
+        persistenceIntegration.resumeSlug(practiceLookupGames())
 
     fun setPreferredLibrarySource(sourceId: String?) {
         val pool = if (allLibraryGames.isNotEmpty()) allLibraryGames else games
-        val selection = applyPracticeLibrarySourceSelection(
+        val selection = libraryIntegration.applySelectedSource(
             sourceId = sourceId,
             sources = librarySources,
             allGames = pool,
         )
         defaultPracticeSourceId = selection.selectedSourceId
         games = selection.visibleGames
-        prefs.edit {
-            if (selection.selectedSourceId != null) {
-                putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, selection.selectedSourceId)
-            } else {
-                remove(KEY_PREFERRED_LIBRARY_SOURCE_ID)
-            }
-        }
-        LibrarySourceStateStore.setSelectedSource(context, selection.selectedSourceId)
+        libraryIntegration.persistSelectedSource(selection.selectedSourceId)
     }
 
     suspend fun loadGames() {
-        val loaded = loadPracticeGamesFromLibrary(context)
-        val savedSourceId = prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null)
-        val preferredSource = resolvePreferredPracticeSource(loaded, savedSourceId)
-        val selection = applyPracticeLibrarySourceSelection(
-            sourceId = preferredSource?.id,
-            sources = loaded.sources,
-            allGames = loaded.allGames,
-        )
-
-        games = selection.visibleGames.ifEmpty { loaded.games }
-        allLibraryGames = loaded.allGames
-        librarySources = loaded.sources
-        defaultPracticeSourceId = selection.selectedSourceId ?: loaded.defaultSourceId
+        val libraryState = libraryIntegration.loadLibraryState()
+        games = libraryState.visibleGames
+        allLibraryGames = libraryState.allGames
+        librarySources = libraryState.sources
+        defaultPracticeSourceId = libraryState.defaultSourceId
         defaultPracticeSourceId?.let { sourceId ->
-            prefs.edit { putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, sourceId) }
+            libraryIntegration.persistSelectedSource(sourceId)
         }
-        LibrarySourceStateStore.setSelectedSource(context, defaultPracticeSourceId)
     }
 
     private fun migrateLoadedStateToPracticeKeys() {
         val lookupGames = practiceLookupGames()
-        if (lookupGames.isEmpty()) return
-        val currentRuntime = runtimeStateSnapshot()
-        val migratedRuntime = migratePracticeStateKeys(currentRuntime, lookupGames)
-        val migratedCanonical = migrateCanonicalPracticeStateKeys(canonicalPersistedState, lookupGames)
-        val changed = migratedRuntime != currentRuntime || migratedCanonical != canonicalPersistedState
-        if (!changed) return
-        canonicalPersistedState = migratedCanonical
-        rulesheetResumeOffsets = migratedCanonical.rulesheetResumeOffsets
-        applyRuntimePersistedState(runtimePracticeStateFromCanonicalState(migratedCanonical, ::gameName))
+        val migrated = persistenceIntegration.migrateLoadedState(
+            lookupGames = lookupGames,
+            runtimeState = runtimeStateSnapshot(),
+            canonicalState = canonicalPersistedState,
+        ) ?: return
+        canonicalPersistedState = migrated.canonicalState
+        rulesheetResumeOffsets = migrated.canonicalState.rulesheetResumeOffsets
+        applyRuntimePersistedState(migrated.runtimeState)
         saveState()
     }
 
     private fun migratePreferenceGameKeysToPracticeKeys() {
-        val lookupGames = practiceLookupGames()
-        if (lookupGames.isEmpty()) return
-        val gamePrefKeys = listOf(
-            KEY_PRACTICE_LAST_VIEWED_SLUG,
-            KEY_LIBRARY_LAST_VIEWED_SLUG,
-        ) + QUICK_GAME_PREF_KEYS
-
-        var changed = false
-        prefs.edit {
-            gamePrefKeys.forEach { key ->
-                val raw = prefs.getString(key, null)?.trim().orEmpty()
-                if (raw.isEmpty()) return@forEach
-                val canonical = canonicalPracticeKey(raw, lookupGames)
-                if (canonical != raw) {
-                    putString(key, canonical)
-                    changed = true
-                }
-            }
-        }
+        persistenceIntegration.migratePreferenceGameKeys(practiceLookupGames())
     }
 
     private fun autoArchiveExpiredGroupsIfNeeded() {
@@ -486,24 +473,22 @@ internal class PracticeStore(private val context: Context) {
     }
 
     private fun saveState() {
-        canonicalPersistedState = canonicalPracticeStateFromRuntimeAndShadow(
-            runtime = runtimeStateSnapshot(),
-            shadow = canonicalPersistedState.copy(
+        canonicalPersistedState = persistenceIntegration.saveState(
+            runtimeState = runtimeStateSnapshot(),
+            shadowState = canonicalPersistedState.copy(
                 rulesheetResumeOffsets = rulesheetResumeOffsets,
                 gameSummaryNotes = gameSummaryNotes,
             ),
         )
-        val serialized = buildCanonicalPracticeStateJson(canonicalPersistedState)
-        savePracticeState(prefs, PRACTICE_STATE_KEY, serialized)
     }
 
     private fun loadState() {
-        val loaded = loadPracticeStatePayload(prefs, ::gameName) ?: return
+        val loaded = persistenceIntegration.loadState() ?: return
         runCatching {
             applyPersistedState(loaded.payload)
             if (loaded.usedLegacyKey) {
                 saveState()
-                clearPracticeState(prefs, LEGACY_PRACTICE_STATE_KEY)
+                persistenceIntegration.clearLegacyState()
             }
         }
     }

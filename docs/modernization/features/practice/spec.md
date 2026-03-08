@@ -62,7 +62,7 @@ iOS:
 
 Android:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreen.kt` is better separated at the route layer than iOS.
-- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt` remains a responsibility concentration point, but its league, journal, and progress-mutation slices now live behind dedicated seams.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt` remains a responsibility concentration point, but its league, journal, progress-mutation, library-loading, and persistence slices now live behind dedicated seams.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameWorkspacePanels.kt` now isolates the segmented workspace card plus the `Summary`, `Input`, and `Log` panels from the main Android game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDetailCards.kt` now isolates the Android `Game Note` and `Game Resources` cards from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDialogs.kt` now isolates Android delete/edit dialog wiring from the main game route file.
@@ -81,6 +81,8 @@ Android:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLeagueIntegration.kt` now isolates Android league targets, league-player lookup, league CSV import, and head-to-head comparison behind a dedicated store dependency seam.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeJournalIntegration.kt` now isolates Android journal filtering, edit-draft resolution, canonical journal mutation, and deletion logic behind a dedicated store dependency seam.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeProgressIntegration.kt` now isolates Android score, study, note, and rulesheet-progress canonical mutation logic behind a dedicated store dependency seam.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibraryIntegration.kt` now isolates Android library loading, preferred-source resolution, and selected-source persistence behind a dedicated store dependency seam.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticePersistenceIntegration.kt` now isolates Android persisted-state load/save, migration, and last-viewed preference handling behind a dedicated store dependency seam.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibrarySourceSelection.kt` now centralizes the Android "All games" source sentinel plus preferred-source and visible-game selection rules so top bar, home, and store loading do not drift.
 - Persistence and codec work has already been separated more clearly than on iOS.
 - Route model is more explicit via `PracticeRoute`, and `PracticeScreenState` is now grouped more intentionally, but the store still remains broader than the screen-state seam.
@@ -380,6 +382,10 @@ Android current wiring:
   - owns score, study, note, and rulesheet-progress canonical mutation logic for Android Practice
 - `PracticeLibrarySourceSelection.kt`
   - owns Android practice source normalization, preferred-source resolution, and visible-game selection rules
+- `PracticeLibraryIntegration.kt`
+  - owns Android library loading, preferred-source resolution, and selected-source persistence for Practice
+- `PracticePersistenceIntegration.kt`
+  - owns Android persisted-state load/save, preference-key migration, and last-viewed practice game persistence
 
 ## Target ownership model
 
