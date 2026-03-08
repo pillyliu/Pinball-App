@@ -127,9 +127,7 @@ private struct GameRoomSelectedSummaryCard: View {
                         .foregroundStyle(.secondary)
                 }
             } else {
-                Text("Select a machine from the collection below.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "Select a machine from the collection below.")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -217,6 +217,7 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 - Library summary cards and Android Settings import result rows now also use shared subheading and empty-state seams, replacing the remaining local subtitle/result-title treatment in those feature surfaces.
 - Android Library route-missing recovery and Android Settings manufacturer empty-search treatment now also use shared panel-empty seams, and the iOS Settings venue minimum-game control now uses the shared subheading hierarchy instead of isolated local text styling.
 - Android Practice active-group rows and Android GameRoom machine-route headers now also use shared title and empty-state hierarchy, replacing remaining local semibold titles and generic route-title treatment in those home/detail surfaces.
+- Android Practice home mini-card titles and the remaining iOS GameRoom selected-machine empty state now also use shared title and panel-empty seams, removing another small pocket of feature-local hierarchy drift from the home routes.
 
 ## Next design-system steps
 

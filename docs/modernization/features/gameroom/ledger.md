@@ -55,6 +55,7 @@
 - iOS GameRoom machine detail now also uses the owned machine title as the navigation title instead of a generic `Machine View` label, closing another small parity gap against the Android machine route and the branded shared title hierarchy.
 - iOS GameRoom selected-log-entry presentation now also uses shared `AppCardSubheading` and `AppCardTitle` seams instead of a local footnote/subheadline hierarchy, reducing another remaining title-treatment drift in machine-detail presentation.
 - Android GameRoom machine-route header and hero hierarchy now use the selected machine title plus shared `AppCardTitle`/`AppCardSubheading` seams in `GameRoomMachineRoute.kt` instead of the generic `Machine View` header and local semibold/body text treatment.
+- iOS GameRoom selected-machine summary now also uses the shared `AppPanelEmptyCard` seam for its empty state in `GameRoomHomeComponents.swift` instead of the last plain secondary `Text` fallback in that home route.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets

@@ -45,6 +45,7 @@ import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.cardArtworkCandidates
 import com.pillyliu.pinprofandroid.library.rememberCachedImageModel
+import com.pillyliu.pinprofandroid.ui.AppCardTitle
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.SectionTitle
@@ -112,12 +113,9 @@ internal fun HomeMiniCard(
                     modifier = Modifier.height(16.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    label,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
+                AppCardTitle(
+                    text = label,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Text(
