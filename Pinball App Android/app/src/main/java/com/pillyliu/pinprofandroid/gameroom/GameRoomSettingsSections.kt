@@ -26,7 +26,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
@@ -44,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.AppControlCard
+import com.pillyliu.pinprofandroid.ui.AppCompactIconButton
 import com.pillyliu.pinprofandroid.ui.AppDestructiveButton
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
@@ -510,20 +510,12 @@ internal fun GameRoomEditSettingsSection(
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
-                    IconButton(
+                    AppCompactIconButton(
+                        icon = Icons.Outlined.Delete,
+                        contentDescription = "Delete area",
                         onClick = { context.onDeleteArea(area.id) },
-                        modifier = Modifier
-                            .size(32.dp)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-                            .clip(RoundedCornerShape(8.dp)),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = "Delete area",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
+                        destructive = true,
+                    )
                 }
             }
         }

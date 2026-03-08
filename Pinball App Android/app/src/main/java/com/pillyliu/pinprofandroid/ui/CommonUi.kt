@@ -179,6 +179,50 @@ fun AppHeaderIconButton(
 }
 
 @Composable
+fun AppCompactIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    destructive: Boolean = false,
+    tintOverride: Color? = null,
+    size: Dp = 32.dp,
+    iconSize: Dp = 18.dp,
+) {
+    val colors = PinballThemeTokens.colors
+    val shapes = PinballThemeTokens.shapes
+    val borderColor = if (destructive) {
+        MaterialTheme.colorScheme.error.copy(alpha = 0.32f)
+    } else {
+        colors.brandGold.copy(alpha = 0.28f)
+    }
+    val contentColor = tintOverride ?: if (destructive) MaterialTheme.colorScheme.error else colors.brandInk
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+            .size(size)
+            .background(
+                colors.controlBackground.copy(alpha = if (enabled) 0.94f else 0.66f),
+                RoundedCornerShape(shapes.controlCorner),
+            )
+            .border(
+                1.dp,
+                borderColor.copy(alpha = if (enabled) borderColor.alpha else borderColor.alpha * 0.6f),
+                RoundedCornerShape(shapes.controlCorner),
+            ),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = contentColor.copy(alpha = if (enabled) 1f else 0.5f),
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}
+
+@Composable
 fun AppScreenHeader(
     title: String,
     onBack: () -> Unit,

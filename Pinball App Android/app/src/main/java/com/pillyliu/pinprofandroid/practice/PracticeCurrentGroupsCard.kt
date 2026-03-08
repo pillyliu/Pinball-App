@@ -23,7 +23,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -50,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
+import com.pillyliu.pinprofandroid.ui.AppCompactIconButton
 import com.pillyliu.pinprofandroid.ui.AppSelectableRowButton
 import com.pillyliu.pinprofandroid.ui.AppSwipeRevealActionButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -102,20 +102,22 @@ internal fun CurrentGroupsCard(
                 }
             }
             Box(modifier = Modifier.weight(1f))
-            IconButton(onClick = onCreateGroup) {
-                Icon(Icons.Outlined.Add, contentDescription = "Add group")
-            }
+            AppCompactIconButton(
+                icon = Icons.Outlined.Add,
+                contentDescription = "Add group",
+                onClick = onCreateGroup,
+            )
             val selectedID = selectedVisibleID
-            IconButton(
+            AppCompactIconButton(
+                icon = Icons.Outlined.Edit,
+                contentDescription = "Edit selected group",
                 onClick = {
                     if (selectedID != null) {
                         onEditSelectedGroup(selectedID)
                     }
                 },
                 enabled = selectedID != null,
-            ) {
-                Icon(Icons.Outlined.Edit, contentDescription = "Edit selected group")
-            }
+            )
         }
         if (visibleGroups.isEmpty()) {
             Text(if (showArchived) "No archived groups." else "No current groups.")
@@ -244,22 +246,19 @@ internal fun CurrentGroupsCard(
                                 .weight(1f)
                                 .padding(horizontal = 6.dp),
                         )
-                        IconButton(
+                        AppCompactIconButton(
+                            icon = if (group.isPriority) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
+                            contentDescription = if (group.isPriority) "Priority on" else "Priority off",
                             onClick = {
                                 store.updateGroup(group.copy(isPriority = !group.isPriority))
                                 onRevealedGroupIDChange(null)
                                 offsetX = 0f
                             },
-                            modifier = Modifier
-                                .width(priorityColWidth)
-                                .height(30.dp),
-                        ) {
-                            Icon(
-                                imageVector = if (group.isPriority) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
-                                contentDescription = if (group.isPriority) "Priority on" else "Priority off",
-                                tint = if (group.isPriority) Color(0xFFFFA726) else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                            modifier = Modifier.width(priorityColWidth),
+                            tintOverride = if (group.isPriority) Color(0xFFFFA726) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            size = 30.dp,
+                            iconSize = 18.dp,
+                        )
                         AppInlineActionChip(
                             text = group.startDateMs?.let { formatShortDate(it) } ?: "-",
                             onClick = {

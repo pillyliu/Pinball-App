@@ -47,6 +47,7 @@
 - iOS GameRoom media import buttons and add-machine utility actions now also route through the shared secondary CTA and compact icon-button seams in `AppFilterControls.swift`, reducing another pocket of feature-local `.glass` chrome in presentation and settings flows.
 - Android GameRoom fullscreen media controls now also route through a shared fullscreen action-pill seam in `SharedFullscreenChrome.kt` instead of local white `TextButton` controls in `GameRoomPresentationComponents.kt`.
 - Android GameRoom home settings gear now also routes through the shared header icon-button seam in `CommonUi.kt` instead of a raw `IconButton` in `GameRoomRouteContent.kt`.
+- Android GameRoom area delete controls now also route through the shared compact icon-button seam in `CommonUi.kt` instead of a feature-local bordered `IconButton` in `GameRoomSettingsSections.kt`.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets
