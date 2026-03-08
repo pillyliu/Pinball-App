@@ -281,9 +281,6 @@ internal fun AddVenueScreen(
             emptyResultsMessage?.let {
                 AppPanelEmptyCard(text = it)
             }
-            if (!hasSearched && results.isEmpty() && !searching) {
-                AppPanelEmptyCard(text = "Search Pinball Map by city or ZIP, then import a venue as a Library source.")
-            }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
                 items(filteredResults) { result ->
                     CardContainer {

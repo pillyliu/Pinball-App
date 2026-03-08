@@ -95,6 +95,9 @@ internal fun SeedManufacturer.toCatalogManufacturerRecord(): CatalogManufacturer
     CatalogManufacturerRecord(
         id = id,
         name = name,
+        isModern = null,
+        featuredRank = null,
+        gameCount = null,
     )
 
 internal fun SeedMachine.toCatalogMachineRecord(): CatalogMachineRecord =

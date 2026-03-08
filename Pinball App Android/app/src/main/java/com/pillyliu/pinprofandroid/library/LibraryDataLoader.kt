@@ -34,10 +34,10 @@ internal fun decodeCatalogManufacturerOptions(raw: String): List<CatalogManufact
             CatalogManufacturerOption(
                 id = manufacturer.id,
                 name = manufacturer.name,
-                gameCount = groupCountsByManufacturerId[manufacturer.id] ?: 0,
-                isModern = false,
-                featuredRank = null,
-                sortBucket = 2,
+                gameCount = groupCountsByManufacturerId[manufacturer.id] ?: manufacturer.gameCount ?: 0,
+                isModern = manufacturer.isModern ?: false,
+                featuredRank = manufacturer.featuredRank,
+                sortBucket = if (manufacturer.isModern == true) 0 else if (manufacturer.featuredRank == null) 2 else 1,
             )
         }
         .sortedWith(
@@ -96,6 +96,9 @@ private data class NormalizedRoot(
 internal data class CatalogManufacturerRecord(
     val id: String,
     val name: String,
+    val isModern: Boolean?,
+    val featuredRank: Int?,
+    val gameCount: Int?,
 )
 
 internal data class CatalogMachineRecord(
@@ -652,7 +655,15 @@ private fun JSONArray?.toManufacturerRecords(): List<CatalogManufacturerRecord> 
             val obj = optJSONObject(i) ?: continue
             val id = obj.optStringOrNullLocal("id") ?: continue
             val name = obj.optStringOrNullLocal("name") ?: continue
-            add(CatalogManufacturerRecord(id = id, name = name))
+            add(
+                CatalogManufacturerRecord(
+                    id = id,
+                    name = name,
+                    isModern = if (obj.has("is_modern") && !obj.isNull("is_modern")) obj.optBoolean("is_modern") else null,
+                    featuredRank = obj.optIntOrNullLocal("featured_rank"),
+                    gameCount = obj.optIntOrNullLocal("game_count"),
+                ),
+            )
         }
     }
 }
