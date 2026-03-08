@@ -14,7 +14,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import java.util.Locale
 
@@ -85,10 +85,10 @@ internal fun SelectedGroupDashboardCard(
                 val progress = store.taskProgressForGame(game.practiceKey, selected)
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(
+                        AppSecondaryButton(
                             onClick = { onOpenGame(game.practiceKey) },
                             modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,

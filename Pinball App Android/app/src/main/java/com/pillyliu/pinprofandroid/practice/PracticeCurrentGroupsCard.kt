@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
 import com.pillyliu.pinprofandroid.ui.AppSwipeRevealActionButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
@@ -275,7 +276,8 @@ internal fun CurrentGroupsCard(
                                 tint = if (group.isPriority) Color(0xFFFFA726) else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        TextButton(
+                        AppInlineActionChip(
+                            text = group.startDateMs?.let { formatShortDate(it) } ?: "-",
                             onClick = {
                                 onOpenGroupDatePicker(
                                     group.id,
@@ -285,19 +287,10 @@ internal fun CurrentGroupsCard(
                                 onRevealedGroupIDChange(null)
                                 offsetX = 0f
                             },
-                            modifier = Modifier
-                                .width(dateColWidth)
-                                .height(30.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                        ) {
-                            Text(
-                                group.startDateMs?.let { formatShortDate(it) } ?: "-",
-                                style = MaterialTheme.typography.labelSmall,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                        TextButton(
+                            modifier = Modifier.width(dateColWidth),
+                        )
+                        AppInlineActionChip(
+                            text = group.endDateMs?.let { formatShortDate(it) } ?: "-",
                             onClick = {
                                 onOpenGroupDatePicker(
                                     group.id,
@@ -307,18 +300,8 @@ internal fun CurrentGroupsCard(
                                 onRevealedGroupIDChange(null)
                                 offsetX = 0f
                             },
-                            modifier = Modifier
-                                .width(dateColWidth)
-                                .height(30.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                        ) {
-                            Text(
-                                group.endDateMs?.let { formatShortDate(it) } ?: "-",
-                                style = MaterialTheme.typography.labelSmall,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
+                            modifier = Modifier.width(dateColWidth),
+                        )
                     }
                 }
             }

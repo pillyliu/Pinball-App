@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +37,9 @@ import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.LibraryActivityKind
 import com.pillyliu.pinprofandroid.library.LibraryActivityLog
 import com.pillyliu.pinprofandroid.ui.AppConfirmDialog
+import com.pillyliu.pinprofandroid.ui.AppDestructiveButton
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import java.time.Instant
@@ -144,20 +145,22 @@ internal fun PracticeJournalSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Button(
+                    AppSecondaryButton(
                         onClick = {
-                            val entry = selectedEditableEntries.singleOrNull() ?: return@Button
+                            val entry = selectedEditableEntries.singleOrNull() ?: return@AppSecondaryButton
                             editingDraft = store.journalEditDraft(entry)
                             editValidation = null
                         },
                         enabled = selectedEditableEntries.size == 1,
+                        modifier = Modifier.weight(1f),
                     ) {
                         Icon(Icons.Outlined.Edit, contentDescription = null)
                         Text("Edit")
                     }
-                    Button(
+                    AppDestructiveButton(
                         onClick = { pendingDeleteRows = selectedEditableEntries },
                         enabled = selectedEditableEntries.isNotEmpty(),
+                        modifier = Modifier.weight(1f),
                     ) {
                         Icon(Icons.Outlined.Delete, contentDescription = null)
                         Text("Delete")
