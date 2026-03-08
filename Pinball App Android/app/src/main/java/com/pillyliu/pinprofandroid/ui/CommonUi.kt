@@ -45,17 +45,18 @@ val LocalBottomBarVisible = compositionLocalOf<MutableState<Boolean>> {
 fun AppScreen(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
-    horizontalPadding: Dp = 14.dp,
+    horizontalPadding: Dp = PinballThemeTokens.spacing.screenHorizontal,
     content: @Composable () -> Unit,
 ) {
     val colors = PinballThemeTokens.colors
+    val spacing = PinballThemeTokens.spacing
     Box(
         modifier = Modifier
             .then(modifier)
             .fillMaxSize()
             .background(colors.background)
             .padding(contentPadding)
-            .padding(horizontal = horizontalPadding, vertical = 8.dp),
+            .padding(horizontal = horizontalPadding, vertical = spacing.screenVerticalCompact),
     ) {
         content()
     }
@@ -131,12 +132,13 @@ fun Modifier.iosEdgeSwipeBack(
 fun CardContainer(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val colors = PinballThemeTokens.colors
     val shapes = PinballThemeTokens.shapes
+    val spacing = PinballThemeTokens.spacing
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(colors.panel, RoundedCornerShape(shapes.panelCorner))
             .border(1.dp, colors.border.copy(alpha = 0.38f), RoundedCornerShape(shapes.panelCorner))
-            .padding(12.dp),
+            .padding(spacing.panelPadding),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         content()

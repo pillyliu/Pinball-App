@@ -38,6 +38,18 @@ data class PinballShapeTokens(
     val controlCorner: Dp,
 )
 
+@Immutable
+data class PinballSpacingTokens(
+    val screenHorizontal: Dp,
+    val screenVerticalCompact: Dp,
+    val panelPadding: Dp,
+    val controlHorizontal: Dp,
+    val controlVertical: Dp,
+    val shellBarHeight: Dp,
+    val shellBottomPadding: Dp,
+    val shellContentBottomInset: Dp,
+)
+
 internal val LocalPinballSemanticColors = compositionLocalOf<PinballSemanticColors> {
     error("LocalPinballSemanticColors not provided")
 }
@@ -46,15 +58,33 @@ internal val LocalPinballShapeTokens = compositionLocalOf<PinballShapeTokens> {
     error("LocalPinballShapeTokens not provided")
 }
 
+internal val LocalPinballSpacingTokens = compositionLocalOf<PinballSpacingTokens> {
+    error("LocalPinballSpacingTokens not provided")
+}
+
 object PinballThemeTokens {
     val colors: PinballSemanticColors
         @Composable get() = LocalPinballSemanticColors.current
 
     val shapes: PinballShapeTokens
         @Composable get() = LocalPinballShapeTokens.current
+
+    val spacing: PinballSpacingTokens
+        @Composable get() = LocalPinballSpacingTokens.current
 }
 
 internal val DefaultPinballShapeTokens = PinballShapeTokens(
     panelCorner = 12.dp,
     controlCorner = 10.dp,
+)
+
+internal val DefaultPinballSpacingTokens = PinballSpacingTokens(
+    screenHorizontal = 14.dp,
+    screenVerticalCompact = 8.dp,
+    panelPadding = 12.dp,
+    controlHorizontal = 12.dp,
+    controlVertical = 6.dp,
+    shellBarHeight = 66.dp,
+    shellBottomPadding = 8.dp,
+    shellContentBottomInset = 74.dp,
 )

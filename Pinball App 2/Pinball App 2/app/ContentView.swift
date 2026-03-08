@@ -8,7 +8,7 @@
 import SwiftUI
 import Combine
 
-enum RootTab: Hashable {
+enum RootTab: Hashable, CaseIterable {
     case league
     case library
     case gameroom
@@ -34,6 +34,22 @@ enum RootTab: Hashable {
         case .settings: return "slider.horizontal.3"
         }
     }
+
+    @ViewBuilder
+    func rootView() -> some View {
+        switch self {
+        case .league:
+            LeagueScreen()
+        case .library:
+            LibraryScreen()
+        case .gameroom:
+            GameRoomScreen()
+        case .practice:
+            PracticeScreen()
+        case .settings:
+            SettingsScreen()
+        }
+    }
 }
 
 final class AppNavigationModel: ObservableObject {
@@ -53,35 +69,13 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $appNavigation.selectedTab) {
-            LeagueScreen()
-                .tag(RootTab.league)
-                .tabItem {
-                    Label(RootTab.league.title, systemImage: RootTab.league.systemImage)
-                }
-
-            LibraryScreen()
-                .tag(RootTab.library)
-                .tabItem {
-                    Label(RootTab.library.title, systemImage: RootTab.library.systemImage)
-                }
-
-            PracticeScreen()
-                .tag(RootTab.practice)
-                .tabItem {
-                    Label(RootTab.practice.title, systemImage: RootTab.practice.systemImage)
-                }
-
-            GameRoomScreen()
-                .tag(RootTab.gameroom)
-                .tabItem {
-                    Label(RootTab.gameroom.title, systemImage: RootTab.gameroom.systemImage)
-                }
-
-            SettingsScreen()
-                .tag(RootTab.settings)
-                .tabItem {
-                    Label(RootTab.settings.title, systemImage: RootTab.settings.systemImage)
-                }
+            ForEach(RootTab.allCases, id: \.self) { tab in
+                tab.rootView()
+                    .tag(tab)
+                    .tabItem {
+                        Label(tab.title, systemImage: tab.systemImage)
+                    }
+            }
         }
         .environmentObject(appNavigation)
     }

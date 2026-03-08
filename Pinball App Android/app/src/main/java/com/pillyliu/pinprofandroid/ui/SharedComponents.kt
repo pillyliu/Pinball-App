@@ -63,7 +63,7 @@ fun CompactDropdownFilter(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
     minHeight: Dp = 34.dp,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 10.dp, vertical = 3.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = PinballThemeTokens.spacing.controlHorizontal, vertical = 3.dp),
     textSize: TextUnit = 12.sp,
     itemTextSize: TextUnit = 12.sp,
 ) {
@@ -126,7 +126,12 @@ fun AnchoredDropdownFilter(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
     minHeight: Dp = 40.dp,
-    contentPadding: PaddingValues = PaddingValues(start = 10.dp, end = 28.dp, top = 7.dp, bottom = 7.dp),
+    contentPadding: PaddingValues = PaddingValues(
+        start = PinballThemeTokens.spacing.controlHorizontal,
+        end = 28.dp,
+        top = PinballThemeTokens.spacing.controlVertical + 1.dp,
+        bottom = PinballThemeTokens.spacing.controlVertical + 1.dp,
+    ),
     buttonTextSize: TextUnit = 13.sp,
     itemTextSize: TextUnit = 12.sp,
 ) {

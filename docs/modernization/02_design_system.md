@@ -86,13 +86,16 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 - Android now has an explicit semantic token layer in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/PinballDesignTokens.kt`.
 - `PinballTheme.kt` now provides semantic shell/panel/control/stat/target roles instead of exposing only raw Material scheme usage to the rest of the app.
 - Android shell and shared UI now consume those semantic tokens in:
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/PinballShell.kt`
   - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/MainActivity.kt`
   - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt`
   - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/SharedComponents.kt`
-- iOS still needs the equivalent expansion from color helpers toward a fuller semantic token inventory for spacing, radii, and shell roles.
+- Android spacing and shell-bar geometry are now part of the same semantic token layer instead of being repeated as raw `dp` constants across root shell and shared UI.
+- iOS now exposes semantic color, spacing, and shape token groups in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppTheme.swift` instead of only flat globals.
+- iOS root tabs in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/app/ContentView.swift` now use one metadata-driven tab contract instead of repeating screen/title/icon wiring inline.
 
 ## Next design-system steps
 
-1. Expand iOS semantic tokens beyond color helpers so shell, panel, and control roles are explicit.
-2. Normalize root-shell chrome and bottom-bar semantics across `ContentView.swift` and `MainActivity.kt`.
-3. Move shared component families onto semantic tokens before any broader visual restyling.
+1. Move more shared component families onto semantic spacing and shape tokens instead of ad hoc local constants.
+2. Normalize top-bar, sheet, and dialog chrome across shared UI helpers on both platforms.
+3. Start documenting typography and motion roles before broader visual restyling.
