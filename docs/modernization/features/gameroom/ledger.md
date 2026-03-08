@@ -14,10 +14,11 @@
 - iOS machine detail, segmented subview layout, machine input sheets, event editing, media preview/edit presentation, and machine-log helpers were moved out of `GameRoomScreen.swift` into `GameRoomMachineView.swift`.
 - Android machine route layout, summary/input/log panels, and machine-route event handlers were moved out of `GameRoomScreen.kt` into `GameRoomMachineRoute.kt`.
 - iOS settings shell, import flow, edit-machines surface, and archive surface were moved out of `GameRoomScreen.swift` into `GameRoomSettingsComponents.swift`.
+- Android settings import flow and archive surface were moved out of `GameRoomScreen.kt` into `GameRoomSettingsSections.kt`.
 
 ## Next audit targets
 
 - split oversized GameRoom screen files
 - verify that Android and iOS still match every `3.1` contract item after cleanup
 - inventory repeated UI patterns that should move into shared platform UI layers
-- isolate Android settings import/edit/archive clusters next
+- isolate Android edit-machines surface and remaining GameRoom sheet/presentation clusters next

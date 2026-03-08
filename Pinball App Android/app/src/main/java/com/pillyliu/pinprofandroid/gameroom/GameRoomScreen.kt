@@ -128,13 +128,13 @@ private enum class GameRoomRoute {
     MachineView,
 }
 
-private enum class GameRoomSettingsSection(val label: String) {
+internal enum class GameRoomSettingsSection(val label: String) {
     Import("Import"),
     Edit("Edit"),
     Archive("Archive"),
 }
 
-private enum class GameRoomArchiveFilter(val label: String) {
+internal enum class GameRoomArchiveFilter(val label: String) {
     All("All"),
     Sold("Sold"),
     Traded("Traded"),
@@ -168,12 +168,12 @@ internal enum class GameRoomInputSheet(val title: String) {
     AddMedia("Add Photo/Video"),
 }
 
-private enum class ImportReviewFilter(val label: String) {
+internal enum class ImportReviewFilter(val label: String) {
     All("All"),
     NeedsReview("Needs Review"),
 }
 
-private data class ImportDraftRow(
+internal data class ImportDraftRow(
     val id: String,
     val sourceItemKey: String,
     val rawTitle: String,
@@ -356,12 +356,6 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
         "Showing 0 of 0"
     } else {
         "Showing ${safeResultWindowStart + 1}-${safeResultWindowEnd} of ${filteredCatalogGames.size}"
-    }
-    val filteredImportRows = importRows.filter { row ->
-        when (importReviewFilter) {
-            ImportReviewFilter.All -> true
-            ImportReviewFilter.NeedsReview -> needsImportReview(row, store, catalogLoader)
-        }
     }
     val allAttachments = store.state.attachments
     val mediaPreviewAttachment = mediaPreviewAttachmentID?.let { id -> allAttachments.firstOrNull { it.id == id } }
@@ -838,282 +832,113 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
                             fontWeight = FontWeight.SemiBold,
                         )
                         if (selectedSettingsSection == GameRoomSettingsSection.Import) {
-                            OutlinedTextField(
-                                value = importSourceInput,
-                                onValueChange = { importSourceInput = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                label = { Text("Pinside username or public collection URL") },
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                                keyboardActions = KeyboardActions(
-                                    onGo = {
-                                        val input = importSourceInput.trim()
-                                        if (!importIsLoading && input.isNotBlank()) {
-                                            scope.launch {
-                                                importErrorMessage = null
-                                                importResultMessage = null
-                                                importIsLoading = true
-                                                try {
-                                                    val result = pinsideImportService.fetchCollectionMachines(input)
-                                                    importSourceURL = result.sourceURL
-                                                    importRows = result.machines.map { machine ->
-                                                        makeImportDraftRow(machine, catalogLoader)
-                                                    }
-                                                    importReviewFilter = ImportReviewFilter.All
-                                                } catch (error: GameRoomPinsideImportException) {
-                                                    importSourceURL = ""
-                                                    importRows = emptyList()
-                                                    importErrorMessage = error.userMessage
-                                                } catch (_: Throwable) {
-                                                    importSourceURL = ""
-                                                    importRows = emptyList()
-                                                    importErrorMessage = "Could not load Pinside collection right now."
-                                                } finally {
-                                                    importIsLoading = false
+                            GameRoomImportSettingsSection(
+                                store = store,
+                                catalogLoader = catalogLoader,
+                                importSourceInput = importSourceInput,
+                                onImportSourceInputChange = { importSourceInput = it },
+                                importIsLoading = importIsLoading,
+                                importErrorMessage = importErrorMessage,
+                                importResultMessage = importResultMessage,
+                                importRows = importRows,
+                                importReviewFilter = importReviewFilter,
+                                onImportReviewFilterChange = { importReviewFilter = it },
+                                onFetchCollection = {
+                                    val input = importSourceInput.trim()
+                                    if (!importIsLoading && input.isNotBlank()) {
+                                        scope.launch {
+                                            importErrorMessage = null
+                                            importResultMessage = null
+                                            importIsLoading = true
+                                            try {
+                                                val result = pinsideImportService.fetchCollectionMachines(input)
+                                                importSourceURL = result.sourceURL
+                                                importRows = result.machines.map { machine ->
+                                                    makeImportDraftRow(machine, catalogLoader)
                                                 }
-                                            }
-                                        }
-                                    },
-                                ),
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Button(
-                                    onClick = {
-                                        val input = importSourceInput.trim()
-                                        if (!importIsLoading && input.isNotBlank()) {
-                                            scope.launch {
-                                                importErrorMessage = null
-                                                importResultMessage = null
-                                                importIsLoading = true
-                                                try {
-                                                    val result = pinsideImportService.fetchCollectionMachines(input)
-                                                    importSourceURL = result.sourceURL
-                                                    importRows = result.machines.map { machine ->
-                                                        makeImportDraftRow(machine, catalogLoader)
-                                                    }
-                                                    importReviewFilter = ImportReviewFilter.All
-                                                } catch (error: GameRoomPinsideImportException) {
-                                                    importSourceURL = ""
-                                                    importRows = emptyList()
-                                                    importErrorMessage = error.userMessage
-                                                } catch (_: Throwable) {
-                                                    importSourceURL = ""
-                                                    importRows = emptyList()
-                                                    importErrorMessage = "Could not load Pinside collection right now."
-                                                } finally {
-                                                    importIsLoading = false
-                                                }
-                                            }
-                                        }
-                                    },
-                                    enabled = !importIsLoading && importSourceInput.trim().isNotEmpty(),
-                                ) {
-                                    Text(if (importIsLoading) "Fetching..." else "Fetch Collection")
-                                }
-                            }
-                            if (importErrorMessage != null) {
-                                Text(
-                                    text = importErrorMessage.orEmpty(),
-                                    color = Color(0xFFD14F4F),
-                                )
-                            }
-                            if (importRows.isNotEmpty()) {
-                                Text(
-                                    text = "Review matches (${importRows.size})",
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    ImportReviewFilter.entries.forEach { filter ->
-                                        val selected = filter == importReviewFilter
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .background(
-                                                    if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                                    RoundedCornerShape(999.dp),
-                                                )
-                                                .border(
-                                                    width = 1.dp,
-                                                    color = if (selected) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outlineVariant,
-                                                    shape = RoundedCornerShape(999.dp),
-                                                )
-                                                .clickable { importReviewFilter = filter }
-                                                .padding(vertical = 8.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Text(
-                                                text = filter.label,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                            )
-                                        }
-                                    }
-                                }
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    filteredImportRows.forEach { row ->
-                                        val duplicateWarning = duplicateWarningMessage(row, store, catalogLoader)
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(10.dp))
-                                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                                                .padding(10.dp),
-                                        ) {
-                                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                ) {
-                                                    Text(
-                                                        text = row.rawTitle,
-                                                        color = MaterialTheme.colorScheme.onSurface,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis,
-                                                        modifier = Modifier.weight(1f),
-                                                    )
-                                                    MatchConfidenceBadge(row.matchConfidence)
-                                                }
-                                                if (!row.rawVariant.isNullOrBlank()) {
-                                                    Text(
-                                                        text = "Variant: ${row.rawVariant}",
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    )
-                                                }
-                                                OutlinedTextField(
-                                                    value = row.rawPurchaseDateText.orEmpty(),
-                                                    onValueChange = { updatedRaw ->
-                                                        importRows = importRows.map { current ->
-                                                            if (current.id != row.id) current else current.copy(
-                                                                rawPurchaseDateText = updatedRaw.ifBlank { null },
-                                                                normalizedPurchaseDateMs = normalizeFirstOfMonthMs(updatedRaw),
-                                                            )
-                                                        }
-                                                    },
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    singleLine = true,
-                                                    label = { Text("Purchase date (raw import text)") },
-                                                )
-                                                if (row.normalizedPurchaseDateMs != null) {
-                                                    Text(
-                                                        text = "Normalized: ${formatDate(row.normalizedPurchaseDateMs, "—")}",
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    )
-                                                }
-                                                if (duplicateWarning != null) {
-                                                    Text(
-                                                        text = duplicateWarning,
-                                                        color = Color(0xFFD18A3D),
-                                                        fontWeight = FontWeight.SemiBold,
-                                                    )
-                                                }
-                                                AnchoredDropdownFilter(
-                                                    selectedText = row.selectedCatalogGameID?.let { selectedID ->
-                                                        catalogLoader.game(selectedID)?.displayTitle
-                                                    } ?: "No Match Selected",
-                                                    options = buildList {
-                                                        row.suggestions.forEach { suggestionID ->
-                                                            val suggestion = catalogLoader.game(suggestionID) ?: return@forEach
-                                                            add(DropdownOption(value = suggestion.catalogGameID, label = suggestion.displayTitle))
-                                                        }
-                                                        add(DropdownOption(value = "__none__", label = "No Match Selected"))
-                                                    },
-                                                    onSelect = { selection ->
-                                                        importRows = importRows.map { current ->
-                                                            if (current.id != row.id) return@map current
-                                                            val selectedCatalogGameID = selection.takeUnless { it == "__none__" }
-                                                            val availableVariants = selectedCatalogGameID?.let { catalogLoader.variantOptions(it) }.orEmpty()
-                                                            val currentVariant = current.selectedVariant
-                                                            val keepVariant = currentVariant?.takeIf { variant ->
-                                                                availableVariants.any { it.equals(variant, ignoreCase = true) }
-                                                            }
-                                                            current.copy(
-                                                                selectedCatalogGameID = selectedCatalogGameID,
-                                                                selectedVariant = keepVariant,
-                                                            )
-                                                        }
-                                                    },
-                                                )
-                                                val selectedCatalogID = row.selectedCatalogGameID
-                                                if (!selectedCatalogID.isNullOrBlank()) {
-                                                    val variants = catalogLoader.variantOptions(selectedCatalogID)
-                                                    if (variants.isNotEmpty()) {
-                                                        AnchoredDropdownFilter(
-                                                            selectedText = row.selectedVariant ?: "None",
-                                                            options = buildList {
-                                                                add(DropdownOption(value = "__none__", label = "None"))
-                                                                variants.forEach { variant ->
-                                                                    add(DropdownOption(value = variant, label = variant))
-                                                                }
-                                                            },
-                                                            onSelect = { variantSelection ->
-                                                                importRows = importRows.map { current ->
-                                                                    if (current.id != row.id) current else current.copy(
-                                                                        selectedVariant = variantSelection.takeUnless { it == "__none__" },
-                                                                    )
-                                                                }
-                                                            },
-                                                        )
-                                                    }
-                                                }
+                                                importReviewFilter = ImportReviewFilter.All
+                                            } catch (error: GameRoomPinsideImportException) {
+                                                importSourceURL = ""
+                                                importRows = emptyList()
+                                                importErrorMessage = error.userMessage
+                                            } catch (_: Throwable) {
+                                                importSourceURL = ""
+                                                importRows = emptyList()
+                                                importErrorMessage = "Could not load Pinside collection right now."
+                                            } finally {
+                                                importIsLoading = false
                                             }
                                         }
                                     }
-                                }
-                                Button(
-                                    onClick = {
-                                        var importedCount = 0
-                                        var skippedDuplicates = 0
-                                        var skippedUnmatched = 0
-                                        importRows.forEach { row ->
-                                            val selectedCatalogID = row.selectedCatalogGameID
-                                            val game = selectedCatalogID?.let { catalogLoader.game(it) }
-                                            if (game == null) {
-                                                skippedUnmatched += 1
-                                                return@forEach
-                                            }
-                                            val resolvedVariant = row.selectedVariant ?: row.rawVariant
-                                            if (store.hasImportFingerprint(row.fingerprint) || store.hasOwnedMachine(game.catalogGameID, resolvedVariant)) {
-                                                skippedDuplicates += 1
-                                                return@forEach
-                                            }
-                                            store.importOwnedMachine(
-                                                game = game,
-                                                sourceUserOrURL = importSourceURL.ifBlank { importSourceInput.trim() },
-                                                sourceItemKey = row.sourceItemKey,
-                                                rawTitle = row.rawTitle,
-                                                rawVariant = resolvedVariant,
-                                                rawPurchaseDateText = row.rawPurchaseDateText,
-                                                normalizedPurchaseDateMs = row.normalizedPurchaseDateMs,
-                                                matchConfidence = row.matchConfidence,
-                                                fingerprint = row.fingerprint,
+                                },
+                                onUpdateImportPurchaseDate = { rowID, updatedRaw ->
+                                    importRows = importRows.map { current ->
+                                        if (current.id != rowID) {
+                                            current
+                                        } else {
+                                            current.copy(
+                                                rawPurchaseDateText = updatedRaw.ifBlank { null },
+                                                normalizedPurchaseDateMs = normalizeFirstOfMonthMs(updatedRaw),
                                             )
-                                            importedCount += 1
                                         }
-                                        importResultMessage = "Imported $importedCount. Skipped $skippedDuplicates duplicates, $skippedUnmatched unmatched."
-                                    },
-                                    enabled = importRows.isNotEmpty(),
-                                ) {
-                                    Text("Import Selected Matches")
-                                }
-                            }
-                            if (importResultMessage != null) {
-                                Text(
-                                    text = importResultMessage.orEmpty(),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Text(
-                                text = "Import records stored: ${store.state.importRecords.size}",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    }
+                                },
+                                onUpdateImportMatch = { rowID, selectedCatalogGameID ->
+                                    importRows = importRows.map { current ->
+                                        if (current.id != rowID) {
+                                            current
+                                        } else {
+                                            val availableVariants = selectedCatalogGameID?.let { catalogLoader.variantOptions(it) }.orEmpty()
+                                            val keepVariant = current.selectedVariant?.takeIf { variant ->
+                                                availableVariants.any { it.equals(variant, ignoreCase = true) }
+                                            }
+                                            current.copy(
+                                                selectedCatalogGameID = selectedCatalogGameID,
+                                                selectedVariant = keepVariant,
+                                            )
+                                        }
+                                    }
+                                },
+                                onUpdateImportVariant = { rowID, selectedVariant ->
+                                    importRows = importRows.map { current ->
+                                        if (current.id != rowID) {
+                                            current
+                                        } else {
+                                            current.copy(selectedVariant = selectedVariant)
+                                        }
+                                    }
+                                },
+                                onPerformImport = {
+                                    var importedCount = 0
+                                    var skippedDuplicates = 0
+                                    var skippedUnmatched = 0
+                                    importRows.forEach { row ->
+                                        val selectedCatalogID = row.selectedCatalogGameID
+                                        val game = selectedCatalogID?.let { catalogLoader.game(it) }
+                                        if (game == null) {
+                                            skippedUnmatched += 1
+                                            return@forEach
+                                        }
+                                        val resolvedVariant = row.selectedVariant ?: row.rawVariant
+                                        if (store.hasImportFingerprint(row.fingerprint) || store.hasOwnedMachine(game.catalogGameID, resolvedVariant)) {
+                                            skippedDuplicates += 1
+                                            return@forEach
+                                        }
+                                        store.importOwnedMachine(
+                                            game = game,
+                                            sourceUserOrURL = importSourceURL.ifBlank { importSourceInput.trim() },
+                                            sourceItemKey = row.sourceItemKey,
+                                            rawTitle = row.rawTitle,
+                                            rawVariant = resolvedVariant,
+                                            rawPurchaseDateText = row.rawPurchaseDateText,
+                                            normalizedPurchaseDateMs = row.normalizedPurchaseDateMs,
+                                            matchConfidence = row.matchConfidence,
+                                            fingerprint = row.fingerprint,
+                                        )
+                                        importedCount += 1
+                                    }
+                                    importResultMessage = "Imported $importedCount. Skipped $skippedDuplicates duplicates, $skippedUnmatched unmatched."
+                                },
                             )
                         }
                     }
@@ -1521,81 +1346,15 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
                         }
                     }
 
-                    if (selectedSettingsSection == GameRoomSettingsSection.Archive) {
-                        val filteredArchivedMachines = when (archiveFilter) {
-                            GameRoomArchiveFilter.All -> store.archivedMachines
-                            GameRoomArchiveFilter.Sold -> store.archivedMachines.filter { it.status == OwnedMachineStatus.sold }
-                            GameRoomArchiveFilter.Traded -> store.archivedMachines.filter { it.status == OwnedMachineStatus.traded }
-                            GameRoomArchiveFilter.Archived -> store.archivedMachines.filter { it.status == OwnedMachineStatus.archived }
-                        }
-                        CardContainer {
-                            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                                GameRoomArchiveFilter.entries.forEachIndexed { index, filter ->
-                                    SegmentedButton(
-                                        selected = archiveFilter == filter,
-                                        onClick = { archiveFilter = filter },
-                                        shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
-                                            index = index,
-                                            count = GameRoomArchiveFilter.entries.size,
-                                        ),
-                                        label = { Text(filter.label, maxLines = 1) },
-                                    )
-                                }
-                            }
-
-                            if (filteredArchivedMachines.isEmpty()) {
-                                Text(
-                                    text = "No archived machines for this filter.",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            } else {
-                                Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                                    filteredArchivedMachines.forEachIndexed { index, machine ->
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    selectedMachineID = machine.id
-                                                    route = GameRoomRoute.MachineView
-                                                }
-                                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = machine.displayTitle,
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    fontWeight = FontWeight.Medium,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                )
-                                                Text(
-                                                    text = machine.status.name.replaceFirstChar { it.uppercase() },
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                )
-                                            }
-                                            Icon(
-                                                imageVector = Icons.Outlined.ChevronRight,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(16.dp),
-                                            )
-                                        }
-                                        if (index != filteredArchivedMachines.lastIndex) {
-                                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                                        }
-                                    }
-                                }
-                            }
-
-                            Text(
-                                text = "Archived machines: ${filteredArchivedMachines.size}",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                    GameRoomArchiveSettingsSection(
+                        store = store,
+                        archiveFilter = archiveFilter,
+                        onArchiveFilterChange = { archiveFilter = it },
+                        onOpenMachineView = { machineID ->
+                            selectedMachineID = machineID
+                            route = GameRoomRoute.MachineView
+                        },
+                    )
                 }
             }
 
@@ -2262,7 +2021,7 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
     }
 }
 
-private fun makeImportDraftRow(
+internal fun makeImportDraftRow(
     machine: PinsideImportedMachine,
     catalogLoader: GameRoomCatalogLoader,
 ): ImportDraftRow {
@@ -2388,7 +2147,7 @@ private fun formatter(pattern: String): DateTimeFormatter {
         .withResolverStyle(ResolverStyle.SMART)
 }
 
-private fun duplicateWarningMessage(
+internal fun duplicateWarningMessage(
     row: ImportDraftRow,
     store: GameRoomStore,
     catalogLoader: GameRoomCatalogLoader,
@@ -2407,7 +2166,7 @@ private fun duplicateWarningMessage(
     }
 }
 
-private fun needsImportReview(
+internal fun needsImportReview(
     row: ImportDraftRow,
     store: GameRoomStore,
     catalogLoader: GameRoomCatalogLoader,
@@ -2418,7 +2177,7 @@ private fun needsImportReview(
 }
 
 @Composable
-private fun MatchConfidenceBadge(confidence: MachineImportMatchConfidence) {
+internal fun MatchConfidenceBadge(confidence: MachineImportMatchConfidence) {
     val badgeColor = when (confidence) {
         MachineImportMatchConfidence.high -> Color(0xFF53A653)
         MachineImportMatchConfidence.medium -> Color(0xFFF2C14E)
