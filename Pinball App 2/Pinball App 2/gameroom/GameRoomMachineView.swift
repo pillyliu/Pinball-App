@@ -75,8 +75,7 @@ struct GameRoomMachineView: View {
                     if let machine {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(alignment: .center, spacing: 8) {
-                                Text(machine.displayTitle)
-                                    .font(.title3.weight(.semibold))
+                                AppCardTitle(text: machine.displayTitle, lineLimit: 2)
                                 if let label = gameRoomVariantBadgeLabel(variant: machine.displayVariant, title: machine.displayTitle) {
                                     GameRoomVariantPill(label: label, style: .machineTitle)
                                 }

@@ -230,6 +230,7 @@
 - Android Practice group-dashboard add/edit controls and priority toggles now also route through the shared compact icon-button seam in `CommonUi.kt` instead of mixed local `IconButton` sizing and styling in `PracticeCurrentGroupsCard.kt`.
 - iOS Practice selected-group dashboard title now also uses the shared `AppCardSubheading` seam instead of a local `.headline` title in `PracticeGroupDashboardSection.swift`.
 - Shared `AppCardTitle` chrome now also backs the iOS Practice resources title and IFPA profile name, reducing the remaining medium-emphasis title drift in Practice detail surfaces.
+- Shared title hierarchy now also backs Practice home group names and Android selected-group dashboard titles, reducing the last remaining home-route semibold title drift in Practice.
 
 ## Next audit targets
 

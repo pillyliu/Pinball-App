@@ -207,6 +207,7 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 - iOS Practice and GameRoom section/card headings now continue to converge on the shared title hierarchy, with inner dashboard/settings headings moving off raw `.headline` pockets and onto shared `AppCardSubheading` / `AppSectionTitle` seams.
 - iOS root tabs in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/app/ContentView.swift` now use one metadata-driven tab contract instead of repeating screen/title/icon wiring inline.
 - Shared cross-platform `AppCardTitle` seams now back medium-emphasis titles in Library, Practice, GameRoom, and League, replacing the remaining mix of feature-local `.headline`, `.title3`, and semibold `Text` styling in those card and home-header surfaces.
+- Those shared card-title and subheading seams now also back the remaining selected-group and machine-title hierarchy in Practice and GameRoom home/detail routes, reducing the last obvious home-route title drift across platforms.
 
 ## Next design-system steps
 

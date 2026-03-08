@@ -111,8 +111,7 @@ struct PracticeHomeSection: View {
                         ForEach(activeGroups) { group in
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack(spacing: 6) {
-                                    Text(group.name)
-                                        .font(.subheadline.weight(.semibold))
+                                    AppCardSubheading(text: group.name)
                                     if group.id == selectedGroupID {
                                         AppPassiveStatusChip(text: "Selected")
                                     }

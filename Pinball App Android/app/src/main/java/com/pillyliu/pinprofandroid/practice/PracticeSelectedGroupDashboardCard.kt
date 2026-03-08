@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppCardTitle
+import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import java.util.Locale
@@ -33,7 +35,7 @@ internal fun SelectedGroupDashboardCard(
     onOpenGame: (String) -> Unit,
 ) {
     CardContainer {
-        Text(selected.name, fontWeight = FontWeight.SemiBold)
+        AppCardTitle(selected.name)
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -97,7 +99,10 @@ internal fun SelectedGroupDashboardCard(
                             ) {
                                 GroupProgressWheel(taskProgress = progress, modifier = Modifier.width(46.dp).height(46.dp))
                                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Text(game.name, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
+                                    AppCardSubheading(
+                                        text = game.name,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
                                     Text(progressSummary(progress), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Icon(
