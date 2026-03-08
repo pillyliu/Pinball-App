@@ -43,14 +43,14 @@ extension PracticeScreen {
                         Button("Clear", role: .destructive) {
                             context.onClearEditedGroupDate()
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(AppDestructiveActionButtonStyle(fillsWidth: false))
 
                         Spacer()
 
                         Button("Save") {
                             context.onSaveEditedGroupDate()
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(AppPrimaryActionButtonStyle(fillsWidth: false))
                     }
                 }
                 .padding(.horizontal, 14)

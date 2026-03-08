@@ -218,6 +218,7 @@
 - Android Practice save/import/reset and mechanics-log call-to-action buttons now also use the shared `AppPrimaryButton` seam in `CommonUi.kt` instead of repeated feature-local `Button` styling in `PracticeSettingsSection.kt` and `PracticeMechanicsSection.kt`.
 - Android Practice group-editor footer actions, template-apply actions, and position nudges now also use shared `AppPrimaryButton`, `AppSecondaryButton`, and `AppInlineActionChip` seams in `CommonUi.kt` instead of keeping one more pocket of feature-local `TextButton` editor chrome in `PracticeGroupEditorSections.kt`.
 - iOS Practice settings `Save Profile`, `Save IFPA ID`, `Import LPL CSV`, and `Reset Practice Log` actions now also route through the shared `AppPrimaryActionButtonStyle` and `AppDestructiveActionButtonStyle` seams in `AppFilterControls.swift`, replacing the last feature-local `.glass` CTA styling inside `PracticeJournalSettingsSections.swift`.
+- iOS Practice onboarding save/dismiss actions, group-template apply actions, and inline group-date editor actions now also route through the shared `AppPrimaryActionButtonStyle`, `AppSecondaryActionButtonStyle`, and `AppDestructiveActionButtonStyle` seams in `AppFilterControls.swift`, reducing another remaining pocket of feature-local `.glass` CTA styling in `PracticeHomeSection.swift`, `PracticeGroupEditorComponents.swift`, and `PracticePresentationHost.swift`.
 
 ## Next audit targets
 

@@ -229,14 +229,14 @@ struct PracticeWelcomeOverlay: View {
 
             HStack {
                 Button("Not now", action: onNotNow)
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
 
                 Spacer()
 
                 Button("Save") {
                     submit()
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppPrimaryActionButtonStyle(fillsWidth: false))
                 .disabled(firstNamePromptValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }

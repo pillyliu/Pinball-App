@@ -251,7 +251,7 @@ struct GroupEditorScreen: View {
                     Button("Apply Bank Template") {
                         applyBankTemplate(bank: selectedTemplateBank)
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppPrimaryActionButtonStyle())
                 }
             case .duplicate:
                 if duplicateCandidates.isEmpty {
@@ -270,7 +270,7 @@ struct GroupEditorScreen: View {
                     Button("Apply Duplicate Group") {
                         applyDuplicateTemplate(groupID: selectedDuplicateGroupID ?? duplicateCandidates.first?.id)
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppPrimaryActionButtonStyle())
                 }
             }
         }
@@ -450,14 +450,14 @@ struct GroupEditorScreen: View {
                             hasDate.wrappedValue = false
                             inlineDateEditorField = nil
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(AppDestructiveActionButtonStyle(fillsWidth: false))
 
                         Spacer()
 
                         Button("Done") {
                             inlineDateEditorField = nil
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
                     }
                 }
                 .padding(12)
