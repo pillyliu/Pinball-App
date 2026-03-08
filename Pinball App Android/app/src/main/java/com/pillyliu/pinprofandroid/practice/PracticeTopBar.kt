@@ -2,7 +2,9 @@ package com.pillyliu.pinprofandroid.practice
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Settings
@@ -17,7 +19,6 @@ import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.data.redactPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.ui.AppBackButton
 import com.pillyliu.pinprofandroid.ui.AppHeaderIconButton
-import com.pillyliu.pinprofandroid.ui.AppInlineLinkAction
 import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 
@@ -34,7 +35,12 @@ internal fun PracticeTopBar(
     onToggleJournalSelectionMode: (() -> Unit)? = null,
 ) {
     val colors = PinballThemeTokens.colors
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         if (route != PracticeRoute.Home) {
             AppBackButton(onClick = onBack)
         }
@@ -134,18 +140,25 @@ private fun PracticeWelcomeTitle(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val headerStyle = androidx.compose.ui.text.TextStyle(
+            color = colors.brandInk,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 20.sp,
+        )
         Text(
             text = "Welcome back, ",
-            color = colors.brandInk,
+            style = headerStyle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = display,
+            modifier = Modifier.clickable(onClick = onOpenIfpaProfile),
+            color = colors.brandGold,
             fontWeight = FontWeight.SemiBold,
             fontSize = 20.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-        )
-        AppInlineLinkAction(
-            text = display,
-            onClick = onOpenIfpaProfile,
-            fontSize = 20.sp,
         )
     }
 }

@@ -33,6 +33,7 @@ import com.pillyliu.pinprofandroid.ui.AppSelectionPill
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppHeaderIconButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import androidx.compose.material.icons.Icons
@@ -72,9 +73,9 @@ internal fun GameRoomHomeRoute(
         ) {
             Text(
                 text = store.venueName,
-                color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.titleLarge,
+                color = PinballThemeTokens.colors.brandInk,
                 fontWeight = FontWeight.SemiBold,
+                fontSize = 20.sp,
                 maxLines = 1,
                 modifier = Modifier
                     .weight(1f)

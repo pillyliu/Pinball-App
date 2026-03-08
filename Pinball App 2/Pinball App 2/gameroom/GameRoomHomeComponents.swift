@@ -29,7 +29,10 @@ struct GameRoomHomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
-                        AppCardTitle(text: store.venueName)
+                        Text(store.venueName)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(AppTheme.brandInk)
+                            .lineLimit(1)
 
                         Spacer()
 
