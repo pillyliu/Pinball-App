@@ -91,9 +91,7 @@ struct PracticeHomeSection: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Quick Entry")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                AppSectionTitle(text: "Quick Entry")
                 HStack(spacing: 8) {
                     quickActionButton("Score", icon: "number.circle") { onQuickEntry(.score) }
                     quickActionButton("Study", icon: "book.circle") { onQuickEntry(.study) }
@@ -107,9 +105,7 @@ struct PracticeHomeSection: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 if activeGroups.isEmpty {
-                    Text("No active groups")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                    AppSectionTitle(text: "No active groups")
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(activeGroups) { group in

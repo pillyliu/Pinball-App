@@ -52,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 import kotlin.math.roundToInt
 import kotlin.math.abs
 
@@ -72,7 +73,7 @@ internal fun CurrentGroupsCard(
 
     CardContainer(modifier = Modifier.padding(top = 2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Groups", fontWeight = FontWeight.SemiBold)
+            SectionTitle("Groups")
             CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                 SingleChoiceSegmentedButtonRow(
                     modifier = Modifier

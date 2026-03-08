@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 
 @Composable
 internal fun PracticeInsightsSection(
@@ -116,7 +117,7 @@ internal fun PracticeInsightsSection(
         }
     }
     CardContainer {
-        Text("Stats", fontWeight = FontWeight.SemiBold)
+        SectionTitle("Stats")
         val summary = store.scoreSummaryFor(game.practiceKey)
         val trendValues = store.scoreTrendValues(game.practiceKey)
         if (summary == null) {
@@ -159,7 +160,9 @@ internal fun PracticeInsightsSection(
 
     CardContainer {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Head-to-Head", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            Row(modifier = Modifier.weight(1f)) {
+                SectionTitle("Head-to-Head")
+            }
             TextButton(
                 onClick = onRefreshHeadToHead,
                 enabled = !isLoadingHeadToHead,

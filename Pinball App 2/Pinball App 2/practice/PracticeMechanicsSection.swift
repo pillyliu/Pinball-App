@@ -18,8 +18,7 @@ struct PracticeMechanicsSectionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Mechanics")
-                    .font(.headline)
+                AppSectionTitle(text: "Mechanics")
                 Text("Skills are tracked as tags in your notes.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -82,8 +81,7 @@ struct PracticeMechanicsSectionView: View {
             let summary = selectedSkill.isEmpty ? nil : summaryForSkill(selectedSkill)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(selectedSkill.isEmpty ? "Mechanics History (All Skills)" : "\(selectedSkill) History")
-                    .font(.headline)
+                AppSectionTitle(text: selectedSkill.isEmpty ? "Mechanics History (All Skills)" : "\(selectedSkill) History")
 
                 if let summary {
                     HStack(spacing: 8) {

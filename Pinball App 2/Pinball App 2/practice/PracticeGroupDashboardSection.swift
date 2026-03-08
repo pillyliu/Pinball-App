@@ -116,8 +116,7 @@ struct PracticeGroupDashboardSectionView: View {
     private var groupListCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Groups")
-                    .font(.headline)
+                AppSectionTitle(text: "Groups")
                 Picker("Group Filter", selection: $showArchivedGroups) {
                     Text("Current").tag(false)
                     Text("Archived").tag(true)

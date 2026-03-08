@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -40,7 +41,7 @@ internal fun PracticeMechanicsSection(
     val skillOptions = listOf("") + allSkills
 
     CardContainer {
-        Text("Mechanics", fontWeight = FontWeight.SemiBold)
+        SectionTitle("Mechanics")
         Text("Skills are tracked as tags in your notes.")
 
         SimpleMenuDropdown(
@@ -85,10 +86,7 @@ internal fun PracticeMechanicsSection(
 
     CardContainer {
         val selectedSkill = mechanicsSelectedSkill.trim()
-        Text(
-            if (selectedSkill.isEmpty()) "Mechanics History (All Skills)" else "$selectedSkill History",
-            fontWeight = FontWeight.SemiBold,
-        )
+        SectionTitle(if (selectedSkill.isEmpty()) "Mechanics History (All Skills)" else "$selectedSkill History")
         val logs = if (selectedSkill.isEmpty()) {
             allSkills
                 .flatMap { skill -> store.mechanicsLogs(skill) }

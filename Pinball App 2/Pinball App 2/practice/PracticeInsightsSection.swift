@@ -40,8 +40,7 @@ struct PracticeInsightsSectionView: View {
             insightsGameDropdown
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Stats")
-                    .font(.headline)
+                AppSectionTitle(text: "Stats")
 
                 if let gameID = selectedGame?.canonicalPracticeKey,
                    let summary = scoreSummaryForGame(gameID) {
@@ -95,8 +94,7 @@ struct PracticeInsightsSectionView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Head-to-Head")
-                        .font(.headline)
+                    AppSectionTitle(text: "Head-to-Head")
                     Spacer()
                     Button {
                         Task { await onRefreshHeadToHead() }

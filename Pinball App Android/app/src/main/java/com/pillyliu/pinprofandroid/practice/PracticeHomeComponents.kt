@@ -45,6 +45,7 @@ import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.cardArtworkCandidates
 import com.pillyliu.pinprofandroid.library.rememberCachedImageModel
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 
 @Composable
 internal fun QuickEntryHomeButton(
@@ -80,12 +81,7 @@ internal fun QuickEntryHomeButton(
 
 @Composable
 internal fun HomeSectionTitle(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    SectionTitle(text)
 }
 
 @Composable
