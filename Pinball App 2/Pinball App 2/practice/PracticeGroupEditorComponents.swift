@@ -384,7 +384,7 @@ struct GroupEditorScreen: View {
                     Text(option.label).tag(option)
                 }
             }
-            .pickerStyle(.segmented)
+            .appSegmentedControlStyle()
 
             HStack {
                 Text("Position")

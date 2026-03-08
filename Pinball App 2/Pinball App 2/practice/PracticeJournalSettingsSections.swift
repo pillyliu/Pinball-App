@@ -37,7 +37,7 @@ struct PracticeJournalSectionView: View {
                     Text(filter.label).tag(filter)
                 }
             }
-            .pickerStyle(.segmented)
+            .appSegmentedControlStyle()
 
             if isEditingEntries {
                 HStack(spacing: 8) {

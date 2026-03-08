@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
+import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import kotlin.math.roundToInt
 import kotlin.math.abs
 
@@ -84,6 +85,7 @@ internal fun CurrentGroupsCard(
                         SegmentedButton(
                             selected = showArchived == archived,
                             onClick = { showArchived = archived },
+                            colors = pinballSegmentedButtonColors(),
                             shape = SegmentedButtonDefaults.itemShape(index = index, count = 2),
                             modifier = Modifier.height(32.dp),
                             icon = {},

@@ -35,7 +35,7 @@ struct GameScoreEntrySheet: View {
                                 Text(context.label).tag(context)
                             }
                         }
-                        .pickerStyle(.segmented)
+                        .appSegmentedControlStyle()
 
                         if scoreContext == .tournament {
                             TextField("Tournament name", text: $tournamentName)
@@ -274,7 +274,7 @@ struct GameTaskEntrySheet: View {
                                         Text(kind.label).tag(kind)
                                     }
                                 }
-                                .pickerStyle(.segmented)
+                                .appSegmentedControlStyle()
 
                                 if videoKind == .clock {
                                     HStack(alignment: .top, spacing: 10) {

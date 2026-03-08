@@ -48,6 +48,7 @@ import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
+import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import kotlin.math.max
 import kotlin.math.min
 
@@ -665,6 +666,7 @@ internal fun GameRoomArchiveSettingsSection(
                 SegmentedButton(
                     selected = archiveFilter == filter,
                     onClick = { onArchiveFilterChange(filter) },
+                    colors = pinballSegmentedButtonColors(),
                     shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
                         index = index,
                         count = GameRoomArchiveFilter.entries.size,

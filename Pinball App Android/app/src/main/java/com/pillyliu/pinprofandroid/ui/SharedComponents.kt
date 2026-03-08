@@ -12,6 +12,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
@@ -34,6 +35,16 @@ data class DropdownOption(val value: String, val label: String)
 data class DropdownOptionGroup(
     val title: String? = null,
     val options: List<DropdownOption>,
+)
+
+@Composable
+fun pinballSegmentedButtonColors() = SegmentedButtonDefaults.colors(
+    activeContainerColor = PinballThemeTokens.colors.brandGold.copy(alpha = 0.22f),
+    activeContentColor = PinballThemeTokens.colors.brandInk,
+    activeBorderColor = PinballThemeTokens.colors.brandGold.copy(alpha = 0.52f),
+    inactiveContainerColor = PinballThemeTokens.colors.controlBackground,
+    inactiveContentColor = PinballThemeTokens.colors.brandChalk,
+    inactiveBorderColor = PinballThemeTokens.colors.brandChalk.copy(alpha = 0.35f),
 )
 
 @Composable

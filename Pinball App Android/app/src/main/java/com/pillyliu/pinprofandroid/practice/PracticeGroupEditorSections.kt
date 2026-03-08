@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import java.util.Locale
 
 @Composable
@@ -157,6 +158,7 @@ internal fun GroupEditorStatusCard(
                 SegmentedButton(
                     selected = groupType == option,
                     onClick = { onGroupTypeChange(option) },
+                    colors = pinballSegmentedButtonColors(),
                     shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index, 3),
                     label = { Text(option.replaceFirstChar { it.titlecase(Locale.US) }, maxLines = 1) },
                 )

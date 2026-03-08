@@ -509,7 +509,7 @@ struct GameRoomMediaEntrySheet: View {
                     Text("Photo").tag(MachineAttachmentKind.photo)
                     Text("Video").tag(MachineAttachmentKind.video)
                 }
-                .pickerStyle(.segmented)
+                .appSegmentedControlStyle()
 
                 if kind == .photo {
                     Button {

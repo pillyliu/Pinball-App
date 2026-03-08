@@ -231,7 +231,7 @@ private struct GameRoomCollectionCard: View {
                         Text(mode.title).tag(mode)
                     }
                 }
-                .pickerStyle(.segmented)
+                .appSegmentedControlStyle()
                 .frame(maxWidth: 160)
             }
 

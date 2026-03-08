@@ -17,7 +17,7 @@ struct GameRoomSettingsView: View {
                             Text(section.title).tag(section)
                         }
                     }
-                    .pickerStyle(.segmented)
+                    .appSegmentedControlStyle()
 
                     GameRoomSettingsSectionCard(
                         store: store,
@@ -150,7 +150,7 @@ struct GameRoomImportSettingsView: View {
                         Text(filter.title).tag(filter)
                     }
                 }
-                .pickerStyle(.segmented)
+                .appSegmentedControlStyle()
 
                 ScrollView {
                     LazyVStack(spacing: 8) {
@@ -1232,7 +1232,7 @@ struct GameRoomArchiveSettingsView: View {
                     Text(filter.title).tag(filter)
                 }
             }
-            .pickerStyle(.segmented)
+            .appSegmentedControlStyle()
 
             if filteredMachines.isEmpty {
                 AppPanelEmptyCard(text: "No archived machine instances yet.")

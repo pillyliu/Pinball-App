@@ -208,7 +208,7 @@ struct PracticeQuickEntrySheet: View {
                                         Text(context.label).tag(context)
                                     }
                                 }
-                                .pickerStyle(.segmented)
+                                .appSegmentedControlStyle()
 
                                 if scoreContext == .tournament {
                                     styledTextField("Tournament name", text: $tournamentName)
@@ -242,7 +242,7 @@ struct PracticeQuickEntrySheet: View {
                                         Text(kind.label).tag(kind)
                                     }
                                 }
-                                .pickerStyle(.segmented)
+                                .appSegmentedControlStyle()
 
                                 if videoKind == .clock {
                                     HStack(alignment: .top, spacing: 10) {

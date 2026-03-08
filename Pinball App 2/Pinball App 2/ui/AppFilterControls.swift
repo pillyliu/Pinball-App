@@ -281,3 +281,11 @@ struct AppInlineActionChipStyle: ViewModifier {
             )
     }
 }
+
+extension View {
+    func appSegmentedControlStyle() -> some View {
+        self
+            .pickerStyle(.segmented)
+            .tint(AppTheme.brandGold)
+    }
+}

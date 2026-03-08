@@ -79,7 +79,7 @@ private struct PracticeGameWorkspaceCard<Summary: View, Input: View, Log: View>:
                     Text(item.label).tag(item)
                 }
             }
-            .pickerStyle(.segmented)
+            .appSegmentedControlStyle()
 
             Group {
                 switch selectedSubview {

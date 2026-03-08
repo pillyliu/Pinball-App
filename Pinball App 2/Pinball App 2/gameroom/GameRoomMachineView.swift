@@ -92,7 +92,7 @@ struct GameRoomMachineView: View {
                                 Text(subview.title).tag(subview)
                             }
                         }
-                        .pickerStyle(.segmented)
+                        .appSegmentedControlStyle()
 
                         switch selectedSubview {
                         case .summary:

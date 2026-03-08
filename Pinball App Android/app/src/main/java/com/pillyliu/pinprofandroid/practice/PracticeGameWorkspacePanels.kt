@@ -36,6 +36,7 @@ import com.pillyliu.pinprofandroid.library.normalizedVariant
 import com.pillyliu.pinprofandroid.library.practiceKey
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 
 @Composable
 internal fun PracticeGameWorkspaceCard(
@@ -97,6 +98,7 @@ internal fun PracticeGameWorkspaceCard(
                 SegmentedButton(
                     selected = gameSubview == option,
                     onClick = { onGameSubviewChange(option) },
+                    colors = pinballSegmentedButtonColors(),
                     shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index, PracticeGameSubview.entries.size),
                     label = { Text(option.label, maxLines = 1) },
                 )

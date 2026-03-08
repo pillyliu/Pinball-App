@@ -29,6 +29,7 @@ import com.pillyliu.pinprofandroid.practice.formatTimestamp
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 
 @Composable
 internal fun GameRoomMachineRoute(
@@ -125,6 +126,7 @@ internal fun GameRoomMachineRoute(
                     SegmentedButton(
                         selected = machineSubview == subview,
                         onClick = { onMachineSubviewChange(subview) },
+                        colors = pinballSegmentedButtonColors(),
                         shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
                             index = index,
                             count = GameRoomMachineSubview.entries.size,

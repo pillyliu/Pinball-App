@@ -114,7 +114,7 @@ struct PracticeGroupDashboardSectionView: View {
                     Text("Current").tag(false)
                     Text("Archived").tag(true)
                 }
-                .pickerStyle(.segmented)
+                .appSegmentedControlStyle()
                 .frame(width: 180)
                 Spacer()
                 Button(action: onOpenCreateGroup) {

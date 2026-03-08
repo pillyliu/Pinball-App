@@ -40,6 +40,7 @@ import com.pillyliu.pinprofandroid.library.LibraryActivityLog
 import com.pillyliu.pinprofandroid.ui.AppConfirmDialog
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -80,6 +81,7 @@ internal fun PracticeJournalSection(
             SegmentedButton(
                 selected = journalFilter == option,
                 onClick = { onJournalFilterChange(option) },
+                colors = pinballSegmentedButtonColors(),
                 shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index, JournalFilter.entries.size),
                 modifier = Modifier.weight(filterWeights[option] ?: 1f),
                 icon = {},
