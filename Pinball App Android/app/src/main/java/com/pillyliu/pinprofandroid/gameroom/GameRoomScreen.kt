@@ -944,406 +944,163 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
                     }
 
                     if (selectedSettingsSection == GameRoomSettingsSection.Edit) {
-                        CardContainer {
-                            SectionHeader(
-                                title = "Name",
-                                expanded = nameExpanded,
-                                onToggle = { nameExpanded = !nameExpanded },
-                            )
-                            if (nameExpanded) {
-                                OutlinedTextField(
-                                    value = venueNameDraft,
-                                    onValueChange = { venueNameDraft = it },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true,
-                                    label = { Text("GameRoom Name") },
-                                )
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(onClick = {
-                                        store.updateVenueName(venueNameDraft)
-                                        venueNameDraft = store.venueName
-                                    }) {
-                                        Text("Save")
+                        GameRoomEditSettingsSection(
+                            context = GameRoomEditSettingsContext(
+                                store = store,
+                                catalogLoader = catalogLoader,
+                                nameExpanded = nameExpanded,
+                                onNameExpandedChange = { nameExpanded = it },
+                                venueNameDraft = venueNameDraft,
+                                onVenueNameDraftChange = { venueNameDraft = it },
+                                onSaveVenueName = {
+                                    store.updateVenueName(venueNameDraft)
+                                    venueNameDraft = store.venueName
+                                },
+                                addMachineExpanded = addMachineExpanded,
+                                onAddMachineExpandedChange = { addMachineExpanded = it },
+                                addQuery = addQuery,
+                                onAddQueryChange = { addQuery = it },
+                                selectedManufacturerText = selectedManufacturerOption?.name ?: "All Manufacturers",
+                                modernManufacturers = modernManufacturers,
+                                classicPopularManufacturers = classicPopularManufacturers,
+                                otherManufacturers = otherManufacturers,
+                                onSelectManufacturer = { addManufacturerFilter = it },
+                                resultWindowLabel = resultWindowLabel,
+                                displayedCatalogGames = displayedCatalogGames,
+                                filteredCatalogGamesSize = filteredCatalogGames.size,
+                                hasPreviousFilteredResults = hasPreviousFilteredResults,
+                                hasNextFilteredResults = hasNextFilteredResults,
+                                safeResultWindowStart = safeResultWindowStart,
+                                safeResultWindowEnd = safeResultWindowEnd,
+                                resultPageSize = resultPageSize,
+                                maxRenderedResults = maxRenderedResults,
+                                pendingResultRestoreTick = pendingResultRestoreTick,
+                                pendingResultRestoreGameID = pendingResultRestoreGameID,
+                                onClearPendingResultRestoreGameID = { pendingResultRestoreGameID = null },
+                                onShowPreviousResults = { topVisibleGameID ->
+                                    val previousStart = (safeResultWindowStart - resultPageSize).coerceAtLeast(0)
+                                    resultWindowStart = previousStart
+                                    if (topVisibleGameID != null) {
+                                        pendingResultRestoreGameID = topVisibleGameID
+                                        pendingResultRestoreTick += 1
                                     }
-                                }
-                            }
-                        }
-
-                        CardContainer {
-                            SectionHeader(
-                                title = "Add Machine",
-                                expanded = addMachineExpanded,
-                                onToggle = { addMachineExpanded = !addMachineExpanded },
-                            )
-                            if (addMachineExpanded) {
-                                OutlinedTextField(
-                                    value = addQuery,
-                                    onValueChange = { addQuery = it },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true,
-                                    label = { Text("Search by title") },
-                                )
-                                ManufacturerFilterDropdown(
-                                    selectedText = selectedManufacturerOption?.name ?: "All Manufacturers",
-                                    modernOptions = modernManufacturers,
-                                    classicPopularOptions = classicPopularManufacturers,
-                                    otherOptions = otherManufacturers,
-                                    onSelect = {
-                                        addManufacturerFilter = it
-                                    },
-                                )
-                                Text(
-                                    text = resultWindowLabel,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(max = 260.dp)
-                                        .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(10.dp))
-                                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
-                                ) {
-                                    val resultsListState = rememberLazyListState()
-
-                                    LaunchedEffect(
-                                        pendingResultRestoreTick,
-                                        pendingResultRestoreGameID,
-                                        displayedCatalogGames.map { it.catalogGameID },
-                                        hasPreviousFilteredResults,
-                                    ) {
-                                        val targetGameID = pendingResultRestoreGameID ?: return@LaunchedEffect
-                                        val gameIndex = displayedCatalogGames.indexOfFirst { it.catalogGameID == targetGameID }
-                                        if (gameIndex >= 0) {
-                                            val targetIndex = gameIndex + if (hasPreviousFilteredResults) 1 else 0
-                                            resultsListState.scrollToItem(targetIndex)
-                                        }
-                                        pendingResultRestoreGameID = null
+                                },
+                                onShowNextResults = { topVisibleGameID ->
+                                    val nextEnd = min(safeResultWindowEnd + resultPageSize, filteredCatalogGames.size)
+                                    var nextStart = safeResultWindowStart
+                                    if (nextEnd - nextStart > maxRenderedResults) {
+                                        nextStart = min(
+                                            nextStart + resultPageSize,
+                                            max(0, nextEnd - maxRenderedResults),
+                                        )
                                     }
-
-                                    val resolveTopVisibleGameID: () -> String? = {
-                                        if (displayedCatalogGames.isEmpty()) {
-                                            null
-                                        } else {
-                                            val firstVisibleIndex = resultsListState.firstVisibleItemIndex
-                                            val gameStartIndex = if (hasPreviousFilteredResults) 1 else 0
-                                            val relativeGameIndex = firstVisibleIndex - gameStartIndex
-                                            when {
-                                                relativeGameIndex < 0 -> displayedCatalogGames.first().catalogGameID
-                                                relativeGameIndex >= displayedCatalogGames.size -> displayedCatalogGames.last().catalogGameID
-                                                else -> displayedCatalogGames[relativeGameIndex].catalogGameID
-                                            }
-                                        }
+                                    resultWindowStart = nextStart
+                                    resultWindowEnd = nextEnd
+                                    if (topVisibleGameID != null) {
+                                        pendingResultRestoreGameID = topVisibleGameID
+                                        pendingResultRestoreTick += 1
                                     }
-
-                                    LazyColumn(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(8.dp),
-                                        state = resultsListState,
-                                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                                    ) {
-                                        if (hasPreviousFilteredResults) {
-                                            item(key = "show_previous_25") {
-                                                TextButton(
-                                                    onClick = {
-                                                        val topVisibleGameID = resolveTopVisibleGameID()
-                                                        val previousStart = (safeResultWindowStart - resultPageSize).coerceAtLeast(0)
-                                                        resultWindowStart = previousStart
-                                                        if (topVisibleGameID != null) {
-                                                            pendingResultRestoreGameID = topVisibleGameID
-                                                            pendingResultRestoreTick += 1
-                                                        }
-                                                    },
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                ) {
-                                                    Text("Show Previous 25")
-                                                }
-                                            }
-                                        }
-
-                                        items(
-                                            items = displayedCatalogGames,
-                                            key = { it.catalogGameID },
-                                        ) { game ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(8.dp))
-                                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-                                                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                            ) {
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text(
-                                                        text = game.displayTitle,
-                                                        color = MaterialTheme.colorScheme.onSurface,
-                                                        fontWeight = FontWeight.Medium,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis,
-                                                    )
-                                                    Text(
-                                                        text = listOfNotNull(game.displayVariant, game.manufacturer, game.year?.toString()).joinToString(" • "),
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis,
-                                                    )
-                                                }
-                                                Button(
-                                                    onClick = {
-                                                        val machineID = store.addOwnedMachine(
-                                                            catalogGameID = game.catalogGameID,
-                                                            canonicalPracticeIdentity = game.canonicalPracticeIdentity,
-                                                            displayTitle = game.displayTitle,
-                                                            displayVariant = null,
-                                                            manufacturer = game.manufacturer,
-                                                            year = game.year,
-                                                        )
-                                                        selectedEditMachineID = machineID
-                                                    },
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Outlined.Add,
-                                                        contentDescription = "Add machine",
-                                                    )
-                                                }
-                                            }
-                                        }
-
-                                        if (hasNextFilteredResults) {
-                                            item(key = "show_next_25") {
-                                                TextButton(
-                                                    onClick = {
-                                                        val topVisibleGameID = resolveTopVisibleGameID()
-                                                        val nextEnd = min(safeResultWindowEnd + resultPageSize, filteredCatalogGames.size)
-                                                        var nextStart = safeResultWindowStart
-                                                        if (nextEnd - nextStart > maxRenderedResults) {
-                                                            nextStart = min(
-                                                                nextStart + resultPageSize,
-                                                                max(0, nextEnd - maxRenderedResults),
-                                                            )
-                                                        }
-                                                        resultWindowStart = nextStart
-                                                        resultWindowEnd = nextEnd
-                                                        if (topVisibleGameID != null) {
-                                                            pendingResultRestoreGameID = topVisibleGameID
-                                                            pendingResultRestoreTick += 1
-                                                        }
-                                                    },
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                ) {
-                                                    Text("Show Next 25")
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        CardContainer {
-                            SectionHeader(
-                                title = "Areas",
-                                expanded = areasExpanded,
-                                onToggle = { areasExpanded = !areasExpanded },
-                            )
-                            if (areasExpanded) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    OutlinedTextField(
-                                        value = areaNameDraft,
-                                        onValueChange = { areaNameDraft = it },
-                                        modifier = Modifier.weight(1f),
-                                        singleLine = true,
-                                        label = { Text("Area Name") },
+                                },
+                                onAddMachine = { game ->
+                                    val machineID = store.addOwnedMachine(
+                                        catalogGameID = game.catalogGameID,
+                                        canonicalPracticeIdentity = game.canonicalPracticeIdentity,
+                                        displayTitle = game.displayTitle,
+                                        displayVariant = null,
+                                        manufacturer = game.manufacturer,
+                                        year = game.year,
                                     )
-                                    OutlinedTextField(
-                                        value = areaOrderDraft,
-                                        onValueChange = { areaOrderDraft = it.filter { ch -> ch.isDigit() } },
-                                        modifier = Modifier.width(120.dp),
-                                        singleLine = true,
-                                        label = { Text("Area Order") },
+                                    selectedEditMachineID = machineID
+                                },
+                                areasExpanded = areasExpanded,
+                                onAreasExpandedChange = { areasExpanded = it },
+                                areaNameDraft = areaNameDraft,
+                                onAreaNameDraftChange = { areaNameDraft = it },
+                                areaOrderDraft = areaOrderDraft,
+                                onAreaOrderDraftChange = { areaOrderDraft = it.filter { ch -> ch.isDigit() } },
+                                onSaveArea = {
+                                    store.upsertArea(
+                                        id = selectedAreaID,
+                                        name = areaNameDraft,
+                                        areaOrder = areaOrderDraft.toIntOrNull() ?: 0,
                                     )
-                                }
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(onClick = {
-                                        store.upsertArea(
-                                            id = selectedAreaID,
-                                            name = areaNameDraft,
-                                            areaOrder = areaOrderDraft.toIntOrNull() ?: 0,
-                                        )
-                                        selectedAreaID = null
-                                        areaNameDraft = ""
-                                        areaOrderDraft = "0"
-                                    }) { Text("Save") }
-                                    Button(
-                                        onClick = {
-                                            selectedAreaID = null
-                                            areaNameDraft = ""
-                                            areaOrderDraft = "0"
-                                        },
-                                    ) { Text("Edit") }
-                                }
-                                store.state.areas.forEach { area ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                selectedAreaID = area.id
-                                                areaNameDraft = area.name
-                                                areaOrderDraft = area.areaOrder.toString()
-                                            }
-                                            .padding(vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Text(
-                                            text = "${area.name} (${area.areaOrder})",
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        IconButton(
-                                            onClick = { store.deleteArea(area.id) },
-                                            modifier = Modifier
-                                                .size(32.dp)
-                                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-                                                .clip(RoundedCornerShape(8.dp)),
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Delete,
-                                                contentDescription = "Delete area",
-                                                tint = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(18.dp),
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        CardContainer {
-                            SectionHeader(
-                                title = "Edit Machines (${store.activeMachines.size})",
-                                expanded = editMachinesExpanded,
-                                onToggle = { editMachinesExpanded = !editMachinesExpanded },
-                            )
-                            if (editMachinesExpanded) {
-                                if (selectedEditMachine == null) {
-                                    AnchoredDropdownFilter(
-                                        selectedText = "Select Machine",
-                                        options = allMachines.map { DropdownOption(value = it.id, label = it.displayTitle) },
-                                        onSelect = { selectedEditMachineID = it },
-                                    )
-                                }
-                                if (selectedEditMachine != null) {
-                                    val variantOptions = buildList {
-                                        add("None")
-                                        addAll(catalogLoader.variantOptions(selectedEditMachine.catalogGameID))
-                                    }.distinct()
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        AnchoredDropdownFilter(
-                                            selectedText = selectedEditMachine.displayTitle,
-                                            options = allMachines.map { DropdownOption(value = it.id, label = it.displayTitle) },
-                                            onSelect = { selectedEditMachineID = it },
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        VariantPillDropdown(
-                                            selectedLabel = draftVariant,
-                                            options = variantOptions,
-                                            onSelect = { draftVariant = it },
-                                            modifier = Modifier.weight(0.52f),
+                                    selectedAreaID = null
+                                    areaNameDraft = ""
+                                    areaOrderDraft = "0"
+                                },
+                                onResetAreaDraft = {
+                                    selectedAreaID = null
+                                    areaNameDraft = ""
+                                    areaOrderDraft = "0"
+                                },
+                                onEditArea = { area ->
+                                    selectedAreaID = area.id
+                                    areaNameDraft = area.name
+                                    areaOrderDraft = area.areaOrder.toString()
+                                },
+                                onDeleteArea = { areaID -> store.deleteArea(areaID) },
+                                editMachinesExpanded = editMachinesExpanded,
+                                onEditMachinesExpandedChange = { editMachinesExpanded = it },
+                                allMachines = allMachines,
+                                selectedEditMachine = selectedEditMachine,
+                                onSelectedEditMachineChange = { selectedEditMachineID = it },
+                                variantOptions = buildList {
+                                    add("None")
+                                    selectedEditMachine?.let { addAll(catalogLoader.variantOptions(it.catalogGameID)) }
+                                }.distinct(),
+                                draftVariant = draftVariant,
+                                onDraftVariantChange = { draftVariant = it },
+                                draftAreaID = draftAreaID,
+                                onDraftAreaIDChange = { draftAreaID = it },
+                                draftStatus = draftStatus,
+                                onDraftStatusChange = { draftStatus = it },
+                                draftGroup = draftGroup,
+                                onDraftGroupChange = { draftGroup = it.filter { ch -> ch.isDigit() } },
+                                draftPosition = draftPosition,
+                                onDraftPositionChange = { draftPosition = it.filter { ch -> ch.isDigit() } },
+                                draftPurchaseSource = draftPurchaseSource,
+                                onDraftPurchaseSourceChange = { draftPurchaseSource = it },
+                                draftSerialNumber = draftSerialNumber,
+                                onDraftSerialNumberChange = { draftSerialNumber = it },
+                                draftOwnershipNotes = draftOwnershipNotes,
+                                onDraftOwnershipNotesChange = { draftOwnershipNotes = it },
+                                onSaveMachine = {
+                                    selectedEditMachine?.let { machine ->
+                                        store.updateMachine(
+                                            id = machine.id,
+                                            areaID = draftAreaID,
+                                            groupNumber = draftGroup.toIntOrNull(),
+                                            position = draftPosition.toIntOrNull(),
+                                            status = runCatching { OwnedMachineStatus.valueOf(draftStatus) }.getOrDefault(OwnedMachineStatus.active),
+                                            displayVariant = draftVariant.takeUnless { it == "None" },
+                                            purchaseSource = draftPurchaseSource,
+                                            serialNumber = draftSerialNumber,
+                                            ownershipNotes = draftOwnershipNotes,
                                         )
                                     }
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        AnchoredDropdownFilter(
-                                            selectedText = store.area(draftAreaID)?.name ?: "No area",
-                                            options = buildList {
-                                                add(DropdownOption(value = "", label = "No area"))
-                                                addAll(store.state.areas.map { DropdownOption(it.id, it.name) })
-                                            },
-                                            onSelect = { draftAreaID = it.ifBlank { null } },
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        AnchoredDropdownFilter(
-                                            selectedText = draftStatus.replaceFirstChar { it.uppercase() },
-                                            options = OwnedMachineStatus.entries.map {
-                                                DropdownOption(it.name, it.name.replaceFirstChar { ch -> ch.uppercase() })
-                                            },
-                                            onSelect = { draftStatus = it },
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                    }
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        OutlinedTextField(
-                                            value = draftGroup,
-                                            onValueChange = { draftGroup = it.filter { ch -> ch.isDigit() } },
-                                            label = { Text("Group") },
-                                            modifier = Modifier.weight(1f),
-                                            singleLine = true,
-                                        )
-                                        OutlinedTextField(
-                                            value = draftPosition,
-                                            onValueChange = { draftPosition = it.filter { ch -> ch.isDigit() } },
-                                            label = { Text("Position") },
-                                            modifier = Modifier.weight(1f),
-                                            singleLine = true,
-                                        )
-                                    }
-                                    OutlinedTextField(
-                                        value = draftPurchaseSource,
-                                        onValueChange = { draftPurchaseSource = it },
-                                        label = { Text("Purchase Source") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true,
-                                    )
-                                    OutlinedTextField(
-                                        value = draftSerialNumber,
-                                        onValueChange = { draftSerialNumber = it },
-                                        label = { Text("Serial Number") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true,
-                                    )
-                                    OutlinedTextField(
-                                        value = draftOwnershipNotes,
-                                        onValueChange = { draftOwnershipNotes = it },
-                                        label = { Text("Ownership Notes") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Button(onClick = {
+                                },
+                                onDeleteMachine = {
+                                    selectedEditMachine?.let { store.deleteMachine(it.id) }
+                                },
+                                onArchiveMachine = selectedEditMachine
+                                    ?.takeIf { it.status != OwnedMachineStatus.archived }
+                                    ?.let {
+                                        {
                                             store.updateMachine(
-                                                id = selectedEditMachine.id,
+                                                id = it.id,
                                                 areaID = draftAreaID,
                                                 groupNumber = draftGroup.toIntOrNull(),
                                                 position = draftPosition.toIntOrNull(),
-                                                status = runCatching { OwnedMachineStatus.valueOf(draftStatus) }.getOrDefault(OwnedMachineStatus.active),
+                                                status = OwnedMachineStatus.archived,
                                                 displayVariant = draftVariant.takeUnless { it == "None" },
                                                 purchaseSource = draftPurchaseSource,
                                                 serialNumber = draftSerialNumber,
                                                 ownershipNotes = draftOwnershipNotes,
                                             )
-                                        }) { Text("Save") }
-                                        Button(onClick = { store.deleteMachine(selectedEditMachine.id) }) { Text("Delete") }
-                                        if (selectedEditMachine.status != OwnedMachineStatus.archived) {
-                                            Button(onClick = {
-                                                store.updateMachine(
-                                                    id = selectedEditMachine.id,
-                                                    areaID = draftAreaID,
-                                                    groupNumber = draftGroup.toIntOrNull(),
-                                                    position = draftPosition.toIntOrNull(),
-                                                    status = OwnedMachineStatus.archived,
-                                                    displayVariant = draftVariant.takeUnless { it == "None" },
-                                                    purchaseSource = draftPurchaseSource,
-                                                    serialNumber = draftSerialNumber,
-                                                    ownershipNotes = draftOwnershipNotes,
-                                                )
-                                            }) { Text("Archive") }
                                         }
-                                    }
-                                }
-                            }
-                        }
+                                    },
+                            ),
+                        )
                     }
 
                     GameRoomArchiveSettingsSection(
