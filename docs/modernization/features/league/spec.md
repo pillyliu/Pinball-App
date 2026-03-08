@@ -25,8 +25,9 @@ League includes:
 
 - iOS League remains a compact shell and navigation surface.
 - Android League home now splits into:
-  - `LeagueScreen.kt` for shell/layout/orchestrated rotating state
+  - `LeagueScreen.kt` for shell/layout and destination orchestration
   - `LeaguePreviewLoader.kt` for preview data assembly
   - `LeaguePreviewModels.kt` for preview view models
   - `LeaguePreviewCards.kt` for card and mini-preview rendering
-- Remaining Android follow-up should focus on state ownership and exact contract parity, not putting the preview rendering back into one file.
+  - `LeaguePreviewRotationState.kt` for rotating preview state
+- Remaining Android follow-up should focus on exact contract parity and shell navigation boundaries, not putting preview behavior back into one file.

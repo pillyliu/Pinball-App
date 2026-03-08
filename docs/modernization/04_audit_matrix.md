@@ -18,7 +18,7 @@ Status values:
 | League | in audit | in audit | in audit | Root tab is aligned, and Android League home now has explicit preview-model, loader, and card seams instead of one large screen file. |
 | Library | in audit | in audit | parity risk | Shared dependency for Practice and GameRoom; fallback/resource behavior must be locked before larger rewrites. |
 | Practice | parity risk | parity risk | parity risk | Largest active drift surface after GameRoom; route/state complexity is still concentrated in a few large files. |
-| GameRoom | in audit | in audit | in audit | 3.1 shipped baseline exists; first home/UI helper splits are in place and deeper structural cleanup is next. |
+| GameRoom | in audit | in audit | in audit | 3.1 shipped baseline exists; home/UI helper splits and machine-route splits are in place, and settings/event-flow cleanup is next. |
 | Settings | in audit | in audit | in audit | Smaller feature, but still part of the app-shell and design-system cleanup. |
 
 ## Shell and theme hotspots
@@ -34,9 +34,11 @@ Status values:
 
 | File | Action | Reason |
 | --- | --- | --- |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/gameroom/GameRoomScreen.swift` | in audit | Still very large, but home/collection UI moved out into dedicated GameRoom home components. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/gameroom/GameRoomScreen.swift` | in audit | Still very large, but home/collection UI and the machine-detail route body now live outside the main screen file. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/gameroom/GameRoomHomeComponents.swift` | stable | iOS GameRoom home shell, selected-machine summary, collection card, mini cards, list rows, and snapshot metric helpers now live behind a dedicated seam. |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt` | in audit | Android parity landed, and shared UI helpers have been extracted, but the main screen file is still very large. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/gameroom/GameRoomMachineView.swift` | stable | iOS machine-detail route body, segmented subviews, machine input sheets, and machine-level event/media presentation now live outside the main screen file. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt` | in audit | Android parity landed, shared UI helpers are extracted, and the machine route is split out, but the root screen still concentrates settings and presentation state. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomMachineRoute.kt` | stable | Android machine-detail route body plus summary/input/log panels now live outside the main screen file. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomUiComponents.kt` | stable | Android GameRoom mini cards, list rows, pills, dropdowns, snapshot helpers, and shared formatting utilities now live outside the main screen file. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` | needs refactor | Large UI and behavior surface, but now consumes explicit workspace context and grouped route-local state. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameWorkspace.swift` | stable | `Game` route now builds an explicit workspace context instead of passing raw store/binding dependencies directly into the section view. |
@@ -124,10 +126,11 @@ Status values:
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedDatabase.kt` | in audit | Seed-db imported-source loading and built-in row mapping now use clearer seams, but database-specific helpers and overlay assembly are still concentrated here. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDomain.kt` | in audit | Resource fallback and payload parsing are now extracted, but metadata fetch and domain-facing formatting/helpers are still concentrated together. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/league/LeagueScreen.swift` | in audit | Small file size, but it owns navigation into multiple nested subfeatures and should be specified as a shell contract. |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueScreen.kt` | in audit | Android League shell is much smaller after preview-model, loader, and card extraction, but rotating preview state still lives here. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueScreen.kt` | in audit | Android League shell is much smaller after preview-model, loader, card, and rotation-state extraction, but it still owns destination layout and shell navigation. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewModels.kt` | stable | Android League preview-specific display models now live outside the home shell. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewLoader.kt` | stable | Android League preview-data assembly now lives outside the home shell. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewCards.kt` | stable | Android League card and mini-preview rendering now lives outside the home shell. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewRotationState.kt` | stable | Android League rotating preview timers and display toggles now live outside the home shell. |
 
 ## Current work order
 

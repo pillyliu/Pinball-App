@@ -34,6 +34,8 @@ GameRoom is the personal machine-ownership feature for:
 
 - iOS GameRoom is still a large feature surface, but the home/collection surface now lives outside the main screen file.
 - Android GameRoom is still a large feature surface, but reusable cards, pills, dropdowns, snapshot helpers, and shared formatting helpers now live outside the main screen file.
+- iOS machine-detail route body now lives in `GameRoomMachineView.swift` instead of staying inline in `GameRoomScreen.swift`.
+- Android machine-detail route body now lives in `GameRoomMachineRoute.kt` instead of staying inline in `GameRoomScreen.kt`.
 - Next cleanup should continue by responsibility cluster:
   - home shell / collection
   - machine detail / summary

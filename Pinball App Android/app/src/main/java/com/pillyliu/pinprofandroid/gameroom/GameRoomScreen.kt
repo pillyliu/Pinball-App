@@ -146,13 +146,13 @@ private enum class GameRoomCollectionLayout(val label: String) {
     List("List"),
 }
 
-private enum class GameRoomMachineSubview(val label: String) {
+internal enum class GameRoomMachineSubview(val label: String) {
     Summary("Summary"),
     Input("Input"),
     Log("Log"),
 }
 
-private enum class GameRoomInputSheet(val title: String) {
+internal enum class GameRoomInputSheet(val title: String) {
     CleanGlass("Clean Glass"),
     CleanPlayfield("Clean Playfield"),
     SwapBalls("Swap Balls"),
@@ -1600,329 +1600,37 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
             }
 
             GameRoomRoute.MachineView -> {
-                val selected = selectedMachineFromAll
-                val selectedArt = selected?.let { catalogLoader.resolvedArt(it.catalogGameID, it.displayVariant) }
-                val machineEvents = selected?.let { machine ->
-                    store.state.events.filter { it.ownedMachineID == machine.id }.sortedByDescending { it.occurredAtMs }
-                }.orEmpty()
-                val selectedLogEvent = machineEvents.firstOrNull { it.id == selectedLogEventID } ?: machineEvents.firstOrNull()
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AppBackButton(onClick = { route = GameRoomRoute.Home })
-                        Text(
-                            text = "Machine View",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-
-                    if (selected != null) {
-                        val machineHeroCandidates = listOfNotNull(
-                            selectedArt?.primaryImageLargeUrl,
-                            selectedArt?.primaryImageUrl,
-                            selectedArt?.playfieldImageLargeUrl,
-                            selectedArt?.playfieldImageUrl,
-                        )
-                        ConstrainedAsyncImagePreview(
-                            urls = machineHeroCandidates,
-                            contentDescription = selected.displayTitle,
-                            emptyMessage = "No image",
-                            maxAspectRatio = 4f / 3f,
-                            imagePadding = 0.dp,
-                        )
-
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            val variantLabel = gameRoomVariantBadgeLabel(selected.displayVariant, selected.displayTitle)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Text(
-                                    text = selected.displayTitle,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f, fill = false),
-                                )
-                                if (variantLabel != null) {
-                                    GameRoomVariantPill(label = variantLabel, style = VariantPillStyle.MachineTitle)
-                                }
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                            Text(
-                                text = machineLocationLine(selected, store),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-
-                    CardContainer {
-                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                            GameRoomMachineSubview.entries.forEachIndexed { index, subview ->
-                                SegmentedButton(
-                                    selected = machineSubview == subview,
-                                    onClick = { machineSubview = subview },
-                                    shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = GameRoomMachineSubview.entries.size,
-                                    ),
-                                    label = { Text(subview.label, maxLines = 1) },
-                                )
-                            }
-                        }
-                    }
-
-                    if (selected != null && machineSubview == GameRoomMachineSubview.Summary) {
-                        val snapshot = store.snapshot(selected.id)
-                        val machineAttachments = store.attachmentsForMachine(selected.id)
-                        CardContainer {
-                            Text(
-                                text = "Current Snapshot",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            SnapshotMetricGrid(
-                                metrics = listOf(
-                                    "Open Issues" to snapshot.openIssueCount.toString(),
-                                    "Current Plays" to snapshot.currentPlayCount.toString(),
-                                    "Due Tasks" to snapshot.dueTaskCount.toString(),
-                                    "Last Service" to formatDate(snapshot.lastServiceAtMs, "None"),
-                                    "Pitch" to (snapshot.currentPitchValue?.let { String.format("%.1f", it) } ?: "—"),
-                                    "Last Level" to formatDate(snapshot.lastLeveledAtMs, "None"),
-                                    "Last Inspection" to formatDate(snapshot.lastGeneralInspectionAtMs, "None"),
-                                    "Purchase Date" to formatDate(selected.purchaseDateMs, "—"),
-                                ),
-                            )
-                            selected.purchaseDateRawText?.takeIf { it.isNotBlank() }?.let { raw ->
-                                Text(
-                                    text = "Purchase (raw): $raw",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
-                        }
-                        CardContainer {
-                            Text(
-                                text = "Media",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            if (machineAttachments.isNotEmpty()) {
-                                MediaAttachmentGrid(
-                                    attachments = machineAttachments,
-                                    onOpen = { mediaPreviewAttachmentID = it.id },
-                                )
-                            } else {
-                                Text(
-                                    text = "No media attached yet.",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            }
-                        }
-                    }
-
-                    if (selected != null && machineSubview == GameRoomMachineSubview.Input) {
-                        CardContainer {
-                            Text("Service", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                            TwoColumnButtons(
-                                items = listOf(
-                                    "Clean Glass" to {
-                                        activeInputSheet = GameRoomInputSheet.CleanGlass
-                                    },
-                                    "Clean Playfield" to {
-                                        activeInputSheet = GameRoomInputSheet.CleanPlayfield
-                                    },
-                                    "Swap Balls" to {
-                                        activeInputSheet = GameRoomInputSheet.SwapBalls
-                                    },
-                                    "Check Pitch" to {
-                                        activeInputSheet = GameRoomInputSheet.CheckPitch
-                                    },
-                                    "Level Machine" to {
-                                        activeInputSheet = GameRoomInputSheet.LevelMachine
-                                    },
-                                    "General Inspection" to {
-                                        activeInputSheet = GameRoomInputSheet.GeneralInspection
-                                    },
-                                ),
-                            )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Text("Issue", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                            TwoColumnButtons(
-                                items = listOf(
-                                    "Log Issue" to { activeInputSheet = GameRoomInputSheet.LogIssue },
-                                    "Resolve Issue" to {
-                                        val openIssue = store.state.issues.firstOrNull {
-                                            it.ownedMachineID == selected.id && it.status != MachineIssueStatus.resolved
-                                        }
-                                        if (openIssue != null) {
-                                            inputResolveIssueIDDraft = openIssue.id
-                                            activeInputSheet = GameRoomInputSheet.ResolveIssue
-                                        }
-                                    },
-                                ),
-                            )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Text("Ownership / Media", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                            TwoColumnButtons(
-                                items = listOf(
-                                    "Ownership Update" to { activeInputSheet = GameRoomInputSheet.OwnershipUpdate },
-                                    "Install Mod" to { activeInputSheet = GameRoomInputSheet.InstallMod },
-                                    "Replace Part" to { activeInputSheet = GameRoomInputSheet.ReplacePart },
-                                    "Log Plays" to {
-                                        inputPlayTotalDraft = store.snapshot(selected.id).currentPlayCount.toString()
-                                        activeInputSheet = GameRoomInputSheet.LogPlays
-                                    },
-                                    "Add Photo/Video" to { activeInputSheet = GameRoomInputSheet.AddMedia },
-                                ),
-                            )
-                        }
-                    }
-
-                    if (selected != null && machineSubview == GameRoomMachineSubview.Log) {
-                        CardContainer {
-                            if (selectedLogEvent != null) {
-                                val eventAttachments = store.attachmentsForEvent(selectedLogEvent.id)
-                                val issueAttachments = selectedLogEvent.linkedIssueID?.let { store.attachmentsForIssue(it) }.orEmpty()
-                                val selectedEntryAttachments = (eventAttachments + issueAttachments).distinctBy { it.id }
-                                CardContainer(modifier = Modifier.height(164.dp)) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .verticalScroll(rememberScrollState()),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                                    ) {
-                                        Text(
-                                            text = "Selected Entry",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontWeight = FontWeight.SemiBold,
-                                        )
-                                        StyledPracticeJournalSummaryText(
-                                            summary = selectedLogEvent.summary,
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
-                                        Text(
-                                            text = "Type: ${displayMachineEventType(selectedLogEvent.type)}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                        Text(
-                                            text = "Category: ${displayMachineEventCategory(selectedLogEvent.category)}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                        Text(
-                                            text = formatTimestamp(selectedLogEvent.occurredAtMs),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                        if (!selectedLogEvent.notes.isNullOrBlank()) {
-                                            Text(
-                                                text = "Notes: ${selectedLogEvent.notes}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
-                                        }
-                                        if (selectedEntryAttachments.isNotEmpty()) {
-                                            Text(
-                                                text = "Media (${selectedEntryAttachments.size})",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontWeight = FontWeight.SemiBold,
-                                            )
-                                            MediaAttachmentGrid(
-                                                attachments = selectedEntryAttachments,
-                                                onOpen = { mediaPreviewAttachmentID = it.id },
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            if (machineEvents.isEmpty()) {
-                                Text(
-                                    text = "No log entries yet.",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            } else {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .pointerInput(revealedMachineLogRowID) {
-                                            detectTapGestures(
-                                                onTap = {
-                                                    if (revealedMachineLogRowID != null) {
-                                                        revealedMachineLogRowID = null
-                                                    }
-                                                },
-                                            )
-                                        },
-                                    verticalArrangement = Arrangement.spacedBy(0.dp),
-                                ) {
-                                    machineEvents.forEachIndexed { index, event ->
-                                        val mediaCount = store.attachmentsForEvent(event.id).size
-                                        GameRoomLogRow(
-                                            event = event,
-                                            mediaCount = mediaCount,
-                                            selected = selectedLogEventID == event.id,
-                                            revealedRowID = revealedMachineLogRowID,
-                                            onRevealedRowIDChange = { revealedMachineLogRowID = it },
-                                            onSelect = {
-                                                revealedMachineLogRowID = null
-                                                val mediaAttachment = if (
-                                                    event.type == MachineEventType.photoAdded ||
-                                                        event.type == MachineEventType.videoAdded
-                                                ) {
-                                                    store.attachmentsForEvent(event.id).firstOrNull()
-                                                } else {
-                                                    null
-                                                }
-                                                if (mediaAttachment != null) {
-                                                    mediaPreviewAttachmentID = mediaAttachment.id
-                                                } else {
-                                                    selectedLogEventID = event.id
-                                                }
-                                            },
-                                            onEdit = {
-                                                revealedMachineLogRowID = null
-                                                editingEventID = event.id
-                                                editEventDateDraft = isoDateFromMillis(event.occurredAtMs)
-                                                editEventSummaryDraft = event.summary
-                                                editEventNotesDraft = event.notes.orEmpty()
-                                            },
-                                            onDelete = {
-                                                revealedMachineLogRowID = null
-                                                store.deleteEvent(event.id)
-                                            },
-                                        )
-                                        if (index != machineEvents.lastIndex) {
-                                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                                        }
-                                    }
-                                }
-                            }
-                    }
-                }
+                GameRoomMachineRoute(
+                    store = store,
+                    catalogLoader = catalogLoader,
+                    selectedMachine = selectedMachineFromAll,
+                    machineSubview = machineSubview,
+                    onMachineSubviewChange = { machineSubview = it },
+                    selectedLogEventID = selectedLogEventID,
+                    onSelectedLogEventIDChange = { selectedLogEventID = it },
+                    revealedLogRowID = revealedMachineLogRowID,
+                    onRevealedLogRowIDChange = { revealedMachineLogRowID = it },
+                    onBack = { route = GameRoomRoute.Home },
+                    onOpenInputSheet = { activeInputSheet = it },
+                    onResolveIssueRequest = {
+                        inputResolveIssueIDDraft = it
+                        activeInputSheet = GameRoomInputSheet.ResolveIssue
+                    },
+                    onLogPlaysRequest = {
+                        inputPlayTotalDraft = it
+                        activeInputSheet = GameRoomInputSheet.LogPlays
+                    },
+                    onPreviewAttachment = { mediaPreviewAttachmentID = it.id },
+                    onEditEvent = { event ->
+                        editingEventID = event.id
+                        editEventDateDraft = isoDateFromMillis(event.occurredAtMs)
+                        editEventSummaryDraft = event.summary
+                        editEventNotesDraft = event.notes.orEmpty()
+                    },
+                    onDeleteEvent = { event ->
+                        store.deleteEvent(event.id)
+                    },
+                )
             }
         }
     }
@@ -2554,8 +2262,6 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
     }
 }
 
-}
-
 private fun makeImportDraftRow(
     machine: PinsideImportedMachine,
     catalogLoader: GameRoomCatalogLoader,
@@ -2730,7 +2436,7 @@ private fun MatchConfidenceBadge(confidence: MachineImportMatchConfidence) {
 }
 
 @Composable
-private fun GameRoomLogRow(
+internal fun GameRoomLogRow(
     event: MachineEvent,
     mediaCount: Int,
     selected: Boolean,
@@ -2878,7 +2584,7 @@ private fun RowScope.GameRoomSwipeRevealActionButton(
 }
 
 @Composable
-private fun MediaAttachmentGrid(
+internal fun MediaAttachmentGrid(
     attachments: List<MachineAttachment>,
     onOpen: (MachineAttachment) -> Unit,
 ) {

@@ -28,13 +28,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -49,8 +44,6 @@ import com.pillyliu.pinprofandroid.R
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
-import kotlinx.coroutines.delay
-
 enum class LeagueDestination(val title: String, val subtitle: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Stats("Stats", "Player trends and machine performance", Icons.Outlined.BarChart),
     Standings("Standings", "Season standings and points view", Icons.Outlined.FormatListNumbered),
@@ -68,36 +61,7 @@ fun LeagueScreen(
     val previewState by produceState(initialValue = LeaguePreviewState()) {
         value = loadLeaguePreviewState(context)
     }
-
-    var targetMetricIndex by rememberSaveable { mutableIntStateOf(0) }
-    var standingsModeIndex by rememberSaveable { mutableIntStateOf(0) }
-    var showStatsScore by rememberSaveable { mutableStateOf(true) }
-
-    LaunchedEffect(previewState.nextBankTargets) {
-        while (true) {
-            delay(4000)
-            targetMetricIndex = (targetMetricIndex + 1) % 3
-        }
-    }
-
-    LaunchedEffect(previewState.statsRecentRows) {
-        while (true) {
-            delay(4000)
-            showStatsScore = !showStatsScore
-        }
-    }
-
-    LaunchedEffect(previewState.standingsAroundRows) {
-        standingsModeIndex = 0
-        while (true) {
-            delay(4000)
-            if (previewState.standingsAroundRows.isNotEmpty()) {
-                standingsModeIndex = (standingsModeIndex + 1) % 2
-            } else {
-                standingsModeIndex = 0
-            }
-        }
-    }
+    val previewRotation = rememberLeaguePreviewRotationState(previewState)
 
     AppScreen(contentPadding) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -129,14 +93,14 @@ fun LeagueScreen(
                                 bankLabel = previewState.statsRecentBankLabel,
                                 playerLabel = previewState.statsPlayerRawName,
                                 showFullLplLastName = showFullLplLastName,
-                                showScore = showStatsScore,
+                                showScore = previewRotation.showStatsScore,
                                 labelSize = miniLabelSize,
                                 headerSize = miniHeaderSize,
                                 valueSize = miniValueSize,
                             )
                         }
                         LeagueDestination.Standings -> {
-                            val showAround = previewState.standingsAroundRows.isNotEmpty() && standingsModeIndex == 1
+                            val showAround = previewState.standingsAroundRows.isNotEmpty() && previewRotation.standingsModeIndex == 1
                             StandingsMiniPreview(
                                 seasonLabel = previewState.standingsSeasonLabel,
                                 showAround = showAround,
@@ -152,7 +116,7 @@ fun LeagueScreen(
                             TargetsMiniPreview(
                                 rows = previewState.nextBankTargets.take(maxRows),
                                 bankLabel = previewState.nextBankLabel,
-                                metricIndex = targetMetricIndex,
+                                metricIndex = previewRotation.targetMetricIndex,
                                 labelSize = miniLabelSize,
                                 headerSize = miniHeaderSize,
                                 valueSize = miniValueSize,
