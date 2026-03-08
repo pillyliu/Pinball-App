@@ -327,24 +327,24 @@ private struct SwipeableGroupListRow: View {
                     revealedGroupID = nil
                     withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
                 }) {
-                    Image(systemName: group.isArchived ? "arrow.uturn.left.circle" : "archivebox")
-                        .foregroundStyle(.orange)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    AppSwipeRevealActionButton(
+                        systemName: group.isArchived ? "arrow.uturn.left.circle" : "archivebox",
+                        foreground: AppTheme.brandGold
+                    )
                 }
                 .buttonStyle(.plain)
-                .background(Color.orange.opacity(0.16))
 
                 Button(action: {
                     onDelete()
                     revealedGroupID = nil
                     withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
                 }) {
-                    Image(systemName: "trash")
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    AppSwipeRevealActionButton(
+                        systemName: "trash",
+                        foreground: .red
+                    )
                 }
                 .buttonStyle(.plain)
-                .background(Color.red.opacity(0.16))
             }
             .frame(width: actionWidth, height: 34)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))

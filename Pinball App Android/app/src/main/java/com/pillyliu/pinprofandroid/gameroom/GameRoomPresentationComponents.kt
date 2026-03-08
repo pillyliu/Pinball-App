@@ -63,6 +63,7 @@ import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
 import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
+import com.pillyliu.pinprofandroid.ui.AppSwipeRevealActionButton
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 
 @Composable
@@ -108,14 +109,14 @@ internal fun GameRoomLogRow(
                 .height(rowHeightDp)
                 .alpha(if (revealProgress > 0f) 1f else 0f),
         ) {
-            GameRoomSwipeRevealActionButton(
+            AppSwipeRevealActionButton(
                 modifier = Modifier.weight(1f),
                 tint = Color(0xFF0A84FF),
                 icon = Icons.Outlined.Edit,
                 contentDescription = "Edit entry",
                 onClick = onEdit,
             )
-            GameRoomSwipeRevealActionButton(
+            AppSwipeRevealActionButton(
                 modifier = Modifier.weight(1f),
                 tint = Color(0xFFFF3B30),
                 icon = Icons.Outlined.Delete,
@@ -190,26 +191,6 @@ internal fun GameRoomLogRow(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun RowScope.GameRoomSwipeRevealActionButton(
-    modifier: Modifier,
-    tint: Color,
-    icon: ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .padding(horizontal = 1.dp)
-            .fillMaxHeight()
-            .background(tint, shape = RoundedCornerShape(6.dp))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = contentDescription, tint = Color.White)
     }
 }
 

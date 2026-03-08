@@ -42,6 +42,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppSwipeRevealActionButton
 
 internal data class JournalTimelineRow(
     val id: String,
@@ -96,14 +97,14 @@ internal fun JournalRow(
                     .height(rowHeightDp)
                     .alpha(if (revealProgress > 0f) 1f else 0f)
             ) {
-                SwipeRevealActionButton(
+                AppSwipeRevealActionButton(
                     modifier = Modifier.weight(1f),
                     tint = Color(0xFF0A84FF),
                     icon = Icons.Outlined.Edit,
                     contentDescription = "Edit entry",
                     onClick = { row.journalEntry?.let(onEdit) }
                 )
-                SwipeRevealActionButton(
+                AppSwipeRevealActionButton(
                     modifier = Modifier.weight(1f),
                     tint = Color(0xFFFF3B30),
                     icon = Icons.Outlined.Delete,
@@ -183,26 +184,6 @@ internal fun JournalRow(
                 onOpenGame = onOpenGame,
             )
         }
-    }
-}
-
-@Composable
-private fun RowScope.SwipeRevealActionButton(
-    modifier: Modifier,
-    tint: Color,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .padding(horizontal = 1.dp)
-            .fillMaxHeight()
-            .background(tint, shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = contentDescription, tint = Color.White)
     }
 }
 

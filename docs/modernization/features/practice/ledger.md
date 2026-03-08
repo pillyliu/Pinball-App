@@ -208,6 +208,8 @@
 - iOS Practice video-thumbnail loading/retry behavior and IFPA profile photo fallback now also route through the shared fallback image loader in `PracticeVideoComponents.swift` and `PracticeIFPAProfileScreen.swift` instead of feature-local `AsyncImage` placeholder blocks.
 - iOS Practice game-route save feedback now also uses the shared success-banner seam in `AppFilterControls.swift` instead of the last feature-local green capsule in `PracticeGamePresentationHost.swift`.
 - Android Practice game-route note-save, edit-save, and delete-save feedback now also uses the shared success-banner seam in `CommonUi.kt`, with transient banner state grouped into `PracticeGameSectionState.kt` instead of leaving the route without matching save feedback.
+- iOS Practice journal swipe rows and group swipe rows now also use the shared swipe-action button seam in `AppFilterControls.swift` instead of feature-local blue, red, and orange action backgrounds.
+- Android Practice journal swipe rows and current-group swipe rows now also use the shared swipe-action button seam in `CommonUi.kt` instead of local `SwipeRevealActionButton` and `SwipeActionIcon` implementations.
 
 ## Next audit targets
 

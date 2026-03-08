@@ -32,6 +32,7 @@
 - Android GameRoom collection-layout pills, settings-tab pills, and import-review filter pills now also use the shared `AppSelectionPill` seam in `CommonUi.kt` instead of three separate neutral selected-state implementations across `GameRoomRouteContent.kt` and `GameRoomSettingsSections.kt`.
 - iOS and Android GameRoom import confidence pills now also use the shared tinted status-chip seams in `AppFilterControls.swift` and `CommonUi.kt` instead of feature-local colored capsules, aligning import scoring highlights with the broader PinProf brand layer.
 - iOS GameRoom import-review rows and add-machine search rows now use the shared control-card chrome in `AppTheme.swift`, and Android GameRoom now uses the shared `AppControlCard` seam in `CommonUi.kt`, replacing local bordered row styling in the import/search flows.
+- Android GameRoom log-row swipe actions now also use the shared swipe-action button seam in `CommonUi.kt` instead of a feature-local reveal-action helper in `GameRoomPresentationComponents.kt`.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets

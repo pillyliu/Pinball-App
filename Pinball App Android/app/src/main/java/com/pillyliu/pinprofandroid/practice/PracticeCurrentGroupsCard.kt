@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppSwipeRevealActionButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
@@ -176,7 +177,7 @@ internal fun CurrentGroupsCard(
                             .fillMaxHeight()
                             .alpha(if (revealProgress > 0f) 1f else 0f),
                     ) {
-                        SwipeActionIcon(
+                        AppSwipeRevealActionButton(
                             modifier = Modifier.weight(1f),
                             tint = Color(0xFFFF9500),
                             icon = if (group.isArchived) Icons.Outlined.Unarchive else Icons.Outlined.Archive,
@@ -191,7 +192,7 @@ internal fun CurrentGroupsCard(
                                 offsetX = 0f
                             },
                         )
-                        SwipeActionIcon(
+                        AppSwipeRevealActionButton(
                             modifier = Modifier.weight(1f),
                             tint = Color(0xFFFF3B30),
                             icon = Icons.Outlined.Delete,
@@ -322,23 +323,5 @@ internal fun CurrentGroupsCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun RowScope.SwipeActionIcon(
-    modifier: Modifier,
-    tint: Color,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-) {
-    IconButton(
-        onClick = onClick,
-        modifier = modifier
-            .height(40.dp)
-            .background(tint, shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)),
-    ) {
-        Icon(icon, contentDescription = contentDescription, tint = Color.White)
     }
 }

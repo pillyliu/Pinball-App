@@ -242,26 +242,24 @@ struct JournalSwipeRevealRow<Content: View>: View {
                     revealedID = nil
                     withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
                 }) {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.blue)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    AppSwipeRevealActionButton(
+                        systemName: "pencil",
+                        foreground: AppTheme.statsMeanMedian
+                    )
                 }
                 .buttonStyle(.plain)
-                .background(Color.blue.opacity(0.16))
 
                 Button(action: {
                     onDelete()
                     revealedID = nil
                     withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
                 }) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    AppSwipeRevealActionButton(
+                        systemName: "trash",
+                        foreground: .red
+                    )
                 }
                 .buttonStyle(.plain)
-                .background(Color.red.opacity(0.16))
             }
             .frame(width: actionWidth)
             .frame(maxHeight: .infinity)
