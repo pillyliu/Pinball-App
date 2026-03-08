@@ -125,6 +125,7 @@ fun AnchoredDropdownFilter(
     options: List<DropdownOption>,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
+    label: String? = null,
     minHeight: Dp = 40.dp,
     contentPadding: PaddingValues = PaddingValues(
         start = PinballThemeTokens.spacing.controlHorizontal,
@@ -147,6 +148,7 @@ fun AnchoredDropdownFilter(
             onValueChange = {},
             readOnly = true,
             singleLine = true,
+            label = label?.let { labelText -> { Text(labelText) } },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             textStyle = LocalTextStyle.current.copy(fontSize = buttonTextSize),
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(

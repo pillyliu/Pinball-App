@@ -163,3 +163,28 @@ struct AppCompactDropdownLabel: View {
         .appControlStyle()
     }
 }
+
+struct AppCompactFilterLabel: View {
+    let text: String
+    var font: Font = .subheadline
+    var minHeight: CGFloat = 36
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(text)
+                .font(font)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(AppTheme.shellSelectedContent)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(minHeight: minHeight)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appControlStyle()
+    }
+}

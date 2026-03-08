@@ -663,9 +663,9 @@ struct GameRoomEditMachinesView: View {
                         }
                     }
                 } label: {
-                    Label(selectedManufacturerLabel, systemImage: "line.3.horizontal.decrease.circle")
+                    AppCompactFilterLabel(text: selectedManufacturerLabel)
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.plain)
 
                 Spacer()
 
