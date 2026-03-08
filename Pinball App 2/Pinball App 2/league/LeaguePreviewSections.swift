@@ -24,9 +24,7 @@ struct TargetsPreview: View {
             }
 
             if rows.isEmpty {
-                Text("No target preview available yet")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                AppInlineStatusMessage(text: "No target preview available yet")
             } else {
                 VStack(alignment: .leading, spacing: 3) {
                     ForEach(rows.prefix(5).indices, id: \.self) { index in
@@ -85,9 +83,7 @@ struct StandingsPreview: View {
                 switch mode {
                 case .topFive:
                     if topRows.isEmpty {
-                        Text("No standings preview available yet")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        AppInlineStatusMessage(text: "No standings preview available yet")
                     } else {
                         headerRow
                         standingsRows(topRows)
@@ -103,9 +99,7 @@ struct StandingsPreview: View {
                     }
                 case .aroundYou:
                     if aroundRows.isEmpty {
-                        Text("Set a league player name in Practice to enable Around You")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        AppInlineStatusMessage(text: "Set a league player name in Practice to enable Around You")
                             .lineLimit(1)
                     } else {
                         headerRow
@@ -225,9 +219,7 @@ struct StatsPreview: View {
             }
 
             if rows.isEmpty {
-                Text("Tap to open full stats")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                AppInlineStatusMessage(text: "Tap to open full stats")
             } else {
                 VStack(alignment: .leading, spacing: 3) {
                     ForEach(rows) { row in

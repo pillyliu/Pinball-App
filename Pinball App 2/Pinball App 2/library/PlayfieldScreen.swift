@@ -152,12 +152,20 @@ struct HostedImageView: View {
                 ZoomableImageScrollView(image: image)
                     .ignoresSafeArea()
             } else if loader.failed {
-                VStack(spacing: 8) {
-                    Text("Could not load image.")
-                        .foregroundStyle(.secondary)
+                ZStack {
+                    AppFullscreenStatusOverlay(
+                        text: "Could not load image.",
+                        foregroundColor: .white.opacity(0.9)
+                    )
+
                     if let sourceURL = imageCandidates.first {
-                        Link("Open Original URL", destination: sourceURL)
-                            .font(.footnote)
+                        VStack {
+                            Spacer()
+                            Link("Open Original URL", destination: sourceURL)
+                                .font(.footnote)
+                                .foregroundStyle(.white.opacity(0.92))
+                                .padding(.bottom, 34)
+                        }
                     }
                 }
             } else {

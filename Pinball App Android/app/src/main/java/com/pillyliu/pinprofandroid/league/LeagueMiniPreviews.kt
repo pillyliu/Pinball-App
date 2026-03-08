@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
+import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
 import java.text.NumberFormat
 
 @Composable
@@ -78,7 +79,7 @@ internal fun StatsMiniPreview(
     }
 
     if (rows.isEmpty()) {
-        Text("Tap to open full stats", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = valueSize)
+        AppInlineStatusMessage(text = "Tap to open full stats")
         return
     }
 
@@ -155,7 +156,7 @@ internal fun StandingsMiniPreview(
             }
 
             if (rows.isEmpty()) {
-                Text("No standings preview available yet", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = valueSize)
+                AppInlineStatusMessage(text = "No standings preview available yet")
             } else {
                 rows.forEach { row ->
                     val isPodium = row.rank <= 3
@@ -233,7 +234,7 @@ internal fun TargetsMiniPreview(
     }
 
     if (rows.isEmpty()) {
-        Text("No target preview available yet", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = valueSize)
+        AppInlineStatusMessage(text = "No target preview available yet")
         return
     }
 

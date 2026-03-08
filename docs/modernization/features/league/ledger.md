@@ -17,6 +17,7 @@
 - Android League now mirrors that rendering split more closely: `LeaguePreviewCards.kt` owns the preview-card shell, while `LeagueMiniPreviews.kt` owns the `Targets`, `Standings`, and `Stats` preview bodies.
 - iOS League timer-driven preview rotation state now lives in `LeaguePreviewRotationState.swift`, bringing that ownership seam in line with Android’s existing `LeaguePreviewRotationState.kt`.
 - League nested route ownership is now explicit on both platforms: iOS routes through `LeagueDestinationView.swift`, Android routes through `LeagueDestinationHost.kt`, and `About Lansing Pinball League` is now part of the same League destination contract instead of a hidden special case on iOS.
+- League preview empty-state messaging now also uses the shared inline-status seams on both platforms instead of raw secondary `Text` blocks in `LeaguePreviewSections.swift` and `LeagueMiniPreviews.kt`.
 
 ## Next audit targets
 
