@@ -178,14 +178,7 @@ struct SettingsScreen: View {
                 Task { await viewModel.refresh() }
             }
             .navigationDestination(for: SettingsRoute.self) { route in
-                switch route {
-                case .addManufacturer:
-                    AddManufacturerScreen(viewModel: viewModel)
-                case .addVenue:
-                    AddVenueScreen(viewModel: viewModel)
-                case .addTournament:
-                    AddTournamentScreen(viewModel: viewModel)
-                }
+                settingsRouteDestination(route: route, viewModel: viewModel)
             }
         }
     }
