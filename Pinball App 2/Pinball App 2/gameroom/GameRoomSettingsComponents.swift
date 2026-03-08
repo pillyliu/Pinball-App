@@ -153,7 +153,7 @@ struct GameRoomImportSettingsView: View {
 
                 ScrollView {
                     LazyVStack(spacing: 8) {
-                        ForEach(filteredRowIndexes, id: \.self) { index in
+                        ForEach(Array(filteredRowIndexes.enumerated()), id: \.offset) { _, index in
                             let duplicateWarning = duplicateWarningMessage(for: draftRows[index])
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -218,7 +218,7 @@ struct GameRoomImportSettingsView: View {
                                 .buttonStyle(.plain)
 
                                 if let selectedCatalogGameID = draftRows[index].selectedCatalogGameID {
-                                    let variants = catalogLoader.variantOptions(for: selectedCatalogGameID)
+                                    let variants = importVariantOptions(for: draftRows[index], selectedCatalogGameID: selectedCatalogGameID)
                                     if !variants.isEmpty {
                                         Menu {
                                             Button("None") {
@@ -314,6 +314,27 @@ struct GameRoomImportSettingsView: View {
             return "Duplicate of existing machine: \(existing.displayTitle)."
         }
         return nil
+    }
+
+    private func importVariantOptions(for row: ImportDraftRow, selectedCatalogGameID: String) -> [String] {
+        var variants: [String] = []
+
+        if let currentVariant = row.selectedVariant?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !currentVariant.isEmpty {
+            variants.append(currentVariant)
+        }
+        if let rawVariant = row.rawVariant?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !rawVariant.isEmpty,
+           !variants.contains(where: { $0.caseInsensitiveCompare(rawVariant) == .orderedSame }) {
+            variants.append(rawVariant)
+        }
+        for variant in catalogLoader.variantOptions(for: selectedCatalogGameID) {
+            if !variants.contains(where: { $0.caseInsensitiveCompare(variant) == .orderedSame }) {
+                variants.append(variant)
+            }
+        }
+
+        return variants
     }
 
     private func fetchCollection() {
