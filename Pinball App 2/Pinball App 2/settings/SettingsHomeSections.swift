@@ -32,9 +32,7 @@ struct SettingsHomeContent: View {
         VStack(alignment: .leading, spacing: 10) {
             AppSectionTitle(text: "Library")
 
-            Text("Add:")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+            AppCardSubheading(text: "Add")
 
             HStack(spacing: 8) {
                 Button("Manufacturer") {
@@ -176,8 +174,7 @@ struct SettingsHomeContent: View {
     private func managedSourceRow(_ source: ManagedSourceRow) -> some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(source.title)
-                    .font(.subheadline.weight(.semibold))
+                AppCardSubheading(text: source.title)
                     .lineLimit(1)
                     .truncationMode(.tail)
 

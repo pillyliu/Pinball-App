@@ -213,6 +213,7 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 - iOS shared action chrome now also includes a branded inline link-action seam in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppFilterControls.swift`, and Practice home now uses the shared card-title/subheading hierarchy plus that link seam instead of older local cyan link text and raw semibold title blocks.
 - iOS Settings import surfaces and GameRoom log-detail presentation now also use shared `AppCardSubheading`, `AppCardTitle`, and `AppPanelEmptyCard` seams instead of local semibold subheadings and ad hoc empty-state text blocks, tightening the remaining hierarchy drift in those route-specific screens.
 - Shared overlay title and subtitle seams now also live in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppResourceChrome.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppResourceChrome.kt`, and Library list cards on both platforms now use that shared high-contrast overlay hierarchy instead of feature-local white text styling.
+- Settings source-management rows and Library video launch panels now also use shared hierarchy seams on both platforms, with Settings row titles and add labels moving onto shared card-subheading chrome and Library video launch overlays moving onto the shared overlay title/subtitle chrome instead of feature-local semibold text styling.
 
 ## Next design-system steps
 

@@ -50,6 +50,8 @@ import com.halilibo.richtext.ui.material3.RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppCardTitle
+import com.pillyliu.pinprofandroid.ui.AppOverlaySubtitle
+import com.pillyliu.pinprofandroid.ui.AppOverlayTitle
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppResourceChip
 import com.pillyliu.pinprofandroid.ui.AppResourceRow
@@ -197,12 +199,6 @@ internal fun PinballVideoLaunchPanel(
     onOpenVideo: (PlayableVideo) -> Unit,
     minHeight: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
-    val overlayTextShadow = Shadow(
-        color = Color.Black.copy(alpha = 0.9f),
-        offset = Offset(0f, 2f),
-        blurRadius = 6f,
-    )
-
     val metadata by produceState<YouTubeVideoMetadata?>(initialValue = null, key1 = selectedVideo?.id) {
         value = selectedVideo?.id?.let { loadYouTubeVideoMetadata(it) }
     }
@@ -252,33 +248,22 @@ internal fun PinballVideoLaunchPanel(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text(
+                AppOverlayTitle(
                     text = selectedVideo?.label ?: "Tap a video thumbnail",
-                    style = MaterialTheme.typography.titleMedium.copy(shadow = overlayTextShadow),
-                    color = Color.White,
-                    textAlign = TextAlign.Start,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 metadata?.title?.let { title ->
-                    Text(
+                    AppOverlaySubtitle(
                         text = title,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            shadow = overlayTextShadow,
-                        ),
-                        color = Color.White,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                        alpha = 1f,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
                 metadata?.channelName?.let { channelName ->
-                    Text(
+                    AppOverlaySubtitle(
                         text = channelName,
-                        style = MaterialTheme.typography.bodySmall.copy(shadow = overlayTextShadow),
-                        color = Color.White.copy(alpha = 0.9f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        alpha = 0.9f,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }

@@ -277,27 +277,18 @@ struct PinballVideoLaunchPanel: View {
 
             VStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(selectedVideo?.label ?? "Tap a video thumbnail")
-                        .font(.headline)
-                        .foregroundStyle(.white)
+                    AppOverlayTitle(selectedVideo?.label ?? "Tap a video thumbnail")
                         .lineLimit(1)
-                        .shadow(color: .black.opacity(0.95), radius: 4, x: 0, y: 2)
 
                     if let title = metadata?.title {
-                        Text(title)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white)
+                        AppOverlaySubtitle(title)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
-                            .shadow(color: .black.opacity(0.95), radius: 4, x: 0, y: 2)
                     }
 
                     if let channelName = metadata?.channelName {
-                        Text(channelName)
-                            .font(.footnote)
-                            .foregroundStyle(Color.white.opacity(0.84))
+                        AppOverlaySubtitle(channelName, emphasis: 0.84)
                             .lineLimit(1)
-                            .shadow(color: .black.opacity(0.95), radius: 4, x: 0, y: 2)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

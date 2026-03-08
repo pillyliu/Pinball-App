@@ -76,6 +76,7 @@
 - Android Library rulesheet resume confirmation now also uses the shared `AppTextAction` seam in `CommonUi.kt` instead of raw `TextButton` confirm/dismiss actions in `RulesheetScreen.kt`.
 - Shared `AppCardTitle` chrome now also backs the Library summary title on both platforms instead of feature-local headline and semibold title styling.
 - Library list-card title and subtitle overlays now also route through shared `AppOverlayTitle` and `AppOverlaySubtitle` seams in `AppResourceChrome.swift` and `AppResourceChrome.kt`, so the card image overlays use one branded, high-contrast hierarchy instead of feature-local raw white text styling.
+- Library YouTube launch panels on both platforms now also route their label/title/channel hierarchy through those shared `AppOverlayTitle` and `AppOverlaySubtitle` seams instead of feature-local headline and semibold overlay text.
 
 ## Next audit targets
 
