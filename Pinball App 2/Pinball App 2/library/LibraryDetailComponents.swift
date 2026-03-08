@@ -215,7 +215,7 @@ struct LibraryDetailSourcesCard: View {
                     NavigationLink(libraryPlayfieldButtonTitle(for: game)) {
                         HostedImageView(imageCandidates: game.actualFullscreenPlayfieldCandidates)
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
                 }
             }
 
@@ -314,7 +314,7 @@ struct PinballVideoLaunchPanel: View {
                     guard let selectedVideo, let youtubeURL = selectedVideo.youtubeWatchURL else { return }
                     openURL(youtubeURL)
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
                 .disabled(selectedVideo?.youtubeWatchURL == nil)
             }
             .padding(16)
@@ -365,7 +365,7 @@ private func libraryRulesheetLinkButton(title: String, game: PinballGame, source
             externalSource: source
         )
     }
-    .buttonStyle(.glass)
+    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
     .simultaneousGesture(
         TapGesture().onEnded {
             LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: title)
@@ -384,7 +384,7 @@ private func libraryRulesheetLinkButton(link: PinballGame.ReferenceLink, game: P
                 externalSource: embeddedSource
             )
         }
-        .buttonStyle(.glass)
+        .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
         .simultaneousGesture(
             TapGesture().onEnded {
                 LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: link.label)
@@ -394,7 +394,7 @@ private func libraryRulesheetLinkButton(link: PinballGame.ReferenceLink, game: P
         NavigationLink(title) {
             ExternalRulesheetWebScreen(title: game.name, url: destination)
         }
-        .buttonStyle(.glass)
+        .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
         .simultaneousGesture(
             TapGesture().onEnded {
                 LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: link.label)

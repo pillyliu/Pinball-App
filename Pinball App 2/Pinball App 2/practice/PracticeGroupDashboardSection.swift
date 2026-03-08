@@ -120,12 +120,12 @@ struct PracticeGroupDashboardSectionView: View {
                 Button(action: onOpenCreateGroup) {
                     Image(systemName: "plus")
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppCompactIconActionButtonStyle())
 
                 Button(action: onOpenEditSelectedGroup) {
                     Image(systemName: "pencil")
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppCompactIconActionButtonStyle())
                 .disabled(selectedGroupID == nil || !filteredGroups().contains(where: { $0.id == selectedGroupID }))
             }
 
@@ -227,7 +227,7 @@ struct PracticeGroupDashboardSectionView: View {
                     inlineDateEditorGroupID = nil
                     inlineDateEditorField = nil
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppDestructiveActionButtonStyle(fillsWidth: false))
 
                 Spacer()
 
@@ -235,7 +235,7 @@ struct PracticeGroupDashboardSectionView: View {
                     inlineDateEditorGroupID = nil
                     inlineDateEditorField = nil
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
             }
         }
         .padding(12)

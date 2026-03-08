@@ -70,7 +70,7 @@ struct PracticeIFPAProfileScreen: View {
                     await reloadProfile()
                 }
             }
-            .buttonStyle(.glass)
+            .buttonStyle(AppPrimaryActionButtonStyle())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)

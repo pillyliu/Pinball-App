@@ -70,7 +70,7 @@ struct PracticeMechanicsSectionView: View {
                 Button("Log Mechanics Session") {
                     onLogMechanicsSession(selectedMechanicSkill, Int(mechanicsComfort), mechanicsNote)
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppPrimaryActionButtonStyle())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)

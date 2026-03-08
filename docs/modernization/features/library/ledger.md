@@ -70,6 +70,7 @@
 - iOS and Android Library rulesheet viewers now also use shared reading-progress pill seams in `AppResourceChrome.swift` and `AppResourceChrome.kt` instead of feature-local fullscreen progress/save pill styling.
 - Android Library video-launch `Open in YouTube` action now also uses the shared `AppSecondaryButton` seam in `CommonUi.kt` instead of carrying one last feature-local `OutlinedButton` style in `LibraryDetailComponents.kt`.
 - iOS Library seed storage and seed query helper globals now explicitly opt out of default `MainActor` isolation in `LibrarySeedStorage.swift` and `LibrarySeedQueryLoaders.swift`, clearing the feature-owned actor-isolation warning noise from the seed-db path after those helpers were extracted out of the old monoliths.
+- iOS Library rulesheet/playfield resource buttons and the YouTube launch CTA now also route through the shared `AppSecondaryActionButtonStyle` seam in `AppFilterControls.swift`, replacing another remaining feature-local `.glass` action pocket in the detail route.
 
 ## Next audit targets
 

@@ -50,7 +50,7 @@ struct PracticeGameResourceCard: View {
                         NavigationLink(playfieldButtonTitle(for: game)) {
                             HostedImageView(imageCandidates: game.actualFullscreenPlayfieldCandidates)
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
                     }
                 } else {
                     PinballResourceRow("Playfield") {
@@ -107,7 +107,7 @@ struct PracticeGameResourceCard: View {
                 externalSource: source
             )
         }
-        .buttonStyle(.glass)
+        .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
     }
 
     @ViewBuilder
@@ -121,12 +121,12 @@ struct PracticeGameResourceCard: View {
                     externalSource: embeddedSource
                 )
             }
-            .buttonStyle(.glass)
+            .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
         } else if let destination = link.destinationURL {
             NavigationLink(title) {
                 ExternalRulesheetWebScreen(title: game.name, url: destination)
             }
-            .buttonStyle(.glass)
+            .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
         }
     }
 

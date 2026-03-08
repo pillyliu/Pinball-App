@@ -43,6 +43,7 @@
 - iOS and Android GameRoom snapshot metric rows now also route through shared metric-grid seams in `SharedTableUi.swift` and `CommonUi.kt`, so both the home selected-machine summary and the machine-detail `Current Snapshot` panel no longer keep feature-local two-column metadata layout helpers.
 - iOS GameRoom fetch/import, pagination, venue save, area save/edit, and machine save/archive/delete CTAs now also route through shared `AppPrimaryActionButtonStyle`, `AppSecondaryActionButtonStyle`, and `AppDestructiveActionButtonStyle` seams in `AppFilterControls.swift`, replacing the remaining feature-local `.glass` CTA styling pockets in `GameRoomSettingsComponents.swift`.
 - The iOS GameRoom edit-name save action now also uses that shared primary CTA seam as a true full-width row instead of a button trapped inside a spacer-wrapped `HStack`, matching the rest of the GameRoom settings action layout.
+- The iOS GameRoom home settings gear now also uses the shared compact icon-button seam in `AppFilterControls.swift`, aligning the home-shell utility affordance with the newer shared action chrome used across Practice and Settings.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets

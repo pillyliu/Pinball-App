@@ -37,7 +37,7 @@ struct GameRoomHomeView: View {
                         Button(action: onOpenSettings) {
                             Image(systemName: "gearshape")
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(AppCompactIconActionButtonStyle())
                     }
                     .padding(.leading, 8)
 
