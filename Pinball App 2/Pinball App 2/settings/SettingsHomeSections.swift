@@ -34,22 +34,35 @@ struct SettingsHomeContent: View {
 
             AppCardSubheading(text: "Add")
 
-            HStack(spacing: 8) {
-                Button("Manufacturer") {
-                    navigationPath.append(.addManufacturer)
-                }
-                .buttonStyle(AppCompactSecondaryActionButtonStyle())
+            GeometryReader { proxy in
+                let spacing: CGFloat = 8
+                let totalWidth = max(0, proxy.size.width - (spacing * 2))
+                let totalUnits: CGFloat = 27
+                let manufacturerWidth = totalWidth * (12 / totalUnits)
+                let venueWidth = totalWidth * (5 / totalUnits)
+                let tournamentWidth = totalWidth * (10 / totalUnits)
 
-                Button("Venue") {
-                    navigationPath.append(.addVenue)
-                }
-                .buttonStyle(AppCompactSecondaryActionButtonStyle())
+                HStack(spacing: spacing) {
+                    Button("Manufacturer") {
+                        navigationPath.append(.addManufacturer)
+                    }
+                    .buttonStyle(AppCompactSecondaryActionButtonStyle())
+                    .frame(width: manufacturerWidth)
 
-                Button("Tournament") {
-                    navigationPath.append(.addTournament)
+                    Button("Venue") {
+                        navigationPath.append(.addVenue)
+                    }
+                    .buttonStyle(AppCompactSecondaryActionButtonStyle())
+                    .frame(width: venueWidth)
+
+                    Button("Tournament") {
+                        navigationPath.append(.addTournament)
+                    }
+                    .buttonStyle(AppCompactSecondaryActionButtonStyle())
+                    .frame(width: tournamentWidth)
                 }
-                .buttonStyle(AppCompactSecondaryActionButtonStyle())
             }
+            .frame(height: 34)
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text("Enabled adds that source's games to Library and Practice. Library adds the source to the Library source filter for quick switching. Up to \(PinballLibrarySourceStateStore.maxPinnedSources) sources can appear in Library at once.")

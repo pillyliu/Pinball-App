@@ -124,6 +124,7 @@ internal fun GameRoomMachineRoute(
                         selected = machineSubview == subview,
                         onClick = { onMachineSubviewChange(subview) },
                         colors = pinballSegmentedButtonColors(),
+                        icon = {},
                         shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
                             index = index,
                             count = GameRoomMachineSubview.entries.size,

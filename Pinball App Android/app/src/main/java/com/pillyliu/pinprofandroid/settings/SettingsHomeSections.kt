@@ -55,6 +55,7 @@ import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 
@@ -155,19 +156,22 @@ private fun SettingsLibrarySection(
         AppCardSubheading("Add")
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            AppPrimaryButton(
+            AppSecondaryButton(
                 onClick = onOpenAddManufacturer,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                modifier = Modifier.weight(12f),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
             ) { Text("Manufacturer", maxLines = 1, overflow = TextOverflow.Clip) }
-            AppPrimaryButton(
+            AppSecondaryButton(
                 onClick = onOpenAddVenue,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                modifier = Modifier.weight(5f),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
             ) { Text("Venue", maxLines = 1, overflow = TextOverflow.Clip) }
-            AppPrimaryButton(
+            AppSecondaryButton(
                 onClick = onOpenAddTournament,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                modifier = Modifier.weight(10f),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
             ) { Text("Tournament", maxLines = 1, overflow = TextOverflow.Clip) }
         }
         Text(

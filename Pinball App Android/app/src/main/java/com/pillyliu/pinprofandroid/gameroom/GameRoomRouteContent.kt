@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,6 +33,7 @@ import com.pillyliu.pinprofandroid.ui.AppSelectionPill
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppHeaderIconButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
 
@@ -145,16 +148,18 @@ internal fun GameRoomHomeRoute(
                     text = "Collection",
                     modifier = Modifier.weight(1f),
                 )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    GameRoomCollectionLayout.entries.forEach { mode ->
-                        val selected = mode == context.collectionLayout
-                        AppSelectionPill(
-                            text = mode.label,
-                            selected = selected,
+                SingleChoiceSegmentedButtonRow {
+                    GameRoomCollectionLayout.entries.forEachIndexed { index, mode ->
+                        SegmentedButton(
+                            selected = mode == context.collectionLayout,
                             onClick = { context.onCollectionLayoutChange(mode) },
+                            colors = pinballSegmentedButtonColors(),
+                            icon = {},
+                            shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
+                                index = index,
+                                count = GameRoomCollectionLayout.entries.size,
+                            ),
+                            label = { Text(mode.label, maxLines = 1) },
                         )
                     }
                 }
