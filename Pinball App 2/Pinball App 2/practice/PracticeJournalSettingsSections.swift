@@ -697,8 +697,7 @@ struct PracticeSettingsSectionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Practice Profile")
-                    .font(.headline)
+                AppSectionTitle(text: "Practice Profile")
 
                 TextField("Player name", text: $playerName)
                     .padding(.horizontal, 10)
@@ -714,8 +713,7 @@ struct PracticeSettingsSectionView: View {
             .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("IFPA")
-                    .font(.headline)
+                AppSectionTitle(text: "IFPA")
 
                 TextField("IFPA number", text: $ifpaPlayerID)
                     .keyboardType(.numberPad)
@@ -738,8 +736,7 @@ struct PracticeSettingsSectionView: View {
             .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("League Import")
-                    .font(.headline)
+                AppSectionTitle(text: "League Import")
 
                 Menu {
                     Button("Select league player") {
@@ -782,8 +779,7 @@ struct PracticeSettingsSectionView: View {
         .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Defaults")
-                    .font(.headline)
+                AppSectionTitle(text: "Defaults")
 
                 Toggle("Enable optional cloud sync", isOn: $cloudSyncEnabled)
                     .onChange(of: cloudSyncEnabled) { _, newValue in
@@ -798,8 +794,7 @@ struct PracticeSettingsSectionView: View {
             .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Reset")
-                    .font(.headline)
+                AppSectionTitle(text: "Reset")
 
                 Text("Erase the full local Practice log state.")
                     .font(.caption)

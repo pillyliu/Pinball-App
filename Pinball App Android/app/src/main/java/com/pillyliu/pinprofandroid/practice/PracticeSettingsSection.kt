@@ -29,6 +29,7 @@ import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinprofandroid.data.setShowFullLplLastName
 import com.pillyliu.pinprofandroid.data.unlockLplFullNameAccess
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 
 @Composable
 internal fun PracticeSettingsSection(
@@ -43,7 +44,7 @@ internal fun PracticeSettingsSection(
     val lplFullNameAccessUnlocked = rememberLplFullNameAccessUnlocked()
 
     CardContainer {
-        Text("Practice Profile", fontWeight = FontWeight.SemiBold)
+        SectionTitle("Practice Profile")
         var draftName by remember(store.playerName) { mutableStateOf(store.playerName) }
         OutlinedTextField(
             value = draftName,
@@ -55,7 +56,7 @@ internal fun PracticeSettingsSection(
     }
 
     CardContainer {
-        Text("IFPA", fontWeight = FontWeight.SemiBold)
+        SectionTitle("IFPA")
         var draftIfpaId by remember(store.ifpaPlayerID) { mutableStateOf(store.ifpaPlayerID) }
         OutlinedTextField(
             value = draftIfpaId,
@@ -73,7 +74,7 @@ internal fun PracticeSettingsSection(
     }
 
     CardContainer {
-        Text("League Import", fontWeight = FontWeight.SemiBold)
+        SectionTitle("League Import")
         var players by remember { mutableStateOf(listOf<String>()) }
         LaunchedEffect(Unit) {
             players = store.availableLeaguePlayers()
@@ -99,7 +100,7 @@ internal fun PracticeSettingsSection(
     }
 
     CardContainer {
-        Text("Privacy", fontWeight = FontWeight.SemiBold)
+        SectionTitle("Privacy")
         Text(
             "Lansing Pinball League names are shown as first name plus last initial by default.",
             style = MaterialTheme.typography.bodySmall,
@@ -163,7 +164,7 @@ internal fun PracticeSettingsSection(
     }
 
     CardContainer {
-        Text("Defaults", fontWeight = FontWeight.SemiBold)
+        SectionTitle("Defaults")
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -182,7 +183,7 @@ internal fun PracticeSettingsSection(
     }
 
     CardContainer {
-        Text("Reset", fontWeight = FontWeight.SemiBold)
+        SectionTitle("Reset")
         Text("Erase the full local Practice log state.")
         Button(onClick = onOpenResetDialog) { Text("Reset Practice Log") }
     }

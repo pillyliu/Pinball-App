@@ -69,8 +69,7 @@ struct PracticeIFPAProfileScreen: View {
 
     private func errorCard(_ message: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Could not load IFPA profile")
-                .font(.headline)
+            AppSectionTitle(text: "Could not load IFPA profile")
             Text(message)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -133,8 +132,7 @@ struct PracticeIFPAProfileScreen: View {
 
         if profile.lastEventDate != nil || profile.seriesRank != nil {
             VStack(alignment: .leading, spacing: 8) {
-                Text("At a Glance")
-                    .font(.headline)
+                AppSectionTitle(text: "At a Glance")
 
                 if let lastEventDate = profile.lastEventDate {
                     infoRow(label: "Last event", value: lastEventDate)
@@ -150,8 +148,7 @@ struct PracticeIFPAProfileScreen: View {
         }
 
         VStack(alignment: .leading, spacing: 8) {
-            Text("Recent Tournaments")
-                .font(.headline)
+            AppSectionTitle(text: "Recent Tournaments")
 
             if profile.recentTournaments.isEmpty {
                 Text("No recent tournament results were found on the public IFPA profile.")

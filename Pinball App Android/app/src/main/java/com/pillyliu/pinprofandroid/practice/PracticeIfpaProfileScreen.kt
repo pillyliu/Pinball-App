@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URL
@@ -161,7 +162,7 @@ internal fun PracticeIfpaProfileScreen(
 
             if (loadedProfile.lastEventDate != null || loadedProfile.seriesRank != null) {
                 CardContainer {
-                    Text("At a Glance", fontWeight = FontWeight.SemiBold)
+                    SectionTitle("At a Glance")
                     loadedProfile.lastEventDate?.let {
                         IfpaInfoRow(label = "Last event", value = it)
                     }
@@ -172,7 +173,7 @@ internal fun PracticeIfpaProfileScreen(
             }
 
             CardContainer {
-                Text("Recent Tournaments", fontWeight = FontWeight.SemiBold)
+                SectionTitle("Recent Tournaments")
                 if (loadedProfile.recentTournaments.isEmpty()) {
                     Text(
                         "No recent tournament results were found on the public IFPA profile.",
@@ -209,7 +210,7 @@ internal fun PracticeIfpaProfileScreen(
 
         errorMessage != null -> {
             CardContainer {
-                Text("Could not load IFPA profile", fontWeight = FontWeight.SemiBold)
+                SectionTitle("Could not load IFPA profile")
                 Text(errorMessage!!, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Button(onClick = {
                     profile = null
