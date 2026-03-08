@@ -37,6 +37,18 @@ struct AppShapeTokens {
     let controlCorner: CGFloat
 }
 
+struct AppTypographyTokens {
+    let sectionTitle: Font
+    let emptyState: Font
+    let filterSummary: Font
+    let dropdownCompact: Font
+    let dropdownLarge: Font
+    let dropdownChevronCompact: Font
+    let dropdownChevronLarge: Font
+    let shellLabel: Font
+    let tableCell: Font
+}
+
 enum AppTheme {
     static let colors = AppSemanticColors(
         background: Color(uiColor: .systemBackground),
@@ -72,6 +84,18 @@ enum AppTheme {
     static let shapes = AppShapeTokens(
         panelCorner: 12,
         controlCorner: 10
+    )
+
+    static let typography = AppTypographyTokens(
+        sectionTitle: .subheadline.weight(.semibold),
+        emptyState: .footnote,
+        filterSummary: .caption.weight(.semibold),
+        dropdownCompact: .footnote,
+        dropdownLarge: .callout,
+        dropdownChevronCompact: .caption,
+        dropdownChevronLarge: .footnote,
+        shellLabel: .caption,
+        tableCell: .caption
     )
 
     static let bg = colors.background
@@ -135,11 +159,11 @@ enum AppLayout {
     }
 
     static func dropdownTextFont(isLargeTablet: Bool) -> Font {
-        isLargeTablet ? .callout : .footnote
+        isLargeTablet ? AppTheme.typography.dropdownLarge : AppTheme.typography.dropdownCompact
     }
 
     static func dropdownChevronFont(isLargeTablet: Bool) -> Font {
-        isLargeTablet ? .footnote : .caption
+        isLargeTablet ? AppTheme.typography.dropdownChevronLarge : AppTheme.typography.dropdownChevronCompact
     }
 
     static func dropdownHorizontalPadding(isLargeTablet: Bool) -> CGFloat {

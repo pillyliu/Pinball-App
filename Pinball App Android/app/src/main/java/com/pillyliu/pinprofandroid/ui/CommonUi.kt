@@ -35,7 +35,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 val LocalBottomBarVisible = compositionLocalOf<MutableState<Boolean>> {
     error("LocalBottomBarVisible not provided")
@@ -147,7 +146,11 @@ fun CardContainer(modifier: Modifier = Modifier, content: @Composable () -> Unit
 
 @Composable
 fun SectionTitle(text: String) {
-    Text(text = text, color = PinballThemeTokens.colors.shellSelectedContent, fontWeight = FontWeight.SemiBold)
+    Text(
+        text = text,
+        color = PinballThemeTokens.colors.shellSelectedContent,
+        style = PinballThemeTokens.typography.sectionTitle,
+    )
 }
 
 @Composable
@@ -158,7 +161,11 @@ fun EmptyLabel(text: String) {
             .padding(vertical = 20.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = text, color = PinballThemeTokens.colors.shellUnselectedContent)
+        Text(
+            text = text,
+            color = PinballThemeTokens.colors.shellUnselectedContent,
+            style = PinballThemeTokens.typography.emptyState,
+        )
     }
 }
 
@@ -170,6 +177,7 @@ fun InsetFilterHeader(
     onBack: (() -> Unit)? = null,
 ) {
     val colors = PinballThemeTokens.colors
+    val typography = PinballThemeTokens.typography
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -186,8 +194,7 @@ fun InsetFilterHeader(
             text = summaryText,
             modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
             color = colors.shellUnselectedContent,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 12.sp,
+            style = typography.filterSummary,
             maxLines = 1,
             textAlign = TextAlign.Center,
             overflow = TextOverflow.Ellipsis,

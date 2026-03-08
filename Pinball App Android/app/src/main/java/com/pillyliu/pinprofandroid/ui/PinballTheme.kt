@@ -91,6 +91,7 @@ fun PinballTheme(
             LocalPinballSemanticColors provides semanticColors(darkTheme = darkTheme),
             LocalPinballShapeTokens provides DefaultPinballShapeTokens,
             LocalPinballSpacingTokens provides DefaultPinballSpacingTokens,
+            LocalPinballTypographyTokens provides DefaultPinballTypographyTokens,
         ) {
             content()
         }

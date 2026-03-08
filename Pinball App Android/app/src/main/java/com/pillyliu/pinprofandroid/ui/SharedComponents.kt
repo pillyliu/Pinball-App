@@ -10,7 +10,6 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
@@ -38,17 +37,18 @@ fun FixedWidthTableCell(
     modifier: Modifier = Modifier,
     bold: Boolean = false,
     color: Color = Color.Unspecified,
-    fontSize: TextUnit = 13.sp,
+    fontSize: TextUnit = PinballThemeTokens.typography.tableCell.fontSize,
     maxLines: Int = 1,
     horizontalPadding: Dp = 3.dp,
     overflow: TextOverflow = TextOverflow.Clip,
 ) {
     val colors = PinballThemeTokens.colors
+    val typography = PinballThemeTokens.typography
     Text(
         text = text,
         modifier = modifier.width(width.dp).padding(horizontal = horizontalPadding),
         color = if (color == Color.Unspecified) colors.shellSelectedContent else color,
-        fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal,
+        fontWeight = if (bold) FontWeight.SemiBold else typography.tableCell.fontWeight ?: FontWeight.Normal,
         fontSize = fontSize,
         maxLines = maxLines,
         overflow = overflow,
@@ -64,8 +64,8 @@ fun CompactDropdownFilter(
     modifier: Modifier = Modifier,
     minHeight: Dp = 34.dp,
     contentPadding: PaddingValues = PaddingValues(horizontal = PinballThemeTokens.spacing.controlHorizontal, vertical = 3.dp),
-    textSize: TextUnit = 12.sp,
-    itemTextSize: TextUnit = 12.sp,
+    textSize: TextUnit = PinballThemeTokens.typography.dropdown.fontSize,
+    itemTextSize: TextUnit = PinballThemeTokens.typography.dropdownItem.fontSize,
 ) {
     val colors = PinballThemeTokens.colors
     var expanded by remember { mutableStateOf(false) }
@@ -132,8 +132,8 @@ fun AnchoredDropdownFilter(
         top = PinballThemeTokens.spacing.controlVertical + 1.dp,
         bottom = PinballThemeTokens.spacing.controlVertical + 1.dp,
     ),
-    buttonTextSize: TextUnit = 13.sp,
-    itemTextSize: TextUnit = 12.sp,
+    buttonTextSize: TextUnit = PinballThemeTokens.typography.dropdown.fontSize,
+    itemTextSize: TextUnit = PinballThemeTokens.typography.dropdownItem.fontSize,
 ) {
     val colors = PinballThemeTokens.colors
     var expanded by remember { mutableStateOf(false) }

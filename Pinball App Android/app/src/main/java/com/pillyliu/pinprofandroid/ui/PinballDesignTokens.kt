@@ -3,9 +3,12 @@ package com.pillyliu.pinprofandroid.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Immutable
 data class PinballSemanticColors(
@@ -50,6 +53,17 @@ data class PinballSpacingTokens(
     val shellContentBottomInset: Dp,
 )
 
+@Immutable
+data class PinballTypographyTokens(
+    val sectionTitle: TextStyle,
+    val emptyState: TextStyle,
+    val filterSummary: TextStyle,
+    val dropdown: TextStyle,
+    val dropdownItem: TextStyle,
+    val tableCell: TextStyle,
+    val shellLabel: TextStyle,
+)
+
 internal val LocalPinballSemanticColors = compositionLocalOf<PinballSemanticColors> {
     error("LocalPinballSemanticColors not provided")
 }
@@ -62,6 +76,10 @@ internal val LocalPinballSpacingTokens = compositionLocalOf<PinballSpacingTokens
     error("LocalPinballSpacingTokens not provided")
 }
 
+internal val LocalPinballTypographyTokens = compositionLocalOf<PinballTypographyTokens> {
+    error("LocalPinballTypographyTokens not provided")
+}
+
 object PinballThemeTokens {
     val colors: PinballSemanticColors
         @Composable get() = LocalPinballSemanticColors.current
@@ -71,6 +89,9 @@ object PinballThemeTokens {
 
     val spacing: PinballSpacingTokens
         @Composable get() = LocalPinballSpacingTokens.current
+
+    val typography: PinballTypographyTokens
+        @Composable get() = LocalPinballTypographyTokens.current
 }
 
 internal val DefaultPinballShapeTokens = PinballShapeTokens(
@@ -87,4 +108,14 @@ internal val DefaultPinballSpacingTokens = PinballSpacingTokens(
     shellBarHeight = 66.dp,
     shellBottomPadding = 8.dp,
     shellContentBottomInset = 74.dp,
+)
+
+internal val DefaultPinballTypographyTokens = PinballTypographyTokens(
+    sectionTitle = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+    emptyState = TextStyle(fontSize = 13.sp),
+    filterSummary = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
+    dropdown = TextStyle(fontSize = 13.sp),
+    dropdownItem = TextStyle(fontSize = 12.sp),
+    tableCell = TextStyle(fontSize = 13.sp),
+    shellLabel = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
 )

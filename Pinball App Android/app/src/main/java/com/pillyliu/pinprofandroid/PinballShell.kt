@@ -191,6 +191,7 @@ private fun PinballBottomBar(
 ) {
     val colors = PinballThemeTokens.colors
     val spacing = PinballThemeTokens.spacing
+    val typography = PinballThemeTokens.typography
     val tabItemColors = NavigationBarItemDefaults.colors(
         selectedIconColor = colors.shellSelectedContent,
         selectedTextColor = colors.shellSelectedContent,
@@ -218,7 +219,7 @@ private fun PinballBottomBar(
                     selected = selectedTab == tab,
                     onClick = { onSelectTab(tab) },
                     icon = { Icon(tab.icon, contentDescription = tab.title) },
-                    label = { Text(tab.title) },
+                    label = { Text(tab.title, style = typography.shellLabel) },
                     alwaysShowLabel = false,
                     colors = tabItemColors,
                 )

@@ -91,11 +91,13 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
   - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt`
   - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/SharedComponents.kt`
 - Android spacing and shell-bar geometry are now part of the same semantic token layer instead of being repeated as raw `dp` constants across root shell and shared UI.
+- Android typography roles are now part of the same token layer, and shared UI consumes them for section titles, empty states, filter headers, dropdowns, table cells, and shell labels.
 - iOS now exposes semantic color, spacing, and shape token groups in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppTheme.swift` instead of only flat globals.
+- iOS now exposes typography roles in the same theme file so dropdown and shell text sizing can stop drifting from ad hoc font choices.
 - iOS root tabs in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/app/ContentView.swift` now use one metadata-driven tab contract instead of repeating screen/title/icon wiring inline.
 
 ## Next design-system steps
 
-1. Move more shared component families onto semantic spacing and shape tokens instead of ad hoc local constants.
+1. Move more shared component families onto semantic spacing, typography, and shape tokens instead of ad hoc local constants.
 2. Normalize top-bar, sheet, and dialog chrome across shared UI helpers on both platforms.
-3. Start documenting typography and motion roles before broader visual restyling.
+3. Start documenting motion roles before broader visual restyling.
