@@ -55,7 +55,7 @@ iOS:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameToolbarMenu.swift` now isolates the game/source picker toolbar from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGamePresentationContext.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGamePresentationHost.swift` now isolate game-route sheets, alerts, and save-banner feedback from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleContext.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleHost.swift` now isolate game-route first-load and selected-game synchronization from the main game route file.
-- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameRouteBody.swift` now isolates the screenshot, segmented workspace card, note, and resource-card layout from the main game route file.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameRouteBody.swift` now isolates the screenshot, segmented workspace card, note, and embedded study-resource layout from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` is still a major UI hotspot, but it now consumes an explicit workspace context and grouped state seam, and no longer renders the three workspace subviews inline.
 - Store responsibilities are partially split across helper files, route dispatch is now driven by per-route contexts, and the root screen declaration is no longer the orchestration catch-all it was before.
 - Route model is now more explicit than before via `PracticeRoute` and `PracticeSheet`, but the iOS product-surface contract is still incomplete compared with Android because some drill-ins remain local to subviews and root orchestration is still centralized.
@@ -63,7 +63,7 @@ iOS:
 Android:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeScreen.kt` is better separated at the route layer than iOS.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt` remains a responsibility concentration point, but its league, journal, progress-mutation, library-loading, persistence, and derived-query slices now live behind dedicated seams.
-- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameWorkspacePanels.kt` now isolates the segmented workspace card plus the `Summary`, `Input`, and `Log` panels from the main Android game route file.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameWorkspacePanels.kt` now isolates the segmented workspace card plus the `Summary`, `Input`, `Study`, and `Log` panels from the main Android game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDetailCards.kt` now isolates the Android `Game Note` and `Game Resources` cards from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameDialogs.kt` now isolates Android delete/edit dialog wiring from the main game route file.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGameSectionState.kt` now isolates Android `Game` route transient edit/delete/log-row UI state from the main game route file.
@@ -112,8 +112,8 @@ Android:
   - iOS: navigation title is selected game name; top-right game picker menu
   - Android: `PracticeTopBar` shows selected game name with dropdown picker
 - Core content:
-  - segmented subviews `Summary`, `Input`, `Log`
-  - rulesheet/playfield/video/resource launching
+  - segmented subviews `Summary`, `Input`, `Study`, `Log`
+  - rulesheet/playfield/video/resource launching inside `Study`
   - game summary note
   - score and target stats
   - quick-entry launchers from game context
@@ -127,11 +127,11 @@ Common high-level structure on both platforms:
 1. inline playfield/image preview
 2. main game workspace panel
 3. freeform game note
-4. game resources and videos
 
-Inside the main game workspace panel, both platforms use the same three subviews:
+Inside the main game workspace panel, both platforms use the same four subviews:
 - `Summary`
 - `Input`
+- `Study`
 - `Log`
 
 #### Summary subview
@@ -156,6 +156,14 @@ Current input shortcuts on both platforms:
 
 These launch quick-entry flows or score entry from game context.
 
+#### Study subview
+
+Current study content on both platforms:
+- rulesheet row with fallback/source chips
+- playfield row with source chip or unavailable state
+- video launch panel above video tiles
+- video tile list/grid beneath the launch panel
+
 #### Log subview
 
 Current log behavior on both platforms:
@@ -170,18 +178,10 @@ Current log behavior on both platforms:
 - Stores a freeform summary note for the selected game
 - Explicit save action exists on both platforms
 
-#### Resources section
-
-Current resource content on both platforms:
-- rulesheet row with fallback/source chips
-- playfield row with source chip or unavailable state
-- video launch panel above video tiles
-- video tile list/grid beneath the launch panel
-
 #### Current layout divergence
 
-- iOS packages the `Summary/Input/Log` content inside one large panel, then renders `Game Note` and `Game Resources` as separate cards below.
-- Android does the same in product terms, but the card boundaries and inner headings are rendered differently.
+- Both platforms now package `Summary/Input/Study/Log` inside one large panel, then render `Game Note` as a separate card below.
+- The main remaining differences are inner heading treatment and exact workspace spacing, not feature grouping.
 - iOS game switching lives in a top-right menu inside the navigation bar.
 - Android game switching lives in the top bar title area as a dropdown control.
 - Product intent is aligned, but the visual grouping rules are not yet defined as one shared component contract.
@@ -350,7 +350,7 @@ iOS current wiring:
 - `PracticeGameWorkspace.swift`
   - now builds an explicit game-workspace context instead of passing raw store and bindings directly into the section view
 - `PracticeGameWorkspaceSubviews.swift`
-  - owns the `Summary`, `Input`, and `Log` workspace subviews so the main game route file no longer renders those panels inline
+  - owns the iOS `Summary`, `Input`, and `Log` workspace subviews so the main game route file no longer renders those panels inline
 - `PracticeGameEntrySheets.swift`
   - owns the `Score`, `Note`, and task-entry sheets so the main game route file no longer embeds modal form implementations inline
 - `PracticeTypes.swift`
@@ -472,11 +472,11 @@ Current status:
 1. Extract a dedicated Practice route state model on iOS instead of storing all navigation and modal flags in `PracticeScreen.swift`.
 2. Continue splitting Practice Game workspace into explicit subcomponents shared by contract:
    - remaining route-level helper ownership
-   - note/resources contract hardening
+   - note/study contract hardening
    - remaining save-banner helper ownership
 3. Mirror the same `Game` route boundaries on Android so the platforms are structurally comparable:
    - keep segmented workspace card outside `PracticeGameSection.kt`
-   - keep note/resources and dialog wiring outside `PracticeGameSection.kt`
+   - keep note/study wiring and dialog wiring outside `PracticeGameSection.kt`
    - keep route-local transient state outside `PracticeGameSection.kt`
    - keep route-specific dependencies outside the shared route-content context
    - keep top-bar game/source selection outside the broader top-bar component

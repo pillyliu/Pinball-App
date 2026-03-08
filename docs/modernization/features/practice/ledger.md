@@ -238,6 +238,9 @@
 - iOS Practice home greeting, mini-card titles, and the welcome overlay now also route through shared `AppInlineLinkAction`, `AppCardTitle`, and `AppCardSubheading` seams instead of older local cyan link text and raw semibold title styling, reducing another visible hierarchy gap against the newer shared PinProf chrome.
 - Android Practice active-group names and empty group cards now also use shared `AppCardSubheading` and `AppPanelEmptyCard` seams in `PracticeHomeSection.kt` instead of remaining local semibold text and label-small empty-copy treatment.
 - Android Practice home mini-card titles now also use the shared `AppCardTitle` seam in `PracticeHomeComponents.kt` instead of a local `titleSmall`/semibold label style.
+- Reworked the Practice game route on both platforms so the main workspace panel now owns four subviews: `Summary`, `Input`, `Study`, and `Log`.
+- Moved the old always-visible `Game Resources` card into the new `Study` subview, while keeping `Game Note` as its own always-visible card below the workspace.
+- Flattened the study/resource content inside the shared workspace panel on both platforms so it behaves like the other game subviews instead of rendering as a nested card.
 
 ## Next audit targets
 

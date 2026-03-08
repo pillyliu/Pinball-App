@@ -45,6 +45,7 @@ internal enum class PracticeRoute {
 internal enum class PracticeGameSubview(val label: String) {
     Summary("Summary"),
     Input("Input"),
+    Study("Study"),
     Log("Log"),
 }
 

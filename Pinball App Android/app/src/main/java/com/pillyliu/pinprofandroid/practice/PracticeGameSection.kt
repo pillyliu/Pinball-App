@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.ConstrainedAsyncImagePreview
 import com.pillyliu.pinprofandroid.library.detailArtworkCandidates
 import com.pillyliu.pinprofandroid.library.PinballGame
-import com.pillyliu.pinprofandroid.library.PlayableVideo
 import com.pillyliu.pinprofandroid.library.practiceKey
 import com.pillyliu.pinprofandroid.library.RulesheetRemoteSource
 import com.pillyliu.pinprofandroid.library.youtubeId
@@ -46,11 +45,6 @@ internal fun PracticeGameSection(
     }
     val gameKey = game.practiceKey
     val uiState = rememberPracticeGameSectionState(gameKey)
-    val playableVideos = game.videos.mapNotNull { video ->
-        val id = youtubeId(video.url) ?: return@mapNotNull null
-        PlayableVideo(id = id, label = video.label ?: "Video")
-    }
-
     LaunchedEffect(uiState.saveBanner) {
         val current = uiState.saveBanner ?: return@LaunchedEffect
         delay(1_200)
@@ -79,6 +73,11 @@ internal fun PracticeGameSection(
                 onOpenQuickEntry = onOpenQuickEntry,
                 onEditLogEntry = { entry -> uiState.beginEditing(store, entry) },
                 onDeleteLogEntry = { entry -> uiState.confirmDelete(entry) },
+                activeGameVideoId = activeGameVideoId,
+                onActiveGameVideoIdChange = onActiveGameVideoIdChange,
+                onOpenRulesheet = onOpenRulesheet,
+                onOpenExternalRulesheet = onOpenExternalRulesheet,
+                onOpenPlayfield = onOpenPlayfield,
             )
 
             PracticeGameNoteCard(
@@ -86,16 +85,6 @@ internal fun PracticeGameSection(
                 store = store,
                 gameSummaryDraft = gameSummaryDraft,
                 onGameSummaryDraftChange = onGameSummaryDraftChange,
-            )
-
-            PracticeGameResourcesCard(
-                game = game,
-                playableVideos = playableVideos,
-                activeGameVideoId = activeGameVideoId,
-                onActiveGameVideoIdChange = onActiveGameVideoIdChange,
-                onOpenRulesheet = onOpenRulesheet,
-                onOpenExternalRulesheet = onOpenExternalRulesheet,
-                onOpenPlayfield = onOpenPlayfield,
             )
         }
 

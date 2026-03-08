@@ -4,6 +4,7 @@ import Foundation
 enum PracticeGameSubview: String, CaseIterable, Identifiable {
     case summary
     case input
+    case study
     case log
 
     var id: String { rawValue }
@@ -12,25 +13,21 @@ enum PracticeGameSubview: String, CaseIterable, Identifiable {
         switch self {
         case .summary: return "Summary"
         case .input: return "Input"
+        case .study: return "Study"
         case .log: return "Log"
         }
     }
 }
 
-struct PracticeGameRouteBody<Summary: View, Input: View, Log: View>: View {
+struct PracticeGameRouteBody<Summary: View, Input: View, Study: View, Log: View>: View {
     let selectedGame: PinballGame?
     @Binding var subview: PracticeGameSubview
     @Binding var gameSummaryDraft: String
     let selectedGameID: String
-    let playableVideos: [PinballGame.PlayableVideo]
-    @Binding var activeVideoID: String?
-    let onOpenURL: OpenURLAction
-    let onOpenRulesheet: (PinballGame, RulesheetRemoteSource?) -> Void
-    let onOpenExternalRulesheet: (PinballGame, URL) -> Void
-    let onOpenPlayfield: (PinballGame) -> Void
     let onSaveNote: () -> Void
     @ViewBuilder let summaryView: () -> Summary
     @ViewBuilder let inputView: () -> Input
+    @ViewBuilder let studyView: () -> Study
     @ViewBuilder let logView: () -> Log
 
     var body: some View {
@@ -45,6 +42,7 @@ struct PracticeGameRouteBody<Summary: View, Input: View, Log: View>: View {
                         selectedSubview: $subview,
                         summaryView: summaryView,
                         inputView: inputView,
+                        studyView: studyView,
                         logView: logView
                     )
 
@@ -52,16 +50,6 @@ struct PracticeGameRouteBody<Summary: View, Input: View, Log: View>: View {
                         note: $gameSummaryDraft,
                         isDisabled: selectedGameID.isEmpty,
                         onSave: onSaveNote
-                    )
-
-                    PracticeGameResourceCard(
-                        game: selectedGame,
-                        playableVideos: playableVideos,
-                        activeVideoID: $activeVideoID,
-                        onOpenURL: onOpenURL,
-                        onOpenRulesheet: onOpenRulesheet,
-                        onOpenExternalRulesheet: onOpenExternalRulesheet,
-                        onOpenPlayfield: onOpenPlayfield
                     )
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -73,10 +61,11 @@ struct PracticeGameRouteBody<Summary: View, Input: View, Log: View>: View {
     }
 }
 
-private struct PracticeGameWorkspaceCard<Summary: View, Input: View, Log: View>: View {
+private struct PracticeGameWorkspaceCard<Summary: View, Input: View, Study: View, Log: View>: View {
     @Binding var selectedSubview: PracticeGameSubview
     @ViewBuilder let summaryView: () -> Summary
     @ViewBuilder let inputView: () -> Input
+    @ViewBuilder let studyView: () -> Study
     @ViewBuilder let logView: () -> Log
 
     var body: some View {
@@ -94,6 +83,8 @@ private struct PracticeGameWorkspaceCard<Summary: View, Input: View, Log: View>:
                     summaryView()
                 case .input:
                     inputView()
+                case .study:
+                    studyView()
                 case .log:
                     logView()
                 }

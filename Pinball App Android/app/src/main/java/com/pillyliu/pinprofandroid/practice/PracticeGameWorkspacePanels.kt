@@ -51,6 +51,11 @@ internal fun PracticeGameWorkspaceCard(
     onOpenQuickEntry: (QuickActivity, QuickEntryOrigin) -> Unit,
     onEditLogEntry: (JournalEntry) -> Unit,
     onDeleteLogEntry: (JournalEntry) -> Unit,
+    activeGameVideoId: String?,
+    onActiveGameVideoIdChange: (String?) -> Unit,
+    onOpenRulesheet: (com.pillyliu.pinprofandroid.library.RulesheetRemoteSource?) -> Unit,
+    onOpenExternalRulesheet: (String) -> Unit,
+    onOpenPlayfield: (List<String>) -> Unit,
 ) {
     CardContainer(
         modifier = Modifier.pointerInput(revealedLogRowId) {
@@ -95,6 +100,18 @@ internal fun PracticeGameWorkspaceCard(
         when (gameSubview) {
             PracticeGameSubview.Summary -> PracticeGameSummaryPanel(store = store, game = game)
             PracticeGameSubview.Input -> PracticeGameInputPanel(onOpenQuickEntry = onOpenQuickEntry)
+            PracticeGameSubview.Study -> PracticeGameResourcesCard(
+                game = game,
+                playableVideos = game.videos.mapNotNull { video ->
+                    val id = com.pillyliu.pinprofandroid.library.youtubeId(video.url) ?: return@mapNotNull null
+                    com.pillyliu.pinprofandroid.library.PlayableVideo(id = id, label = video.label ?: "Video")
+                },
+                activeGameVideoId = activeGameVideoId,
+                onActiveGameVideoIdChange = onActiveGameVideoIdChange,
+                onOpenRulesheet = onOpenRulesheet,
+                onOpenExternalRulesheet = onOpenExternalRulesheet,
+                onOpenPlayfield = onOpenPlayfield,
+            )
             PracticeGameSubview.Log -> PracticeGameLogPanel(
                 store = store,
                 gameKey = game.practiceKey,

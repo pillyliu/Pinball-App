@@ -62,18 +62,13 @@ struct PracticeGameSection: View {
                     subview: $uiState.subview,
                     gameSummaryDraft: $uiState.gameSummaryDraft,
                     selectedGameID: selectedGameID,
-                    playableVideos: playableVideos,
-                    activeVideoID: $uiState.activeVideoID,
-                    onOpenURL: openURL,
-                    onOpenRulesheet: onOpenRulesheet,
-                    onOpenExternalRulesheet: onOpenExternalRulesheet,
-                    onOpenPlayfield: onOpenPlayfield,
                     onSaveNote: {
                         store.updateGameSummaryNote(gameID: selectedGameID, note: uiState.gameSummaryDraft)
                         showSaveBanner("Game note saved")
                     },
                     summaryView: { gameSummaryView },
                     inputView: { gameInputView },
+                    studyView: { gameStudyView },
                     logView: { gameLogView }
                 )
             }
@@ -116,6 +111,18 @@ struct PracticeGameSection: View {
 
     private var gameSummaryView: some View {
         PracticeGameSummaryPanel(store: store, gameID: selectedGameID)
+    }
+
+    private var gameStudyView: some View {
+        PracticeGameResourceCard(
+            game: selectedGame,
+            playableVideos: playableVideos,
+            activeVideoID: $uiState.activeVideoID,
+            onOpenURL: openURL,
+            onOpenRulesheet: onOpenRulesheet,
+            onOpenExternalRulesheet: onOpenExternalRulesheet,
+            onOpenPlayfield: onOpenPlayfield
+        )
     }
 
     private func showSaveBanner(_ message: String) {

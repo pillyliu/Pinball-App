@@ -11,16 +11,7 @@ struct PracticeGameResourceCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let game {
-                HStack(alignment: .center, spacing: 8) {
-                    AppCardTitle(text: game.name, lineLimit: 2)
-                    if let variant = game.variant?.trimmingCharacters(in: .whitespacesAndNewlines), !variant.isEmpty {
-                        PinballVariantBadge(variant)
-                    }
-                    Spacer(minLength: 0)
-                }
-            }
-            AppCardSubheading(text: "Game Resources")
+            AppCardSubheading(text: "Study Resources")
 
             if let game {
                 Text(game.metaLine)
@@ -94,8 +85,6 @@ struct PracticeGameResourceCard: View {
         }
         .font(.caption)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .appPanelStyle()
     }
     @ViewBuilder
     private func practiceRulesheetLinkButton(title: String, game: PinballGame, source: RulesheetRemoteSource?) -> some View {

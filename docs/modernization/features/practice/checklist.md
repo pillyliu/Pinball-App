@@ -12,7 +12,7 @@
 - Resume/recent game behavior matches across platforms.
 - Game route title and game-switcher behavior matches across platforms.
 - Game route section order matches the written contract.
-- `Summary`, `Input`, and `Log` subviews contain the same behaviors across platforms.
+- `Summary`, `Input`, `Study`, and `Log` subviews contain the same behaviors across platforms.
 - Quick entry behavior matches across platforms.
 - Resource chips and unavailable states match across platforms.
 - Rulesheet, playfield, and video launch behavior matches across platforms.

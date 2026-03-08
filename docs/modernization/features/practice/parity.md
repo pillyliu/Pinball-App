@@ -45,9 +45,10 @@ Implementation note:
 ## Game route contract
 
 For the selected game workspace, both platforms must match in:
-- subview set: `Summary`, `Input`, `Log`
+- subview set: `Summary`, `Input`, `Study`, `Log`
 - summary content blocks
 - input shortcut set and meaning
+- study/resource content blocks
 - log editing/deletion capabilities
 - note save behavior
 - resource fallback behavior
