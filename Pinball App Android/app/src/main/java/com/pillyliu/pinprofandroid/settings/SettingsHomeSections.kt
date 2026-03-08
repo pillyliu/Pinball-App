@@ -57,6 +57,7 @@ import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 
 @Composable
@@ -397,7 +398,7 @@ private fun SettingsAboutSection() {
 @Composable
 internal fun LinkedHtmlText(html: String) {
     val bodyColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
-    val linkColor = MaterialTheme.colorScheme.primary.toArgb()
+    val linkColor = PinballThemeTokens.colors.brandGold.toArgb()
     AndroidView(
         factory = { context ->
             TextView(context).apply {

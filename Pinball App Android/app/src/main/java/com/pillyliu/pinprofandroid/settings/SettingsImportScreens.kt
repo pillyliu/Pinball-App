@@ -56,6 +56,7 @@ import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
+import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -408,7 +409,7 @@ internal fun LinkedHtmlText(
     modifier: Modifier = Modifier,
 ) {
     val bodyColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val linkColor = MaterialTheme.colorScheme.primary
+    val linkColor = PinballThemeTokens.colors.brandGold
     AndroidView(
         modifier = modifier.fillMaxWidth(),
         factory = { context ->
