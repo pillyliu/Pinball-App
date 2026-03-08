@@ -5,6 +5,12 @@ struct AppSemanticColors {
     let background: Color
     let panel: Color
     let border: Color
+    let brandInk: Color
+    let brandGold: Color
+    let brandChalk: Color
+    let atmosphereTop: Color
+    let atmosphereBottom: Color
+    let atmosphereGlow: Color
     let controlBackground: Color
     let controlBorder: Color
     let rowOdd: Color
@@ -54,6 +60,12 @@ enum AppTheme {
         background: Color(uiColor: .systemBackground),
         panel: Color(uiColor: .secondarySystemBackground),
         border: Color(uiColor: .separator),
+        brandInk: dynamicColor(light: UIColor(red: 0.05, green: 0.11, blue: 0.23, alpha: 1), dark: UIColor(red: 0.82, green: 0.90, blue: 1.00, alpha: 1)),
+        brandGold: dynamicColor(light: UIColor(red: 0.87, green: 0.69, blue: 0.16, alpha: 1), dark: UIColor(red: 1.00, green: 0.83, blue: 0.29, alpha: 1)),
+        brandChalk: dynamicColor(light: UIColor(red: 0.37, green: 0.53, blue: 0.47, alpha: 1), dark: UIColor(red: 0.54, green: 0.72, blue: 0.66, alpha: 1)),
+        atmosphereTop: dynamicColor(light: UIColor(red: 0.94, green: 0.96, blue: 1.00, alpha: 1), dark: UIColor(red: 0.07, green: 0.09, blue: 0.14, alpha: 1)),
+        atmosphereBottom: dynamicColor(light: UIColor(red: 0.90, green: 0.93, blue: 0.98, alpha: 1), dark: UIColor(red: 0.10, green: 0.13, blue: 0.18, alpha: 1)),
+        atmosphereGlow: dynamicColor(light: UIColor(red: 1.00, green: 0.86, blue: 0.45, alpha: 1), dark: UIColor(red: 1.00, green: 0.80, blue: 0.35, alpha: 1)),
         controlBackground: Color(uiColor: .secondarySystemFill),
         controlBorder: Color(uiColor: .separator),
         rowOdd: Color(uiColor: .secondarySystemBackground),
@@ -101,6 +113,12 @@ enum AppTheme {
     static let bg = colors.background
     static let panel = colors.panel
     static let border = colors.border
+    static let brandInk = colors.brandInk
+    static let brandGold = colors.brandGold
+    static let brandChalk = colors.brandChalk
+    static let atmosphereTop = colors.atmosphereTop
+    static let atmosphereBottom = colors.atmosphereBottom
+    static let atmosphereGlow = colors.atmosphereGlow
     static let controlBg = colors.controlBackground
     static let controlBorder = colors.controlBorder
     static let rowOdd = colors.rowOdd
@@ -179,7 +197,26 @@ enum AppLayout {
 
 struct AppBackground: View {
     var body: some View {
-        AppTheme.bg.ignoresSafeArea()
+        ZStack {
+            LinearGradient(
+                colors: [AppTheme.atmosphereTop, AppTheme.bg, AppTheme.atmosphereBottom],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            RadialGradient(
+                colors: [AppTheme.atmosphereGlow.opacity(0.18), .clear],
+                center: .topLeading,
+                startRadius: 18,
+                endRadius: 360
+            )
+            RadialGradient(
+                colors: [AppTheme.brandChalk.opacity(0.10), .clear],
+                center: .bottomTrailing,
+                startRadius: 12,
+                endRadius: 320
+            )
+        }
+        .ignoresSafeArea()
     }
 }
 

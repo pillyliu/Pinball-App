@@ -118,4 +118,5 @@ Library sub-surfaces currently present in code:
 
 - League and GameRoom structural cleanup are now at a stable baseline.
 - The active system-level phase is shell/theme/design-system groundwork.
+- The next active subphase is the PinProf identity foundation: adding brand tokens and shared shell atmosphere before any stronger mascot- or personality-specific styling pass.
 - The first concrete step in that phase is semantic tokenization and shell extraction for root navigation plus shared controls on both platforms.

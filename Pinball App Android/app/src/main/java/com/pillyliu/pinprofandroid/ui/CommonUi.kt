@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -60,11 +61,53 @@ fun AppScreen(
         modifier = Modifier
             .then(modifier)
             .fillMaxSize()
-            .background(colors.background)
-            .padding(contentPadding)
-            .padding(horizontal = horizontalPadding, vertical = spacing.screenVerticalCompact),
     ) {
-        content()
+        PinballAtmosphereBackground()
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(contentPadding)
+                .padding(horizontal = horizontalPadding, vertical = spacing.screenVerticalCompact),
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+fun PinballAtmosphereBackground(modifier: Modifier = Modifier) {
+    val colors = PinballThemeTokens.colors
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(colors.atmosphereTop, colors.background, colors.atmosphereBottom),
+                ),
+            ),
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(colors.atmosphereGlow.copy(alpha = 0.18f), Color.Transparent),
+                        center = androidx.compose.ui.geometry.Offset(0f, 0f),
+                        radius = 900f,
+                    ),
+                ),
+        )
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(colors.brandChalk.copy(alpha = 0.12f), Color.Transparent),
+                        center = androidx.compose.ui.geometry.Offset(1400f, 2600f),
+                        radius = 1200f,
+                    ),
+                ),
+        )
     }
 }
 
