@@ -18,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -48,6 +47,7 @@ import androidx.core.text.HtmlCompat
 import com.pillyliu.pinprofandroid.library.CatalogManufacturerOption
 import com.pillyliu.pinprofandroid.library.LibraryVenueSearchResult
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
+import com.pillyliu.pinprofandroid.ui.AppCompactIconButton
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
@@ -135,12 +135,11 @@ internal fun AddManufacturerScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
-                                FilledTonalIconButton(onClick = { onAdd(manufacturer) }) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Add,
-                                        contentDescription = "Add ${manufacturer.name}",
-                                    )
-                                }
+                                AppCompactIconButton(
+                                    icon = Icons.Filled.Add,
+                                    contentDescription = "Add ${manufacturer.name}",
+                                    onClick = { onAdd(manufacturer) },
+                                )
                             }
                         }
                     }

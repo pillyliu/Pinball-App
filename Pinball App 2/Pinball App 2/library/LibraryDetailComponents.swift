@@ -20,10 +20,7 @@ struct LibraryDetailSummaryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text(game.name)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
+                AppCardTitle(text: game.name, lineLimit: 2)
                 if let variant = game.variant?.trimmingCharacters(in: .whitespacesAndNewlines), !variant.isEmpty {
                     PinballVariantBadge(variant)
                 }

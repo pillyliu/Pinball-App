@@ -83,6 +83,18 @@ struct AppCardSubheading: View {
     }
 }
 
+struct AppCardTitle: View {
+    let text: String
+    var lineLimit: Int? = nil
+
+    var body: some View {
+        Text(text)
+            .font(.headline)
+            .foregroundStyle(AppTheme.brandInk)
+            .lineLimit(lineLimit)
+    }
+}
+
 struct AppMetricItem: Identifiable {
     let label: String
     let value: String

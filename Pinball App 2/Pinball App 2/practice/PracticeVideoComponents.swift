@@ -10,10 +10,7 @@ struct PracticeGameResourceCard: View {
         VStack(alignment: .leading, spacing: 10) {
             if let game {
                 HStack(alignment: .center, spacing: 8) {
-                    Text(game.name)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
+                    AppCardTitle(text: game.name, lineLimit: 2)
                     if let variant = game.variant?.trimmingCharacters(in: .whitespacesAndNewlines), !variant.isEmpty {
                         PinballVariantBadge(variant)
                     }

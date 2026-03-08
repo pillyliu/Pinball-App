@@ -29,8 +29,7 @@ struct GameRoomHomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
-                        Text(store.venueName)
-                            .font(.title3.weight(.semibold))
+                        AppCardTitle(text: store.venueName)
 
                         Spacer()
 
@@ -104,8 +103,7 @@ private struct GameRoomSelectedSummaryCard: View {
 
             if let selectedMachine {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(selectedMachine.displayTitle)
-                        .font(.subheadline.weight(.semibold))
+                    AppCardTitle(text: selectedMachine.displayTitle, lineLimit: 2)
 
                     Spacer(minLength: 8)
 
@@ -118,8 +116,7 @@ private struct GameRoomSelectedSummaryCard: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                Text("Current Snapshot")
-                    .font(.subheadline.weight(.semibold))
+                AppCardSubheading(text: "Current Snapshot")
                     .padding(.top, 2)
 
                 AppMetricGrid(items: snapshotMetrics(for: selectedMachine))

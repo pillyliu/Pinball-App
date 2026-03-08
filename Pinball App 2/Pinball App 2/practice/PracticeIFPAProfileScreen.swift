@@ -81,8 +81,7 @@ struct PracticeIFPAProfileScreen: View {
     private func profileContent(_ profile: IFPAPlayerProfile) -> some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 8) {
-                Text(displayName(for: profile))
-                    .font(.headline)
+                AppCardTitle(text: displayName(for: profile))
 
                 Text("IFPA #\(profile.playerID)")
                     .font(.subheadline)

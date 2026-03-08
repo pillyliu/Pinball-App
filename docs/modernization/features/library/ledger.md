@@ -74,6 +74,7 @@
 - iOS Library detail playfield actions now consistently use that same shared secondary CTA seam in both the `Sources` and top summary card surfaces instead of leaving one last local `.glass` wrapper behind.
 - Android Library route-missing recovery now also uses the shared `AppSecondaryButton` seam in `CommonUi.kt` instead of a raw fallback button in `LibraryRouteContent.kt`.
 - Android Library rulesheet resume confirmation now also uses the shared `AppTextAction` seam in `CommonUi.kt` instead of raw `TextButton` confirm/dismiss actions in `RulesheetScreen.kt`.
+- Shared `AppCardTitle` chrome now also backs the Library summary title on both platforms instead of feature-local headline and semibold title styling.
 
 ## Next audit targets
 

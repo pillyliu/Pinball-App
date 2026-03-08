@@ -350,6 +350,23 @@ fun AppCardSubheading(text: String, modifier: Modifier = Modifier) {
     )
 }
 
+@Composable
+fun AppCardTitle(
+    text: String,
+    modifier: Modifier = Modifier,
+    maxLines: Int = Int.MAX_VALUE,
+) {
+    Text(
+        text = text,
+        color = PinballThemeTokens.colors.brandInk,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+        maxLines = maxLines,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier,
+    )
+}
+
 data class AppMetricItem(
     val label: String,
     val value: String,

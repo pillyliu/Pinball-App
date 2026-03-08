@@ -49,6 +49,7 @@ import com.halilibo.richtext.ui.RichTextStyle
 import com.halilibo.richtext.ui.material3.RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
+import com.pillyliu.pinprofandroid.ui.AppCardTitle
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppResourceChip
 import com.pillyliu.pinprofandroid.ui.AppResourceRow
@@ -83,11 +84,9 @@ internal fun LibraryDetailSummaryCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(
-                game.name,
-                fontWeight = FontWeight.SemiBold,
+            AppCardTitle(
+                text = game.name,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             game.normalizedVariant?.let { variant ->
