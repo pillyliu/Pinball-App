@@ -59,6 +59,8 @@ import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import kotlin.math.roundToInt
 import kotlin.math.abs
 
+private val DashboardRowShape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
+
 @Composable
 internal fun CurrentGroupsCard(
     store: PracticeStore,
@@ -179,7 +181,7 @@ internal fun CurrentGroupsCard(
                         .fillMaxWidth()
                         .padding(horizontal = 6.dp, vertical = 4.dp)
                         .height(40.dp)
-                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp)),
+                        .clip(DashboardRowShape),
                 ) {
                     Row(
                         modifier = Modifier
@@ -221,7 +223,7 @@ internal fun CurrentGroupsCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .fillMaxHeight()
-                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                            .clip(DashboardRowShape)
                             .background(
                                 MaterialTheme.colorScheme.surfaceContainerLow.copy(
                                     alpha = 1f - (1.00f * revealProgress),
@@ -230,7 +232,7 @@ internal fun CurrentGroupsCard(
                             .border(
                                 width = 1.dp,
                                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.72f - (0.22f * revealProgress)),
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                                shape = DashboardRowShape,
                             )
                             .offset { IntOffset(offsetX.roundToInt(), 0) }
                             .draggable(
