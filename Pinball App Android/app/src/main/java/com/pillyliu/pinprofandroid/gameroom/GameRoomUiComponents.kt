@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronLeft
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.library.rememberCachedImageModel
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.AppVariantPill
 import com.pillyliu.pinprofandroid.ui.AppVariantPillStyle
 import com.pillyliu.pinprofandroid.ui.DropdownOption
@@ -534,8 +536,17 @@ internal fun TwoColumnButtons(items: List<Pair<String, () -> Unit>>) {
         rows.forEach { rowItems ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 rowItems.forEach { (title, action) ->
-                    Button(onClick = action, modifier = Modifier.weight(1f)) {
-                        Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    AppSecondaryButton(
+                        onClick = action,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 44.dp),
+                    ) {
+                        Text(
+                            text = title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
                 if (rowItems.size == 1) {
