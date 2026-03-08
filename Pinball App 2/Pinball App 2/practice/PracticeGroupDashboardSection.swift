@@ -30,8 +30,7 @@ struct PracticeGroupDashboardSectionView: View {
 
             if let group = selectedGroup {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(group.name)
-                        .font(.headline)
+                    AppCardSubheading(text: group.name)
 
                     HStack(spacing: 8) {
                         statusChip(group.isActive ? "Active" : "Inactive", color: group.isActive ? .green : .secondary)

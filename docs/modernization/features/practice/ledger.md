@@ -228,6 +228,7 @@
 - Android Practice `Save Note` now also routes through the shared `AppPrimaryButton` seam in `CommonUi.kt` instead of the last raw note-editor `Button` styling in `PracticeGameDetailCards.kt`.
 - Android Practice home settings gear, journal edit toggle, and IFPA name link now also route through shared header icon-button and inline link seams in `CommonUi.kt` instead of raw `IconButton` and feature-local top-bar link styling in `PracticeTopBar.kt`.
 - Android Practice group-dashboard add/edit controls and priority toggles now also route through the shared compact icon-button seam in `CommonUi.kt` instead of mixed local `IconButton` sizing and styling in `PracticeCurrentGroupsCard.kt`.
+- iOS Practice selected-group dashboard title now also uses the shared `AppCardSubheading` seam instead of a local `.headline` title in `PracticeGroupDashboardSection.swift`.
 
 ## Next audit targets
 

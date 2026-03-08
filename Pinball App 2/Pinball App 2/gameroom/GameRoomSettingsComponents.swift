@@ -47,8 +47,7 @@ struct GameRoomSettingsSectionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(sectionHeading)
-                .font(.headline)
+            AppSectionTitle(text: sectionHeading)
 
             switch selectedSection {
             case .importFromPinside:
