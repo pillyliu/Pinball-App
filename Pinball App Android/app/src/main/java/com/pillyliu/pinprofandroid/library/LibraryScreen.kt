@@ -35,6 +35,8 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     var sortOptionName by rememberSaveable { mutableStateOf(LibrarySortOption.AREA.name) }
     var yearSortDescending by rememberSaveable { mutableStateOf(false) }
     var selectedBank by rememberSaveable { mutableStateOf<Int?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     var route by rememberSaveable(stateSaver = LibraryRouteSaver) { mutableStateOf<LibraryRoute>(LibraryRoute.List) }
     val avenueSourceCandidates = remember { listOf("venue--the-avenue-cafe", "the-avenue") }
     val visibleSources = remember(sources, selectedSourceId, sourceVersion) {
@@ -73,6 +75,8 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     }
 
     suspend fun reloadLibrary() {
+        isLoading = true
+        errorMessage = null
         try {
             val extraction = loadLibraryExtraction(context)
             val payload = extraction.payload
@@ -126,6 +130,9 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
         } catch (t: Throwable) {
             games = emptyList()
             sources = emptyList()
+            errorMessage = t.message ?: "Failed to load pinball library."
+        } finally {
+            isLoading = false
         }
     }
     LaunchedEffect(Unit) {
@@ -150,6 +157,8 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
         LibraryRouteContent(
             contentPadding = contentPadding,
             games = games,
+            isLoading = isLoading,
+            errorMessage = errorMessage,
             visibleSources = visibleSources,
             selectedSourceId = selectedSourceId,
             query = query,

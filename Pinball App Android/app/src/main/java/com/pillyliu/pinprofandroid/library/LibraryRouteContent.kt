@@ -7,6 +7,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.EmptyLabel
 
@@ -14,6 +16,8 @@ import com.pillyliu.pinprofandroid.ui.EmptyLabel
 internal fun LibraryRouteContent(
     contentPadding: PaddingValues,
     games: List<PinballGame>,
+    isLoading: Boolean,
+    errorMessage: String?,
     visibleSources: List<LibrarySource>,
     selectedSourceId: String,
     query: String,
@@ -37,6 +41,8 @@ internal fun LibraryRouteContent(
         LibraryRoute.List -> LibraryList(
             contentPadding = contentPadding,
             games = games,
+            isLoading = isLoading,
+            errorMessage = errorMessage,
             sources = visibleSources,
             selectedSourceId = selectedSourceId,
             query = query,
@@ -133,7 +139,9 @@ private fun LibraryRouteMissingScreen(
     onBack: () -> Unit,
 ) {
     if (games.isEmpty()) {
-        AppScreen(contentPadding) { }
+        AppScreen(contentPadding) {
+            AppPanelEmptyCard(text = message)
+        }
     } else {
         AppScreen(contentPadding) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

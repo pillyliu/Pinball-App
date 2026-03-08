@@ -31,7 +31,10 @@ struct PracticeHomeRootView: View {
             AppBackground()
 
             if isLoadingGames {
-                ProgressView("Loading practice data...")
+                AppPanelStatusCard(
+                    text: "Loading practice data…",
+                    showsProgress: true
+                )
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {

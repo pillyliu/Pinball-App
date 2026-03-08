@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppSearchFilterBar
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CompactDropdownFilter
@@ -54,6 +56,8 @@ import com.pillyliu.pinprofandroid.ui.CompactDropdownFilter
 internal fun LibraryList(
     contentPadding: PaddingValues,
     games: List<PinballGame>,
+    isLoading: Boolean,
+    errorMessage: String?,
     sources: List<LibrarySource>,
     selectedSourceId: String,
     query: String,
@@ -150,6 +154,25 @@ internal fun LibraryList(
                         )
                     }
                     Spacer(Modifier.height(LIBRARY_CONTENT_BOTTOM_FILLER))
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = controlsTopInset),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    when {
+                        isLoading -> AppPanelStatusCard(
+                            text = "Loading library…",
+                            showsProgress = true,
+                        )
+                        !errorMessage.isNullOrBlank() -> AppPanelStatusCard(
+                            text = errorMessage,
+                            isError = true,
+                        )
+                        else -> AppPanelEmptyCard(text = "No data loaded.")
+                    }
                 }
             }
 
