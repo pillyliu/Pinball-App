@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -36,14 +37,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.gameroom.GameRoomCatalogLoader
+import com.pillyliu.pinprofandroid.gameroom.GameRoomPinsideImportService
 import com.pillyliu.pinprofandroid.gameroom.GameRoomScreen
+import com.pillyliu.pinprofandroid.gameroom.GameRoomStore
 import com.pillyliu.pinprofandroid.league.LeagueDestination
 import com.pillyliu.pinprofandroid.league.LeagueDestinationHost
 import com.pillyliu.pinprofandroid.league.LeagueScreen
 import com.pillyliu.pinprofandroid.library.LibraryScreen
 import com.pillyliu.pinprofandroid.practice.PracticeScreen
+import com.pillyliu.pinprofandroid.practice.PracticeStore
 import com.pillyliu.pinprofandroid.settings.SettingsScreen
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinprofandroid.ui.PinballTheme
@@ -159,10 +165,23 @@ private fun PinballShellContent(
     onOpenLeagueDestination: (LeagueDestination) -> Unit,
     onBackFromLeagueDestination: () -> Unit,
 ) {
+    val appContext = LocalContext.current.applicationContext
+    val practiceStore = remember(appContext) { PracticeStore(appContext) }
+    val gameRoomStore = remember(appContext) { GameRoomStore(appContext) }
+    val gameRoomCatalogLoader = remember(appContext) { GameRoomCatalogLoader(appContext) }
+    val gameRoomPinsideImportService = remember(appContext) { GameRoomPinsideImportService(appContext) }
     when (selectedTab) {
         PinballTab.Settings -> SettingsScreen(contentPadding = contentPaddingWithBottomBar)
-        PinballTab.Practice -> PracticeScreen(contentPadding = contentPaddingWithBottomBar)
-        PinballTab.GameRoom -> GameRoomScreen(contentPadding = contentPaddingWithBottomBar)
+        PinballTab.Practice -> PracticeScreen(
+            contentPadding = contentPaddingWithBottomBar,
+            externalStore = practiceStore,
+        )
+        PinballTab.GameRoom -> GameRoomScreen(
+            contentPadding = contentPaddingWithBottomBar,
+            externalStore = gameRoomStore,
+            externalCatalogLoader = gameRoomCatalogLoader,
+            externalPinsideImportService = gameRoomPinsideImportService,
+        )
         PinballTab.Library -> LibraryScreen(contentPadding = contentPadding)
         PinballTab.League -> {
             when (leagueDestination) {

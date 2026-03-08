@@ -51,10 +51,13 @@ internal enum class PracticeGameSubview(val label: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PracticeScreen(contentPadding: PaddingValues) {
+internal fun PracticeScreen(
+    contentPadding: PaddingValues,
+    externalStore: PracticeStore? = null,
+) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
-    val store = remember { PracticeStore(context) }
+    val store = externalStore ?: remember(context.applicationContext) { PracticeStore(context.applicationContext) }
     val prefs = remember { practiceSharedPreferences(context) }
     val scope = rememberCoroutineScope()
     val uiState = rememberPracticeScreenState(prefs)

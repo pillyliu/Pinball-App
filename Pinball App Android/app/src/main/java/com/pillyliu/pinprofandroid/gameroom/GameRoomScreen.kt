@@ -197,11 +197,16 @@ internal data class IssueInputAttachmentDraft(
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun GameRoomScreen(contentPadding: PaddingValues) {
+internal fun GameRoomScreen(
+    contentPadding: PaddingValues,
+    externalStore: GameRoomStore? = null,
+    externalCatalogLoader: GameRoomCatalogLoader? = null,
+    externalPinsideImportService: GameRoomPinsideImportService? = null,
+) {
     val context = LocalContext.current
-    val store = remember { GameRoomStore(context) }
-    val catalogLoader = remember { GameRoomCatalogLoader(context) }
-    val pinsideImportService = remember { GameRoomPinsideImportService(context) }
+    val store = externalStore ?: remember(context.applicationContext) { GameRoomStore(context.applicationContext) }
+    val catalogLoader = externalCatalogLoader ?: remember(context.applicationContext) { GameRoomCatalogLoader(context.applicationContext) }
+    val pinsideImportService = externalPinsideImportService ?: remember(context.applicationContext) { GameRoomPinsideImportService(context.applicationContext) }
     val scope = rememberCoroutineScope()
     var route by rememberSaveable { mutableStateOf(GameRoomRoute.Home) }
     var selectedSettingsSection by rememberSaveable { mutableStateOf(GameRoomSettingsSection.Import) }
@@ -536,8 +541,8 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
             GameRoomRoute.Home -> {
                 GameRoomHomeRoute(
                     context = GameRoomHomeRouteContext(
-                        store = store,
-                        catalogLoader = catalogLoader,
+                store = store,
+                catalogLoader = catalogLoader,
                         selectedMachine = selectedMachine,
                         selectedMachineID = selectedMachineID,
                         collectionLayout = collectionLayout,
@@ -556,8 +561,8 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
                     onBack = { route = GameRoomRoute.Home },
                     importContent = {
                         GameRoomImportSettingsSection(
-                                store = store,
-                                catalogLoader = catalogLoader,
+                        store = store,
+                        catalogLoader = catalogLoader,
                                 importSourceInput = importSourceInput,
                                 onImportSourceInputChange = { importSourceInput = it },
                                 importIsLoading = importIsLoading,
