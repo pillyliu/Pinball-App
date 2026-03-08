@@ -92,6 +92,7 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
   - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/SharedComponents.kt`
 - Android spacing and shell-bar geometry are now part of the same semantic token layer instead of being repeated as raw `dp` constants across root shell and shared UI.
 - Android typography roles are now part of the same token layer, and shared UI consumes them for section titles, empty states, filter headers, dropdowns, table cells, and shell labels.
+- Android filter-sheet chrome is now standardized through `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppFilterSheet.kt`, which is used by Library, Stats, Standings, and Targets.
 - iOS now exposes semantic color, spacing, and shape token groups in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppTheme.swift` instead of only flat globals.
 - iOS now exposes typography roles in the same theme file so dropdown and shell text sizing can stop drifting from ad hoc font choices.
 - iOS root tabs in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/app/ContentView.swift` now use one metadata-driven tab contract instead of repeating screen/title/icon wiring inline.

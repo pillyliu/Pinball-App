@@ -17,8 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +38,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalContext
 import com.pillyliu.pinprofandroid.library.LibraryGameLookup
 import com.pillyliu.pinprofandroid.library.loadLibraryExtraction
+import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.CompactDropdownFilter
@@ -185,27 +184,21 @@ fun TargetsScreen(
     }
 
     if (showFilterSheet) {
-        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text("Targets filters", style = MaterialTheme.typography.titleSmall)
-                SortMenu(
-                    selected = sortOption,
-                    onSelect = { sortOptionName = it.name },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                BankMenu(
-                    selectedBank = selectedBank,
-                    bankOptions = bankOptions,
-                    onSelect = { selectedBank = it },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                TextButton(onClick = { showFilterSheet = false }, modifier = Modifier.align(Alignment.End)) {
-                    Text("Done")
-                }
-            }
+        AppFilterSheet(
+            title = "Targets filters",
+            onDismissRequest = { showFilterSheet = false },
+        ) {
+            SortMenu(
+                selected = sortOption,
+                onSelect = { sortOptionName = it.name },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            BankMenu(
+                selectedBank = selectedBank,
+                bankOptions = bankOptions,
+                onSelect = { selectedBank = it },
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

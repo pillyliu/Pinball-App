@@ -25,9 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,6 +54,7 @@ import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.data.parseCsv
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
+import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.EmptyLabel
@@ -356,50 +355,42 @@ fun StatsScreen(
     }
 
     if (showFilterSheet) {
-        ModalBottomSheet(
+        AppFilterSheet(
+            title = "Stats filters",
             onDismissRequest = { showFilterSheet = false },
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text("Stats filters", style = MaterialTheme.typography.titleSmall)
-                AnchoredDropdownFilter(
-                    selectedText = seasonDisplayText(season),
-                    options = seasonOptions,
-                    onSelect = {
-                        season = it
-                        player = ""
-                        bankNumber = null
-                        machine = ""
-                    },
-                )
-                AnchoredDropdownFilter(
-                    selectedText = bankDisplayText(bankNumber),
-                    options = bankOptions,
-                    onSelect = {
-                        bankNumber = it.toIntOrNull()
-                        machine = ""
-                    },
-                )
-                AnchoredDropdownFilter(
-                    selectedText = playerDisplayText(player, showFullLplLastName),
-                    options = playerOptions,
-                    onSelect = {
-                        player = it
-                        bankNumber = null
-                        machine = ""
-                    },
-                )
-                AnchoredDropdownFilter(
-                    selectedText = machineDisplayText(machine),
-                    options = machineOptions,
-                    onSelect = { machine = it },
-                )
-                TextButton(onClick = { showFilterSheet = false }, modifier = Modifier.align(Alignment.End)) {
-                    Text("Done")
-                }
-            }
+            AnchoredDropdownFilter(
+                selectedText = seasonDisplayText(season),
+                options = seasonOptions,
+                onSelect = {
+                    season = it
+                    player = ""
+                    bankNumber = null
+                    machine = ""
+                },
+            )
+            AnchoredDropdownFilter(
+                selectedText = bankDisplayText(bankNumber),
+                options = bankOptions,
+                onSelect = {
+                    bankNumber = it.toIntOrNull()
+                    machine = ""
+                },
+            )
+            AnchoredDropdownFilter(
+                selectedText = playerDisplayText(player, showFullLplLastName),
+                options = playerOptions,
+                onSelect = {
+                    player = it
+                    bankNumber = null
+                    machine = ""
+                },
+            )
+            AnchoredDropdownFilter(
+                selectedText = machineDisplayText(machine),
+                options = machineOptions,
+                onSelect = { machine = it },
+            )
         }
     }
 }

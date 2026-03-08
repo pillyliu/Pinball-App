@@ -24,9 +24,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,6 +49,7 @@ import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.data.parseCsv
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
+import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.CompactDropdownFilter
@@ -239,28 +238,22 @@ fun StandingsScreen(
     }
 
     if (showFilterSheet) {
-        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text("Standings filters", style = MaterialTheme.typography.titleSmall)
-                CompactDropdownFilter(
-                    selectedText = selectedSeason?.let { "Season $it" } ?: "Select",
-                    options = seasonLabels,
-                    onSelect = { label ->
-                        selectedSeason = label.removePrefix("Season ").trim().toIntOrNull()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    minHeight = 38.dp,
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                    textSize = 12.sp,
-                    itemTextSize = 12.sp,
-                )
-                TextButton(onClick = { showFilterSheet = false }, modifier = Modifier.align(Alignment.End)) {
-                    Text("Done")
-                }
-            }
+        AppFilterSheet(
+            title = "Standings filters",
+            onDismissRequest = { showFilterSheet = false },
+        ) {
+            CompactDropdownFilter(
+                selectedText = selectedSeason?.let { "Season $it" } ?: "Select",
+                options = seasonLabels,
+                onSelect = { label ->
+                    selectedSeason = label.removePrefix("Season ").trim().toIntOrNull()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                minHeight = 38.dp,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                textSize = 12.sp,
+                itemTextSize = 12.sp,
+            )
         }
     }
 }

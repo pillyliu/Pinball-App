@@ -34,11 +34,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -57,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CompactDropdownFilter
 
@@ -230,67 +229,61 @@ internal fun LibraryList(
     }
 
     if (showFilterSheet) {
-        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text("Library filters", style = MaterialTheme.typography.titleSmall)
-                if (sources.isNotEmpty()) {
-                    CompactDropdownFilter(
-                        selectedText = selectedSource?.name ?: "Library",
-                        options = sources.map { it.name },
-                        onSelect = { selected ->
-                            val source = sources.firstOrNull { it.name == selected } ?: return@CompactDropdownFilter
-                            onSourceChange(source.id)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        minHeight = 38.dp,
-                        textSize = 12.sp,
-                        itemTextSize = 12.sp,
-                    )
-                }
+        AppFilterSheet(
+            title = "Library filters",
+            onDismissRequest = { showFilterSheet = false },
+        ) {
+            if (sources.isNotEmpty()) {
                 CompactDropdownFilter(
-                    selectedText = when {
-                        sortOption == LibrarySortOption.YEAR && yearSortDescending -> "Sort: Year (New-Old)"
-                        sortOption == LibrarySortOption.YEAR -> "Sort: Year (Old-New)"
-                        else -> sortOption.label
-                    },
-                    options = sortOptions.flatMap {
-                        if (it == LibrarySortOption.YEAR) listOf("Sort: Year (Old-New)", "Sort: Year (New-Old)") else listOf(it.label)
-                    },
+                    selectedText = selectedSource?.name ?: "Library",
+                    options = sources.map { it.name },
                     onSelect = { selected ->
-                        when (selected) {
-                            "Sort: Year (New-Old)" -> onSortOptionChange("YEAR_DESC")
-                            "Sort: Year (Old-New)" -> onSortOptionChange(LibrarySortOption.YEAR.name)
-                            else -> {
-                                val option = sortOptions.firstOrNull { it.label == selected } ?: fallbackSort
-                                onSortOptionChange(option.name)
-                            }
-                        }
+                        val source = sources.firstOrNull { it.name == selected } ?: return@CompactDropdownFilter
+                        onSourceChange(source.id)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     minHeight = 38.dp,
                     textSize = 12.sp,
                     itemTextSize = 12.sp,
                 )
-                if (supportsBankFilter) {
-                    CompactDropdownFilter(
-                        selectedText = effectiveSelectedBank?.let { "Bank $it" } ?: "All banks",
-                        options = listOf("All banks") + bankOptions.map { "Bank $it" },
-                        onSelect = { selected ->
-                            val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
-                            onBankChange(bank)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        minHeight = 38.dp,
-                        textSize = 12.sp,
-                        itemTextSize = 12.sp,
-                    )
-                }
-                TextButton(onClick = { showFilterSheet = false }, modifier = Modifier.align(Alignment.End)) {
-                    Text("Done")
-                }
+            }
+            CompactDropdownFilter(
+                selectedText = when {
+                    sortOption == LibrarySortOption.YEAR && yearSortDescending -> "Sort: Year (New-Old)"
+                    sortOption == LibrarySortOption.YEAR -> "Sort: Year (Old-New)"
+                    else -> sortOption.label
+                },
+                options = sortOptions.flatMap {
+                    if (it == LibrarySortOption.YEAR) listOf("Sort: Year (Old-New)", "Sort: Year (New-Old)") else listOf(it.label)
+                },
+                onSelect = { selected ->
+                    when (selected) {
+                        "Sort: Year (New-Old)" -> onSortOptionChange("YEAR_DESC")
+                        "Sort: Year (Old-New)" -> onSortOptionChange(LibrarySortOption.YEAR.name)
+                        else -> {
+                            val option = sortOptions.firstOrNull { it.label == selected } ?: fallbackSort
+                            onSortOptionChange(option.name)
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                minHeight = 38.dp,
+                textSize = 12.sp,
+                itemTextSize = 12.sp,
+            )
+            if (supportsBankFilter) {
+                CompactDropdownFilter(
+                    selectedText = effectiveSelectedBank?.let { "Bank $it" } ?: "All banks",
+                    options = listOf("All banks") + bankOptions.map { "Bank $it" },
+                    onSelect = { selected ->
+                        val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
+                        onBankChange(bank)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    minHeight = 38.dp,
+                    textSize = 12.sp,
+                    itemTextSize = 12.sp,
+                )
             }
         }
     }
