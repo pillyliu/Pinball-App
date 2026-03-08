@@ -350,16 +350,20 @@ struct PracticeQuickEntrySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction {
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    AppToolbarConfirmAction(
+                        title: "Save",
+                        isDisabled: selectedGameID.isEmpty && selectedActivity != .mechanics
+                    ) {
                         if let savedGameID = save() {
                             onEntrySaved(savedGameID)
                             dismiss()
                         }
                     }
-                    .disabled(selectedGameID.isEmpty && selectedActivity != .mechanics)
                 }
             }
             .onAppear {

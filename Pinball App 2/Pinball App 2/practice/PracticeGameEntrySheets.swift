@@ -61,16 +61,17 @@ struct GameScoreEntrySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction {
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    AppToolbarConfirmAction(title: "Save", isDisabled: gameID.isEmpty) {
                         if save() {
                             onSaved()
                             dismiss()
                         }
                     }
-                    .disabled(gameID.isEmpty)
                 }
             }
         }
@@ -162,16 +163,17 @@ struct GameNoteEntrySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction {
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    AppToolbarConfirmAction(title: "Save", isDisabled: gameID.isEmpty) {
                         if save() {
                             onSaved()
                             dismiss()
                         }
                     }
-                    .disabled(gameID.isEmpty)
                 }
             }
         }
@@ -337,16 +339,17 @@ struct GameTaskEntrySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction {
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    AppToolbarConfirmAction(title: "Save", isDisabled: gameID.isEmpty) {
                         if save() {
                             onSaved("\(task.label) saved")
                             dismiss()
                         }
                     }
-                    .disabled(gameID.isEmpty)
                 }
             }
         }

@@ -60,7 +60,7 @@ extension PracticeScreen {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") {
+                        AppToolbarCancelAction {
                             context.onDismissPresentedSheet()
                         }
                     }

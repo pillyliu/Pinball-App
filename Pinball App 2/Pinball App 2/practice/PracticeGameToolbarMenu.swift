@@ -51,8 +51,9 @@ struct PracticeGameToolbarMenu: View {
                 }
             }
         } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle")
+            AppToolbarFilterTriggerLabel()
         }
+        .buttonStyle(.plain)
     }
 
     private func applyLibrarySelection(_ sourceID: String?) {

@@ -161,7 +161,7 @@ struct GroupEditorScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
+                AppToolbarCancelAction {
                     onSaved()
                     dismiss()
                 }
@@ -178,7 +178,7 @@ struct GroupEditorScreen: View {
             }
 
             ToolbarItem(placement: .confirmationAction) {
-                Button(editingGroup == nil ? "Create" : "Save") {
+                AppToolbarConfirmAction(title: editingGroup == nil ? "Create" : "Save") {
                     if save() {
                         onSaved()
                         dismiss()
@@ -192,7 +192,7 @@ struct GroupEditorScreen: View {
                 GroupGameSelectionScreen(store: store, selectedGameIDs: $selectedGameIDs)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") {
+                            AppToolbarDoneAction {
                                 showingTitleSelector = false
                             }
                         }
