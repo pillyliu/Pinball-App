@@ -356,30 +356,15 @@ struct PinballVideoLaunchPanel: View {
 
 private struct LibraryYouTubeThumbnailView: View {
     let candidates: [URL]
-    @State private var index = 0
 
     var body: some View {
-        let currentURL = candidates.indices.contains(index) ? candidates[index] : nil
-
-        AsyncImage(url: currentURL) { phase in
-            switch phase {
-            case .empty:
-                PinballMediaPreviewPlaceholder(showsProgress: true)
-            case .success(let image):
-                image
-                    .resizable()
-                    .scaledToFill()
-            case .failure:
-                if index + 1 < candidates.count {
-                    Color(uiColor: .tertiarySystemBackground)
-                        .task { index += 1 }
-                } else {
-                    PinballMediaPreviewPlaceholder()
-                }
-            @unknown default:
-                Color(uiColor: .tertiarySystemBackground)
-            }
-        }
+        FallbackAsyncImageView(
+            candidates: candidates,
+            emptyMessage: candidates.isEmpty ? "No image" : nil,
+            contentMode: .fill,
+            fillAlignment: .center,
+            layoutMode: .fill
+        )
     }
 }
 

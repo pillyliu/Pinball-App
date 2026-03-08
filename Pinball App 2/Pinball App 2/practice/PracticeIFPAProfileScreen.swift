@@ -97,17 +97,13 @@ struct PracticeIFPAProfileScreen: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             if let profilePhotoURL = profile.profilePhotoURL {
-                AsyncImage(url: profilePhotoURL) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(.quaternary)
-                        .overlay {
-                            ProgressView()
-                        }
-                }
+                FallbackAsyncImageView(
+                    candidates: [profilePhotoURL],
+                    emptyMessage: "No image",
+                    contentMode: .fill,
+                    fillAlignment: .center,
+                    layoutMode: .fill
+                )
                 .frame(width: 92, height: 92)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
             }
