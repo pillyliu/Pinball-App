@@ -66,7 +66,7 @@ internal fun GameRoomHomeRoute(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 2.dp),
+                .padding(top = 8.dp, bottom = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
