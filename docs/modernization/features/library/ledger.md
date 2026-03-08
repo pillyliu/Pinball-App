@@ -29,6 +29,7 @@
 - Left both `LibraryDomain` files smaller and more focused on domain parsing plus metadata fetch, while the new resource-resolution seams own v3 asset naming and fallback behavior.
 - Extracted Android legacy Library payload JSON parsing into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryPayloadParsing.kt`, so `LibraryDomain.kt` now focuses more on domain-facing types, formatting, YouTube launch behavior, and metadata fetch.
 - Extracted iOS YouTube oEmbed metadata fetch into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryVideoMetadata.swift`, so `LibraryDomain.swift` no longer carries that service inline.
+- Standardized Library detail section headings on both platforms by moving iOS `Video References`, `Game Info`, and `Sources` card titles plus Android `Sources` section heading onto the shared section-title seams instead of leaving feature-local headline/semibold heading treatment in `LibraryDetailComponents.swift` and `LibraryDetailComponents.kt`.
 
 ## Next audit targets
 

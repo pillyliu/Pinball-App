@@ -109,9 +109,7 @@ struct LibraryDetailVideosCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Video References")
-                .font(.headline)
-                .foregroundStyle(.primary)
+            AppSectionTitle(text: "Video References")
 
             if playableVideos.isEmpty {
                 ZStack {
@@ -195,9 +193,7 @@ struct LibraryDetailGameInfoCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Game Info")
-                .font(.headline)
-                .foregroundStyle(.primary)
+            AppSectionTitle(text: "Game Info")
 
             switch status {
             case .idle, .loading:
@@ -229,9 +225,7 @@ struct LibraryDetailSourcesCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Sources")
-                .font(.headline)
-                .foregroundStyle(.primary)
+            AppSectionTitle(text: "Sources")
 
             if game.rulesheetLinks.isEmpty {
                 if game.hasRulesheetResource {

@@ -376,6 +376,7 @@ internal fun LibraryDetailSourcesSection(
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        SectionTitle("Sources")
         ResourceRow(label = "Rulesheet:") {
             if (game.rulesheetLinks.isNotEmpty()) {
                 game.rulesheetLinks.forEach { link ->
