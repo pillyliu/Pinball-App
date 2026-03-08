@@ -593,9 +593,6 @@ def run_audit(
         if previous.get("current_status") != "ok":
             inventory_to_audit.append(item)
             continue
-        if previous.get("inventory_signature") != inventory_signature(item):
-            inventory_to_audit.append(item)
-            continue
 
         reused_row = dict(previous)
         reused_row["provider"] = item["provider"]
