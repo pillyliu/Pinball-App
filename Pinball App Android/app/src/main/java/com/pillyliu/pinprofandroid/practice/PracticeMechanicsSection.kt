@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -17,11 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.pillyliu.pinprofandroid.ui.CardContainer
-import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
-import com.pillyliu.pinprofandroid.ui.AppMetricPill
-import com.pillyliu.pinprofandroid.ui.SectionTitle
 import com.pillyliu.pinprofandroid.ui.AppExternalLinkButton
+import com.pillyliu.pinprofandroid.ui.AppMetricPill
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
+import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -78,7 +78,7 @@ internal fun PracticeMechanicsSection(
             Text("Detected tags: ${detected.joinToString(", ")}", style = MaterialTheme.typography.bodySmall)
         }
 
-        Button(onClick = {
+        AppPrimaryButton(onClick = {
             val prefix = if (mechanicsSelectedSkill.isBlank()) "#mechanics" else "#${mechanicsSelectedSkill.replace(" ", "")}"
             val composed = "$prefix competency ${mechanicsCompetency.roundToInt()}/5. ${mechanicsNote.trim()}".trim()
             store.addPracticeNote("", "general", mechanicsSelectedSkill, composed)

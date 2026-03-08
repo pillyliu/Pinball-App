@@ -3,7 +3,6 @@ package com.pillyliu.pinprofandroid.practice
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -28,6 +27,7 @@ import com.pillyliu.pinprofandroid.data.rememberLplFullNameAccessUnlocked
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinprofandroid.data.setShowFullLplLastName
 import com.pillyliu.pinprofandroid.data.unlockLplFullNameAccess
+import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 
@@ -52,7 +52,7 @@ internal fun PracticeSettingsSection(
             label = { Text("Player name") },
             modifier = Modifier.fillMaxWidth(),
         )
-        Button(onClick = { store.updatePlayerName(draftName) }) { Text("Save Profile") }
+        AppPrimaryButton(onClick = { store.updatePlayerName(draftName) }) { Text("Save Profile") }
     }
 
     CardContainer {
@@ -70,7 +70,7 @@ internal fun PracticeSettingsSection(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(onClick = { store.updateIfpaPlayerID(draftIfpaId.filter(Char::isDigit)) }) { Text("Save IFPA ID") }
+        AppPrimaryButton(onClick = { store.updateIfpaPlayerID(draftIfpaId.filter(Char::isDigit)) }) { Text("Save IFPA ID") }
     }
 
     CardContainer {
@@ -90,7 +90,7 @@ internal fun PracticeSettingsSection(
             onSelect = { store.updateLeaguePlayerName(it) },
         )
         Text("Used when you tap Import LPL CSV.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Button(
+        AppPrimaryButton(
             onClick = onImportLplCsv,
             enabled = store.leaguePlayerName.isNotBlank(),
         ) { Text("Import LPL CSV") }
@@ -144,7 +144,7 @@ internal fun PracticeSettingsSection(
                     },
                 ),
             )
-            Button(
+            AppPrimaryButton(
                 onClick = {
                     if (unlockLplFullNameAccess(context, password)) {
                         password = ""
@@ -185,6 +185,6 @@ internal fun PracticeSettingsSection(
     CardContainer {
         SectionTitle("Reset")
         Text("Erase the full local Practice log state.")
-        Button(onClick = onOpenResetDialog) { Text("Reset Practice Log") }
+        AppPrimaryButton(onClick = onOpenResetDialog) { Text("Reset Practice Log") }
     }
 }

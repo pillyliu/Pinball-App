@@ -615,7 +615,7 @@ internal fun GameRoomEditSettingsSection(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = context.onSaveMachine) { Text("Save") }
+                    AppPrimaryButton(onClick = context.onSaveMachine) { Text("Save") }
                     Button(onClick = context.onDeleteMachine) { Text("Delete") }
                     if (context.onArchiveMachine != null) {
                         Button(onClick = context.onArchiveMachine) { Text("Archive") }
