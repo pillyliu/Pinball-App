@@ -186,7 +186,7 @@ internal fun AddVenueScreen(
     val focusManager = LocalFocusManager.current
     val prefs = remember(context) { context.getSharedPreferences("settings-v1", Context.MODE_PRIVATE) }
     var query by remember { mutableStateOf("") }
-    var radiusMiles by remember { mutableIntStateOf(50) }
+    var radiusMiles by remember { mutableIntStateOf(25) }
     var minimumGameCount by remember { mutableIntStateOf(prefs.getInt("settings-add-venue-min-game-count", 5)) }
     var results by remember { mutableStateOf<List<LibraryVenueSearchResult>>(emptyList()) }
     var searching by remember { mutableStateOf(false) }

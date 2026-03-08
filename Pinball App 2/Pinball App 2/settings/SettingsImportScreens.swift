@@ -139,7 +139,7 @@ struct AddVenueScreen: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("settings-add-venue-min-game-count") private var minimumGameCount = 5
     @State private var query: String = ""
-    @State private var radiusMiles: Int = 50
+    @State private var radiusMiles: Int = 25
     @State private var searchResults: [PinballLibraryVenueSearchResult] = []
     @State private var isSearching = false
     @State private var hasSearched = false
