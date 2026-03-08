@@ -61,15 +61,21 @@ internal fun GameRoomHomeRoute(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AppCardTitle(
+            Text(
                 text = store.venueName,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 8.dp),
+                overflow = TextOverflow.Ellipsis,
             )
             AppHeaderIconButton(
                 icon = Icons.Outlined.Settings,

@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.foundation.BorderStroke
 
 val LocalBottomBarVisible = compositionLocalOf<MutableState<Boolean>> {
@@ -792,6 +793,7 @@ fun AppInlineLinkAction(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    fontSize: TextUnit = TextUnit.Unspecified,
 ) {
     TextButton(
         onClick = onClick,
@@ -803,6 +805,7 @@ fun AppInlineLinkAction(
     ) {
         Text(
             text = text,
+            fontSize = fontSize,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

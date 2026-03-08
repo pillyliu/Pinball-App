@@ -145,6 +145,7 @@ private fun PracticeWelcomeTitle(
         AppInlineLinkAction(
             text = display,
             onClick = onOpenIfpaProfile,
+            fontSize = 20.sp,
         )
     }
 }
