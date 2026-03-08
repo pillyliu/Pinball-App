@@ -81,8 +81,6 @@ struct GroupEditorScreen: View {
     let editingGroupID: UUID?
     let onSaved: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
-
     @State private var name: String = ""
     @State private var selectedGameIDs: [String] = []
     @State private var isActive = true
@@ -142,7 +140,6 @@ struct GroupEditorScreen: View {
             ToolbarItem(placement: .cancellationAction) {
                 AppToolbarCancelAction {
                     onSaved()
-                    dismiss()
                 }
             }
 
@@ -160,7 +157,6 @@ struct GroupEditorScreen: View {
                 AppToolbarConfirmAction(title: editingGroup == nil ? "Create" : "Save") {
                     if save() {
                         onSaved()
-                        dismiss()
                     }
                 }
             }
@@ -183,7 +179,6 @@ struct GroupEditorScreen: View {
                 guard let group = editingGroup else { return }
                 store.deleteGroup(id: group.id)
                 onSaved()
-                dismiss()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -490,7 +485,9 @@ struct GroupEditorScreen: View {
             AppSectionTitle(text: title)
             content()
         }
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .appPanelStyle()
     }
 
     private func populateFromEditingGroupIfNeeded() {
