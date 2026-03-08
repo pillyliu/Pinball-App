@@ -48,10 +48,14 @@
 - Extracted iOS game-info and rulesheet loading state/view models into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryContentLoading.swift`, so `LibraryDomain.swift` is reduced further toward domain/resource ownership instead of mixed domain plus screen-loader state.
 - Extracted repeated iOS seed-db rulesheet/video query helpers into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibrarySeedQueryLoaders.swift`, reducing `LibrarySeedDatabase.swift` toward query orchestration instead of mixed query body duplication.
 - Extracted repeated Android seed-db rulesheet/video query helpers into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedQueries.kt`, reducing `LibrarySeedDatabase.kt` toward query orchestration instead of mixed query body duplication.
+- Extracted iOS seed-db bootstrap, bundled/local copy rules, and manufacturer-option query into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibrarySeedStorage.swift`, so `LibrarySeedDatabase.swift` no longer mixes entry-point orchestration with database-open and bundle-copy mechanics.
+- Extracted iOS built-in/imported seed-game assembly into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibrarySeedGameAssembly.swift`, so `LibrarySeedDatabase.swift` is now closer to an extraction facade than a mixed loader and mapper bucket.
+- Extracted Android seed-db bootstrap, asset copy rules, and manufacturer-option query into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedStorage.kt`, so `LibrarySeedDatabase.kt` no longer mixes entry-point orchestration with file-sync and database-open mechanics.
+- Extracted Android built-in/imported seed-game assembly into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedGameAssembly.kt`, so `LibrarySeedDatabase.kt` is now closer to an extraction facade than a mixed loader and mapper bucket.
 
 ## Next audit targets
 
 - source-state synchronization
 - repeated detail/resource UI
 - remaining markdown/content-domain shaping inside `LibraryDomain.swift`
-- remaining query composition and orchestration inside the two `LibrarySeedDatabase` files
+- remaining query composition and final extraction orchestration inside the two `LibrarySeedDatabase` files
