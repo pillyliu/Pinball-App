@@ -321,9 +321,7 @@ struct StatsScreen: View {
                 }
             }
         } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                .font(.title3)
-                .frame(width: 34, height: 34)
+            AppToolbarFilterTriggerLabel()
         }
         .buttonStyle(.plain)
     }
@@ -424,19 +422,12 @@ struct StatsScreen: View {
                 }
             }
         } label: {
-            HStack(spacing: AppLayout.dropdownContentSpacing) {
-                Text(selectedText)
-                    .lineLimit(1)
-                    .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "chevron.down")
-                    .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
-            .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            AppDropdownMenuLabel(
+                text: selectedText,
+                isLargeTablet: isLargeTablet,
+                fillsWidth: true,
+                embeddedInNavigation: false
+            )
         }
         .buttonStyle(.glass)
         .frame(maxWidth: .infinity)

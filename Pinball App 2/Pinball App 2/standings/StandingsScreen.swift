@@ -158,9 +158,7 @@ struct StandingsScreen: View {
                 }
             }
         } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                .font(.title3)
-                .frame(width: 34, height: 34)
+            AppToolbarFilterTriggerLabel()
         }
         .buttonStyle(.plain)
     }
@@ -173,18 +171,12 @@ struct StandingsScreen: View {
                 }
             }
         } label: {
-            HStack(spacing: AppLayout.dropdownContentSpacing) {
-                Text(viewModel.selectedSeasonLabel)
-                    .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
-                    .lineLimit(1)
-                Spacer()
-                Image(systemName: "chevron.down")
-                    .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
-            .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
+            AppDropdownMenuLabel(
+                text: viewModel.selectedSeasonLabel,
+                isLargeTablet: isLargeTablet,
+                fillsWidth: true,
+                embeddedInNavigation: false
+            )
         }
         .buttonStyle(.glass)
         .disabled(viewModel.seasons.isEmpty)
