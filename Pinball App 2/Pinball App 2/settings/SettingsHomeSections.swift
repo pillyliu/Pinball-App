@@ -37,10 +37,15 @@ struct SettingsHomeContent: View {
             GeometryReader { proxy in
                 let spacing: CGFloat = 8
                 let totalWidth = max(0, proxy.size.width - (spacing * 2))
-                let totalUnits: CGFloat = 27
-                let manufacturerWidth = totalWidth * (12 / totalUnits)
-                let venueWidth = totalWidth * (5 / totalUnits)
-                let tournamentWidth = totalWidth * (10 / totalUnits)
+                // Weight buttons by label length plus a shared padding allowance so
+                // the row fills the width without squeezing shorter labels.
+                let manufacturerUnits: CGFloat = 18
+                let venueUnits: CGFloat = 11
+                let tournamentUnits: CGFloat = 16
+                let totalUnits = manufacturerUnits + venueUnits + tournamentUnits
+                let manufacturerWidth = totalWidth * (manufacturerUnits / totalUnits)
+                let venueWidth = totalWidth * (venueUnits / totalUnits)
+                let tournamentWidth = totalWidth * (tournamentUnits / totalUnits)
 
                 HStack(spacing: spacing) {
                     Button("Manufacturer") {
