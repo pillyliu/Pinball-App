@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,6 +30,7 @@ import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppExternalLinkButton
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
+import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import kotlinx.coroutines.Dispatchers
@@ -203,7 +203,7 @@ internal fun PracticeIfpaProfileScreen(
             CardContainer {
                 SectionTitle("Could not load IFPA profile")
                 AppInlineTaskStatus(text = errorMessage!!, isError = true)
-                Button(onClick = {
+                AppPrimaryButton(onClick = {
                     profile = null
                     errorMessage = null
                 }) {

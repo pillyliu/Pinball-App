@@ -72,6 +72,7 @@
 - iOS Library seed storage and seed query helper globals now explicitly opt out of default `MainActor` isolation in `LibrarySeedStorage.swift` and `LibrarySeedQueryLoaders.swift`, clearing the feature-owned actor-isolation warning noise from the seed-db path after those helpers were extracted out of the old monoliths.
 - iOS Library rulesheet/playfield resource buttons and the YouTube launch CTA now also route through the shared `AppSecondaryActionButtonStyle` seam in `AppFilterControls.swift`, replacing another remaining feature-local `.glass` action pocket in the detail route.
 - iOS Library detail playfield actions now consistently use that same shared secondary CTA seam in both the `Sources` and top summary card surfaces instead of leaving one last local `.glass` wrapper behind.
+- Android Library route-missing recovery now also uses the shared `AppSecondaryButton` seam in `CommonUi.kt` instead of a raw fallback button in `LibraryRouteContent.kt`.
 
 ## Next audit targets
 

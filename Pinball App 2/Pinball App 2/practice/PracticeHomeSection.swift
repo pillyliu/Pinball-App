@@ -161,10 +161,8 @@ struct PracticeHomeSection: View {
                     .font(.caption)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .appControlStyle()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(AppIconTileActionButtonStyle())
     }
 
     private func resumeTransitionSourceID(for gameID: String) -> String {

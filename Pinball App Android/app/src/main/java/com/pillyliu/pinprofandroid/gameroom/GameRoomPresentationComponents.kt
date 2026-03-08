@@ -29,7 +29,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,6 +60,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
+import com.pillyliu.pinprofandroid.ui.AppFullscreenActionButton
 import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.AppSwipeRevealActionButton
@@ -356,9 +356,9 @@ internal fun MediaPreviewDialog(
                         .padding(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    TextButton(onClick = onClose) { Text("Back", color = Color.White) }
-                    TextButton(onClick = onEdit) { Text("Edit", color = Color.White) }
-                    TextButton(onClick = onDelete) { Text("Delete", color = Color.White) }
+                    AppFullscreenActionButton(text = "Back", onClick = onClose)
+                    AppFullscreenActionButton(text = "Edit", onClick = onEdit)
+                    AppFullscreenActionButton(text = "Delete", onClick = onDelete, destructive = true)
                 }
                 if (!attachment.caption.isNullOrBlank()) {
                     Text(

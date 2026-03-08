@@ -45,6 +45,7 @@
 - The iOS GameRoom edit-name save action now also uses that shared primary CTA seam as a true full-width row instead of a button trapped inside a spacer-wrapped `HStack`, matching the rest of the GameRoom settings action layout.
 - The iOS GameRoom home settings gear now also uses the shared compact icon-button seam in `AppFilterControls.swift`, aligning the home-shell utility affordance with the newer shared action chrome used across Practice and Settings.
 - iOS GameRoom media import buttons and add-machine utility actions now also route through the shared secondary CTA and compact icon-button seams in `AppFilterControls.swift`, reducing another pocket of feature-local `.glass` chrome in presentation and settings flows.
+- Android GameRoom fullscreen media controls now also route through a shared fullscreen action-pill seam in `SharedFullscreenChrome.kt` instead of local white `TextButton` controls in `GameRoomPresentationComponents.kt`.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets

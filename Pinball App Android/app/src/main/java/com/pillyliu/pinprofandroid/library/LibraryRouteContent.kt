@@ -3,13 +3,13 @@ package com.pillyliu.pinprofandroid.library
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppScreen
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.EmptyLabel
 
 @Composable
@@ -133,13 +133,13 @@ private fun LibraryRouteMissingScreen(
             AppPanelEmptyCard(text = message)
         }
     } else {
-        AppScreen(contentPadding) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                EmptyLabel(message)
-                Button(onClick = onBack) {
-                    Text("Back to Library")
+            AppScreen(contentPadding) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    EmptyLabel(message)
+                    AppSecondaryButton(onClick = onBack) {
+                        Text("Back to Library")
+                    }
                 }
             }
         }
-    }
 }

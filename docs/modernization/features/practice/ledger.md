@@ -221,6 +221,7 @@
 - iOS Practice onboarding save/dismiss actions, group-template apply actions, and inline group-date editor actions now also route through the shared `AppPrimaryActionButtonStyle`, `AppSecondaryActionButtonStyle`, and `AppDestructiveActionButtonStyle` seams in `AppFilterControls.swift`, reducing another remaining pocket of feature-local `.glass` CTA styling in `PracticeHomeSection.swift`, `PracticeGroupEditorComponents.swift`, and `PracticePresentationHost.swift`.
 - iOS Practice home settings gear, group-dashboard add/edit controls, dashboard inline date-editor actions, resource-row rulesheet/playfield actions, IFPA retry, and mechanics logging now also route through the shared compact icon-button and primary/secondary/destructive CTA seams in `AppFilterControls.swift`, removing another visible pocket of pre-modernization `.glass` action chrome.
 - iOS Practice journal bulk `Edit` / `Delete` controls and the `Save Note` action now also route through the shared CTA seams in `AppFilterControls.swift`, reducing another remaining pocket of local button chrome inside the Practice journal and game-summary cards.
+- iOS Practice home quick-entry tiles now also route through a shared icon-tile button seam in `AppFilterControls.swift`, and Android IFPA retry now uses the shared `AppPrimaryButton` seam in `CommonUi.kt` instead of raw fallback button styling.
 
 ## Next audit targets
 
