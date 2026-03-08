@@ -90,6 +90,34 @@ fun AppBackButton(
 }
 
 @Composable
+fun AppScreenHeader(
+    title: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    titleColor: Color = PinballThemeTokens.colors.shellSelectedContent,
+    titleMaxLines: Int = 1,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppBackButton(onClick = onBack)
+        Text(
+            text = title,
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 10.dp),
+            color = titleColor,
+            style = PinballThemeTokens.typography.sectionTitle,
+            maxLines = titleMaxLines,
+            textAlign = TextAlign.Center,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(modifier = Modifier.width(40.dp))
+    }
+}
+
+@Composable
 fun Modifier.iosEdgeSwipeBack(
     enabled: Boolean,
     onBack: () -> Unit,

@@ -70,8 +70,8 @@ import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.library.LibraryVenueSearchResult
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
-import com.pillyliu.pinprofandroid.ui.AppBackButton
 import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
+import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
@@ -538,10 +538,7 @@ private fun AddManufacturerScreen(
     }
     AppScreen(contentPadding) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                AppBackButton(onClick = onBack)
-                Text("Add Manufacturer", fontWeight = FontWeight.SemiBold)
-            }
+            AppScreenHeader(title = "Add Manufacturer", onBack = onBack)
             CardContainer {
                 AnchoredDropdownFilter(
                     selectedText = selectedBucket.label,
@@ -688,10 +685,7 @@ private fun AddVenueScreen(
 
     AppScreen(contentPadding) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                AppBackButton(onClick = onBack)
-                Text("Add Venue", fontWeight = FontWeight.SemiBold)
-            }
+            AppScreenHeader(title = "Add Venue", onBack = onBack)
             CardContainer {
                 LinkedHtmlText(
                     html = """Search powered by <a href="https://www.pinballmap.com">Pinball Map</a>""",
@@ -818,10 +812,7 @@ private fun AddTournamentScreen(
 
     AppScreen(contentPadding) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                AppBackButton(onClick = onBack)
-                Text("Add Tournament", fontWeight = FontWeight.SemiBold)
-            }
+            AppScreenHeader(title = "Add Tournament", onBack = onBack)
             CardContainer {
                 LinkedHtmlText(
                     html = """Import powered by <a href="https://matchplay.events">Match Play</a>""",

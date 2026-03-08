@@ -10,6 +10,7 @@
 - Android `Add Manufacturer`, `Add Venue`, and `Add Tournament` now use shared dropdown/card chrome instead of keeping segmented-selector and plain form treatment local to Settings.
 - Settings source rows now use shared compact refresh/delete action-chip chrome on both platforms instead of keeping row-button styling local to the feature.
 - Settings home section titles now use the shared section-title seams on both platforms instead of feature-local title styling.
+- Android `Add Manufacturer`, `Add Venue`, and `Add Tournament` now also use the shared `AppScreenHeader` seam instead of feature-local back-button plus centered-title rows.
 
 ## Next audit targets
 

@@ -93,7 +93,7 @@ import com.halilibo.richtext.ui.material3.RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.downloadTextAllowMissing
-import com.pillyliu.pinprofandroid.ui.AppBackButton
+import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
@@ -173,21 +173,11 @@ internal fun LibraryDetailScreen(
                     .fillMaxWidth()
                     .padding(top = 8.dp),
             ) {
-                AppBackButton(
-                    onClick = onBack,
-                    modifier = Modifier.align(Alignment.CenterStart),
-                )
-                Text(
-                    text = if (game.normalizedVariant != null) "${game.name} • ${game.normalizedVariant}" else game.name,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                        .padding(horizontal = 50.dp),
+                AppScreenHeader(
+                    title = if (game.normalizedVariant != null) "${game.name} • ${game.normalizedVariant}" else game.name,
+                    onBack = onBack,
+                    modifier = Modifier.align(Alignment.Center),
+                    titleColor = MaterialTheme.colorScheme.onSurface,
                 )
             }
 
@@ -229,14 +219,6 @@ internal fun LibraryDetailScreen(
             Spacer(Modifier.height(LIBRARY_CONTENT_BOTTOM_FILLER))
         }
     }
-}
-
-@Composable
-internal fun GlassBackButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    AppBackButton(onClick = onClick, modifier = modifier)
 }
 
 @Composable

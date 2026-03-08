@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.pillyliu.pinprofandroid.data.downloadTextAllowMissing
+import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import kotlinx.coroutines.Dispatchers
@@ -68,25 +69,12 @@ internal fun ExternalRulesheetWebScreen(
         modifier = Modifier.iosEdgeSwipeBack(enabled = true, onBack = onBack),
     ) {
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-            ) {
-                GlassBackButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart))
-                Text(
-                    text = title,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                        .padding(horizontal = 50.dp),
-                )
-            }
+            AppScreenHeader(
+                title = title,
+                onBack = onBack,
+                modifier = Modifier.padding(top = 8.dp),
+                titleColor = MaterialTheme.colorScheme.onSurface,
+            )
             ExternalRulesheetWebView(
                 url = url,
                 modifier = Modifier.fillMaxSize(),
@@ -282,21 +270,11 @@ internal fun RulesheetScreen(
                         .padding(contentPadding)
                         .padding(start = 14.dp, end = 14.dp, top = 8.dp),
                 ) {
-                    GlassBackButton(
-                        onClick = onBack,
-                        modifier = Modifier.align(Alignment.CenterStart),
-                    )
-                    Text(
-                        text = slug.replace('-', ' ').replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .fillMaxWidth()
-                            .padding(horizontal = 50.dp),
+                    AppScreenHeader(
+                        title = slug.replace('-', ' ').replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },
+                        onBack = onBack,
+                        modifier = Modifier.align(Alignment.Center),
+                        titleColor = MaterialTheme.colorScheme.onSurface,
                     )
                 }
             }

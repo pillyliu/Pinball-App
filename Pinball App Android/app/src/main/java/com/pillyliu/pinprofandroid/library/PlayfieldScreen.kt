@@ -57,6 +57,7 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import coil.size.Size
 import com.pillyliu.pinprofandroid.data.PinballDataCache
+import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import kotlinx.coroutines.Job
@@ -196,21 +197,11 @@ internal fun PlayfieldScreen(
                     .padding(contentPadding)
                     .padding(start = 14.dp, end = 14.dp, top = 8.dp),
             ) {
-                GlassBackButton(
-                    onClick = onBack,
-                    modifier = Modifier.align(Alignment.CenterStart),
-                )
-                Text(
-                    text = title,
-                    color = adaptiveTitleColor,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                        .padding(horizontal = 50.dp),
+                AppScreenHeader(
+                    title = title,
+                    onBack = onBack,
+                    modifier = Modifier.align(Alignment.Center),
+                    titleColor = adaptiveTitleColor,
                 )
             }
         }
