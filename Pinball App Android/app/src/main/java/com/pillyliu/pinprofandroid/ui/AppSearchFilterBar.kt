@@ -50,7 +50,7 @@ fun AppSearchFilterBar(
             placeholder = {
                 Text(
                     text = placeholder,
-                    color = colors.shellUnselectedContent,
+                    color = colors.brandChalk,
                     style = placeholderTextStyle,
                     maxLines = 1,
                 )
@@ -61,18 +61,18 @@ fun AppSearchFilterBar(
                 .shadow(10.dp, RoundedCornerShape(corner), clip = false),
             shape = RoundedCornerShape(corner),
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None),
-            textStyle = textStyle.copy(color = colors.shellSelectedContent),
+            textStyle = textStyle.copy(color = colors.brandInk),
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = colors.shellSelectedContent,
-                unfocusedTextColor = colors.shellSelectedContent,
-                focusedLabelColor = colors.shellSelectedContent,
-                unfocusedLabelColor = colors.shellUnselectedContent,
-                cursorColor = colors.shellSelectedContent,
+                focusedTextColor = colors.brandInk,
+                unfocusedTextColor = colors.brandInk,
+                focusedLabelColor = colors.brandInk,
+                unfocusedLabelColor = colors.brandChalk,
+                cursorColor = colors.brandGold,
                 focusedContainerColor = colors.controlBackground,
                 unfocusedContainerColor = colors.controlBackground,
-                focusedBorderColor = colors.controlBorder,
-                unfocusedBorderColor = colors.controlBorder,
+                focusedBorderColor = colors.brandGold.copy(alpha = 0.55f),
+                unfocusedBorderColor = colors.brandChalk.copy(alpha = 0.35f),
             ),
         )
 
@@ -81,7 +81,7 @@ fun AppSearchFilterBar(
             shape = RoundedCornerShape(corner),
             colors = IconButtonDefaults.filledTonalIconButtonColors(
                 containerColor = colors.controlBackground,
-                contentColor = colors.shellSelectedContent,
+                contentColor = colors.brandGold,
             ),
             modifier = Modifier
                 .height(minHeight)

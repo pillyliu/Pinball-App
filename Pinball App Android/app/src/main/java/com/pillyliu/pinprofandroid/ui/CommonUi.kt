@@ -214,7 +214,7 @@ fun CardContainer(modifier: Modifier = Modifier, content: @Composable () -> Unit
         modifier = modifier
             .fillMaxWidth()
             .background(colors.panel, RoundedCornerShape(shapes.panelCorner))
-            .border(1.dp, colors.border.copy(alpha = 0.38f), RoundedCornerShape(shapes.panelCorner))
+            .border(1.dp, colors.brandChalk.copy(alpha = 0.22f), RoundedCornerShape(shapes.panelCorner))
             .padding(spacing.panelPadding),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -257,7 +257,7 @@ fun EmptyLabel(text: String) {
     ) {
         Text(
             text = text,
-            color = PinballThemeTokens.colors.shellUnselectedContent,
+            color = PinballThemeTokens.colors.brandChalk,
             style = PinballThemeTokens.typography.emptyState,
         )
     }

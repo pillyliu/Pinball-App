@@ -32,7 +32,7 @@ struct AppToolbarSummaryText: View {
             .minimumScaleFactor(0.8)
             .truncationMode(.tail)
             .font(AppTheme.typography.filterSummary)
-            .foregroundStyle(AppTheme.shellUnselectedContent)
+            .foregroundStyle(AppTheme.brandChalk)
     }
 }
 
@@ -51,7 +51,7 @@ struct AppToolbarSummaryPair: View {
                 .minimumScaleFactor(0.8)
                 .font(AppTheme.typography.filterSummary)
         }
-        .foregroundStyle(AppTheme.shellUnselectedContent)
+        .foregroundStyle(AppTheme.brandChalk)
     }
 }
 
@@ -120,7 +120,7 @@ struct AppDropdownMenuLabel: View {
         .overlay {
             if embeddedInNavigation {
                 Capsule()
-                    .stroke(Color.white.opacity(0.28), lineWidth: 0.6)
+                    .stroke(AppTheme.brandGold.opacity(0.28), lineWidth: 0.8)
             }
         }
     }
@@ -134,7 +134,7 @@ struct AppDropdownMenuLabel: View {
             Spacer(minLength: fillsWidth ? 0 : 4)
             Image(systemName: "chevron.down")
                 .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
-                .foregroundStyle(AppTheme.shellUnselectedContent)
+                .foregroundStyle(AppTheme.brandGold)
         }
     }
 }
@@ -250,12 +250,14 @@ struct AppSelectableMenuRow: View {
     let isSelected: Bool
 
     var body: some View {
-        Group {
+        HStack(spacing: 8) {
             if isSelected {
-                Label(text, systemImage: "checkmark")
-            } else {
-                Text(text)
+                Image(systemName: "checkmark")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppTheme.brandGold)
             }
+            Text(text)
+                .foregroundStyle(isSelected ? AppTheme.brandInk : Color.primary)
         }
     }
 }

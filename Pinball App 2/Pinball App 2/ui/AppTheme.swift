@@ -229,20 +229,40 @@ extension View {
 
     func appPanelStyle() -> some View {
         self
-            .background(.regularMaterial)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadii.panel, style: .continuous)
+                    .fill(.regularMaterial)
+                    .overlay(
+                        LinearGradient(
+                            colors: [AppTheme.brandChalk.opacity(0.06), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadii.panel)
-                    .stroke(AppTheme.border.opacity(0.7), lineWidth: 1)
+                    .stroke(AppTheme.brandChalk.opacity(0.26), lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: AppRadii.panel, style: .continuous))
     }
 
     func appControlStyle() -> some View {
         self
-            .background(AppTheme.controlBg)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                    .fill(AppTheme.controlBg)
+                    .overlay(
+                        LinearGradient(
+                            colors: [AppTheme.brandGold.opacity(0.05), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadii.control)
-                    .stroke(AppTheme.controlBorder, lineWidth: 1)
+                    .stroke(AppTheme.brandGold.opacity(0.28), lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
     }
