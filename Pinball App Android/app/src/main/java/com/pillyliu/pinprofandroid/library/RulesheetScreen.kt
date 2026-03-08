@@ -37,6 +37,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -246,12 +247,33 @@ internal fun RulesheetScreen(
                         .fillMaxWidth()
                         .padding(start = 14.dp, end = 14.dp),
                 ) {
-                    AppScreenHeader(
-                        title = title ?: slug.replace('-', ' ').replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },
-                        onBack = onBack,
-                        modifier = Modifier.align(Alignment.Center),
-                        titleColor = MaterialTheme.colorScheme.onSurface,
-                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .fillMaxWidth()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(alpha = 0.52f),
+                                        Color.Black.copy(alpha = 0.22f),
+                                        Color.Transparent,
+                                    ),
+                                ),
+                                RoundedCornerShape(16.dp),
+                            )
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f),
+                                RoundedCornerShape(16.dp),
+                            )
+                            .padding(horizontal = 6.dp, vertical = 4.dp),
+                    ) {
+                        AppScreenHeader(
+                            title = title ?: slug.replace('-', ' ').replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },
+                            onBack = onBack,
+                            titleColor = Color.White,
+                        )
+                    }
                 }
             }
         }
