@@ -37,11 +37,10 @@ struct SettingsHomeContent: View {
             GeometryReader { proxy in
                 let spacing: CGFloat = 8
                 let totalWidth = max(0, proxy.size.width - (spacing * 2))
-                // Weight buttons by label length plus a shared padding allowance so
-                // the row fills the width without squeezing shorter labels.
-                let manufacturerUnits: CGFloat = 18
-                let venueUnits: CGFloat = 11
-                let tournamentUnits: CGFloat = 16
+                // Match Android's proportional fill in the shared Settings add row.
+                let manufacturerUnits: CGFloat = 12
+                let venueUnits: CGFloat = 5
+                let tournamentUnits: CGFloat = 10
                 let totalUnits = manufacturerUnits + venueUnits + tournamentUnits
                 let manufacturerWidth = totalWidth * (manufacturerUnits / totalUnits)
                 let venueWidth = totalWidth * (venueUnits / totalUnits)
