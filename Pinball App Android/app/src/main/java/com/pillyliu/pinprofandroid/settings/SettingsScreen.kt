@@ -71,6 +71,7 @@ import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.library.LibraryVenueSearchResult
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
+import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -728,11 +729,15 @@ private fun AddVenueScreen(
                 ) {
                     Text(if (searching) "Searching..." else "Search Pinball Map")
                 }
+                if (searching) {
+                    AppInlineTaskStatus(text = "Searching Pinball Map…", showsProgress = true)
+                } else if (error != null) {
+                    AppInlineTaskStatus(text = error.orEmpty(), isError = true)
+                }
             }
             LaunchedEffect(minimumGameCount) {
                 prefs.edit().putInt("settings-add-venue-min-game-count", minimumGameCount).apply()
             }
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             emptyResultsMessage?.let {
                 CardContainer {
                     Text(
@@ -860,8 +865,12 @@ private fun AddTournamentScreen(
                 ) {
                     Text(if (importing) "Importing..." else "Import Tournament")
                 }
+                if (importing) {
+                    AppInlineTaskStatus(text = "Importing tournament…", showsProgress = true)
+                } else if (error != null) {
+                    AppInlineTaskStatus(text = error.orEmpty(), isError = true)
+                }
             }
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         }
     }
 }

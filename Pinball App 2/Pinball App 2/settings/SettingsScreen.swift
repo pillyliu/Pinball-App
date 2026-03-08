@@ -712,6 +712,12 @@ private struct AddVenueScreen: View {
                         }
                         .buttonStyle(.glass)
                         .disabled(isSearching || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                        if isSearching {
+                            AppInlineTaskStatus(text: "Searching Pinball Map…", showsProgress: true)
+                        } else if let errorMessage {
+                            AppInlineTaskStatus(text: errorMessage, isError: true)
+                        }
                     }
                     .padding(12)
                     .appPanelStyle()
@@ -760,16 +766,6 @@ private struct AddVenueScreen: View {
         }
         .navigationTitle("Add Venue")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Pinball Map", isPresented: Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
-        )) {
-            Button("OK", role: .cancel) {
-                errorMessage = nil
-            }
-        } message: {
-            Text(errorMessage ?? "")
-        }
     }
 
     private func runSearch() async {
@@ -842,6 +838,12 @@ private struct AddTournamentScreen: View {
                         }
                         .buttonStyle(.glass)
                         .disabled(isImporting || tournamentID == nil)
+
+                        if isImporting {
+                            AppInlineTaskStatus(text: "Importing tournament…", showsProgress: true)
+                        } else if let errorMessage {
+                            AppInlineTaskStatus(text: errorMessage, isError: true)
+                        }
                     }
                     .padding(12)
                     .appPanelStyle()
@@ -852,16 +854,6 @@ private struct AddTournamentScreen: View {
         }
         .navigationTitle("Add Tournament")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Match Play", isPresented: Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
-        )) {
-            Button("OK", role: .cancel) {
-                errorMessage = nil
-            }
-        } message: {
-            Text(errorMessage ?? "")
-        }
     }
 
     private func importTournament() async {
