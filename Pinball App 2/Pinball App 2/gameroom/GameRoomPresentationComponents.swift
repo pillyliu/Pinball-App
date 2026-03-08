@@ -40,10 +40,10 @@ struct GameRoomServiceEntrySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(submitLabel) {
+                    AppToolbarConfirmAction(title: LocalizedStringKey(submitLabel)) {
                         onSave(
                             occurredAt,
                             normalizedOptional(notes),
@@ -89,15 +89,14 @@ struct GameRoomPlayCountEntrySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    AppToolbarConfirmAction(title: "Save", isDisabled: parsedPlayTotal == nil) {
                         guard let playTotal = parsedPlayTotal else { return }
                         onSave(occurredAt, playTotal, normalizedOptional(notes))
                         dismiss()
                     }
-                    .disabled(parsedPlayTotal == nil)
                 }
             }
         }
@@ -235,10 +234,13 @@ struct GameRoomLogIssueSheet: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    AppToolbarConfirmAction(
+                        title: "Save",
+                        isDisabled: symptom.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ) {
                         let trimmedSymptom = symptom.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmedSymptom.isEmpty else { return }
                         onSave(
@@ -251,7 +253,6 @@ struct GameRoomLogIssueSheet: View {
                         )
                         dismiss()
                     }
-                    .disabled(symptom.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
@@ -391,15 +392,14 @@ struct GameRoomResolveIssueSheet: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    AppToolbarConfirmAction(title: "Save", isDisabled: selectedIssueID == nil) {
                         guard let selectedIssueID else { return }
                         onSave(selectedIssueID, resolvedAt, normalizedOptional(resolution))
                         dismiss()
                     }
-                    .disabled(selectedIssueID == nil)
                 }
             }
         }
@@ -460,16 +460,18 @@ struct GameRoomOwnershipEntrySheet: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    AppToolbarConfirmAction(
+                        title: "Save",
+                        isDisabled: summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ) {
                         let trimmedSummary = summary.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmedSummary.isEmpty else { return }
                         onSave(occurredAt, eventType, trimmedSummary, normalizedOptional(notes))
                         dismiss()
                     }
-                    .disabled(summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
@@ -584,16 +586,18 @@ struct GameRoomMediaEntrySheet: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    AppToolbarConfirmAction(
+                        title: "Save",
+                        isDisabled: uri.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ) {
                         let trimmedURI = uri.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmedURI.isEmpty else { return }
                         onSave(kind, trimmedURI, normalizedOptional(caption), normalizedOptional(notes))
                         dismiss()
                     }
-                    .disabled(uri.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
@@ -842,7 +846,7 @@ struct GameRoomAttachmentPreviewSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    AppToolbarDoneAction { dismiss() }
                 }
             }
         }
@@ -882,10 +886,10 @@ struct GameRoomMediaEditSheet: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    AppToolbarConfirmAction(title: "Save") {
                         onSave(normalizedOptional(caption), normalizedOptional(notes))
                         dismiss()
                     }
@@ -931,10 +935,13 @@ struct GameRoomPartOrModEntrySheet: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(submitLabel) {
+                    AppToolbarConfirmAction(
+                        title: LocalizedStringKey(submitLabel),
+                        isDisabled: summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ) {
                         let trimmedSummary = summary.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmedSummary.isEmpty else { return }
                         onSave(
@@ -945,7 +952,6 @@ struct GameRoomPartOrModEntrySheet: View {
                         )
                         dismiss()
                     }
-                    .disabled(summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
@@ -1098,14 +1104,16 @@ struct GameRoomEventEditSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    AppToolbarConfirmAction(
+                        title: "Save",
+                        isDisabled: summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ) {
                         onSave(occurredAt, summary, notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes)
                         dismiss()
                     }
-                    .disabled(summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
