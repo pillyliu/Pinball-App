@@ -800,22 +800,16 @@ fun AppInlineLinkAction(
     modifier: Modifier = Modifier,
     fontSize: TextUnit = TextUnit.Unspecified,
 ) {
-    TextButton(
-        onClick = onClick,
-        modifier = modifier,
-        contentPadding = PaddingValues(0.dp),
-        colors = ButtonDefaults.textButtonColors(
-            contentColor = Color(0xFF7DC4FA),
-        ),
-    ) {
-        Text(
-            text = text,
-            fontSize = fontSize,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    val colors = PinballThemeTokens.colors
+    Text(
+        text = text,
+        modifier = modifier.clickable(onClick = onClick),
+        color = colors.brandGold,
+        fontSize = fontSize,
+        fontWeight = FontWeight.SemiBold,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 @Composable
