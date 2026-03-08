@@ -75,59 +75,57 @@ internal fun CurrentGroupsCard(
     val selectedVisibleID = store.selectedGroupID?.takeIf { id -> visibleGroups.any { it.id == id } }
 
     CardContainer(modifier = Modifier.padding(top = 2.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SectionTitle("Groups")
-                Box(modifier = Modifier.weight(1f))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SectionTitle("Groups")
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier.padding(start = 10.dp),
                 ) {
-                    AppCompactIconButton(
-                        icon = Icons.Outlined.Add,
-                        contentDescription = "Add group",
-                        onClick = onCreateGroup,
-                        size = 28.dp,
-                        iconSize = 16.dp,
-                    )
-                    val selectedID = selectedVisibleID
-                    AppCompactIconButton(
-                        icon = Icons.Outlined.Edit,
-                        contentDescription = "Edit selected group",
-                        onClick = {
-                            if (selectedID != null) {
-                                onEditSelectedGroup(selectedID)
-                            }
-                        },
-                        enabled = selectedID != null,
-                        size = 28.dp,
-                        iconSize = 16.dp,
-                    )
-                }
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                    SingleChoiceSegmentedButtonRow {
-                        listOf("Current", "Archived").forEachIndexed { index, label ->
-                            val archived = index == 1
-                            SegmentedButton(
-                                selected = showArchived == archived,
-                                onClick = { showArchived = archived },
-                                colors = pinballSegmentedButtonColors(),
-                                shape = SegmentedButtonDefaults.itemShape(index = index, count = 2),
-                                modifier = Modifier.height(32.dp),
-                                icon = {},
-                                label = {
-                                    Text(
-                                        text = label,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        maxLines = 1,
-                                    )
-                                },
-                            )
-                        }
+                    listOf("Current", "Archived").forEachIndexed { index, label ->
+                        val archived = index == 1
+                        SegmentedButton(
+                            selected = showArchived == archived,
+                            onClick = { showArchived = archived },
+                            colors = pinballSegmentedButtonColors(),
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = 2),
+                            modifier = Modifier.height(32.dp),
+                            icon = {},
+                            label = {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                )
+                            },
+                        )
                     }
                 }
+            }
+            Box(modifier = Modifier.weight(1f))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AppCompactIconButton(
+                    icon = Icons.Outlined.Add,
+                    contentDescription = "Add group",
+                    onClick = onCreateGroup,
+                    size = 28.dp,
+                    iconSize = 16.dp,
+                )
+                val selectedID = selectedVisibleID
+                AppCompactIconButton(
+                    icon = Icons.Outlined.Edit,
+                    contentDescription = "Edit selected group",
+                    onClick = {
+                        if (selectedID != null) {
+                            onEditSelectedGroup(selectedID)
+                        }
+                    },
+                    enabled = selectedID != null,
+                    size = 28.dp,
+                    iconSize = 16.dp,
+                )
             }
         }
         if (visibleGroups.isEmpty()) {
