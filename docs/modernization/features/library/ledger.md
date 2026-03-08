@@ -40,10 +40,14 @@
   - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryHostedData.kt`
 - Rewired both `LibraryDataLoader` files to consume the new hosted-data seams instead of keeping hosted fetch paths, bundled fallback loading, and OPDB manufacturer-option decoding split across Library and Settings files.
 - Settings manual hosted-data refresh now routes through the same Library hosted-data seams on both platforms instead of maintaining a feature-local hosted fetch path.
+- Extracted iOS legacy payload/source parsing helpers into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryPayloadParsing.swift`, so `LibraryDomain.swift` now focuses more on view models, rulesheet/game-info loaders, markdown parsing, and `PinballGame` domain types instead of also owning payload-root/source decode helpers.
+- Extracted iOS seed-db row models, rulesheet dedupe logic, SQLite helpers, and built-in-row-to-domain mapping into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibrarySeedDatabaseModels.swift`, reducing `LibrarySeedDatabase.swift` back toward database orchestration instead of mixed row-model plus helper ownership.
+- Extracted Android seed-db row models, cursor helpers, and built-in-row/domain mapping into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedModels.kt`, reducing `LibrarySeedDatabase.kt` back toward query/orchestration ownership.
+- Extracted Android seed-db GameRoom overlay decode/filter helpers into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeedOverlay.kt`, so `LibrarySeedDatabase.kt` no longer carries both SQLite loading and GameRoom JSON overlay parsing inline.
 
 ## Next audit targets
 
 - source-state synchronization
-- GameRoom overlay logic
 - repeated detail/resource UI
-- iOS payload-decoding split inside `LibraryDomain`
+- remaining markdown/domain split inside `LibraryDomain.swift`
+- remaining query/helper concentration inside the two `LibrarySeedDatabase` files

@@ -830,85 +830,6 @@ final class RulesheetScreenModel: ObservableObject {
         return text + "\n\n\u{00A0}\n\n\u{00A0}\n"
     }
 }
-struct PinballLibraryPayload {
-    let games: [PinballGame]
-    let sources: [PinballLibrarySource]
-}
-
-private struct PinballLibraryRoot: Decodable {
-    let games: [PinballGame]?
-    let items: [PinballGame]?
-    let sources: [PinballLibrarySourcePayload]?
-    let libraries: [PinballLibrarySourcePayload]?
-}
-
-private struct PinballLibrarySourcePayload: Decodable {
-    let id: String?
-    let libraryID: String?
-    let name: String?
-    let libraryName: String?
-    let type: String?
-    let libraryType: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case libraryID = "library_id"
-        case name
-        case libraryName = "library_name"
-        case type
-        case libraryType = "library_type"
-    }
-}
-
-func decodeLibraryPayload(data: Data) throws -> PinballLibraryPayload {
-    try decodeLibraryPayloadWithState(data: data).payload
-}
-
-private func inferSources(from games: [PinballGame]) -> [PinballLibrarySource] {
-    var seen: [PinballLibrarySource] = []
-    var ids = Set<String>()
-    for game in games {
-        if ids.contains(game.sourceId) { continue }
-        ids.insert(game.sourceId)
-        seen.append(PinballLibrarySource(id: game.sourceId, name: game.sourceName, type: game.sourceType))
-    }
-    if seen.isEmpty {
-        seen.append(PinballLibrarySource(id: "the-avenue", name: "The Avenue", type: .venue))
-    }
-    return seen
-}
-
-private func parseSourceType(_ raw: String?) -> PinballLibrarySourceType {
-    let normalized = raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    if normalized == "manufacturer" {
-        return .manufacturer
-    }
-    if normalized == "category" {
-        return .category
-    }
-    if normalized == "tournament" {
-        return .tournament
-    }
-    return .venue
-}
-
-private func slugifySourceID(_ value: String) -> String {
-    let lower = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    if lower.isEmpty { return "the-avenue" }
-    let mapped = lower
-        .replacingOccurrences(of: "&", with: "and")
-        .replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
-        .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-    return mapped.isEmpty ? "the-avenue" : mapped
-}
-
-private func normalizedOptionalString(_ value: String?) -> String? {
-    guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
-        return nil
-    }
-    return trimmed
-}
-
 struct PinballGroupSection {
     let locationKey: String?
     let groupKey: Int?
@@ -1055,7 +976,7 @@ struct PinballGame: Identifiable, Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let parsedType = parseSourceType(
+        let parsedType = libraryParseSourceType(
             try container.decodeIfPresent(String.self, forKey: .libraryType) ??
                 (try container.decodeIfPresent(String.self, forKey: .libraryTypeV2)) ??
                 (try container.decodeIfPresent(String.self, forKey: .sourceType))
@@ -1066,7 +987,7 @@ struct PinballGame: Identifiable, Decodable {
         let sourceNameSource = try container.decodeIfPresent(String.self, forKey: .sourceName)
         let sourceNameVenueName = try container.decodeIfPresent(String.self, forKey: .venueName)
         let sourceNameVenue = try container.decodeIfPresent(String.self, forKey: .venue)
-        let decodedSourceName = normalizedOptionalString(
+        let decodedSourceName = libraryNormalizedOptionalString(
             sourceNameLibrary ??
                 sourceNameLibraryV2 ??
                 sourceNameSource ??
@@ -1074,11 +995,11 @@ struct PinballGame: Identifiable, Decodable {
                 sourceNameVenue
         )
         sourceName = decodedSourceName ?? "The Avenue"
-        sourceId = normalizedOptionalString(
+        sourceId = libraryNormalizedOptionalString(
             try container.decodeIfPresent(String.self, forKey: .libraryId) ??
                 (try container.decodeIfPresent(String.self, forKey: .libraryIdV2)) ??
                 (try container.decodeIfPresent(String.self, forKey: .sourceId))
-        ) ?? slugifySourceID(sourceName)
+        ) ?? librarySlugifySourceID(sourceName)
         area = (
             try container.decodeIfPresent(String.self, forKey: .area) ??
                 (try container.decodeIfPresent(String.self, forKey: .location))
