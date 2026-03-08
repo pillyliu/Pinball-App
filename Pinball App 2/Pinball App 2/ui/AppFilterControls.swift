@@ -138,3 +138,28 @@ struct AppDropdownMenuLabel: View {
         }
     }
 }
+
+struct AppCompactDropdownLabel: View {
+    let text: String
+    var font: Font = .subheadline
+    var minHeight: CGFloat = 36
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(text)
+                .font(font)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(minHeight: minHeight)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appControlStyle()
+    }
+}

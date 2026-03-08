@@ -185,7 +185,7 @@ struct PracticeQuickEntrySheet: View {
                                     }
                                 }
                                 label: {
-                                    compactDropdownLabel(text: selectedActivityLabel)
+                                    AppCompactDropdownLabel(text: selectedActivityLabel)
                                 }
                                 .buttonStyle(.plain)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -239,7 +239,7 @@ struct PracticeQuickEntrySheet: View {
                                     }
                                 }
                                 label: {
-                                    compactDropdownLabel(text: selectedVideoSourceLabel)
+                                    AppCompactDropdownLabel(text: selectedVideoSourceLabel)
                                 }
                                 .buttonStyle(.plain)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -284,7 +284,7 @@ struct PracticeQuickEntrySheet: View {
                                     }
                                 }
                                 label: {
-                                    compactDropdownLabel(text: selectedPracticeCategoryLabel)
+                                    AppCompactDropdownLabel(text: selectedPracticeCategoryLabel)
                                 }
                                 .buttonStyle(.plain)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -307,7 +307,7 @@ struct PracticeQuickEntrySheet: View {
                                     }
                                 }
                                 label: {
-                                    compactDropdownLabel(text: selectedMechanicsSkillLabel)
+                                    AppCompactDropdownLabel(text: selectedMechanicsSkillLabel)
                                 }
                                 .buttonStyle(.plain)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -422,25 +422,6 @@ struct PracticeQuickEntrySheet: View {
         }
     }
 
-    private func compactDropdownLabel(text: String) -> some View {
-        HStack(spacing: 8) {
-            Text(text)
-                .font(.subheadline)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(height: 36)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appControlStyle()
-    }
-
     @ViewBuilder
     private var libraryFilterMenu: some View {
         if availableLibrarySources.count > 1 {
@@ -467,7 +448,7 @@ struct PracticeQuickEntrySheet: View {
                 }
             }
             label: {
-                compactDropdownLabel(text: selectedLibraryFilterLabel)
+                AppCompactDropdownLabel(text: selectedLibraryFilterLabel)
             }
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -505,7 +486,7 @@ struct PracticeQuickEntrySheet: View {
             }
         }
         label: {
-            compactDropdownLabel(text: selectedGameLabel)
+            AppCompactDropdownLabel(text: selectedGameLabel)
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, alignment: .leading)

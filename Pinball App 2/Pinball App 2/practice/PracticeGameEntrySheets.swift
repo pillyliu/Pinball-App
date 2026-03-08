@@ -265,9 +265,9 @@ struct GameTaskEntrySheet: View {
                                                 Text(source)
                                             }
                                         }
-                                    }
+                                }
                                 } label: {
-                                    compactDropdownLabel(text: selectedVideoSourceLabel)
+                                    AppCompactDropdownLabel(text: selectedVideoSourceLabel)
                                 }
                                 .buttonStyle(.plain)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -311,7 +311,7 @@ struct GameTaskEntrySheet: View {
                                         }
                                     }
                                 } label: {
-                                    compactDropdownLabel(text: selectedPracticeCategoryLabel)
+                                    AppCompactDropdownLabel(text: selectedPracticeCategoryLabel)
                                 }
                                 .buttonStyle(.plain)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -408,25 +408,6 @@ struct GameTaskEntrySheet: View {
                 .padding(.vertical, 6)
         }
         .frame(minHeight: 88, maxHeight: 96)
-        .appControlStyle()
-    }
-
-    private func compactDropdownLabel(text: String) -> some View {
-        HStack(spacing: 8) {
-            Text(text)
-                .font(.subheadline)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(minHeight: 36)
-        .frame(maxWidth: .infinity, alignment: .leading)
         .appControlStyle()
     }
 

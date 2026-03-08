@@ -180,7 +180,7 @@ struct PracticeInsightsSectionView: View {
                 }
             }
         } label: {
-            compactDropdownLabel(text: selectedGameName)
+            AppCompactDropdownLabel(text: selectedGameName)
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -197,7 +197,7 @@ struct PracticeInsightsSectionView: View {
                 }
             }
         } label: {
-            compactDropdownLabel(text: opponentName.isEmpty ? "Select player" : displayLPLPlayerName(opponentName))
+            AppCompactDropdownLabel(text: opponentName.isEmpty ? "Select player" : displayLPLPlayerName(opponentName))
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -207,24 +207,6 @@ struct PracticeInsightsSectionView: View {
         _ = showFullLPLLastNames
         return formatLPLPlayerNameForDisplay(raw)
     }
-
-    private func compactDropdownLabel(text: String) -> some View {
-        HStack(spacing: 8) {
-            Text(text)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appControlStyle()
-    }
-
     private func headToHeadPlotHeight(for count: Int) -> CGFloat {
         guard count > 0 else { return 170 }
         let rowHeight: CGFloat = 20

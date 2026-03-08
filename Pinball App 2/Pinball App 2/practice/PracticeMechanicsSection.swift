@@ -47,7 +47,7 @@ struct PracticeMechanicsSectionView: View {
                     }
                 }
                 label: {
-                    compactDropdownLabel(text: selectedMechanicSkillLabel)
+                    AppCompactDropdownLabel(text: selectedMechanicSkillLabel)
                 }
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -154,22 +154,5 @@ struct PracticeMechanicsSectionView: View {
     private var selectedMechanicSkillLabel: String {
         let trimmed = selectedMechanicSkill.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "Select skill" : trimmed
-    }
-
-    private func compactDropdownLabel(text: String) -> some View {
-        HStack(spacing: 8) {
-            Text(text)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appControlStyle()
     }
 }
