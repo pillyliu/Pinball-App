@@ -61,6 +61,8 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
+import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
+import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 
 @Composable
@@ -224,6 +226,8 @@ internal fun MediaAttachmentGrid(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 rowItems.forEach { attachment ->
+                    var imageLoaded by remember(attachment.id) { mutableStateOf(false) }
+                    var showMissingImage by remember(attachment.id) { mutableStateOf(attachment.uri.isBlank()) }
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -232,14 +236,33 @@ internal fun MediaAttachmentGrid(
                             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
                             .clickable { onOpen(attachment) },
                     ) {
-                        AsyncImage(
-                            model = attachment.uri,
-                            contentDescription = attachment.caption ?: "Media attachment",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(10.dp)),
-                        )
+                        if (attachment.uri.isNotBlank()) {
+                            AsyncImage(
+                                model = attachment.uri,
+                                contentDescription = attachment.caption ?: "Media attachment",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(10.dp)),
+                                onLoading = {
+                                    imageLoaded = false
+                                    showMissingImage = false
+                                },
+                                onSuccess = {
+                                    imageLoaded = true
+                                    showMissingImage = false
+                                },
+                                onError = {
+                                    imageLoaded = false
+                                    showMissingImage = true
+                                },
+                            )
+                        }
+                        when {
+                            attachment.uri.isBlank() -> AppMediaPreviewPlaceholder(message = "No image")
+                            !imageLoaded && !showMissingImage -> AppMediaPreviewPlaceholder(showsProgress = true)
+                            showMissingImage -> AppMediaPreviewPlaceholder()
+                        }
                         Text(
                             text = if (attachment.kind == MachineAttachmentKind.video) "Video" else "Photo",
                             color = Color.White,
@@ -270,6 +293,8 @@ internal fun MediaPreviewDialog(
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
+    var imageLoaded by remember(attachment.id) { mutableStateOf(false) }
+    var showMissingImage by remember(attachment.id) { mutableStateOf(attachment.uri.isBlank()) }
 
     Dialog(
         onDismissRequest = onClose,
@@ -309,19 +334,39 @@ internal fun MediaPreviewDialog(
                     }
                 },
         ) {
-            AsyncImage(
-                model = attachment.uri,
-                contentDescription = attachment.caption ?: "Media preview",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer(
-                        scaleX = scale,
-                        scaleY = scale,
-                        translationX = offsetX,
-                        translationY = offsetY,
-                    ),
-            )
+            if (attachment.uri.isNotBlank()) {
+                AsyncImage(
+                    model = attachment.uri,
+                    contentDescription = attachment.caption ?: "Media preview",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer(
+                            scaleX = scale,
+                            scaleY = scale,
+                            translationX = offsetX,
+                            translationY = offsetY,
+                        ),
+                    onLoading = {
+                        imageLoaded = false
+                        showMissingImage = false
+                    },
+                    onSuccess = {
+                        imageLoaded = true
+                        showMissingImage = false
+                    },
+                    onError = {
+                        imageLoaded = false
+                        showMissingImage = true
+                    },
+                )
+            }
+
+            when {
+                attachment.uri.isBlank() -> AppFullscreenStatusOverlay(text = "Media unavailable")
+                !imageLoaded && !showMissingImage -> AppFullscreenStatusOverlay(text = "Loading media…", showsProgress = true, foregroundColor = Color.White.copy(alpha = 0.9f))
+                showMissingImage -> AppFullscreenStatusOverlay(text = "Media unavailable")
+            }
 
             if (controlsVisible) {
                 Row(

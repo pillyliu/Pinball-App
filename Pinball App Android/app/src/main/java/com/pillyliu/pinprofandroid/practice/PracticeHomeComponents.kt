@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,6 +46,7 @@ import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.cardArtworkCandidates
 import com.pillyliu.pinprofandroid.library.rememberCachedImageModel
+import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 
 @Composable
@@ -197,18 +199,41 @@ private fun FallbackMiniCardAsyncImage(
     val candidates = urls.filter { it.isNotBlank() }.distinct()
     var activeIndex by remember(candidates) { mutableIntStateOf(0) }
     val model = rememberCachedImageModel(candidates.getOrNull(activeIndex))
-    AsyncImage(
-        model = model,
-        contentDescription = contentDescription,
-        modifier = modifier,
-        contentScale = ContentScale.Crop,
-        alignment = Alignment.Center,
-        onError = {
-            if (activeIndex < candidates.lastIndex) {
-                activeIndex += 1
-            }
-        },
-    )
+    var imageLoaded by remember(candidates, activeIndex) { mutableStateOf(false) }
+    var showMissingImage by remember(candidates, activeIndex) { mutableStateOf(candidates.isEmpty()) }
+    Box(modifier = modifier) {
+        if (candidates.isNotEmpty()) {
+            AsyncImage(
+                model = model,
+                contentDescription = contentDescription,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.Center,
+                onLoading = {
+                    imageLoaded = false
+                    showMissingImage = false
+                },
+                onSuccess = {
+                    imageLoaded = true
+                    showMissingImage = false
+                },
+                onError = {
+                    if (activeIndex < candidates.lastIndex) {
+                        activeIndex += 1
+                    } else {
+                        imageLoaded = false
+                        showMissingImage = true
+                    }
+                },
+            )
+        }
+
+        when {
+            candidates.isEmpty() -> AppMediaPreviewPlaceholder(message = "No image")
+            !imageLoaded && !showMissingImage -> AppMediaPreviewPlaceholder(showsProgress = true)
+            showMissingImage -> AppMediaPreviewPlaceholder()
+        }
+    }
 }
 
 private fun TextStyle.withMiniCardOverlayShadow(): TextStyle = copy(

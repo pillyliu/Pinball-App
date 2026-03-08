@@ -24,6 +24,7 @@
 - iOS GameRoom machine media/log empties plus issue/media import state now also use shared `SharedTableUi.swift` seams instead of raw `Text` and `ProgressView("Importing media…")` blocks.
 - Android GameRoom machine media/log empties plus issue-draft media empties now also use the shared `CommonUi.kt` panel-empty seam instead of feature-local fallback text.
 - iOS GameRoom media thumbnails and preview fallback state now also use shared media-preview and fullscreen-status seams instead of raw thumbnail `ProgressView()` blocks and a feature-local `"Media unavailable"` text fallback.
+- Android GameRoom collection-card artwork, machine-list artwork, attachment-tile thumbnails, and fullscreen media preview loading/missing states now also use shared media-preview and fullscreen-status seams instead of raw `AsyncImage` loading/error behavior in `GameRoomUiComponents.kt` and `GameRoomPresentationComponents.kt`.
 - GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets

@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
+import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppSearchFilterBar
@@ -268,15 +269,36 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
         }
         Box(modifier = Modifier.fillMaxSize()) {
             val artworkCandidates = game.cardArtworkCandidates()
-            AsyncImage(
-                model = artworkCandidates.firstOrNull(),
-                contentDescription = game.name,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.Center),
-                contentScale = ContentScale.FillWidth,
-                alignment = Alignment.Center,
-            )
+            var imageLoaded by remember(artworkCandidates) { mutableStateOf(false) }
+            var showMissingImage by remember(artworkCandidates) { mutableStateOf(artworkCandidates.isEmpty()) }
+            if (artworkCandidates.isNotEmpty()) {
+                AsyncImage(
+                    model = artworkCandidates.firstOrNull(),
+                    contentDescription = game.name,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.Center),
+                    contentScale = ContentScale.FillWidth,
+                    alignment = Alignment.Center,
+                    onLoading = {
+                        imageLoaded = false
+                        showMissingImage = false
+                    },
+                    onSuccess = {
+                        imageLoaded = true
+                        showMissingImage = false
+                    },
+                    onError = {
+                        imageLoaded = false
+                        showMissingImage = true
+                    },
+                )
+            }
+            when {
+                artworkCandidates.isEmpty() -> AppMediaPreviewPlaceholder(message = "No image")
+                !imageLoaded && !showMissingImage -> AppMediaPreviewPlaceholder(showsProgress = true)
+                showMissingImage -> AppMediaPreviewPlaceholder()
+            }
         }
         Box(
             modifier = Modifier

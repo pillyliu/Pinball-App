@@ -200,6 +200,7 @@
 - `PracticeVideoComponents.swift` and `PracticeGameDetailCards.kt` now consume shared resource-row, unavailable-chip, and short-rulesheet-label helpers instead of keeping feature-local copies beside the Library surfaces.
 - Standardized Practice game-workspace and mechanics empty states on both platforms by moving raw “No actions logged yet.”, “No target data yet.”, and mechanics-history fallback text onto shared panel-empty seams in `PracticeGameWorkspaceSubviews.swift`, `PracticeMechanicsSection.swift`, `PracticeGameWorkspacePanels.kt`, and `PracticeMechanicsSection.kt`.
 - Practice video-tile thumbnail loading and missing states now use shared media-preview placeholder seams instead of feature-local spinner and photo-icon fallback blocks in `PracticeVideoComponents.swift` and `PracticeVideoComponents.kt`.
+- Android Practice home mini-card artwork fallback now also uses the shared media-preview placeholder seam in `PracticeHomeComponents.kt` instead of raw `AsyncImage` loading and terminal error behavior.
 
 ## Next audit targets
 

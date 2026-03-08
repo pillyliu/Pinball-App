@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.library.rememberCachedImageModel
+import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.DropdownOption
 import com.pillyliu.pinprofandroid.ui.DropdownOptionGroup
 import com.pillyliu.pinprofandroid.ui.GroupedAnchoredDropdownFilter
@@ -64,6 +65,8 @@ internal fun MiniMachineCard(
     val outerShape = RoundedCornerShape(12.dp)
     val innerShape = RoundedCornerShape(10.dp)
     val imageModel = rememberCachedImageModel(imageUrl)
+    var imageLoaded by remember(imageUrl) { mutableStateOf(false) }
+    var showMissingImage by remember(imageUrl) { mutableStateOf(imageUrl.isNullOrBlank()) }
     val selectionHighlightColor = Color(0xFF7DD3FC)
     Box(
         modifier = Modifier
@@ -85,6 +88,18 @@ internal fun MiniMachineCard(
                 contentDescription = machine.displayTitle,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
+                onLoading = {
+                    imageLoaded = false
+                    showMissingImage = false
+                },
+                onSuccess = {
+                    imageLoaded = true
+                    showMissingImage = false
+                },
+                onError = {
+                    imageLoaded = false
+                    showMissingImage = true
+                },
             )
             Box(
                 modifier = Modifier
@@ -98,6 +113,15 @@ internal fun MiniMachineCard(
                         ),
                     ),
             )
+        } else {
+            AppMediaPreviewPlaceholder(message = "No image")
+        }
+
+        if (!imageUrl.isNullOrBlank()) {
+            when {
+                !imageLoaded && !showMissingImage -> AppMediaPreviewPlaceholder(showsProgress = true)
+                showMissingImage -> AppMediaPreviewPlaceholder()
+            }
         }
 
         Column(
@@ -148,6 +172,8 @@ internal fun MachineListRow(
 ) {
     val cardShape = RoundedCornerShape(10.dp)
     val imageModel = rememberCachedImageModel(imageUrl)
+    var imageLoaded by remember(imageUrl) { mutableStateOf(false) }
+    var showMissingImage by remember(imageUrl) { mutableStateOf(imageUrl.isNullOrBlank()) }
     val selectionHighlightColor = Color(0xFF7DD3FC)
     Box(
         modifier = Modifier
@@ -171,6 +197,18 @@ internal fun MachineListRow(
                 contentDescription = machine.displayTitle,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
+                onLoading = {
+                    imageLoaded = false
+                    showMissingImage = false
+                },
+                onSuccess = {
+                    imageLoaded = true
+                    showMissingImage = false
+                },
+                onError = {
+                    imageLoaded = false
+                    showMissingImage = true
+                },
             )
             Box(
                 modifier = Modifier
@@ -184,6 +222,15 @@ internal fun MachineListRow(
                         ),
                     ),
             )
+        } else {
+            AppMediaPreviewPlaceholder(message = "No image")
+        }
+
+        if (!imageUrl.isNullOrBlank()) {
+            when {
+                !imageLoaded && !showMissingImage -> AppMediaPreviewPlaceholder(showsProgress = true)
+                showMissingImage -> AppMediaPreviewPlaceholder()
+            }
         }
 
         Row(
