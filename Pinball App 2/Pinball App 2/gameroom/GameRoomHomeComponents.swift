@@ -452,11 +452,27 @@ struct GameRoomVariantPill: View {
     var style: Style = .standard
 
     var body: some View {
-        AppVariantPill(
-            title: compactLabel,
-            style: style.sharedStyle,
-            maxWidth: style == .mini ? nil : 84
-        )
+        if style == .mini || style == .standard {
+            Text(compactLabel)
+                .font(style.sharedStyle.font)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .padding(.horizontal, style.sharedStyle.horizontalPadding)
+                .padding(.vertical, style.sharedStyle.verticalPadding)
+                .frame(maxWidth: style == .mini ? nil : 84)
+                .background(AppTheme.brandGold.opacity(0.20), in: Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(AppTheme.brandGold.opacity(0.42), lineWidth: 0.8)
+                )
+        } else {
+            AppVariantPill(
+                title: compactLabel,
+                style: style.sharedStyle,
+                maxWidth: 84
+            )
+        }
     }
 
     private var compactLabel: String {

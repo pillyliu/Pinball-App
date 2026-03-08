@@ -357,7 +357,7 @@ internal fun GameRoomVariantPill(
     if (style == VariantPillStyle.Mini || style == VariantPillStyle.Standard) {
         Text(
             text = compactLabel,
-            color = Color.White.copy(alpha = 0.98f),
+            color = Color.White,
             style = if (style == VariantPillStyle.Mini) {
                 MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
             } else {
