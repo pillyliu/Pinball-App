@@ -1,11 +1,15 @@
 package com.pillyliu.pinprofandroid.practice
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
@@ -184,17 +188,20 @@ internal fun GroupEditorStatusCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Position", modifier = Modifier.weight(1f))
             Row(
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.widthIn(min = 112.dp),
+                modifier = Modifier.widthIn(min = 92.dp),
             ) {
                 TextButton(
                     onClick = {
-                        if (isEditing) onMoveEditedDown() else if (createGroupPosition < maxCreatePosition) onCreatePositionChange(createGroupPosition + 1)
+                        if (isEditing) onMoveEditedUp() else if (createGroupPosition > 1) onCreatePositionChange(createGroupPosition - 1)
                     },
-                    enabled = if (isEditing) canMoveEditedDown else createGroupPosition < maxCreatePosition,
+                    enabled = if (isEditing) canMoveEditedUp else createGroupPosition > 1,
                 ) {
-                    Text("⌄", fontWeight = FontWeight.SemiBold)
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowUp,
+                        contentDescription = "Move up",
+                    )
                 }
                 Box(modifier = Modifier.width(24.dp), contentAlignment = Alignment.Center) {
                     Text(
@@ -204,11 +211,14 @@ internal fun GroupEditorStatusCard(
                 }
                 TextButton(
                     onClick = {
-                        if (isEditing) onMoveEditedUp() else if (createGroupPosition > 1) onCreatePositionChange(createGroupPosition - 1)
+                        if (isEditing) onMoveEditedDown() else if (createGroupPosition < maxCreatePosition) onCreatePositionChange(createGroupPosition + 1)
                     },
-                    enabled = if (isEditing) canMoveEditedUp else createGroupPosition > 1,
+                    enabled = if (isEditing) canMoveEditedDown else createGroupPosition < maxCreatePosition,
                 ) {
-                    Text("⌃", fontWeight = FontWeight.SemiBold)
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = "Move down",
+                    )
                 }
             }
         }
