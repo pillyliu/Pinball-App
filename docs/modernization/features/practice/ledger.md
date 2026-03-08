@@ -210,6 +210,7 @@
 - Android Practice game-route note-save, edit-save, and delete-save feedback now also uses the shared success-banner seam in `CommonUi.kt`, with transient banner state grouped into `PracticeGameSectionState.kt` instead of leaving the route without matching save feedback.
 - iOS Practice journal swipe rows and group swipe rows now also use the shared swipe-action button seam in `AppFilterControls.swift` instead of feature-local blue, red, and orange action backgrounds.
 - Android Practice journal swipe rows and current-group swipe rows now also use the shared swipe-action button seam in `CommonUi.kt` instead of local `SwipeRevealActionButton` and `SwipeActionIcon` implementations.
+- iOS and Android Practice dashboard, insights, and mechanics summary strips now also use shared metric-pill seams in `AppFilterControls.swift` and `CommonUi.kt`, replacing the last feature-local Practice metric cards and Android raw inline mechanics summary text.
 
 ## Next audit targets
 

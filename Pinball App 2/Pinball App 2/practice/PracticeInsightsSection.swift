@@ -78,9 +78,9 @@ struct PracticeInsightsSectionView: View {
 
                     HStack(spacing: 8) {
                         let spreadRatio = summary.median > 0 ? (summary.p75 - summary.floor) / summary.median : 0
-                        MetricPill(label: "Consistency", value: spreadRatio >= 0.6 ? "High Risk" : "Stable")
-                        MetricPill(label: "Floor", value: formattedScore(summary.floor))
-                        MetricPill(label: "Median", value: formattedScore(summary.median))
+                        AppMetricPill(label: "Consistency", value: spreadRatio >= 0.6 ? "High Risk" : "Stable")
+                        AppMetricPill(label: "Floor", value: formattedScore(summary.floor))
+                        AppMetricPill(label: "Median", value: formattedScore(summary.median))
                     }
                 } else {
                     AppPanelEmptyCard(text: "Log scores to unlock trends and consistency analytics.")
@@ -111,9 +111,9 @@ struct PracticeInsightsSectionView: View {
                     AppPanelEmptyCard(text: "Select a player above to enable player-vs-player views.")
                 } else if let scoped = headToHead {
                     HStack(spacing: 8) {
-                        MetricPill(label: "Games", value: "\(scoped.totalGamesCompared)")
-                        MetricPill(label: "You Lead", value: "\(scoped.gamesYouLeadByMean)")
-                        MetricPill(label: "Avg Delta", value: signedScore(scoped.averageMeanDelta))
+                        AppMetricPill(label: "Games", value: "\(scoped.totalGamesCompared)")
+                        AppMetricPill(label: "You Lead", value: "\(scoped.gamesYouLeadByMean)")
+                        AppMetricPill(label: "Avg Delta", value: signedScore(scoped.averageMeanDelta))
                     }
 
                     ForEach(Array(scoped.games.prefix(8))) { game in

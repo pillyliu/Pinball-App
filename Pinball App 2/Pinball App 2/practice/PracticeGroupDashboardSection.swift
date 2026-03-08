@@ -49,9 +49,9 @@ struct PracticeGroupDashboardSectionView: View {
 
                     let score = dashboardScoreForGroup(group)
                     HStack(spacing: 8) {
-                        MetricPill(label: "Completion", value: "\(score.completionAverage)%")
-                        MetricPill(label: "Stale", value: "\(score.staleGameCount)")
-                        MetricPill(label: "Variance Risk", value: "\(score.weakerGameCount)")
+                        AppMetricPill(label: "Completion", value: "\(score.completionAverage)%")
+                        AppMetricPill(label: "Stale", value: "\(score.staleGameCount)")
+                        AppMetricPill(label: "Variance Risk", value: "\(score.weakerGameCount)")
                     }
 
                     let snapshots = groupProgressForGroup(group)

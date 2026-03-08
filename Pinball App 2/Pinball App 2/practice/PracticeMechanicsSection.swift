@@ -85,14 +85,14 @@ struct PracticeMechanicsSectionView: View {
 
                 if let summary {
                     HStack(spacing: 8) {
-                        MetricPill(label: "Logs", value: "\(summary.totalLogs)")
-                        MetricPill(label: "Latest", value: summary.latestComfort.map { "\($0)/5" } ?? "-")
-                        MetricPill(label: "Avg", value: summary.averageComfort.map { String(format: "%.1f/5", $0) } ?? "-")
-                        MetricPill(label: "Trend", value: summary.trendDelta.map { signedCompact($0) } ?? "-")
+                        AppMetricPill(label: "Logs", value: "\(summary.totalLogs)")
+                        AppMetricPill(label: "Latest", value: summary.latestComfort.map { "\($0)/5" } ?? "-")
+                        AppMetricPill(label: "Avg", value: summary.averageComfort.map { String(format: "%.1f/5", $0) } ?? "-")
+                        AppMetricPill(label: "Trend", value: summary.trendDelta.map { signedCompact($0) } ?? "-")
                     }
                 } else {
                     HStack(spacing: 8) {
-                        MetricPill(label: "Logs", value: "\(logs.count)")
+                        AppMetricPill(label: "Logs", value: "\(logs.count)")
                     }
                 }
 

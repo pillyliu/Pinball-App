@@ -324,6 +324,34 @@ struct AppTintedStatusChip: View {
     }
 }
 
+struct AppMetricPill: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(AppTheme.brandChalk)
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.brandInk)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(AppTheme.controlBg)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(AppTheme.brandGold.opacity(0.24), lineWidth: 1)
+                )
+        )
+    }
+}
+
 struct AppSuccessBanner: View {
     let text: String
     var compact = false

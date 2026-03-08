@@ -647,6 +647,41 @@ fun AppTintedStatusChip(
 }
 
 @Composable
+fun AppMetricPill(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    val colors = PinballThemeTokens.colors
+    Column(
+        modifier = modifier
+            .background(
+                colors.controlBackground,
+                RoundedCornerShape(10.dp),
+            )
+            .border(1.dp, colors.brandGold.copy(alpha = 0.24f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = colors.brandChalk,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
 fun AppThreeColumnLegendHeader(
     columns: List<Pair<String, String?>>,
     primaryColors: List<Color>,

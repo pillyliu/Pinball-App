@@ -55,27 +55,6 @@ struct GroupProgressWheel: View {
     }
 }
 
-struct MetricPill: View {
-    let label: String
-    let value: String
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 6)
-        .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-}
-
 enum GroupCreationTemplateSource: String, CaseIterable, Identifiable {
     case none
     case bank
