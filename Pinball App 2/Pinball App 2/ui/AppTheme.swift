@@ -7,6 +7,7 @@ struct AppSemanticColors {
     let border: Color
     let brandInk: Color
     let brandGold: Color
+    let brandOnGold: Color
     let brandChalk: Color
     let atmosphereTop: Color
     let atmosphereBottom: Color
@@ -62,6 +63,7 @@ enum AppTheme {
         border: Color(uiColor: .separator),
         brandInk: dynamicColor(light: UIColor(red: 0.05, green: 0.11, blue: 0.23, alpha: 1), dark: UIColor(red: 0.82, green: 0.90, blue: 1.00, alpha: 1)),
         brandGold: dynamicColor(light: UIColor(red: 0.87, green: 0.69, blue: 0.16, alpha: 1), dark: UIColor(red: 1.00, green: 0.83, blue: 0.29, alpha: 1)),
+        brandOnGold: dynamicColor(light: UIColor(red: 0.13, green: 0.11, blue: 0.04, alpha: 1), dark: UIColor(red: 0.16, green: 0.11, blue: 0.02, alpha: 1)),
         brandChalk: dynamicColor(light: UIColor(red: 0.37, green: 0.53, blue: 0.47, alpha: 1), dark: UIColor(red: 0.54, green: 0.72, blue: 0.66, alpha: 1)),
         atmosphereTop: dynamicColor(light: UIColor(red: 0.94, green: 0.96, blue: 1.00, alpha: 1), dark: UIColor(red: 0.07, green: 0.09, blue: 0.14, alpha: 1)),
         atmosphereBottom: dynamicColor(light: UIColor(red: 0.90, green: 0.93, blue: 0.98, alpha: 1), dark: UIColor(red: 0.10, green: 0.13, blue: 0.18, alpha: 1)),
@@ -115,6 +117,7 @@ enum AppTheme {
     static let border = colors.border
     static let brandInk = colors.brandInk
     static let brandGold = colors.brandGold
+    static let brandOnGold = colors.brandOnGold
     static let brandChalk = colors.brandChalk
     static let atmosphereTop = colors.atmosphereTop
     static let atmosphereBottom = colors.atmosphereBottom

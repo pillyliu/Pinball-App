@@ -704,7 +704,7 @@ struct PracticeSettingsSectionView: View {
 
                 Button("Save Profile", action: onSaveProfile)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppPrimaryActionButtonStyle())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
@@ -727,7 +727,7 @@ struct PracticeSettingsSectionView: View {
 
                 Button("Save IFPA ID", action: onSaveIFPAID)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppPrimaryActionButtonStyle())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
@@ -763,7 +763,7 @@ struct PracticeSettingsSectionView: View {
 
                 Button("Import LPL CSV", action: onImportLeagueCSV)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppPrimaryActionButtonStyle())
                     .disabled(leaguePlayerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 if !leagueImportStatus.isEmpty {
@@ -785,8 +785,7 @@ struct PracticeSettingsSectionView: View {
 
                 Button("Reset Practice Log", role: .destructive, action: onResetPracticeLog)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .foregroundStyle(.red)
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppDestructiveActionButtonStyle())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)

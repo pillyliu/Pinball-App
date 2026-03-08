@@ -217,6 +217,7 @@
 - Android Practice quick-entry tiles, resume pickers, game-input buttons, insights game picker, title-selector entry point, and group start/end date selectors now also use the shared `AppSecondaryButton` seam in `CommonUi.kt` instead of keeping repeated feature-local `OutlinedButton` styling in `PracticeHomeComponents.kt`, `PracticeHomeSection.kt`, `PracticeGameSummaryComponents.kt`, `PracticeInsightsSection.kt`, `PracticeGroupEditorScreens.kt`, and `PracticeGroupEditorSections.kt`.
 - Android Practice save/import/reset and mechanics-log call-to-action buttons now also use the shared `AppPrimaryButton` seam in `CommonUi.kt` instead of repeated feature-local `Button` styling in `PracticeSettingsSection.kt` and `PracticeMechanicsSection.kt`.
 - Android Practice group-editor footer actions, template-apply actions, and position nudges now also use shared `AppPrimaryButton`, `AppSecondaryButton`, and `AppInlineActionChip` seams in `CommonUi.kt` instead of keeping one more pocket of feature-local `TextButton` editor chrome in `PracticeGroupEditorSections.kt`.
+- iOS Practice settings `Save Profile`, `Save IFPA ID`, `Import LPL CSV`, and `Reset Practice Log` actions now also route through the shared `AppPrimaryActionButtonStyle` and `AppDestructiveActionButtonStyle` seams in `AppFilterControls.swift`, replacing the last feature-local `.glass` CTA styling inside `PracticeJournalSettingsSections.swift`.
 
 ## Next audit targets
 

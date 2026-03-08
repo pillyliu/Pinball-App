@@ -2,12 +2,13 @@ import SwiftUI
 
 struct AppPrimaryActionButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    var fillsWidth: Bool = true
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(AppTheme.brandInk.opacity(isEnabled ? 1 : 0.55))
-            .frame(maxWidth: .infinity)
+            .foregroundStyle(AppTheme.brandOnGold.opacity(isEnabled ? 1 : 0.55))
+            .frame(maxWidth: fillsWidth ? .infinity : nil)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(
@@ -25,12 +26,15 @@ struct AppPrimaryActionButtonStyle: ButtonStyle {
 
 struct AppSecondaryActionButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    var fillsWidth: Bool = true
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(AppTheme.brandInk.opacity(isEnabled ? 1 : 0.55))
-            .frame(maxWidth: .infinity)
+            .lineLimit(1)
+            .minimumScaleFactor(0.9)
+            .frame(maxWidth: fillsWidth ? .infinity : nil)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(
@@ -49,12 +53,13 @@ struct AppSecondaryActionButtonStyle: ButtonStyle {
 
 struct AppDestructiveActionButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    var fillsWidth: Bool = true
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(isEnabled ? Color.red : Color.red.opacity(0.55))
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: fillsWidth ? .infinity : nil)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(

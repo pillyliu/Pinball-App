@@ -751,15 +751,11 @@ struct GameRoomEditMachinesView: View {
             TextField("GameRoom Name", text: $venueNameDraft)
                 .textFieldStyle(.roundedBorder)
 
-            HStack(spacing: 10) {
-                Button("Save") {
-                    store.updateVenueName(venueNameDraft)
-                    venueNameDraft = store.venueName
-                }
-                .buttonStyle(AppPrimaryActionButtonStyle())
-
-                Spacer()
+            Button("Save") {
+                store.updateVenueName(venueNameDraft)
+                venueNameDraft = store.venueName
             }
+            .buttonStyle(AppPrimaryActionButtonStyle())
         }
     }
 

@@ -40,18 +40,19 @@ struct SettingsHomeContent: View {
                 Button("Manufacturer") {
                     navigationPath.append(.addManufacturer)
                 }
-                .buttonStyle(AppSecondaryActionButtonStyle())
+                .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
 
                 Button("Venue") {
                     navigationPath.append(.addVenue)
                 }
-                .buttonStyle(AppSecondaryActionButtonStyle())
+                .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
 
                 Button("Tournament") {
                     navigationPath.append(.addTournament)
                 }
-                .buttonStyle(AppSecondaryActionButtonStyle())
+                .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Text("Enabled adds that source's games to Library and Practice. Library adds the source to the Library source filter for quick switching. Up to \(PinballLibrarySourceStateStore.maxPinnedSources) sources can appear in Library at once.")
                 .font(.caption)
