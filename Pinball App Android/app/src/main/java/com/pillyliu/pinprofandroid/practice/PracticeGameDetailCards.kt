@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -33,6 +32,7 @@ import com.pillyliu.pinprofandroid.ui.AppResourceRow
 import com.pillyliu.pinprofandroid.ui.AppUnavailableResourceChip
 import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.appShortRulesheetTitle
 
 @Composable
@@ -58,7 +58,7 @@ internal fun PracticeGameNoteCard(
         )
         Row(modifier = Modifier.fillMaxWidth()) {
             Spacer(Modifier.weight(1f))
-            Button(
+            AppPrimaryButton(
                 onClick = { store.updateGameSummaryNote(gameKey, gameSummaryDraft) },
                 enabled = gameKey.isNotBlank(),
             ) { Text("Save Note") }

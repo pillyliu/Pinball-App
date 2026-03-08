@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -53,6 +52,7 @@ import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
 import com.pillyliu.pinprofandroid.ui.AppReadingProgressPill
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
+import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -284,14 +284,14 @@ internal fun RulesheetScreen(
             title = { Text("Return to last saved position?") },
             text = { Text("Return to ${(savedRatio * 100f).roundToInt()}%?") },
             confirmButton = {
-                TextButton(onClick = {
+                AppTextAction(text = "Yes", onClick = {
                     resumeTargetRatio = savedRatio
                     resumeRequestId += 1
                     showResumePrompt = false
-                }) { Text("Yes") }
+                })
             },
             dismissButton = {
-                TextButton(onClick = { showResumePrompt = false }) { Text("No") }
+                AppTextAction(text = "No", onClick = { showResumePrompt = false })
             },
         )
     }

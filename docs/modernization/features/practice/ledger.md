@@ -225,6 +225,7 @@
 - Android Practice journal bulk `Edit/Delete` actions, selected-group dashboard game rows, and current-group inline date controls now also route through shared `AppSecondaryButton`, `AppDestructiveButton`, and `AppInlineActionChip` seams in `CommonUi.kt` instead of raw `Button` / `TextButton` styling.
 - Android Practice name prompt, quick-entry save/cancel actions, journal edit save/cancel actions, reset-log confirmation actions, and top-bar journal-selection cancel action now also route through the shared `AppTextAction` seam in `CommonUi.kt` instead of repeated raw `TextButton` styling.
 - Android Practice game-picker top-bar trigger, group-title selection rows, selected-group dashboard rows, and group-selection `Done` / insights `Refresh` actions now also route through shared `AppTopBarDropdownTrigger`, `AppSelectableRowButton`, and `AppTextAction` seams in `CommonUi.kt` instead of local `TextButton` row wrappers and ad hoc selected-row styling.
+- Android Practice `Save Note` now also routes through the shared `AppPrimaryButton` seam in `CommonUi.kt` instead of the last raw note-editor `Button` styling in `PracticeGameDetailCards.kt`.
 
 ## Next audit targets
 
