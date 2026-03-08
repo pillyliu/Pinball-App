@@ -286,20 +286,18 @@ internal fun GameRoomSettingsRoute(
             }
         }
 
-        SectionTitle(
-            text = when (selectedSettingsSection) {
-                GameRoomSettingsSection.Import -> "Import from Pinside"
-                GameRoomSettingsSection.Edit -> "Edit GameRoom"
-                GameRoomSettingsSection.Archive -> "Machine Archive"
-            },
-        )
-
         if (selectedSettingsSection == GameRoomSettingsSection.Import) {
-            importContent()
+            CardContainer {
+                SectionTitle("Import from Pinside")
+                importContent()
+            }
         }
 
         if (selectedSettingsSection == GameRoomSettingsSection.Edit) {
-            editContent()
+            CardContainer {
+                SectionTitle("Edit GameRoom")
+                editContent()
+            }
         }
 
         if (selectedSettingsSection == GameRoomSettingsSection.Archive) {

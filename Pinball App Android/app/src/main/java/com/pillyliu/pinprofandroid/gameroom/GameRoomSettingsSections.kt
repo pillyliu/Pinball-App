@@ -54,6 +54,7 @@ import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.AppSelectionPill
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import kotlin.math.max
 import kotlin.math.min
@@ -656,6 +657,7 @@ internal fun GameRoomArchiveSettingsSection(
     }
 
     CardContainer {
+        SectionTitle("Machine Archive")
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             GameRoomArchiveFilter.entries.forEachIndexed { index, filter ->
                 SegmentedButton(
