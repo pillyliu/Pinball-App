@@ -15,10 +15,12 @@
 - Android machine route layout, summary/input/log panels, and machine-route event handlers were moved out of `GameRoomScreen.kt` into `GameRoomMachineRoute.kt`.
 - iOS settings shell, import flow, edit-machines surface, and archive surface were moved out of `GameRoomScreen.swift` into `GameRoomSettingsComponents.swift`.
 - Android settings import flow, edit surface, and archive surface were moved out of `GameRoomScreen.kt` into `GameRoomSettingsSections.kt`.
+- Android log-row reveal UI, media attachment grid, and full-screen media preview dialog were moved out of `GameRoomScreen.kt` into `GameRoomPresentationComponents.kt`.
+- iOS service-entry sheets, issue/media sheets, media preview/edit views, log-detail card, and event edit sheet were moved out of `GameRoomScreen.swift` into `GameRoomPresentationComponents.swift`.
+- GameRoom is now considered structurally “clean enough” for the current modernization phase; follow-up work should shift to League and shell/theme cleanup unless behavior changes force GameRoom back into active refactor.
 
 ## Next audit targets
 
-- split oversized GameRoom screen files
 - verify that Android and iOS still match every `3.1` contract item after cleanup
 - inventory repeated UI patterns that should move into shared platform UI layers
-- isolate remaining Android GameRoom sheet/presentation clusters next
+- revisit GameRoom only if parity drift or product changes reopen the feature

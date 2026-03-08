@@ -18,7 +18,7 @@ Status values:
 | League | in audit | in audit | in audit | Root tab is aligned, and Android League home now has explicit preview-model, loader, and card seams instead of one large screen file. |
 | Library | in audit | in audit | parity risk | Shared dependency for Practice and GameRoom; fallback/resource behavior must be locked before larger rewrites. |
 | Practice | parity risk | parity risk | parity risk | Largest active drift surface after GameRoom; route/state complexity is still concentrated in a few large files. |
-| GameRoom | in audit | in audit | in audit | 3.1 shipped baseline exists; home/UI helper splits, machine-route splits, and full settings-surface extraction are in place, with presentation cleanup next. |
+| GameRoom | stable | stable | in audit | 3.1 shipped baseline exists; home/UI helper splits, machine-route splits, settings-surface extraction, and presentation-component extraction are in place. |
 | Settings | in audit | in audit | in audit | Smaller feature, but still part of the app-shell and design-system cleanup. |
 
 ## Shell and theme hotspots
@@ -34,14 +34,16 @@ Status values:
 
 | File | Action | Reason |
 | --- | --- | --- |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/gameroom/GameRoomScreen.swift` | in audit | iOS root shell is much smaller after home, machine-detail, and settings-surface extraction, but sheet models and shared helpers still live here. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/gameroom/GameRoomScreen.swift` | stable | iOS root shell is now a small navigation container after home, machine-detail, settings, and presentation extraction. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/gameroom/GameRoomHomeComponents.swift` | stable | iOS GameRoom home shell, selected-machine summary, collection card, mini cards, list rows, and snapshot metric helpers now live behind a dedicated seam. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/gameroom/GameRoomMachineView.swift` | stable | iOS machine-detail route body, segmented subviews, machine input sheets, and machine-level event/media presentation now live outside the main screen file. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift` | stable | iOS settings shell, Pinside import flow, edit-machines surface, and archive surface now live outside the main screen file. |
-| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt` | in audit | Android parity landed, shared UI helpers are extracted, the machine route is split out, and settings surfaces moved out, but the root screen still concentrates sheet and presentation state. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/gameroom/GameRoomPresentationComponents.swift` | stable | iOS service-entry sheets, issue/media sheets, media preview/edit views, log-detail card, and event edit sheet now live outside the root screen file. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt` | stable | Android root screen is materially smaller after settings extraction plus presentation-helper extraction, and now mainly owns root state, route wiring, and active presentation state. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomMachineRoute.kt` | stable | Android machine-detail route body plus summary/input/log panels now live outside the main screen file. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomUiComponents.kt` | stable | Android GameRoom mini cards, list rows, pills, dropdowns, snapshot helpers, and shared formatting utilities now live outside the main screen file. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomSettingsSections.kt` | stable | Android GameRoom import, edit, and archive settings surfaces now live outside the main screen file. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPresentationComponents.kt` | stable | Android GameRoom log-row reveal UI, media attachment grid, and full-screen media preview dialog now live outside the main screen file. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift` | needs refactor | Large UI and behavior surface, but now consumes explicit workspace context and grouped route-local state. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameWorkspace.swift` | stable | `Game` route now builds an explicit workspace context instead of passing raw store/binding dependencies directly into the section view. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceContext.swift` | stable | `Game` route dependencies now live behind an explicit seam instead of being threaded ad hoc through the section view. |
@@ -138,9 +140,8 @@ Status values:
 
 1. Practice state ownership and route-model normalization plan
 2. Library audit and dependency boundaries
-3. GameRoom structural cleanup plan
-4. League shell and nested destination contract
-5. Settings consistency pass
+3. League shell and nested destination contract
+4. Settings consistency pass
 
 ## Next audit additions
 
