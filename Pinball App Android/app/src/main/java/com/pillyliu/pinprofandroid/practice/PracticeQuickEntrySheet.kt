@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
@@ -19,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppTextAction
 import kotlin.math.roundToInt
 
 private const val QUICK_GAME_KEY_PREFIX = "practice-quick-game-"
@@ -279,7 +279,7 @@ internal fun QuickEntrySheet(
         },
         confirmButton = {
             val selectedSlugForEnable = gameSlug.takeUnless { it == "None" }.orEmpty()
-            TextButton(onClick = {
+            AppTextAction(text = "Save", onClick = {
                 validation = null
                 val result = saveQuickEntry(
                     store = store,
@@ -302,12 +302,12 @@ internal fun QuickEntrySheet(
                 )
                 if (result.validationMessage != null) {
                     validation = result.validationMessage
-                    return@TextButton
+                    return@AppTextAction
                 }
                 result.savedSlug?.let(onSave)
-            }, enabled = mode == QuickActivity.Mechanics || selectedSlugForEnable.isNotBlank()) { Text("Save") }
+            }, enabled = mode == QuickActivity.Mechanics || selectedSlugForEnable.isNotBlank())
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { AppTextAction(text = "Cancel", onClick = onDismiss) },
     )
 }
 

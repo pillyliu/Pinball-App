@@ -8,7 +8,6 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,6 +20,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppTextAction
 
 @Composable
 internal fun JournalEditDialog(
@@ -153,10 +153,10 @@ internal fun JournalEditDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = {
+            AppTextAction(text = "Save", onClick = {
                 val draft = when (initial.kind) {
                     PracticeJournalEditKind.Score -> {
-                        val score = scoreText.replace(",", "").trim().toDoubleOrNull() ?: return@TextButton
+                        val score = scoreText.replace(",", "").trim().toDoubleOrNull() ?: return@AppTextAction
                         initial.copy(
                             gameSlug = gameSlug,
                             score = score,
@@ -184,10 +184,10 @@ internal fun JournalEditDialog(
                     }
                 }
                 onSave(draft)
-            }) { Text("Save") }
+            })
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            AppTextAction(text = "Cancel", onClick = onDismiss)
         },
     )
 }

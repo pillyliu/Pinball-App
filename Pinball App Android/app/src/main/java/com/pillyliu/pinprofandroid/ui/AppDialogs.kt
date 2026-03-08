@@ -3,12 +3,10 @@ package com.pillyliu.pinprofandroid.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,16 +29,10 @@ fun AppConfirmDialog(
         title = { Text(title, color = colors.brandInk, style = typography.sectionTitle) },
         text = { Text(message, color = colors.brandChalk, style = typography.emptyState) },
         confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(contentColor = colors.brandGold),
-            ) { Text(confirmLabel) }
+            AppTextAction(text = confirmLabel, onClick = onConfirm)
         },
         dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = colors.brandChalk),
-            ) { Text(dismissLabel) }
+            AppTextAction(text = dismissLabel, onClick = onDismiss)
         },
     )
 }
@@ -64,13 +56,13 @@ fun AppDatePickerSheet(
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(
+            AppTextAction(
+                text = confirmLabel,
                 onClick = {
                     onSave(datePickerState.selectedDateMillis)
                     onDismiss()
                 },
-                colors = ButtonDefaults.textButtonColors(contentColor = colors.brandGold),
-            ) { Text(confirmLabel, style = typography.shellLabel) }
+            )
         },
         dismissButton = {
             Row(
@@ -78,18 +70,15 @@ fun AppDatePickerSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (onClear != null) {
-                    TextButton(
+                    AppTextAction(
+                        text = clearLabel,
                         onClick = {
                             onClear()
                             onDismiss()
                         },
-                        colors = ButtonDefaults.textButtonColors(contentColor = colors.brandGold),
-                    ) { Text(clearLabel, style = typography.shellLabel) }
+                    )
                 }
-                TextButton(
-                    onClick = onDismiss,
-                    colors = ButtonDefaults.textButtonColors(contentColor = colors.brandChalk),
-                ) { Text(dismissLabel, style = typography.shellLabel) }
+                AppTextAction(text = dismissLabel, onClick = onDismiss)
             }
         },
     ) {

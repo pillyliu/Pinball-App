@@ -666,6 +666,32 @@ fun AppInlineActionChip(
 }
 
 @Composable
+fun AppTextAction(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    destructive: Boolean = false,
+) {
+    val colors = PinballThemeTokens.colors
+    val contentColor = if (destructive) MaterialTheme.colorScheme.error else colors.brandGold
+    TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier,
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = contentColor,
+            disabledContentColor = contentColor.copy(alpha = 0.55f),
+        ),
+    ) {
+        Text(
+            text = text,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
 fun AppSecondaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,

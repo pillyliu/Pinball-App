@@ -223,6 +223,7 @@
 - iOS Practice journal bulk `Edit` / `Delete` controls and the `Save Note` action now also route through the shared CTA seams in `AppFilterControls.swift`, reducing another remaining pocket of local button chrome inside the Practice journal and game-summary cards.
 - iOS Practice home quick-entry tiles now also route through a shared icon-tile button seam in `AppFilterControls.swift`, and Android IFPA retry now uses the shared `AppPrimaryButton` seam in `CommonUi.kt` instead of raw fallback button styling.
 - Android Practice journal bulk `Edit/Delete` actions, selected-group dashboard game rows, and current-group inline date controls now also route through shared `AppSecondaryButton`, `AppDestructiveButton`, and `AppInlineActionChip` seams in `CommonUi.kt` instead of raw `Button` / `TextButton` styling.
+- Android Practice name prompt, quick-entry save/cancel actions, journal edit save/cancel actions, reset-log confirmation actions, and top-bar journal-selection cancel action now also route through the shared `AppTextAction` seam in `CommonUi.kt` instead of repeated raw `TextButton` styling.
 
 ## Next audit targets
 

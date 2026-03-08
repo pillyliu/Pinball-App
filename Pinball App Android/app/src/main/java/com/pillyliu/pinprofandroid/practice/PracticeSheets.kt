@@ -10,7 +10,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.util.Locale
 import com.pillyliu.pinprofandroid.ui.AppDatePickerSheet
+import com.pillyliu.pinprofandroid.ui.AppTextAction
 
 @Composable
 internal fun PracticeNamePromptSheet(
@@ -85,13 +85,14 @@ internal fun PracticeNamePromptSheet(
             }
         },
         confirmButton = {
-            TextButton(
+            AppTextAction(
+                text = "Save",
                 onClick = { onSave(trimmedName, importLplStats) },
                 enabled = trimmedName.isNotEmpty(),
-            ) { Text("Save") }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Not now") }
+            AppTextAction(text = "Not now", onClick = onDismiss)
         },
     )
 }
@@ -166,13 +167,15 @@ internal fun ResetPracticeLogDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            AppTextAction(
+                text = "Yes, Reset",
                 onClick = onConfirmReset,
                 enabled = resetConfirmText.trim().lowercase(Locale.US) == "reset",
-            ) { Text("Yes, Reset") }
+                destructive = true,
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("No") }
+            AppTextAction(text = "No", onClick = onDismiss)
         },
     )
 }

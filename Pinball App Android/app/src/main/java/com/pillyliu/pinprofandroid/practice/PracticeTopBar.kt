@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.data.redactPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.ui.AppBackButton
+import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 
 @Composable
@@ -72,12 +73,7 @@ internal fun PracticeTopBar(
         }
         if (route == PracticeRoute.Journal && onToggleJournalSelectionMode != null) {
             if (isJournalSelectionMode) {
-                TextButton(
-                    onClick = onToggleJournalSelectionMode,
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                ) {
-                    Text("Cancel", style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, color = colors.brandInk)
-                }
+                AppTextAction(text = "Cancel", onClick = onToggleJournalSelectionMode)
             } else {
                 IconButton(onClick = onToggleJournalSelectionMode) {
                     Icon(Icons.Outlined.Edit, contentDescription = "Edit journal entries", tint = colors.brandInk)
