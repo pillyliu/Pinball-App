@@ -121,21 +121,14 @@ struct GroupEditorScreen: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                nameSection
-                if editingGroup == nil {
-                    templatesSection
-                }
-                titlesSection
-                settingsSection
+        VStack(alignment: .leading, spacing: 12) {
+            nameSection
+            if editingGroup == nil {
+                templatesSection
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            titlesSection
+            settingsSection
         }
-        .background(AppBackground())
-        .navigationTitle(editingGroup == nil ? "Create Group" : "Edit Group")
-        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 AppToolbarCancelAction {
