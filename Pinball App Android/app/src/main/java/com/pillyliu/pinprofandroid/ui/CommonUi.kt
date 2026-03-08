@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material3.ButtonDefaults
@@ -301,6 +302,46 @@ fun AppInlineTaskStatus(
         AppInlineStatusMessage(
             text = text,
             isError = isError,
+        )
+    }
+}
+
+@Composable
+fun AppSuccessBanner(
+    text: String,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
+    val colors = PinballThemeTokens.colors
+    val paddingHorizontal = if (compact) 8.dp else 10.dp
+    val paddingVertical = if (compact) 5.dp else 7.dp
+    val iconSize = if (compact) 14.dp else 16.dp
+    Row(
+        modifier = modifier
+            .background(
+                colors.statsHigh.copy(alpha = 0.16f),
+                RoundedCornerShape(999.dp),
+            )
+            .border(
+                1.dp,
+                colors.statsHigh.copy(alpha = 0.28f),
+                RoundedCornerShape(999.dp),
+            )
+            .padding(horizontal = paddingHorizontal, vertical = paddingVertical),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.CheckCircle,
+            contentDescription = null,
+            tint = colors.statsHigh,
+            modifier = Modifier.size(iconSize),
+        )
+        Text(
+            text = text,
+            color = colors.statsHigh,
+            style = PinballThemeTokens.typography.filterSummary,
+            maxLines = 2,
         )
     }
 }

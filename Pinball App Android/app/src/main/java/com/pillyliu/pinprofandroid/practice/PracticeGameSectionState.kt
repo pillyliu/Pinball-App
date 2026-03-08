@@ -11,6 +11,7 @@ internal class PracticeGameSectionState {
     var pendingDeleteEntry by mutableStateOf<JournalEntry?>(null)
     var editValidation by mutableStateOf<String?>(null)
     var revealedLogRowId by mutableStateOf<String?>(null)
+    var saveBanner by mutableStateOf<String?>(null)
 
     fun beginEditing(store: PracticeStore, entry: JournalEntry) {
         revealedLogRowId = null
@@ -25,10 +26,16 @@ internal class PracticeGameSectionState {
 
     fun handleEntryDeleted() {
         revealedLogRowId = null
+        saveBanner = "Entry deleted"
     }
 
     fun handleEntryEdited() {
         revealedLogRowId = null
+        saveBanner = "Entry updated"
+    }
+
+    fun showSaveBanner(message: String) {
+        saveBanner = message
     }
 }
 

@@ -324,6 +324,34 @@ struct AppTintedStatusChip: View {
     }
 }
 
+struct AppSuccessBanner: View {
+    let text: String
+    var compact = false
+
+    private var foreground: Color { AppTheme.statsHigh }
+
+    var body: some View {
+        HStack(spacing: compact ? 6 : 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font((compact ? Font.caption2 : Font.caption).weight(.semibold))
+            Text(text)
+                .lineLimit(2)
+        }
+        .font((compact ? Font.caption2 : Font.caption).weight(.semibold))
+        .foregroundStyle(foreground)
+        .padding(.horizontal, compact ? 8 : 10)
+        .padding(.vertical, compact ? 5 : 7)
+        .background(
+            Capsule()
+                .fill(foreground.opacity(0.16))
+                .overlay(
+                    Capsule()
+                        .stroke(foreground.opacity(0.28), lineWidth: 1)
+                )
+        )
+    }
+}
+
 extension View {
     func appSegmentedControlStyle() -> some View {
         self

@@ -72,11 +72,7 @@ private struct PracticeGameSaveBanner: View {
     let message: String
 
     var body: some View {
-        Text(message)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color.green.opacity(0.2), in: Capsule())
+        AppSuccessBanner(text: message)
             .padding(.top, 4)
             .transition(.move(edge: .top).combined(with: .opacity))
     }

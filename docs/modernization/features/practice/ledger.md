@@ -206,6 +206,8 @@
 - iOS and Android Practice group dashboard status chips now also use shared tinted status-chip seams in `AppFilterControls.swift` and `CommonUi.kt` instead of feature-local colored capsules, aligning dashboard attention and progress highlights with the broader PinProf brand layer.
 - Android Practice home mini-card artwork fallback now also uses the shared media-preview placeholder seam in `PracticeHomeComponents.kt` instead of raw `AsyncImage` loading and terminal error behavior.
 - iOS Practice video-thumbnail loading/retry behavior and IFPA profile photo fallback now also route through the shared fallback image loader in `PracticeVideoComponents.swift` and `PracticeIFPAProfileScreen.swift` instead of feature-local `AsyncImage` placeholder blocks.
+- iOS Practice game-route save feedback now also uses the shared success-banner seam in `AppFilterControls.swift` instead of the last feature-local green capsule in `PracticeGamePresentationHost.swift`.
+- Android Practice game-route note-save, edit-save, and delete-save feedback now also uses the shared success-banner seam in `CommonUi.kt`, with transient banner state grouped into `PracticeGameSectionState.kt` instead of leaving the route without matching save feedback.
 
 ## Next audit targets
 
