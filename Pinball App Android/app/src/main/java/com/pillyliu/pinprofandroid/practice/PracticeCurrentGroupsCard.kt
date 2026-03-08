@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Row
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -102,22 +104,24 @@ internal fun CurrentGroupsCard(
                 }
             }
             Box(modifier = Modifier.weight(1f))
-            AppCompactIconButton(
-                icon = Icons.Outlined.Add,
-                contentDescription = "Add group",
-                onClick = onCreateGroup,
-            )
-            val selectedID = selectedVisibleID
-            AppCompactIconButton(
-                icon = Icons.Outlined.Edit,
-                contentDescription = "Edit selected group",
-                onClick = {
-                    if (selectedID != null) {
-                        onEditSelectedGroup(selectedID)
-                    }
-                },
-                enabled = selectedID != null,
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                AppCompactIconButton(
+                    icon = Icons.Outlined.Add,
+                    contentDescription = "Add group",
+                    onClick = onCreateGroup,
+                )
+                val selectedID = selectedVisibleID
+                AppCompactIconButton(
+                    icon = Icons.Outlined.Edit,
+                    contentDescription = "Edit selected group",
+                    onClick = {
+                        if (selectedID != null) {
+                            onEditSelectedGroup(selectedID)
+                        }
+                    },
+                    enabled = selectedID != null,
+                )
+            }
         }
         if (visibleGroups.isEmpty()) {
             Text(if (showArchived) "No archived groups." else "No current groups.")
@@ -246,19 +250,24 @@ internal fun CurrentGroupsCard(
                                 .weight(1f)
                                 .padding(horizontal = 6.dp),
                         )
-                        AppCompactIconButton(
-                            icon = if (group.isPriority) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
-                            contentDescription = if (group.isPriority) "Priority on" else "Priority off",
-                            onClick = {
-                                store.updateGroup(group.copy(isPriority = !group.isPriority))
-                                onRevealedGroupIDChange(null)
-                                offsetX = 0f
-                            },
+                        Box(
                             modifier = Modifier.width(priorityColWidth),
-                            tintOverride = if (group.isPriority) Color(0xFFFFA726) else MaterialTheme.colorScheme.onSurfaceVariant,
-                            size = 30.dp,
-                            iconSize = 18.dp,
-                        )
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    store.updateGroup(group.copy(isPriority = !group.isPriority))
+                                    onRevealedGroupIDChange(null)
+                                    offsetX = 0f
+                                },
+                            ) {
+                                Icon(
+                                    imageVector = if (group.isPriority) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
+                                    contentDescription = if (group.isPriority) "Priority on" else "Priority off",
+                                    tint = if (group.isPriority) Color(0xFFFFA726) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                         AppInlineActionChip(
                             text = group.startDateMs?.let { formatShortDate(it) } ?: "-",
                             onClick = {

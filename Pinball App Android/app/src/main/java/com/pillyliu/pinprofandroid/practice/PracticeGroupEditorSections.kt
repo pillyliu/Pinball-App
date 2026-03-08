@@ -1,8 +1,8 @@
 package com.pillyliu.pinprofandroid.practice
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -16,9 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AppDestructiveButton
 import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
-import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import java.util.Locale
@@ -30,15 +30,25 @@ internal fun GroupEditorActionRow(
     onDelete: () -> Unit,
     onSave: () -> Unit,
 ) {
-    CardContainer {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Spacer(modifier = Modifier.weight(1f))
-            AppSecondaryButton(onClick = onCancel) { Text("Cancel") }
-            if (isEditing) {
-                AppDestructiveButton(onClick = onDelete) { Text("Delete") }
-            }
-            AppPrimaryButton(onClick = onSave) { Text(if (isEditing) "Save" else "Create") }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppSecondaryButton(
+            onClick = onCancel,
+            modifier = Modifier.weight(1f),
+        ) { Text("Cancel") }
+        if (isEditing) {
+            AppDestructiveButton(
+                onClick = onDelete,
+                modifier = Modifier.weight(1f),
+            ) { Text("Delete") }
         }
+        AppPrimaryButton(
+            onClick = onSave,
+            modifier = Modifier.weight(1f),
+        ) { Text(if (isEditing) "Save" else "Create") }
     }
 }
 
@@ -162,27 +172,33 @@ internal fun GroupEditorStatusCard(
                     onClick = { onGroupTypeChange(option) },
                     colors = pinballSegmentedButtonColors(),
                     shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index, 3),
+                    icon = {},
                     label = { Text(option.replaceFirstChar { it.titlecase(Locale.US) }, maxLines = 1) },
                 )
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Position", modifier = Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                AppInlineActionChip(
-                    text = "Up",
-                    onClick = {
-                        if (isEditing) onMoveEditedUp() else if (createGroupPosition > 1) onCreatePositionChange(createGroupPosition - 1)
-                    },
-                    enabled = if (isEditing) canMoveEditedUp else createGroupPosition > 1,
-                )
-                Text(if (isEditing) editingPosition.toString() else createGroupPosition.toString(), style = MaterialTheme.typography.bodyMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 AppInlineActionChip(
                     text = "Down",
                     onClick = {
                         if (isEditing) onMoveEditedDown() else if (createGroupPosition < maxCreatePosition) onCreatePositionChange(createGroupPosition + 1)
                     },
                     enabled = if (isEditing) canMoveEditedDown else createGroupPosition < maxCreatePosition,
+                )
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Text(
+                        if (isEditing) editingPosition.toString() else createGroupPosition.toString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                AppInlineActionChip(
+                    text = "Up",
+                    onClick = {
+                        if (isEditing) onMoveEditedUp() else if (createGroupPosition > 1) onCreatePositionChange(createGroupPosition - 1)
+                    },
+                    enabled = if (isEditing) canMoveEditedUp else createGroupPosition > 1,
                 )
             }
         }
