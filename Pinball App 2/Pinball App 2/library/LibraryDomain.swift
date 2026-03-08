@@ -1108,8 +1108,8 @@ struct PinballGame: Identifiable, Decodable {
             ?? (try container.decodeIfPresent(String.self, forKey: .playfieldImageUrlV2))
         let rawPlayfieldLocal = try container.decodeIfPresent(String.self, forKey: .playfieldLocal)
             ?? assets?.playfieldLocalPractice
-        playfieldLocalOriginal = Self.normalizeCachePath(rawPlayfieldLocal)
-        playfieldLocal = Self.normalizePlayfieldLocalPath(rawPlayfieldLocal)
+        playfieldLocalOriginal = normalizeLibraryCachePath(rawPlayfieldLocal)
+        playfieldLocal = normalizeLibraryPlayfieldLocalPath(rawPlayfieldLocal)
         gameinfoLocal = assets?.gameinfoLocalPractice
         rulesheetLocal = assets?.rulesheetLocalPractice
         rulesheetUrl = try container.decodeIfPresent(String.self, forKey: .rulesheetUrl)
@@ -1147,8 +1147,8 @@ struct PinballGame: Identifiable, Decodable {
         primaryImageLargeUrl = record.primaryImageLargeURL
         playfieldImageUrl = record.playfieldImageURL
         playfieldSourceLabel = record.playfieldSourceLabel
-        playfieldLocalOriginal = Self.normalizeCachePath(record.playfieldLocalPath)
-        playfieldLocal = Self.normalizePlayfieldLocalPath(record.playfieldLocalPath)
+        playfieldLocalOriginal = normalizeLibraryCachePath(record.playfieldLocalPath)
+        playfieldLocal = normalizeLibraryPlayfieldLocalPath(record.playfieldLocalPath)
         gameinfoLocal = record.gameinfoLocalPath
         rulesheetLocal = record.rulesheetLocalPath
         rulesheetUrl = record.rulesheetURL
@@ -1158,28 +1158,6 @@ struct PinballGame: Identifiable, Decodable {
 
     var id: String { libraryEntryID ?? opdbID ?? practiceIdentity ?? slug }
     var practiceKey: String { practiceIdentity ?? opdbGroupID ?? slug }
-
-    private var localAssetKey: String? {
-        if let practiceIdentity {
-            let trimmed = practiceIdentity.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { return trimmed }
-        }
-        if let opdbGroupID {
-            let trimmed = opdbGroupID.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { return trimmed }
-        }
-        return nil
-    }
-
-    var opdbGroupID: String? {
-        guard let opdbID else { return nil }
-        let trimmed = opdbID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.hasPrefix("G") else { return nil }
-        if let dash = trimmed.firstIndex(of: "-") {
-            return String(trimmed[..<dash])
-        }
-        return trimmed.isEmpty ? nil : trimmed
-    }
 
     var metaLine: String {
         var parts: [String] = []
@@ -1238,16 +1216,6 @@ struct PinballGame: Identifiable, Decodable {
         return "📍 \(group):\(pos)"
     }
 
-    var playfieldLocalURL: URL? {
-        guard let playfieldLocal else { return nil }
-        return Self.resolveURL(pathOrURL: playfieldLocal)
-    }
-
-    var playfieldLocalOriginalURL: URL? {
-        guard let playfieldLocalOriginal else { return nil }
-        return Self.resolveURL(pathOrURL: playfieldLocalOriginal)
-    }
-
     var primaryImageSourceURL: URL? {
         guard let primaryImageUrl else { return nil }
         return URL(string: primaryImageUrl)
@@ -1256,127 +1224,6 @@ struct PinballGame: Identifiable, Decodable {
     var primaryImageLargeSourceURL: URL? {
         guard let primaryImageLargeUrl else { return nil }
         return URL(string: primaryImageLargeUrl)
-    }
-
-    var libraryPlayfieldCandidates: [URL] {
-        [
-            derivedPlayfieldURL(width: 700),
-            Self.fallbackPlayfieldURL(width: 700)
-        ].compactMap { $0 }
-    }
-
-    var miniPlayfieldCandidates: [URL] {
-        [
-            derivedPlayfieldURL(width: 700),
-            derivedPlayfieldURL(width: 1400),
-            Self.fallbackPlayfieldURL(width: 700),
-            Self.fallbackPlayfieldURL(width: 1400)
-        ].compactMap { $0 }
-    }
-
-    var gamePlayfieldCandidates: [URL] {
-        [
-            derivedPlayfieldURL(width: 1400),
-            derivedPlayfieldURL(width: 700),
-            Self.fallbackPlayfieldURL(width: 700)
-        ].compactMap { $0 }
-    }
-
-    var fullscreenPlayfieldCandidates: [URL] {
-        [
-            derivedPlayfieldURL(width: 1400),
-            derivedPlayfieldURL(width: 700),
-            Self.fallbackPlayfieldURL(width: 700)
-        ].compactMap { $0 }
-    }
-
-    var actualFullscreenPlayfieldCandidates: [URL] {
-        [
-            derivedPlayfieldURL(width: 1400),
-            derivedPlayfieldURL(width: 700)
-        ].compactMap { $0 }
-    }
-
-    var playfieldImageSourceURL: URL? {
-        guard let playfieldImageUrl else { return nil }
-        return URL(string: playfieldImageUrl)
-    }
-
-    var rulesheetSourceURL: URL? {
-        guard let rulesheetUrl else { return nil }
-        return URL(string: rulesheetUrl)
-    }
-
-    var gameinfoPathCandidates: [String] {
-        var paths: [String] = []
-        if let localAssetKey {
-            paths.append("/pinball/gameinfo/\(localAssetKey)-gameinfo.md")
-        }
-        return Array(NSOrderedSet(array: paths)) as? [String] ?? paths
-    }
-
-    var rulesheetPathCandidates: [String] {
-        var paths: [String] = []
-        if let localAssetKey {
-            paths.append("/pinball/rulesheets/\(localAssetKey)-rulesheet.md")
-        }
-        return Array(NSOrderedSet(array: paths)) as? [String] ?? paths
-    }
-
-    var hasRulesheetResource: Bool {
-        !rulesheetPathCandidates.isEmpty || !rulesheetLinks.isEmpty || rulesheetSourceURL != nil
-    }
-
-    var hasPlayfieldResource: Bool {
-        !actualFullscreenPlayfieldCandidates.isEmpty
-    }
-
-    nonisolated private static func resolveURL(pathOrURL: String) -> URL? {
-        if let direct = URL(string: pathOrURL), direct.scheme != nil {
-            return direct
-        }
-
-        if pathOrURL.hasPrefix("/") {
-            return URL(string: "https://pillyliu.com\(pathOrURL)")
-        }
-
-        return URL(string: "https://pillyliu.com/\(pathOrURL)")
-    }
-
-    nonisolated private static func normalizeCachePath(_ pathOrURL: String?) -> String? {
-        guard let raw = pathOrURL?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
-            return nil
-        }
-        if let url = URL(string: raw), let host = url.host?.lowercased(), host == "pillyliu.com" {
-            return url.path
-        }
-        if raw.hasPrefix("/") { return raw }
-        return "/" + raw
-    }
-
-    nonisolated private static func fallbackPlayfieldURL(width: Int) -> URL? {
-        resolveURL(pathOrURL: "/pinball/images/playfields/fallback-whitewood-playfield_\(width).webp")
-    }
-
-    nonisolated private static func normalizePlayfieldLocalPath(_ pathOrURL: String?) -> String? {
-        guard let raw = pathOrURL?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
-            return nil
-        }
-        if raw.localizedCaseInsensitiveContains("/pinball/images/playfields/") {
-            if raw.lowercased().hasSuffix("_700.webp") { return raw }
-            if raw.lowercased().hasSuffix("_1400.webp") {
-                return raw.replacingOccurrences(of: "_1400.webp", with: "_700.webp", options: [.caseInsensitive])
-            }
-            if let dot = raw.lastIndex(of: ".") {
-                return String(raw[..<dot]) + "_700.webp"
-            }
-        }
-        return raw
-    }
-
-    private func derivedPlayfieldURL(width: Int) -> URL? {
-        guard let localAssetKey else { return nil }
-        return Self.resolveURL(pathOrURL: "/pinball/images/playfields/\(localAssetKey)-playfield_\(width).webp")
     }
 
     static func youtubeID(from raw: String) -> String? {
@@ -1400,48 +1247,5 @@ struct PinballGame: Identifiable, Decodable {
         }
 
         return nil
-    }
-}
-
-actor YouTubeVideoMetadataService {
-    static let shared = YouTubeVideoMetadataService()
-
-    private var cache: [String: PinballGame.YouTubeMetadata] = [:]
-
-    nonisolated private static func decodeYouTubeOEmbedMetadata(from data: Data) throws -> PinballGame.YouTubeMetadata? {
-        struct YouTubeOEmbedResponse: Decodable {
-            let title: String
-            let author_name: String
-        }
-
-        let decoded = try JSONDecoder().decode(YouTubeOEmbedResponse.self, from: data)
-        let title = decoded.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !title.isEmpty else { return nil }
-        let channelName = decoded.author_name.trimmingCharacters(in: .whitespacesAndNewlines)
-        return PinballGame.YouTubeMetadata(
-            title: title,
-            channelName: channelName.isEmpty ? nil : channelName
-        )
-    }
-
-    func metadata(videoID: String, requestURL: URL) async -> PinballGame.YouTubeMetadata? {
-        if let cached = cache[videoID] {
-            return cached
-        }
-
-        do {
-            let (data, response) = try await URLSession.shared.data(from: requestURL)
-            guard let httpResponse = response as? HTTPURLResponse,
-                  (200 ... 299).contains(httpResponse.statusCode) else {
-                return nil
-            }
-            guard let metadata = try Self.decodeYouTubeOEmbedMetadata(from: data) else {
-                return nil
-            }
-            cache[videoID] = metadata
-            return metadata
-        } catch {
-            return nil
-        }
     }
 }

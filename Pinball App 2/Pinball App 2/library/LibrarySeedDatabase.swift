@@ -29,6 +29,33 @@ private struct SeedOverrideRow {
     let rulesheetLocalPath: String?
 }
 
+private struct SeedBuiltInGameRow {
+    let libraryEntryID: String
+    let sourceID: String
+    let sourceName: String
+    let sourceType: PinballLibrarySourceType
+    let practiceIdentity: String
+    let opdbID: String?
+    let area: String?
+    let areaOrder: Int?
+    let groupNumber: Int?
+    let position: Int?
+    let bank: Int?
+    let name: String
+    let variant: String?
+    let manufacturer: String?
+    let year: Int?
+    let slug: String
+    let primaryImageURL: String?
+    let primaryImageLargeURL: String?
+    let playfieldImageURL: String?
+    let playfieldLocalPath: String?
+    let playfieldSourceLabel: String?
+    let gameinfoLocalPath: String?
+    let rulesheetLocalPath: String?
+    let rulesheetURL: String?
+}
+
 nonisolated private func preferredManufacturerMachine(_ lhs: SeedCatalogMachineRow, _ rhs: SeedCatalogMachineRow) -> Bool {
     let lhsHasPrimary = lhs.primaryImageMediumURL != nil || lhs.primaryImageLargeURL != nil
     let rhsHasPrimary = rhs.primaryImageMediumURL != nil || rhs.primaryImageLargeURL != nil
@@ -236,66 +263,22 @@ actor LibrarySeedDatabase {
             guard let opdbMachineID = machine.opdbMachineID else { return nil }
             return (opdbMachineID, machine)
         })
-
-        let sql = """
-        SELECT
-            library_entry_id, source_id, source_name, source_type, practice_identity, opdb_id,
-            area, area_order, group_number, position, bank, name, variant, manufacturer, year, slug,
-            primary_image_url, primary_image_large_url, playfield_image_url, playfield_local_path,
-            playfield_source_label, gameinfo_local_path, rulesheet_local_path, rulesheet_url
-        FROM built_in_games
-        ORDER BY source_name ASC, COALESCE(area_order, 9999) ASC, COALESCE(group_number, 9999) ASC, COALESCE(position, 9999) ASC, name ASC
-        """
-        var statement: OpaquePointer?
-        guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
-            throw SeedDatabaseError.prepareStatement(message: currentSQLiteMessage(from: database))
-        }
-        defer { sqlite3_finalize(statement) }
-
-        var games: [PinballGame] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
-            let libraryEntryID = sqliteString(statement, index: 0) ?? UUID().uuidString
-            let practiceIdentity = sqliteString(statement, index: 4) ?? (sqliteString(statement, index: 5)?.components(separatedBy: "-").first ?? libraryEntryID)
+        return try loadBuiltInGameRows(database).map { row in
             let resolvedMachine = preferredSeedMachineForBuiltInGame(
-                requestedMachineID: sqliteString(statement, index: 5),
-                practiceIdentity: practiceIdentity,
+                requestedMachineID: row.opdbID,
+                practiceIdentity: row.practiceIdentity,
                 machinesByPracticeIdentity: machinesByPracticeIdentity,
                 machinesByOPDBID: machinesByOPDBID
             )
-            let primaryImageURL = sqliteString(statement, index: 16)
-                ?? resolvedMachine?.primaryImageMediumURL
-            let primaryImageLargeURL = sqliteString(statement, index: 17)
-                ?? resolvedMachine?.primaryImageLargeURL
-            let record = ResolvedCatalogRecord(
-                sourceID: sqliteString(statement, index: 1) ?? "",
-                sourceName: sqliteString(statement, index: 2) ?? "",
-                sourceType: parseSeedSourceType(sqliteString(statement, index: 3)),
-                area: sqliteString(statement, index: 6),
-                areaOrder: sqliteInt(statement, index: 7),
-                groupNumber: sqliteInt(statement, index: 8),
-                position: sqliteInt(statement, index: 9),
-                bank: sqliteInt(statement, index: 10),
-                name: sqliteString(statement, index: 11) ?? "",
-                variant: sqliteString(statement, index: 12),
-                manufacturer: sqliteString(statement, index: 13),
-                year: sqliteInt(statement, index: 14),
-                slug: sqliteString(statement, index: 15) ?? "",
-                opdbID: sqliteString(statement, index: 5),
-                practiceIdentity: practiceIdentity,
-                primaryImageURL: primaryImageURL,
-                primaryImageLargeURL: primaryImageLargeURL,
-                playfieldImageURL: sqliteString(statement, index: 18),
-                playfieldLocalPath: sqliteString(statement, index: 19),
-                playfieldSourceLabel: sqliteString(statement, index: 20),
-                gameinfoLocalPath: sqliteString(statement, index: 21),
-                rulesheetLocalPath: sqliteString(statement, index: 22),
-                rulesheetURL: sqliteString(statement, index: 23),
-                rulesheetLinks: rulesheetsByEntry[libraryEntryID] ?? [],
-                videos: videosByEntry[libraryEntryID] ?? []
+            return PinballGame(
+                record: seedBuiltInResolvedRecord(
+                    row: row,
+                    resolvedMachine: resolvedMachine,
+                    rulesheetLinks: rulesheetsByEntry[row.libraryEntryID] ?? [],
+                    videos: videosByEntry[row.libraryEntryID] ?? []
+                )
             )
-            games.append(PinballGame(record: record))
         }
-        return games
     }
 
     private func preferredSeedMachineForBuiltInGame(
@@ -320,7 +303,18 @@ actor LibrarySeedDatabase {
     }
 
     private func loadBuiltInRulesheets(_ database: OpaquePointer) throws -> [String: [PinballGame.ReferenceLink]] {
-        let sql = "SELECT library_entry_id, label, url FROM built_in_rulesheet_links ORDER BY library_entry_id ASC, priority ASC"
+        try loadEntryScopedRulesheetLinks(database, tableName: "built_in_rulesheet_links")
+    }
+
+    private func loadBuiltInVideos(_ database: OpaquePointer) throws -> [String: [PinballGame.Video]] {
+        try loadEntryScopedVideos(database, tableName: "built_in_videos")
+    }
+
+    private func loadEntryScopedRulesheetLinks(
+        _ database: OpaquePointer,
+        tableName: String
+    ) throws -> [String: [PinballGame.ReferenceLink]] {
+        let sql = "SELECT library_entry_id, label, url FROM \(tableName) ORDER BY library_entry_id ASC, priority ASC"
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
             throw SeedDatabaseError.prepareStatement(message: currentSQLiteMessage(from: database))
@@ -337,8 +331,11 @@ actor LibrarySeedDatabase {
         return out.mapValues(dedupeRulesheetLinks)
     }
 
-    private func loadBuiltInVideos(_ database: OpaquePointer) throws -> [String: [PinballGame.Video]] {
-        let sql = "SELECT library_entry_id, kind, label, url FROM built_in_videos ORDER BY library_entry_id ASC, priority ASC"
+    private func loadEntryScopedVideos(
+        _ database: OpaquePointer,
+        tableName: String
+    ) throws -> [String: [PinballGame.Video]] {
+        let sql = "SELECT library_entry_id, kind, label, url FROM \(tableName) ORDER BY library_entry_id ASC, priority ASC"
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
             throw SeedDatabaseError.prepareStatement(message: currentSQLiteMessage(from: database))
@@ -357,6 +354,58 @@ actor LibrarySeedDatabase {
             )
         }
         return out
+    }
+
+    private func loadBuiltInGameRows(_ database: OpaquePointer) throws -> [SeedBuiltInGameRow] {
+        let sql = """
+        SELECT
+            library_entry_id, source_id, source_name, source_type, practice_identity, opdb_id,
+            area, area_order, group_number, position, bank, name, variant, manufacturer, year, slug,
+            primary_image_url, primary_image_large_url, playfield_image_url, playfield_local_path,
+            playfield_source_label, gameinfo_local_path, rulesheet_local_path, rulesheet_url
+        FROM built_in_games
+        ORDER BY source_name ASC, COALESCE(area_order, 9999) ASC, COALESCE(group_number, 9999) ASC, COALESCE(position, 9999) ASC, name ASC
+        """
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
+            throw SeedDatabaseError.prepareStatement(message: currentSQLiteMessage(from: database))
+        }
+        defer { sqlite3_finalize(statement) }
+
+        var rows: [SeedBuiltInGameRow] = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            let libraryEntryID = sqliteString(statement, index: 0) ?? UUID().uuidString
+            let opdbID = sqliteString(statement, index: 5)
+            rows.append(
+                SeedBuiltInGameRow(
+                    libraryEntryID: libraryEntryID,
+                    sourceID: sqliteString(statement, index: 1) ?? "",
+                    sourceName: sqliteString(statement, index: 2) ?? "",
+                    sourceType: parseSeedSourceType(sqliteString(statement, index: 3)),
+                    practiceIdentity: sqliteString(statement, index: 4) ?? (opdbID?.components(separatedBy: "-").first ?? libraryEntryID),
+                    opdbID: opdbID,
+                    area: sqliteString(statement, index: 6),
+                    areaOrder: sqliteInt(statement, index: 7),
+                    groupNumber: sqliteInt(statement, index: 8),
+                    position: sqliteInt(statement, index: 9),
+                    bank: sqliteInt(statement, index: 10),
+                    name: sqliteString(statement, index: 11) ?? "",
+                    variant: sqliteString(statement, index: 12),
+                    manufacturer: sqliteString(statement, index: 13),
+                    year: sqliteInt(statement, index: 14),
+                    slug: sqliteString(statement, index: 15) ?? "",
+                    primaryImageURL: sqliteString(statement, index: 16),
+                    primaryImageLargeURL: sqliteString(statement, index: 17),
+                    playfieldImageURL: sqliteString(statement, index: 18),
+                    playfieldLocalPath: sqliteString(statement, index: 19),
+                    playfieldSourceLabel: sqliteString(statement, index: 20),
+                    gameinfoLocalPath: sqliteString(statement, index: 21),
+                    rulesheetLocalPath: sqliteString(statement, index: 22),
+                    rulesheetURL: sqliteString(statement, index: 23)
+                )
+            )
+        }
+        return rows
     }
 
     private func loadImportedGames(_ database: OpaquePointer, importedSources: [PinballImportedSourceRecord]) throws -> [PinballGame] {
@@ -701,6 +750,41 @@ nonisolated private func seedLegacyCuratedOverride(
         playfieldSourceURL: row.playfieldSourceURL,
         gameinfoLocalPath: row.gameinfoLocalPath,
         rulesheetLocalPath: row.rulesheetLocalPath,
+        rulesheetLinks: rulesheetLinks,
+        videos: videos
+    )
+}
+
+nonisolated private func seedBuiltInResolvedRecord(
+    row: SeedBuiltInGameRow,
+    resolvedMachine: SeedCatalogMachineRow?,
+    rulesheetLinks: [PinballGame.ReferenceLink],
+    videos: [PinballGame.Video]
+) -> ResolvedCatalogRecord {
+    ResolvedCatalogRecord(
+        sourceID: row.sourceID,
+        sourceName: row.sourceName,
+        sourceType: row.sourceType,
+        area: row.area,
+        areaOrder: row.areaOrder,
+        groupNumber: row.groupNumber,
+        position: row.position,
+        bank: row.bank,
+        name: row.name,
+        variant: row.variant,
+        manufacturer: row.manufacturer,
+        year: row.year,
+        slug: row.slug,
+        opdbID: row.opdbID,
+        practiceIdentity: row.practiceIdentity,
+        primaryImageURL: row.primaryImageURL ?? resolvedMachine?.primaryImageMediumURL,
+        primaryImageLargeURL: row.primaryImageLargeURL ?? resolvedMachine?.primaryImageLargeURL,
+        playfieldImageURL: row.playfieldImageURL,
+        playfieldLocalPath: row.playfieldLocalPath,
+        playfieldSourceLabel: row.playfieldSourceLabel,
+        gameinfoLocalPath: row.gameinfoLocalPath,
+        rulesheetLocalPath: row.rulesheetLocalPath,
+        rulesheetURL: row.rulesheetURL,
         rulesheetLinks: rulesheetLinks,
         videos: videos
     )

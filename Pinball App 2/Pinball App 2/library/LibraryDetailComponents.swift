@@ -253,15 +253,10 @@ struct LibraryDetailSourcesCard: View {
 
             if game.hasPlayfieldResource {
                 libraryResourceRow("Playfield") {
-                    if let playfieldSourceURL = game.playfieldImageSourceURL {
-                        Link(libraryPlayfieldButtonTitle(for: game), destination: playfieldSourceURL)
-                            .buttonStyle(.glass)
-                    } else {
-                        NavigationLink(libraryPlayfieldButtonTitle(for: game)) {
-                            HostedImageView(imageCandidates: game.actualFullscreenPlayfieldCandidates)
-                        }
-                        .buttonStyle(.glass)
+                    NavigationLink(libraryPlayfieldButtonTitle(for: game)) {
+                        HostedImageView(imageCandidates: game.actualFullscreenPlayfieldCandidates)
                     }
+                    .buttonStyle(.glass)
                 }
             }
 
@@ -420,7 +415,10 @@ private struct LibraryYouTubeThumbnailView: View {
 }
 
 private func libraryPlayfieldButtonTitle(for game: PinballGame) -> String {
-    game.playfieldSourceLabel == "Playfield (OPDB)" ? "OPDB" : "Local"
+    guard let firstCandidate = game.actualFullscreenPlayfieldCandidates.first else {
+        return "View"
+    }
+    return firstCandidate.path.hasPrefix("/pinball/images/playfields/") ? "Local" : "OPDB"
 }
 
 private func libraryShortRulesheetTitle(for link: PinballGame.ReferenceLink) -> String {

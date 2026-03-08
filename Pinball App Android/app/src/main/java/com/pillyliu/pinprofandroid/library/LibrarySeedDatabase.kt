@@ -144,6 +144,72 @@ internal object LibrarySeedDatabase {
         val machineById = loadMachinesById(database)
         val machinesByPracticeIdentity = machineById.values.groupBy { it.practiceIdentity }
         val machinesByOpdbId = machineById
+        return loadBuiltInGameRows(database).map { row ->
+            val resolvedMachine = preferredSeedMachineForBuiltInGame(
+                requestedMachineId = row.opdbId,
+                practiceIdentity = row.practiceIdentity,
+                machinesByPracticeIdentity = machinesByPracticeIdentity,
+                machinesByOpdbId = machinesByOpdbId,
+            )
+            row.toPinballGame(
+                resolvedMachine = resolvedMachine,
+                rulesheetLinks = rulesheetsByEntry[row.libraryEntryId].orEmpty(),
+                videos = videosByEntry[row.libraryEntryId].orEmpty(),
+            )
+        }
+    }
+
+    private fun loadBuiltInRulesheets(database: SQLiteDatabase): Map<String, List<ReferenceLink>> {
+        return loadEntryScopedRulesheetLinks(database, "built_in_rulesheet_links")
+    }
+
+    private fun loadBuiltInVideos(database: SQLiteDatabase): Map<String, List<Video>> {
+        return loadEntryScopedVideos(database, "built_in_videos")
+    }
+
+    private fun loadEntryScopedRulesheetLinks(
+        database: SQLiteDatabase,
+        tableName: String,
+    ): Map<String, List<ReferenceLink>> {
+        database.rawQuery(
+            "SELECT library_entry_id, label, url FROM $tableName ORDER BY library_entry_id ASC, priority ASC",
+            emptyArray(),
+        ).use { cursor ->
+            val out = linkedMapOf<String, MutableList<ReferenceLink>>()
+            while (cursor.moveToNext()) {
+                val entryId = cursor.getString(0).orEmpty()
+                val label = cursor.getString(1).orEmpty()
+                val url = cursor.getNullableString(2) ?: continue
+                out.getOrPut(entryId) { mutableListOf() }.add(ReferenceLink(label = label, url = url))
+            }
+            return out.mapValues { (_, links) -> dedupeRulesheetLinks(links) }
+        }
+    }
+
+    private fun loadEntryScopedVideos(
+        database: SQLiteDatabase,
+        tableName: String,
+    ): Map<String, List<Video>> {
+        database.rawQuery(
+            "SELECT library_entry_id, kind, label, url FROM $tableName ORDER BY library_entry_id ASC, priority ASC",
+            emptyArray(),
+        ).use { cursor ->
+            val out = linkedMapOf<String, MutableList<Video>>()
+            while (cursor.moveToNext()) {
+                val entryId = cursor.getString(0).orEmpty()
+                out.getOrPut(entryId) { mutableListOf() }.add(
+                    Video(
+                        kind = cursor.getNullableString(1),
+                        label = cursor.getNullableString(2),
+                        url = cursor.getNullableString(3),
+                    ),
+                )
+            }
+            return out
+        }
+    }
+
+    private fun loadBuiltInGameRows(database: SQLiteDatabase): List<SeedBuiltInGameRow> {
         database.rawQuery(
             """
             SELECT
@@ -159,85 +225,39 @@ internal object LibrarySeedDatabase {
             return buildList {
                 while (cursor.moveToNext()) {
                     val libraryEntryId = cursor.getString(0).orEmpty()
-                    val practiceIdentity = cursor.getNullableString(4)
-                        ?: cursor.getNullableString(5)?.substringBefore('-')
-                        ?: libraryEntryId
-                    val resolvedMachine = preferredSeedMachineForBuiltInGame(
-                        requestedMachineId = cursor.getNullableString(5),
-                        practiceIdentity = practiceIdentity,
-                        machinesByPracticeIdentity = machinesByPracticeIdentity,
-                        machinesByOpdbId = machinesByOpdbId,
-                    )
+                    val opdbId = cursor.getNullableString(5)
                     add(
-                        PinballGame(
+                        SeedBuiltInGameRow(
                             libraryEntryId = libraryEntryId,
-                            practiceIdentity = practiceIdentity,
-                            opdbId = cursor.getNullableString(5),
-                            opdbGroupId = practiceIdentity,
-                            variant = cursor.getNullableString(12),
                             sourceId = cursor.getString(1).orEmpty(),
                             sourceName = cursor.getString(2).orEmpty(),
                             sourceType = LibrarySourceType.fromRaw(cursor.getString(3)) ?: LibrarySourceType.VENUE,
+                            practiceIdentity = cursor.getNullableString(4)
+                                ?: opdbId?.substringBefore('-')
+                                ?: libraryEntryId,
+                            opdbId = opdbId,
                             area = cursor.getNullableString(6),
                             areaOrder = cursor.getIntOrNull(7),
                             group = cursor.getIntOrNull(8),
                             position = cursor.getIntOrNull(9),
                             bank = cursor.getIntOrNull(10),
                             name = cursor.getString(11).orEmpty(),
+                            variant = cursor.getNullableString(12),
                             manufacturer = cursor.getNullableString(13),
                             year = cursor.getIntOrNull(14),
                             slug = cursor.getString(15).orEmpty(),
-                            primaryImageUrl = cursor.getNullableString(16) ?: resolvedMachine?.primaryImageMediumUrl,
-                            primaryImageLargeUrl = cursor.getNullableString(17) ?: resolvedMachine?.primaryImageLargeUrl,
+                            primaryImageUrl = cursor.getNullableString(16),
+                            primaryImageLargeUrl = cursor.getNullableString(17),
                             playfieldImageUrl = cursor.getNullableString(18),
-                            playfieldLocalOriginal = normalizeCachePath(cursor.getNullableString(19)),
-                            playfieldLocal = normalizePlayfieldLocalPath(cursor.getNullableString(19)),
+                            playfieldLocalPath = cursor.getNullableString(19),
                             playfieldSourceLabel = cursor.getNullableString(20),
-                            gameinfoLocal = cursor.getNullableString(21),
-                            rulesheetLocal = cursor.getNullableString(22),
+                            gameinfoLocalPath = cursor.getNullableString(21),
+                            rulesheetLocalPath = cursor.getNullableString(22),
                             rulesheetUrl = cursor.getNullableString(23),
-                            rulesheetLinks = rulesheetsByEntry[libraryEntryId].orEmpty(),
-                            videos = videosByEntry[libraryEntryId].orEmpty(),
                         ),
                     )
                 }
             }
-        }
-    }
-
-    private fun loadBuiltInRulesheets(database: SQLiteDatabase): Map<String, List<ReferenceLink>> {
-        database.rawQuery(
-            "SELECT library_entry_id, label, url FROM built_in_rulesheet_links ORDER BY library_entry_id ASC, priority ASC",
-            emptyArray(),
-        ).use { cursor ->
-            val out = linkedMapOf<String, MutableList<ReferenceLink>>()
-            while (cursor.moveToNext()) {
-                val entryId = cursor.getString(0).orEmpty()
-                val label = cursor.getString(1).orEmpty()
-                val url = cursor.getNullableString(2) ?: continue
-                out.getOrPut(entryId) { mutableListOf() }.add(ReferenceLink(label = label, url = url))
-            }
-            return out.mapValues { (_, links) -> dedupeRulesheetLinks(links) }
-        }
-    }
-
-    private fun loadBuiltInVideos(database: SQLiteDatabase): Map<String, List<Video>> {
-        database.rawQuery(
-            "SELECT library_entry_id, kind, label, url FROM built_in_videos ORDER BY library_entry_id ASC, priority ASC",
-            emptyArray(),
-        ).use { cursor ->
-            val out = linkedMapOf<String, MutableList<Video>>()
-            while (cursor.moveToNext()) {
-                val entryId = cursor.getString(0).orEmpty()
-                out.getOrPut(entryId) { mutableListOf() }.add(
-                    Video(
-                        kind = cursor.getNullableString(1),
-                        label = cursor.getNullableString(2),
-                        url = cursor.getNullableString(3),
-                    ),
-                )
-            }
-            return out
         }
     }
 
@@ -546,8 +566,8 @@ internal object LibrarySeedDatabase {
                     primaryImageUrl = normalizedOptionalString(template?.primaryImageUrl),
                     primaryImageLargeUrl = normalizedOptionalString(template?.primaryImageLargeUrl),
                     playfieldImageUrl = normalizedOptionalString(template?.playfieldImageUrl),
-                    playfieldLocalOriginal = normalizeCachePath(template?.playfieldLocalOriginal ?: template?.playfieldLocal),
-                    playfieldLocal = normalizePlayfieldLocalPath(template?.playfieldLocalOriginal ?: template?.playfieldLocal),
+                    playfieldLocalOriginal = normalizeLibraryCachePath(template?.playfieldLocalOriginal ?: template?.playfieldLocal),
+                    playfieldLocal = normalizeLibraryPlayfieldLocalPath(template?.playfieldLocalOriginal ?: template?.playfieldLocal),
                     playfieldSourceLabel = template?.playfieldSourceLabel,
                     gameinfoLocal = normalizedOptionalString(template?.gameinfoLocal),
                     rulesheetLocal = normalizedOptionalString(template?.rulesheetLocal),
@@ -745,6 +765,33 @@ private data class SeedOverride(
     val rulesheetLocalPath: String?,
 )
 
+private data class SeedBuiltInGameRow(
+    val libraryEntryId: String,
+    val sourceId: String,
+    val sourceName: String,
+    val sourceType: LibrarySourceType,
+    val practiceIdentity: String,
+    val opdbId: String?,
+    val area: String?,
+    val areaOrder: Int?,
+    val group: Int?,
+    val position: Int?,
+    val bank: Int?,
+    val name: String,
+    val variant: String?,
+    val manufacturer: String?,
+    val year: Int?,
+    val slug: String,
+    val primaryImageUrl: String?,
+    val primaryImageLargeUrl: String?,
+    val playfieldImageUrl: String?,
+    val playfieldLocalPath: String?,
+    val playfieldSourceLabel: String?,
+    val gameinfoLocalPath: String?,
+    val rulesheetLocalPath: String?,
+    val rulesheetUrl: String?,
+)
+
 private fun seedMachineHasPrimaryImage(machine: SeedMachine): Boolean =
     machine.primaryImageMediumUrl != null || machine.primaryImageLargeUrl != null
 
@@ -813,6 +860,42 @@ private fun SeedOverride.toLegacyCuratedOverride(
         playfieldSourceUrl = playfieldSourceUrl,
         gameinfoLocalPath = gameinfoLocalPath,
         rulesheetLocalPath = rulesheetLocalPath,
+        rulesheetLinks = rulesheetLinks,
+        videos = videos,
+    )
+
+private fun SeedBuiltInGameRow.toPinballGame(
+    resolvedMachine: SeedMachine?,
+    rulesheetLinks: List<ReferenceLink>,
+    videos: List<Video>,
+): PinballGame =
+    PinballGame(
+        libraryEntryId = libraryEntryId,
+        practiceIdentity = practiceIdentity,
+        opdbId = opdbId,
+        opdbGroupId = practiceIdentity,
+        variant = variant,
+        sourceId = sourceId,
+        sourceName = sourceName,
+        sourceType = sourceType,
+        area = area,
+        areaOrder = areaOrder,
+        group = group,
+        position = position,
+        bank = bank,
+        name = name,
+        manufacturer = manufacturer,
+        year = year,
+        slug = slug,
+        primaryImageUrl = primaryImageUrl ?: resolvedMachine?.primaryImageMediumUrl,
+        primaryImageLargeUrl = primaryImageLargeUrl ?: resolvedMachine?.primaryImageLargeUrl,
+        playfieldImageUrl = playfieldImageUrl,
+        playfieldLocalOriginal = normalizeLibraryCachePath(playfieldLocalPath),
+        playfieldLocal = normalizeLibraryPlayfieldLocalPath(playfieldLocalPath),
+        playfieldSourceLabel = playfieldSourceLabel,
+        gameinfoLocal = gameinfoLocalPath,
+        rulesheetLocal = rulesheetLocalPath,
+        rulesheetUrl = rulesheetUrl,
         rulesheetLinks = rulesheetLinks,
         videos = videos,
     )

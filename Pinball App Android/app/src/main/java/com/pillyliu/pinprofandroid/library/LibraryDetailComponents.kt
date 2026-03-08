@@ -135,7 +135,7 @@ internal fun LibraryDetailSummaryCard(
             ResourceRow(label = "Playfield:") {
                 val playfieldCandidates = game.actualFullscreenPlayfieldCandidates
                 if (playfieldCandidates.isNotEmpty()) {
-                    ResourceChipButton(label = if (game.playfieldSourceLabel == "Playfield (OPDB)") "OPDB" else "Local") {
+                    ResourceChipButton(label = game.playfieldButtonLabel) {
                         playfieldCandidates.firstOrNull()?.let(onOpenPlayfield)
                     }
                 } else {
@@ -395,15 +395,8 @@ internal fun LibraryDetailSourcesSection(
         }
         ResourceRow(label = "Playfield:") {
             if (game.hasPlayfieldResource) {
-                if (game.playfieldImageUrl != null) {
-                    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
-                    ResourceChipButton(label = if (game.playfieldSourceLabel == "Playfield (OPDB)") "OPDB" else "Local") {
-                        game.resolve(game.playfieldImageUrl)?.let(uriHandler::openUri)
-                    }
-                } else {
-                    ResourceChipButton(label = if (game.playfieldSourceLabel == "Playfield (OPDB)") "OPDB" else "Local") {
-                        game.actualFullscreenPlayfieldCandidates.firstOrNull()?.let(onOpenPlayfield)
-                    }
+                ResourceChipButton(label = game.playfieldButtonLabel) {
+                    game.actualFullscreenPlayfieldCandidates.firstOrNull()?.let(onOpenPlayfield)
                 }
             } else {
                 UnavailableResourceChip()

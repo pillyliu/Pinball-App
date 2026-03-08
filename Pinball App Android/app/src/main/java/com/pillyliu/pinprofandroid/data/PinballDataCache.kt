@@ -68,6 +68,16 @@ object PinballDataCache {
         appContext = context.applicationContext
     }
 
+    fun loadBundledStarterText(path: String): String? {
+        val context = appContext ?: return null
+        val normalizedPath = if (path.startsWith("/")) path else "/$path"
+        if (!normalizedPath.startsWith("/pinball/")) return null
+        val assetPath = "starter-pack$normalizedPath"
+        return runCatching {
+            context.assets.open(assetPath).bufferedReader().use { it.readText() }
+        }.getOrNull()
+    }
+
     suspend fun loadText(url: String, allowMissing: Boolean = false): CachedTextResult = withContext(Dispatchers.IO) {
         val path = normalizePath(url)
         ensureLoaded()
