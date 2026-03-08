@@ -770,17 +770,13 @@ struct GameRoomEditMachinesView: View {
                     .keyboardType(.numberPad)
             }
 
-            HStack(spacing: 10) {
-                Button("Save") {
-                    store.upsertArea(id: selectedAreaID, name: newAreaName, areaOrder: max(1, newAreaOrder))
-                    selectedAreaID = nil
-                    newAreaName = ""
-                    newAreaOrder = 1
-                }
-                .buttonStyle(AppPrimaryActionButtonStyle())
-
-                Spacer()
+            Button("Save") {
+                store.upsertArea(id: selectedAreaID, name: newAreaName, areaOrder: max(1, newAreaOrder))
+                selectedAreaID = nil
+                newAreaName = ""
+                newAreaOrder = 1
             }
+            .buttonStyle(AppPrimaryActionButtonStyle())
 
             if store.state.areas.isEmpty {
                 AppPanelEmptyCard(text: "No areas yet. Add an area like Upstairs or Basement to keep area order consistent across machines.")
