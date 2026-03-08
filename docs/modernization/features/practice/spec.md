@@ -85,7 +85,7 @@ Android:
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticePersistenceIntegration.kt` now isolates Android persisted-state load/save, migration, and last-viewed preference handling behind a dedicated store dependency seam.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeDerivedQueryIntegration.kt` now isolates Android score summaries, recommendations, mechanics projections, and group/game lookup helpers behind a dedicated store dependency seam.
 - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibrarySourceSelection.kt` now centralizes the Android "All games" source sentinel plus preferred-source and visible-game selection rules so top bar, home, and store loading do not drift.
-- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceModels.kt`, `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceCodec.kt`, and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceLegacyMigration.kt` now split Android canonical persistence into models/defaults, primary codec/runtime shaping, and legacy migration heuristics.
+- `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceModels.kt`, `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceCodec.kt`, `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceParsing.kt`, `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceRuntime.kt`, `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceIds.kt`, and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeCanonicalPersistenceLegacyMigration.kt` now split Android canonical persistence into models/defaults, JSON serialization, JSON parsing, runtime projection, ID normalization, and legacy migration heuristics.
 - Persistence and codec work has already been separated more clearly than on iOS.
 - Route model is more explicit via `PracticeRoute`, and `PracticeScreenState` is now grouped more intentionally, but the store still remains broader than the screen-state seam.
 
@@ -394,7 +394,13 @@ Android current wiring:
 - `PracticeCanonicalPersistenceModels.kt`
   - owns canonical persistence models, schema version, and empty/default state construction
 - `PracticeCanonicalPersistenceCodec.kt`
-  - owns canonical JSON serialization, canonical parsing, runtime-state shaping, and canonical save shaping
+  - owns canonical JSON serialization for persisted Practice state
+- `PracticeCanonicalPersistenceParsing.kt`
+  - owns canonical JSON parsing and timestamp normalization for persisted Practice state
+- `PracticeCanonicalPersistenceRuntime.kt`
+  - owns canonical-to-runtime projection and runtime-to-canonical save shaping
+- `PracticeCanonicalPersistenceIds.kt`
+  - owns stable UUID and legacy ID normalization helpers shared by parsing and migration
 - `PracticeCanonicalPersistenceLegacyMigration.kt`
   - owns legacy-practice-state to canonical conversion heuristics and stable-ID migration logic
 
