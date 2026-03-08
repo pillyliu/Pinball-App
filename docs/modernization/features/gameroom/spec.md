@@ -29,3 +29,13 @@ GameRoom is the personal machine-ownership feature for:
 - split oversized screens and helper clusters
 - keep product behavior stable unless explicitly changed here
 - harden parity expectations against future drift
+
+## Structural baseline
+
+- iOS GameRoom is still a large feature surface, but the home/collection surface now lives outside the main screen file.
+- Android GameRoom is still a large feature surface, but reusable cards, pills, dropdowns, snapshot helpers, and shared formatting helpers now live outside the main screen file.
+- Next cleanup should continue by responsibility cluster:
+  - home shell / collection
+  - machine detail / summary
+  - edit flows
+  - event/media flows
