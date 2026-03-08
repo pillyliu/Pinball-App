@@ -244,3 +244,18 @@ struct AppCompactStackedMenuLabel: View {
         .appControlStyle()
     }
 }
+
+struct AppSelectableMenuRow: View {
+    let text: String
+    let isSelected: Bool
+
+    var body: some View {
+        Group {
+            if isSelected {
+                Label(text, systemImage: "checkmark")
+            } else {
+                Text(text)
+            }
+        }
+    }
+}

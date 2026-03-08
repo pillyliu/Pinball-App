@@ -30,12 +30,16 @@ struct PracticeGameToolbarMenu: View {
     var body: some View {
         Menu {
             if availableLibrarySources.count > 1 {
-                Button((store.defaultPracticeSourceID == nil ? "✓ " : "") + "All games") {
+                Button {
                     applyLibrarySelection(nil)
+                } label: {
+                    AppSelectableMenuRow(text: "All games", isSelected: store.defaultPracticeSourceID == nil)
                 }
                 ForEach(availableLibrarySources) { source in
-                    Button((source.id == store.defaultPracticeSourceID ? "✓ " : "") + source.name) {
+                    Button {
                         applyLibrarySelection(source.id)
+                    } label: {
+                        AppSelectableMenuRow(text: source.name, isSelected: source.id == store.defaultPracticeSourceID)
                     }
                 }
                 Divider()

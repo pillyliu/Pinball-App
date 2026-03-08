@@ -159,12 +159,16 @@ struct PracticeInsightsSectionView: View {
     private var insightsGameDropdown: some View {
         Menu {
             if librarySources.count > 1 {
-                Button((selectedLibrarySourceID == nil ? "✓ " : "") + "All games") {
+                Button {
                     onSelectLibrarySourceID(nil)
+                } label: {
+                    AppSelectableMenuRow(text: "All games", isSelected: selectedLibrarySourceID == nil)
                 }
                 ForEach(librarySources) { source in
-                    Button((source.id == selectedLibrarySourceID ? "✓ " : "") + source.name) {
+                    Button {
                         onSelectLibrarySourceID(source.id)
+                    } label: {
+                        AppSelectableMenuRow(text: source.name, isSelected: source.id == selectedLibrarySourceID)
                     }
                 }
                 Divider()

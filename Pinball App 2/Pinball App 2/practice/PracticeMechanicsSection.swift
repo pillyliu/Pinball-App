@@ -28,21 +28,16 @@ struct PracticeMechanicsSectionView: View {
                     Button {
                         selectedMechanicSkill = ""
                     } label: {
-                        if selectedMechanicSkill.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            Label("Select skill", systemImage: "checkmark")
-                        } else {
-                            Text("Select skill")
-                        }
+                        AppSelectableMenuRow(
+                            text: "Select skill",
+                            isSelected: selectedMechanicSkill.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        )
                     }
                     ForEach(trackedSkills, id: \.self) { skill in
                         Button {
                             selectedMechanicSkill = skill
                         } label: {
-                            if selectedMechanicSkill == skill {
-                                Label(skill, systemImage: "checkmark")
-                            } else {
-                                Text(skill)
-                            }
+                            AppSelectableMenuRow(text: skill, isSelected: selectedMechanicSkill == skill)
                         }
                     }
                 }

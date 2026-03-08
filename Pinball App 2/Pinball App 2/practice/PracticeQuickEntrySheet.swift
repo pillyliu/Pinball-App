@@ -176,11 +176,7 @@ struct PracticeQuickEntrySheet: View {
                                         Button {
                                             selectedActivity = activity
                                         } label: {
-                                            if selectedActivity == activity {
-                                                Label(activity.label, systemImage: "checkmark")
-                                            } else {
-                                                Text(activity.label)
-                                            }
+                                            AppSelectableMenuRow(text: activity.label, isSelected: selectedActivity == activity)
                                         }
                                     }
                                 }
@@ -229,11 +225,7 @@ struct PracticeQuickEntrySheet: View {
                                             Button {
                                                 selectedVideoSource = source
                                             } label: {
-                                                if selectedVideoSource == source {
-                                                    Label(source, systemImage: "checkmark")
-                                                } else {
-                                                    Text(source)
-                                                }
+                                                AppSelectableMenuRow(text: source, isSelected: selectedVideoSource == source)
                                             }
                                         }
                                     }
@@ -272,14 +264,10 @@ struct PracticeQuickEntrySheet: View {
                                         Button {
                                             practiceCategory = category
                                         } label: {
-                                            if practiceCategory == category {
-                                                Label(
-                                                    category == .general ? "General" : category.label,
-                                                    systemImage: "checkmark"
-                                                )
-                                            } else {
-                                                Text(category == .general ? "General" : category.label)
-                                            }
+                                            AppSelectableMenuRow(
+                                                text: category == .general ? "General" : category.label,
+                                                isSelected: practiceCategory == category
+                                            )
                                         }
                                     }
                                 }
@@ -298,11 +286,7 @@ struct PracticeQuickEntrySheet: View {
                                         Button {
                                             mechanicsSkill = skill
                                         } label: {
-                                            if mechanicsSkill == skill {
-                                                Label(skill, systemImage: "checkmark")
-                                            } else {
-                                                Text(skill)
-                                            }
+                                            AppSelectableMenuRow(text: skill, isSelected: mechanicsSkill == skill)
                                         }
                                     }
                                 }
@@ -429,21 +413,16 @@ struct PracticeQuickEntrySheet: View {
                 Button {
                     selectedLibraryFilterID = quickEntryAllGamesLibraryID
                 } label: {
-                    if selectedLibraryFilterID == quickEntryAllGamesLibraryID || selectedLibraryFilterID.isEmpty {
-                        Label("All games", systemImage: "checkmark")
-                    } else {
-                        Text("All games")
-                    }
+                    AppSelectableMenuRow(
+                        text: "All games",
+                        isSelected: selectedLibraryFilterID == quickEntryAllGamesLibraryID || selectedLibraryFilterID.isEmpty
+                    )
                 }
                 ForEach(availableLibrarySources) { source in
                     Button {
                         selectedLibraryFilterID = source.id
                     } label: {
-                        if selectedLibraryFilterID == source.id {
-                            Label(source.name, systemImage: "checkmark")
-                        } else {
-                            Text(source.name)
-                        }
+                        AppSelectableMenuRow(text: source.name, isSelected: selectedLibraryFilterID == source.id)
                     }
                 }
             }
@@ -462,11 +441,7 @@ struct PracticeQuickEntrySheet: View {
                 Button {
                     selectedGameID = ""
                 } label: {
-                    if selectedGameID.isEmpty {
-                        Label("None", systemImage: "checkmark")
-                    } else {
-                        Text("None")
-                    }
+                    AppSelectableMenuRow(text: "None", isSelected: selectedGameID.isEmpty)
                 }
             }
             if filteredGamesForPicker.isEmpty {
@@ -476,11 +451,7 @@ struct PracticeQuickEntrySheet: View {
                     Button {
                         selectedGameID = game.canonicalPracticeKey
                     } label: {
-                        if selectedGameID == game.canonicalPracticeKey {
-                            Label(game.name, systemImage: "checkmark")
-                        } else {
-                            Text(game.name)
-                        }
+                        AppSelectableMenuRow(text: game.name, isSelected: selectedGameID == game.canonicalPracticeKey)
                     }
                 }
             }

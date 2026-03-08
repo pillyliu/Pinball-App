@@ -37,12 +37,16 @@ struct PracticeHomeSection: View {
 
                         VStack(alignment: .leading, spacing: 8) {
                             Menu {
-                                Button((selectedLibrarySourceID == nil ? "✓ " : "") + "All games") {
+                                Button {
                                     onSelectLibrarySource(practiceHomeAllGamesSourceMenuID)
+                                } label: {
+                                    AppSelectableMenuRow(text: "All games", isSelected: selectedLibrarySourceID == nil)
                                 }
                                 ForEach(librarySources) { source in
-                                    Button((source.id == selectedLibrarySourceID ? "✓ " : "") + source.name) {
+                                    Button {
                                         onSelectLibrarySource(source.id)
+                                    } label: {
+                                        AppSelectableMenuRow(text: source.name, isSelected: source.id == selectedLibrarySourceID)
                                     }
                                 }
                             } label: {

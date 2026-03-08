@@ -9,7 +9,7 @@ extension LibraryScreen {
                         Button {
                             viewModel.selectSource(source.id)
                         } label: {
-                            selectableMenuLabel(source.name, isSelected: viewModel.selectedSource?.id == source.id)
+                            AppSelectableMenuRow(text: source.name, isSelected: viewModel.selectedSource?.id == source.id)
                         }
                     }
                 }
@@ -23,7 +23,7 @@ extension LibraryScreen {
                 Button {
                     viewModel.selectSortOption(option)
                 } label: {
-                    selectableMenuLabel(viewModel.menuLabel(for: option), isSelected: viewModel.sortOption == option)
+                    AppSelectableMenuRow(text: viewModel.menuLabel(for: option), isSelected: viewModel.sortOption == option)
                 }
             }
         }
@@ -36,14 +36,14 @@ extension LibraryScreen {
                     Button {
                         viewModel.selectedBank = nil
                     } label: {
-                        selectableMenuLabel("All banks", isSelected: viewModel.selectedBank == nil)
+                        AppSelectableMenuRow(text: "All banks", isSelected: viewModel.selectedBank == nil)
                     }
 
                     ForEach(viewModel.bankOptions, id: \.self) { bank in
                         Button {
                             viewModel.selectedBank = bank
                         } label: {
-                            selectableMenuLabel("Bank \(bank)", isSelected: viewModel.selectedBank == bank)
+                            AppSelectableMenuRow(text: "Bank \(bank)", isSelected: viewModel.selectedBank == bank)
                         }
                     }
                 }
@@ -56,15 +56,6 @@ extension LibraryScreen {
             sourceMenuSection
             sortMenuSection
             bankMenuSection
-        }
-    }
-
-    @ViewBuilder
-    func selectableMenuLabel(_ title: String, isSelected: Bool) -> some View {
-        if isSelected {
-            Label(title, systemImage: "checkmark")
-        } else {
-            Text(title)
         }
     }
 

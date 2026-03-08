@@ -259,11 +259,7 @@ struct GameTaskEntrySheet: View {
                                         Button {
                                             selectedVideoSource = source
                                         } label: {
-                                            if selectedVideoSource == source {
-                                                Label(source, systemImage: "checkmark")
-                                            } else {
-                                                Text(source)
-                                            }
+                                            AppSelectableMenuRow(text: source, isSelected: selectedVideoSource == source)
                                         }
                                 }
                                 } label: {
@@ -300,14 +296,10 @@ struct GameTaskEntrySheet: View {
                                         Button {
                                             practiceCategory = category
                                         } label: {
-                                            if practiceCategory == category {
-                                                Label(
-                                                    category == .general ? "General" : category.label,
-                                                    systemImage: "checkmark"
-                                                )
-                                            } else {
-                                                Text(category == .general ? "General" : category.label)
-                                            }
+                                            AppSelectableMenuRow(
+                                                text: category == .general ? "General" : category.label,
+                                                isSelected: practiceCategory == category
+                                            )
                                         }
                                     }
                                 } label: {
