@@ -60,3 +60,29 @@ struct AppSectionTitle: View {
             .foregroundStyle(.primary)
     }
 }
+
+struct AppInlineStatusMessage: View {
+    let text: String
+    var isError: Bool = false
+
+    var body: some View {
+        Text(text)
+            .font(.footnote)
+            .foregroundStyle(isError ? .red : .secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct AppTablePlaceholder: View {
+    let text: String
+    var minHeight: CGFloat = 64
+
+    var body: some View {
+        Text(text)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: minHeight)
+    }
+}

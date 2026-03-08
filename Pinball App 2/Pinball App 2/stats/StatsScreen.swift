@@ -111,10 +111,7 @@ struct StatsScreen: View {
                     }
 
                     if let errorMessage = viewModel.errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        AppInlineStatusMessage(text: errorMessage, isError: true)
                     }
                     updatedStatusRow
 
@@ -148,10 +145,7 @@ struct StatsScreen: View {
                     }
 
                     if let errorMessage = viewModel.errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        AppInlineStatusMessage(text: errorMessage, isError: true)
                     }
                     updatedStatusRow
 
@@ -328,11 +322,10 @@ struct StatsScreen: View {
                     tableHeader
                     AppTableHeaderDivider()
 
-                    if viewModel.filteredRows.isEmpty {
-                        Text("No rows - check filters or data source.")
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 64)
+                    if viewModel.isRefreshing && viewModel.rows.isEmpty {
+                        AppTablePlaceholder(text: "Loading data…")
+                    } else if viewModel.filteredRows.isEmpty {
+                        AppTablePlaceholder(text: "No rows - check filters or data source.")
                     } else {
                         let bodyRows = ScrollView(.vertical) {
                             LazyVStack(spacing: 0) {
@@ -755,6 +748,8 @@ private final class StatsViewModel: ObservableObject {
     func loadIfNeeded() async {
         guard !didLoad else { return }
         didLoad = true
+        isRefreshing = true
+        defer { isRefreshing = false }
         await loadCSV(resetSelection: true)
     }
 

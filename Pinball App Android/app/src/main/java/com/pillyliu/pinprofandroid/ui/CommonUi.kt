@@ -205,6 +205,20 @@ fun EmptyLabel(text: String) {
 }
 
 @Composable
+fun AppInlineStatusMessage(
+    text: String,
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+) {
+    Text(
+        text = text,
+        modifier = modifier.fillMaxWidth(),
+        color = if (isError) MaterialTheme.colorScheme.error else PinballThemeTokens.colors.shellUnselectedContent,
+        style = PinballThemeTokens.typography.emptyState,
+    )
+}
+
+@Composable
 fun InsetFilterHeader(
     summaryText: String,
     onFilterClick: () -> Unit,

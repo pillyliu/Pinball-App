@@ -48,6 +48,7 @@ import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.data.parseCsv
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
+import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.EmptyLabel
@@ -269,7 +270,7 @@ fun StatsScreen(
                 onBack = onBack,
             )
 
-            error?.let { Text(text = it, color = Color.Red) }
+            error?.let { AppInlineStatusMessage(text = it, isError = true) }
             dataUpdatedAtMs?.let { updatedAt ->
                 AppRefreshStatusRow(
                     label = formatUpdatedAt(updatedAt),

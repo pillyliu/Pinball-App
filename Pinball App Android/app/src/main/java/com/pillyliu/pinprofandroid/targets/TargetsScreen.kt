@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.pillyliu.pinprofandroid.library.LibraryGameLookup
 import com.pillyliu.pinprofandroid.library.loadLibraryExtraction
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
+import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.AppThreeColumnLegendHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -139,7 +140,7 @@ fun TargetsScreen(
                 )
             }
 
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            error?.let { AppInlineStatusMessage(text = it, isError = true) }
 
             CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
                 BoxWithConstraints {

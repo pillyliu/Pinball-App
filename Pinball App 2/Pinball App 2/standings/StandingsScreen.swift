@@ -82,10 +82,7 @@ struct StandingsScreen: View {
                 }
 
                 if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    AppInlineStatusMessage(text: errorMessage, isError: true)
                 }
                 updatedStatusRow
 
@@ -166,11 +163,10 @@ struct StandingsScreen: View {
                     tableHeader
                     AppTableHeaderDivider()
 
-                    if viewModel.standings.isEmpty {
-                        Text("No rows. Check data source or season selection.")
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 68)
+                    if viewModel.isRefreshing && viewModel.rows.isEmpty {
+                        AppTablePlaceholder(text: "Loading data…", minHeight: 68)
+                    } else if viewModel.standings.isEmpty {
+                        AppTablePlaceholder(text: "No rows. Check data source or season selection.", minHeight: 68)
                     } else {
                         ScrollView(.vertical) {
                             LazyVStack(spacing: 0) {
@@ -353,6 +349,8 @@ private final class StandingsViewModel: ObservableObject {
     func loadIfNeeded() async {
         guard !didLoad else { return }
         didLoad = true
+        isRefreshing = true
+        defer { isRefreshing = false }
         await loadCSV(forceRefresh: false)
     }
 

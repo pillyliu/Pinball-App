@@ -95,9 +95,7 @@ struct TargetsScreen: View {
                     .padding(.horizontal, 4)
 
                 if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
+                    AppInlineStatusMessage(text: errorMessage, isError: true)
                         .padding(.horizontal, 2)
                 }
 
