@@ -7,6 +7,7 @@
 ## 2026-03-08
 
 - iOS `Add Manufacturer`, `Add Venue`, and `Add Tournament` now use shared panel/control chrome and compact menu labels instead of keeping segmented-picker and plain-list form treatment local to Settings.
+- Android `Add Manufacturer`, `Add Venue`, and `Add Tournament` now use shared dropdown/card chrome instead of keeping segmented-selector and plain form treatment local to Settings.
 
 ## Next audit targets
 

@@ -20,8 +20,6 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
@@ -71,8 +69,12 @@ import com.pillyliu.pinprofandroid.library.LibrarySourceState
 import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.library.LibraryVenueSearchResult
+import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
+import com.pillyliu.pinprofandroid.ui.AppBackButton
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.DropdownOption
+import com.pillyliu.pinprofandroid.ui.EmptyLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -535,64 +537,68 @@ private fun AddManufacturerScreen(
     AppScreen(contentPadding) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = onBack) { Text("Back") }
+                AppBackButton(onClick = onBack)
                 Text("Add Manufacturer", fontWeight = FontWeight.SemiBold)
             }
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                ManufacturerBucket.entries.forEachIndexed { index, bucket ->
-                    SegmentedButton(
-                        selected = selectedBucket == bucket,
-                        onClick = { selectedBucket = bucket },
-                        shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = ManufacturerBucket.entries.size,
-                        ),
-                    ) {
-                        Text(bucket.label)
-                    }
-                }
+            CardContainer {
+                AnchoredDropdownFilter(
+                    selectedText = selectedBucket.label,
+                    options = ManufacturerBucket.entries.map { bucket ->
+                        DropdownOption(value = bucket.name, label = bucket.label)
+                    },
+                    onSelect = { value ->
+                        selectedBucket = ManufacturerBucket.valueOf(value)
+                    },
+                    label = "Bucket",
+                )
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text("Search manufacturers") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text("Search manufacturers") },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
-                items(filtered) { manufacturer ->
-                    CardContainer {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(manufacturer.name, fontWeight = FontWeight.SemiBold)
-                                if (manufacturer.isModern) {
+            if (filtered.isEmpty()) {
+                CardContainer {
+                    EmptyLabel("No manufacturers found for that search.")
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
+                    items(filtered) { manufacturer ->
+                        CardContainer {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(manufacturer.name, fontWeight = FontWeight.SemiBold)
+                                    if (manufacturer.isModern) {
+                                        Text(
+                                            "Modern",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier
+                                                .padding(horizontal = 0.dp)
+                                                .background(
+                                                    MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
+                                                )
+                                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        )
+                                    }
                                     Text(
-                                        "Modern",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier
-                                            .padding(horizontal = 0.dp)
-                                            .background(
-                                                MaterialTheme.colorScheme.surfaceContainerHigh,
-                                                shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-                                            )
-                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        "${manufacturer.gameCount} games",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
-                                Text(
-                                    "${manufacturer.gameCount} games",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            FilledTonalIconButton(onClick = { onAdd(manufacturer) }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Add,
-                                    contentDescription = "Add ${manufacturer.name}",
-                                )
+                                FilledTonalIconButton(onClick = { onAdd(manufacturer) }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Add,
+                                        contentDescription = "Add ${manufacturer.name}",
+                                    )
+                                }
                             }
                         }
                     }
@@ -681,71 +687,73 @@ private fun AddVenueScreen(
     AppScreen(contentPadding) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = onBack) { Text("Back") }
+                AppBackButton(onClick = onBack)
                 Text("Add Venue", fontWeight = FontWeight.SemiBold)
             }
-            LinkedHtmlText(
-                html = """Search powered by <a href="https://www.pinballmap.com">Pinball Map</a>""",
-            )
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text("City or ZIP code") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(
-                    onSearch = {
-                        focusManager.clearFocus()
-                        if (!searching && query.isNotBlank()) {
-                            scope.launch { runSearch() }
-                        }
+            CardContainer {
+                LinkedHtmlText(
+                    html = """Search powered by <a href="https://www.pinballmap.com">Pinball Map</a>""",
+                )
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text("City or ZIP code") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(
+                        onSearch = {
+                            focusManager.clearFocus()
+                            if (!searching && query.isNotBlank()) {
+                                scope.launch { runSearch() }
+                            }
+                        },
+                    ),
+                )
+                AnchoredDropdownFilter(
+                    selectedText = "$radiusMiles miles",
+                    options = listOf(10, 25, 50, 100).map { miles ->
+                        DropdownOption(value = miles.toString(), label = "$miles miles")
                     },
-                ),
-            )
-            Text("Distance", style = MaterialTheme.typography.labelSmall)
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                listOf(10, 25, 50, 100).forEachIndexed { index, miles ->
-                    SegmentedButton(
-                        selected = radiusMiles == miles,
-                        onClick = { radiusMiles = miles },
-                        shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index = index, count = 4),
-                    ) {
-                        Text("$miles mi")
-                    }
+                    onSelect = { value -> radiusMiles = value.toInt() },
+                    label = "Distance",
+                )
+                OutlinedTextField(
+                    value = minimumGameCount.toString(),
+                    onValueChange = { minimumGameCount = it.toIntOrNull()?.coerceAtLeast(0) ?: minimumGameCount },
+                    label = { Text("Minimum games") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                )
+                Button(
+                    onClick = { scope.launch { runSearch() } },
+                    enabled = !searching && query.isNotBlank(),
+                ) {
+                    Text(if (searching) "Searching..." else "Search Pinball Map")
                 }
             }
-            OutlinedTextField(
-                value = minimumGameCount.toString(),
-                onValueChange = { minimumGameCount = it.toIntOrNull()?.coerceAtLeast(0) ?: minimumGameCount },
-                label = { Text("Minimum games") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-            )
             LaunchedEffect(minimumGameCount) {
                 prefs.edit().putInt("settings-add-venue-min-game-count", minimumGameCount).apply()
             }
-            Button(
-                onClick = { scope.launch { runSearch() } },
-                enabled = !searching && query.isNotBlank(),
-            ) {
-                Text(if (searching) "Searching..." else "Search Pinball Map")
-            }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             emptyResultsMessage?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                CardContainer {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             if (!hasSearched && results.isEmpty() && !searching) {
-                Text(
-                    "Search Pinball Map by city or ZIP, then import a venue as a Library source.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                CardContainer {
+                    Text(
+                        "Search Pinball Map by city or ZIP, then import a venue as a Library source.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
                 items(filteredResults) { result ->
@@ -809,54 +817,56 @@ private fun AddTournamentScreen(
     AppScreen(contentPadding) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = onBack) { Text("Back") }
+                AppBackButton(onClick = onBack)
                 Text("Add Tournament", fontWeight = FontWeight.SemiBold)
             }
-            LinkedHtmlText(
-                html = """Import powered by <a href="https://matchplay.events">Match Play</a>""",
-            )
-            OutlinedTextField(
-                value = rawTournamentId,
-                onValueChange = { rawTournamentId = it },
-                label = { Text("Tournament ID or URL") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-            )
-            Text(
-                "Enter a Match Play tournament ID or URL to import its arena list into Library and Practice.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Button(
-                onClick = {
-                    scope.launch {
-                        importing = true
-                        error = null
-                        val resolvedId = tournamentId
-                        if (resolvedId == null) {
-                            error = "Enter a valid tournament ID."
-                            importing = false
-                            return@launch
-                        }
-                        runCatching {
-                            withContext(Dispatchers.IO) { MatchPlayClient.fetchTournament(resolvedId) }
-                        }.onSuccess { result ->
-                            if (result.machineIds.isEmpty()) {
-                                error = "No OPDB-linked arenas were found for that tournament."
-                            } else {
-                                onImport(result)
+            CardContainer {
+                LinkedHtmlText(
+                    html = """Import powered by <a href="https://matchplay.events">Match Play</a>""",
+                )
+                OutlinedTextField(
+                    value = rawTournamentId,
+                    onValueChange = { rawTournamentId = it },
+                    label = { Text("Tournament ID or URL") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                )
+                Text(
+                    "Enter a Match Play tournament ID or URL to import its arena list into Library and Practice.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Button(
+                    onClick = {
+                        scope.launch {
+                            importing = true
+                            error = null
+                            val resolvedId = tournamentId
+                            if (resolvedId == null) {
+                                error = "Enter a valid tournament ID."
+                                importing = false
+                                return@launch
                             }
-                        }.onFailure {
-                            error = it.message ?: "Tournament import failed."
+                            runCatching {
+                                withContext(Dispatchers.IO) { MatchPlayClient.fetchTournament(resolvedId) }
+                            }.onSuccess { result ->
+                                if (result.machineIds.isEmpty()) {
+                                    error = "No OPDB-linked arenas were found for that tournament."
+                                } else {
+                                    onImport(result)
+                                }
+                            }.onFailure {
+                                error = it.message ?: "Tournament import failed."
+                            }
+                            importing = false
                         }
-                        importing = false
-                    }
-                },
-                enabled = !importing && tournamentId != null,
-            ) {
-                Text(if (importing) "Importing..." else "Import Tournament")
+                    },
+                    enabled = !importing && tournamentId != null,
+                ) {
+                    Text(if (importing) "Importing..." else "Import Tournament")
+                }
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         }

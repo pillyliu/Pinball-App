@@ -19,7 +19,7 @@ Status values:
 | Library | in audit | in audit | parity risk | Shared dependency for Practice and GameRoom; fallback/resource behavior must be locked before larger rewrites. |
 | Practice | parity risk | parity risk | parity risk | Largest active drift surface after GameRoom; route/state complexity is still concentrated in a few large files. |
 | GameRoom | stable | stable | in audit | 3.1 shipped baseline exists; home/UI helper splits, machine-route splits, settings-surface extraction, and presentation-component extraction are in place. |
-| Settings | in audit | in audit | in audit | Smaller feature, but now part of the shared control-chrome pass as iOS import flows move off feature-local picker/search/list treatment. |
+| Settings | in audit | in audit | in audit | Smaller feature, but now part of the shared control-chrome pass as both platforms move import flows off feature-local picker/search/list treatment. |
 
 ## Shell and theme hotspots
 
@@ -164,6 +164,7 @@ Status values:
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt` | in audit | Android shared shell/background/card/back-button/filter-header/refresh-row/legend-header helpers now consume semantic color, spacing, and typography tokens, but more component families still need to migrate onto the same layer. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/SharedComponents.kt` | in audit | Android dropdown, grouped-dropdown, and shared table-cell styling now consume semantic color, spacing, and typography tokens, but the rest of the shared component library still needs consistent adoption. |
 | `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/settings/SettingsScreen.swift` | in audit | iOS add/import screens now use shared compact dropdown and selectable-row chrome instead of feature-local segmented picker treatment, but the rest of Settings still needs exact section and persistence review. |
+| `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreen.kt` | in audit | Android add/import screens now use shared dropdown and card chrome instead of feature-local segmented selector treatment, but the rest of Settings still needs exact section and persistence review. |
 
 ## Current work order
 
