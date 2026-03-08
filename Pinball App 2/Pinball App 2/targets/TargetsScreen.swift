@@ -181,17 +181,10 @@ struct TargetsScreen: View {
     }
 
     private var navSummaryLabels: some View {
-        HStack(spacing: 12) {
-            Text("Sort: \(viewModel.sortMode.title)")
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            Text(viewModel.selectedBankLabel)
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .foregroundStyle(.secondary)
+        AppToolbarSummaryPair(
+            leading: "Sort: \(viewModel.sortMode.title)",
+            trailing: viewModel.selectedBankLabel
+        )
     }
 
     private var topRightFilterMenu: some View {

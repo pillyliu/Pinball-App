@@ -112,11 +112,7 @@ struct StandingsScreen: View {
     }
 
     private var navSummaryLabel: some View {
-        Text("Standings - \(viewModel.selectedSeasonLabel)")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
+        AppToolbarSummaryText(text: "Standings - \(viewModel.selectedSeasonLabel)")
     }
 
     @ViewBuilder

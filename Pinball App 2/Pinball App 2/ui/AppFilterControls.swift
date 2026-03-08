@@ -9,6 +9,38 @@ struct AppToolbarFilterTriggerLabel: View {
     }
 }
 
+struct AppToolbarSummaryText: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .truncationMode(.tail)
+            .font(AppTheme.typography.filterSummary)
+            .foregroundStyle(AppTheme.shellUnselectedContent)
+    }
+}
+
+struct AppToolbarSummaryPair: View {
+    let leading: String
+    let trailing: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(leading)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .font(AppTheme.typography.filterSummary)
+            Text(trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .font(AppTheme.typography.filterSummary)
+        }
+        .foregroundStyle(AppTheme.shellUnselectedContent)
+    }
+}
+
 struct AppDropdownMenuLabel: View {
     let text: String
     let isLargeTablet: Bool

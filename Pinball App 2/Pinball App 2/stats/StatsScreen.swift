@@ -204,12 +204,7 @@ struct StatsScreen: View {
     }
 
     private var navSummaryLabels: some View {
-        Text(navSummaryText)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-            .truncationMode(.tail)
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(.secondary)
+        AppToolbarSummaryText(text: navSummaryText)
     }
     private var navSummaryText: String {
         let seasonDigits = viewModel.season.filter(\.isNumber)
