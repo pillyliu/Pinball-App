@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.normalizedVariant
 import com.pillyliu.pinprofandroid.library.practiceKey
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
 
 @Composable
@@ -166,7 +167,7 @@ private fun PracticeGameSummaryPanel(
             Text("Target Scores", fontWeight = FontWeight.SemiBold)
             val targets = store.leagueTargetScoresFor(gameKey)
             if (targets == null) {
-                Text("No target data yet.", style = MaterialTheme.typography.bodySmall)
+                AppPanelEmptyCard(text = "No target data yet.")
             } else {
                 StatRow("2nd", formatScore(targets.great), tint = MaterialTheme.colorScheme.tertiary)
                 StatRow("4th", formatScore(targets.main), tint = MaterialTheme.colorScheme.primary)
@@ -244,7 +245,7 @@ private fun PracticeGameLogPanel(
             )
         }
     if (logRows.isEmpty()) {
-        Text("No actions logged yet.")
+        AppPanelEmptyCard(text = "No actions logged yet.")
     } else {
         LazyColumn(modifier = Modifier.height(280.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(logRows, key = { it.id }) { row ->

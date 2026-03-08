@@ -11,9 +11,7 @@ struct PracticeGameLogPanel: View {
         VStack(alignment: .leading, spacing: 8) {
             let logs = store.gameJournalEntries(for: gameID)
             if logs.isEmpty {
-                Text("No actions logged yet.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "No actions logged yet.")
             } else {
                 ScrollView(.vertical, showsIndicators: true) {
                     VStack(alignment: .leading, spacing: 8) {
@@ -215,9 +213,7 @@ struct PracticeGameSummaryPanel: View {
                         statRow("4th", formatScore(targets.main), color: AppTheme.targetMain)
                         statRow("8th", formatScore(targets.floor), color: AppTheme.targetFloor)
                     } else {
-                        Text("No target data yet.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        AppPanelEmptyCard(text: "No target data yet.")
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

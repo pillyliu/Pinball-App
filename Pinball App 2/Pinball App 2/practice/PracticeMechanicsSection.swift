@@ -104,9 +104,7 @@ struct PracticeMechanicsSectionView: View {
                 }
 
                 if logs.isEmpty {
-                    Text(selectedSkill.isEmpty ? "No mechanics sessions logged yet." : "No sessions logged for this skill yet.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: selectedSkill.isEmpty ? "No mechanics sessions logged yet." : "No sessions logged for this skill yet.")
                 } else {
                     ScrollView(.vertical, showsIndicators: true) {
                         VStack(alignment: .leading, spacing: 8) {

@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -117,8 +118,8 @@ internal fun PracticeMechanicsSection(
         }
         val rows = logs.takeLast(24).reversed()
         if (rows.isEmpty()) {
-            Text(
-                if (selectedSkill.isEmpty()) "No mechanics sessions logged yet." else "No sessions logged for this skill yet.",
+            AppPanelEmptyCard(
+                text = if (selectedSkill.isEmpty()) "No mechanics sessions logged yet." else "No sessions logged for this skill yet.",
             )
         } else {
             LazyColumn(modifier = Modifier.height(260.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
