@@ -28,12 +28,15 @@ League includes:
   - `LeagueShellContent.swift` for the responsive card stack/grid, destination links, and About footer
   - `LeaguePreviewLoader.swift` for preview data fetch and snapshot assembly
   - `LeaguePreviewParsing.swift` for CSV parsing and preview-shaping rules
+  - `LeagueCardPreviews.swift` for the preview-card shell and rotation state
+  - `LeaguePreviewSections.swift` for `Targets`, `Standings`, and `Stats` preview bodies
 - Android League home now splits into:
   - `LeagueScreen.kt` for the root feature shell and preview-state loading
   - `LeagueShellContent.kt` for the responsive card stack/grid, destination links, and About footer
   - `LeaguePreviewLoader.kt` for preview data assembly
   - `LeaguePreviewParsing.kt` for CSV parsing and preview-shaping rules
   - `LeaguePreviewModels.kt` for preview view models
-  - `LeaguePreviewCards.kt` for card and mini-preview rendering
+  - `LeaguePreviewCards.kt` for the preview-card shell
+  - `LeagueMiniPreviews.kt` for `Targets`, `Standings`, and `Stats` preview bodies
   - `LeaguePreviewRotationState.kt` for rotating preview state
 - Remaining follow-up should focus on exact contract parity and nested destination boundaries, not putting preview or shell composition back into one file.
