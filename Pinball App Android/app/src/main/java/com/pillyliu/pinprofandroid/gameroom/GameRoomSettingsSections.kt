@@ -662,6 +662,7 @@ internal fun GameRoomArchiveSettingsSection(
                     selected = archiveFilter == filter,
                     onClick = { onArchiveFilterChange(filter) },
                     colors = pinballSegmentedButtonColors(),
+                    icon = {},
                     shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
                         index = index,
                         count = GameRoomArchiveFilter.entries.size,
