@@ -1,10 +1,10 @@
 package com.pillyliu.pinprofandroid.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 val LocalBottomBarVisible = compositionLocalOf<MutableState<Boolean>> {
     error("LocalBottomBarVisible not provided")
@@ -206,6 +209,48 @@ fun InsetFilterHeader(
                 contentDescription = "Filters",
                 tint = colors.shellSelectedContent,
             )
+        }
+    }
+}
+
+@Composable
+fun AppRefreshStatusRow(
+    label: String,
+    isRefreshing: Boolean,
+    hasNewerData: Boolean,
+    pulseAlpha: Float,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = PinballThemeTokens.colors
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            color = colors.shellUnselectedContent,
+            fontSize = 11.sp,
+        )
+        if (isRefreshing) {
+            Spacer(Modifier.width(6.dp))
+            CircularProgressIndicator(
+                modifier = Modifier.size(10.dp),
+                strokeWidth = 1.5.dp,
+                color = colors.shellUnselectedContent,
+            )
+        } else {
+            IconButton(
+                onClick = onRefresh,
+                modifier = Modifier.size(20.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = "Refresh data",
+                    tint = colors.shellUnselectedContent.copy(alpha = if (hasNewerData) pulseAlpha else 1f),
+                    modifier = Modifier.size(12.dp),
+                )
+            }
         }
     }
 }

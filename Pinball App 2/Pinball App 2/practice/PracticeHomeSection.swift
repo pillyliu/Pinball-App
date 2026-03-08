@@ -46,7 +46,7 @@ struct PracticeHomeSection: View {
                                     }
                                 }
                             } label: {
-                                resumeDropdownLabel(
+                                AppCompactStackedMenuLabel(
                                     title: "Library",
                                     value: selectedLibraryLabel(librarySources: librarySources)
                                 )
@@ -60,7 +60,7 @@ struct PracticeHomeSection: View {
                                     }
                                 }
                             } label: {
-                                resumeDropdownLabel(
+                                AppCompactStackedMenuLabel(
                                     title: "Game List",
                                     value: game.name
                                 )
@@ -152,32 +152,6 @@ struct PracticeHomeSection: View {
             .appPanelStyle()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func resumeDropdownLabel(title: String, value: String) -> some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.caption.weight(.semibold))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .foregroundStyle(.primary)
-            }
-            Spacer(minLength: 0)
-            Image(systemName: "chevron.down")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.white.opacity(0.10), lineWidth: 0.8)
-        )
     }
 
     private func selectedLibraryLabel(librarySources: [PinballLibrarySource]) -> String {
