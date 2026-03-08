@@ -234,6 +234,7 @@
 - iOS `GroupEditor` now matches Android as a pushed `PracticeRoute.groupEditor` destination instead of remaining a sheet-only exception in `PracticePresentationHost.swift`.
 - iOS `Rulesheet` and `Playfield` launches from the Practice game route now match Android as explicit `PracticeRoute.rulesheet` and `PracticeRoute.playfield` destinations instead of bypassing the Practice route model through direct `NavigationLink` pushes.
 - iOS Practice home greeting, mini-card titles, and the welcome overlay now also route through shared `AppInlineLinkAction`, `AppCardTitle`, and `AppCardSubheading` seams instead of older local cyan link text and raw semibold title styling, reducing another visible hierarchy gap against the newer shared PinProf chrome.
+- Android Practice active-group names and empty group cards now also use shared `AppCardSubheading` and `AppPanelEmptyCard` seams in `PracticeHomeSection.kt` instead of remaining local semibold text and label-small empty-copy treatment.
 
 ## Next audit targets
 

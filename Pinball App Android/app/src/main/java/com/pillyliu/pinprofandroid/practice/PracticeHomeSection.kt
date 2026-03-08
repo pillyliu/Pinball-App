@@ -41,7 +41,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.LibrarySource
+import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.AppPassiveStatusChip
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
 
@@ -194,18 +196,14 @@ internal fun PracticeHomeSection(
         } else {
             active.forEach { group ->
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(group.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    AppCardSubheading(group.name)
                     if (group.id == store.selectedGroup()?.id) {
                         AppPassiveStatusChip(text = "Selected")
                     }
                 }
                 val games = store.groupGames(group)
                 if (games.isEmpty()) {
-                    Text(
-                        "No games in this group.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    AppPanelEmptyCard(text = "No games in this group.")
                 } else {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),

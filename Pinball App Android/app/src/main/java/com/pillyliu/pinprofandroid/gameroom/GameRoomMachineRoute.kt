@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.ConstrainedAsyncImagePreview
 import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
+import com.pillyliu.pinprofandroid.ui.AppCardTitle
 import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.AppMetricGrid
 import com.pillyliu.pinprofandroid.ui.AppMetricItem
@@ -66,7 +67,7 @@ internal fun GameRoomMachineRoute(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         AppScreenHeader(
-            title = "Machine View",
+            title = selectedMachine?.displayTitle ?: "Machine",
             onBack = onBack,
             titleColor = MaterialTheme.colorScheme.onSurface,
         )
@@ -95,12 +96,9 @@ internal fun GameRoomMachineRoute(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Text(
+                    AppCardTitle(
                         text = selectedMachine.displayTitle,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     if (variantLabel != null) {
@@ -108,12 +106,8 @@ internal fun GameRoomMachineRoute(
                     }
                     Spacer(modifier = Modifier.weight(1f))
                 }
-                Text(
+                AppCardSubheading(
                     text = machineLocationLine(selectedMachine, store),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         } else {
