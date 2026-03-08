@@ -50,7 +50,7 @@ struct PracticeGameResourceCard: View {
                         Button(playfieldButtonTitle(for: game)) {
                             onOpenPlayfield(game)
                         }
-                        .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+                        .buttonStyle(AppCompactSecondaryActionButtonStyle())
                     }
                 } else {
                     PinballResourceRow("Playfield") {
@@ -102,7 +102,7 @@ struct PracticeGameResourceCard: View {
         Button(title) {
             onOpenRulesheet(game, source)
         }
-        .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+        .buttonStyle(AppCompactSecondaryActionButtonStyle())
     }
 
     @ViewBuilder
@@ -111,12 +111,12 @@ struct PracticeGameResourceCard: View {
             Button(title) {
                 onOpenRulesheet(game, embeddedSource)
             }
-            .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+            .buttonStyle(AppCompactSecondaryActionButtonStyle())
         } else if let destination = link.destinationURL {
             Button(title) {
                 onOpenExternalRulesheet(game, destination)
             }
-            .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+            .buttonStyle(AppCompactSecondaryActionButtonStyle())
         }
     }
 

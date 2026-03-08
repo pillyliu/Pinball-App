@@ -53,7 +53,7 @@ struct LibraryDetailSummaryCard: View {
                     NavigationLink(libraryPlayfieldButtonTitle(for: game)) {
                         HostedImageView(imageCandidates: game.actualFullscreenPlayfieldCandidates)
                     }
-                    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+                    .buttonStyle(AppCompactSecondaryActionButtonStyle())
                     .simultaneousGesture(
                         TapGesture().onEnded {
                             LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openPlayfield)
@@ -210,7 +210,7 @@ struct LibraryDetailSourcesCard: View {
                     NavigationLink(libraryPlayfieldButtonTitle(for: game)) {
                         HostedImageView(imageCandidates: game.actualFullscreenPlayfieldCandidates)
                     }
-                    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+                    .buttonStyle(AppCompactSecondaryActionButtonStyle())
                 }
             }
 
