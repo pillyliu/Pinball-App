@@ -95,203 +95,74 @@ final class PinballLibraryViewModel: ObservableObject {
     private static let preferredSourceDefaultsKey = "preferred-library-source-id"
     private static let avenueSourceCandidates = ["venue--the-avenue-cafe", "the-avenue"]
 
+    private var browsingState: PinballLibraryBrowsingState {
+        PinballLibraryBrowsingState(
+            games: games,
+            sources: sources,
+            selectedSourceID: selectedSourceID,
+            query: query,
+            sortOption: sortOption,
+            yearSortDescending: yearSortDescending,
+            selectedBank: selectedBank,
+            visibleGameLimit: visibleGameLimit,
+            pinnedSourceIDs: PinballLibrarySourceStateStore.load().pinnedSourceIDs
+        )
+    }
+
     var selectedSource: PinballLibrarySource? {
-        sources.first(where: { $0.id == selectedSourceID }) ?? sources.first
+        browsingState.selectedSource
     }
 
     var visibleSources: [PinballLibrarySource] {
-        let state = PinballLibrarySourceStateStore.load()
-        let pinned = state.pinnedSourceIDs.compactMap { id in
-            sources.first(where: { $0.id == id })
-        }
-        var visible = pinned
-        if let selectedSource, !visible.contains(where: { $0.id == selectedSource.id }) {
-            visible.append(selectedSource)
-        }
-        if let gameRoomSource = sources.first(where: { $0.id == "venue--gameroom" }),
-           !visible.contains(where: { $0.id == gameRoomSource.id }) {
-            visible.append(gameRoomSource)
-        }
-        return visible.isEmpty ? sources : visible
+        browsingState.visibleSources
     }
 
     var sourceScopedGames: [PinballGame] {
-        guard let selectedSource else { return games }
-        return games.filter { $0.sourceId == selectedSource.id }
+        browsingState.sourceScopedGames
     }
 
     var sortOptions: [PinballLibrarySortOption] {
-        guard let selectedSource else {
-            return [.area, .alphabetical]
-        }
-        switch selectedSource.type {
-        case .category, .manufacturer, .tournament:
-            return [.year, .alphabetical]
-        case .venue:
-            let hasBank = sourceScopedGames.contains { ($0.bank ?? 0) > 0 }
-            var options: [PinballLibrarySortOption] = [.area]
-            if hasBank { options.append(.bank) }
-            options.append(.alphabetical)
-            options.append(.year)
-            return options
-        }
+        browsingState.sortOptions
     }
 
     var supportsBankFilter: Bool {
-        guard let selectedSource else { return false }
-        return selectedSource.type == .venue && sourceScopedGames.contains { ($0.bank ?? 0) > 0 }
+        browsingState.supportsBankFilter
     }
 
     var bankOptions: [Int] {
-        if !supportsBankFilter { return [] }
-        return Array(Set(sourceScopedGames.compactMap(\.bank).filter { $0 > 0 })).sorted()
+        browsingState.bankOptions
     }
 
     var selectedBankLabel: String {
-        if let selectedBank {
-            return "Bank \(selectedBank)"
-        }
-        return "All banks"
+        browsingState.selectedBankLabel
     }
 
     var selectedSortLabel: String {
-        menuLabel(for: sortOption)
+        browsingState.selectedSortLabel
     }
 
     var filteredGames: [PinballGame] {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let effectiveBank = supportsBankFilter ? selectedBank : nil
-
-        return sourceScopedGames.filter { game in
-            let matchesQuery: Bool
-            if trimmed.isEmpty {
-                matchesQuery = true
-            } else {
-                let haystack = "\(game.name) \(game.manufacturer ?? "") \(game.year.map(String.init) ?? "")".lowercased()
-                matchesQuery = haystack.contains(trimmed)
-            }
-
-            let matchesBank = effectiveBank == nil || game.bank == effectiveBank
-            return matchesQuery && matchesBank
-        }
+        browsingState.filteredGames
     }
 
     var sortedFilteredGames: [PinballGame] {
-        switch sortOption {
-        case .area:
-            return filteredGames.sorted {
-                byOptionalAscending($0.areaOrder, $1.areaOrder)
-                    ?? byOptionalAscending($0.group, $1.group)
-                    ?? byOptionalAscending($0.pos, $1.pos)
-                    ?? byAscending($0.name.lowercased(), $1.name.lowercased())
-                    ?? false
-            }
-        case .bank:
-            return filteredGames.sorted {
-                byOptionalAscending($0.bank, $1.bank)
-                    ?? byOptionalAscending($0.group, $1.group)
-                    ?? byOptionalAscending($0.pos, $1.pos)
-                    ?? byAscending($0.name.lowercased(), $1.name.lowercased())
-                    ?? false
-            }
-        case .alphabetical:
-            return filteredGames.sorted {
-                byAscending($0.name.lowercased(), $1.name.lowercased())
-                    ?? byOptionalAscending($0.group, $1.group)
-                    ?? byOptionalAscending($0.pos, $1.pos)
-                    ?? false
-            }
-        case .year:
-            if yearSortDescending {
-                return filteredGames.sorted {
-                    byOptionalDescending($0.year, $1.year)
-                        ?? byAscending($0.name.lowercased(), $1.name.lowercased())
-                        ?? false
-                }
-            } else {
-                return filteredGames.sorted {
-                    byOptionalAscending($0.year, $1.year)
-                        ?? byAscending($0.name.lowercased(), $1.name.lowercased())
-                        ?? false
-                }
-            }
-        }
+        browsingState.sortedFilteredGames
     }
 
     var visibleSortedFilteredGames: [PinballGame] {
-        Array(sortedFilteredGames.prefix(visibleGameLimit))
+        browsingState.visibleSortedFilteredGames
     }
 
     var hasMoreVisibleGames: Bool {
-        visibleSortedFilteredGames.count < sortedFilteredGames.count
+        browsingState.hasMoreVisibleGames
     }
 
     var showGroupedView: Bool {
-        let effectiveBank = supportsBankFilter ? selectedBank : nil
-        return effectiveBank == nil && (sortOption == .area || sortOption == .bank)
+        browsingState.showGroupedView
     }
 
     var sections: [PinballGroupSection] {
-        var out: [PinballGroupSection] = []
-        let groupingKey: (PinballGame) -> (String?, Int?) = {
-            switch sortOption {
-            case .area:
-                return { (nil, $0.group) }
-            case .bank:
-                return { (nil, $0.bank) }
-            case .alphabetical, .year:
-                return { _ in (nil, nil) }
-            }
-        }()
-
-        for game in visibleSortedFilteredGames {
-            let (locationKey, groupKey) = groupingKey(game)
-            if let last = out.last, last.locationKey == locationKey, last.groupKey == groupKey {
-                var mutable = last
-                mutable.games.append(game)
-                out[out.count - 1] = mutable
-            } else {
-                out.append(PinballGroupSection(locationKey: locationKey, groupKey: groupKey, games: [game]))
-            }
-        }
-
-        return out
-    }
-
-    private func byOptionalAscending<T: Comparable>(_ lhs: T?, _ rhs: T?) -> Bool? {
-        switch (lhs, rhs) {
-        case let (l?, r?):
-            return byAscending(l, r)
-        case (nil, nil):
-            return nil
-        case (nil, _?):
-            return false
-        case (_?, nil):
-            return true
-        }
-    }
-
-    private func byAscending<T: Comparable>(_ lhs: T, _ rhs: T) -> Bool? {
-        if lhs == rhs { return nil }
-        return lhs < rhs
-    }
-
-    private func byOptionalDescending<T: Comparable>(_ lhs: T?, _ rhs: T?) -> Bool? {
-        switch (lhs, rhs) {
-        case let (l?, r?):
-            return byDescending(l, r)
-        case (nil, nil):
-            return nil
-        case (nil, _?):
-            return false
-        case (_?, nil):
-            return true
-        }
-    }
-
-    private func byDescending<T: Comparable>(_ lhs: T, _ rhs: T) -> Bool? {
-        if lhs == rhs { return nil }
-        return lhs > rhs
+        browsingState.sections
     }
 
     func loadIfNeeded() async {
@@ -317,11 +188,11 @@ final class PinballLibraryViewModel: ObservableObject {
                 sortOption = .year
                 yearSortDescending = true
             } else {
-                sortOption = preferredDefaultSortOption(for: selectedSource, games: sourceScopedGames)
+                sortOption = browsingState.preferredDefaultSortOption(for: selectedSource, games: sourceScopedGames)
                 if !options.contains(sortOption), let first = options.first {
                     sortOption = first
                 }
-                yearSortDescending = preferredDefaultYearSortDescending(for: selectedSource, games: sourceScopedGames)
+                yearSortDescending = browsingState.preferredDefaultYearSortDescending(for: selectedSource, games: sourceScopedGames)
             }
         }
         selectedBank = nil
@@ -339,10 +210,7 @@ final class PinballLibraryViewModel: ObservableObject {
     }
 
     func menuLabel(for option: PinballLibrarySortOption) -> String {
-        if option == .year {
-            return yearSortDescending ? "Sort: Year (New-Old)" : "Sort: Year (Old-New)"
-        }
-        return option.menuLabel
+        browsingState.menuLabel(for: option)
     }
 
     func loadMoreGamesIfNeeded(currentGameID: String?) {
@@ -385,11 +253,11 @@ final class PinballLibraryViewModel: ObservableObject {
                 state.selectedSourceID = selected.id
                 PinballLibrarySourceStateStore.save(state)
                 let options = sortOptions
-                sortOption = preferredDefaultSortOption(for: selected, games: sourceScopedGames)
+                sortOption = browsingState.preferredDefaultSortOption(for: selected, games: sourceScopedGames)
                 if !options.contains(sortOption), let first = options.first {
                     sortOption = first
                 }
-                yearSortDescending = preferredDefaultYearSortDescending(for: selected, games: sourceScopedGames)
+                yearSortDescending = browsingState.preferredDefaultYearSortDescending(for: selected, games: sourceScopedGames)
                 if !supportsBankFilter {
                     selectedBank = nil
                 }
@@ -402,30 +270,6 @@ final class PinballLibraryViewModel: ObservableObject {
         }
     }
 
-    private func preferredDefaultSortOption(for source: PinballLibrarySource, games: [PinballGame]) -> PinballLibrarySortOption {
-        switch source.type {
-        case .manufacturer:
-            return .year
-        case .category, .tournament:
-            return .alphabetical
-        case .venue:
-            let hasArea = games.contains {
-                guard let area = $0.area?.trimmingCharacters(in: .whitespacesAndNewlines) else { return false }
-                return !area.isEmpty && area.lowercased() != "null"
-            }
-            return hasArea ? .area : .alphabetical
-        }
-    }
-
-    private func preferredDefaultYearSortDescending(for source: PinballLibrarySource, games: [PinballGame]) -> Bool {
-        preferredDefaultSortOption(for: source, games: games) == .year && source.type == .manufacturer
-    }
-}
-
-struct PinballGroupSection {
-    let locationKey: String?
-    let groupKey: Int?
-    var games: [PinballGame]
 }
 
 struct PinballGame: Identifiable, Decodable {
