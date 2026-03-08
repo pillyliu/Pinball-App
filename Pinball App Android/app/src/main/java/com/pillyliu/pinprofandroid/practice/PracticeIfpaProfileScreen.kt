@@ -27,6 +27,9 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import kotlinx.coroutines.Dispatchers
@@ -93,24 +96,14 @@ internal fun PracticeIfpaProfileScreen(
 
     when {
         trimmedIfpaPlayerID.isBlank() -> {
-            CardContainer {
-                Text(
-                    "Add your IFPA ID in Practice Settings to load your public ranking snapshot here.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            AppPanelEmptyCard(text = "Add your IFPA ID in Practice Settings to load your public ranking snapshot here.")
         }
 
         isLoading && profile == null -> {
-            CardContainer {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
+            AppPanelStatusCard(
+                text = "Loading IFPA profile…",
+                showsProgress = true,
+            )
         }
 
         profile != null -> {
@@ -175,10 +168,7 @@ internal fun PracticeIfpaProfileScreen(
             CardContainer {
                 SectionTitle("Recent Tournaments")
                 if (loadedProfile.recentTournaments.isEmpty()) {
-                    Text(
-                        "No recent tournament results were found on the public IFPA profile.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    AppPanelEmptyCard(text = "No recent tournament results were found on the public IFPA profile.")
                 } else {
                     loadedProfile.recentTournaments.forEachIndexed { index, tournament ->
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -211,7 +201,7 @@ internal fun PracticeIfpaProfileScreen(
         errorMessage != null -> {
             CardContainer {
                 SectionTitle("Could not load IFPA profile")
-                Text(errorMessage!!, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                AppInlineTaskStatus(text = errorMessage!!, isError = true)
                 Button(onClick = {
                     profile = null
                     errorMessage = null

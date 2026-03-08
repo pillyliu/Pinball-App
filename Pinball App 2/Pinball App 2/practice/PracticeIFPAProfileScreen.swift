@@ -42,9 +42,10 @@ struct PracticeIFPAProfileScreen: View {
             if trimmedIFPAPlayerID.isEmpty {
                 missingIDCard
             } else if isLoading && profile == nil {
-                ProgressView("Loading IFPA profile...")
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 20)
+                AppPanelStatusCard(
+                    text: "Loading IFPA profile…",
+                    showsProgress: true
+                )
             } else if let profile {
                 profileContent(profile)
             } else if let errorMessage {
@@ -57,22 +58,13 @@ struct PracticeIFPAProfileScreen: View {
     }
 
     private var missingIDCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Add your IFPA ID in Practice Settings to load your public ranking snapshot here.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .appPanelStyle()
+        AppPanelEmptyCard(text: "Add your IFPA ID in Practice Settings to load your public ranking snapshot here.")
     }
 
     private func errorCard(_ message: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             AppSectionTitle(text: "Could not load IFPA profile")
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            AppInlineTaskStatus(text: message, isError: true)
             Button("Try Again") {
                 Task {
                     await reloadProfile()
@@ -151,9 +143,7 @@ struct PracticeIFPAProfileScreen: View {
             AppSectionTitle(text: "Recent Tournaments")
 
             if profile.recentTournaments.isEmpty {
-                Text("No recent tournament results were found on the public IFPA profile.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "No recent tournament results were found on the public IFPA profile.")
             } else {
                 ForEach(profile.recentTournaments) { tournament in
                     VStack(alignment: .leading, spacing: 6) {
