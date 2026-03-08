@@ -126,7 +126,7 @@ fun AppBackButton(
         Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = "Back",
-            tint = colors.shellSelectedContent,
+            tint = colors.brandGold,
             modifier = Modifier.size(iconSize),
         )
     }
@@ -137,7 +137,7 @@ fun AppScreenHeader(
     title: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    titleColor: Color = PinballThemeTokens.colors.shellSelectedContent,
+    titleColor: Color = PinballThemeTokens.colors.brandInk,
     titleMaxLines: Int = 1,
 ) {
     Row(
@@ -224,11 +224,27 @@ fun CardContainer(modifier: Modifier = Modifier, content: @Composable () -> Unit
 
 @Composable
 fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        color = PinballThemeTokens.colors.shellSelectedContent,
-        style = PinballThemeTokens.typography.sectionTitle,
-    )
+    val colors = PinballThemeTokens.colors
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 6.dp, height = 18.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(colors.brandGold, colors.brandChalk),
+                    ),
+                    RoundedCornerShape(999.dp),
+                ),
+        )
+        Text(
+            text = text,
+            color = colors.brandInk,
+            style = PinballThemeTokens.typography.sectionTitle,
+        )
+    }
 }
 
 @Composable
@@ -256,7 +272,7 @@ fun AppInlineStatusMessage(
     Text(
         text = text,
         modifier = modifier.fillMaxWidth(),
-        color = if (isError) MaterialTheme.colorScheme.error else PinballThemeTokens.colors.shellUnselectedContent,
+        color = if (isError) MaterialTheme.colorScheme.error else PinballThemeTokens.colors.brandChalk,
         style = PinballThemeTokens.typography.emptyState,
     )
 }
@@ -277,7 +293,7 @@ fun AppInlineTaskStatus(
             CircularProgressIndicator(
                 modifier = Modifier.size(12.dp),
                 strokeWidth = 1.75.dp,
-                color = if (isError) MaterialTheme.colorScheme.error else PinballThemeTokens.colors.shellUnselectedContent,
+                color = if (isError) MaterialTheme.colorScheme.error else PinballThemeTokens.colors.brandGold,
             )
         }
         AppInlineStatusMessage(
@@ -294,12 +310,47 @@ fun AppPanelStatusCard(
     showsProgress: Boolean = false,
     isError: Boolean = false,
 ) {
+    val colors = PinballThemeTokens.colors
+    val shapes = PinballThemeTokens.shapes
     CardContainer(modifier = modifier) {
-        AppInlineTaskStatus(
-            text = text,
-            showsProgress = showsProgress,
-            isError = isError,
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Color.Transparent,
+                    RoundedCornerShape(shapes.panelCorner),
+                ),
+        ) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .border(
+                        width = 1.dp,
+                        color = colors.border.copy(alpha = 0.18f),
+                        shape = RoundedCornerShape(shapes.panelCorner),
+                    ),
+            )
+            Box(
+                modifier = Modifier
+                    .width(5.dp)
+                    .height(36.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                if (isError) MaterialTheme.colorScheme.error else colors.brandGold,
+                                colors.brandChalk.copy(alpha = 0.30f),
+                            ),
+                        ),
+                        RoundedCornerShape(999.dp),
+                    ),
+            )
+            AppInlineTaskStatus(
+                text = text,
+                showsProgress = showsProgress,
+                isError = isError,
+                modifier = Modifier.padding(start = 12.dp),
+            )
+        }
     }
 }
 
@@ -314,7 +365,7 @@ fun AppPanelEmptyCard(
         modifier = modifier
             .fillMaxWidth()
             .background(colors.controlBackground, RoundedCornerShape(shapes.controlCorner))
-            .border(1.dp, colors.controlBorder, RoundedCornerShape(shapes.controlCorner))
+            .border(1.dp, colors.brandChalk.copy(alpha = 0.42f), RoundedCornerShape(shapes.controlCorner))
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
         EmptyLabel(text)
@@ -345,7 +396,7 @@ fun InsetFilterHeader(
         Text(
             text = summaryText,
             modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
-            color = colors.shellUnselectedContent,
+            color = colors.brandChalk,
             style = typography.filterSummary,
             maxLines = 1,
             textAlign = TextAlign.Center,
@@ -356,7 +407,7 @@ fun InsetFilterHeader(
             Icon(
                 imageVector = Icons.Outlined.FilterList,
                 contentDescription = "Filters",
-                tint = colors.shellSelectedContent,
+                tint = colors.brandGold,
             )
         }
     }
@@ -378,7 +429,7 @@ fun AppRefreshStatusRow(
     ) {
         Text(
             text = label,
-            color = colors.shellUnselectedContent,
+            color = colors.brandChalk,
             fontSize = 11.sp,
         )
         if (isRefreshing) {
@@ -396,7 +447,7 @@ fun AppRefreshStatusRow(
                 Icon(
                     imageVector = Icons.Filled.Refresh,
                     contentDescription = "Refresh data",
-                    tint = colors.shellUnselectedContent.copy(alpha = if (hasNewerData) pulseAlpha else 1f),
+                    tint = colors.brandGold.copy(alpha = if (hasNewerData) pulseAlpha else 1f),
                     modifier = Modifier.size(12.dp),
                 )
             }
@@ -414,8 +465,8 @@ fun AppInlineActionChip(
 ) {
     val colors = PinballThemeTokens.colors
     val shapes = PinballThemeTokens.shapes
-    val contentColor = if (destructive) MaterialTheme.colorScheme.error else colors.shellSelectedContent
-    val borderColor = if (destructive) MaterialTheme.colorScheme.error.copy(alpha = 0.28f) else colors.controlBorder
+    val contentColor = if (destructive) MaterialTheme.colorScheme.error else colors.brandInk
+    val borderColor = if (destructive) MaterialTheme.colorScheme.error.copy(alpha = 0.28f) else colors.brandGold.copy(alpha = 0.38f)
     TextButton(
         onClick = onClick,
         enabled = enabled,

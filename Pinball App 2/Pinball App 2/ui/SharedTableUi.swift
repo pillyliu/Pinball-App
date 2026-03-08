@@ -9,7 +9,7 @@ enum AppTableLayout {
 enum AppDividerStyle {
     static let tableHeader = Color(uiColor: .separator).opacity(0.35)
     static let tableRow = Color(uiColor: .separator).opacity(0.22)
-    static let section = Color.primary.opacity(0.92)
+    static let section = AppTheme.brandChalk.opacity(0.55)
 }
 
 struct AppTableHeaderDivider: View {
@@ -55,9 +55,21 @@ struct AppSectionTitle: View {
     let text: String
 
     var body: some View {
-        Text(text)
-            .font(AppTheme.typography.sectionTitle)
-            .foregroundStyle(.primary)
+        HStack(spacing: 8) {
+            Capsule()
+                .fill(
+                    LinearGradient(
+                        colors: [AppTheme.brandGold, AppTheme.brandChalk],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: 6, height: 18)
+            Text(text)
+                .font(AppTheme.typography.sectionTitle)
+                .foregroundStyle(AppTheme.brandInk)
+            Spacer(minLength: 0)
+        }
     }
 }
 
@@ -68,7 +80,7 @@ struct AppInlineStatusMessage: View {
     var body: some View {
         Text(text)
             .font(.footnote)
-            .foregroundStyle(isError ? .red : .secondary)
+            .foregroundStyle(isError ? .red : AppTheme.brandChalk)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -116,7 +128,29 @@ struct AppPanelStatusCard: View {
         )
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .appPanelStyle()
+        .background(
+            RoundedRectangle(cornerRadius: AppRadii.panel, style: .continuous)
+                .fill(.regularMaterial)
+                .overlay(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: AppRadii.panel, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    (isError ? Color.red : AppTheme.brandGold).opacity(0.82),
+                                    AppTheme.brandChalk.opacity(0.16)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 5)
+                }
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadii.panel)
+                        .stroke(AppTheme.border.opacity(0.7), lineWidth: 1)
+                )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: AppRadii.panel, style: .continuous))
     }
 }
 
@@ -127,6 +161,14 @@ struct AppPanelEmptyCard: View {
         AppTablePlaceholder(text: text, minHeight: 0)
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .appControlStyle()
+            .background(
+                RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                    .fill(AppTheme.controlBg)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                            .stroke(AppTheme.brandChalk.opacity(0.45), lineWidth: 1)
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
     }
 }

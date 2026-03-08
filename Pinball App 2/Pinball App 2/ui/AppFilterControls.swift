@@ -7,7 +7,7 @@ struct AppToolbarIconTriggerLabel: View {
         Image(systemName: systemName)
             .font(.title3)
             .frame(width: 34, height: 34)
-            .foregroundStyle(AppTheme.shellSelectedContent)
+            .foregroundStyle(AppTheme.brandGold)
     }
 }
 
@@ -80,7 +80,7 @@ struct AppRefreshStatusRow: View {
                 }
             }
             .font(.caption2)
-            .foregroundStyle(AppTheme.shellUnselectedContent)
+            .foregroundStyle(AppTheme.brandChalk)
         }
         .buttonStyle(.plain)
         .disabled(isRefreshing)
@@ -150,11 +150,11 @@ struct AppCompactDropdownLabel: View {
                 .font(font)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppTheme.brandInk)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: "chevron.up.chevron.down")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.brandGold)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
@@ -175,11 +175,11 @@ struct AppCompactFilterLabel: View {
                 .font(font)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppTheme.brandInk)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: "line.3.horizontal.decrease.circle.fill")
                 .font(.callout.weight(.semibold))
-                .foregroundStyle(AppTheme.shellSelectedContent)
+                .foregroundStyle(AppTheme.brandGold)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
@@ -201,11 +201,11 @@ struct AppCompactIconMenuLabel: View {
                 .font(font)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppTheme.brandInk)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: systemName)
                 .font(.callout.weight(.semibold))
-                .foregroundStyle(AppTheme.shellSelectedContent)
+                .foregroundStyle(AppTheme.brandGold)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
@@ -225,17 +225,17 @@ struct AppCompactStackedMenuLabel: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.brandChalk)
                 Text(value)
                     .font(.caption.weight(.semibold))
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(AppTheme.brandInk)
             }
             Spacer(minLength: 0)
             Image(systemName: "chevron.down")
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.brandGold)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -266,7 +266,7 @@ struct AppInlineActionChipStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
             .font(.caption.weight(.semibold))
-            .foregroundStyle(isDestructive ? Color.red : Color.primary)
+            .foregroundStyle(isDestructive ? Color.red : AppTheme.brandInk)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(
@@ -274,7 +274,7 @@ struct AppInlineActionChipStyle: ViewModifier {
                     .fill(AppTheme.controlBg)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .stroke(isDestructive ? Color.red.opacity(0.28) : AppTheme.controlBorder, lineWidth: 1)
+                            .stroke(isDestructive ? Color.red.opacity(0.28) : AppTheme.brandGold.opacity(0.35), lineWidth: 1)
                     )
             )
     }

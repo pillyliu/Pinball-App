@@ -159,11 +159,13 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 - iOS and Android now both expose an initial PinProf brand token layer in their shared theme files, adding brand ink / gold / chalk roles plus atmosphere colors that can support a stronger system-level identity before feature-specific styling begins.
 - iOS `AppBackground` and Android `AppScreen` now use the new atmosphere roles to introduce a subtle shared shell backdrop instead of a flat single-color background, keeping the tone more intentional without turning the app into a full branded visual overhaul yet.
 - Android shell selection chrome now also picks up the new brand roles through `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/PinballTheme.kt`, so the bottom-bar indicator and selected content start from the PinProf palette instead of remaining purely neutral system tints.
+- iOS shared section titles, inline-status rows, panel-status cards, panel-empty cards, compact dropdown labels, compact filter labels, compact icon menu labels, stacked compact menu labels, and compact action chips now also consume the PinProf brand roles through `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/SharedTableUi.swift` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppFilterControls.swift`, pushing the identity layer from shell background into reusable chrome.
+- Android shared section titles, inline-status rows, panel-status cards, panel-empty cards, back buttons, refresh/filter headers, compact action chips, and shared dropdown chrome now also consume the PinProf brand roles through `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt` and `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/SharedComponents.kt`, so the identity layer is now visible in shared headers, cards, and control states instead of only the shell backdrop.
 - iOS root tabs in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/app/ContentView.swift` now use one metadata-driven tab contract instead of repeating screen/title/icon wiring inline.
 
 ## Next design-system steps
 
-1. Extend the new brand token layer into more shared chrome: shell headers, card highlights, section accents, and selected-state treatments.
+1. Extend the new brand token layer into the remaining shared chrome: fullscreen/detail headers, selected states, and card highlights that still sit outside the shared seams.
 2. Move more shared component families onto semantic spacing, typography, shape, and brand tokens instead of ad hoc local constants.
 3. Normalize remaining top-bar, header, sheet, and dialog chrome across shared UI helpers on both platforms.
 4. Start documenting motion roles before broader visual restyling.

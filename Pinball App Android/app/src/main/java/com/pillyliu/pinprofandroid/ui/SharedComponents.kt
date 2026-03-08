@@ -93,12 +93,12 @@ fun CompactDropdownFilter(
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
                     focusedContainerColor = colors.controlBackground,
                     unfocusedContainerColor = colors.controlBackground,
-                    focusedBorderColor = colors.controlBorder,
+                    focusedBorderColor = colors.brandGold.copy(alpha = 0.55f),
                     unfocusedBorderColor = colors.controlBorder,
-                    focusedTextColor = colors.shellSelectedContent,
-                    unfocusedTextColor = colors.shellSelectedContent,
-                    focusedTrailingIconColor = colors.shellUnselectedContent,
-                    unfocusedTrailingIconColor = colors.shellUnselectedContent,
+                    focusedTextColor = colors.brandInk,
+                    unfocusedTextColor = colors.brandInk,
+                    focusedTrailingIconColor = colors.brandGold,
+                    unfocusedTrailingIconColor = colors.brandGold,
                 ),
                 modifier = Modifier
                     .menuAnchor(type = MenuAnchorType.PrimaryNotEditable)
@@ -160,12 +160,12 @@ fun AnchoredDropdownFilter(
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
                 focusedContainerColor = colors.controlBackground,
                 unfocusedContainerColor = colors.controlBackground,
-                focusedBorderColor = colors.controlBorder,
+                focusedBorderColor = colors.brandGold.copy(alpha = 0.55f),
                 unfocusedBorderColor = colors.controlBorder,
-                focusedTextColor = colors.shellSelectedContent,
-                unfocusedTextColor = colors.shellSelectedContent,
-                focusedTrailingIconColor = colors.shellUnselectedContent,
-                unfocusedTrailingIconColor = colors.shellUnselectedContent,
+                focusedTextColor = colors.brandInk,
+                unfocusedTextColor = colors.brandInk,
+                focusedTrailingIconColor = colors.brandGold,
+                unfocusedTrailingIconColor = colors.brandGold,
             ),
             modifier = Modifier
                 .menuAnchor(type = MenuAnchorType.PrimaryNotEditable)
@@ -220,12 +220,12 @@ fun GroupedAnchoredDropdownFilter(
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
                 focusedContainerColor = colors.controlBackground,
                 unfocusedContainerColor = colors.controlBackground,
-                focusedBorderColor = colors.controlBorder,
+                focusedBorderColor = colors.brandGold.copy(alpha = 0.55f),
                 unfocusedBorderColor = colors.controlBorder,
-                focusedTextColor = colors.shellSelectedContent,
-                unfocusedTextColor = colors.shellSelectedContent,
-                focusedTrailingIconColor = colors.shellUnselectedContent,
-                unfocusedTrailingIconColor = colors.shellUnselectedContent,
+                focusedTextColor = colors.brandInk,
+                unfocusedTextColor = colors.brandInk,
+                focusedTrailingIconColor = colors.brandGold,
+                unfocusedTrailingIconColor = colors.brandGold,
             ),
             modifier = Modifier
                 .menuAnchor(type = MenuAnchorType.PrimaryNotEditable)
@@ -245,7 +245,7 @@ fun GroupedAnchoredDropdownFilter(
                     Text(
                         text = title,
                         fontSize = 12.sp,
-                        color = colors.shellUnselectedContent,
+                        color = colors.brandChalk,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     )
                 }
