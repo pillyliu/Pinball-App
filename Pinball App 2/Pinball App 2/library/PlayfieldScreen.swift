@@ -173,20 +173,7 @@ struct HostedImageView: View {
             if chrome.isVisible {
                 VStack {
                     HStack {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.title2.weight(.semibold))
-                                .foregroundStyle(.primary)
-                                .padding(14)
-                                .background(.regularMaterial, in: Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color(uiColor: .separator).opacity(0.75), lineWidth: 1)
-                                )
-                                .clipShape(Circle())
-                        }
+                        AppFullscreenBackButton(action: { dismiss() })
                         Spacer()
                     }
                     .padding(.top, 0)

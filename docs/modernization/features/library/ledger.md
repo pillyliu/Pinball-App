@@ -31,6 +31,7 @@
 - Extracted iOS YouTube oEmbed metadata fetch into `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryVideoMetadata.swift`, so `LibraryDomain.swift` no longer carries that service inline.
 - Standardized Library detail section headings on both platforms by moving iOS `Video References`, `Game Info`, and `Sources` card titles plus Android `Sources` section heading onto the shared section-title seams instead of leaving feature-local headline/semibold heading treatment in `LibraryDetailComponents.swift` and `LibraryDetailComponents.kt`.
 - Standardized Android Library screen header composition by moving the Library detail title row plus playfield/rulesheet viewer header rows onto the shared `AppScreenHeader` seam in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt` instead of keeping feature-local back-button plus centered-title rows in `LibraryDetailScreen.kt`, `PlayfieldScreen.kt`, and `RulesheetScreen.kt`.
+- Standardized iOS Library fullscreen back-button chrome by moving the playfield/rulesheet floating back-button overlay into the shared `AppFullscreenBackButton` seam in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/SharedFullscreenChrome.swift` instead of duplicating the same material-circle back control in `PlayfieldScreen.swift` and `RulesheetScreen.swift`.
 
 ## Next audit targets
 

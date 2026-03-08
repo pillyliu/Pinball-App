@@ -102,21 +102,10 @@ struct RulesheetScreen: View {
                 if showsBackButton {
                     VStack {
                         HStack {
-                            Button {
-                                dismiss()
-                            } label: {
-                                Image(systemName: "chevron.left")
-                                    .font(.title2.weight(.semibold))
-                                    .foregroundStyle(.primary)
-                                    .padding(14)
-                                    .background(.regularMaterial, in: Circle())
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color(uiColor: .separator).opacity(0.75), lineWidth: 1)
-                                    )
-                                    .clipShape(Circle())
-                            }
-                            .accessibilityLabel("Back from \(gameName)")
+                            AppFullscreenBackButton(
+                                action: { dismiss() },
+                                accessibilityLabel: "Back from \(gameName)"
+                            )
                             Spacer()
                         }
                         .padding(.top, topInset + 12)

@@ -78,3 +78,24 @@ final class FullscreenChromeController: ObservableObject {
         }
     }
 }
+
+struct AppFullscreenBackButton: View {
+    let action: () -> Void
+    var accessibilityLabel: String = "Back"
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "chevron.left")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.primary)
+                .padding(14)
+                .background(.regularMaterial, in: Circle())
+                .overlay(
+                    Circle()
+                        .stroke(Color(uiColor: .separator).opacity(0.75), lineWidth: 1)
+                )
+                .clipShape(Circle())
+        }
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
