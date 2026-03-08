@@ -1,7 +1,7 @@
 import Foundation
 import SQLite3
 
-func loadEntryScopedRulesheetLinks(
+nonisolated func loadEntryScopedRulesheetLinks(
     _ database: OpaquePointer,
     tableName: String
 ) throws -> [String: [PinballGame.ReferenceLink]] {
@@ -22,7 +22,7 @@ func loadEntryScopedRulesheetLinks(
     return out.mapValues(dedupeRulesheetLinks)
 }
 
-func loadEntryScopedVideos(
+nonisolated func loadEntryScopedVideos(
     _ database: OpaquePointer,
     tableName: String
 ) throws -> [String: [PinballGame.Video]] {
@@ -47,7 +47,7 @@ func loadEntryScopedVideos(
     return out
 }
 
-func loadPracticeScopedRulesheetLinks(
+nonisolated func loadPracticeScopedRulesheetLinks(
     _ database: OpaquePointer,
     tableName: String
 ) throws -> [String: [PinballGame.ReferenceLink]] {
@@ -68,7 +68,7 @@ func loadPracticeScopedRulesheetLinks(
     return out.mapValues(dedupeRulesheetLinks)
 }
 
-func loadPracticeScopedVideos(
+nonisolated func loadPracticeScopedVideos(
     _ database: OpaquePointer,
     tableName: String
 ) throws -> [String: [PinballGame.Video]] {
@@ -89,7 +89,7 @@ func loadPracticeScopedVideos(
     return out
 }
 
-func loadCatalogRulesheetRecords(_ database: OpaquePointer) throws -> [String: [CatalogRulesheetLinkRecord]] {
+nonisolated func loadCatalogRulesheetRecords(_ database: OpaquePointer) throws -> [String: [CatalogRulesheetLinkRecord]] {
     let sql = "SELECT practice_identity, provider, label, url, priority FROM catalog_rulesheet_links ORDER BY practice_identity ASC, priority ASC"
     var statement: OpaquePointer?
     guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
@@ -114,7 +114,7 @@ func loadCatalogRulesheetRecords(_ database: OpaquePointer) throws -> [String: [
     return out
 }
 
-func loadCatalogVideoRecords(_ database: OpaquePointer) throws -> [String: [CatalogVideoLinkRecord]] {
+nonisolated func loadCatalogVideoRecords(_ database: OpaquePointer) throws -> [String: [CatalogVideoLinkRecord]] {
     let sql = "SELECT practice_identity, kind, label, url, priority FROM catalog_video_links ORDER BY practice_identity ASC, priority ASC"
     var statement: OpaquePointer?
     guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK, let statement else {

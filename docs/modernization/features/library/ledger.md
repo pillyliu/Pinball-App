@@ -68,6 +68,7 @@
 - iOS and Android Library summary variant badges now also use the shared branded resource chrome instead of neutral fill and outline styling, aligning game metadata chips with the broader PinProf identity layer.
 - iOS and Android Library list-card overlay variant badges now also use shared branded overlay-badge chrome instead of feature-local black/white pill styling, aligning list-level metadata chips with the broader PinProf identity layer.
 - iOS and Android Library rulesheet viewers now also use shared reading-progress pill seams in `AppResourceChrome.swift` and `AppResourceChrome.kt` instead of feature-local fullscreen progress/save pill styling.
+- iOS Library seed storage and seed query helper globals now explicitly opt out of default `MainActor` isolation in `LibrarySeedStorage.swift` and `LibrarySeedQueryLoaders.swift`, clearing the feature-owned actor-isolation warning noise from the seed-db path after those helpers were extracted out of the old monoliths.
 
 ## Next audit targets
 

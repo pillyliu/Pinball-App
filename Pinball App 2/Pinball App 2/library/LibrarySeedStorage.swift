@@ -93,12 +93,12 @@ extension LibrarySeedDatabase {
     }
 }
 
-private func localDatabaseURL(fileManager: FileManager, seedFileName: String) throws -> URL {
+nonisolated private func localDatabaseURL(fileManager: FileManager, seedFileName: String) throws -> URL {
     let base = try fileManager.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
     return base.appendingPathComponent(seedFileName)
 }
 
-private func bundledDatabaseURL(fileManager: FileManager, seedFileName: String) throws -> URL {
+nonisolated private func bundledDatabaseURL(fileManager: FileManager, seedFileName: String) throws -> URL {
     guard let starterBundleURL = Bundle.main.url(forResource: "PinballStarter", withExtension: "bundle") else {
         throw SeedDatabaseError.missingBundle
     }
