@@ -71,6 +71,7 @@ import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.library.LibraryVenueSearchResult
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.AppBackButton
+import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
@@ -422,8 +423,8 @@ private fun ManagedSourceRow(
             Text(title, fontWeight = FontWeight.SemiBold)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                onRefresh?.let { Button(onClick = it) { Text("Refresh") } }
-                onDelete?.let { Button(onClick = it) { Text("Delete") } }
+                onRefresh?.let { AppInlineActionChip(text = "Refresh", onClick = it) }
+                onDelete?.let { AppInlineActionChip(text = "Delete", onClick = it, destructive = true) }
             }
         }
         Column(horizontalAlignment = Alignment.End) {

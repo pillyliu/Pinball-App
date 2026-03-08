@@ -259,3 +259,23 @@ struct AppSelectableMenuRow: View {
         }
     }
 }
+
+struct AppInlineActionChipStyle: ViewModifier {
+    var isDestructive = false
+
+    func body(content: Content) -> some View {
+        content
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(isDestructive ? Color.red : Color.primary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(AppTheme.controlBg)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(isDestructive ? Color.red.opacity(0.28) : AppTheme.controlBorder, lineWidth: 1)
+                    )
+            )
+    }
+}

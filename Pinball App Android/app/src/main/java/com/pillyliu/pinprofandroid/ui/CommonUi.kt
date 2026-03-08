@@ -20,11 +20,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
@@ -39,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.BorderStroke
 
 val LocalBottomBarVisible = compositionLocalOf<MutableState<Boolean>> {
     error("LocalBottomBarVisible not provided")
@@ -253,6 +256,40 @@ fun AppRefreshStatusRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun AppInlineActionChip(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    destructive: Boolean = false,
+    enabled: Boolean = true,
+) {
+    val colors = PinballThemeTokens.colors
+    val shapes = PinballThemeTokens.shapes
+    val contentColor = if (destructive) MaterialTheme.colorScheme.error else colors.shellSelectedContent
+    val borderColor = if (destructive) MaterialTheme.colorScheme.error.copy(alpha = 0.28f) else colors.controlBorder
+    TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier,
+        shape = RoundedCornerShape(shapes.controlCorner),
+        border = BorderStroke(1.dp, borderColor),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp),
+        colors = ButtonDefaults.textButtonColors(
+            containerColor = colors.controlBackground,
+            contentColor = contentColor,
+            disabledContainerColor = colors.controlBackground.copy(alpha = 0.6f),
+            disabledContentColor = contentColor.copy(alpha = 0.6f),
+        ),
+    ) {
+        Text(
+            text = text,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 

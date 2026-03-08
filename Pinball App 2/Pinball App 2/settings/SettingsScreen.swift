@@ -371,7 +371,7 @@ struct SettingsScreen: View {
                                 }
                             }
                             .buttonStyle(.plain)
-                            .modifier(CompactRowActionButtonStyle())
+                            .modifier(AppInlineActionChipStyle())
                             .accessibilityLabel("Refresh \(source.title)")
                         }
 
@@ -382,7 +382,7 @@ struct SettingsScreen: View {
                                 }
                             }
                             .buttonStyle(.plain)
-                            .modifier(CompactRowActionButtonStyle())
+                            .modifier(AppInlineActionChipStyle())
                             .accessibilityLabel("Refresh \(source.title)")
                         }
 
@@ -390,7 +390,7 @@ struct SettingsScreen: View {
                             viewModel.removeImportedSource(source.id)
                         }
                         .buttonStyle(.plain)
-                        .modifier(CompactRowActionButtonStyle(isDestructive: true))
+                        .modifier(AppInlineActionChipStyle(isDestructive: true))
                         .accessibilityLabel("Remove \(source.title)")
                     }
                 }
@@ -949,26 +949,6 @@ private struct SettingsImportResultRow: View {
                 .foregroundStyle(.tint)
         }
         .padding(.vertical, 8)
-    }
-}
-
-private struct CompactRowActionButtonStyle: ViewModifier {
-    var isDestructive = false
-
-    func body(content: Content) -> some View {
-        content
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(isDestructive ? Color.red : Color.primary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(AppTheme.controlBg)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .stroke(isDestructive ? Color.red.opacity(0.28) : AppTheme.controlBorder, lineWidth: 1)
-                    )
-            )
     }
 }
 
