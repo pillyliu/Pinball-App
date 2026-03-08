@@ -177,16 +177,7 @@ struct PracticeVideoTile: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)
-            .background(
-                selected
-                    ? Color(uiColor: .secondarySystemFill)
-                    : Color(uiColor: .tertiarySystemFill)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color(uiColor: .separator).opacity(selected ? 0.8 : 0.5), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .pinballVideoTileChrome(selected: selected)
         }
         .buttonStyle(.plain)
     }

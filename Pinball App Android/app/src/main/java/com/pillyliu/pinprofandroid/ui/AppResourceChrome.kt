@@ -147,3 +147,27 @@ internal fun AppMediaPreviewPlaceholder(
         }
     }
 }
+
+@Composable
+internal fun appVideoTileContainerColor(selected: Boolean) =
+    if (selected) {
+        PinballThemeTokens.colors.brandGold.copy(alpha = 0.14f)
+    } else {
+        PinballThemeTokens.colors.controlBackground.copy(alpha = 0.88f)
+    }
+
+@Composable
+internal fun appVideoTileBorderColor(selected: Boolean) =
+    if (selected) {
+        PinballThemeTokens.colors.brandGold.copy(alpha = 0.62f)
+    } else {
+        PinballThemeTokens.colors.brandChalk.copy(alpha = 0.26f)
+    }
+
+@Composable
+internal fun appVideoTileLabelColor(selected: Boolean) =
+    if (selected) {
+        PinballThemeTokens.colors.brandInk
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }

@@ -149,16 +149,7 @@ struct LibraryDetailVideosCard: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(10)
-                            .background(
-                                activeVideoID == video.id
-                                    ? Color(uiColor: .secondarySystemFill)
-                                    : Color(uiColor: .tertiarySystemFill)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color(uiColor: .separator).opacity(activeVideoID == video.id ? 0.8 : 0.5), lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .pinballVideoTileChrome(selected: activeVideoID == video.id)
                         }
                         .buttonStyle(.plain)
                     }

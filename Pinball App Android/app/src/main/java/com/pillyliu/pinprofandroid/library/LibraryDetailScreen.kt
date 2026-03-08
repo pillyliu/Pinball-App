@@ -96,6 +96,9 @@ import com.pillyliu.pinprofandroid.data.downloadTextAllowMissing
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
+import com.pillyliu.pinprofandroid.ui.appVideoTileBorderColor
+import com.pillyliu.pinprofandroid.ui.appVideoTileContainerColor
+import com.pillyliu.pinprofandroid.ui.appVideoTileLabelColor
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
@@ -317,8 +320,8 @@ internal fun VideoTile(
         modifier = Modifier
             .width(width)
             .clickable(onClick = onSelect)
-            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(8.dp))
-            .border(1.dp, if (selected) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+            .background(appVideoTileContainerColor(selected), RoundedCornerShape(8.dp))
+            .border(1.dp, appVideoTileBorderColor(selected), RoundedCornerShape(8.dp))
             .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -327,6 +330,6 @@ internal fun VideoTile(
             label = video.label,
             modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
         )
-        Text(video.label, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(video.label, color = appVideoTileLabelColor(selected), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

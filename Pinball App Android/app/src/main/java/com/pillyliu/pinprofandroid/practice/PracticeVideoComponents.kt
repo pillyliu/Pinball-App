@@ -32,6 +32,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.library.PlayableVideo
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
+import com.pillyliu.pinprofandroid.ui.appVideoTileBorderColor
+import com.pillyliu.pinprofandroid.ui.appVideoTileContainerColor
+import com.pillyliu.pinprofandroid.ui.appVideoTileLabelColor
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -84,12 +87,12 @@ internal fun PracticeVideoTile(
             .clip(shape)
             .clickable(onClick = onClick)
             .background(
-                if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerLow,
+                appVideoTileContainerColor(selected),
                 shape = shape,
             )
             .border(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (selected) 0.85f else 0.6f),
+                color = appVideoTileBorderColor(selected),
                 shape = shape,
             )
             .padding(10.dp),
@@ -131,6 +134,7 @@ internal fun PracticeVideoTile(
             text = video.label,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
+            color = appVideoTileLabelColor(selected),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

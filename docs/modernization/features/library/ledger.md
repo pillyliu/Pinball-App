@@ -64,6 +64,7 @@
 - Library thumbnail and image-preview loading/missing states now also use shared media-preview placeholder seams instead of duplicated inline spinner and photo-icon fallback blocks in `PlayfieldScreen.swift`, `LibraryDetailComponents.swift`, `PlayfieldScreen.kt`, and `LibraryDetailScreen.kt`.
 - Android Library game-card artwork fallback now also uses the shared media-preview placeholder seam in `LibraryListScreen.kt` instead of raw `AsyncImage` loading and error behavior in the grid/list cards.
 - iOS Library video-thumbnail loading and retry behavior now also routes through the shared fallback image loader in `LibraryDetailComponents.swift` instead of keeping a feature-local `AsyncImage` candidate-rotation view beside the shared media-preview placeholder seam.
+- iOS and Android Library video thumbnail tiles now also use the shared branded resource-selection chrome instead of neutral fill and separator-outline styling, aligning media selection surfaces with the broader PinProf identity layer.
 
 ## Next audit targets
 

@@ -73,3 +73,32 @@ func PinballMediaPreviewPlaceholder(
         .padding(12)
     }
 }
+
+private struct PinballVideoTileChrome: ViewModifier {
+    let selected: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                selected
+                    ? AppTheme.brandGold.opacity(0.14)
+                    : AppTheme.controlBg.opacity(0.82)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(
+                        selected
+                            ? AppTheme.brandGold.opacity(0.62)
+                            : AppTheme.brandChalk.opacity(0.26),
+                        lineWidth: 1
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+extension View {
+    func pinballVideoTileChrome(selected: Bool) -> some View {
+        modifier(PinballVideoTileChrome(selected: selected))
+    }
+}
