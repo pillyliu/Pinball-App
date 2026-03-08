@@ -11,6 +11,8 @@
 - Android rotating preview timers and display-toggle state now live in `LeaguePreviewRotationState.kt` instead of staying inline in `LeagueScreen.kt`.
 - iOS League home now splits into a small root navigation shell in `LeagueScreen.swift` plus `LeagueShellContent.swift` for the responsive card layout, destination links, and About footer.
 - Android League home now also splits the responsive card layout, destination links, and About footer into `LeagueShellContent.kt`, leaving `LeagueScreen.kt` focused on shell orchestration and preview-state loading.
+- iOS League preview loading/parsing/shaping now lives behind `LeaguePreviewLoader.swift` and `LeaguePreviewParsing.swift`, leaving `LeaguePreviewModel.swift` as a thin published-state facade.
+- Android League preview loading now mirrors that shape more closely: `LeaguePreviewLoader.kt` focuses on fetch/snapshot assembly, while `LeaguePreviewParsing.kt` owns CSV parsing and preview-shaping rules.
 
 ## Next audit targets
 
