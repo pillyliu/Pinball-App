@@ -49,10 +49,12 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -925,35 +927,31 @@ fun AppSelectableRowButton(
     val colors = PinballThemeTokens.colors
     val highlightShape = RoundedCornerShape(highlightCorner)
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-        TextButton(
-            onClick = onClick,
-            modifier = modifier.defaultMinSize(minHeight = 0.dp),
-            contentPadding = PaddingValues(0.dp),
-            colors = ButtonDefaults.textButtonColors(
-                contentColor = colors.brandInk,
-            ),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        if (selected) colors.brandGold.copy(alpha = 0.14f) else Color.Transparent,
-                        shape = highlightShape,
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = if (selected) colors.brandGold.copy(alpha = 0.42f) else Color.Transparent,
-                        shape = highlightShape,
-                    )
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
-            ) {
-                Text(
-                    text = text,
-                    color = if (selected) colors.brandInk else colors.brandChalk,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+        Box(
+            modifier = modifier
+                .defaultMinSize(minHeight = 0.dp)
+                .clip(highlightShape)
+                .clickable(
+                    role = Role.Button,
+                    onClick = onClick,
                 )
-            }
+                .background(
+                    if (selected) colors.brandGold.copy(alpha = 0.14f) else Color.Transparent,
+                    shape = highlightShape,
+                )
+                .border(
+                    width = 1.dp,
+                    color = if (selected) colors.brandGold.copy(alpha = 0.42f) else Color.Transparent,
+                    shape = highlightShape,
+                )
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+        ) {
+            Text(
+                text = text,
+                color = if (selected) colors.brandInk else colors.brandChalk,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
