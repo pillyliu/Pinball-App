@@ -179,8 +179,8 @@ internal fun CurrentGroupsCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                        .height(42.dp)
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .height(40.dp)
                         .clip(DashboardRowShape),
                 ) {
                     Row(
@@ -253,6 +253,7 @@ internal fun CurrentGroupsCard(
                                 onRevealedGroupIDChange(null)
                                 offsetX = 0f
                             },
+                            highlightCorner = 8.dp,
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = 6.dp, vertical = 3.dp),

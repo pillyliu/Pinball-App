@@ -858,9 +858,10 @@ fun AppSelectableRowButton(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    highlightCorner: Dp = PinballThemeTokens.shapes.controlCorner,
 ) {
     val colors = PinballThemeTokens.colors
-    val shapes = PinballThemeTokens.shapes
+    val highlightShape = RoundedCornerShape(highlightCorner)
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
         TextButton(
             onClick = onClick,
@@ -875,12 +876,12 @@ fun AppSelectableRowButton(
                     .fillMaxWidth()
                     .background(
                         if (selected) colors.brandGold.copy(alpha = 0.14f) else Color.Transparent,
-                        shape = RoundedCornerShape(shapes.controlCorner),
+                        shape = highlightShape,
                     )
                     .border(
                         width = 1.dp,
                         color = if (selected) colors.brandGold.copy(alpha = 0.42f) else Color.Transparent,
-                        shape = RoundedCornerShape(shapes.controlCorner),
+                        shape = highlightShape,
                     )
                     .padding(horizontal = 10.dp, vertical = 4.dp),
             ) {
