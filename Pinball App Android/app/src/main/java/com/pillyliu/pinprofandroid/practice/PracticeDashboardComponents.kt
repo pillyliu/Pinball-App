@@ -3,71 +3,31 @@ package com.pillyliu.pinprofandroid.practice
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppMetricPill
+import com.pillyliu.pinprofandroid.ui.AppTintedStatusChip
 
 @Composable
 internal fun DashboardStatusChip(text: String, color: Color, modifier: Modifier = Modifier) {
-    Text(
+    AppTintedStatusChip(
         text = text,
-        style = MaterialTheme.typography.labelSmall,
         color = color,
-        modifier = modifier
-            .background(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-            )
-            .padding(horizontal = 8.dp, vertical = 5.dp),
+        modifier = modifier,
     )
 }
 
 @Composable
 internal fun DashboardMetricPill(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .background(
-                MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-            )
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-            )
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(
-            value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
+    AppMetricPill(label = label, value = value, modifier = modifier)
 }
 
 @Composable

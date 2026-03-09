@@ -54,6 +54,12 @@ internal class GameRoomCatalogLoader(private val context: Context) {
     var didLoad by mutableStateOf(false)
         private set
 
+    var isLoading by mutableStateOf(false)
+        private set
+
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
+
     var games by mutableStateOf<List<GameRoomCatalogGame>>(emptyList())
         private set
 
@@ -72,15 +78,30 @@ internal class GameRoomCatalogLoader(private val context: Context) {
     fun loadIfNeeded() {
         if (didLoad) return
         didLoad = true
-        loadCatalog()
+        isLoading = true
+        errorMessage = null
+        try {
+            loadCatalog()
+        } catch (error: Throwable) {
+            games = emptyList()
+            manufacturers = emptyList()
+            manufacturerOptions = emptyList()
+            variantOptionsByCatalogGameID = emptyMap()
+            machineRecordsByCatalogGameID = emptyMap()
+            slugMatchesBySlug = emptyMap()
+            errorMessage = "Failed to load catalog data: ${error.localizedMessage ?: error::class.java.simpleName}"
+        }
+        isLoading = false
     }
 
     private fun loadCatalog() {
-        val raw = runCatching {
-            context.assets.open("starter-pack/pinball/data/opdb_catalog_v1.json").bufferedReader().use { it.readText() }
-        }.getOrNull() ?: return
-        val root = runCatching { JSONObject(raw) }.getOrNull() ?: return
-        val machines = root.optJSONArray("machines") ?: return
+        val raw = context.assets
+            .open("starter-pack/pinball/data/opdb_catalog_v1.json")
+            .bufferedReader()
+            .use { it.readText() }
+        val root = JSONObject(raw)
+        val machines = root.optJSONArray("machines")
+            ?: throw IllegalStateException("Catalog data is missing machines.")
 
         val manufacturersArray = root.optJSONArray("manufacturers")
         manufacturerOptions = buildList {
@@ -178,6 +199,7 @@ internal class GameRoomCatalogLoader(private val context: Context) {
             compareBy<GameRoomCatalogGame> { it.displayTitle.lowercase() }.thenBy { it.year ?: Int.MAX_VALUE },
         )
         manufacturers = manufacturerBucket.toList().sortedBy { it.lowercase() }
+        errorMessage = null
         variantOptionsByCatalogGameID = variantsByGroup.mapValues { (_, values) ->
             values.sortedWith(compareBy<String> { variantRank(it) }.thenBy { it.lowercase() })
         }

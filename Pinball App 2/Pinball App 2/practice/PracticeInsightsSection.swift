@@ -40,8 +40,7 @@ struct PracticeInsightsSectionView: View {
             insightsGameDropdown
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Stats")
-                    .font(.headline)
+                AppSectionTitle(text: "Stats")
 
                 if let gameID = selectedGame?.canonicalPracticeKey,
                    let summary = scoreSummaryForGame(gameID) {
@@ -79,14 +78,12 @@ struct PracticeInsightsSectionView: View {
 
                     HStack(spacing: 8) {
                         let spreadRatio = summary.median > 0 ? (summary.p75 - summary.floor) / summary.median : 0
-                        MetricPill(label: "Consistency", value: spreadRatio >= 0.6 ? "High Risk" : "Stable")
-                        MetricPill(label: "Floor", value: formattedScore(summary.floor))
-                        MetricPill(label: "Median", value: formattedScore(summary.median))
+                        AppMetricPill(label: "Consistency", value: spreadRatio >= 0.6 ? "High Risk" : "Stable")
+                        AppMetricPill(label: "Floor", value: formattedScore(summary.floor))
+                        AppMetricPill(label: "Median", value: formattedScore(summary.median))
                     }
                 } else {
-                    Text("Log scores to unlock trends and consistency analytics.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: "Log scores to unlock trends and consistency analytics.")
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -95,8 +92,7 @@ struct PracticeInsightsSectionView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Head-to-Head")
-                        .font(.headline)
+                    AppSectionTitle(text: "Head-to-Head")
                     Spacer()
                     Button {
                         Task { await onRefreshHeadToHead() }
@@ -110,17 +106,14 @@ struct PracticeInsightsSectionView: View {
                 insightsOpponentDropdown
 
                 if isLoadingHeadToHead {
-                    ProgressView("Loading player comparison...")
-                        .font(.footnote)
+                    AppInlineTaskStatus(text: "Loading player comparison…", showsProgress: true)
                 } else if opponentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("Select a player above to enable player-vs-player views.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: "Select a player above to enable player-vs-player views.")
                 } else if let scoped = headToHead {
                     HStack(spacing: 8) {
-                        MetricPill(label: "Games", value: "\(scoped.totalGamesCompared)")
-                        MetricPill(label: "You Lead", value: "\(scoped.gamesYouLeadByMean)")
-                        MetricPill(label: "Avg Delta", value: signedScore(scoped.averageMeanDelta))
+                        AppMetricPill(label: "Games", value: "\(scoped.totalGamesCompared)")
+                        AppMetricPill(label: "You Lead", value: "\(scoped.gamesYouLeadByMean)")
+                        AppMetricPill(label: "Avg Delta", value: signedScore(scoped.averageMeanDelta))
                     }
 
                     ForEach(Array(scoped.games.prefix(8))) { game in
@@ -139,9 +132,7 @@ struct PracticeInsightsSectionView: View {
                     HeadToHeadDeltaBars(games: chartGames)
                         .frame(height: headToHeadPlotHeight(for: chartGames.count))
                 } else {
-                    Text("No shared machine history yet between \(playerName.isEmpty ? "you" : displayLPLPlayerName(playerName)) and \(displayLPLPlayerName(opponentName)).")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: "No shared machine history yet between \(playerName.isEmpty ? "you" : displayLPLPlayerName(playerName)) and \(displayLPLPlayerName(opponentName)).")
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -159,12 +150,16 @@ struct PracticeInsightsSectionView: View {
     private var insightsGameDropdown: some View {
         Menu {
             if librarySources.count > 1 {
-                Button((selectedLibrarySourceID == nil ? "✓ " : "") + "All games") {
+                Button {
                     onSelectLibrarySourceID(nil)
+                } label: {
+                    AppSelectableMenuRow(text: "All games", isSelected: selectedLibrarySourceID == nil)
                 }
                 ForEach(librarySources) { source in
-                    Button((source.id == selectedLibrarySourceID ? "✓ " : "") + source.name) {
+                    Button {
                         onSelectLibrarySourceID(source.id)
+                    } label: {
+                        AppSelectableMenuRow(text: source.name, isSelected: source.id == selectedLibrarySourceID)
                     }
                 }
                 Divider()
@@ -180,7 +175,7 @@ struct PracticeInsightsSectionView: View {
                 }
             }
         } label: {
-            compactDropdownLabel(text: selectedGameName)
+            AppCompactDropdownLabel(text: selectedGameName)
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -197,7 +192,7 @@ struct PracticeInsightsSectionView: View {
                 }
             }
         } label: {
-            compactDropdownLabel(text: opponentName.isEmpty ? "Select player" : displayLPLPlayerName(opponentName))
+            AppCompactDropdownLabel(text: opponentName.isEmpty ? "Select player" : displayLPLPlayerName(opponentName))
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -207,24 +202,6 @@ struct PracticeInsightsSectionView: View {
         _ = showFullLPLLastNames
         return formatLPLPlayerNameForDisplay(raw)
     }
-
-    private func compactDropdownLabel(text: String) -> some View {
-        HStack(spacing: 8) {
-            Text(text)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appControlStyle()
-    }
-
     private func headToHeadPlotHeight(for count: Int) -> CGFloat {
         guard count > 0 else { return 170 }
         let rowHeight: CGFloat = 20

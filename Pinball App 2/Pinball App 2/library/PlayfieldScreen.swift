@@ -34,16 +34,10 @@ struct FallbackAsyncImageView: View {
                         )
                     )
             } else {
-                Color(uiColor: .tertiarySystemBackground)
-                    .overlay {
-                        if let emptyMessage, candidates.isEmpty || didFailCurrent {
-                            Text(emptyMessage)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ProgressView()
-                        }
-                }
+                PinballMediaPreviewPlaceholder(
+                    message: (candidates.isEmpty || didFailCurrent) ? emptyMessage : nil,
+                    showsProgress: !(candidates.isEmpty || didFailCurrent)
+                )
             }
         }
         .task(id: candidateKey) {
@@ -158,35 +152,34 @@ struct HostedImageView: View {
                 ZoomableImageScrollView(image: image)
                     .ignoresSafeArea()
             } else if loader.failed {
-                VStack(spacing: 8) {
-                    Text("Could not load image.")
-                        .foregroundStyle(.secondary)
+                ZStack {
+                    AppFullscreenStatusOverlay(
+                        text: "Could not load image.",
+                        foregroundColor: .white.opacity(0.9)
+                    )
+
                     if let sourceURL = imageCandidates.first {
-                        Link("Open Original URL", destination: sourceURL)
-                            .font(.footnote)
+                        VStack {
+                            Spacer()
+                            Link("Open Original URL", destination: sourceURL)
+                                .font(.footnote)
+                                .foregroundStyle(.white.opacity(0.92))
+                                .padding(.bottom, 34)
+                        }
                     }
                 }
             } else {
-                ProgressView()
+                AppFullscreenStatusOverlay(
+                    text: "Loading image…",
+                    showsProgress: true,
+                    foregroundColor: .white.opacity(0.9)
+                )
             }
 
             if chrome.isVisible {
                 VStack {
                     HStack {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.title2.weight(.semibold))
-                                .foregroundStyle(.primary)
-                                .padding(14)
-                                .background(.regularMaterial, in: Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color(uiColor: .separator).opacity(0.75), lineWidth: 1)
-                                )
-                                .clipShape(Circle())
-                        }
+                        AppFullscreenBackButton(action: { dismiss() })
                         Spacer()
                     }
                     .padding(.top, 0)
@@ -276,11 +269,9 @@ struct ConstrainedAsyncImagePreview: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(imagePadding)
             } else if loader.failed {
-                Text(emptyMessage ?? "No image")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                PinballMediaPreviewPlaceholder(message: emptyMessage ?? "No image")
             } else {
-                ProgressView()
+                PinballMediaPreviewPlaceholder(showsProgress: true)
             }
         }
         .aspectRatio(effectiveAspectRatio, contentMode: .fit)

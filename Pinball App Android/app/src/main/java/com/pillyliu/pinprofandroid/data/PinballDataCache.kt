@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.res.AssetManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import com.pillyliu.pinprofandroid.library.HOSTED_LIBRARY_PATHS
+import com.pillyliu.pinprofandroid.library.hostedOPDBCatalogPath
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,7 +37,6 @@ private val STARTER_PRIORITY_PATHS = listOf(
     "/pinball/data/redacted_players.csv",
     "/pinball/data/lpl_stats.csv",
 )
-
 data class CachedTextResult(
     val text: String?,
     val isMissing: Boolean,
@@ -66,6 +67,16 @@ object PinballDataCache {
 
     fun initialize(context: Context) {
         appContext = context.applicationContext
+    }
+
+    fun loadBundledStarterText(path: String): String? {
+        val context = appContext ?: return null
+        val normalizedPath = if (path.startsWith("/")) path else "/$path"
+        if (!normalizedPath.startsWith("/pinball/")) return null
+        val assetPath = "starter-pack$normalizedPath"
+        return runCatching {
+            context.assets.open(assetPath).bufferedReader().use { it.readText() }
+        }.getOrNull()
     }
 
     suspend fun loadText(url: String, allowMissing: Boolean = false): CachedTextResult = withContext(Dispatchers.IO) {
@@ -99,12 +110,24 @@ object PinballDataCache {
         val path = normalizePath(url)
         ensureLoaded()
 
-        val fetched = fetchBytes(path, allowMissing)
+        val fetched = fetchBytes(path, allowMissing, allowStaleOnFailure = false)
         if (fetched.isMissing) {
             return@withContext CachedTextResult(text = null, isMissing = true, updatedAtMs = null)
         }
         val text = fetched.bytes?.decodeToString()
         CachedTextResult(text = text, isMissing = text == null, updatedAtMs = fetched.updatedAtMs)
+    }
+
+    suspend fun forceRefreshHostedLibraryData() = withContext(Dispatchers.IO) {
+        ensureLoaded()
+        refreshMetadataIfNeeded(force = true)
+        HOSTED_LIBRARY_PATHS.forEach { path ->
+            fetchBytes(
+                path = path,
+                allowMissing = path == hostedOPDBCatalogPath,
+                allowStaleOnFailure = false,
+            )
+        }
     }
 
     suspend fun loadText(url: String, allowMissing: Boolean = false, maxCacheAgeMs: Long): CachedTextResult = withContext(Dispatchers.IO) {
@@ -167,7 +190,7 @@ object PinballDataCache {
         fetchBytes(path, allowMissing)
     }
 
-    private suspend fun fetchBytes(path: String, allowMissing: Boolean): CachedBytesResult {
+    private suspend fun fetchBytes(path: String, allowMissing: Boolean, allowStaleOnFailure: Boolean = true): CachedBytesResult {
         if (!hasUsableNetwork(appContext)) {
             val stale = readCached(path)
             if (stale != null) {
@@ -210,7 +233,7 @@ object PinballDataCache {
             }
         } catch (t: Throwable) {
             val stale = readCached(path)
-            if (stale != null) {
+            if (allowStaleOnFailure && stale != null) {
                 CachedBytesResult(bytes = stale, isMissing = false, updatedAtMs = cachedUpdatedAtMs(path))
             } else {
                 throw t

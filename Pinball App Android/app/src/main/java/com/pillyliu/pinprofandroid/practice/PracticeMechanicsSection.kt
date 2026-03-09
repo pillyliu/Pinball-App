@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,14 +16,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppExternalLinkButton
+import com.pillyliu.pinprofandroid.ui.AppMetricPill
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
 internal fun PracticeMechanicsSection(
     store: PracticeStore,
-    selectedGameSlug: String?,
     mechanicsSelectedSkill: String,
     onMechanicsSelectedSkillChange: (String) -> Unit,
     mechanicsCompetency: Float,
@@ -41,7 +43,7 @@ internal fun PracticeMechanicsSection(
     val skillOptions = listOf("") + allSkills
 
     CardContainer {
-        Text("Mechanics", fontWeight = FontWeight.SemiBold)
+        SectionTitle("Mechanics")
         Text("Skills are tracked as tags in your notes.")
 
         SimpleMenuDropdown(
@@ -76,20 +78,17 @@ internal fun PracticeMechanicsSection(
             Text("Detected tags: ${detected.joinToString(", ")}", style = MaterialTheme.typography.bodySmall)
         }
 
-        Button(onClick = {
+        AppPrimaryButton(onClick = {
             val prefix = if (mechanicsSelectedSkill.isBlank()) "#mechanics" else "#${mechanicsSelectedSkill.replace(" ", "")}"
             val composed = "$prefix competency ${mechanicsCompetency.roundToInt()}/5. ${mechanicsNote.trim()}".trim()
             store.addPracticeNote("", "general", mechanicsSelectedSkill, composed)
             onMechanicsNoteChange("")
-        }) { Text("Log Mechanics Session") }
+        }, modifier = Modifier.fillMaxWidth()) { Text("Log Mechanics Session") }
     }
 
     CardContainer {
         val selectedSkill = mechanicsSelectedSkill.trim()
-        Text(
-            if (selectedSkill.isEmpty()) "Mechanics History (All Skills)" else "$selectedSkill History",
-            fontWeight = FontWeight.SemiBold,
-        )
+        SectionTitle(if (selectedSkill.isEmpty()) "Mechanics History (All Skills)" else "$selectedSkill History")
         val logs = if (selectedSkill.isEmpty()) {
             allSkills
                 .flatMap { skill -> store.mechanicsLogs(skill) }
@@ -101,27 +100,29 @@ internal fun PracticeMechanicsSection(
         if (selectedSkill.isNotEmpty()) {
             val summary = store.mechanicsSummary(mechanicsSelectedSkill)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                Text("Logs: ${summary.totalLogs}", style = MaterialTheme.typography.bodySmall)
-                Text("Latest: ${summary.latestComfort?.let { "$it/5" } ?: "-"}", style = MaterialTheme.typography.bodySmall)
-                Text(
-                    "Avg: ${summary.averageComfort?.let { String.format(Locale.US, "%.1f/5", it) } ?: "-"}",
-                    style = MaterialTheme.typography.bodySmall,
+                AppMetricPill(label = "Logs", value = "${summary.totalLogs}", modifier = Modifier.weight(1f))
+                AppMetricPill(label = "Latest", value = summary.latestComfort?.let { "$it/5" } ?: "-", modifier = Modifier.weight(1f))
+                AppMetricPill(
+                    label = "Avg",
+                    value = summary.averageComfort?.let { String.format(Locale.US, "%.1f/5", it) } ?: "-",
+                    modifier = Modifier.weight(1f),
                 )
-                Text(
-                    "Trend: ${summary.trendDelta?.let { signedCompact(it) } ?: "-"}",
-                    style = MaterialTheme.typography.bodySmall,
+                AppMetricPill(
+                    label = "Trend",
+                    value = summary.trendDelta?.let { signedCompact(it) } ?: "-",
+                    modifier = Modifier.weight(1f),
                 )
             }
             MechanicsTrendSparkline(logs = logs)
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                Text("Logs: ${logs.size}", style = MaterialTheme.typography.bodySmall)
+                AppMetricPill(label = "Logs", value = "${logs.size}", modifier = Modifier.weight(1f))
             }
         }
         val rows = logs.takeLast(24).reversed()
         if (rows.isEmpty()) {
-            Text(
-                if (selectedSkill.isEmpty()) "No mechanics sessions logged yet." else "No sessions logged for this skill yet.",
+            AppPanelEmptyCard(
+                text = if (selectedSkill.isEmpty()) "No mechanics sessions logged yet." else "No sessions logged for this skill yet.",
             )
         } else {
             LazyColumn(modifier = Modifier.height(260.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -139,7 +140,9 @@ internal fun PracticeMechanicsSection(
         }
     }
 
-    OutlinedButton(onClick = onOpenDeadFlipTutorials) {
-        Text("Dead Flip Tutorials")
-    }
+    AppExternalLinkButton(
+        text = "Dead Flip Tutorials",
+        onClick = onOpenDeadFlipTutorials,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }

@@ -22,23 +22,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -48,15 +37,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.pillyliu.pinprofandroid.ui.AppFilterSheet
+import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
+import com.pillyliu.pinprofandroid.ui.AppOverlaySubtitle
+import com.pillyliu.pinprofandroid.ui.AppOverlayTitle
+import com.pillyliu.pinprofandroid.ui.AppVariantPill
+import com.pillyliu.pinprofandroid.ui.AppVariantPillStyle
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
+import com.pillyliu.pinprofandroid.ui.AppSearchFilterBar
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CompactDropdownFilter
 
@@ -64,13 +60,9 @@ import com.pillyliu.pinprofandroid.ui.CompactDropdownFilter
 @Composable
 internal fun LibraryList(
     contentPadding: PaddingValues,
-    games: List<PinballGame>,
-    sources: List<LibrarySource>,
-    selectedSourceId: String,
-    query: String,
-    sortOptionName: String,
-    yearSortDescending: Boolean,
-    selectedBank: Int?,
+    isLoading: Boolean,
+    errorMessage: String?,
+    browseState: LibraryBrowseState,
     onSourceChange: (String) -> Unit,
     onQueryChange: (String) -> Unit,
     onSortOptionChange: (String) -> Unit,
@@ -81,57 +73,29 @@ internal fun LibraryList(
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val searchFontSize = if (isLandscape) 14.sp else 13.sp
     val searchControlMinHeight = if (isLandscape) 48.dp else 48.dp
-    val searchContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    val searchTextStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = searchFontSize)
-    val selectedSource = remember(sources, selectedSourceId) {
-        sources.firstOrNull { it.id == selectedSourceId } ?: sources.firstOrNull()
-    }
-    val sourceScopedGames = remember(games, selectedSource?.id) {
-        val sid = selectedSource?.id
-        if (sid == null) games else games.filter { it.sourceId == sid }
-    }
-    val sortOptions = remember(selectedSource, sourceScopedGames) {
-        selectedSource?.let { sortOptionsForSource(it, sourceScopedGames) }
-            ?: listOf(LibrarySortOption.AREA, LibrarySortOption.ALPHABETICAL)
-    }
-    val fallbackSort = remember(selectedSource, sortOptions) {
-        selectedSource?.defaultSortOption?.takeIf { sortOptions.contains(it) } ?: sortOptions.first()
-    }
-    val sortOption = remember(sortOptionName, sortOptions, fallbackSort) {
-        LibrarySortOption.entries.firstOrNull { it.name == sortOptionName }
-            ?.takeIf { sortOptions.contains(it) }
-            ?: fallbackSort
-    }
-    var visibleCount by remember(selectedSourceId, query, sortOptionName, yearSortDescending, selectedBank, games) { mutableIntStateOf(48) }
+    val selectedSource = browseState.selectedSource
+    val sortOptions = browseState.sortOptions
+    val fallbackSort = browseState.fallbackSort
+    val sortOption = browseState.sortOption
+    var visibleCount by remember(
+        browseState.selectedSourceId,
+        browseState.query,
+        browseState.sortOptionName,
+        browseState.yearSortDescending,
+        browseState.selectedBank,
+        browseState.games,
+    ) { mutableIntStateOf(48) }
     var showFilterSheet by remember { mutableStateOf(false) }
-    val supportsBankFilter = selectedSource?.type == LibrarySourceType.VENUE && sourceScopedGames.any { (it.bank ?: 0) > 0 }
-    val effectiveSelectedBank = if (supportsBankFilter) selectedBank else null
-    val bankOptions = sourceScopedGames.mapNotNull { it.bank }.filter { it > 0 }.toSet().sorted()
-    val filtered = sourceScopedGames.filter { game ->
-        val q = query.trim().lowercase()
-        val queryMatch = if (q.isBlank()) true else {
-            "${game.name} ${game.manufacturer.orEmpty()} ${game.year?.toString().orEmpty()}".lowercase().contains(q)
-        }
-        val bankMatch = effectiveSelectedBank == null || game.bank == effectiveSelectedBank
-        queryMatch && bankMatch
-    }
-    val sortedGames = remember(filtered, sortOption, yearSortDescending) { sortLibraryGames(filtered, sortOption, yearSortDescending) }
-    val visibleGames = remember(sortedGames, visibleCount) { sortedGames.take(visibleCount) }
-    val hasMoreGames = visibleGames.size < sortedGames.size
-    val showGroupedView = effectiveSelectedBank == null && (sortOption == LibrarySortOption.AREA || sortOption == LibrarySortOption.BANK)
-    val groupedSections = remember(visibleGames, sortOption) {
-        when (sortOption) {
-            LibrarySortOption.AREA -> buildSections(visibleGames) { it.group }
-            LibrarySortOption.BANK -> buildSections(visibleGames) { it.bank }
-            LibrarySortOption.ALPHABETICAL, LibrarySortOption.YEAR -> emptyList()
-        }
-    }
+    val visibleGames = remember(browseState, visibleCount) { browseState.visibleGames(visibleCount) }
+    val hasMoreGames = remember(browseState, visibleCount) { browseState.hasMoreGames(visibleCount) }
+    val showGroupedView = browseState.showGroupedView
+    val groupedSections = remember(browseState, visibleCount) { browseState.groupedSections(visibleCount) }
 
     AppScreen(contentPadding) {
         val controlsTopOffset = 2.dp
         val controlsTopInset = if (isLandscape) 64.dp else 64.dp
         Box(modifier = Modifier.fillMaxSize()) {
-            if (games.isNotEmpty()) {
+            if (browseState.games.isNotEmpty()) {
                 Column(
                     modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = controlsTopInset),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -164,6 +128,25 @@ internal fun LibraryList(
                     }
                     Spacer(Modifier.height(LIBRARY_CONTENT_BOTTOM_FILLER))
                 }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = controlsTopInset),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    when {
+                        isLoading -> AppPanelStatusCard(
+                            text = "Loading library…",
+                            showsProgress = true,
+                        )
+                        !errorMessage.isNullOrBlank() -> AppPanelStatusCard(
+                            text = errorMessage,
+                            isError = true,
+                        )
+                        else -> AppPanelEmptyCard(text = "No data loaded.")
+                    }
+                }
             }
 
             Column(
@@ -172,125 +155,71 @@ internal fun LibraryList(
                     .padding(top = controlsTopOffset),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = onQueryChange,
-                        placeholder = {
-                            Text(
-                                "Search games...",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = searchTextStyle,
-                                maxLines = 1,
-                            )
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(searchControlMinHeight)
-                            .shadow(10.dp, RoundedCornerShape(14.dp), clip = false),
-                        shape = RoundedCornerShape(14.dp),
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None),
-                        textStyle = searchTextStyle,
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            focusedLabelColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            cursorColor = MaterialTheme.colorScheme.onSurface,
-                            focusedContainerColor = searchContainerColor,
-                            unfocusedContainerColor = searchContainerColor,
-                            focusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        ),
-                    )
-                    FilledTonalIconButton(
-                        onClick = { showFilterSheet = true },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = searchContainerColor,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                        ),
-                        modifier = Modifier
-                            .height(searchControlMinHeight)
-                            .shadow(10.dp, RoundedCornerShape(14.dp), clip = false),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.FilterList,
-                            contentDescription = "Filters",
-                        )
-                    }
-                }
+                AppSearchFilterBar(
+                    query = browseState.query,
+                    onQueryChange = onQueryChange,
+                    placeholder = "Search games...",
+                    onFilterClick = { showFilterSheet = true },
+                    minHeight = searchControlMinHeight,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = searchFontSize),
+                    placeholderTextStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = searchFontSize),
+                )
             }
         }
     }
 
     if (showFilterSheet) {
-        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text("Library filters", style = MaterialTheme.typography.titleSmall)
-                if (sources.isNotEmpty()) {
-                    CompactDropdownFilter(
-                        selectedText = selectedSource?.name ?: "Library",
-                        options = sources.map { it.name },
-                        onSelect = { selected ->
-                            val source = sources.firstOrNull { it.name == selected } ?: return@CompactDropdownFilter
-                            onSourceChange(source.id)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        minHeight = 38.dp,
-                        textSize = 12.sp,
-                        itemTextSize = 12.sp,
-                    )
-                }
+        AppFilterSheet(
+            title = "Library filters",
+            onDismissRequest = { showFilterSheet = false },
+        ) {
+            if (browseState.visibleSources.isNotEmpty()) {
                 CompactDropdownFilter(
-                    selectedText = when {
-                        sortOption == LibrarySortOption.YEAR && yearSortDescending -> "Sort: Year (New-Old)"
-                        sortOption == LibrarySortOption.YEAR -> "Sort: Year (Old-New)"
-                        else -> sortOption.label
-                    },
-                    options = sortOptions.flatMap {
-                        if (it == LibrarySortOption.YEAR) listOf("Sort: Year (Old-New)", "Sort: Year (New-Old)") else listOf(it.label)
-                    },
+                    selectedText = selectedSource?.name ?: "Library",
+                    options = browseState.visibleSources.map { it.name },
                     onSelect = { selected ->
-                        when (selected) {
-                            "Sort: Year (New-Old)" -> onSortOptionChange("YEAR_DESC")
-                            "Sort: Year (Old-New)" -> onSortOptionChange(LibrarySortOption.YEAR.name)
-                            else -> {
-                                val option = sortOptions.firstOrNull { it.label == selected } ?: fallbackSort
-                                onSortOptionChange(option.name)
-                            }
-                        }
+                        val source = browseState.visibleSources.firstOrNull { it.name == selected } ?: return@CompactDropdownFilter
+                        onSourceChange(source.id)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     minHeight = 38.dp,
                     textSize = 12.sp,
                     itemTextSize = 12.sp,
                 )
-                if (supportsBankFilter) {
-                    CompactDropdownFilter(
-                        selectedText = effectiveSelectedBank?.let { "Bank $it" } ?: "All banks",
-                        options = listOf("All banks") + bankOptions.map { "Bank $it" },
-                        onSelect = { selected ->
-                            val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
-                            onBankChange(bank)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        minHeight = 38.dp,
-                        textSize = 12.sp,
-                        itemTextSize = 12.sp,
-                    )
-                }
-                TextButton(onClick = { showFilterSheet = false }, modifier = Modifier.align(Alignment.End)) {
-                    Text("Done")
-                }
+            }
+            CompactDropdownFilter(
+                selectedText = browseState.selectedSortLabel,
+                options = sortOptions.flatMap {
+                    if (it == LibrarySortOption.YEAR) listOf("Sort: Year (Old-New)", "Sort: Year (New-Old)") else listOf(it.label)
+                },
+                onSelect = { selected ->
+                    when (selected) {
+                        "Sort: Year (New-Old)" -> onSortOptionChange("YEAR_DESC")
+                        "Sort: Year (Old-New)" -> onSortOptionChange(LibrarySortOption.YEAR.name)
+                        else -> {
+                            val option = sortOptions.firstOrNull { it.label == selected } ?: fallbackSort
+                            onSortOptionChange(option.name)
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                minHeight = 38.dp,
+                textSize = 12.sp,
+                itemTextSize = 12.sp,
+            )
+            if (browseState.supportsBankFilter) {
+                CompactDropdownFilter(
+                    selectedText = browseState.selectedBankLabel,
+                    options = listOf("All banks") + browseState.bankOptions.map { "Bank $it" },
+                    onSelect = { selected ->
+                        val bank = selected.removePrefix("Bank ").trim().toIntOrNull()
+                        onBankChange(bank)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    minHeight = 38.dp,
+                    textSize = 12.sp,
+                    itemTextSize = 12.sp,
+                )
             }
         }
     }
@@ -343,15 +272,37 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
             onAppear()
         }
         Box(modifier = Modifier.fillMaxSize()) {
-            AsyncImage(
-                model = game.libraryPlayfieldCandidate(),
-                contentDescription = game.name,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.Center),
-                contentScale = ContentScale.FillWidth,
-                alignment = Alignment.Center,
-            )
+            val artworkCandidates = game.cardArtworkCandidates()
+            var imageLoaded by remember(artworkCandidates) { mutableStateOf(false) }
+            var showMissingImage by remember(artworkCandidates) { mutableStateOf(artworkCandidates.isEmpty()) }
+            if (artworkCandidates.isNotEmpty()) {
+                AsyncImage(
+                    model = artworkCandidates.firstOrNull(),
+                    contentDescription = game.name,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.Center),
+                    contentScale = ContentScale.FillWidth,
+                    alignment = Alignment.Center,
+                    onLoading = {
+                        imageLoaded = false
+                        showMissingImage = false
+                    },
+                    onSuccess = {
+                        imageLoaded = true
+                        showMissingImage = false
+                    },
+                    onError = {
+                        imageLoaded = false
+                        showMissingImage = true
+                    },
+                )
+            }
+            when {
+                artworkCandidates.isEmpty() -> AppMediaPreviewPlaceholder(message = "No image")
+                !imageLoaded && !showMissingImage -> AppMediaPreviewPlaceholder(showsProgress = true)
+                showMissingImage -> AppMediaPreviewPlaceholder()
+            }
         }
         Box(
             modifier = Modifier
@@ -378,14 +329,8 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.Top,
             ) {
-                Text(
-                    game.name,
-                    color = androidx.compose.ui.graphics.Color.White,
-                    maxLines = 2,
-                    minLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    fontSize = 16.sp,
-                    lineHeight = 17.sp,
+                AppOverlayTitle(
+                    text = game.name,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -397,45 +342,23 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        game.manufacturerYearLine(),
-                        color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.95f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        fontSize = 12.sp,
-                        lineHeight = 14.sp,
+                    AppOverlaySubtitle(
+                        text = game.manufacturerYearLine(),
                         modifier = Modifier.widthIn(max = if (makerMaxWidth > 48.dp) makerMaxWidth else 48.dp),
+                        alpha = 0.95f,
                     )
                     variantText?.let { variant ->
-                        Text(
-                            text = variant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.92f),
-                            fontSize = 9.sp,
-                            lineHeight = 10.sp,
-                            modifier = Modifier
-                                .widthIn(max = variantMaxWidth)
-                                .background(
-                                    androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.46f),
-                                    shape = RoundedCornerShape(999.dp),
-                                )
-                                .border(
-                                    width = 0.75.dp,
-                                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.22f),
-                                    shape = RoundedCornerShape(999.dp),
-                                )
-                                .padding(horizontal = 5.dp, vertical = 2.dp),
+                        AppVariantPill(
+                            label = variant,
+                            style = AppVariantPillStyle.Standard,
+                            modifier = Modifier.widthIn(max = variantMaxWidth),
                         )
                     }
                 }
             }
-            Text(
-                game.locationBankLine().ifBlank { " " },
-                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.88f),
-                maxLines = 1,
-                fontSize = 12.sp,
-                lineHeight = 14.sp,
+            AppOverlaySubtitle(
+                text = game.locationBankLine().ifBlank { " " },
+                alpha = 0.88f,
             )
         }
     }

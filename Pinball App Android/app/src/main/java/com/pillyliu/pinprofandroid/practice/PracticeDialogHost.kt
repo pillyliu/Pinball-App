@@ -6,80 +6,63 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun PracticeDialogHost(
-    store: PracticeStore,
-    openNamePrompt: Boolean,
-    onOpenNamePromptChange: (Boolean) -> Unit,
-    onImportStatusChange: (String) -> Unit,
-    openQuickEntry: Boolean,
-    onOpenQuickEntryChange: (Boolean) -> Unit,
-    selectedGameSlug: String?,
-    quickPresetActivity: QuickActivity,
-    quickEntryOrigin: QuickEntryOrigin,
-    quickEntryFromGameView: Boolean,
-    onQuickSave: (String) -> Unit,
-    openGroupDateDialog: Boolean,
-    onOpenGroupDateDialogChange: (Boolean) -> Unit,
-    groupDateDialogGroupID: String?,
-    groupDateDialogField: GroupDashboardDateField,
-    groupDatePickerInitialMs: Long?,
-    openResetDialog: Boolean,
-    onOpenResetDialogChange: (Boolean) -> Unit,
+    context: PracticePresentationContext,
 ) {
     val scope = rememberCoroutineScope()
 
-    if (openNamePrompt) {
+    if (context.openNamePrompt) {
         PracticeNamePromptSheet(
-            initialName = store.playerName,
+            initialName = context.store.playerName,
             onSave = { name, shouldImportLpl ->
-                store.updatePlayerName(name)
-                onOpenNamePromptChange(false)
+                context.store.updatePlayerName(name)
+                context.onOpenNamePromptChange(false)
                 if (!shouldImportLpl) return@PracticeNamePromptSheet
                 scope.launch {
                     val normalizedInput = normalizeHumanName(name)
-                    val matchedPlayer = store.availableLeaguePlayers().firstOrNull { candidate ->
+                    val matchedPlayer = context.store.availableLeaguePlayers().firstOrNull { candidate ->
                         normalizeHumanName(candidate) == normalizedInput
                     } ?: return@launch
-                    store.updateLeaguePlayerName(matchedPlayer)
-                    val importStatus = store.importLeagueScoresFromCsv()
-                    onImportStatusChange(importStatus)
+                    context.store.updateLeaguePlayerName(matchedPlayer)
+                    val importStatus = context.store.importLeagueScoresFromCsv()
+                    context.onImportStatusChange(importStatus)
                 }
             },
-            onDismiss = { onOpenNamePromptChange(false) },
+            onDismiss = { context.onOpenNamePromptChange(false) },
         )
     }
 
-    if (openQuickEntry) {
+    if (context.openQuickEntry) {
         QuickEntrySheet(
-            store = store,
-            selectedGameSlug = selectedGameSlug,
-            presetActivity = quickPresetActivity,
-            origin = quickEntryOrigin,
-            fromGameView = quickEntryFromGameView,
-            onDismiss = { onOpenQuickEntryChange(false) },
+            store = context.store,
+            selectedGameSlug = context.selectedGameSlug,
+            presetActivity = context.quickPresetActivity,
+            origin = context.quickEntryOrigin,
+            fromGameView = context.quickEntryFromGameView,
+            onDismiss = { context.onOpenQuickEntryChange(false) },
             onSave = { slug ->
-                onQuickSave(slug)
-                onOpenQuickEntryChange(false)
+                context.onQuickSave(slug)
+                context.onOpenQuickEntryChange(false)
             },
         )
     }
 
-    if (openGroupDateDialog) {
+    if (context.openGroupDateDialog) {
         GroupDashboardDateSheet(
-            store = store,
-            groupId = groupDateDialogGroupID,
-            field = groupDateDialogField,
-            initialSelectedDateMillis = groupDatePickerInitialMs,
-            onDismiss = { onOpenGroupDateDialogChange(false) },
+            store = context.store,
+            groupId = context.groupDateDialogGroupID,
+            field = context.groupDateDialogField,
+            initialSelectedDateMillis = context.groupDatePickerInitialMs,
+            onDismiss = { context.onOpenGroupDateDialogChange(false) },
         )
     }
 
-    if (openResetDialog) {
+    if (context.openResetDialog) {
         ResetPracticeLogDialog(
             onConfirmReset = {
-                store.resetAllState()
-                onOpenResetDialogChange(false)
+                context.store.resetAllState()
+                context.onOpenResetDialogChange(false)
             },
-            onDismiss = { onOpenResetDialogChange(false) },
+            onDismiss = { context.onOpenResetDialogChange(false) },
         )
     }
 }

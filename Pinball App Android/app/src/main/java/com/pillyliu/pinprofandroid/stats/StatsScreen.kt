@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -18,16 +18,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,10 +49,13 @@ import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.data.parseCsv
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
+import com.pillyliu.pinprofandroid.ui.AppFilterSheet
+import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.EmptyLabel
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
+import com.pillyliu.pinprofandroid.ui.AppRefreshStatusRow
 import com.pillyliu.pinprofandroid.ui.DropdownOption
 import com.pillyliu.pinprofandroid.ui.FixedWidthTableCell
 import com.pillyliu.pinprofandroid.ui.InsetFilterHeader
@@ -276,41 +272,22 @@ fun StatsScreen(
                 onBack = onBack,
             )
 
-            error?.let { Text(text = it, color = Color.Red) }
+            error?.let { AppInlineStatusMessage(text = it, isError = true) }
             dataUpdatedAtMs?.let { updatedAt ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = formatUpdatedAt(updatedAt),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp,
-                    )
-                    if (isRefreshing) {
-                        Spacer(Modifier.width(6.dp))
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(10.dp),
-                            strokeWidth = 1.5.dp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        IconButton(
-                            onClick = { refresh(true) },
-                            modifier = Modifier.size(20.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Refresh,
-                                contentDescription = "Refresh data",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (hasNewerData) pulseAlpha else 1f),
-                                modifier = Modifier.size(12.dp),
-                            )
-                        }
-                    }
-                }
+                AppRefreshStatusRow(
+                    label = formatUpdatedAt(updatedAt),
+                    isRefreshing = isRefreshing,
+                    hasNewerData = hasNewerData,
+                    pulseAlpha = pulseAlpha,
+                    onRefresh = { refresh(true) },
+                )
             }
 
             if (isLandscape) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = true),
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
                 ) {
                     CardContainer(modifier = Modifier.weight(0.6f, fill = true)) {
                         StatsTable(
@@ -318,7 +295,7 @@ fun StatsScreen(
                             showFullLplLastName = showFullLplLastName,
                             isRefreshing = isRefreshing,
                             initialLoadComplete = initialLoadComplete,
-                            modifier = Modifier.fillMaxSize(),
+                            maxVisibleRows = 10,
                         )
                     }
                     CardContainer(modifier = Modifier.weight(0.4f, fill = true)) {
@@ -328,78 +305,90 @@ fun StatsScreen(
                             season = season,
                             bankStats = bankStats,
                             historyStats = historyStats,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.heightIn(max = 420.dp),
                         )
                     }
                 }
             } else {
-                CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
-                    StatsTable(
-                        filtered = filtered,
-                        showFullLplLastName = showFullLplLastName,
-                        isRefreshing = isRefreshing,
-                        initialLoadComplete = initialLoadComplete,
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = true),
+                ) {
+                    val machinePanelHeight = if (machine.isBlank()) 72.dp else 212.dp
+                    val tableBodyMaxHeight = (maxHeight - machinePanelHeight - 28.dp).coerceAtLeast(120.dp)
+
+                    Column(
                         modifier = Modifier.fillMaxSize(),
-                    )
-                }
-                CardContainer(modifier = Modifier.fillMaxWidth()) {
-                    MachineStatsPanel(
-                        machine = machine,
-                        bankNumber = bankNumber,
-                        season = season,
-                        bankStats = bankStats,
-                        historyStats = historyStats,
-                    )
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        CardContainer(modifier = Modifier.fillMaxWidth()) {
+                            StatsTable(
+                                filtered = filtered,
+                                showFullLplLastName = showFullLplLastName,
+                                isRefreshing = isRefreshing,
+                                initialLoadComplete = initialLoadComplete,
+                                maxBodyHeight = tableBodyMaxHeight,
+                            )
+                        }
+                        Spacer(modifier = Modifier.weight(1f, fill = true))
+                        CardContainer(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = machinePanelHeight, max = machinePanelHeight),
+                        ) {
+                            MachineStatsPanel(
+                                machine = machine,
+                                bankNumber = bankNumber,
+                                season = season,
+                                bankStats = bankStats,
+                                historyStats = historyStats,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 
     if (showFilterSheet) {
-        ModalBottomSheet(
+        AppFilterSheet(
+            title = "Stats filters",
             onDismissRequest = { showFilterSheet = false },
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text("Stats filters", style = MaterialTheme.typography.titleSmall)
-                AnchoredDropdownFilter(
-                    selectedText = seasonDisplayText(season),
-                    options = seasonOptions,
-                    onSelect = {
-                        season = it
-                        player = ""
-                        bankNumber = null
-                        machine = ""
-                    },
-                )
-                AnchoredDropdownFilter(
-                    selectedText = bankDisplayText(bankNumber),
-                    options = bankOptions,
-                    onSelect = {
-                        bankNumber = it.toIntOrNull()
-                        machine = ""
-                    },
-                )
-                AnchoredDropdownFilter(
-                    selectedText = playerDisplayText(player, showFullLplLastName),
-                    options = playerOptions,
-                    onSelect = {
-                        player = it
-                        bankNumber = null
-                        machine = ""
-                    },
-                )
-                AnchoredDropdownFilter(
-                    selectedText = machineDisplayText(machine),
-                    options = machineOptions,
-                    onSelect = { machine = it },
-                )
-                TextButton(onClick = { showFilterSheet = false }, modifier = Modifier.align(Alignment.End)) {
-                    Text("Done")
-                }
-            }
+            AnchoredDropdownFilter(
+                selectedText = seasonDisplayText(season),
+                options = seasonOptions,
+                onSelect = {
+                    season = it
+                    player = ""
+                    bankNumber = null
+                    machine = ""
+                },
+            )
+            AnchoredDropdownFilter(
+                selectedText = bankDisplayText(bankNumber),
+                options = bankOptions,
+                onSelect = {
+                    bankNumber = it.toIntOrNull()
+                    machine = ""
+                },
+            )
+            AnchoredDropdownFilter(
+                selectedText = playerDisplayText(player, showFullLplLastName),
+                options = playerOptions,
+                onSelect = {
+                    player = it
+                    bankNumber = null
+                    machine = ""
+                },
+            )
+            AnchoredDropdownFilter(
+                selectedText = machineDisplayText(machine),
+                options = machineOptions,
+                onSelect = { machine = it },
+            )
         }
     }
 }
@@ -410,6 +399,8 @@ private fun StatsTable(
     showFullLplLastName: Boolean,
     isRefreshing: Boolean,
     initialLoadComplete: Boolean,
+    maxVisibleRows: Int? = null,
+    maxBodyHeight: androidx.compose.ui.unit.Dp? = null,
     modifier: Modifier = Modifier,
 ) {
     val hState = rememberScrollState()
@@ -425,6 +416,14 @@ private fun StatsTable(
             points = (70 * scale).toInt(),
         )
         val tableWidth = widths.season + widths.bank + widths.player + widths.machine + widths.score + widths.points
+        val placeholderHeight = 96.dp
+        val rowHeight = 35.dp
+        val contentHeight = (filtered.size * rowHeight.value).dp
+        val tableBodyMaxHeight = when {
+            maxBodyHeight != null -> minOf(maxBodyHeight, contentHeight)
+            maxVisibleRows != null -> (filtered.size.coerceAtMost(maxVisibleRows) * rowHeight.value).dp
+            else -> contentHeight
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth().horizontalScroll(hState),
@@ -433,11 +432,15 @@ private fun StatsTable(
             Column(modifier = Modifier.width(tableWidth.dp)) {
                 HeaderRow(widths)
                 if (!initialLoadComplete && isRefreshing) {
-                    EmptyLabel("Loading data…")
+                    Column(modifier = Modifier.heightIn(min = placeholderHeight), verticalArrangement = Arrangement.Center) {
+                        EmptyLabel("Loading data…")
+                    }
                 } else if (filtered.isEmpty()) {
-                    EmptyLabel("No rows - check filters or data source.")
+                    Column(modifier = Modifier.heightIn(min = placeholderHeight), verticalArrangement = Arrangement.Center) {
+                        EmptyLabel("No rows - check filters or data source.")
+                    }
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(modifier = Modifier.heightIn(max = tableBodyMaxHeight)) {
                         itemsIndexed(filtered, key = { _, row -> row.id }) { _, row ->
                             Row(
                                 modifier = Modifier

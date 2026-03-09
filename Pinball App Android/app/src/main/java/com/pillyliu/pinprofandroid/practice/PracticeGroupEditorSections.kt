@@ -1,22 +1,34 @@
 package com.pillyliu.pinprofandroid.practice
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppDestructiveButton
+import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
+import com.pillyliu.pinprofandroid.ui.AppSwitch
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import java.util.Locale
 
 @Composable
@@ -26,15 +38,25 @@ internal fun GroupEditorActionRow(
     onDelete: () -> Unit,
     onSave: () -> Unit,
 ) {
-    CardContainer {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Spacer(modifier = Modifier.weight(1f))
-            TextButton(onClick = onCancel) { Text("Cancel") }
-            if (isEditing) {
-                TextButton(onClick = onDelete) { Text("Delete") }
-            }
-            TextButton(onClick = onSave) { Text(if (isEditing) "Save" else "Create") }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppSecondaryButton(
+            onClick = onCancel,
+            modifier = Modifier.weight(1f),
+        ) { Text("Cancel") }
+        if (isEditing) {
+            AppDestructiveButton(
+                onClick = onDelete,
+                modifier = Modifier.weight(1f),
+            ) { Text("Delete") }
         }
+        AppPrimaryButton(
+            onClick = onSave,
+            modifier = Modifier.weight(1f),
+        ) { Text(if (isEditing) "Save" else "Create") }
     }
 }
 
@@ -79,7 +101,7 @@ internal fun GroupEditorTemplateCard(
         when (templateSource) {
             "bank" -> {
                 if (availableBanks.isEmpty()) {
-                    Text("No bank data found in library.", style = MaterialTheme.typography.bodySmall)
+                    AppPanelEmptyCard(text = "No bank data found in library.")
                 } else {
                     SimpleMenuDropdown(
                         title = "Bank",
@@ -88,13 +110,13 @@ internal fun GroupEditorTemplateCard(
                         formatOptionLabel = { "Bank $it" },
                         onSelect = { onSelectedTemplateBankChange(it.toIntOrNull() ?: selectedTemplateBank) },
                     )
-                    TextButton(onClick = onApplyBankTemplate) { Text("Apply Bank Template") }
+                    AppSecondaryButton(onClick = onApplyBankTemplate) { Text("Apply Bank Template") }
                 }
             }
 
             "duplicate" -> {
                 if (duplicateCandidates.isEmpty()) {
-                    Text("No existing groups to duplicate.", style = MaterialTheme.typography.bodySmall)
+                    AppPanelEmptyCard(text = "No existing groups to duplicate.")
                 } else {
                     if (selectedDuplicateGroupID.isBlank()) {
                         onSelectedDuplicateGroupIDChange(duplicateCandidates.first().id)
@@ -106,7 +128,7 @@ internal fun GroupEditorTemplateCard(
                         formatOptionLabel = { id -> duplicateCandidates.firstOrNull { it.id == id }?.name ?: id },
                         onSelect = onSelectedDuplicateGroupIDChange,
                     )
-                    TextButton(onClick = onApplyDuplicateTemplate) { Text("Apply Duplicate Group") }
+                    AppSecondaryButton(onClick = onApplyDuplicateTemplate) { Text("Apply Duplicate Group") }
                 }
             }
         }
@@ -145,43 +167,64 @@ internal fun GroupEditorStatusCard(
     CardContainer {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Active", modifier = Modifier.weight(1f))
-            Switch(checked = isActive, onCheckedChange = onIsActiveChange)
+            AppSwitch(checked = isActive, onCheckedChange = onIsActiveChange)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Priority", modifier = Modifier.weight(1f))
-            Switch(checked = isPriority, onCheckedChange = onIsPriorityChange)
+            AppSwitch(checked = isPriority, onCheckedChange = onIsPriorityChange)
         }
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             listOf("custom", "bank", "location").forEachIndexed { index, option ->
                 SegmentedButton(
                     selected = groupType == option,
                     onClick = { onGroupTypeChange(option) },
+                    colors = pinballSegmentedButtonColors(),
                     shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index, 3),
+                    icon = {},
                     label = { Text(option.replaceFirstChar { it.titlecase(Locale.US) }, maxLines = 1) },
                 )
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Position", modifier = Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.widthIn(min = 92.dp),
+            ) {
                 TextButton(
                     onClick = {
                         if (isEditing) onMoveEditedUp() else if (createGroupPosition > 1) onCreatePositionChange(createGroupPosition - 1)
                     },
                     enabled = if (isEditing) canMoveEditedUp else createGroupPosition > 1,
-                ) { Text("Up") }
-                Text(if (isEditing) editingPosition.toString() else createGroupPosition.toString(), style = MaterialTheme.typography.bodyMedium)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowUp,
+                        contentDescription = "Move up",
+                    )
+                }
+                Box(modifier = Modifier.width(24.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        if (isEditing) editingPosition.toString() else createGroupPosition.toString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
                 TextButton(
                     onClick = {
                         if (isEditing) onMoveEditedDown() else if (createGroupPosition < maxCreatePosition) onCreatePositionChange(createGroupPosition + 1)
                     },
                     enabled = if (isEditing) canMoveEditedDown else createGroupPosition < maxCreatePosition,
-                ) { Text("Down") }
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        contentDescription = "Move down",
+                    )
+                }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Start Date", modifier = Modifier.weight(1f))
-            OutlinedButton(
+            AppSecondaryButton(
                 onClick = {
                     if (!hasStartDate) onHasStartDateChange(true)
                     onOpenStartDatePicker()
@@ -193,11 +236,11 @@ internal fun GroupEditorStatusCard(
                     color = if (hasStartDate) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Switch(checked = hasStartDate, onCheckedChange = onHasStartDateChange)
+            AppSwitch(checked = hasStartDate, onCheckedChange = onHasStartDateChange)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("End Date", modifier = Modifier.weight(1f))
-            OutlinedButton(
+            AppSecondaryButton(
                 onClick = {
                     if (!hasEndDate) onHasEndDateChange(true)
                     onOpenEndDatePicker()
@@ -209,11 +252,11 @@ internal fun GroupEditorStatusCard(
                     color = if (hasEndDate) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Switch(checked = hasEndDate, onCheckedChange = onHasEndDateChange)
+            AppSwitch(checked = hasEndDate, onCheckedChange = onHasEndDateChange)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Archived", modifier = Modifier.weight(1f))
-            Switch(checked = isArchived, onCheckedChange = onIsArchivedChange)
+            AppSwitch(checked = isArchived, onCheckedChange = onIsArchivedChange)
         }
         validationMessage?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -17,8 +18,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,7 +39,10 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalContext
 import com.pillyliu.pinprofandroid.library.LibraryGameLookup
 import com.pillyliu.pinprofandroid.library.loadLibraryExtraction
+import com.pillyliu.pinprofandroid.ui.AppFilterSheet
+import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
 import com.pillyliu.pinprofandroid.ui.AppScreen
+import com.pillyliu.pinprofandroid.ui.AppThreeColumnLegendHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.CompactDropdownFilter
 import com.pillyliu.pinprofandroid.ui.FixedWidthTableCell
@@ -128,35 +130,28 @@ fun TargetsScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                if (isLandscape) {
-                    Row {
-                        Text("2nd highest \"great game\"", color = targetAccentColor(TargetColorRole.Great), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                        Text("4th highest main target", color = targetAccentColor(TargetColorRole.Main), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                        Text("8th highest solid floor", color = targetAccentColor(TargetColorRole.Floor), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                    }
-                } else {
-                    Row {
-                        Text("2nd highest", color = targetAccentColor(TargetColorRole.Great), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                        Text("4th highest", color = targetAccentColor(TargetColorRole.Main), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                        Text("8th highest", color = targetAccentColor(TargetColorRole.Floor), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                    }
-                    Row {
-                        Text("\"great game\"", color = targetAccentColor(TargetColorRole.Great), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
-                        Text("main target", color = targetAccentColor(TargetColorRole.Main), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
-                        Text("solid floor", color = targetAccentColor(TargetColorRole.Floor), textAlign = TextAlign.Center, modifier = Modifier.weight(1f), fontSize = 11.sp)
-                    }
-                }
+                AppThreeColumnLegendHeader(
+                    columns = targetLegendColumns(isLandscape),
+                    primaryColors = listOf(
+                        targetAccentColor(TargetColorRole.Great),
+                        targetAccentColor(TargetColorRole.Main),
+                        targetAccentColor(TargetColorRole.Floor),
+                    ),
+                    compact = !isLandscape,
+                )
             }
 
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            error?.let { AppInlineStatusMessage(text = it, isError = true) }
 
-            CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
+            CardContainer(modifier = Modifier.fillMaxWidth()) {
                 BoxWithConstraints {
                     val baseWidth = 660f
                     val scale = (maxWidth.value / baseWidth).coerceIn(1f, 1.9f)
                     val gameWidth = (210 * scale).toInt()
                     val bankWidth = (44 * scale).toInt()
                     val scoreWidth = (136 * scale).toInt()
+                    val visibleRows = filteredRows.size.coerceAtMost(if (isLandscape) 10 else 8)
+                    val tableBodyMaxHeight = (visibleRows * 35).dp
 
                     Row(
                         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -164,7 +159,7 @@ fun TargetsScreen(
                     ) {
                         Column {
                             Header(gameWidth, bankWidth, scoreWidth)
-                            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                            Column(modifier = Modifier.heightIn(max = tableBodyMaxHeight).verticalScroll(rememberScrollState())) {
                                 filteredRows.forEachIndexed { index, row ->
                                     TargetRowView(index, row, gameWidth, bankWidth, scoreWidth)
                                 }
@@ -185,28 +180,38 @@ fun TargetsScreen(
     }
 
     if (showFilterSheet) {
-        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text("Targets filters", style = MaterialTheme.typography.titleSmall)
-                SortMenu(
-                    selected = sortOption,
-                    onSelect = { sortOptionName = it.name },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                BankMenu(
-                    selectedBank = selectedBank,
-                    bankOptions = bankOptions,
-                    onSelect = { selectedBank = it },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                TextButton(onClick = { showFilterSheet = false }, modifier = Modifier.align(Alignment.End)) {
-                    Text("Done")
-                }
-            }
+        AppFilterSheet(
+            title = "Targets filters",
+            onDismissRequest = { showFilterSheet = false },
+        ) {
+            SortMenu(
+                selected = sortOption,
+                onSelect = { sortOptionName = it.name },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            BankMenu(
+                selectedBank = selectedBank,
+                bankOptions = bankOptions,
+                onSelect = { selectedBank = it },
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
+    }
+}
+
+private fun targetLegendColumns(isLandscape: Boolean): List<Pair<String, String?>> {
+    return if (isLandscape) {
+        listOf(
+            "2nd highest \"great game\"" to null,
+            "4th highest main target" to null,
+            "8th highest solid floor" to null,
+        )
+    } else {
+        listOf(
+            "2nd highest" to "\"great game\"",
+            "4th highest" to "main target",
+            "8th highest" to "solid floor",
+        )
     }
 }
 

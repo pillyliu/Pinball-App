@@ -7,26 +7,16 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,6 +41,9 @@ import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.data.parseCsv
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
+import com.pillyliu.pinprofandroid.ui.AppFilterSheet
+import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
+import com.pillyliu.pinprofandroid.ui.AppRefreshStatusRow
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.CompactDropdownFilter
@@ -170,35 +163,15 @@ fun StandingsScreen(
                 onBack = onBack,
             )
 
-            error?.let { Text(it, color = Color.Red) }
+            error?.let { AppInlineStatusMessage(text = it, isError = true) }
             dataUpdatedAtMs?.let { updatedAt ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = formatUpdatedAt(updatedAt),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp,
-                    )
-                    if (isRefreshing) {
-                        Spacer(Modifier.width(6.dp))
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(10.dp),
-                            strokeWidth = 1.5.dp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        IconButton(
-                            onClick = { refresh(true) },
-                            modifier = Modifier.size(20.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Refresh,
-                                contentDescription = "Refresh data",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (hasNewerData) pulseAlpha else 1f),
-                                modifier = Modifier.size(12.dp),
-                            )
-                        }
-                    }
-                }
+                AppRefreshStatusRow(
+                    label = formatUpdatedAt(updatedAt),
+                    isRefreshing = isRefreshing,
+                    hasNewerData = hasNewerData,
+                    pulseAlpha = pulseAlpha,
+                    onRefresh = { refresh(true) },
+                )
             }
 
             CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
@@ -239,28 +212,22 @@ fun StandingsScreen(
     }
 
     if (showFilterSheet) {
-        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text("Standings filters", style = MaterialTheme.typography.titleSmall)
-                CompactDropdownFilter(
-                    selectedText = selectedSeason?.let { "Season $it" } ?: "Select",
-                    options = seasonLabels,
-                    onSelect = { label ->
-                        selectedSeason = label.removePrefix("Season ").trim().toIntOrNull()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    minHeight = 38.dp,
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                    textSize = 12.sp,
-                    itemTextSize = 12.sp,
-                )
-                TextButton(onClick = { showFilterSheet = false }, modifier = Modifier.align(Alignment.End)) {
-                    Text("Done")
-                }
-            }
+        AppFilterSheet(
+            title = "Standings filters",
+            onDismissRequest = { showFilterSheet = false },
+        ) {
+            CompactDropdownFilter(
+                selectedText = selectedSeason?.let { "Season $it" } ?: "Select",
+                options = seasonLabels,
+                onSelect = { label ->
+                    selectedSeason = label.removePrefix("Season ").trim().toIntOrNull()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                minHeight = 38.dp,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                textSize = 12.sp,
+                itemTextSize = 12.sp,
+            )
         }
     }
 }

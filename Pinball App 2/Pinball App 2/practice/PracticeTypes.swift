@@ -34,12 +34,36 @@ enum PracticeHubDestination: String, CaseIterable, Identifiable, Hashable {
         case .mechanics: return "circle.fill"
         }
     }
+
+    var route: PracticeRoute {
+        switch self {
+        case .groupDashboard: return .groupDashboard
+        case .journal: return .journal
+        case .insights: return .insights
+        case .mechanics: return .mechanics
+        }
+    }
 }
 
-enum PracticeNavRoute: Hashable {
-    case destination(PracticeHubDestination)
+enum PracticeRoute: Hashable {
     case game(String)
+    case rulesheet
+    case playfield
     case ifpaProfile
+    case groupDashboard
+    case groupEditor
+    case journal
+    case insights
+    case mechanics
+    case settings
+}
+
+enum PracticeSheet: String, Identifiable {
+    case quickEntry
+    case groupDateEditor
+    case journalEntryEditor
+
+    var id: String { rawValue }
 }
 
 enum QuickEntrySheet: String, Identifiable {

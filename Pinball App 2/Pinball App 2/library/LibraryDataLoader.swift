@@ -1,9 +1,6 @@
 import Foundation
 
 private enum LibraryDataLoader {
-    static let libraryPath = "/pinball/data/pinball_library_v3.json"
-    static let opdbCatalogPath = "/pinball/data/opdb_catalog_v1.json"
-    static let hostedRefreshInterval: TimeInterval = 24 * 60 * 60
     static let gameRoomLibrarySourceID = "venue--gameroom"
 }
 
@@ -60,48 +57,6 @@ func loadLibraryExtraction() async throws -> LegacyCatalogExtraction {
         let seedExtraction = try await LibrarySeedDatabase.shared.loadExtraction()
         return augmentExtractionWithGameRoom(seedExtraction)
     }
-}
-
-private func loadHostedLibraryExtraction() async throws -> LegacyCatalogExtraction {
-    async let libraryResult = PinballDataCache.shared.loadText(
-        path: LibraryDataLoader.libraryPath,
-        allowMissing: false,
-        maxCacheAge: LibraryDataLoader.hostedRefreshInterval
-    )
-    async let opdbResult = PinballDataCache.shared.loadText(
-        path: LibraryDataLoader.opdbCatalogPath,
-        allowMissing: true,
-        maxCacheAge: LibraryDataLoader.hostedRefreshInterval
-    )
-    let (libraryCached, opdbCached) = try await (libraryResult, opdbResult)
-    guard let libraryText = libraryCached.text,
-          let libraryData = libraryText.data(using: .utf8) else {
-        throw URLError(.cannotDecodeRawData)
-    }
-    if let opdbText = opdbCached.text,
-       let opdbData = opdbText.data(using: .utf8),
-       !opdbData.isEmpty {
-        return try decodeMergedLibraryPayloadWithState(libraryData: libraryData, opdbCatalogData: opdbData)
-    }
-    if let bundledOPDBText = try loadBundledPinballText(path: LibraryDataLoader.opdbCatalogPath),
-       let bundledOPDBData = bundledOPDBText.data(using: .utf8),
-       !bundledOPDBData.isEmpty {
-        return try decodeMergedLibraryPayloadWithState(libraryData: libraryData, opdbCatalogData: bundledOPDBData)
-    }
-    return try await LibrarySeedDatabase.shared.loadExtraction()
-}
-
-private func loadBundledLibraryExtraction() throws -> LegacyCatalogExtraction? {
-    guard let bundledLibraryText = try loadBundledPinballText(path: LibraryDataLoader.libraryPath),
-          let bundledLibraryData = bundledLibraryText.data(using: .utf8) else {
-        return nil
-    }
-    if let bundledOPDBText = try loadBundledPinballText(path: LibraryDataLoader.opdbCatalogPath),
-       let bundledOPDBData = bundledOPDBText.data(using: .utf8),
-       !bundledOPDBData.isEmpty {
-        return try decodeMergedLibraryPayloadWithState(libraryData: bundledLibraryData, opdbCatalogData: bundledOPDBData)
-    }
-    return try decodeLibraryPayloadWithState(data: bundledLibraryData)
 }
 
 private func augmentExtractionWithGameRoom(_ extraction: LegacyCatalogExtraction) -> LegacyCatalogExtraction {
@@ -276,15 +231,12 @@ private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueNa
             var assets: [String: Any] = [:]
             if let playfieldLocalPath = template.playfieldLocalOriginal ?? template.playfieldLocal {
                 assets["playfield_local_practice"] = playfieldLocalPath
-                assets["playfield_local_legacy"] = playfieldLocalPath
             }
             if let rulesheetLocalPath = template.rulesheetLocal {
                 assets["rulesheet_local_practice"] = rulesheetLocalPath
-                assets["rulesheet_local_legacy"] = rulesheetLocalPath
             }
             if let gameinfoLocalPath = template.gameinfoLocal {
                 assets["gameinfo_local_practice"] = gameinfoLocalPath
-                assets["gameinfo_local_legacy"] = gameinfoLocalPath
             }
             if !assets.isEmpty {
                 row["assets"] = assets
@@ -307,7 +259,7 @@ private func normalizedGameRoomVenueName(_ raw: String) -> String {
 }
 
 private func loadGameRoomOPDBMediaIndex() -> [String: [GameRoomOPDBMediaRecord]] {
-    guard let data = try? loadBundledPinballData(path: LibraryDataLoader.opdbCatalogPath),
+    guard let data = try? loadBundledPinballData(path: hostedOPDBCatalogPath),
           !data.isEmpty,
           let root = try? JSONDecoder().decode(GameRoomOPDBCatalogRoot.self, from: data) else {
         return [:]

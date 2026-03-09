@@ -18,8 +18,7 @@ struct PracticeMechanicsSectionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Mechanics")
-                    .font(.headline)
+                AppSectionTitle(text: "Mechanics")
                 Text("Skills are tracked as tags in your notes.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -28,26 +27,21 @@ struct PracticeMechanicsSectionView: View {
                     Button {
                         selectedMechanicSkill = ""
                     } label: {
-                        if selectedMechanicSkill.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            Label("Select skill", systemImage: "checkmark")
-                        } else {
-                            Text("Select skill")
-                        }
+                        AppSelectableMenuRow(
+                            text: "Select skill",
+                            isSelected: selectedMechanicSkill.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        )
                     }
                     ForEach(trackedSkills, id: \.self) { skill in
                         Button {
                             selectedMechanicSkill = skill
                         } label: {
-                            if selectedMechanicSkill == skill {
-                                Label(skill, systemImage: "checkmark")
-                            } else {
-                                Text(skill)
-                            }
+                            AppSelectableMenuRow(text: skill, isSelected: selectedMechanicSkill == skill)
                         }
                     }
                 }
                 label: {
-                    compactDropdownLabel(text: selectedMechanicSkillLabel)
+                    AppCompactDropdownLabel(text: selectedMechanicSkillLabel)
                 }
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -76,7 +70,7 @@ struct PracticeMechanicsSectionView: View {
                 Button("Log Mechanics Session") {
                     onLogMechanicsSession(selectedMechanicSkill, Int(mechanicsComfort), mechanicsNote)
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppPrimaryActionButtonStyle())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
@@ -87,19 +81,18 @@ struct PracticeMechanicsSectionView: View {
             let summary = selectedSkill.isEmpty ? nil : summaryForSkill(selectedSkill)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text(selectedSkill.isEmpty ? "Mechanics History (All Skills)" : "\(selectedSkill) History")
-                    .font(.headline)
+                AppSectionTitle(text: selectedSkill.isEmpty ? "Mechanics History (All Skills)" : "\(selectedSkill) History")
 
                 if let summary {
                     HStack(spacing: 8) {
-                        MetricPill(label: "Logs", value: "\(summary.totalLogs)")
-                        MetricPill(label: "Latest", value: summary.latestComfort.map { "\($0)/5" } ?? "-")
-                        MetricPill(label: "Avg", value: summary.averageComfort.map { String(format: "%.1f/5", $0) } ?? "-")
-                        MetricPill(label: "Trend", value: summary.trendDelta.map { signedCompact($0) } ?? "-")
+                        AppMetricPill(label: "Logs", value: "\(summary.totalLogs)")
+                        AppMetricPill(label: "Latest", value: summary.latestComfort.map { "\($0)/5" } ?? "-")
+                        AppMetricPill(label: "Avg", value: summary.averageComfort.map { String(format: "%.1f/5", $0) } ?? "-")
+                        AppMetricPill(label: "Trend", value: summary.trendDelta.map { signedCompact($0) } ?? "-")
                     }
                 } else {
                     HStack(spacing: 8) {
-                        MetricPill(label: "Logs", value: "\(logs.count)")
+                        AppMetricPill(label: "Logs", value: "\(logs.count)")
                     }
                 }
 
@@ -111,9 +104,7 @@ struct PracticeMechanicsSectionView: View {
                 }
 
                 if logs.isEmpty {
-                    Text(selectedSkill.isEmpty ? "No mechanics sessions logged yet." : "No sessions logged for this skill yet.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: selectedSkill.isEmpty ? "No mechanics sessions logged yet." : "No sessions logged for this skill yet.")
                 } else {
                     ScrollView(.vertical, showsIndicators: true) {
                         VStack(alignment: .leading, spacing: 8) {
@@ -140,8 +131,10 @@ struct PracticeMechanicsSectionView: View {
             .appPanelStyle()
 
             if let tutorialsURL = URL(string: "https://www.deadflip.com/tutorials") {
-                Link("Dead Flip Tutorials", destination: tutorialsURL)
-                    .buttonStyle(.glass)
+                Link(destination: tutorialsURL) {
+                    AppExternalLinkButtonLabel(text: "Dead Flip Tutorials")
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -154,22 +147,5 @@ struct PracticeMechanicsSectionView: View {
     private var selectedMechanicSkillLabel: String {
         let trimmed = selectedMechanicSkill.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "Select skill" : trimmed
-    }
-
-    private func compactDropdownLabel(text: String) -> some View {
-        HStack(spacing: 8) {
-            Text(text)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appControlStyle()
     }
 }

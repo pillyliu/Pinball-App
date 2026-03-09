@@ -111,10 +111,7 @@ struct StatsScreen: View {
                     }
 
                     if let errorMessage = viewModel.errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        AppInlineStatusMessage(text: errorMessage, isError: true)
                     }
                     updatedStatusRow
 
@@ -148,10 +145,7 @@ struct StatsScreen: View {
                     }
 
                     if let errorMessage = viewModel.errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        AppInlineStatusMessage(text: errorMessage, isError: true)
                     }
                     updatedStatusRow
 
@@ -204,12 +198,7 @@ struct StatsScreen: View {
     }
 
     private var navSummaryLabels: some View {
-        Text(navSummaryText)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-            .truncationMode(.tail)
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(.secondary)
+        AppToolbarSummaryText(text: navSummaryText)
     }
     private var navSummaryText: String {
         let seasonDigits = viewModel.season.filter(\.isNumber)
@@ -321,9 +310,7 @@ struct StatsScreen: View {
                 }
             }
         } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                .font(.title3)
-                .frame(width: 34, height: 34)
+            AppToolbarFilterTriggerLabel()
         }
         .buttonStyle(.plain)
     }
@@ -335,11 +322,10 @@ struct StatsScreen: View {
                     tableHeader
                     AppTableHeaderDivider()
 
-                    if viewModel.filteredRows.isEmpty {
-                        Text("No rows - check filters or data source.")
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 64)
+                    if viewModel.isRefreshing && viewModel.rows.isEmpty {
+                        AppTablePlaceholder(text: "Loading data…")
+                    } else if viewModel.filteredRows.isEmpty {
+                        AppTablePlaceholder(text: "No rows - check filters or data source.")
                     } else {
                         let bodyRows = ScrollView(.vertical) {
                             LazyVStack(spacing: 0) {
@@ -424,21 +410,14 @@ struct StatsScreen: View {
                 }
             }
         } label: {
-            HStack(spacing: AppLayout.dropdownContentSpacing) {
-                Text(selectedText)
-                    .lineLimit(1)
-                    .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "chevron.down")
-                    .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
-            .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            AppDropdownMenuLabel(
+                text: selectedText,
+                isLargeTablet: isLargeTablet,
+                fillsWidth: true,
+                embeddedInNavigation: false
+            )
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
     }
 
@@ -450,31 +429,12 @@ struct StatsScreen: View {
     @ViewBuilder
     private var updatedStatusRow: some View {
         if let updatedAtLabel = viewModel.updatedAtLabel {
-            Button {
-                Task { await viewModel.refreshNow() }
-            } label: {
-                HStack(spacing: 5) {
-                    Text(updatedAtLabel)
-                    if viewModel.isRefreshing {
-                        ProgressView()
-                            .controlSize(.mini)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                            .opacity(viewModel.hasNewerData ? 0.35 : 1)
-                            .animation(
-                                viewModel.hasNewerData
-                                    ? .easeInOut(duration: 0.65).repeatForever(autoreverses: true)
-                                    : .default,
-                                value: viewModel.hasNewerData
-                            )
-                    }
-                }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .disabled(viewModel.isRefreshing)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            AppRefreshStatusRow(
+                updatedAtLabel: updatedAtLabel,
+                isRefreshing: viewModel.isRefreshing,
+                hasNewerData: viewModel.hasNewerData,
+                onRefresh: { Task { await viewModel.refreshNow() } }
+            )
         }
     }
 
@@ -788,6 +748,8 @@ private final class StatsViewModel: ObservableObject {
     func loadIfNeeded() async {
         guard !didLoad else { return }
         didLoad = true
+        isRefreshing = true
+        defer { isRefreshing = false }
         await loadCSV(resetSelection: true)
     }
 

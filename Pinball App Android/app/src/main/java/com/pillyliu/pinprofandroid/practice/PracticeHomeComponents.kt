@@ -18,11 +18,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,9 +43,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.library.PinballGame
-import com.pillyliu.pinprofandroid.library.fullscreenPlayfieldCandidates
-import com.pillyliu.pinprofandroid.library.miniCardPlayfieldCandidates
+import com.pillyliu.pinprofandroid.library.cardArtworkCandidates
 import com.pillyliu.pinprofandroid.library.rememberCachedImageModel
+import com.pillyliu.pinprofandroid.ui.AppCardTitle
+import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
+import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 
 @Composable
 internal fun QuickEntryHomeButton(
@@ -54,7 +58,7 @@ internal fun QuickEntryHomeButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    OutlinedButton(
+    AppSecondaryButton(
         modifier = modifier.heightIn(min = 46.dp),
         onClick = onClick,
         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
@@ -81,12 +85,7 @@ internal fun QuickEntryHomeButton(
 
 @Composable
 internal fun HomeSectionTitle(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    SectionTitle(text)
 }
 
 @Composable
@@ -113,14 +112,11 @@ internal fun HomeMiniCard(
                     imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.height(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = PinballThemeTokens.colors.brandGold,
                 )
-                Text(
-                    label,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
+                AppCardTitle(
+                    text = label,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Text(
@@ -144,7 +140,7 @@ internal fun SelectedGameMiniCard(
     bottomPadding: Dp = 12.dp,
     titleVerticalPadding: Dp = 4.dp,
 ) {
-    val imageUrls = game.miniCardPlayfieldCandidates()
+    val imageUrls = game.cardArtworkCandidates()
     val cardShape = RoundedCornerShape(10.dp)
     Box(
         modifier = modifier
@@ -202,18 +198,41 @@ private fun FallbackMiniCardAsyncImage(
     val candidates = urls.filter { it.isNotBlank() }.distinct()
     var activeIndex by remember(candidates) { mutableIntStateOf(0) }
     val model = rememberCachedImageModel(candidates.getOrNull(activeIndex))
-    AsyncImage(
-        model = model,
-        contentDescription = contentDescription,
-        modifier = modifier,
-        contentScale = ContentScale.Crop,
-        alignment = Alignment.Center,
-        onError = {
-            if (activeIndex < candidates.lastIndex) {
-                activeIndex += 1
-            }
-        },
-    )
+    var imageLoaded by remember(candidates, activeIndex) { mutableStateOf(false) }
+    var showMissingImage by remember(candidates, activeIndex) { mutableStateOf(candidates.isEmpty()) }
+    Box(modifier = modifier) {
+        if (candidates.isNotEmpty()) {
+            AsyncImage(
+                model = model,
+                contentDescription = contentDescription,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.Center,
+                onLoading = {
+                    imageLoaded = false
+                    showMissingImage = false
+                },
+                onSuccess = {
+                    imageLoaded = true
+                    showMissingImage = false
+                },
+                onError = {
+                    if (activeIndex < candidates.lastIndex) {
+                        activeIndex += 1
+                    } else {
+                        imageLoaded = false
+                        showMissingImage = true
+                    }
+                },
+            )
+        }
+
+        when {
+            candidates.isEmpty() -> AppMediaPreviewPlaceholder(message = "No image")
+            !imageLoaded && !showMissingImage -> AppMediaPreviewPlaceholder(showsProgress = true)
+            showMissingImage -> AppMediaPreviewPlaceholder()
+        }
+    }
 }
 
 private fun TextStyle.withMiniCardOverlayShadow(): TextStyle = copy(

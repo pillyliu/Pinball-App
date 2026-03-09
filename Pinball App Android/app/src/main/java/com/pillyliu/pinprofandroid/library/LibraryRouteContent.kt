@@ -3,23 +3,22 @@ package com.pillyliu.pinprofandroid.library
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppScreen
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.EmptyLabel
 
 @Composable
 internal fun LibraryRouteContent(
     contentPadding: PaddingValues,
     games: List<PinballGame>,
-    visibleSources: List<LibrarySource>,
-    selectedSourceId: String,
-    query: String,
-    sortOptionName: String,
-    yearSortDescending: Boolean,
-    selectedBank: Int?,
+    isLoading: Boolean,
+    errorMessage: String?,
+    browseState: LibraryBrowseState,
     route: LibraryRoute,
     routeGame: PinballGame?,
     onSourceChange: (String) -> Unit,
@@ -36,13 +35,9 @@ internal fun LibraryRouteContent(
     when (route) {
         LibraryRoute.List -> LibraryList(
             contentPadding = contentPadding,
-            games = games,
-            sources = visibleSources,
-            selectedSourceId = selectedSourceId,
-            query = query,
-            sortOptionName = sortOptionName,
-            yearSortDescending = yearSortDescending,
-            selectedBank = selectedBank,
+            isLoading = isLoading,
+            errorMessage = errorMessage,
+            browseState = browseState,
             onSourceChange = onSourceChange,
             onQueryChange = onQueryChange,
             onSortOptionChange = onSortOptionChange,
@@ -82,6 +77,7 @@ internal fun LibraryRouteContent(
                 RulesheetScreen(
                     contentPadding = contentPadding,
                     slug = routeGame.practiceKey,
+                    title = routeGame.name,
                     remoteCandidates = routeGame.rulesheetPathCandidates.mapNotNull { candidate -> routeGame.resolve(candidate) }.distinct(),
                     externalSource = route.rulesheetSource(),
                     onBack = onBackToDetail,
@@ -133,12 +129,14 @@ private fun LibraryRouteMissingScreen(
     onBack: () -> Unit,
 ) {
     if (games.isEmpty()) {
-        AppScreen(contentPadding) { }
+        AppScreen(contentPadding) {
+            AppPanelEmptyCard(text = message)
+        }
     } else {
         AppScreen(contentPadding) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                EmptyLabel(message)
-                Button(onClick = onBack) {
+                AppPanelEmptyCard(text = message)
+                AppSecondaryButton(onClick = onBack) {
                     Text("Back to Library")
                 }
             }

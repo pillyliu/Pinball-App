@@ -10,9 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,7 +23,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
+import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
+import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 
 @Composable
 internal fun PracticeInsightsSection(
@@ -46,14 +49,14 @@ internal fun PracticeInsightsSection(
     } ?: orderedGames.firstOrNull()?.also { onSelectGameSlug(it.practiceKey) }
 
     if (game == null) {
-        Text("No game data.")
+        AppPanelEmptyCard(text = "No game data.")
         return
     }
 
     val availableSources = store.librarySources
     var gamePickerExpanded by remember { mutableStateOf(false) }
     Box {
-        OutlinedButton(
+        AppSecondaryButton(
             onClick = { gamePickerExpanded = true },
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -116,11 +119,11 @@ internal fun PracticeInsightsSection(
         }
     }
     CardContainer {
-        Text("Stats", fontWeight = FontWeight.SemiBold)
+        SectionTitle("Stats")
         val summary = store.scoreSummaryFor(game.practiceKey)
         val trendValues = store.scoreTrendValues(game.practiceKey)
         if (summary == null) {
-            Text("Log scores to unlock trends and consistency analytics.")
+            AppPanelEmptyCard(text = "Log scores to unlock trends and consistency analytics.")
         } else {
             StatRow("Average", formatScore(summary.mean))
             StatRow("Median", formatScore(summary.median))
@@ -159,11 +162,14 @@ internal fun PracticeInsightsSection(
 
     CardContainer {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Head-to-Head", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            TextButton(
+            Row(modifier = Modifier.weight(1f)) {
+                SectionTitle("Head-to-Head")
+            }
+            AppTextAction(
+                text = "Refresh",
                 onClick = onRefreshHeadToHead,
                 enabled = !isLoadingHeadToHead,
-            ) { Text("Refresh") }
+            )
         }
 
         InsightsMenuDropdown(
@@ -179,11 +185,10 @@ internal fun PracticeInsightsSection(
         )
 
         when {
-            isLoadingHeadToHead -> Text("Loading player comparison...", style = MaterialTheme.typography.bodySmall)
-            insightsOpponentName.isBlank() -> Text("Select a player above to enable player-vs-player views.", style = MaterialTheme.typography.bodySmall)
-            headToHead == null -> Text(
-                "No shared machine history yet between ${if (store.playerName.isBlank()) "you" else formatLplPlayerNameForDisplay(store.playerName, showFullLplLastName)} and ${formatLplPlayerNameForDisplay(insightsOpponentName, showFullLplLastName)}.",
-                style = MaterialTheme.typography.bodySmall,
+            isLoadingHeadToHead -> AppInlineTaskStatus(text = "Loading player comparison…", showsProgress = true)
+            insightsOpponentName.isBlank() -> AppPanelEmptyCard(text = "Select a player above to enable player-vs-player views.")
+            headToHead == null -> AppPanelEmptyCard(
+                text = "No shared machine history yet between ${if (store.playerName.isBlank()) "you" else formatLplPlayerNameForDisplay(store.playerName, showFullLplLastName)} and ${formatLplPlayerNameForDisplay(insightsOpponentName, showFullLplLastName)}.",
             )
 
             else -> {

@@ -42,9 +42,10 @@ struct PracticeIFPAProfileScreen: View {
             if trimmedIFPAPlayerID.isEmpty {
                 missingIDCard
             } else if isLoading && profile == nil {
-                ProgressView("Loading IFPA profile...")
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 20)
+                AppPanelStatusCard(
+                    text: "Loading IFPA profile…",
+                    showsProgress: true
+                )
             } else if let profile {
                 profileContent(profile)
             } else if let errorMessage {
@@ -57,29 +58,19 @@ struct PracticeIFPAProfileScreen: View {
     }
 
     private var missingIDCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Add your IFPA ID in Practice Settings to load your public ranking snapshot here.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .appPanelStyle()
+        AppPanelEmptyCard(text: "Add your IFPA ID in Practice Settings to load your public ranking snapshot here.")
     }
 
     private func errorCard(_ message: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Could not load IFPA profile")
-                .font(.headline)
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            AppSectionTitle(text: "Could not load IFPA profile")
+            AppInlineTaskStatus(text: message, isError: true)
             Button("Try Again") {
                 Task {
                     await reloadProfile()
                 }
             }
-            .buttonStyle(.glass)
+            .buttonStyle(AppPrimaryActionButtonStyle())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
@@ -90,33 +81,24 @@ struct PracticeIFPAProfileScreen: View {
     private func profileContent(_ profile: IFPAPlayerProfile) -> some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 8) {
-                Text(displayName(for: profile))
-                    .font(.headline)
+                AppCardTitle(text: displayName(for: profile))
 
-                Text("IFPA #\(profile.playerID)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                AppCardSubheading(text: "IFPA #\(profile.playerID)")
 
                 if let location = profile.location {
-                    Text(location)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    AppCardSubheading(text: location)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
             if let profilePhotoURL = profile.profilePhotoURL {
-                AsyncImage(url: profilePhotoURL) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(.quaternary)
-                        .overlay {
-                            ProgressView()
-                        }
-                }
+                FallbackAsyncImageView(
+                    candidates: [profilePhotoURL],
+                    emptyMessage: "No image",
+                    contentMode: .fill,
+                    fillAlignment: .center,
+                    layoutMode: .fill
+                )
                 .frame(width: 92, height: 92)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
             }
@@ -133,8 +115,7 @@ struct PracticeIFPAProfileScreen: View {
 
         if profile.lastEventDate != nil || profile.seriesRank != nil {
             VStack(alignment: .leading, spacing: 8) {
-                Text("At a Glance")
-                    .font(.headline)
+                AppSectionTitle(text: "At a Glance")
 
                 if let lastEventDate = profile.lastEventDate {
                     infoRow(label: "Last event", value: lastEventDate)
@@ -150,18 +131,14 @@ struct PracticeIFPAProfileScreen: View {
         }
 
         VStack(alignment: .leading, spacing: 8) {
-            Text("Recent Tournaments")
-                .font(.headline)
+            AppSectionTitle(text: "Recent Tournaments")
 
             if profile.recentTournaments.isEmpty {
-                Text("No recent tournament results were found on the public IFPA profile.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "No recent tournament results were found on the public IFPA profile.")
             } else {
                 ForEach(profile.recentTournaments) { tournament in
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(tournament.name)
-                            .font(.subheadline.weight(.semibold))
+                        AppCardSubheading(text: tournament.name)
                         HStack(alignment: .top) {
                             infoColumn(label: "Date", value: tournament.dateLabel)
                             Spacer()
@@ -182,9 +159,10 @@ struct PracticeIFPAProfileScreen: View {
         .appPanelStyle()
 
         if let profileURL = URL(string: "https://www.ifpapinball.com/players/view.php?p=\(profile.playerID)") {
-            Link("Open full IFPA profile", destination: profileURL)
-                .buttonStyle(.plain)
-                .foregroundStyle(Color(red: 0.49, green: 0.77, blue: 0.98))
+            Link(destination: profileURL) {
+                AppExternalLinkButtonLabel(text: "Open full IFPA profile")
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -193,8 +171,7 @@ struct PracticeIFPAProfileScreen: View {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text(value)
-                .font(.headline)
+            AppCardTitle(text: value)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)

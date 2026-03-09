@@ -2,26 +2,27 @@ package com.pillyliu.pinprofandroid.practice
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Archive
-import androidx.compose.material.icons.outlined.CheckBox
-import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.RadioButtonChecked
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,7 +32,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -44,16 +44,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppCompactIconButton
+import com.pillyliu.pinprofandroid.ui.AppSelectableRowButton
+import com.pillyliu.pinprofandroid.ui.AppSwipeRevealActionButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.SectionTitle
+import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import kotlin.math.roundToInt
 import kotlin.math.abs
+
+private val DashboardRowShape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
 
 @Composable
 internal fun CurrentGroupsCard(
@@ -72,17 +78,17 @@ internal fun CurrentGroupsCard(
 
     CardContainer(modifier = Modifier.padding(top = 2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Groups", fontWeight = FontWeight.SemiBold)
+            SectionTitle("Groups")
             CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                 SingleChoiceSegmentedButtonRow(
-                    modifier = Modifier
-                        .padding(start = 10.dp),
+                    modifier = Modifier.padding(start = 10.dp),
                 ) {
                     listOf("Current", "Archived").forEachIndexed { index, label ->
                         val archived = index == 1
                         SegmentedButton(
                             selected = showArchived == archived,
                             onClick = { showArchived = archived },
+                            colors = pinballSegmentedButtonColors(),
                             shape = SegmentedButtonDefaults.itemShape(index = index, count = 2),
                             modifier = Modifier.height(32.dp),
                             icon = {},
@@ -98,19 +104,30 @@ internal fun CurrentGroupsCard(
                 }
             }
             Box(modifier = Modifier.weight(1f))
-            IconButton(onClick = onCreateGroup) {
-                Icon(Icons.Outlined.Add, contentDescription = "Add group")
-            }
-            val selectedID = selectedVisibleID
-            IconButton(
-                onClick = {
-                    if (selectedID != null) {
-                        onEditSelectedGroup(selectedID)
-                    }
-                },
-                enabled = selectedID != null,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Outlined.Edit, contentDescription = "Edit selected group")
+                AppCompactIconButton(
+                    icon = Icons.Outlined.Add,
+                    contentDescription = "Add group",
+                    onClick = onCreateGroup,
+                    size = 28.dp,
+                    iconSize = 16.dp,
+                )
+                val selectedID = selectedVisibleID
+                AppCompactIconButton(
+                    icon = Icons.Outlined.Edit,
+                    contentDescription = "Edit selected group",
+                    onClick = {
+                        if (selectedID != null) {
+                            onEditSelectedGroup(selectedID)
+                        }
+                    },
+                    enabled = selectedID != null,
+                    size = 28.dp,
+                    iconSize = 16.dp,
+                )
             }
         }
         if (visibleGroups.isEmpty()) {
@@ -162,9 +179,9 @@ internal fun CurrentGroupsCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                        .height(40.dp)
-                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp)),
+                        .padding(horizontal = 6.dp, vertical = 1.dp)
+                        .height(38.dp)
+                        .clip(DashboardRowShape),
                 ) {
                     Row(
                         modifier = Modifier
@@ -173,7 +190,7 @@ internal fun CurrentGroupsCard(
                             .fillMaxHeight()
                             .alpha(if (revealProgress > 0f) 1f else 0f),
                     ) {
-                        SwipeActionIcon(
+                        AppSwipeRevealActionButton(
                             modifier = Modifier.weight(1f),
                             tint = Color(0xFFFF9500),
                             icon = if (group.isArchived) Icons.Outlined.Unarchive else Icons.Outlined.Archive,
@@ -188,7 +205,7 @@ internal fun CurrentGroupsCard(
                                 offsetX = 0f
                             },
                         )
-                        SwipeActionIcon(
+                        AppSwipeRevealActionButton(
                             modifier = Modifier.weight(1f),
                             tint = Color(0xFFFF3B30),
                             icon = Icons.Outlined.Delete,
@@ -206,7 +223,7 @@ internal fun CurrentGroupsCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .fillMaxHeight()
-                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                            .clip(DashboardRowShape)
                             .background(
                                 MaterialTheme.colorScheme.surfaceContainerLow.copy(
                                     alpha = 1f - (1.00f * revealProgress),
@@ -215,7 +232,7 @@ internal fun CurrentGroupsCard(
                             .border(
                                 width = 1.dp,
                                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.72f - (0.22f * revealProgress)),
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                                shape = DashboardRowShape,
                             )
                             .offset { IntOffset(offsetX.roundToInt(), 0) }
                             .draggable(
@@ -228,50 +245,40 @@ internal fun CurrentGroupsCard(
                                 },
                             )
                     ) {
-                        TextButton(
+                        AppSelectableRowButton(
+                            text = group.name,
+                            selected = selectedID == group.id,
                             onClick = {
                                 store.setSelectedGroup(group.id)
                                 onRevealedGroupIDChange(null)
                                 offsetX = 0f
                             },
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(0.dp),
+                            highlightCorner = 8.dp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 6.dp, vertical = 3.dp),
+                        )
+                        Box(
+                            modifier = Modifier.width(priorityColWidth),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 6.dp)
-                                    .background(
-                                        if (selectedID == group.id) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.62f) else Color.Transparent,
-                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                                    )
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                            IconButton(
+                                onClick = {
+                                    store.updateGroup(group.copy(isPriority = !group.isPriority))
+                                    onRevealedGroupIDChange(null)
+                                    offsetX = 0f
+                                },
                             ) {
-                                Text(
-                                    group.name,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    color = if (selectedID == group.id) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                Icon(
+                                    imageVector = if (group.isPriority) Icons.Outlined.RadioButtonChecked else Icons.Outlined.RadioButtonUnchecked,
+                                    contentDescription = if (group.isPriority) "Priority on" else "Priority off",
+                                    tint = if (group.isPriority) Color(0xFFFFA726) else MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
-                        IconButton(
-                            onClick = {
-                                store.updateGroup(group.copy(isPriority = !group.isPriority))
-                                onRevealedGroupIDChange(null)
-                                offsetX = 0f
-                            },
-                            modifier = Modifier
-                                .width(priorityColWidth)
-                                .height(30.dp),
-                        ) {
-                            Icon(
-                                imageVector = if (group.isPriority) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
-                                contentDescription = if (group.isPriority) "Priority on" else "Priority off",
-                                tint = if (group.isPriority) Color(0xFFFFA726) else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        TextButton(
+                        DashboardDateButton(
+                            text = group.startDateMs?.let { formatShortDate(it) } ?: "-",
+                            width = dateColWidth,
                             onClick = {
                                 onOpenGroupDatePicker(
                                     group.id,
@@ -281,19 +288,10 @@ internal fun CurrentGroupsCard(
                                 onRevealedGroupIDChange(null)
                                 offsetX = 0f
                             },
-                            modifier = Modifier
-                                .width(dateColWidth)
-                                .height(30.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                        ) {
-                            Text(
-                                group.startDateMs?.let { formatShortDate(it) } ?: "-",
-                                style = MaterialTheme.typography.labelSmall,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                        TextButton(
+                        )
+                        DashboardDateButton(
+                            text = group.endDateMs?.let { formatShortDate(it) } ?: "-",
+                            width = dateColWidth,
                             onClick = {
                                 onOpenGroupDatePicker(
                                     group.id,
@@ -303,18 +301,7 @@ internal fun CurrentGroupsCard(
                                 onRevealedGroupIDChange(null)
                                 offsetX = 0f
                             },
-                            modifier = Modifier
-                                .width(dateColWidth)
-                                .height(30.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                        ) {
-                            Text(
-                                group.endDateMs?.let { formatShortDate(it) } ?: "-",
-                                style = MaterialTheme.typography.labelSmall,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
+                        )
                     }
                 }
             }
@@ -323,19 +310,19 @@ internal fun CurrentGroupsCard(
 }
 
 @Composable
-private fun RowScope.SwipeActionIcon(
-    modifier: Modifier,
-    tint: Color,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
+private fun DashboardDateButton(
+    text: String,
+    width: androidx.compose.ui.unit.Dp,
     onClick: () -> Unit,
 ) {
-    IconButton(
-        onClick = onClick,
-        modifier = modifier
-            .height(40.dp)
-            .background(tint, shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)),
-    ) {
-        Icon(icon, contentDescription = contentDescription, tint = Color.White)
-    }
+    Text(
+        text = text,
+        modifier = Modifier
+            .width(width)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = 6.dp),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
 }

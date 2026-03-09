@@ -7,7 +7,7 @@ struct PracticeGameScreenshotSection: View {
         Group {
             if let game {
                 ConstrainedAsyncImagePreview(
-                    candidates: game.gamePlayfieldCandidates,
+                    candidates: game.detailArtworkCandidates,
                     emptyMessage: "No image",
                     maxAspectRatio: 4.0 / 3.0,
                     imagePadding: 0
@@ -35,8 +35,7 @@ struct PracticeGameNoteCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Game Note")
-                .font(.headline)
+            AppCardSubheading(text: "Game Note")
 
             TextEditor(text: $note)
                 .frame(minHeight: 96)
@@ -48,7 +47,7 @@ struct PracticeGameNoteCard: View {
             HStack {
                 Spacer()
                 Button("Save Note", action: onSave)
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppPrimaryActionButtonStyle(fillsWidth: false))
                     .disabled(isDisabled)
             }
         }

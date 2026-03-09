@@ -8,12 +8,48 @@
 import SwiftUI
 import Combine
 
-enum RootTab: Hashable {
+enum RootTab: Hashable, CaseIterable {
     case league
     case library
-    case gameroom
     case practice
+    case gameroom
     case settings
+
+    var title: String {
+        switch self {
+        case .league: return "League"
+        case .library: return "Library"
+        case .gameroom: return "GameRoom"
+        case .practice: return "Practice"
+        case .settings: return "Settings"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .league: return "chart.bar.xaxis"
+        case .library: return "books.vertical"
+        case .gameroom: return "arcade.stick.console"
+        case .practice: return "figure.play"
+        case .settings: return "slider.horizontal.3"
+        }
+    }
+
+    @ViewBuilder
+    func rootView() -> some View {
+        switch self {
+        case .league:
+            LeagueScreen()
+        case .library:
+            LibraryScreen()
+        case .gameroom:
+            GameRoomScreen()
+        case .practice:
+            PracticeScreen()
+        case .settings:
+            SettingsScreen()
+        }
+    }
 }
 
 final class AppNavigationModel: ObservableObject {
@@ -33,36 +69,15 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $appNavigation.selectedTab) {
-            LeagueScreen()
-                .tag(RootTab.league)
-                .tabItem {
-                    Label("League", systemImage: "chart.bar.xaxis")
-                }
-
-            LibraryScreen()
-                .tag(RootTab.library)
-                .tabItem {
-                    Label("Library", systemImage: "books.vertical")
-                }
-
-            PracticeScreen()
-                .tag(RootTab.practice)
-                .tabItem {
-                    Label("Practice", systemImage: "figure.play")
-                }
-
-            GameRoomScreen()
-                .tag(RootTab.gameroom)
-                .tabItem {
-                    Label("GameRoom", systemImage: "arcade.stick.console")
-                }
-
-            SettingsScreen()
-                .tag(RootTab.settings)
-                .tabItem {
-                    Label("Settings", systemImage: "slider.horizontal.3")
-                }
+            ForEach(RootTab.allCases, id: \.self) { tab in
+                tab.rootView()
+                    .tag(tab)
+                    .tabItem {
+                        Label(tab.title, systemImage: tab.systemImage)
+                    }
+            }
         }
+        .tint(AppTheme.brandGold)
         .environmentObject(appNavigation)
     }
 }

@@ -8,15 +8,15 @@ struct PracticeHubMiniCard: View {
             HStack(spacing: 6) {
                 Image(systemName: destination.icon)
                     .font(.headline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(AppTheme.brandGold)
                 Text(destination.label)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AppTheme.brandInk)
                     .lineLimit(1)
             }
             Text(destination.subtitle)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.brandChalk)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
         }

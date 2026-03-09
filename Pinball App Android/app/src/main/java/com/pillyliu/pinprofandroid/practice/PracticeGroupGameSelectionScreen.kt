@@ -8,11 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.LibrarySource
+import com.pillyliu.pinprofandroid.ui.AppCheckbox
+import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import java.util.Locale
 
@@ -97,7 +97,7 @@ internal fun GroupGameSelectionScreen(
         CardContainer {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Select Titles", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                TextButton(onClick = onDone) { Text("Done") }
+                AppTextAction(text = "Done", onClick = onDone)
             }
         }
         CardContainer {
@@ -134,7 +134,7 @@ internal fun GroupGameSelectionScreen(
                         val checked = selectedSlugs.contains(game.practiceKey)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(game.name, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Checkbox(
+                            AppCheckbox(
                                 checked = checked,
                                 onCheckedChange = { enabled ->
                                     if (enabled && !selectedSlugs.contains(game.practiceKey)) selectedSlugs.add(game.practiceKey)

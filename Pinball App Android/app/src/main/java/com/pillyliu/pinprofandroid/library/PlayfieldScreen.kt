@@ -57,6 +57,9 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import coil.size.Size
 import com.pillyliu.pinprofandroid.data.PinballDataCache
+import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
+import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
+import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import kotlinx.coroutines.Job
@@ -99,7 +102,7 @@ internal fun ConstrainedAsyncImagePreview(
         contentAlignment = Alignment.Center,
     ) {
         if (candidates.isEmpty()) {
-            Text(emptyMessage, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            AppMediaPreviewPlaceholder(message = emptyMessage)
         } else {
             AsyncImage(
                 model = imageRequest,
@@ -135,11 +138,11 @@ internal fun ConstrainedAsyncImagePreview(
             )
 
             if (!imageLoaded && !showMissingImage) {
-                CircularProgressIndicator()
+                AppMediaPreviewPlaceholder(showsProgress = true)
             }
 
             if (showMissingImage) {
-                Text(emptyMessage, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                AppMediaPreviewPlaceholder(message = emptyMessage)
             }
         }
     }
@@ -196,21 +199,11 @@ internal fun PlayfieldScreen(
                     .padding(contentPadding)
                     .padding(start = 14.dp, end = 14.dp, top = 8.dp),
             ) {
-                GlassBackButton(
-                    onClick = onBack,
-                    modifier = Modifier.align(Alignment.CenterStart),
-                )
-                Text(
-                    text = title,
-                    color = adaptiveTitleColor,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                        .padding(horizontal = 50.dp),
+                AppScreenHeader(
+                    title = title,
+                    onBack = onBack,
+                    modifier = Modifier.align(Alignment.Center),
+                    titleColor = adaptiveTitleColor,
                 )
             }
         }
@@ -429,10 +422,11 @@ private fun ZoomablePlayfieldImage(
         )
 
         if (!imageLoaded) {
-            CircularProgressIndicator(
+            AppFullscreenStatusOverlay(
+                text = "Loading image…",
                 modifier = Modifier.align(Alignment.Center),
-                color = Color.White.copy(alpha = 0.9f),
-                trackColor = Color.White.copy(alpha = 0.2f),
+                showsProgress = true,
+                foregroundColor = Color.White.copy(alpha = 0.9f),
             )
         }
     }

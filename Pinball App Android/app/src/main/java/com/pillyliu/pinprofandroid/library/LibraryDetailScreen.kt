@@ -93,8 +93,12 @@ import com.halilibo.richtext.ui.material3.RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.downloadTextAllowMissing
-import com.pillyliu.pinprofandroid.ui.AppBackButton
+import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
+import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
+import com.pillyliu.pinprofandroid.ui.appVideoTileBorderColor
+import com.pillyliu.pinprofandroid.ui.appVideoTileContainerColor
+import com.pillyliu.pinprofandroid.ui.appVideoTileLabelColor
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
@@ -139,11 +143,7 @@ internal fun LibraryDetailScreen(
 
     LaunchedEffect(game.slug) {
         if (infoStatus == "loaded" || infoStatus == "missing") return@LaunchedEffect
-        val candidates = listOfNotNull(
-            game.resolve(game.gameinfoLocal),
-            game.practiceIdentity?.let { "https://pillyliu.com/pinball/gameinfo/${it}-gameinfo.md" },
-            "https://pillyliu.com/pinball/gameinfo/${game.slug}.md",
-        ).distinct()
+        val candidates = game.gameinfoPathCandidates.mapNotNull { candidate -> game.resolve(candidate) }.distinct()
         var loaded = false
         var sawError = false
         for (candidate in candidates) {
@@ -177,21 +177,11 @@ internal fun LibraryDetailScreen(
                     .fillMaxWidth()
                     .padding(top = 8.dp),
             ) {
-                AppBackButton(
-                    onClick = onBack,
-                    modifier = Modifier.align(Alignment.CenterStart),
-                )
-                Text(
-                    text = if (game.normalizedVariant != null) "${game.name} • ${game.normalizedVariant}" else game.name,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                        .padding(horizontal = 50.dp),
+                AppScreenHeader(
+                    title = if (game.normalizedVariant != null) "${game.name} • ${game.normalizedVariant}" else game.name,
+                    onBack = onBack,
+                    modifier = Modifier.align(Alignment.Center),
+                    titleColor = MaterialTheme.colorScheme.onSurface,
                 )
             }
 
@@ -215,32 +205,9 @@ internal fun LibraryDetailScreen(
                 infoStatus = infoStatus,
                 markdown = markdown,
             )
-
-            LibraryDetailSourcesSection(
-                game = game,
-                hasRulesheet = hasRulesheet,
-                onOpenRulesheet = onOpenRulesheet,
-                onOpenExternalRulesheet = onOpenExternalRulesheet,
-                onOpenPlayfield = onOpenPlayfield,
-            )
-            if (!game.hasRulesheetResource && !game.hasPlayfieldResource) {
-                Text(
-                    "No sources available.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
-                )
-            }
             Spacer(Modifier.height(LIBRARY_CONTENT_BOTTOM_FILLER))
         }
     }
-}
-
-@Composable
-internal fun GlassBackButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    AppBackButton(onClick = onClick, modifier = modifier)
 }
 
 @Composable
@@ -253,23 +220,83 @@ private fun FallbackAsyncImage(
     val candidates = urls.filter { it.isNotBlank() }.distinct()
     var activeIndex by remember(candidates) { mutableIntStateOf(0) }
     val model = rememberCachedImageModel(candidates.getOrNull(activeIndex))
-    AsyncImage(
-        model = model,
-        contentDescription = contentDescription,
-        modifier = modifier,
-        contentScale = contentScale,
-        onError = {
-            if (activeIndex < candidates.lastIndex) {
-                activeIndex += 1
-            }
-        },
-    )
+    var imageLoaded by remember(candidates, activeIndex) { mutableStateOf(false) }
+    var showMissingImage by remember(candidates, activeIndex) { mutableStateOf(candidates.isEmpty()) }
+    Box(modifier = modifier) {
+        if (candidates.isNotEmpty()) {
+            AsyncImage(
+                model = model,
+                contentDescription = contentDescription,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = contentScale,
+                onLoading = {
+                    imageLoaded = false
+                    showMissingImage = false
+                },
+                onSuccess = {
+                    imageLoaded = true
+                    showMissingImage = false
+                },
+                onError = {
+                    if (activeIndex < candidates.lastIndex) {
+                        activeIndex += 1
+                    } else {
+                        imageLoaded = false
+                        showMissingImage = true
+                    }
+                },
+            )
+        }
+
+        when {
+            candidates.isEmpty() -> AppMediaPreviewPlaceholder(message = "No image")
+            !imageLoaded && !showMissingImage -> AppMediaPreviewPlaceholder(showsProgress = true)
+            showMissingImage -> AppMediaPreviewPlaceholder(message = "No image")
+        }
+    }
+}
+
+@Composable
+private fun VideoTileThumbnail(
+    thumbnailUrl: String,
+    label: String,
+    modifier: Modifier,
+) {
+    var imageLoaded by remember(thumbnailUrl) { mutableStateOf(false) }
+    var showMissingImage by remember(thumbnailUrl) { mutableStateOf(thumbnailUrl.isBlank()) }
+    Box(modifier = modifier) {
+        if (thumbnailUrl.isNotBlank()) {
+            AsyncImage(
+                model = thumbnailUrl,
+                contentDescription = label,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                onLoading = {
+                    imageLoaded = false
+                    showMissingImage = false
+                },
+                onSuccess = {
+                    imageLoaded = true
+                    showMissingImage = false
+                },
+                onError = {
+                    imageLoaded = false
+                    showMissingImage = true
+                },
+            )
+        }
+
+        when {
+            thumbnailUrl.isBlank() -> AppMediaPreviewPlaceholder(message = "No image")
+            !imageLoaded && !showMissingImage -> AppMediaPreviewPlaceholder(showsProgress = true)
+            showMissingImage -> AppMediaPreviewPlaceholder()
+        }
+    }
 }
 
 @Composable
 internal fun VideoTile(
-    videoId: String,
-    label: String,
+    video: PlayableVideo,
     selected: Boolean,
     width: androidx.compose.ui.unit.Dp,
     onSelect: () -> Unit,
@@ -278,17 +305,16 @@ internal fun VideoTile(
         modifier = Modifier
             .width(width)
             .clickable(onClick = onSelect)
-            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(8.dp))
-            .border(1.dp, if (selected) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+            .background(appVideoTileContainerColor(selected), RoundedCornerShape(8.dp))
+            .border(1.dp, appVideoTileBorderColor(selected), RoundedCornerShape(8.dp))
             .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        AsyncImage(
-            model = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg",
-            contentDescription = label,
+        VideoTileThumbnail(
+            thumbnailUrl = video.thumbnailUrl,
+            label = video.label,
             modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
-            contentScale = ContentScale.Crop,
         )
-        Text(label, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(video.label, color = appVideoTileLabelColor(selected), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

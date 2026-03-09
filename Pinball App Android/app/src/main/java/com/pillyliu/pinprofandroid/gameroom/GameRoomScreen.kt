@@ -101,8 +101,9 @@ import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.library.rememberCachedImageModel
 import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
-import com.pillyliu.pinprofandroid.ui.AppBackButton
+import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
@@ -128,31 +129,31 @@ private enum class GameRoomRoute {
     MachineView,
 }
 
-private enum class GameRoomSettingsSection(val label: String) {
+internal enum class GameRoomSettingsSection(val label: String) {
     Import("Import"),
     Edit("Edit"),
     Archive("Archive"),
 }
 
-private enum class GameRoomArchiveFilter(val label: String) {
+internal enum class GameRoomArchiveFilter(val label: String) {
     All("All"),
     Sold("Sold"),
     Traded("Traded"),
     Archived("Archived"),
 }
 
-private enum class GameRoomCollectionLayout(val label: String) {
+internal enum class GameRoomCollectionLayout(val label: String) {
     Tiles("Cards"),
     List("List"),
 }
 
-private enum class GameRoomMachineSubview(val label: String) {
+internal enum class GameRoomMachineSubview(val label: String) {
     Summary("Summary"),
     Input("Input"),
     Log("Log"),
 }
 
-private enum class GameRoomInputSheet(val title: String) {
+internal enum class GameRoomInputSheet(val title: String) {
     CleanGlass("Clean Glass"),
     CleanPlayfield("Clean Playfield"),
     SwapBalls("Swap Balls"),
@@ -168,12 +169,12 @@ private enum class GameRoomInputSheet(val title: String) {
     AddMedia("Add Photo/Video"),
 }
 
-private enum class ImportReviewFilter(val label: String) {
+internal enum class ImportReviewFilter(val label: String) {
     All("All"),
     NeedsReview("Needs Review"),
 }
 
-private data class ImportDraftRow(
+internal data class ImportDraftRow(
     val id: String,
     val sourceItemKey: String,
     val rawTitle: String,
@@ -187,7 +188,7 @@ private data class ImportDraftRow(
     val normalizedPurchaseDateMs: Long?,
 )
 
-private data class IssueInputAttachmentDraft(
+internal data class IssueInputAttachmentDraft(
     val id: String,
     val kind: MachineAttachmentKind,
     val uri: String,
@@ -196,11 +197,16 @@ private data class IssueInputAttachmentDraft(
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun GameRoomScreen(contentPadding: PaddingValues) {
+internal fun GameRoomScreen(
+    contentPadding: PaddingValues,
+    externalStore: GameRoomStore? = null,
+    externalCatalogLoader: GameRoomCatalogLoader? = null,
+    externalPinsideImportService: GameRoomPinsideImportService? = null,
+) {
     val context = LocalContext.current
-    val store = remember { GameRoomStore(context) }
-    val catalogLoader = remember { GameRoomCatalogLoader(context) }
-    val pinsideImportService = remember { GameRoomPinsideImportService(context) }
+    val store = externalStore ?: remember(context.applicationContext) { GameRoomStore(context.applicationContext) }
+    val catalogLoader = externalCatalogLoader ?: remember(context.applicationContext) { GameRoomCatalogLoader(context.applicationContext) }
+    val pinsideImportService = externalPinsideImportService ?: remember(context.applicationContext) { GameRoomPinsideImportService(context.applicationContext) }
     val scope = rememberCoroutineScope()
     var route by rememberSaveable { mutableStateOf(GameRoomRoute.Home) }
     var selectedSettingsSection by rememberSaveable { mutableStateOf(GameRoomSettingsSection.Import) }
@@ -356,12 +362,6 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
         "Showing 0 of 0"
     } else {
         "Showing ${safeResultWindowStart + 1}-${safeResultWindowEnd} of ${filteredCatalogGames.size}"
-    }
-    val filteredImportRows = importRows.filter { row ->
-        when (importReviewFilter) {
-            ImportReviewFilter.All -> true
-            ImportReviewFilter.NeedsReview -> needsImportReview(row, store, catalogLoader)
-        }
     }
     val allAttachments = store.state.attachments
     val mediaPreviewAttachment = mediaPreviewAttachmentID?.let { id -> allAttachments.firstOrNull { it.id == id } }
@@ -539,3033 +539,455 @@ fun GameRoomScreen(contentPadding: PaddingValues) {
     ) {
         when (route) {
             GameRoomRoute.Home -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = store.venueName,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 20.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 8.dp),
-                        )
-                        IconButton(onClick = { route = GameRoomRoute.Settings }) {
-                            Icon(
-                                imageVector = Icons.Outlined.Settings,
-                                contentDescription = "GameRoom Settings",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                    }
-
-                    CardContainer {
-                        Text(
-                            text = "Selected Machine",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        if (selectedMachine == null) {
-                            Text(
-                                text = "Select a machine from the collection below.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        } else {
-                            val snapshot = store.snapshot(selectedMachine.id)
-                            val areaName = store.area(selectedMachine.gameRoomAreaID)?.name ?: "No area"
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = selectedMachine.displayTitle,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                val variantLabel = gameRoomVariantBadgeLabel(selectedMachine.displayVariant, selectedMachine.displayTitle)
-                                if (variantLabel != null) {
-                                    GameRoomVariantPill(label = variantLabel, style = VariantPillStyle.Standard)
-                                }
-                            }
-                            Text(
-                                text = "Location: $areaName • Group ${selectedMachine.groupNumber ?: "—"} • Position ${selectedMachine.position ?: "—"}",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            Text(
-                                text = "Current Snapshot",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(top = 2.dp),
-                            )
-                            SnapshotMetricGrid(
-                                metrics = listOf(
-                                    "Open Issues" to snapshot.openIssueCount.toString(),
-                                    "Current Plays" to snapshot.currentPlayCount.toString(),
-                                    "Due Tasks" to snapshot.dueTaskCount.toString(),
-                                    "Last Service" to formatDate(snapshot.lastServiceAtMs, "None"),
-                                    "Pitch" to (snapshot.currentPitchValue?.let { String.format("%.1f", it) } ?: "—"),
-                                    "Last Level" to formatDate(snapshot.lastLeveledAtMs, "None"),
-                                    "Last Inspection" to formatDate(snapshot.lastGeneralInspectionAtMs, "None"),
-                                    "Purchase Date" to formatDate(selectedMachine.purchaseDateMs, "—"),
-                                ),
-                            )
-                            selectedMachine.purchaseDateRawText?.takeIf { it.isNotBlank() }?.let { raw ->
-                                Text(
-                                    text = "Purchase (raw): $raw",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
-                        }
-                    }
-
-                    CardContainer {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = "Collection",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                GameRoomCollectionLayout.entries.forEach { mode ->
-                                    val selected = mode == collectionLayout
-                                    Box(
-                                        modifier = Modifier
-                                            .background(
-                                                if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                                RoundedCornerShape(999.dp),
-                                            )
-                                            .border(
-                                                1.dp,
-                                                if (selected) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outlineVariant,
-                                                RoundedCornerShape(999.dp),
-                                            )
-                                            .clickable { collectionLayout = mode }
-                                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Text(
-                                            text = mode.label,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        Text(
-                            text = "Tracked active machines: ${activeMachines.size}",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        if (activeMachines.isEmpty()) {
-                            Text(
-                                text = "No active machines yet. Add one in GameRoom Settings > Edit.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        } else {
-                            if (collectionLayout == GameRoomCollectionLayout.Tiles) {
-                                val leftColumn = activeMachines.filterIndexed { index, _ -> index % 2 == 0 }
-                                val rightColumn = activeMachines.filterIndexed { index, _ -> index % 2 == 1 }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        leftColumn.forEach { machine ->
-                                            val snapshot = store.snapshot(machine.id)
-                                            val art = catalogLoader.resolvedArt(machine.catalogGameID, machine.displayVariant)
-                                            MiniMachineCard(
-                                                machine = machine,
-                                                imageUrl = art?.primaryImageLargeUrl ?: art?.primaryImageUrl,
-                                                attentionState = snapshot.attentionState,
-                                                selected = selectedMachineID == machine.id,
-                                                onClick = {
-                                                    if (selectedMachineID == machine.id) {
-                                                        route = GameRoomRoute.MachineView
-                                                    } else {
-                                                        selectedMachineID = machine.id
-                                                    }
-                                                },
-                                            )
-                                        }
-                                    }
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        rightColumn.forEach { machine ->
-                                            val snapshot = store.snapshot(machine.id)
-                                            val art = catalogLoader.resolvedArt(machine.catalogGameID, machine.displayVariant)
-                                            MiniMachineCard(
-                                                machine = machine,
-                                                imageUrl = art?.primaryImageLargeUrl ?: art?.primaryImageUrl,
-                                                attentionState = snapshot.attentionState,
-                                                selected = selectedMachineID == machine.id,
-                                                onClick = {
-                                                    if (selectedMachineID == machine.id) {
-                                                        route = GameRoomRoute.MachineView
-                                                    } else {
-                                                        selectedMachineID = machine.id
-                                                    }
-                                                },
-                                            )
-                                        }
-                                    }
-                                }
-                            } else {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    activeMachines.forEach { machine ->
-                                        val snapshot = store.snapshot(machine.id)
-                                        val art = catalogLoader.resolvedArt(machine.catalogGameID, machine.displayVariant)
-                                        MachineListRow(
-                                            machine = machine,
-                                            imageUrl = art?.primaryImageLargeUrl ?: art?.primaryImageUrl,
-                                            areaName = store.area(machine.gameRoomAreaID)?.name ?: "No area",
-                                            attentionState = snapshot.attentionState,
-                                            selected = selectedMachineID == machine.id,
-                                            onClick = {
-                                                if (selectedMachineID == machine.id) {
-                                                    route = GameRoomRoute.MachineView
-                                                } else {
-                                                    selectedMachineID = machine.id
-                                                }
-                                            },
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                GameRoomHomeRoute(
+                    context = GameRoomHomeRouteContext(
+                store = store,
+                catalogLoader = catalogLoader,
+                        selectedMachine = selectedMachine,
+                        selectedMachineID = selectedMachineID,
+                        collectionLayout = collectionLayout,
+                        onCollectionLayoutChange = { collectionLayout = it },
+                        onSelectMachine = { selectedMachineID = it },
+                        onOpenMachineView = { route = GameRoomRoute.MachineView },
+                        onOpenSettings = { route = GameRoomRoute.Settings },
+                    ),
+                )
             }
 
             GameRoomRoute.Settings -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AppBackButton(onClick = { route = GameRoomRoute.Home })
-                        Text(
-                            text = "GameRoom Settings",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-
-                    CardContainer {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            GameRoomSettingsSection.entries.forEach { section ->
-                                val selected = section == selectedSettingsSection
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .background(
-                                            if (selected) {
-                                                MaterialTheme.colorScheme.secondaryContainer
-                                            } else {
-                                                MaterialTheme.colorScheme.surfaceContainerHigh
-                                            },
-                                            RoundedCornerShape(999.dp),
-                                        )
-                                        .border(
-                                            width = 1.dp,
-                                            color = if (selected) {
-                                                MaterialTheme.colorScheme.outline
-                                            } else {
-                                                MaterialTheme.colorScheme.outlineVariant
-                                            },
-                                            shape = RoundedCornerShape(999.dp),
-                                        )
-                                        .clickable { selectedSettingsSection = section }
-                                        .padding(vertical = 8.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = section.label,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    CardContainer {
-                        Text(
-                            text = when (selectedSettingsSection) {
-                                GameRoomSettingsSection.Import -> "Import from Pinside"
-                                GameRoomSettingsSection.Edit -> "Edit GameRoom"
-                                GameRoomSettingsSection.Archive -> "Machine Archive"
-                            },
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        if (selectedSettingsSection == GameRoomSettingsSection.Import) {
-                            OutlinedTextField(
-                                value = importSourceInput,
-                                onValueChange = { importSourceInput = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                label = { Text("Pinside username or public collection URL") },
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                                keyboardActions = KeyboardActions(
-                                    onGo = {
-                                        val input = importSourceInput.trim()
-                                        if (!importIsLoading && input.isNotBlank()) {
-                                            scope.launch {
-                                                importErrorMessage = null
-                                                importResultMessage = null
-                                                importIsLoading = true
-                                                try {
-                                                    val result = pinsideImportService.fetchCollectionMachines(input)
-                                                    importSourceURL = result.sourceURL
-                                                    importRows = result.machines.map { machine ->
-                                                        makeImportDraftRow(machine, catalogLoader)
-                                                    }
-                                                    importReviewFilter = ImportReviewFilter.All
-                                                } catch (error: GameRoomPinsideImportException) {
-                                                    importSourceURL = ""
-                                                    importRows = emptyList()
-                                                    importErrorMessage = error.userMessage
-                                                } catch (_: Throwable) {
-                                                    importSourceURL = ""
-                                                    importRows = emptyList()
-                                                    importErrorMessage = "Could not load Pinside collection right now."
-                                                } finally {
-                                                    importIsLoading = false
+                GameRoomSettingsRoute(
+                    selectedSettingsSection = selectedSettingsSection,
+                    onSelectedSettingsSectionChange = { selectedSettingsSection = it },
+                    onBack = { route = GameRoomRoute.Home },
+                    importContent = {
+                        GameRoomImportSettingsSection(
+                        store = store,
+                        catalogLoader = catalogLoader,
+                                importSourceInput = importSourceInput,
+                                onImportSourceInputChange = { importSourceInput = it },
+                                importIsLoading = importIsLoading,
+                                importErrorMessage = importErrorMessage,
+                                importResultMessage = importResultMessage,
+                                importRows = importRows,
+                                importReviewFilter = importReviewFilter,
+                                onImportReviewFilterChange = { importReviewFilter = it },
+                                onFetchCollection = {
+                                    val input = importSourceInput.trim()
+                                    if (!importIsLoading && input.isNotBlank()) {
+                                        scope.launch {
+                                            importErrorMessage = null
+                                            importResultMessage = null
+                                            importIsLoading = true
+                                            try {
+                                                val result = pinsideImportService.fetchCollectionMachines(input)
+                                                importSourceURL = result.sourceURL
+                                                importRows = result.machines.map { machine ->
+                                                    makeImportDraftRow(machine, catalogLoader)
                                                 }
-                                            }
-                                        }
-                                    },
-                                ),
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Button(
-                                    onClick = {
-                                        val input = importSourceInput.trim()
-                                        if (!importIsLoading && input.isNotBlank()) {
-                                            scope.launch {
-                                                importErrorMessage = null
-                                                importResultMessage = null
-                                                importIsLoading = true
-                                                try {
-                                                    val result = pinsideImportService.fetchCollectionMachines(input)
-                                                    importSourceURL = result.sourceURL
-                                                    importRows = result.machines.map { machine ->
-                                                        makeImportDraftRow(machine, catalogLoader)
-                                                    }
-                                                    importReviewFilter = ImportReviewFilter.All
-                                                } catch (error: GameRoomPinsideImportException) {
-                                                    importSourceURL = ""
-                                                    importRows = emptyList()
-                                                    importErrorMessage = error.userMessage
-                                                } catch (_: Throwable) {
-                                                    importSourceURL = ""
-                                                    importRows = emptyList()
-                                                    importErrorMessage = "Could not load Pinside collection right now."
-                                                } finally {
-                                                    importIsLoading = false
-                                                }
-                                            }
-                                        }
-                                    },
-                                    enabled = !importIsLoading && importSourceInput.trim().isNotEmpty(),
-                                ) {
-                                    Text(if (importIsLoading) "Fetching..." else "Fetch Collection")
-                                }
-                            }
-                            if (importErrorMessage != null) {
-                                Text(
-                                    text = importErrorMessage.orEmpty(),
-                                    color = Color(0xFFD14F4F),
-                                )
-                            }
-                            if (importRows.isNotEmpty()) {
-                                Text(
-                                    text = "Review matches (${importRows.size})",
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    ImportReviewFilter.entries.forEach { filter ->
-                                        val selected = filter == importReviewFilter
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .background(
-                                                    if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                                    RoundedCornerShape(999.dp),
-                                                )
-                                                .border(
-                                                    width = 1.dp,
-                                                    color = if (selected) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outlineVariant,
-                                                    shape = RoundedCornerShape(999.dp),
-                                                )
-                                                .clickable { importReviewFilter = filter }
-                                                .padding(vertical = 8.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Text(
-                                                text = filter.label,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                            )
-                                        }
-                                    }
-                                }
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    filteredImportRows.forEach { row ->
-                                        val duplicateWarning = duplicateWarningMessage(row, store, catalogLoader)
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(10.dp))
-                                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                                                .padding(10.dp),
-                                        ) {
-                                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                ) {
-                                                    Text(
-                                                        text = row.rawTitle,
-                                                        color = MaterialTheme.colorScheme.onSurface,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis,
-                                                        modifier = Modifier.weight(1f),
-                                                    )
-                                                    MatchConfidenceBadge(row.matchConfidence)
-                                                }
-                                                if (!row.rawVariant.isNullOrBlank()) {
-                                                    Text(
-                                                        text = "Variant: ${row.rawVariant}",
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    )
-                                                }
-                                                OutlinedTextField(
-                                                    value = row.rawPurchaseDateText.orEmpty(),
-                                                    onValueChange = { updatedRaw ->
-                                                        importRows = importRows.map { current ->
-                                                            if (current.id != row.id) current else current.copy(
-                                                                rawPurchaseDateText = updatedRaw.ifBlank { null },
-                                                                normalizedPurchaseDateMs = normalizeFirstOfMonthMs(updatedRaw),
-                                                            )
-                                                        }
-                                                    },
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    singleLine = true,
-                                                    label = { Text("Purchase date (raw import text)") },
-                                                )
-                                                if (row.normalizedPurchaseDateMs != null) {
-                                                    Text(
-                                                        text = "Normalized: ${formatDate(row.normalizedPurchaseDateMs, "—")}",
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    )
-                                                }
-                                                if (duplicateWarning != null) {
-                                                    Text(
-                                                        text = duplicateWarning,
-                                                        color = Color(0xFFD18A3D),
-                                                        fontWeight = FontWeight.SemiBold,
-                                                    )
-                                                }
-                                                AnchoredDropdownFilter(
-                                                    selectedText = row.selectedCatalogGameID?.let { selectedID ->
-                                                        catalogLoader.game(selectedID)?.displayTitle
-                                                    } ?: "No Match Selected",
-                                                    options = buildList {
-                                                        row.suggestions.forEach { suggestionID ->
-                                                            val suggestion = catalogLoader.game(suggestionID) ?: return@forEach
-                                                            add(DropdownOption(value = suggestion.catalogGameID, label = suggestion.displayTitle))
-                                                        }
-                                                        add(DropdownOption(value = "__none__", label = "No Match Selected"))
-                                                    },
-                                                    onSelect = { selection ->
-                                                        importRows = importRows.map { current ->
-                                                            if (current.id != row.id) return@map current
-                                                            val selectedCatalogGameID = selection.takeUnless { it == "__none__" }
-                                                            val availableVariants = selectedCatalogGameID?.let { catalogLoader.variantOptions(it) }.orEmpty()
-                                                            val currentVariant = current.selectedVariant
-                                                            val keepVariant = currentVariant?.takeIf { variant ->
-                                                                availableVariants.any { it.equals(variant, ignoreCase = true) }
-                                                            }
-                                                            current.copy(
-                                                                selectedCatalogGameID = selectedCatalogGameID,
-                                                                selectedVariant = keepVariant,
-                                                            )
-                                                        }
-                                                    },
-                                                )
-                                                val selectedCatalogID = row.selectedCatalogGameID
-                                                if (!selectedCatalogID.isNullOrBlank()) {
-                                                    val variants = catalogLoader.variantOptions(selectedCatalogID)
-                                                    if (variants.isNotEmpty()) {
-                                                        AnchoredDropdownFilter(
-                                                            selectedText = row.selectedVariant ?: "None",
-                                                            options = buildList {
-                                                                add(DropdownOption(value = "__none__", label = "None"))
-                                                                variants.forEach { variant ->
-                                                                    add(DropdownOption(value = variant, label = variant))
-                                                                }
-                                                            },
-                                                            onSelect = { variantSelection ->
-                                                                importRows = importRows.map { current ->
-                                                                    if (current.id != row.id) current else current.copy(
-                                                                        selectedVariant = variantSelection.takeUnless { it == "__none__" },
-                                                                    )
-                                                                }
-                                                            },
-                                                        )
-                                                    }
-                                                }
+                                                importReviewFilter = ImportReviewFilter.All
+                                            } catch (error: GameRoomPinsideImportException) {
+                                                importSourceURL = ""
+                                                importRows = emptyList()
+                                                importErrorMessage = error.userMessage
+                                            } catch (_: Throwable) {
+                                                importSourceURL = ""
+                                                importRows = emptyList()
+                                                importErrorMessage = "Could not load Pinside collection right now."
+                                            } finally {
+                                                importIsLoading = false
                                             }
                                         }
                                     }
-                                }
-                                Button(
-                                    onClick = {
-                                        var importedCount = 0
-                                        var skippedDuplicates = 0
-                                        var skippedUnmatched = 0
-                                        importRows.forEach { row ->
-                                            val selectedCatalogID = row.selectedCatalogGameID
-                                            val game = selectedCatalogID?.let { catalogLoader.game(it) }
-                                            if (game == null) {
-                                                skippedUnmatched += 1
-                                                return@forEach
-                                            }
-                                            val resolvedVariant = row.selectedVariant ?: row.rawVariant
-                                            if (store.hasImportFingerprint(row.fingerprint) || store.hasOwnedMachine(game.catalogGameID, resolvedVariant)) {
-                                                skippedDuplicates += 1
-                                                return@forEach
-                                            }
-                                            store.importOwnedMachine(
-                                                game = game,
-                                                sourceUserOrURL = importSourceURL.ifBlank { importSourceInput.trim() },
-                                                sourceItemKey = row.sourceItemKey,
-                                                rawTitle = row.rawTitle,
-                                                rawVariant = resolvedVariant,
-                                                rawPurchaseDateText = row.rawPurchaseDateText,
-                                                normalizedPurchaseDateMs = row.normalizedPurchaseDateMs,
-                                                matchConfidence = row.matchConfidence,
-                                                fingerprint = row.fingerprint,
-                                            )
-                                            importedCount += 1
-                                        }
-                                        importResultMessage = "Imported $importedCount. Skipped $skippedDuplicates duplicates, $skippedUnmatched unmatched."
-                                    },
-                                    enabled = importRows.isNotEmpty(),
-                                ) {
-                                    Text("Import Selected Matches")
-                                }
-                            }
-                            if (importResultMessage != null) {
-                                Text(
-                                    text = importResultMessage.orEmpty(),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Text(
-                                text = "Import records stored: ${store.state.importRecords.size}",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-
-                    if (selectedSettingsSection == GameRoomSettingsSection.Edit) {
-                        CardContainer {
-                            SectionHeader(
-                                title = "Name",
-                                expanded = nameExpanded,
-                                onToggle = { nameExpanded = !nameExpanded },
-                            )
-                            if (nameExpanded) {
-                                OutlinedTextField(
-                                    value = venueNameDraft,
-                                    onValueChange = { venueNameDraft = it },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true,
-                                    label = { Text("GameRoom Name") },
-                                )
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(onClick = {
-                                        store.updateVenueName(venueNameDraft)
-                                        venueNameDraft = store.venueName
-                                    }) {
-                                        Text("Save")
-                                    }
-                                }
-                            }
-                        }
-
-                        CardContainer {
-                            SectionHeader(
-                                title = "Add Machine",
-                                expanded = addMachineExpanded,
-                                onToggle = { addMachineExpanded = !addMachineExpanded },
-                            )
-                            if (addMachineExpanded) {
-                                OutlinedTextField(
-                                    value = addQuery,
-                                    onValueChange = { addQuery = it },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true,
-                                    label = { Text("Search by title") },
-                                )
-                                ManufacturerFilterDropdown(
-                                    selectedText = selectedManufacturerOption?.name ?: "All Manufacturers",
-                                    modernOptions = modernManufacturers,
-                                    classicPopularOptions = classicPopularManufacturers,
-                                    otherOptions = otherManufacturers,
-                                    onSelect = {
-                                        addManufacturerFilter = it
-                                    },
-                                )
-                                Text(
-                                    text = resultWindowLabel,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(max = 260.dp)
-                                        .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(10.dp))
-                                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
-                                ) {
-                                    val resultsListState = rememberLazyListState()
-
-                                    LaunchedEffect(
-                                        pendingResultRestoreTick,
-                                        pendingResultRestoreGameID,
-                                        displayedCatalogGames.map { it.catalogGameID },
-                                        hasPreviousFilteredResults,
-                                    ) {
-                                        val targetGameID = pendingResultRestoreGameID ?: return@LaunchedEffect
-                                        val gameIndex = displayedCatalogGames.indexOfFirst { it.catalogGameID == targetGameID }
-                                        if (gameIndex >= 0) {
-                                            val targetIndex = gameIndex + if (hasPreviousFilteredResults) 1 else 0
-                                            resultsListState.scrollToItem(targetIndex)
-                                        }
-                                        pendingResultRestoreGameID = null
-                                    }
-
-                                    val resolveTopVisibleGameID: () -> String? = {
-                                        if (displayedCatalogGames.isEmpty()) {
-                                            null
+                                },
+                                onUpdateImportPurchaseDate = { rowID, updatedRaw ->
+                                    importRows = importRows.map { current ->
+                                        if (current.id != rowID) {
+                                            current
                                         } else {
-                                            val firstVisibleIndex = resultsListState.firstVisibleItemIndex
-                                            val gameStartIndex = if (hasPreviousFilteredResults) 1 else 0
-                                            val relativeGameIndex = firstVisibleIndex - gameStartIndex
-                                            when {
-                                                relativeGameIndex < 0 -> displayedCatalogGames.first().catalogGameID
-                                                relativeGameIndex >= displayedCatalogGames.size -> displayedCatalogGames.last().catalogGameID
-                                                else -> displayedCatalogGames[relativeGameIndex].catalogGameID
-                                            }
-                                        }
-                                    }
-
-                                    LazyColumn(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(8.dp),
-                                        state = resultsListState,
-                                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                                    ) {
-                                        if (hasPreviousFilteredResults) {
-                                            item(key = "show_previous_25") {
-                                                TextButton(
-                                                    onClick = {
-                                                        val topVisibleGameID = resolveTopVisibleGameID()
-                                                        val previousStart = (safeResultWindowStart - resultPageSize).coerceAtLeast(0)
-                                                        resultWindowStart = previousStart
-                                                        if (topVisibleGameID != null) {
-                                                            pendingResultRestoreGameID = topVisibleGameID
-                                                            pendingResultRestoreTick += 1
-                                                        }
-                                                    },
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                ) {
-                                                    Text("Show Previous 25")
-                                                }
-                                            }
-                                        }
-
-                                        items(
-                                            items = displayedCatalogGames,
-                                            key = { it.catalogGameID },
-                                        ) { game ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(8.dp))
-                                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-                                                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                            ) {
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text(
-                                                        text = game.displayTitle,
-                                                        color = MaterialTheme.colorScheme.onSurface,
-                                                        fontWeight = FontWeight.Medium,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis,
-                                                    )
-                                                    Text(
-                                                        text = listOfNotNull(game.displayVariant, game.manufacturer, game.year?.toString()).joinToString(" • "),
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis,
-                                                    )
-                                                }
-                                                Button(
-                                                    onClick = {
-                                                        val machineID = store.addOwnedMachine(
-                                                            catalogGameID = game.catalogGameID,
-                                                            canonicalPracticeIdentity = game.canonicalPracticeIdentity,
-                                                            displayTitle = game.displayTitle,
-                                                            displayVariant = null,
-                                                            manufacturer = game.manufacturer,
-                                                            year = game.year,
-                                                        )
-                                                        selectedEditMachineID = machineID
-                                                    },
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Outlined.Add,
-                                                        contentDescription = "Add machine",
-                                                    )
-                                                }
-                                            }
-                                        }
-
-                                        if (hasNextFilteredResults) {
-                                            item(key = "show_next_25") {
-                                                TextButton(
-                                                    onClick = {
-                                                        val topVisibleGameID = resolveTopVisibleGameID()
-                                                        val nextEnd = min(safeResultWindowEnd + resultPageSize, filteredCatalogGames.size)
-                                                        var nextStart = safeResultWindowStart
-                                                        if (nextEnd - nextStart > maxRenderedResults) {
-                                                            nextStart = min(
-                                                                nextStart + resultPageSize,
-                                                                max(0, nextEnd - maxRenderedResults),
-                                                            )
-                                                        }
-                                                        resultWindowStart = nextStart
-                                                        resultWindowEnd = nextEnd
-                                                        if (topVisibleGameID != null) {
-                                                            pendingResultRestoreGameID = topVisibleGameID
-                                                            pendingResultRestoreTick += 1
-                                                        }
-                                                    },
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                ) {
-                                                    Text("Show Next 25")
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        CardContainer {
-                            SectionHeader(
-                                title = "Areas",
-                                expanded = areasExpanded,
-                                onToggle = { areasExpanded = !areasExpanded },
-                            )
-                            if (areasExpanded) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    OutlinedTextField(
-                                        value = areaNameDraft,
-                                        onValueChange = { areaNameDraft = it },
-                                        modifier = Modifier.weight(1f),
-                                        singleLine = true,
-                                        label = { Text("Area Name") },
-                                    )
-                                    OutlinedTextField(
-                                        value = areaOrderDraft,
-                                        onValueChange = { areaOrderDraft = it.filter { ch -> ch.isDigit() } },
-                                        modifier = Modifier.width(120.dp),
-                                        singleLine = true,
-                                        label = { Text("Area Order") },
-                                    )
-                                }
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(onClick = {
-                                        store.upsertArea(
-                                            id = selectedAreaID,
-                                            name = areaNameDraft,
-                                            areaOrder = areaOrderDraft.toIntOrNull() ?: 0,
-                                        )
-                                        selectedAreaID = null
-                                        areaNameDraft = ""
-                                        areaOrderDraft = "0"
-                                    }) { Text("Save") }
-                                    Button(
-                                        onClick = {
-                                            selectedAreaID = null
-                                            areaNameDraft = ""
-                                            areaOrderDraft = "0"
-                                        },
-                                    ) { Text("Edit") }
-                                }
-                                store.state.areas.forEach { area ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                selectedAreaID = area.id
-                                                areaNameDraft = area.name
-                                                areaOrderDraft = area.areaOrder.toString()
-                                            }
-                                            .padding(vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Text(
-                                            text = "${area.name} (${area.areaOrder})",
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        IconButton(
-                                            onClick = { store.deleteArea(area.id) },
-                                            modifier = Modifier
-                                                .size(32.dp)
-                                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-                                                .clip(RoundedCornerShape(8.dp)),
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.Delete,
-                                                contentDescription = "Delete area",
-                                                tint = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(18.dp),
+                                            current.copy(
+                                                rawPurchaseDateText = updatedRaw.ifBlank { null },
+                                                normalizedPurchaseDateMs = normalizeFirstOfMonthMs(updatedRaw),
                                             )
                                         }
                                     }
-                                }
-                            }
-                        }
-
-                        CardContainer {
-                            SectionHeader(
-                                title = "Edit Machines (${store.activeMachines.size})",
-                                expanded = editMachinesExpanded,
-                                onToggle = { editMachinesExpanded = !editMachinesExpanded },
+                                },
+                                onUpdateImportMatch = { rowID, selectedCatalogGameID ->
+                                    importRows = importRows.map { current ->
+                                        if (current.id != rowID) {
+                                            current
+                                        } else {
+                                            val availableVariants = selectedCatalogGameID?.let { catalogLoader.variantOptions(it) }.orEmpty()
+                                            val keepVariant = current.selectedVariant?.takeIf { variant ->
+                                                availableVariants.any { it.equals(variant, ignoreCase = true) }
+                                            }
+                                            current.copy(
+                                                selectedCatalogGameID = selectedCatalogGameID,
+                                                selectedVariant = keepVariant,
+                                            )
+                                        }
+                                    }
+                                },
+                                onUpdateImportVariant = { rowID, selectedVariant ->
+                                    importRows = importRows.map { current ->
+                                        if (current.id != rowID) {
+                                            current
+                                        } else {
+                                            current.copy(selectedVariant = selectedVariant)
+                                        }
+                                    }
+                                },
+                                onPerformImport = {
+                                    var importedCount = 0
+                                    var skippedDuplicates = 0
+                                    var skippedUnmatched = 0
+                                    importRows.forEach { row ->
+                                        val selectedCatalogID = row.selectedCatalogGameID
+                                        val game = selectedCatalogID?.let { catalogLoader.game(it) }
+                                        if (game == null) {
+                                            skippedUnmatched += 1
+                                            return@forEach
+                                        }
+                                        val resolvedVariant = row.selectedVariant ?: row.rawVariant
+                                        if (store.hasImportFingerprint(row.fingerprint) || store.hasOwnedMachine(game.catalogGameID, resolvedVariant)) {
+                                            skippedDuplicates += 1
+                                            return@forEach
+                                        }
+                                        store.importOwnedMachine(
+                                            game = game,
+                                            sourceUserOrURL = importSourceURL.ifBlank { importSourceInput.trim() },
+                                            sourceItemKey = row.sourceItemKey,
+                                            rawTitle = row.rawTitle,
+                                            rawVariant = resolvedVariant,
+                                            rawPurchaseDateText = row.rawPurchaseDateText,
+                                            normalizedPurchaseDateMs = row.normalizedPurchaseDateMs,
+                                            matchConfidence = row.matchConfidence,
+                                            fingerprint = row.fingerprint,
+                                        )
+                                        importedCount += 1
+                                    }
+                                    importResultMessage = "Imported $importedCount. Skipped $skippedDuplicates duplicates, $skippedUnmatched unmatched."
+                                },
                             )
-                            if (editMachinesExpanded) {
-                                if (selectedEditMachine == null) {
-                                    AnchoredDropdownFilter(
-                                        selectedText = "Select Machine",
-                                        options = allMachines.map { DropdownOption(value = it.id, label = it.displayTitle) },
-                                        onSelect = { selectedEditMachineID = it },
-                                    )
-                                }
-                                if (selectedEditMachine != null) {
-                                    val variantOptions = buildList {
-                                        add("None")
-                                        addAll(catalogLoader.variantOptions(selectedEditMachine.catalogGameID))
-                                    }.distinct()
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        AnchoredDropdownFilter(
-                                            selectedText = selectedEditMachine.displayTitle,
-                                            options = allMachines.map { DropdownOption(value = it.id, label = it.displayTitle) },
-                                            onSelect = { selectedEditMachineID = it },
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        VariantPillDropdown(
-                                            selectedLabel = draftVariant,
-                                            options = variantOptions,
-                                            onSelect = { draftVariant = it },
-                                            modifier = Modifier.weight(0.52f),
+                    },
+                    editContent = {
+                        GameRoomEditSettingsSection(
+                            context = GameRoomEditSettingsContext(
+                                store = store,
+                                catalogLoader = catalogLoader,
+                                nameExpanded = nameExpanded,
+                                onNameExpandedChange = { nameExpanded = it },
+                                venueNameDraft = venueNameDraft,
+                                onVenueNameDraftChange = { venueNameDraft = it },
+                                onSaveVenueName = {
+                                    store.updateVenueName(venueNameDraft)
+                                    venueNameDraft = store.venueName
+                                },
+                                addMachineExpanded = addMachineExpanded,
+                                onAddMachineExpandedChange = { addMachineExpanded = it },
+                                addQuery = addQuery,
+                                onAddQueryChange = { addQuery = it },
+                                selectedManufacturerText = selectedManufacturerOption?.name ?: "All Manufacturers",
+                                modernManufacturers = modernManufacturers,
+                                classicPopularManufacturers = classicPopularManufacturers,
+                                otherManufacturers = otherManufacturers,
+                                onSelectManufacturer = { addManufacturerFilter = it },
+                                catalogIsLoading = catalogLoader.isLoading,
+                                catalogErrorMessage = catalogLoader.errorMessage,
+                                resultWindowLabel = resultWindowLabel,
+                                displayedCatalogGames = displayedCatalogGames,
+                                filteredCatalogGamesSize = filteredCatalogGames.size,
+                                hasPreviousFilteredResults = hasPreviousFilteredResults,
+                                hasNextFilteredResults = hasNextFilteredResults,
+                                safeResultWindowStart = safeResultWindowStart,
+                                safeResultWindowEnd = safeResultWindowEnd,
+                                resultPageSize = resultPageSize,
+                                maxRenderedResults = maxRenderedResults,
+                                pendingResultRestoreTick = pendingResultRestoreTick,
+                                pendingResultRestoreGameID = pendingResultRestoreGameID,
+                                onClearPendingResultRestoreGameID = { pendingResultRestoreGameID = null },
+                                onShowPreviousResults = { topVisibleGameID ->
+                                    val previousStart = (safeResultWindowStart - resultPageSize).coerceAtLeast(0)
+                                    resultWindowStart = previousStart
+                                    if (topVisibleGameID != null) {
+                                        pendingResultRestoreGameID = topVisibleGameID
+                                        pendingResultRestoreTick += 1
+                                    }
+                                },
+                                onShowNextResults = { topVisibleGameID ->
+                                    val nextEnd = min(safeResultWindowEnd + resultPageSize, filteredCatalogGames.size)
+                                    var nextStart = safeResultWindowStart
+                                    if (nextEnd - nextStart > maxRenderedResults) {
+                                        nextStart = min(
+                                            nextStart + resultPageSize,
+                                            max(0, nextEnd - maxRenderedResults),
                                         )
                                     }
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        AnchoredDropdownFilter(
-                                            selectedText = store.area(draftAreaID)?.name ?: "No area",
-                                            options = buildList {
-                                                add(DropdownOption(value = "", label = "No area"))
-                                                addAll(store.state.areas.map { DropdownOption(it.id, it.name) })
-                                            },
-                                            onSelect = { draftAreaID = it.ifBlank { null } },
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        AnchoredDropdownFilter(
-                                            selectedText = draftStatus.replaceFirstChar { it.uppercase() },
-                                            options = OwnedMachineStatus.entries.map {
-                                                DropdownOption(it.name, it.name.replaceFirstChar { ch -> ch.uppercase() })
-                                            },
-                                            onSelect = { draftStatus = it },
-                                            modifier = Modifier.weight(1f),
+                                    resultWindowStart = nextStart
+                                    resultWindowEnd = nextEnd
+                                    if (topVisibleGameID != null) {
+                                        pendingResultRestoreGameID = topVisibleGameID
+                                        pendingResultRestoreTick += 1
+                                    }
+                                },
+                                onAddMachine = { game ->
+                                    val machineID = store.addOwnedMachine(
+                                        catalogGameID = game.catalogGameID,
+                                        canonicalPracticeIdentity = game.canonicalPracticeIdentity,
+                                        displayTitle = game.displayTitle,
+                                        displayVariant = null,
+                                        manufacturer = game.manufacturer,
+                                        year = game.year,
+                                    )
+                                    selectedEditMachineID = machineID
+                                },
+                                areasExpanded = areasExpanded,
+                                onAreasExpandedChange = { areasExpanded = it },
+                                areaNameDraft = areaNameDraft,
+                                onAreaNameDraftChange = { areaNameDraft = it },
+                                areaOrderDraft = areaOrderDraft,
+                                onAreaOrderDraftChange = { areaOrderDraft = it.filter { ch -> ch.isDigit() } },
+                                onSaveArea = {
+                                    store.upsertArea(
+                                        id = selectedAreaID,
+                                        name = areaNameDraft,
+                                        areaOrder = areaOrderDraft.toIntOrNull() ?: 0,
+                                    )
+                                    selectedAreaID = null
+                                    areaNameDraft = ""
+                                    areaOrderDraft = "0"
+                                },
+                                onResetAreaDraft = {
+                                    selectedAreaID = null
+                                    areaNameDraft = ""
+                                    areaOrderDraft = "0"
+                                },
+                                onEditArea = { area ->
+                                    selectedAreaID = area.id
+                                    areaNameDraft = area.name
+                                    areaOrderDraft = area.areaOrder.toString()
+                                },
+                                onDeleteArea = { areaID -> store.deleteArea(areaID) },
+                                editMachinesExpanded = editMachinesExpanded,
+                                onEditMachinesExpandedChange = { editMachinesExpanded = it },
+                                allMachines = allMachines,
+                                selectedEditMachine = selectedEditMachine,
+                                onSelectedEditMachineChange = { selectedEditMachineID = it },
+                                variantOptions = buildList {
+                                    add("None")
+                                    selectedEditMachine?.let { addAll(catalogLoader.variantOptions(it.catalogGameID)) }
+                                }.distinct(),
+                                draftVariant = draftVariant,
+                                onDraftVariantChange = { draftVariant = it },
+                                draftAreaID = draftAreaID,
+                                onDraftAreaIDChange = { draftAreaID = it },
+                                draftStatus = draftStatus,
+                                onDraftStatusChange = { draftStatus = it },
+                                draftGroup = draftGroup,
+                                onDraftGroupChange = { draftGroup = it.filter { ch -> ch.isDigit() } },
+                                draftPosition = draftPosition,
+                                onDraftPositionChange = { draftPosition = it.filter { ch -> ch.isDigit() } },
+                                draftPurchaseSource = draftPurchaseSource,
+                                onDraftPurchaseSourceChange = { draftPurchaseSource = it },
+                                draftSerialNumber = draftSerialNumber,
+                                onDraftSerialNumberChange = { draftSerialNumber = it },
+                                draftOwnershipNotes = draftOwnershipNotes,
+                                onDraftOwnershipNotesChange = { draftOwnershipNotes = it },
+                                onSaveMachine = {
+                                    selectedEditMachine?.let { machine ->
+                                        store.updateMachine(
+                                            id = machine.id,
+                                            areaID = draftAreaID,
+                                            groupNumber = draftGroup.toIntOrNull(),
+                                            position = draftPosition.toIntOrNull(),
+                                            status = runCatching { OwnedMachineStatus.valueOf(draftStatus) }.getOrDefault(OwnedMachineStatus.active),
+                                            displayVariant = draftVariant.takeUnless { it == "None" },
+                                            purchaseSource = draftPurchaseSource,
+                                            serialNumber = draftSerialNumber,
+                                            ownershipNotes = draftOwnershipNotes,
                                         )
                                     }
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        OutlinedTextField(
-                                            value = draftGroup,
-                                            onValueChange = { draftGroup = it.filter { ch -> ch.isDigit() } },
-                                            label = { Text("Group") },
-                                            modifier = Modifier.weight(1f),
-                                            singleLine = true,
-                                        )
-                                        OutlinedTextField(
-                                            value = draftPosition,
-                                            onValueChange = { draftPosition = it.filter { ch -> ch.isDigit() } },
-                                            label = { Text("Position") },
-                                            modifier = Modifier.weight(1f),
-                                            singleLine = true,
-                                        )
-                                    }
-                                    OutlinedTextField(
-                                        value = draftPurchaseSource,
-                                        onValueChange = { draftPurchaseSource = it },
-                                        label = { Text("Purchase Source") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true,
-                                    )
-                                    OutlinedTextField(
-                                        value = draftSerialNumber,
-                                        onValueChange = { draftSerialNumber = it },
-                                        label = { Text("Serial Number") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        singleLine = true,
-                                    )
-                                    OutlinedTextField(
-                                        value = draftOwnershipNotes,
-                                        onValueChange = { draftOwnershipNotes = it },
-                                        label = { Text("Ownership Notes") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Button(onClick = {
+                                },
+                                onDeleteMachine = {
+                                    selectedEditMachine?.let { store.deleteMachine(it.id) }
+                                },
+                                onArchiveMachine = selectedEditMachine
+                                    ?.takeIf { it.status != OwnedMachineStatus.archived }
+                                    ?.let {
+                                        {
                                             store.updateMachine(
-                                                id = selectedEditMachine.id,
+                                                id = it.id,
                                                 areaID = draftAreaID,
                                                 groupNumber = draftGroup.toIntOrNull(),
                                                 position = draftPosition.toIntOrNull(),
-                                                status = runCatching { OwnedMachineStatus.valueOf(draftStatus) }.getOrDefault(OwnedMachineStatus.active),
+                                                status = OwnedMachineStatus.archived,
                                                 displayVariant = draftVariant.takeUnless { it == "None" },
                                                 purchaseSource = draftPurchaseSource,
                                                 serialNumber = draftSerialNumber,
                                                 ownershipNotes = draftOwnershipNotes,
                                             )
-                                        }) { Text("Save") }
-                                        Button(onClick = { store.deleteMachine(selectedEditMachine.id) }) { Text("Delete") }
-                                        if (selectedEditMachine.status != OwnedMachineStatus.archived) {
-                                            Button(onClick = {
-                                                store.updateMachine(
-                                                    id = selectedEditMachine.id,
-                                                    areaID = draftAreaID,
-                                                    groupNumber = draftGroup.toIntOrNull(),
-                                                    position = draftPosition.toIntOrNull(),
-                                                    status = OwnedMachineStatus.archived,
-                                                    displayVariant = draftVariant.takeUnless { it == "None" },
-                                                    purchaseSource = draftPurchaseSource,
-                                                    serialNumber = draftSerialNumber,
-                                                    ownershipNotes = draftOwnershipNotes,
-                                                )
-                                            }) { Text("Archive") }
                                         }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (selectedSettingsSection == GameRoomSettingsSection.Archive) {
-                        val filteredArchivedMachines = when (archiveFilter) {
-                            GameRoomArchiveFilter.All -> store.archivedMachines
-                            GameRoomArchiveFilter.Sold -> store.archivedMachines.filter { it.status == OwnedMachineStatus.sold }
-                            GameRoomArchiveFilter.Traded -> store.archivedMachines.filter { it.status == OwnedMachineStatus.traded }
-                            GameRoomArchiveFilter.Archived -> store.archivedMachines.filter { it.status == OwnedMachineStatus.archived }
-                        }
-                        CardContainer {
-                            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                                GameRoomArchiveFilter.entries.forEachIndexed { index, filter ->
-                                    SegmentedButton(
-                                        selected = archiveFilter == filter,
-                                        onClick = { archiveFilter = filter },
-                                        shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
-                                            index = index,
-                                            count = GameRoomArchiveFilter.entries.size,
-                                        ),
-                                        label = { Text(filter.label, maxLines = 1) },
-                                    )
-                                }
-                            }
-
-                            if (filteredArchivedMachines.isEmpty()) {
-                                Text(
-                                    text = "No archived machines for this filter.",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            } else {
-                                Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                                    filteredArchivedMachines.forEachIndexed { index, machine ->
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    selectedMachineID = machine.id
-                                                    route = GameRoomRoute.MachineView
-                                                }
-                                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = machine.displayTitle,
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    fontWeight = FontWeight.Medium,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                )
-                                                Text(
-                                                    text = machine.status.name.replaceFirstChar { it.uppercase() },
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                )
-                                            }
-                                            Icon(
-                                                imageVector = Icons.Outlined.ChevronRight,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(16.dp),
-                                            )
-                                        }
-                                        if (index != filteredArchivedMachines.lastIndex) {
-                                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                                        }
-                                    }
-                                }
-                            }
-
-                            Text(
-                                text = "Archived machines: ${filteredArchivedMachines.size}",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
+                                    },
+                            ),
+                        )
+                    },
+                    archiveContent = {
+                        GameRoomArchiveSettingsSection(
+                        store = store,
+                        archiveFilter = archiveFilter,
+                        onArchiveFilterChange = { archiveFilter = it },
+                        onOpenMachineView = { machineID ->
+                            selectedMachineID = machineID
+                            route = GameRoomRoute.MachineView
+                        },
+                    )
+                    },
+                )
             }
 
             GameRoomRoute.MachineView -> {
-                val selected = selectedMachineFromAll
-                val selectedArt = selected?.let { catalogLoader.resolvedArt(it.catalogGameID, it.displayVariant) }
-                val machineEvents = selected?.let { machine ->
-                    store.state.events.filter { it.ownedMachineID == machine.id }.sortedByDescending { it.occurredAtMs }
-                }.orEmpty()
-                val selectedLogEvent = machineEvents.firstOrNull { it.id == selectedLogEventID } ?: machineEvents.firstOrNull()
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AppBackButton(onClick = { route = GameRoomRoute.Home })
-                        Text(
-                            text = "Machine View",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-
-                    if (selected != null) {
-                        val machineHeroCandidates = listOfNotNull(
-                            selectedArt?.primaryImageLargeUrl,
-                            selectedArt?.primaryImageUrl,
-                            selectedArt?.playfieldImageLargeUrl,
-                            selectedArt?.playfieldImageUrl,
-                        )
-                        ConstrainedAsyncImagePreview(
-                            urls = machineHeroCandidates,
-                            contentDescription = selected.displayTitle,
-                            emptyMessage = "No image",
-                            maxAspectRatio = 4f / 3f,
-                            imagePadding = 0.dp,
-                        )
-
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            val variantLabel = gameRoomVariantBadgeLabel(selected.displayVariant, selected.displayTitle)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Text(
-                                    text = selected.displayTitle,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f, fill = false),
-                                )
-                                if (variantLabel != null) {
-                                    GameRoomVariantPill(label = variantLabel, style = VariantPillStyle.MachineTitle)
-                                }
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                            Text(
-                                text = machineLocationLine(selected, store),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-
-                    CardContainer {
-                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                            GameRoomMachineSubview.entries.forEachIndexed { index, subview ->
-                                SegmentedButton(
-                                    selected = machineSubview == subview,
-                                    onClick = { machineSubview = subview },
-                                    shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = GameRoomMachineSubview.entries.size,
-                                    ),
-                                    label = { Text(subview.label, maxLines = 1) },
-                                )
-                            }
-                        }
-                    }
-
-                    if (selected != null && machineSubview == GameRoomMachineSubview.Summary) {
-                        val snapshot = store.snapshot(selected.id)
-                        val machineAttachments = store.attachmentsForMachine(selected.id)
-                        CardContainer {
-                            Text(
-                                text = "Current Snapshot",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            SnapshotMetricGrid(
-                                metrics = listOf(
-                                    "Open Issues" to snapshot.openIssueCount.toString(),
-                                    "Current Plays" to snapshot.currentPlayCount.toString(),
-                                    "Due Tasks" to snapshot.dueTaskCount.toString(),
-                                    "Last Service" to formatDate(snapshot.lastServiceAtMs, "None"),
-                                    "Pitch" to (snapshot.currentPitchValue?.let { String.format("%.1f", it) } ?: "—"),
-                                    "Last Level" to formatDate(snapshot.lastLeveledAtMs, "None"),
-                                    "Last Inspection" to formatDate(snapshot.lastGeneralInspectionAtMs, "None"),
-                                    "Purchase Date" to formatDate(selected.purchaseDateMs, "—"),
-                                ),
-                            )
-                            selected.purchaseDateRawText?.takeIf { it.isNotBlank() }?.let { raw ->
-                                Text(
-                                    text = "Purchase (raw): $raw",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
-                        }
-                        CardContainer {
-                            Text(
-                                text = "Media",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            if (machineAttachments.isNotEmpty()) {
-                                MediaAttachmentGrid(
-                                    attachments = machineAttachments,
-                                    onOpen = { mediaPreviewAttachmentID = it.id },
-                                )
-                            } else {
-                                Text(
-                                    text = "No media attached yet.",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            }
-                        }
-                    }
-
-                    if (selected != null && machineSubview == GameRoomMachineSubview.Input) {
-                        CardContainer {
-                            Text("Service", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                            TwoColumnButtons(
-                                items = listOf(
-                                    "Clean Glass" to {
-                                        activeInputSheet = GameRoomInputSheet.CleanGlass
-                                    },
-                                    "Clean Playfield" to {
-                                        activeInputSheet = GameRoomInputSheet.CleanPlayfield
-                                    },
-                                    "Swap Balls" to {
-                                        activeInputSheet = GameRoomInputSheet.SwapBalls
-                                    },
-                                    "Check Pitch" to {
-                                        activeInputSheet = GameRoomInputSheet.CheckPitch
-                                    },
-                                    "Level Machine" to {
-                                        activeInputSheet = GameRoomInputSheet.LevelMachine
-                                    },
-                                    "General Inspection" to {
-                                        activeInputSheet = GameRoomInputSheet.GeneralInspection
-                                    },
-                                ),
-                            )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Text("Issue", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                            TwoColumnButtons(
-                                items = listOf(
-                                    "Log Issue" to { activeInputSheet = GameRoomInputSheet.LogIssue },
-                                    "Resolve Issue" to {
-                                        val openIssue = store.state.issues.firstOrNull {
-                                            it.ownedMachineID == selected.id && it.status != MachineIssueStatus.resolved
-                                        }
-                                        if (openIssue != null) {
-                                            inputResolveIssueIDDraft = openIssue.id
-                                            activeInputSheet = GameRoomInputSheet.ResolveIssue
-                                        }
-                                    },
-                                ),
-                            )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Text("Ownership / Media", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-                            TwoColumnButtons(
-                                items = listOf(
-                                    "Ownership Update" to { activeInputSheet = GameRoomInputSheet.OwnershipUpdate },
-                                    "Install Mod" to { activeInputSheet = GameRoomInputSheet.InstallMod },
-                                    "Replace Part" to { activeInputSheet = GameRoomInputSheet.ReplacePart },
-                                    "Log Plays" to {
-                                        inputPlayTotalDraft = store.snapshot(selected.id).currentPlayCount.toString()
-                                        activeInputSheet = GameRoomInputSheet.LogPlays
-                                    },
-                                    "Add Photo/Video" to { activeInputSheet = GameRoomInputSheet.AddMedia },
-                                ),
-                            )
-                        }
-                    }
-
-                    if (selected != null && machineSubview == GameRoomMachineSubview.Log) {
-                        CardContainer {
-                            if (selectedLogEvent != null) {
-                                val eventAttachments = store.attachmentsForEvent(selectedLogEvent.id)
-                                val issueAttachments = selectedLogEvent.linkedIssueID?.let { store.attachmentsForIssue(it) }.orEmpty()
-                                val selectedEntryAttachments = (eventAttachments + issueAttachments).distinctBy { it.id }
-                                CardContainer(modifier = Modifier.height(164.dp)) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .verticalScroll(rememberScrollState()),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                                    ) {
-                                        Text(
-                                            text = "Selected Entry",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontWeight = FontWeight.SemiBold,
-                                        )
-                                        StyledPracticeJournalSummaryText(
-                                            summary = selectedLogEvent.summary,
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
-                                        Text(
-                                            text = "Type: ${displayMachineEventType(selectedLogEvent.type)}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                        Text(
-                                            text = "Category: ${displayMachineEventCategory(selectedLogEvent.category)}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                        Text(
-                                            text = formatTimestamp(selectedLogEvent.occurredAtMs),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                        if (!selectedLogEvent.notes.isNullOrBlank()) {
-                                            Text(
-                                                text = "Notes: ${selectedLogEvent.notes}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
-                                        }
-                                        if (selectedEntryAttachments.isNotEmpty()) {
-                                            Text(
-                                                text = "Media (${selectedEntryAttachments.size})",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontWeight = FontWeight.SemiBold,
-                                            )
-                                            MediaAttachmentGrid(
-                                                attachments = selectedEntryAttachments,
-                                                onOpen = { mediaPreviewAttachmentID = it.id },
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            if (machineEvents.isEmpty()) {
-                                Text(
-                                    text = "No log entries yet.",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            } else {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .pointerInput(revealedMachineLogRowID) {
-                                            detectTapGestures(
-                                                onTap = {
-                                                    if (revealedMachineLogRowID != null) {
-                                                        revealedMachineLogRowID = null
-                                                    }
-                                                },
-                                            )
-                                        },
-                                    verticalArrangement = Arrangement.spacedBy(0.dp),
-                                ) {
-                                    machineEvents.forEachIndexed { index, event ->
-                                        val mediaCount = store.attachmentsForEvent(event.id).size
-                                        GameRoomLogRow(
-                                            event = event,
-                                            mediaCount = mediaCount,
-                                            selected = selectedLogEventID == event.id,
-                                            revealedRowID = revealedMachineLogRowID,
-                                            onRevealedRowIDChange = { revealedMachineLogRowID = it },
-                                            onSelect = {
-                                                revealedMachineLogRowID = null
-                                                val mediaAttachment = if (
-                                                    event.type == MachineEventType.photoAdded ||
-                                                        event.type == MachineEventType.videoAdded
-                                                ) {
-                                                    store.attachmentsForEvent(event.id).firstOrNull()
-                                                } else {
-                                                    null
-                                                }
-                                                if (mediaAttachment != null) {
-                                                    mediaPreviewAttachmentID = mediaAttachment.id
-                                                } else {
-                                                    selectedLogEventID = event.id
-                                                }
-                                            },
-                                            onEdit = {
-                                                revealedMachineLogRowID = null
-                                                editingEventID = event.id
-                                                editEventDateDraft = isoDateFromMillis(event.occurredAtMs)
-                                                editEventSummaryDraft = event.summary
-                                                editEventNotesDraft = event.notes.orEmpty()
-                                            },
-                                            onDelete = {
-                                                revealedMachineLogRowID = null
-                                                store.deleteEvent(event.id)
-                                            },
-                                        )
-                                        if (index != machineEvents.lastIndex) {
-                                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                                        }
-                                    }
-                                }
-                            }
-                    }
-                }
+                GameRoomMachineRoute(
+                    store = store,
+                    catalogLoader = catalogLoader,
+                    selectedMachine = selectedMachineFromAll,
+                    machineSubview = machineSubview,
+                    onMachineSubviewChange = { machineSubview = it },
+                    selectedLogEventID = selectedLogEventID,
+                    onSelectedLogEventIDChange = { selectedLogEventID = it },
+                    revealedLogRowID = revealedMachineLogRowID,
+                    onRevealedLogRowIDChange = { revealedMachineLogRowID = it },
+                    onBack = { route = GameRoomRoute.Home },
+                    onOpenInputSheet = { activeInputSheet = it },
+                    onResolveIssueRequest = {
+                        inputResolveIssueIDDraft = it
+                        activeInputSheet = GameRoomInputSheet.ResolveIssue
+                    },
+                    onLogPlaysRequest = {
+                        inputPlayTotalDraft = it
+                        activeInputSheet = GameRoomInputSheet.LogPlays
+                    },
+                    onPreviewAttachment = { mediaPreviewAttachmentID = it.id },
+                    onEditEvent = { event ->
+                        editingEventID = event.id
+                        editEventDateDraft = isoDateFromMillis(event.occurredAtMs)
+                        editEventSummaryDraft = event.summary
+                        editEventNotesDraft = event.notes.orEmpty()
+                    },
+                    onDeleteEvent = { event ->
+                        store.deleteEvent(event.id)
+                    },
+                )
             }
         }
     }
 
-    if (activeInputSheet != null && selectedMachineFromAll != null) {
-        val selectedSheet = activeInputSheet ?: GameRoomInputSheet.CleanGlass
-        val openIssues = store.state.issues
-            .filter { it.ownedMachineID == selectedMachineFromAll.id && it.status != MachineIssueStatus.resolved }
-            .sortedByDescending { it.openedAtMs }
-
-        ModalBottomSheet(
-            onDismissRequest = { activeInputSheet = null },
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = selectedSheet.title,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                OutlinedTextField(
-                    value = inputDateDraft,
-                    onValueChange = { inputDateDraft = it },
-                    label = { Text("Date (YYYY-MM-DD)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-
-                when (selectedSheet) {
-                    GameRoomInputSheet.CleanGlass,
-                    GameRoomInputSheet.CleanPlayfield,
-                    GameRoomInputSheet.SwapBalls,
-                    GameRoomInputSheet.LevelMachine,
-                    GameRoomInputSheet.GeneralInspection -> {
-                        if (selectedSheet == GameRoomInputSheet.CleanGlass || selectedSheet == GameRoomInputSheet.CleanPlayfield) {
-                            OutlinedTextField(
-                                value = inputConsumableDraft,
-                                onValueChange = { inputConsumableDraft = it },
-                                label = { Text("Cleaner / Consumable") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                            )
+    GameRoomPresentationHost(
+        inputSheetContext = activeInputSheet?.let { selectedSheet ->
+            selectedMachineFromAll?.let { selectedMachine ->
+                GameRoomInputSheetContext(
+                    store = store,
+                    selectedMachine = selectedMachine,
+                    selectedSheet = selectedSheet,
+                    inputDateDraft = inputDateDraft,
+                    onInputDateDraftChange = { inputDateDraft = it },
+                    inputNotesDraft = inputNotesDraft,
+                    onInputNotesDraftChange = { inputNotesDraft = it },
+                    inputConsumableDraft = inputConsumableDraft,
+                    onInputConsumableDraftChange = { inputConsumableDraft = it },
+                    inputPitchValueDraft = inputPitchValueDraft,
+                    onInputPitchValueDraftChange = { inputPitchValueDraft = it },
+                    inputPitchPointDraft = inputPitchPointDraft,
+                    onInputPitchPointDraftChange = { inputPitchPointDraft = it },
+                    inputIssueSymptomDraft = inputIssueSymptomDraft,
+                    onInputIssueSymptomDraftChange = { inputIssueSymptomDraft = it },
+                    inputIssueSeverityDraft = inputIssueSeverityDraft,
+                    onInputIssueSeverityDraftChange = { inputIssueSeverityDraft = it },
+                    inputIssueSubsystemDraft = inputIssueSubsystemDraft,
+                    onInputIssueSubsystemDraftChange = {
+                        inputIssueSubsystemDraft = it
+                    },
+                    inputIssueDiagnosisDraft = inputIssueDiagnosisDraft,
+                    onInputIssueDiagnosisDraftChange = { inputIssueDiagnosisDraft = it },
+                    inputResolveIssueIDDraft = inputResolveIssueIDDraft,
+                    onInputResolveIssueIDDraftChange = { inputResolveIssueIDDraft = it },
+                    inputOwnershipTypeDraft = inputOwnershipTypeDraft,
+                    onInputOwnershipTypeDraftChange = {
+                        inputOwnershipTypeDraft = it
+                        if (inputSummaryDraft.isBlank()) {
+                            inputSummaryDraft = it.replaceFirstChar { ch -> ch.uppercase() }
                         }
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    GameRoomInputSheet.CheckPitch -> {
-                        OutlinedTextField(
-                            value = inputPitchValueDraft,
-                            onValueChange = { inputPitchValueDraft = it },
-                            label = { Text("Pitch Value") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = inputPitchPointDraft,
-                            onValueChange = { inputPitchPointDraft = it },
-                            label = { Text("Measurement Point") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    GameRoomInputSheet.LogIssue -> {
-                        OutlinedTextField(
-                            value = inputIssueSymptomDraft,
-                            onValueChange = { inputIssueSymptomDraft = it },
-                            label = { Text("Symptom") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        AnchoredDropdownFilter(
-                            selectedText = inputIssueSeverityDraft.replaceFirstChar { it.uppercase() },
-                            options = MachineIssueSeverity.entries.map {
-                                DropdownOption(it.name, it.name.replaceFirstChar { ch -> ch.uppercase() })
-                            },
-                            onSelect = { inputIssueSeverityDraft = it },
-                        )
-                        AnchoredDropdownFilter(
-                            selectedText = inputIssueSubsystemDraft.replaceFirstChar { it.uppercase() },
-                            options = MachineIssueSubsystem.entries.map {
-                                DropdownOption(it.name, it.name.replaceFirstChar { ch -> ch.uppercase() })
-                            },
-                            onSelect = { inputIssueSubsystemDraft = it },
-                        )
-                        OutlinedTextField(
-                            value = inputIssueDiagnosisDraft,
-                            onValueChange = { inputIssueDiagnosisDraft = it },
-                            label = { Text("Diagnosis / Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Button(
-                                onClick = { issuePhotoDraftLauncher.launch(arrayOf("image/*")) },
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text("Add Photo")
-                            }
-                            Button(
-                                onClick = { issueVideoDraftLauncher.launch(arrayOf("video/*")) },
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text("Add Video")
-                            }
-                        }
-                        if (issueDraftAttachments.isEmpty()) {
-                            Text(
-                                text = "No media selected.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                    },
+                    inputSummaryDraft = inputSummaryDraft,
+                    onInputSummaryDraftChange = { inputSummaryDraft = it },
+                    inputDetailsDraft = inputDetailsDraft,
+                    onInputDetailsDraftChange = { inputDetailsDraft = it },
+                    inputPlayTotalDraft = inputPlayTotalDraft,
+                    onInputPlayTotalDraftChange = { inputPlayTotalDraft = it.filter { ch -> ch.isDigit() } },
+                    inputMediaKindDraft = inputMediaKindDraft,
+                    onInputMediaKindDraftChange = { inputMediaKindDraft = it },
+                    inputMediaURIDraft = inputMediaURIDraft,
+                    onInputMediaURIDraftChange = { inputMediaURIDraft = it },
+                    inputMediaCaptionDraft = inputMediaCaptionDraft,
+                    onInputMediaCaptionDraftChange = { inputMediaCaptionDraft = it },
+                    issueDraftAttachments = issueDraftAttachments,
+                    onIssueDraftAttachmentsChange = { issueDraftAttachments = it },
+                    onLaunchIssuePhotoPicker = { issuePhotoDraftLauncher.launch(arrayOf("image/*")) },
+                    onLaunchIssueVideoPicker = { issueVideoDraftLauncher.launch(arrayOf("video/*")) },
+                    onLaunchPendingMediaPicker = { kind, occurredAtMs ->
+                        pendingMediaMachineID = selectedMachine.id
+                        pendingMediaOwnerType = MachineAttachmentOwnerType.event.name
+                        pendingMediaOwnerID = null
+                        pendingMediaOccurredAtMs = occurredAtMs
+                        pendingMediaCaptionDraft = inputMediaCaptionDraft
+                        pendingMediaNotesDraft = inputNotesDraft
+                        activeInputSheet = null
+                        if (kind == MachineAttachmentKind.photo) {
+                            addPhotoLauncher.launch(arrayOf("image/*"))
                         } else {
-                            issueDraftAttachments.forEach { attachment ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Text(
-                                        text = attachment.caption ?: attachment.uri,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    TextButton(
-                                        onClick = {
-                                            issueDraftAttachments = issueDraftAttachments.filterNot { it.id == attachment.id }
-                                        },
-                                    ) { Text("Remove") }
-                                }
-                            }
+                            addVideoLauncher.launch(arrayOf("video/*"))
                         }
-                    }
-
-                    GameRoomInputSheet.ResolveIssue -> {
-                        AnchoredDropdownFilter(
-                            selectedText = openIssues.firstOrNull { it.id == inputResolveIssueIDDraft }?.symptom ?: "Select Issue",
-                            options = openIssues.map { DropdownOption(it.id, it.symptom) },
-                            onSelect = { inputResolveIssueIDDraft = it },
-                        )
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Resolution Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    GameRoomInputSheet.OwnershipUpdate -> {
-                        AnchoredDropdownFilter(
-                            selectedText = inputOwnershipTypeDraft.replaceFirstChar { it.uppercase() },
-                            options = listOf(
-                                MachineEventType.purchased,
-                                MachineEventType.moved,
-                                MachineEventType.loanedOut,
-                                MachineEventType.returned,
-                                MachineEventType.listedForSale,
-                                MachineEventType.sold,
-                                MachineEventType.traded,
-                                MachineEventType.reacquired,
-                            ).map { DropdownOption(it.name, it.name.replaceFirstChar { ch -> ch.uppercase() }) },
-                            onSelect = {
-                                inputOwnershipTypeDraft = it
-                                if (inputSummaryDraft.isBlank()) inputSummaryDraft = it.replaceFirstChar { ch -> ch.uppercase() }
-                            },
-                        )
-                        OutlinedTextField(
-                            value = inputSummaryDraft,
-                            onValueChange = { inputSummaryDraft = it },
-                            label = { Text("Summary") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    GameRoomInputSheet.InstallMod,
-                    GameRoomInputSheet.ReplacePart -> {
-                        OutlinedTextField(
-                            value = inputSummaryDraft,
-                            onValueChange = { inputSummaryDraft = it },
-                            label = { Text("Summary") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedTextField(
-                            value = inputDetailsDraft,
-                            onValueChange = { inputDetailsDraft = it },
-                            label = { Text(if (selectedSheet == GameRoomInputSheet.InstallMod) "Mod / Details" else "Part Replaced") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    GameRoomInputSheet.LogPlays -> {
-                        OutlinedTextField(
-                            value = inputPlayTotalDraft,
-                            onValueChange = { inputPlayTotalDraft = it.filter { ch -> ch.isDigit() } },
-                            label = { Text("Total Plays") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    GameRoomInputSheet.AddMedia -> {
-                        AnchoredDropdownFilter(
-                            selectedText = inputMediaKindDraft.replaceFirstChar { it.uppercase() },
-                            options = MachineAttachmentKind.entries.map {
-                                DropdownOption(it.name, it.name.replaceFirstChar { ch -> ch.uppercase() })
-                            },
-                            onSelect = { inputMediaKindDraft = it },
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Button(
-                                onClick = {
-                                    val occurredAtMs = parseIsoDateMillis(inputDateDraft) ?: System.currentTimeMillis()
-                                    inputMediaKindDraft = MachineAttachmentKind.photo.name
-                                    pendingMediaMachineID = selectedMachineFromAll.id
-                                    pendingMediaOwnerType = MachineAttachmentOwnerType.event.name
-                                    pendingMediaOwnerID = null
-                                    pendingMediaOccurredAtMs = occurredAtMs
-                                    pendingMediaCaptionDraft = inputMediaCaptionDraft
-                                    pendingMediaNotesDraft = inputNotesDraft
-                                    activeInputSheet = null
-                                    addPhotoLauncher.launch(arrayOf("image/*"))
-                                },
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text("Add Photo")
-                            }
-                            Button(
-                                onClick = {
-                                    val occurredAtMs = parseIsoDateMillis(inputDateDraft) ?: System.currentTimeMillis()
-                                    inputMediaKindDraft = MachineAttachmentKind.video.name
-                                    pendingMediaMachineID = selectedMachineFromAll.id
-                                    pendingMediaOwnerType = MachineAttachmentOwnerType.event.name
-                                    pendingMediaOwnerID = null
-                                    pendingMediaOccurredAtMs = occurredAtMs
-                                    pendingMediaCaptionDraft = inputMediaCaptionDraft
-                                    pendingMediaNotesDraft = inputNotesDraft
-                                    activeInputSheet = null
-                                    addVideoLauncher.launch(arrayOf("video/*"))
-                                },
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text("Add Video")
-                            }
-                        }
-                        OutlinedTextField(
-                            value = inputMediaURIDraft,
-                            onValueChange = { inputMediaURIDraft = it },
-                            label = { Text("Media URI (optional)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = inputMediaCaptionDraft,
-                            onValueChange = { inputMediaCaptionDraft = it },
-                            label = { Text("Caption") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedTextField(
-                            value = inputNotesDraft,
-                            onValueChange = { inputNotesDraft = it },
-                            label = { Text("Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(
-                        onClick = {
-                            issueDraftAttachments = emptyList()
-                            activeInputSheet = null
-                        },
-                    ) { Text("Cancel") }
-                    Button(
-                        onClick = {
-                            val occurredAtMs = parseIsoDateMillis(inputDateDraft) ?: System.currentTimeMillis()
-                            when (selectedSheet) {
-                                GameRoomInputSheet.CleanGlass -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.glassCleaned,
-                                    category = MachineEventCategory.service,
-                                    summary = "Clean Glass",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                    consumablesUsed = inputConsumableDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.CleanPlayfield -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.playfieldCleaned,
-                                    category = MachineEventCategory.service,
-                                    summary = "Clean Playfield",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                    consumablesUsed = inputConsumableDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.SwapBalls -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.ballsReplaced,
-                                    category = MachineEventCategory.service,
-                                    summary = "Swap Balls",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.CheckPitch -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.pitchChecked,
-                                    category = MachineEventCategory.service,
-                                    summary = "Check Pitch",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                    pitchValue = inputPitchValueDraft.toDoubleOrNull(),
-                                    pitchMeasurementPoint = inputPitchPointDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.LevelMachine -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.machineLeveled,
-                                    category = MachineEventCategory.service,
-                                    summary = "Level Machine",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.GeneralInspection -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.generalInspection,
-                                    category = MachineEventCategory.service,
-                                    summary = "General Inspection",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.LogIssue -> {
-                                    val issueID = store.openIssue(
-                                        machineID = selectedMachineFromAll.id,
-                                        symptom = inputIssueSymptomDraft,
-                                        severity = runCatching { MachineIssueSeverity.valueOf(inputIssueSeverityDraft) }.getOrDefault(MachineIssueSeverity.medium),
-                                        subsystem = runCatching { MachineIssueSubsystem.valueOf(inputIssueSubsystemDraft) }.getOrDefault(MachineIssueSubsystem.other),
-                                        openedAtMs = occurredAtMs,
-                                        diagnosis = inputIssueDiagnosisDraft.ifBlank { null },
-                                    )
-                                    var lastAttachmentEventID: String? = null
-                                    issueDraftAttachments.forEach { attachment ->
-                                        lastAttachmentEventID = store.addEvent(
-                                            machineID = selectedMachineFromAll.id,
-                                            type = if (attachment.kind == MachineAttachmentKind.photo) MachineEventType.photoAdded else MachineEventType.videoAdded,
-                                            category = MachineEventCategory.media,
-                                            summary = if (attachment.kind == MachineAttachmentKind.photo) "Issue photo added" else "Issue video added",
-                                            occurredAtMs = occurredAtMs,
-                                            linkedIssueID = issueID,
-                                        )
-                                        store.addAttachment(
-                                            machineID = selectedMachineFromAll.id,
-                                            ownerType = MachineAttachmentOwnerType.issue,
-                                            ownerID = issueID,
-                                            kind = attachment.kind,
-                                            uri = attachment.uri,
-                                            caption = attachment.caption,
-                                        )
-                                    }
-                                    if (lastAttachmentEventID != null) {
-                                        selectedLogEventID = lastAttachmentEventID
-                                        machineSubview = GameRoomMachineSubview.Log
-                                    }
-                                }
-                                GameRoomInputSheet.ResolveIssue -> {
-                                    val issueID = inputResolveIssueIDDraft
-                                    if (!issueID.isNullOrBlank()) {
-                                        store.resolveIssue(issueID, inputNotesDraft.ifBlank { null }, resolvedAtMs = occurredAtMs)
-                                    }
-                                }
-                                GameRoomInputSheet.OwnershipUpdate -> {
-                                    val type = runCatching { MachineEventType.valueOf(inputOwnershipTypeDraft) }.getOrDefault(MachineEventType.moved)
-                                    store.addEvent(
-                                        machineID = selectedMachineFromAll.id,
-                                        type = type,
-                                        category = MachineEventCategory.ownership,
-                                        summary = inputSummaryDraft.ifBlank { type.name.replaceFirstChar { it.uppercase() } },
-                                        occurredAtMs = occurredAtMs,
-                                        notes = inputNotesDraft.ifBlank { null },
-                                    )
-                                }
-                                GameRoomInputSheet.InstallMod -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.modInstalled,
-                                    category = MachineEventCategory.mod,
-                                    summary = inputSummaryDraft.ifBlank { "Install Mod" },
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                    partsUsed = inputDetailsDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.ReplacePart -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.partReplaced,
-                                    category = MachineEventCategory.service,
-                                    summary = inputSummaryDraft.ifBlank { "Replace Part" },
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                    partsUsed = inputDetailsDraft.ifBlank { null },
-                                )
-                                GameRoomInputSheet.LogPlays -> store.addEvent(
-                                    machineID = selectedMachineFromAll.id,
-                                    type = MachineEventType.custom,
-                                    category = MachineEventCategory.custom,
-                                    summary = "Log Plays (Total ${inputPlayTotalDraft.toIntOrNull() ?: 0})",
-                                    occurredAtMs = occurredAtMs,
-                                    notes = inputNotesDraft.ifBlank { null },
-                                    playCountAtEvent = inputPlayTotalDraft.toIntOrNull(),
-                                )
-                                GameRoomInputSheet.AddMedia -> {
-                                    val kind = runCatching { MachineAttachmentKind.valueOf(inputMediaKindDraft) }.getOrDefault(MachineAttachmentKind.photo)
-                                    val manualURI = inputMediaURIDraft.trim()
-                                    if (manualURI.isNotBlank()) {
-                                        val summary = if (kind == MachineAttachmentKind.photo) "Photo added" else "Video added"
-                                        val eventID = store.addEvent(
-                                            machineID = selectedMachineFromAll.id,
-                                            type = if (kind == MachineAttachmentKind.photo) MachineEventType.photoAdded else MachineEventType.videoAdded,
-                                            category = MachineEventCategory.media,
-                                            summary = summary,
-                                            occurredAtMs = occurredAtMs,
-                                            notes = inputNotesDraft.ifBlank { null },
-                                        )
-                                        store.addAttachment(
-                                            machineID = selectedMachineFromAll.id,
-                                            ownerType = MachineAttachmentOwnerType.event,
-                                            ownerID = eventID,
-                                            kind = kind,
-                                            uri = manualURI,
-                                            caption = inputMediaCaptionDraft.ifBlank { null },
-                                        )
-                                    } else {
-                                        pendingMediaMachineID = selectedMachineFromAll.id
-                                        pendingMediaOwnerType = MachineAttachmentOwnerType.event.name
-                                        pendingMediaOwnerID = null
-                                        pendingMediaOccurredAtMs = occurredAtMs
-                                        pendingMediaCaptionDraft = inputMediaCaptionDraft
-                                        pendingMediaNotesDraft = inputNotesDraft
-                                        if (kind == MachineAttachmentKind.photo) {
-                                            addPhotoLauncher.launch(arrayOf("image/*"))
-                                        } else {
-                                            addVideoLauncher.launch(arrayOf("video/*"))
-                                        }
-                                    }
-                                }
-                            }
-
-                            inputNotesDraft = ""
-                            inputConsumableDraft = ""
-                            inputPitchValueDraft = ""
-                            inputPitchPointDraft = ""
-                            inputIssueSymptomDraft = ""
-                            inputIssueDiagnosisDraft = ""
-                            inputSummaryDraft = ""
-                            inputDetailsDraft = ""
-                            inputMediaCaptionDraft = ""
-                            inputMediaKindDraft = MachineAttachmentKind.photo.name
-                            inputMediaURIDraft = ""
-                            issueDraftAttachments = emptyList()
-                            activeInputSheet = null
-                        },
-                        enabled = when (selectedSheet) {
-                            GameRoomInputSheet.LogIssue -> inputIssueSymptomDraft.isNotBlank()
-                            GameRoomInputSheet.ResolveIssue -> !inputResolveIssueIDDraft.isNullOrBlank()
-                            GameRoomInputSheet.LogPlays -> inputPlayTotalDraft.isNotBlank()
-                            else -> true
-                        },
-                    ) {
-                        Text("Save")
-                    }
-                }
+                    },
+                    onSelectedLogEventIDChange = { selectedLogEventID = it },
+                    onMachineSubviewChange = { machineSubview = it },
+                    onDismiss = { activeInputSheet = null },
+                )
             }
-        }
-    }
-
-    if (editingEventID != null) {
-        ModalBottomSheet(
-            onDismissRequest = { editingEventID = null },
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "Edit Log Entry",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                OutlinedTextField(
-                    value = editEventDateDraft,
-                    onValueChange = { editEventDateDraft = it },
-                    label = { Text("Date (YYYY-MM-DD)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = editEventSummaryDraft,
-                    onValueChange = { editEventSummaryDraft = it },
-                    label = { Text("Summary") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = editEventNotesDraft,
-                    onValueChange = { editEventNotesDraft = it },
-                    label = { Text("Notes") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { editingEventID = null }) { Text("Cancel") }
-                    Button(
-                        onClick = {
-                            val id = editingEventID ?: return@Button
-                            val occurredAtMs = parseIsoDateMillis(editEventDateDraft) ?: System.currentTimeMillis()
-                            store.updateEvent(id, occurredAtMs, editEventSummaryDraft, editEventNotesDraft)
-                            editingEventID = null
-                        },
-                        enabled = editEventSummaryDraft.isNotBlank(),
-                    ) {
-                        Text("Save")
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-    }
-
-    if (mediaPreviewAttachment != null) {
-        MediaPreviewDialog(
-            attachment = mediaPreviewAttachment,
-            onClose = { mediaPreviewAttachmentID = null },
-            onEdit = {
-                editingAttachmentID = mediaPreviewAttachment.id
-                editAttachmentCaptionDraft = mediaPreviewAttachment.caption.orEmpty()
-                val linkedNotes = if (mediaPreviewAttachment.ownerType == MachineAttachmentOwnerType.event) {
-                    store.state.events.firstOrNull { it.id == mediaPreviewAttachment.ownerID }?.notes.orEmpty()
+        },
+        editEventContext = editingEventID?.let { eventID ->
+            GameRoomEditEventContext(
+                store = store,
+                editingEventID = eventID,
+                editEventDateDraft = editEventDateDraft,
+                onEditEventDateDraftChange = { editEventDateDraft = it },
+                editEventSummaryDraft = editEventSummaryDraft,
+                onEditEventSummaryDraftChange = { editEventSummaryDraft = it },
+                editEventNotesDraft = editEventNotesDraft,
+                onEditEventNotesDraftChange = { editEventNotesDraft = it },
+                onDismiss = { editingEventID = null },
+            )
+        },
+        attachmentContext = GameRoomAttachmentPresentationContext(
+            store = store,
+            mediaPreviewAttachment = mediaPreviewAttachment,
+            editingAttachment = editingAttachment,
+            editAttachmentCaptionDraft = editAttachmentCaptionDraft,
+            onEditAttachmentCaptionDraftChange = { editAttachmentCaptionDraft = it },
+            editAttachmentNotesDraft = editAttachmentNotesDraft,
+            onEditAttachmentNotesDraftChange = { editAttachmentNotesDraft = it },
+            onClosePreview = { mediaPreviewAttachmentID = null },
+            onBeginAttachmentEdit = { attachment ->
+                editingAttachmentID = attachment.id
+                editAttachmentCaptionDraft = attachment.caption.orEmpty()
+                editAttachmentNotesDraft = if (attachment.ownerType == MachineAttachmentOwnerType.event) {
+                    store.state.events.firstOrNull { it.id == attachment.ownerID }?.notes.orEmpty()
                 } else {
                     ""
                 }
-                editAttachmentNotesDraft = linkedNotes
             },
-            onDelete = {
-                store.deleteAttachmentAndLinkedEvent(mediaPreviewAttachment.id)
+            onDeleteAttachment = { attachment ->
+                store.deleteAttachmentAndLinkedEvent(attachment.id)
                 mediaPreviewAttachmentID = null
             },
-        )
-    }
-
-    if (editingAttachment != null) {
-        ModalBottomSheet(
-            onDismissRequest = { editingAttachmentID = null },
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "Edit Media",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                OutlinedTextField(
-                    value = editAttachmentCaptionDraft,
-                    onValueChange = { editAttachmentCaptionDraft = it },
-                    label = { Text("Caption") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = editAttachmentNotesDraft,
-                    onValueChange = { editAttachmentNotesDraft = it },
-                    label = { Text("Notes") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { editingAttachmentID = null }) { Text("Cancel") }
-                    Button(onClick = {
-                        val attachment = editingAttachment ?: return@Button
-                        store.updateAttachment(
-                            id = attachment.id,
-                            caption = editAttachmentCaptionDraft,
-                            notes = editAttachmentNotesDraft,
-                        )
-                        editingAttachmentID = null
-                    }) {
-                        Text("Save")
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
-    }
-}
-
-}
-
-private fun makeImportDraftRow(
-    machine: PinsideImportedMachine,
-    catalogLoader: GameRoomCatalogLoader,
-): ImportDraftRow {
-    val scored = scoredCatalogSuggestions(machine, catalogLoader)
-    val suggestions = scored.map { it.first.catalogGameID }
-    val top = scored.firstOrNull()
-    return ImportDraftRow(
-        id = machine.id,
-        sourceItemKey = machine.slug,
-        rawTitle = machine.rawTitle,
-        rawVariant = machine.rawVariant,
-        matchConfidence = importMatchConfidence(top?.second ?: 0),
-        suggestions = suggestions,
-        fingerprint = machine.fingerprint,
-        selectedCatalogGameID = top?.first?.catalogGameID,
-        selectedVariant = machine.rawVariant,
-        rawPurchaseDateText = machine.rawPurchaseDateText,
-        normalizedPurchaseDateMs = machine.normalizedPurchaseDateMs,
+            onDismissAttachmentEdit = { editingAttachmentID = null },
+        ),
     )
-}
-
-private fun scoredCatalogSuggestions(
-    machine: PinsideImportedMachine,
-    catalogLoader: GameRoomCatalogLoader,
-): List<Pair<GameRoomCatalogGame, Int>> {
-    val normalizedRawTitle = normalizeImportText(machine.rawTitle)
-    val normalizedVariant = normalizeImportText(machine.rawVariant.orEmpty())
-    return catalogLoader.games.map { game ->
-        val normalizedGameTitle = normalizeImportText(game.displayTitle)
-        var score = 0
-
-        if (normalizedRawTitle.isNotBlank()) {
-            if (normalizedRawTitle == normalizedGameTitle) {
-                score += 120
-            } else if (
-                normalizedGameTitle.contains(normalizedRawTitle) ||
-                normalizedRawTitle.contains(normalizedGameTitle)
-            ) {
-                score += 80
-            } else {
-                score += tokenOverlapScore(normalizedRawTitle, normalizedGameTitle)
-            }
-        }
-        if (normalizedVariant.isNotBlank()) {
-            val variants = catalogLoader.variantOptions(game.catalogGameID).map(::normalizeImportText)
-            if (variants.contains(normalizedVariant)) score += 20
-        }
-        game to score
-    }.filter { (_, score) -> score > 0 }
-        .sortedWith(
-            compareByDescending<Pair<GameRoomCatalogGame, Int>> { it.second }
-                .thenBy { it.first.displayTitle.lowercase() },
-        )
-        .take(3)
-}
-
-private fun importMatchConfidence(score: Int): MachineImportMatchConfidence {
-    return when {
-        score >= 120 -> MachineImportMatchConfidence.high
-        score >= 80 -> MachineImportMatchConfidence.medium
-        score > 0 -> MachineImportMatchConfidence.low
-        else -> MachineImportMatchConfidence.manual
-    }
-}
-
-private fun tokenOverlapScore(lhs: String, rhs: String): Int {
-    val lhsSet = lhs.split(" ").filter { it.isNotBlank() }.toSet()
-    val rhsSet = rhs.split(" ").filter { it.isNotBlank() }.toSet()
-    if (lhsSet.isEmpty() || rhsSet.isEmpty()) return 0
-    val intersection = lhsSet.intersect(rhsSet).size
-    if (intersection == 0) return 0
-    return ((intersection.toDouble() / maxOf(lhsSet.size, rhsSet.size)) * 70.0).toInt()
-}
-
-private fun normalizeImportText(value: String): String {
-    return value
-        .lowercase(Locale.US)
-        .replace(Regex("[^a-z0-9 ]"), " ")
-        .replace(Regex("\\s+"), " ")
-        .trim()
-}
-
-private fun normalizeFirstOfMonthMs(rawValue: String?): Long? {
-    val raw = rawValue?.trim().orEmpty()
-    if (raw.isBlank()) return null
-
-    val monthYearFormatters = listOf(
-        formatter("MMMM uuuu"),
-        formatter("MMM uuuu"),
-        formatter("M/uuuu"),
-        formatter("MM/uuuu"),
-        formatter("M-uuuu"),
-        formatter("MM-uuuu"),
-        formatter("uuuu-MM"),
-        formatter("uuuu/M"),
-    )
-    monthYearFormatters.forEach { formatter ->
-        val parsed = runCatching { YearMonth.parse(raw, formatter) }.getOrNull() ?: return@forEach
-        return parsed.atDay(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-    }
-
-    val fullDateFormatters = listOf(
-        formatter("uuuu-MM-dd"),
-        formatter("M/d/uuuu"),
-        formatter("MM/dd/uuuu"),
-        formatter("MMM d, uuuu"),
-        formatter("MMMM d, uuuu"),
-    )
-    fullDateFormatters.forEach { formatter ->
-        val parsed = runCatching { LocalDate.parse(raw, formatter) }.getOrNull() ?: return@forEach
-        val month = YearMonth.from(parsed)
-        return month.atDay(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-    }
-
-    return null
-}
-
-private fun formatter(pattern: String): DateTimeFormatter {
-    return DateTimeFormatterBuilder()
-        .parseCaseInsensitive()
-        .appendPattern(pattern)
-        .toFormatter(Locale.US)
-        .withResolverStyle(ResolverStyle.SMART)
-}
-
-private fun duplicateWarningMessage(
-    row: ImportDraftRow,
-    store: GameRoomStore,
-    catalogLoader: GameRoomCatalogLoader,
-): String? {
-    if (store.hasImportFingerprint(row.fingerprint)) {
-        return "Already imported previously."
-    }
-    val selectedCatalogID = row.selectedCatalogGameID ?: return null
-    val selectedGame = catalogLoader.game(selectedCatalogID) ?: return null
-    val selectedVariant = row.selectedVariant ?: row.rawVariant
-    val existing = store.existingOwnedMachine(selectedGame.catalogGameID, selectedVariant) ?: return null
-    return if (!existing.displayVariant.isNullOrBlank()) {
-        "Duplicate of existing machine: ${existing.displayTitle} (${existing.displayVariant})."
-    } else {
-        "Duplicate of existing machine: ${existing.displayTitle}."
-    }
-}
-
-private fun needsImportReview(
-    row: ImportDraftRow,
-    store: GameRoomStore,
-    catalogLoader: GameRoomCatalogLoader,
-): Boolean {
-    return row.matchConfidence != MachineImportMatchConfidence.high ||
-        row.selectedCatalogGameID.isNullOrBlank() ||
-        duplicateWarningMessage(row, store, catalogLoader) != null
-}
-
-@Composable
-private fun MatchConfidenceBadge(confidence: MachineImportMatchConfidence) {
-    val badgeColor = when (confidence) {
-        MachineImportMatchConfidence.high -> Color(0xFF53A653)
-        MachineImportMatchConfidence.medium -> Color(0xFFF2C14E)
-        MachineImportMatchConfidence.low,
-        MachineImportMatchConfidence.manual -> Color(0xFFE0524D)
-    }
-    Text(
-        text = confidence.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
-        color = Color.White,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier
-            .background(badgeColor, RoundedCornerShape(999.dp))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
-    )
-}
-
-@Composable
-private fun GameRoomLogRow(
-    event: MachineEvent,
-    mediaCount: Int,
-    selected: Boolean,
-    revealedRowID: String?,
-    onRevealedRowIDChange: (String?) -> Unit,
-    onSelect: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    val actionWidth = 132.dp
-    val actionWidthPx = with(LocalDensity.current) { actionWidth.toPx() }
-    var rowHeightPx by rememberSaveable(event.id) { mutableIntStateOf(0) }
-    val rowHeightDp = with(LocalDensity.current) {
-        if (rowHeightPx > 0) rowHeightPx.toDp() else 40.dp
-    }
-    var offsetX by rememberSaveable(event.id) { mutableFloatStateOf(0f) }
-    val revealProgress = (kotlin.math.abs(offsetX) / actionWidthPx).coerceIn(0f, 1f)
-    val dragState = rememberDraggableState { delta ->
-        offsetX = (offsetX + delta).coerceIn(-actionWidthPx, 0f)
-    }
-
-    LaunchedEffect(revealedRowID) {
-        if (revealedRowID != event.id && offsetX != 0f) {
-            offsetX = 0f
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 4.dp)
-            .defaultMinSize(minHeight = 40.dp)
-            .clip(RoundedCornerShape(8.dp)),
-    ) {
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .width(actionWidth)
-                .height(rowHeightDp)
-                .alpha(if (revealProgress > 0f) 1f else 0f),
-        ) {
-            GameRoomSwipeRevealActionButton(
-                modifier = Modifier.weight(1f),
-                tint = Color(0xFF0A84FF),
-                icon = Icons.Outlined.Edit,
-                contentDescription = "Edit entry",
-                onClick = onEdit,
-            )
-            GameRoomSwipeRevealActionButton(
-                modifier = Modifier.weight(1f),
-                tint = Color(0xFFFF3B30),
-                icon = Icons.Outlined.Delete,
-                contentDescription = "Delete entry",
-                onClick = onDelete,
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(8.dp))
-                .background(
-                    MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 1f - revealProgress),
-                )
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.72f - (0.22f * revealProgress)),
-                    shape = RoundedCornerShape(8.dp),
-                )
-                .offset { IntOffset(offsetX.toInt(), 0) }
-                .onSizeChanged { rowHeightPx = it.height }
-                .draggable(
-                    state = dragState,
-                    orientation = Orientation.Horizontal,
-                    onDragStopped = {
-                        val reveal = offsetX <= (-actionWidthPx * 0.2f)
-                        offsetX = if (reveal) -actionWidthPx else 0f
-                        onRevealedRowIDChange(if (reveal) event.id else null)
-                    },
-                ),
-        ) {
-            Row(
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        if (selected) {
-                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.35f)
-                        } else {
-                            Color.Transparent
-                        },
-                        RoundedCornerShape(8.dp),
-                    )
-                    .clickable {
-                        if (revealedRowID != null) {
-                            onRevealedRowIDChange(null)
-                            return@clickable
-                        }
-                        onSelect()
-                    }
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    StyledPracticeJournalSummaryText(
-                        summary = event.summary,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Text(
-                        text = "${displayMachineEventCategory(event.category)} • ${formatTimestamp(event.occurredAtMs)} • $mediaCount media",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RowScope.GameRoomSwipeRevealActionButton(
-    modifier: Modifier,
-    tint: Color,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .padding(horizontal = 1.dp)
-            .fillMaxHeight()
-            .background(tint, shape = RoundedCornerShape(6.dp))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = contentDescription, tint = Color.White)
-    }
-}
-
-@Composable
-private fun MediaAttachmentGrid(
-    attachments: List<MachineAttachment>,
-    onOpen: (MachineAttachment) -> Unit,
-) {
-    val rows = attachments.chunked(2)
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        rows.forEach { rowItems ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                rowItems.forEach { attachment ->
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .aspectRatio(1f)
-                            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(10.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
-                            .clickable { onOpen(attachment) },
-                    ) {
-                        AsyncImage(
-                            model = attachment.uri,
-                            contentDescription = attachment.caption ?: "Media attachment",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(10.dp)),
-                        )
-                        Text(
-                            text = if (attachment.kind == MachineAttachmentKind.video) "Video" else "Photo",
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier
-                                .padding(6.dp)
-                                .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(999.dp))
-                                .padding(horizontal = 8.dp, vertical = 2.dp),
-                        )
-                    }
-                }
-                if (rowItems.size == 1) {
-                    Box(modifier = Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MediaPreviewDialog(
-    attachment: MachineAttachment,
-    onClose: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    var controlsVisible by remember { mutableStateOf(true) }
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    var offsetY by remember { mutableFloatStateOf(0f) }
-
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-                .iosEdgeSwipeBack(enabled = true, onBack = onClose)
-                .clipToBounds()
-                .pointerInput(attachment.id) {
-                    detectTapGestures(
-                        onDoubleTap = {
-                            if (scale > 1.05f) {
-                                scale = 1f
-                                offsetX = 0f
-                                offsetY = 0f
-                            } else {
-                                scale = 2f
-                            }
-                        },
-                        onTap = { controlsVisible = !controlsVisible },
-                    )
-                }
-                .pointerInput(attachment.id) {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        val nextScale = (scale * zoom).coerceIn(1f, 4f)
-                        scale = nextScale
-                        if (nextScale <= 1.01f) {
-                            offsetX = 0f
-                            offsetY = 0f
-                        } else {
-                            offsetX += pan.x
-                            offsetY += pan.y
-                        }
-                    }
-                },
-        ) {
-            AsyncImage(
-                model = attachment.uri,
-                contentDescription = attachment.caption ?: "Media preview",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer(
-                        scaleX = scale,
-                        scaleY = scale,
-                        translationX = offsetX,
-                        translationY = offsetY,
-                    ),
-            )
-
-            if (controlsVisible) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    TextButton(onClick = onClose) { Text("Back", color = Color.White) }
-                    TextButton(onClick = onEdit) { Text("Edit", color = Color.White) }
-                    TextButton(onClick = onDelete) { Text("Delete", color = Color.White) }
-                }
-                if (!attachment.caption.isNullOrBlank()) {
-                    Text(
-                        text = attachment.caption,
-                        color = Color.White,
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(14.dp)
-                            .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MiniMachineCard(
-    machine: OwnedMachine,
-    imageUrl: String?,
-    attentionState: GameRoomAttentionState,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val outerShape = RoundedCornerShape(12.dp)
-    val innerShape = RoundedCornerShape(10.dp)
-    val imageModel = rememberCachedImageModel(imageUrl)
-    val selectionHighlightColor = Color(0xFF7DD3FC)
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(78.dp)
-            .clickable(onClick = onClick)
-            .border(
-                width = 2.dp,
-                color = if (selected) selectionHighlightColor else Color.Transparent,
-                shape = outerShape,
-            )
-            .padding(2.dp)
-            .background(
-                MaterialTheme.colorScheme.surfaceContainerHighest,
-                innerShape,
-            )
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f),
-                shape = innerShape,
-            )
-            .clip(innerShape),
-    ) {
-        if (!imageUrl.isNullOrBlank()) {
-            AsyncImage(
-                model = imageModel,
-                contentDescription = machine.displayTitle,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Transparent,
-                            0.18f to Color.Transparent,
-                            0.4f to Color.Black.copy(alpha = 0.50f),
-                            1f to Color.Black.copy(alpha = 0.78f),
-                        ),
-                    ),
-            )
-        }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Spacer(modifier = Modifier.weight(1f))
-                Box(
-                    modifier = Modifier
-                        .padding(start = 6.dp)
-                        .size(10.dp)
-                        .shadow(4.dp, RoundedCornerShape(999.dp), clip = false)
-                        .background(attentionColor(attentionState), RoundedCornerShape(999.dp))
-                        .border(1.dp, Color.Black.copy(alpha = 0.22f), RoundedCornerShape(999.dp)),
-                )
-            }
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = machine.displayTitle,
-                        style = MaterialTheme.typography.bodyMedium.withGameRoomMiniCardOverlayShadow(),
-                        color = if (imageUrl.isNullOrBlank()) MaterialTheme.colorScheme.onSurface else Color.White,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    val variantLabel = gameRoomVariantBadgeLabel(machine.displayVariant, machine.displayTitle)
-                    if (variantLabel != null) {
-                        GameRoomVariantPill(
-                            label = variantLabel,
-                            style = VariantPillStyle.Mini,
-                            modifier = Modifier.padding(start = 6.dp),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MachineListRow(
-    machine: OwnedMachine,
-    imageUrl: String?,
-    areaName: String,
-    attentionState: GameRoomAttentionState,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val shape = RoundedCornerShape(10.dp)
-    val imageModel = rememberCachedImageModel(imageUrl)
-    val selectionHighlightColor = Color(0xFF7DD3FC)
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(58.dp)
-            .clickable(onClick = onClick)
-            .background(
-                MaterialTheme.colorScheme.surfaceContainerHighest,
-                shape,
-            )
-            .border(
-                width = if (selected) 2.dp else 1.dp,
-                color = if (selected) selectionHighlightColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f),
-                shape = shape,
-            )
-            .clip(shape),
-    ) {
-        if (!imageUrl.isNullOrBlank()) {
-            AsyncImage(
-                model = imageModel,
-                contentDescription = machine.displayTitle,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize(),
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Transparent,
-                            0.18f to Color.Transparent,
-                            0.4f to Color.Black.copy(alpha = 0.50f),
-                            1f to Color.Black.copy(alpha = 0.78f),
-                        ),
-                    ),
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(9.dp)
-                    .shadow(4.dp, RoundedCornerShape(999.dp), clip = false)
-                    .background(attentionColor(attentionState), RoundedCornerShape(999.dp))
-                    .border(1.dp, Color.Black.copy(alpha = 0.22f), RoundedCornerShape(999.dp)),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = machine.displayTitle,
-                        style = MaterialTheme.typography.bodyMedium.withGameRoomMiniCardOverlayShadow(),
-                        color = if (imageUrl.isNullOrBlank()) MaterialTheme.colorScheme.onSurface else Color.White,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    val variantLabel = gameRoomVariantBadgeLabel(machine.displayVariant, machine.displayTitle)
-                    if (variantLabel != null) {
-                        GameRoomVariantPill(
-                            label = variantLabel,
-                            style = VariantPillStyle.Standard,
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
-                }
-                Text(
-                    text = "$areaName • G${machine.groupNumber ?: "—"} • P${machine.position ?: "—"}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (imageUrl.isNullOrBlank()) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.86f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
-}
-
-private enum class VariantPillStyle {
-    Mini,
-    Standard,
-    MachineTitle,
-    EditSelector,
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ManufacturerFilterDropdown(
-    selectedText: String,
-    modernOptions: List<GameRoomCatalogManufacturerOption>,
-    classicPopularOptions: List<GameRoomCatalogManufacturerOption>,
-    otherOptions: List<GameRoomCatalogManufacturerOption>,
-    onSelect: (String?) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        OutlinedTextField(
-            value = selectedText,
-            onValueChange = {},
-            readOnly = true,
-            singleLine = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                focusedBorderColor = MaterialTheme.colorScheme.outline,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                focusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            ),
-            modifier = Modifier
-                .menuAnchor(type = MenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth(),
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            DropdownMenuItem(
-                text = { Text("All Manufacturers") },
-                onClick = {
-                    onSelect(null)
-                    expanded = false
-                },
-            )
-            if (modernOptions.isNotEmpty()) {
-                HorizontalDivider()
-                Text(
-                    text = "Modern",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    fontSize = 12.sp,
-                )
-                modernOptions.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option.name) },
-                        onClick = {
-                            onSelect(option.id)
-                            expanded = false
-                        },
-                    )
-                }
-            }
-            if (classicPopularOptions.isNotEmpty()) {
-                HorizontalDivider()
-                Text(
-                    text = "Classic Popular",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    fontSize = 12.sp,
-                )
-                classicPopularOptions.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option.name) },
-                        onClick = {
-                            onSelect(option.id)
-                            expanded = false
-                        },
-                    )
-                }
-            }
-            if (otherOptions.isNotEmpty()) {
-                HorizontalDivider()
-                Text(
-                    text = "Other",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    fontSize = 12.sp,
-                )
-                otherOptions.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option.name) },
-                        onClick = {
-                            onSelect(option.id)
-                            expanded = false
-                        },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun VariantPillDropdown(
-    selectedLabel: String,
-    options: List<String>,
-    onSelect: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box(modifier = modifier) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true },
-            contentAlignment = Alignment.CenterEnd,
-        ) {
-            GameRoomVariantPill(label = selectedLabel, style = VariantPillStyle.EditSelector)
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    onClick = {
-                        onSelect(option)
-                        expanded = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun GameRoomVariantPill(
-    label: String,
-    style: VariantPillStyle,
-    modifier: Modifier = Modifier,
-) {
-    val textStyle = when (style) {
-        VariantPillStyle.Mini -> MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
-        VariantPillStyle.Standard -> MaterialTheme.typography.labelSmall
-        VariantPillStyle.MachineTitle -> MaterialTheme.typography.labelMedium
-        VariantPillStyle.EditSelector -> MaterialTheme.typography.bodyMedium
-    }
-    val horizontalPadding = when (style) {
-        VariantPillStyle.Mini -> 6.dp
-        VariantPillStyle.Standard, VariantPillStyle.MachineTitle, VariantPillStyle.EditSelector -> 8.dp
-    }
-    Text(
-        text = compactVariantLabel(label),
-        color = Color.White,
-        style = textStyle,
-        fontWeight = FontWeight.SemiBold,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = modifier
-            .widthIn(max = 84.dp)
-            .background(Color.Black.copy(alpha = 0.72f), RoundedCornerShape(999.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(999.dp))
-            .padding(horizontal = horizontalPadding, vertical = 3.dp),
-    )
-}
-
-private fun compactVariantLabel(label: String): String {
-    val trimmed = label.trim()
-    val maxAllowed = 7 // "Premium"
-    if (trimmed.length <= maxAllowed) return trimmed
-    val prefix = trimmed.take((maxAllowed - 1).coerceAtLeast(0))
-    return "$prefix…"
-}
-
-private fun gameRoomVariantBadgeLabel(variant: String?, title: String): String? {
-    val explicit = variant?.trim().orEmpty()
-    if (explicit.isNotBlank() && !explicit.equals("null", ignoreCase = true) && !explicit.equals("none", ignoreCase = true)) {
-        return explicit
-    }
-
-    val source = "${variant.orEmpty().lowercase()} ${title.lowercase()}"
-    return when {
-        source.contains("limited edition") || source.contains("(le") || source.endsWith(" le") || source.contains(" le)") -> "LE"
-        source.contains("premium") -> "Premium"
-        source.contains("(pro") || source.endsWith(" pro") || source.contains(" pro)") || variant.equals("pro", ignoreCase = true) -> "Pro"
-        else -> null
-    }
-}
-
-private fun machineLocationLine(machine: OwnedMachine, store: GameRoomStore): String {
-    val areaName = store.area(machine.gameRoomAreaID)?.name ?: "No area"
-    val statusLabel = machine.status.name.replaceFirstChar { it.uppercase() }
-    return "Location: $areaName • Group ${machine.groupNumber ?: "—"} • Position ${machine.position ?: "—"} • $statusLabel"
-}
-
-private fun displayMachineEventType(type: MachineEventType): String {
-    return type.name
-        .replace('_', ' ')
-        .lowercase(Locale.US)
-        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() }
-}
-
-private fun displayMachineEventCategory(category: MachineEventCategory): String {
-    return category.name
-        .replace('_', ' ')
-        .lowercase(Locale.US)
-        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() }
-}
-
-private fun TextStyle.withGameRoomMiniCardOverlayShadow(): TextStyle = copy(
-    color = Color.White,
-    shadow = Shadow(
-        color = Color.Black.copy(alpha = 1f),
-        blurRadius = 8f,
-        offset = Offset(0f, 3f),
-    ),
-    lineHeight = when {
-        lineHeight != TextUnit.Unspecified -> lineHeight
-        fontSize != TextUnit.Unspecified -> (fontSize.value + 2f).sp
-        else -> 14.sp
-    },
-)
-
-private fun formatDate(valueMs: Long?, fallback: String): String {
-    if (valueMs == null || valueMs <= 0L) return fallback
-    return java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.US).format(java.util.Date(valueMs))
-}
-
-private fun todayIsoDate(): String {
-    return LocalDate.now().toString()
-}
-
-private fun isoDateFromMillis(valueMs: Long): String {
-    return runCatching {
-        java.time.Instant.ofEpochMilli(valueMs).atZone(ZoneOffset.UTC).toLocalDate().toString()
-    }.getOrElse { todayIsoDate() }
-}
-
-private fun parseIsoDateMillis(raw: String): Long? {
-    val parsed = runCatching { LocalDate.parse(raw.trim()) }.getOrNull() ?: return null
-    return parsed.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-}
-
-private fun attentionColor(state: GameRoomAttentionState): Color {
-    return when (state) {
-        GameRoomAttentionState.red -> Color(0xFFE0524D)
-        GameRoomAttentionState.yellow -> Color(0xFFF2C14E)
-        GameRoomAttentionState.green -> Color(0xFF53A653)
-        GameRoomAttentionState.gray -> Color(0xFF8C9098)
-    }
-}
-
-@Composable
-private fun SnapshotMetricGrid(
-    metrics: List<Pair<String, String>>,
-) {
-    val rows = metrics.chunked(2)
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        rows.forEach { rowMetrics ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                rowMetrics.forEach { (label, value) ->
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = value,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                if (rowMetrics.size == 1) {
-                    Box(modifier = Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SectionHeader(
-    title: String,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onToggle),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = title,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.weight(1f),
-        )
-        Icon(
-            imageVector = if (expanded) Icons.Outlined.ChevronLeft else Icons.Outlined.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun TwoColumnButtons(items: List<Pair<String, () -> Unit>>) {
-    val rows = items.chunked(2)
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        rows.forEach { rowItems ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                rowItems.forEach { (title, action) ->
-                    Button(
-                        onClick = action,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                }
-                if (rowItems.size == 1) {
-                    Box(modifier = Modifier.weight(1f))
-                }
-            }
-        }
-    }
 }

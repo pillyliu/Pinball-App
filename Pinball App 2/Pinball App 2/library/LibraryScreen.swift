@@ -82,15 +82,17 @@ struct LibraryScreen: View {
                         Button {
                             isSearchPresented = true
                         } label: {
-                            Image(systemName: "magnifyingglass")
+                            AppToolbarSearchTriggerLabel()
                         }
+                        .buttonStyle(.plain)
                     }
 
                     Menu {
                         filterMenuSections
                     } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
+                        AppToolbarFilterTriggerLabel()
                     }
+                    .buttonStyle(.plain)
                 }
             }
             .task {

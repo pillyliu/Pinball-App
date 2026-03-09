@@ -37,7 +37,7 @@ struct PracticeJournalSectionView: View {
                     Text(filter.label).tag(filter)
                 }
             }
-            .pickerStyle(.segmented)
+            .appSegmentedControlStyle()
 
             if isEditingEntries {
                 HStack(spacing: 8) {
@@ -45,14 +45,14 @@ struct PracticeJournalSectionView: View {
                         guard let entry = selectedJournalEntries.first, selectedJournalEntries.count == 1 else { return }
                         onEditJournalEntry(entry)
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
                     .disabled(selectedEditableJournalEntries.count != 1)
 
                     Button("Delete", role: .destructive) {
                         guard !selectedEditableJournalEntries.isEmpty else { return }
                         onDeleteJournalEntries(selectedEditableJournalEntries)
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppDestructiveActionButtonStyle(fillsWidth: false))
                     .disabled(selectedEditableJournalEntries.isEmpty)
                 }
             }
@@ -242,26 +242,24 @@ struct JournalSwipeRevealRow<Content: View>: View {
                     revealedID = nil
                     withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
                 }) {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.blue)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    AppSwipeRevealActionButton(
+                        systemName: "pencil",
+                        foreground: AppTheme.statsMeanMedian
+                    )
                 }
                 .buttonStyle(.plain)
-                .background(Color.blue.opacity(0.16))
 
                 Button(action: {
                     onDelete()
                     revealedID = nil
                     withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
                 }) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    AppSwipeRevealActionButton(
+                        systemName: "trash",
+                        foreground: .red
+                    )
                 }
                 .buttonStyle(.plain)
-                .background(Color.red.opacity(0.16))
             }
             .frame(width: actionWidth)
             .frame(maxHeight: .infinity)
@@ -515,13 +513,14 @@ struct PracticeJournalEntryEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction {
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    AppToolbarConfirmAction(title: "Save", isDisabled: !store.canEditJournalEntry(entry)) {
                         save()
                     }
-                    .disabled(!store.canEditJournalEntry(entry))
                 }
             }
             .onAppear {
@@ -696,8 +695,7 @@ struct PracticeSettingsSectionView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Practice Profile")
-                    .font(.headline)
+                AppSectionTitle(text: "Practice Profile")
 
                 TextField("Player name", text: $playerName)
                     .padding(.horizontal, 10)
@@ -706,15 +704,14 @@ struct PracticeSettingsSectionView: View {
 
                 Button("Save Profile", action: onSaveProfile)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppPrimaryActionButtonStyle())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
             .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("IFPA")
-                    .font(.headline)
+                AppSectionTitle(text: "IFPA")
 
                 TextField("IFPA number", text: $ifpaPlayerID)
                     .keyboardType(.numberPad)
@@ -730,22 +727,21 @@ struct PracticeSettingsSectionView: View {
 
                 Button("Save IFPA ID", action: onSaveIFPAID)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppPrimaryActionButtonStyle())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
             .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("League Import")
-                    .font(.headline)
+                AppSectionTitle(text: "League Import")
 
                 Menu {
                     Button("Select league player") {
                         leaguePlayerName = ""
                     }
                     if leaguePlayerOptions.isEmpty {
-                        Text("No player names found")
+                        AppSelectableMenuRow(text: "No player names found", isSelected: false)
                     } else {
                         ForEach(leaguePlayerOptions, id: \.self) { name in
                             Button(displayLPLPlayerName(name)) {
@@ -754,20 +750,9 @@ struct PracticeSettingsSectionView: View {
                         }
                     }
                 } label: {
-                    HStack(spacing: 8) {
-                        Text(leaguePlayerName.isEmpty ? "Select league player" : displayLPLPlayerName(leaguePlayerName))
-                            .foregroundStyle(.primary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .appControlStyle()
+                    AppCompactDropdownLabel(
+                        text: leaguePlayerName.isEmpty ? "Select league player" : displayLPLPlayerName(leaguePlayerName)
+                    )
                 }
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -778,7 +763,7 @@ struct PracticeSettingsSectionView: View {
 
                 Button("Import LPL CSV", action: onImportLeagueCSV)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppPrimaryActionButtonStyle())
                     .disabled(leaguePlayerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 if !leagueImportStatus.isEmpty {
@@ -792,24 +777,7 @@ struct PracticeSettingsSectionView: View {
         .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Defaults")
-                    .font(.headline)
-
-                Toggle("Enable optional cloud sync", isOn: $cloudSyncEnabled)
-                    .onChange(of: cloudSyncEnabled) { _, newValue in
-                        onCloudSyncChanged(newValue)
-                    }
-                Text("Placeholder for Phase 2 sync to pillyliu.com. Data stays on-device today.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .appPanelStyle()
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Reset")
-                    .font(.headline)
+                AppSectionTitle(text: "Reset")
 
                 Text("Erase the full local Practice log state.")
                     .font(.caption)
@@ -817,8 +785,7 @@ struct PracticeSettingsSectionView: View {
 
                 Button("Reset Practice Log", role: .destructive, action: onResetPracticeLog)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .foregroundStyle(.red)
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppDestructiveActionButtonStyle())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)

@@ -82,10 +82,7 @@ struct StandingsScreen: View {
                 }
 
                 if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    AppInlineStatusMessage(text: errorMessage, isError: true)
                 }
                 updatedStatusRow
 
@@ -112,41 +109,18 @@ struct StandingsScreen: View {
     }
 
     private var navSummaryLabel: some View {
-        Text("Standings - \(viewModel.selectedSeasonLabel)")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
+        AppToolbarSummaryText(text: "Standings - \(viewModel.selectedSeasonLabel)")
     }
 
     @ViewBuilder
     private var updatedStatusRow: some View {
         if let updatedAtLabel = viewModel.updatedAtLabel {
-            Button {
-                Task { await viewModel.refreshNow() }
-            } label: {
-                HStack(spacing: 5) {
-                    Text(updatedAtLabel)
-                    if viewModel.isRefreshing {
-                        ProgressView()
-                            .controlSize(.mini)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                            .opacity(viewModel.hasNewerData ? 0.35 : 1)
-                            .animation(
-                                viewModel.hasNewerData
-                                    ? .easeInOut(duration: 0.65).repeatForever(autoreverses: true)
-                                    : .default,
-                                value: viewModel.hasNewerData
-                            )
-                    }
-                }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .disabled(viewModel.isRefreshing)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            AppRefreshStatusRow(
+                updatedAtLabel: updatedAtLabel,
+                isRefreshing: viewModel.isRefreshing,
+                hasNewerData: viewModel.hasNewerData,
+                onRefresh: { Task { await viewModel.refreshNow() } }
+            )
         }
     }
 
@@ -158,9 +132,7 @@ struct StandingsScreen: View {
                 }
             }
         } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                .font(.title3)
-                .frame(width: 34, height: 34)
+            AppToolbarFilterTriggerLabel()
         }
         .buttonStyle(.plain)
     }
@@ -173,20 +145,14 @@ struct StandingsScreen: View {
                 }
             }
         } label: {
-            HStack(spacing: AppLayout.dropdownContentSpacing) {
-                Text(viewModel.selectedSeasonLabel)
-                    .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
-                    .lineLimit(1)
-                Spacer()
-                Image(systemName: "chevron.down")
-                    .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
-            .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
+            AppDropdownMenuLabel(
+                text: viewModel.selectedSeasonLabel,
+                isLargeTablet: isLargeTablet,
+                fillsWidth: true,
+                embeddedInNavigation: false
+            )
         }
-        .buttonStyle(.glass)
+        .buttonStyle(.plain)
         .disabled(viewModel.seasons.isEmpty)
     }
 
@@ -197,11 +163,10 @@ struct StandingsScreen: View {
                     tableHeader
                     AppTableHeaderDivider()
 
-                    if viewModel.standings.isEmpty {
-                        Text("No rows. Check data source or season selection.")
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 68)
+                    if viewModel.isRefreshing && viewModel.rows.isEmpty {
+                        AppTablePlaceholder(text: "Loading data…", minHeight: 68)
+                    } else if viewModel.standings.isEmpty {
+                        AppTablePlaceholder(text: "No rows. Check data source or season selection.", minHeight: 68)
                     } else {
                         ScrollView(.vertical) {
                             LazyVStack(spacing: 0) {
@@ -384,6 +349,8 @@ private final class StandingsViewModel: ObservableObject {
     func loadIfNeeded() async {
         guard !didLoad else { return }
         didLoad = true
+        isRefreshing = true
+        defer { isRefreshing = false }
         await loadCSV(forceRefresh: false)
     }
 

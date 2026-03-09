@@ -37,16 +37,20 @@ struct PracticeHomeSection: View {
 
                         VStack(alignment: .leading, spacing: 8) {
                             Menu {
-                                Button((selectedLibrarySourceID == nil ? "✓ " : "") + "All games") {
+                                Button {
                                     onSelectLibrarySource(practiceHomeAllGamesSourceMenuID)
+                                } label: {
+                                    AppSelectableMenuRow(text: "All games", isSelected: selectedLibrarySourceID == nil)
                                 }
                                 ForEach(librarySources) { source in
-                                    Button((source.id == selectedLibrarySourceID ? "✓ " : "") + source.name) {
+                                    Button {
                                         onSelectLibrarySource(source.id)
+                                    } label: {
+                                        AppSelectableMenuRow(text: source.name, isSelected: source.id == selectedLibrarySourceID)
                                     }
                                 }
                             } label: {
-                                resumeDropdownLabel(
+                                AppCompactStackedMenuLabel(
                                     title: "Library",
                                     value: selectedLibraryLabel(librarySources: librarySources)
                                 )
@@ -60,7 +64,7 @@ struct PracticeHomeSection: View {
                                     }
                                 }
                             } label: {
-                                resumeDropdownLabel(
+                                AppCompactStackedMenuLabel(
                                     title: "Game List",
                                     value: game.name
                                 )
@@ -87,9 +91,7 @@ struct PracticeHomeSection: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Quick Entry")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                AppSectionTitle(text: "Quick Entry")
                 HStack(spacing: 8) {
                     quickActionButton("Score", icon: "number.circle") { onQuickEntry(.score) }
                     quickActionButton("Study", icon: "book.circle") { onQuickEntry(.study) }
@@ -103,30 +105,21 @@ struct PracticeHomeSection: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 if activeGroups.isEmpty {
-                    Text("No active groups")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                    AppSectionTitle(text: "No active groups")
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(activeGroups) { group in
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack(spacing: 6) {
-                                    Text(group.name)
-                                        .font(.subheadline.weight(.semibold))
+                                    AppCardSubheading(text: group.name)
                                     if group.id == selectedGroupID {
-                                        Text("Selected")
-                                            .font(.caption2.weight(.semibold))
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 3)
-                                            .background(Color.white.opacity(0.14), in: Capsule())
+                                        AppPassiveStatusChip(text: "Selected")
                                     }
                                 }
 
                                 let games = groupGames(group)
                                 if games.isEmpty {
-                                    Text("No games in this group.")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    AppPanelEmptyCard(text: "No games in this group.")
                                 } else {
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: 8) {
@@ -154,32 +147,6 @@ struct PracticeHomeSection: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func resumeDropdownLabel(title: String, value: String) -> some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.caption.weight(.semibold))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .foregroundStyle(.primary)
-            }
-            Spacer(minLength: 0)
-            Image(systemName: "chevron.down")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.white.opacity(0.10), lineWidth: 0.8)
-        )
-    }
-
     private func selectedLibraryLabel(librarySources: [PinballLibrarySource]) -> String {
         if selectedLibrarySourceID == nil { return "All Games" }
         return librarySources.first(where: { $0.id == selectedLibrarySourceID })?.name ?? "All Games"
@@ -193,10 +160,8 @@ struct PracticeHomeSection: View {
                     .font(.caption)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .appControlStyle()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(AppIconTileActionButtonStyle())
     }
 
     private func resumeTransitionSourceID(for gameID: String) -> String {
@@ -230,12 +195,11 @@ struct PracticeWelcomeOverlay: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Welcome to Practice")
-                .font(.title3.weight(.bold))
+            AppCardTitle(text: "Welcome to Practice")
 
             Text("Enter your player name to get started.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.brandChalk)
 
             TextField("Player name", text: $firstNamePromptValue)
                 .textInputAutocapitalization(.words)
@@ -261,14 +225,14 @@ struct PracticeWelcomeOverlay: View {
 
             HStack {
                 Button("Not now", action: onNotNow)
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
 
                 Spacer()
 
                 Button("Save") {
                     submit()
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppPrimaryActionButtonStyle(fillsWidth: false))
                 .disabled(firstNamePromptValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
@@ -284,11 +248,10 @@ struct PracticeWelcomeOverlay: View {
 
     private func overlaySectionRow(_ title: String, detail: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
+            AppCardSubheading(text: title)
             Text(detail)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.brandChalk)
         }
     }
 }

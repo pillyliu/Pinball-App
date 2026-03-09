@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,7 +26,15 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
+import com.pillyliu.pinprofandroid.ui.AppExternalLinkButton
+import com.pillyliu.pinprofandroid.ui.AppCardSubheading
+import com.pillyliu.pinprofandroid.ui.AppCardTitle
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
+import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.SectionTitle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URL
@@ -92,24 +99,14 @@ internal fun PracticeIfpaProfileScreen(
 
     when {
         trimmedIfpaPlayerID.isBlank() -> {
-            CardContainer {
-                Text(
-                    "Add your IFPA ID in Practice Settings to load your public ranking snapshot here.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            AppPanelEmptyCard(text = "Add your IFPA ID in Practice Settings to load your public ranking snapshot here.")
         }
 
         isLoading && profile == null -> {
-            CardContainer {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
+            AppPanelStatusCard(
+                text = "Loading IFPA profile…",
+                showsProgress = true,
+            )
         }
 
         profile != null -> {
@@ -124,19 +121,10 @@ internal fun PracticeIfpaProfileScreen(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
-                            text = playerName.trim().ifBlank { loadedProfile.displayName },
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = "IFPA #${loadedProfile.playerID}",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        AppCardTitle(text = playerName.trim().ifBlank { loadedProfile.displayName })
+                        AppCardSubheading(text = "IFPA #${loadedProfile.playerID}")
                         loadedProfile.location?.let {
-                            Text(
-                                text = it,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            AppCardSubheading(text = it)
                         }
                     }
 
@@ -161,7 +149,7 @@ internal fun PracticeIfpaProfileScreen(
 
             if (loadedProfile.lastEventDate != null || loadedProfile.seriesRank != null) {
                 CardContainer {
-                    Text("At a Glance", fontWeight = FontWeight.SemiBold)
+                    SectionTitle("At a Glance")
                     loadedProfile.lastEventDate?.let {
                         IfpaInfoRow(label = "Last event", value = it)
                     }
@@ -172,16 +160,13 @@ internal fun PracticeIfpaProfileScreen(
             }
 
             CardContainer {
-                Text("Recent Tournaments", fontWeight = FontWeight.SemiBold)
+                SectionTitle("Recent Tournaments")
                 if (loadedProfile.recentTournaments.isEmpty()) {
-                    Text(
-                        "No recent tournament results were found on the public IFPA profile.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    AppPanelEmptyCard(text = "No recent tournament results were found on the public IFPA profile.")
                 } else {
                     loadedProfile.recentTournaments.forEachIndexed { index, tournament ->
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(tournament.name, fontWeight = FontWeight.SemiBold)
+                            AppCardSubheading(text = tournament.name)
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 IfpaInfoColumn(label = "Date", value = tournament.dateLabel)
                                 IfpaInfoColumn(label = "Finish", value = tournament.finish)
@@ -200,18 +185,18 @@ internal fun PracticeIfpaProfileScreen(
                 }
             }
 
-            Button(onClick = {
+            AppExternalLinkButton(
+                text = "Open full IFPA profile",
+                onClick = {
                 uriHandler.openUri("https://www.ifpapinball.com/players/view.php?p=${loadedProfile.playerID}")
-            }) {
-                Text("Open full IFPA profile")
-            }
+            })
         }
 
         errorMessage != null -> {
             CardContainer {
-                Text("Could not load IFPA profile", fontWeight = FontWeight.SemiBold)
-                Text(errorMessage!!, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(onClick = {
+                SectionTitle("Could not load IFPA profile")
+                AppInlineTaskStatus(text = errorMessage!!, isError = true)
+                AppPrimaryButton(onClick = {
                     profile = null
                     errorMessage = null
                 }) {
@@ -233,7 +218,7 @@ private fun IfpaStatCard(
 ) {
     CardContainer(modifier = modifier) {
         Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, fontWeight = FontWeight.SemiBold)
+        AppCardTitle(text = value)
     }
 }
 

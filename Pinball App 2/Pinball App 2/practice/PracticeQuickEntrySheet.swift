@@ -176,16 +176,12 @@ struct PracticeQuickEntrySheet: View {
                                         Button {
                                             selectedActivity = activity
                                         } label: {
-                                            if selectedActivity == activity {
-                                                Label(activity.label, systemImage: "checkmark")
-                                            } else {
-                                                Text(activity.label)
-                                            }
+                                            AppSelectableMenuRow(text: activity.label, isSelected: selectedActivity == activity)
                                         }
                                     }
                                 }
                                 label: {
-                                    compactDropdownLabel(text: selectedActivityLabel)
+                                    AppCompactDropdownLabel(text: selectedActivityLabel)
                                 }
                                 .buttonStyle(.plain)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -212,7 +208,7 @@ struct PracticeQuickEntrySheet: View {
                                         Text(context.label).tag(context)
                                     }
                                 }
-                                .pickerStyle(.segmented)
+                                .appSegmentedControlStyle()
 
                                 if scoreContext == .tournament {
                                     styledTextField("Tournament name", text: $tournamentName)
@@ -229,17 +225,13 @@ struct PracticeQuickEntrySheet: View {
                                             Button {
                                                 selectedVideoSource = source
                                             } label: {
-                                                if selectedVideoSource == source {
-                                                    Label(source, systemImage: "checkmark")
-                                                } else {
-                                                    Text(source)
-                                                }
+                                                AppSelectableMenuRow(text: source, isSelected: selectedVideoSource == source)
                                             }
                                         }
                                     }
                                 }
                                 label: {
-                                    compactDropdownLabel(text: selectedVideoSourceLabel)
+                                    AppCompactDropdownLabel(text: selectedVideoSourceLabel)
                                 }
                                 .buttonStyle(.plain)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -250,7 +242,7 @@ struct PracticeQuickEntrySheet: View {
                                         Text(kind.label).tag(kind)
                                     }
                                 }
-                                .pickerStyle(.segmented)
+                                .appSegmentedControlStyle()
 
                                 if videoKind == .clock {
                                     HStack(alignment: .top, spacing: 10) {
@@ -272,19 +264,15 @@ struct PracticeQuickEntrySheet: View {
                                         Button {
                                             practiceCategory = category
                                         } label: {
-                                            if practiceCategory == category {
-                                                Label(
-                                                    category == .general ? "General" : category.label,
-                                                    systemImage: "checkmark"
-                                                )
-                                            } else {
-                                                Text(category == .general ? "General" : category.label)
-                                            }
+                                            AppSelectableMenuRow(
+                                                text: category == .general ? "General" : category.label,
+                                                isSelected: practiceCategory == category
+                                            )
                                         }
                                     }
                                 }
                                 label: {
-                                    compactDropdownLabel(text: selectedPracticeCategoryLabel)
+                                    AppCompactDropdownLabel(text: selectedPracticeCategoryLabel)
                                 }
                                 .buttonStyle(.plain)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -298,16 +286,12 @@ struct PracticeQuickEntrySheet: View {
                                         Button {
                                             mechanicsSkill = skill
                                         } label: {
-                                            if mechanicsSkill == skill {
-                                                Label(skill, systemImage: "checkmark")
-                                            } else {
-                                                Text(skill)
-                                            }
+                                            AppSelectableMenuRow(text: skill, isSelected: mechanicsSkill == skill)
                                         }
                                     }
                                 }
                                 label: {
-                                    compactDropdownLabel(text: selectedMechanicsSkillLabel)
+                                    AppCompactDropdownLabel(text: selectedMechanicsSkillLabel)
                                 }
                                 .buttonStyle(.plain)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -350,16 +334,20 @@ struct PracticeQuickEntrySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    AppToolbarCancelAction {
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    AppToolbarConfirmAction(
+                        title: "Save",
+                        isDisabled: selectedGameID.isEmpty && selectedActivity != .mechanics
+                    ) {
                         if let savedGameID = save() {
                             onEntrySaved(savedGameID)
                             dismiss()
                         }
                     }
-                    .disabled(selectedGameID.isEmpty && selectedActivity != .mechanics)
                 }
             }
             .onAppear {
@@ -418,25 +406,6 @@ struct PracticeQuickEntrySheet: View {
         }
     }
 
-    private func compactDropdownLabel(text: String) -> some View {
-        HStack(spacing: 8) {
-            Text(text)
-                .font(.subheadline)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(height: 36)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appControlStyle()
-    }
-
     @ViewBuilder
     private var libraryFilterMenu: some View {
         if availableLibrarySources.count > 1 {
@@ -444,26 +413,21 @@ struct PracticeQuickEntrySheet: View {
                 Button {
                     selectedLibraryFilterID = quickEntryAllGamesLibraryID
                 } label: {
-                    if selectedLibraryFilterID == quickEntryAllGamesLibraryID || selectedLibraryFilterID.isEmpty {
-                        Label("All games", systemImage: "checkmark")
-                    } else {
-                        Text("All games")
-                    }
+                    AppSelectableMenuRow(
+                        text: "All games",
+                        isSelected: selectedLibraryFilterID == quickEntryAllGamesLibraryID || selectedLibraryFilterID.isEmpty
+                    )
                 }
                 ForEach(availableLibrarySources) { source in
                     Button {
                         selectedLibraryFilterID = source.id
                     } label: {
-                        if selectedLibraryFilterID == source.id {
-                            Label(source.name, systemImage: "checkmark")
-                        } else {
-                            Text(source.name)
-                        }
+                        AppSelectableMenuRow(text: source.name, isSelected: selectedLibraryFilterID == source.id)
                     }
                 }
             }
             label: {
-                compactDropdownLabel(text: selectedLibraryFilterLabel)
+                AppCompactDropdownLabel(text: selectedLibraryFilterLabel)
             }
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -477,11 +441,7 @@ struct PracticeQuickEntrySheet: View {
                 Button {
                     selectedGameID = ""
                 } label: {
-                    if selectedGameID.isEmpty {
-                        Label("None", systemImage: "checkmark")
-                    } else {
-                        Text("None")
-                    }
+                    AppSelectableMenuRow(text: "None", isSelected: selectedGameID.isEmpty)
                 }
             }
             if filteredGamesForPicker.isEmpty {
@@ -491,17 +451,13 @@ struct PracticeQuickEntrySheet: View {
                     Button {
                         selectedGameID = game.canonicalPracticeKey
                     } label: {
-                        if selectedGameID == game.canonicalPracticeKey {
-                            Label(game.name, systemImage: "checkmark")
-                        } else {
-                            Text(game.name)
-                        }
+                        AppSelectableMenuRow(text: game.name, isSelected: selectedGameID == game.canonicalPracticeKey)
                     }
                 }
             }
         }
         label: {
-            compactDropdownLabel(text: selectedGameLabel)
+            AppCompactDropdownLabel(text: selectedGameLabel)
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, alignment: .leading)

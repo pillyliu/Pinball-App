@@ -30,8 +30,7 @@ struct PracticeGroupDashboardSectionView: View {
 
             if let group = selectedGroup {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(group.name)
-                        .font(.headline)
+                    AppCardSubheading(text: group.name)
 
                     HStack(spacing: 8) {
                         statusChip(group.isActive ? "Active" : "Inactive", color: group.isActive ? .green : .secondary)
@@ -49,16 +48,14 @@ struct PracticeGroupDashboardSectionView: View {
 
                     let score = dashboardScoreForGroup(group)
                     HStack(spacing: 8) {
-                        MetricPill(label: "Completion", value: "\(score.completionAverage)%")
-                        MetricPill(label: "Stale", value: "\(score.staleGameCount)")
-                        MetricPill(label: "Variance Risk", value: "\(score.weakerGameCount)")
+                        AppMetricPill(label: "Completion", value: "\(score.completionAverage)%")
+                        AppMetricPill(label: "Stale", value: "\(score.staleGameCount)")
+                        AppMetricPill(label: "Variance Risk", value: "\(score.weakerGameCount)")
                     }
 
                     let snapshots = groupProgressForGroup(group)
                     if snapshots.isEmpty {
-                        Text("No games in this group yet.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        AppPanelEmptyCard(text: "No games in this group yet.")
                     } else {
                         ForEach(snapshots) { snapshot in
                             Button {
@@ -98,12 +95,7 @@ struct PracticeGroupDashboardSectionView: View {
                 .padding(12)
                 .appPanelStyle()
             } else {
-                Text("Create or select a group to populate the dashboard.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-                .appPanelStyle()
+                AppPanelEmptyCard(text: "Create or select a group to populate the dashboard.")
             }
         }
         .simultaneousGesture(
@@ -116,24 +108,23 @@ struct PracticeGroupDashboardSectionView: View {
     private var groupListCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Groups")
-                    .font(.headline)
+                AppSectionTitle(text: "Groups")
                 Picker("Group Filter", selection: $showArchivedGroups) {
                     Text("Current").tag(false)
                     Text("Archived").tag(true)
                 }
-                .pickerStyle(.segmented)
-                .frame(width: 180)
+                .appSegmentedControlStyle()
+                .frame(width: 168)
                 Spacer()
                 Button(action: onOpenCreateGroup) {
                     Image(systemName: "plus")
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppCompactIconActionButtonStyle())
 
                 Button(action: onOpenEditSelectedGroup) {
                     Image(systemName: "pencil")
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppCompactIconActionButtonStyle())
                 .disabled(selectedGroupID == nil || !filteredGroups().contains(where: { $0.id == selectedGroupID }))
             }
 
@@ -235,7 +226,7 @@ struct PracticeGroupDashboardSectionView: View {
                     inlineDateEditorGroupID = nil
                     inlineDateEditorField = nil
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppDestructiveActionButtonStyle(fillsWidth: false))
 
                 Spacer()
 
@@ -243,7 +234,7 @@ struct PracticeGroupDashboardSectionView: View {
                     inlineDateEditorGroupID = nil
                     inlineDateEditorField = nil
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
             }
         }
         .padding(12)
@@ -269,12 +260,11 @@ struct PracticeGroupDashboardSectionView: View {
     }()
 
     private func statusChip(_ text: String, color: Color, font: Font = .caption) -> some View {
-        Text(text)
-            .font(font)
-            .foregroundStyle(color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(Color.white.opacity(0.12), in: Capsule())
+        AppTintedStatusChip(
+            text: text,
+            foreground: color,
+            compact: font == .caption2
+        )
     }
 
     private func formatGroupDate(_ date: Date) -> String {
@@ -336,24 +326,24 @@ private struct SwipeableGroupListRow: View {
                     revealedGroupID = nil
                     withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
                 }) {
-                    Image(systemName: group.isArchived ? "arrow.uturn.left.circle" : "archivebox")
-                        .foregroundStyle(.orange)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    AppSwipeRevealActionButton(
+                        systemName: group.isArchived ? "arrow.uturn.left.circle" : "archivebox",
+                        foreground: AppTheme.brandGold
+                    )
                 }
                 .buttonStyle(.plain)
-                .background(Color.orange.opacity(0.16))
 
                 Button(action: {
                     onDelete()
                     revealedGroupID = nil
                     withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
                 }) {
-                    Image(systemName: "trash")
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    AppSwipeRevealActionButton(
+                        systemName: "trash",
+                        foreground: .red
+                    )
                 }
                 .buttonStyle(.plain)
-                .background(Color.red.opacity(0.16))
             }
             .frame(width: actionWidth, height: 34)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))

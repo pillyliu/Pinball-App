@@ -25,7 +25,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,9 +41,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.LibrarySource
+import com.pillyliu.pinprofandroid.ui.AppCardSubheading
+import com.pillyliu.pinprofandroid.ui.AppPassiveStatusChip
+import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
-
-private const val PRACTICE_HOME_ALL_GAMES_SOURCE_ID = "__practice_home_all_games__"
 
 @Composable
 internal fun PracticeHomeSection(
@@ -123,7 +124,7 @@ internal fun PracticeHomeSection(
                                 },
                                 onClick = {
                                     resumeLibraryExpanded = false
-                                    onSelectLibrarySourceId(PRACTICE_HOME_ALL_GAMES_SOURCE_ID)
+                                    onSelectLibrarySourceId(PRACTICE_ALL_GAMES_SOURCE_ID)
                                 },
                             )
                             librarySources.forEach { source ->
@@ -195,28 +196,14 @@ internal fun PracticeHomeSection(
         } else {
             active.forEach { group ->
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(group.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    AppCardSubheading(group.name)
                     if (group.id == store.selectedGroup()?.id) {
-                        Text(
-                            "Selected",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
-                                )
-                                .padding(horizontal = 6.dp, vertical = 3.dp),
-                        )
+                        AppPassiveStatusChip(text = "Selected")
                     }
                 }
                 val games = store.groupGames(group)
                 if (games.isEmpty()) {
-                    Text(
-                        "No games in this group.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    AppPanelEmptyCard(text = "No games in this group.")
                 } else {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -274,7 +261,7 @@ private fun ResumeDropdownButton(
     value: String,
     onClick: () -> Unit,
 ) {
-    OutlinedButton(
+    AppSecondaryButton(
         onClick = onClick,
         modifier = Modifier.width(168.dp),
     ) {

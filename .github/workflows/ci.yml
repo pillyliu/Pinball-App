@@ -37,34 +37,123 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
+      - name: Resolve iOS simulator
+        run: |
+          UDID="$(python3 <<'PY'
+          import json
+          import subprocess
+          import sys
+
+          preferred_names = [
+              "iPhone 17 Pro",
+              "iPhone 17",
+              "iPhone 16 Pro",
+              "iPhone 16",
+              "iPhone 15 Pro",
+              "iPhone 15",
+              "iPhone 14 Pro",
+              "iPhone 14",
+          ]
+
+          def load_json(*command):
+              return json.loads(subprocess.check_output(command, text=True))
+
+          def runtime_key(identifier):
+              suffix = identifier.split("iOS-", 1)[-1]
+              return tuple(int(part) for part in suffix.split("-"))
+
+          devices = load_json("xcrun", "simctl", "list", "devices", "available", "-j").get("devices", {})
+          runtimes = [
+              runtime
+              for runtime in load_json("xcrun", "simctl", "list", "runtimes", "available", "-j").get("runtimes", [])
+              if runtime.get("isAvailable") and runtime.get("identifier", "").startswith("com.apple.CoreSimulator.SimRuntime.iOS-")
+          ]
+          runtimes.sort(key=lambda runtime: runtime_key(runtime["identifier"]), reverse=True)
+
+          for runtime in runtimes:
+              available_devices = [
+                  device
+                  for device in devices.get(runtime["identifier"], [])
+                  if device.get("isAvailable")
+              ]
+              for preferred_name in preferred_names:
+                  for device in available_devices:
+                      if device.get("name") == preferred_name:
+                          print(device["udid"])
+                          sys.exit(0)
+              for device in available_devices:
+                  if device.get("name", "").startswith("iPhone"):
+                      print(device["udid"])
+                      sys.exit(0)
+
+          if not runtimes:
+              sys.exit("No available iOS runtimes found.")
+
+          runtime = runtimes[0]
+          supported_device_types = {
+              device_type["name"]: device_type["identifier"]
+              for device_type in runtime.get("supportedDeviceTypes", [])
+              if device_type.get("productFamily") == "iPhone"
+          }
+
+          chosen_name = None
+          chosen_type = None
+          for preferred_name in preferred_names:
+              if preferred_name in supported_device_types:
+                  chosen_name = preferred_name
+                  chosen_type = supported_device_types[preferred_name]
+                  break
+
+          if chosen_type is None and supported_device_types:
+              chosen_name, chosen_type = next(iter(supported_device_types.items()))
+
+          if chosen_type is None:
+              sys.exit(f"No supported iPhone simulator device types found for runtime {runtime['identifier']}.")
+
+          simulator_name = f"PinProf CI {chosen_name}"
+          udid = subprocess.check_output(
+              ["xcrun", "simctl", "create", simulator_name, chosen_type, runtime["identifier"]],
+              text=True,
+          ).strip()
+          print(udid)
+          PY
+          )"
+          if [ -z "${UDID}" ]; then
+            echo "Failed to resolve an iOS simulator UDID."
+            xcrun simctl list devices available || true
+            xcrun simctl list runtimes available || true
+            exit 1
+          fi
+          xcrun simctl boot "${UDID}" || true
+          xcrun simctl bootstatus "${UDID}" -b
+          echo "IOS_SIMULATOR_DESTINATION=platform=iOS Simulator,id=${UDID}" >> "$GITHUB_ENV"
+          echo "Using simulator destination: platform=iOS Simulator,id=${UDID}"
       - name: Build iOS app
         run: |
           cd "Pinball App 2"
-          DESTINATION="platform=iOS Simulator,name=iPhone 16"
-          echo "Using simulator destination: ${DESTINATION}"
           xcodebuild \
             -project "Pinball App 2.xcodeproj" \
             -scheme "PinProf" \
             -sdk iphonesimulator \
-            -destination "${DESTINATION}" \
+            -destination "${IOS_SIMULATOR_DESTINATION}" \
             build || {
               echo "iOS build failed; available destinations:"
               xcodebuild -project "Pinball App 2.xcodeproj" -scheme "PinProf" -showdestinations || true
+              xcrun simctl list devices available || true
               exit 1
             }
       - name: Run practice migration tests
         run: |
           cd "Pinball App 2"
-          DESTINATION="platform=iOS Simulator,name=iPhone 16"
-          echo "Using simulator destination: ${DESTINATION}"
           xcodebuild \
             -project "Pinball App 2.xcodeproj" \
             -scheme "PinProf" \
             -sdk iphonesimulator \
-            -destination "${DESTINATION}" \
+            -destination "${IOS_SIMULATOR_DESTINATION}" \
             -only-testing:"Pinball App 2Tests/PracticeStateCodecTests" \
             test || {
               echo "iOS tests failed; available destinations:"
               xcodebuild -project "Pinball App 2.xcodeproj" -scheme "PinProf" -showdestinations || true
+              xcrun simctl list devices available || true
               exit 1
             }

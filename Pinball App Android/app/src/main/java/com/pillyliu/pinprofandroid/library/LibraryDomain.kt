@@ -5,14 +5,18 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.net.toUri
 import androidx.compose.ui.unit.dp
-import org.json.JSONArray
 import org.json.JSONObject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.ConcurrentHashMap
 
 internal const val LIBRARY_URL = "https://pillyliu.com/pinball/data/pinball_library_v3.json"
 internal const val OPDB_CATALOG_URL = "https://pillyliu.com/pinball/data/opdb_catalog_v1.json"
 internal val LIBRARY_CONTENT_BOTTOM_FILLER = 60.dp
-private const val FALLBACK_WHITEWOOD_PLAYFIELD_700 = "/pinball/images/playfields/fallback-whitewood-playfield_700.webp"
-private const val FALLBACK_WHITEWOOD_PLAYFIELD_1400 = "/pinball/images/playfields/fallback-whitewood-playfield_1400.webp"
 
 internal enum class LibrarySourceType(val rawValue: String) {
     VENUE("venue"),
@@ -92,6 +96,15 @@ internal data class ReferenceLink(
 }
 
 internal data class Video(val kind: String?, val label: String?, val url: String?)
+internal data class PlayableVideo(val id: String, val label: String) {
+    val watchUrl: String
+        get() = "https://www.youtube.com/watch?v=$id"
+
+    val thumbnailUrl: String
+        get() = "https://i.ytimg.com/vi/$id/hqdefault.jpg"
+}
+
+internal data class YouTubeVideoMetadata(val title: String, val channelName: String?)
 internal data class LibraryGroupSection(val groupKey: Int?, val games: List<PinballGame>)
 internal enum class LibraryRouteKind {
     LIST,
@@ -215,201 +228,6 @@ internal fun sortOptionsForSource(source: LibrarySource, games: List<PinballGame
     }
 }
 
-internal fun parseLibraryPayload(raw: String): ParsedLibraryData {
-    val trimmed = raw.trim()
-    if (trimmed.startsWith("{")) {
-        val root = JSONObject(trimmed)
-        val gamesArray = root.optJSONArray("games")
-            ?: root.optJSONArray("items")
-            ?: JSONArray()
-        val parsedGames = parseGames(gamesArray)
-        val sourcesFromRoot = parseSources(root.optJSONArray("sources") ?: root.optJSONArray("libraries"))
-        val sources = if (sourcesFromRoot.isNotEmpty()) {
-            sourcesFromRoot
-        } else {
-            inferSourcesFromGames(parsedGames)
-        }
-        return ParsedLibraryData(games = parsedGames, sources = sources)
-    }
-    val parsedGames = parseGames(JSONArray(trimmed.ifEmpty { "[]" }))
-    return ParsedLibraryData(games = parsedGames, sources = inferSourcesFromGames(parsedGames))
-}
-
-internal fun parseGames(array: JSONArray): List<PinballGame> {
-    return (0 until array.length()).mapNotNull { i ->
-        val obj = array.optJSONObject(i) ?: return@mapNotNull null
-        val name = obj.optStringOrNull("name") ?: obj.optStringOrNull("game") ?: ""
-        val slug = obj.optStringOrNull("slug")
-            ?: obj.optStringOrNull("practice_identity")
-            ?: obj.optStringOrNull("opdb_id")
-            ?: ""
-        if (name.isBlank() || slug.isBlank()) return@mapNotNull null
-        val sourceType = parseSourceType(
-            obj.optStringOrNull("libraryType")
-                ?: obj.optStringOrNull("sourceType")
-                ?: obj.optStringOrNull("library_type")
-        )
-        val fallbackVenue = obj.optStringOrNull("venueName") ?: obj.optStringOrNull("venue")
-        val sourceName = obj.optStringOrNull("libraryName")
-            ?: obj.optStringOrNull("sourceName")
-            ?: obj.optStringOrNull("library_name")
-            ?: fallbackVenue
-            ?: "The Avenue"
-        val sourceId = obj.optStringOrNull("libraryId")
-            ?: obj.optStringOrNull("sourceId")
-            ?: obj.optStringOrNull("library_id")
-            ?: slugifySourceId(sourceName)
-        val assets = obj.optJSONObject("assets")
-        val rawPlayfieldLocal = obj.optStringOrNull("playfieldLocal")
-            ?: assets?.optStringOrNull("playfield_local_practice")
-            ?: assets?.optStringOrNull("playfield_local_legacy")
-        val playfieldLocalOriginal = normalizeCachePath(rawPlayfieldLocal)
-        val playfieldLocal = normalizePlayfieldLocalPath(rawPlayfieldLocal)
-        val rulesheetLocal = obj.optStringOrNull("rulesheetLocal")
-            ?: assets?.optStringOrNull("rulesheet_local_practice")
-            ?: assets?.optStringOrNull("rulesheet_local_legacy")
-        val gameinfoLocal = assets?.optStringOrNull("gameinfo_local_practice")
-            ?: assets?.optStringOrNull("gameinfo_local_legacy")
-        val rulesheetLinks = obj.optJSONArray("rulesheet_links")?.let { links ->
-            (0 until links.length()).mapNotNull { idx ->
-                links.optJSONObject(idx)?.let { link ->
-                    ReferenceLink(
-                        label = link.optStringOrNull("label") ?: "Rulesheet",
-                        url = link.optStringOrNull("url"),
-                    )
-                }
-            }
-        } ?: emptyList()
-
-        PinballGame(
-            libraryEntryId = obj.optStringOrNull("library_entry_id"),
-            practiceIdentity = obj.optStringOrNull("practice_identity"),
-            opdbId = obj.optStringOrNull("opdb_id"),
-            opdbGroupId = obj.optStringOrNull("opdb_group_id"),
-            variant = obj.optStringOrNull("variant"),
-            sourceId = sourceId,
-            sourceName = sourceName,
-            sourceType = sourceType,
-            area = (obj.optStringOrNull("area") ?: obj.optStringOrNull("location"))?.trim(),
-            areaOrder = obj.optIntOrNull("areaOrder") ?: parseIntFlexible(obj.opt("area_order")),
-            group = obj.optIntOrNull("group") ?: parseIntFlexible(obj.opt("group")),
-            position = obj.optIntOrNull("position") ?: parseIntFlexible(obj.opt("position")),
-            bank = obj.optIntOrNull("bank") ?: parseIntFlexible(obj.opt("bank")),
-            name = name,
-            manufacturer = obj.optStringOrNull("manufacturer"),
-            year = obj.optIntOrNull("year") ?: parseIntFlexible(obj.opt("year")),
-            slug = slug,
-            primaryImageUrl = obj.optStringOrNull("primary_image_url"),
-            primaryImageLargeUrl = obj.optStringOrNull("primary_image_large_url"),
-            playfieldImageUrl = obj.optStringOrNull("playfieldImageUrl") ?: obj.optStringOrNull("playfield_image_url"),
-            playfieldLocalOriginal = playfieldLocalOriginal,
-            playfieldLocal = playfieldLocal,
-            playfieldSourceLabel = obj.optStringOrNull("playfield_source_label"),
-            gameinfoLocal = gameinfoLocal,
-            rulesheetLocal = rulesheetLocal,
-            rulesheetUrl = obj.optStringOrNull("rulesheetUrl") ?: obj.optStringOrNull("rulesheet_url"),
-            rulesheetLinks = rulesheetLinks,
-            videos = obj.optJSONArray("videos")?.let { vids ->
-                (0 until vids.length()).mapNotNull { idx ->
-                    vids.optJSONObject(idx)?.let { v ->
-                        Video(
-                            kind = v.optStringOrNull("kind"),
-                            label = v.optStringOrNull("label"),
-                            url = v.optStringOrNull("url"),
-                        )
-                    }
-                }
-            } ?: emptyList(),
-        )
-    }
-}
-
-private fun parseSources(array: JSONArray?): List<LibrarySource> {
-    if (array == null) return emptyList()
-    return (0 until array.length()).mapNotNull { i ->
-        val obj = array.optJSONObject(i) ?: return@mapNotNull null
-        val id = obj.optStringOrNull("id") ?: obj.optStringOrNull("library_id") ?: return@mapNotNull null
-        val name = obj.optStringOrNull("name") ?: obj.optStringOrNull("library_name") ?: id
-        val type = parseSourceType(obj.optStringOrNull("type") ?: obj.optStringOrNull("library_type"))
-        LibrarySource(id = id, name = name, type = type)
-    }
-}
-
-private fun inferSourcesFromGames(games: List<PinballGame>): List<LibrarySource> {
-    val seen = LinkedHashMap<String, LibrarySource>()
-    games.forEach { game ->
-        if (!seen.containsKey(game.sourceId)) {
-            seen[game.sourceId] = LibrarySource(
-                id = game.sourceId,
-                name = game.sourceName,
-                type = game.sourceType,
-            )
-        }
-    }
-    if (seen.isEmpty()) {
-        seen["the-avenue"] = LibrarySource(
-            id = "the-avenue",
-            name = "The Avenue",
-            type = LibrarySourceType.VENUE,
-        )
-    }
-    return seen.values.toList()
-}
-
-private fun parseSourceType(raw: String?): LibrarySourceType {
-    return when (raw?.trim()?.lowercase()) {
-        "category" -> LibrarySourceType.CATEGORY
-        "manufacturer" -> LibrarySourceType.MANUFACTURER
-        "tournament" -> LibrarySourceType.TOURNAMENT
-        else -> LibrarySourceType.VENUE
-    }
-}
-
-private fun parseIntFlexible(value: Any?): Int? = when (value) {
-    is Number -> value.toInt()
-    is String -> value.trim().toIntOrNull()
-    else -> null
-}
-
-private fun slugifySourceId(input: String): String {
-    val trimmed = input.trim().lowercase()
-    if (trimmed.isBlank()) return "the-avenue"
-    return trimmed
-        .replace("&", "and")
-        .replace(Regex("[^a-z0-9]+"), "-")
-        .trim('-')
-        .ifBlank { "the-avenue" }
-}
-
-internal fun normalizePlayfieldLocalPath(path: String?): String? {
-    val raw = path?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-    val target = when {
-        raw.endsWith("_700.webp", ignoreCase = true) -> raw
-        raw.endsWith("_1400.webp", ignoreCase = true) -> raw.replace(Regex("_1400\\.webp$", RegexOption.IGNORE_CASE), "_700.webp")
-        raw.contains("/pinball/images/playfields/") -> raw.replace(Regex("\\.[A-Za-z0-9]+$"), "_700.webp")
-        else -> raw
-    }
-    return target
-}
-
-internal fun normalizeCachePath(path: String?): String? {
-    val raw = path?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-    if (raw.startsWith("/")) return raw
-    if (raw.startsWith("http://") || raw.startsWith("https://")) {
-        return try {
-            val uri = java.net.URI(raw)
-            if (uri.host?.equals("pillyliu.com", ignoreCase = true) == true) {
-                uri.path?.takeIf { it.isNotBlank() } ?: raw
-            } else {
-                raw
-            }
-        } catch (_: Exception) {
-            raw
-        }
-    }
-    return "/$raw"
-}
-
 internal fun PinballGame.metaLine(): String {
     val parts = mutableListOf<String>()
     parts += manufacturer ?: "-"
@@ -445,86 +263,6 @@ private fun PinballGame.locationText(): String? {
         "📍 $g:$p"
     }
 }
-
-internal fun PinballGame.resolve(pathOrUrl: String?): String? {
-    pathOrUrl ?: return null
-    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) return pathOrUrl
-    return if (pathOrUrl.startsWith("/")) "https://pillyliu.com$pathOrUrl" else "https://pillyliu.com/$pathOrUrl"
-}
-
-internal fun PinballGame.derivedPlayfield(width: Int): String? {
-    val local = playfieldLocal ?: return null
-    val path = if (local.startsWith("http://") || local.startsWith("https://")) {
-        java.net.URI(local).path ?: return null
-    } else {
-        local
-    }
-    val slash = path.lastIndexOf('/')
-    if (slash < 0) return null
-    val directory = path.substring(0, slash)
-    val filename = path.substring(slash + 1)
-    val dot = filename.lastIndexOf('.')
-    val stem = if (dot > 0) filename.substring(0, dot) else filename
-    val baseStem = stem.removeSuffix("_700").removeSuffix("_1400")
-    return resolve("$directory/${baseStem}_${width}.webp")
-}
-
-internal fun PinballGame.libraryPlayfieldCandidate(): String? =
-    resolve(primaryImageUrl) ?: resolve(FALLBACK_WHITEWOOD_PLAYFIELD_700)
-internal fun PinballGame.miniCardPlayfieldCandidates(): List<String> =
-    listOfNotNull(
-        resolve(primaryImageUrl),
-        resolve(primaryImageLargeUrl),
-        derivedPlayfield(700),
-        resolve(playfieldLocal),
-        resolve(playfieldImageUrl),
-        derivedPlayfield(1400),
-        resolve(FALLBACK_WHITEWOOD_PLAYFIELD_700),
-        resolve(FALLBACK_WHITEWOOD_PLAYFIELD_1400),
-    ).distinct()
-internal fun PinballGame.miniCardPlayfieldCandidate(): String? =
-    miniCardPlayfieldCandidates().firstOrNull()
-internal fun PinballGame.gameInlinePlayfieldCandidates(): List<String> =
-    listOfNotNull(
-        resolve(primaryImageLargeUrl),
-        resolve(primaryImageUrl),
-        derivedPlayfield(1400),
-        derivedPlayfield(700),
-        resolve(FALLBACK_WHITEWOOD_PLAYFIELD_700),
-    )
-        .distinct()
-internal fun PinballGame.fullscreenPlayfieldCandidates(): List<String> =
-    listOfNotNull(
-        resolve(playfieldLocalOriginal),
-        resolve(playfieldImageUrl),
-        derivedPlayfield(1400),
-        derivedPlayfield(700),
-        resolve(FALLBACK_WHITEWOOD_PLAYFIELD_700),
-    )
-        .distinct()
-
-internal val PinballGame.actualFullscreenPlayfieldCandidates: List<String>
-    get() = fullscreenPlayfieldCandidates().filterNot { it.endsWith(FALLBACK_WHITEWOOD_PLAYFIELD_700) }
-
-internal val PinballGame.hasPlayfieldResource: Boolean
-    get() = actualFullscreenPlayfieldCandidates.isNotEmpty()
-
-internal val PinballGame.hasRulesheetResource: Boolean
-    get() = !rulesheetLocal.isNullOrBlank() || rulesheetLinks.isNotEmpty() || !rulesheetUrl.isNullOrBlank()
-
-internal val PinballGame.rulesheetPathCandidates: List<String>
-    get() = listOfNotNull(
-        rulesheetLocal,
-        practiceIdentity?.let { "/pinball/rulesheets/${it}-rulesheet.md" },
-        "/pinball/rulesheets/$slug.md",
-    ).distinct()
-
-internal val PinballGame.gameinfoPathCandidates: List<String>
-    get() = listOfNotNull(
-        gameinfoLocal,
-        practiceIdentity?.let { "/pinball/gameinfo/${it}-gameinfo.md" },
-        "/pinball/gameinfo/$slug.md",
-    ).distinct()
 
 internal val PinballGame.practiceKey: String
     get() = canonicalPracticeKey
@@ -616,8 +354,40 @@ internal fun youtubeId(raw: String?): String? {
     }
 }
 
-private fun JSONObject.optIntOrNull(name: String): Int? = if (has(name) && !isNull(name)) optInt(name) else null
-private fun JSONObject.optStringOrNull(name: String): String? =
-    optString(name)
-        .trim()
-        .takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
+private val youTubeMetadataCache = ConcurrentHashMap<String, YouTubeVideoMetadata>()
+
+internal suspend fun loadYouTubeVideoMetadata(videoId: String): YouTubeVideoMetadata? {
+    youTubeMetadataCache[videoId]?.let { return it }
+
+    return withContext(Dispatchers.IO) {
+        try {
+            val watchUrl = "https://www.youtube.com/watch?v=$videoId"
+            val encodedWatchUrl = URLEncoder.encode(watchUrl, StandardCharsets.UTF_8.toString())
+            val requestUrl = URL("https://www.youtube.com/oembed?url=$encodedWatchUrl&format=json")
+            val connection = requestUrl.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 5_000
+            connection.readTimeout = 5_000
+            connection.setRequestProperty("Accept", "application/json")
+            try {
+                if (connection.responseCode !in 200..299) {
+                    return@withContext null
+                }
+                val body = connection.inputStream.bufferedReader().use { it.readText() }
+                val json = JSONObject(body)
+                val title = json.optString("title").trim()
+                if (title.isBlank()) {
+                    return@withContext null
+                }
+                val channelName = json.optString("author_name").trim().ifBlank { null }
+                YouTubeVideoMetadata(title = title, channelName = channelName).also {
+                    youTubeMetadataCache[videoId] = it
+                }
+            } finally {
+                connection.disconnect()
+            }
+        } catch (_: Throwable) {
+            null
+        }
+    }
+}

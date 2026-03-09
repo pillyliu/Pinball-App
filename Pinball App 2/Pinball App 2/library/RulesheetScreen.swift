@@ -46,14 +46,11 @@ struct RulesheetScreen: View {
 
                 switch viewModel.status {
                 case .idle, .loading:
-                    Text("Loading rulesheet...")
-                        .foregroundStyle(.secondary)
+                    AppFullscreenStatusOverlay(text: "Loading rulesheet…", showsProgress: true)
                 case .missing:
-                    Text("Rulesheet not available.")
-                        .foregroundStyle(.secondary)
+                    AppFullscreenStatusOverlay(text: "Rulesheet not available.")
                 case .error:
-                    Text("Could not load rulesheet.")
-                        .foregroundStyle(.secondary)
+                    AppFullscreenStatusOverlay(text: "Could not load rulesheet.")
                 case .loaded:
                     if let content = viewModel.content {
                         ZStack(alignment: .topTrailing) {
@@ -69,17 +66,11 @@ struct RulesheetScreen: View {
                             Button {
                                 saveCurrentProgress()
                             } label: {
-                                Text("\(currentProgressPercent)%")
-                                    .font(.caption2.weight(.semibold))
-                                    .foregroundStyle(progressPillForeground)
-                                    .padding(.horizontal, 9)
-                                    .padding(.vertical, 5)
-                                    .background(progressPillBackground, in: Capsule())
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(progressPillStroke, lineWidth: 0.7)
-                                    )
-                                    .opacity(progressNeedsSave ? (pulsePhase ? 0.52 : 1.0) : 1.0)
+                                AppReadingProgressPill(
+                                    text: "\(currentProgressPercent)%",
+                                    saved: !progressNeedsSave && savedProgress != nil,
+                                    pulseOpacity: progressNeedsSave ? (pulsePhase ? 0.52 : 1.0) : 1.0
+                                )
                             }
                             .buttonStyle(.plain)
                             .padding(.top, topInset + 30)
@@ -102,21 +93,10 @@ struct RulesheetScreen: View {
                 if showsBackButton {
                     VStack {
                         HStack {
-                            Button {
-                                dismiss()
-                            } label: {
-                                Image(systemName: "chevron.left")
-                                    .font(.title2.weight(.semibold))
-                                    .foregroundStyle(.primary)
-                                    .padding(14)
-                                    .background(.regularMaterial, in: Circle())
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color(uiColor: .separator).opacity(0.75), lineWidth: 1)
-                                    )
-                                    .clipShape(Circle())
-                            }
-                            .accessibilityLabel("Back from \(gameName)")
+                            AppFullscreenBackButton(
+                                action: { dismiss() },
+                                accessibilityLabel: "Back from \(gameName)"
+                            )
                             Spacer()
                         }
                         .padding(.top, topInset + 12)
@@ -189,28 +169,6 @@ struct RulesheetScreen: View {
     private var progressNeedsSave: Bool {
         currentProgressPercent != savedProgressPercent
     }
-
-    private var progressPillBackground: Color {
-        if !progressNeedsSave, savedProgress != nil {
-            return Color.green.opacity(0.85)
-        }
-        return Color(uiColor: .secondarySystemBackground).opacity(0.88)
-    }
-
-    private var progressPillForeground: Color {
-        if !progressNeedsSave, savedProgress != nil {
-            return .white
-        }
-        return .primary
-    }
-
-    private var progressPillStroke: Color {
-        if !progressNeedsSave, savedProgress != nil {
-            return Color.green.opacity(0.9)
-        }
-        return Color.primary.opacity(0.16)
-    }
-
     private var progressStorageKey: String {
         "rulesheet-last-progress-\(slug)"
     }

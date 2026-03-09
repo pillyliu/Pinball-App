@@ -6,22 +6,21 @@ import argparse
 import json
 import re
 import sys
+from datetime import UTC, datetime, timedelta
 import urllib.parse
 import urllib.request
-import xml.etree.ElementTree as ET
 from collections import defaultdict
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LOCAL_SCRIPTS_DIR = Path(__file__).resolve().parent
 PINBALL_SCRAPER_ROOT = Path("/Users/pillyliu/Documents/Codex/Pinball Scraper")
 PINBALL_SCRAPER_SCRIPTS = PINBALL_SCRAPER_ROOT / "scripts"
 PINBALL_SCRAPER_ENV = PINBALL_SCRAPER_ROOT / ".secrets" / "pinball_api.env"
-MATCHPLAY_MERGED_DEFAULT = PINBALL_SCRAPER_ROOT / "output" / "matchplay_opdb_enrichment_merged_2026-02-27.json"
-EXTERNAL_RESOURCES_DEFAULT = PINBALL_SCRAPER_ROOT / "output" / "opdb_external_resources_preliminary_2026-02-27.json"
-SILVERBALL_SITEMAP_URL = "https://rules.silverballmania.com/sitemap.xml"
+MATCHPLAY_MERGED_DEFAULT = PINBALL_SCRAPER_ROOT / "output" / "matchplay_opdb_tutorial_enrichment.json"
+EXTERNAL_RESOURCES_DEFAULT = PINBALL_SCRAPER_ROOT / "output" / "opdb_external_rulesheet_resources.json"
 
 DEFAULT_IOS_OUTPUT = REPO_ROOT / "Pinball App 2" / "Pinball App 2" / "PinballStarter.bundle" / "pinball" / "data" / "opdb_catalog_v1.json"
 DEFAULT_ANDROID_OUTPUT = REPO_ROOT / "Pinball App Android" / "app" / "src" / "main" / "assets" / "starter-pack" / "pinball" / "data" / "opdb_catalog_v1.json"
@@ -179,7 +178,39 @@ def load_json(path: Path) -> Any:
         return json.load(handle)
 
 
+def load_optional_json(path: Path, default: Any) -> Any:
+    if not path.exists():
+        print(f"warning: optional input missing: {path}", file=sys.stderr)
+        return default
+    return load_json(path)
+
+
+def parse_generated_at(payload: Any) -> datetime | None:
+    if not isinstance(payload, dict):
+        return None
+    generated_at = normalize_string(payload.get("generated_at"))
+    if not generated_at:
+        return None
+    try:
+        return datetime.fromisoformat(generated_at.replace("Z", "+00:00")).astimezone(UTC)
+    except ValueError:
+        return None
+
+
+def load_recent_catalog(paths: list[Path], min_age: timedelta) -> tuple[Path, dict[str, Any]] | None:
+    cutoff = datetime.now(UTC) - min_age
+    for path in paths:
+        if not path.exists():
+            continue
+        payload = load_json(path)
+        generated_at = parse_generated_at(payload)
+        if generated_at and generated_at >= cutoff:
+            return path, payload
+    return None
+
+
 def load_opdb_export() -> list[dict[str, Any]]:
+    sys.path.insert(0, str(LOCAL_SCRIPTS_DIR))
     sys.path.insert(0, str(PINBALL_SCRAPER_SCRIPTS))
     from pinball_api_auth import load_local_env  # type: ignore
     from pinball_api_clients import OPDBClient  # type: ignore
@@ -296,6 +327,7 @@ def build_external_rulesheets(external_payload: dict[str, Any]) -> dict[str, lis
             ("tiltforums", "tf"),
             ("pinball_primer", "pp"),
             ("pinball_org", "papa"),
+            ("bobs_guide", "bob"),
         ]
         for source_key, provider in mapping:
             for row in by_source.get(source_key, []) or []:
@@ -306,81 +338,104 @@ def build_external_rulesheets(external_payload: dict[str, Any]) -> dict[str, lis
     return rulesheets
 
 
-def build_matchplay_rulesheets(group_payload: dict[str, dict[str, Any]]) -> dict[str, list[tuple[str, str]]]:
-    rulesheets: dict[str, list[tuple[str, str]]] = defaultdict(list)
-    for group_id, payload in group_payload.items():
-        machine_group = ((payload.get("entry") or {}).get("machineGroup")) or {}
-        ruleset_url = normalize_string(machine_group.get("rulesetUrl"))
-        primer_url = normalize_string(machine_group.get("pinballPrimerUrl"))
-        bob_url = normalize_string(machine_group.get("bobsGuideUrl"))
-        if ruleset_url and should_include_rulesheet(ruleset_url, "tf"):
-            normalized_url = normalize_rulesheet_url(ruleset_url)
-            rulesheets[group_id].append((infer_rulesheet_provider(normalized_url, "tf"), normalized_url))
-        if primer_url and should_include_rulesheet(primer_url, "pp"):
-            normalized_url = normalize_rulesheet_url(primer_url)
-            rulesheets[group_id].append((infer_rulesheet_provider(normalized_url, "pp"), normalized_url))
-        if bob_url and should_include_rulesheet(bob_url, "bob"):
-            normalized_url = normalize_rulesheet_url(bob_url)
-            rulesheets[group_id].append((infer_rulesheet_provider(normalized_url, "bob"), normalized_url))
-    return rulesheets
+def build_rulesheet_link_rows(
+    group_ids: list[str],
+    rulesheets_by_group: dict[str, list[tuple[str, str]]],
+) -> list[dict[str, Any]]:
+    rulesheet_links: list[dict[str, Any]] = []
+    seen_rulesheet_keys: set[tuple[str, str, str]] = set()
+
+    for group_id in group_ids:
+        rulesheet_candidates = dedupe_rulesheet_candidates(rulesheets_by_group.get(group_id, []))
+        for priority, (provider, url) in enumerate(rulesheet_candidates):
+            key = (group_id, provider, url)
+            if key in seen_rulesheet_keys:
+                continue
+            seen_rulesheet_keys.add(key)
+            rulesheet_links.append(
+                {
+                    "practice_identity": group_id,
+                    "provider": provider,
+                    "label": provider_label(provider),
+                    "local_path": None,
+                    "url": url,
+                    "priority": priority,
+                }
+            )
+    return rulesheet_links
 
 
-def fetch_silverball_bob_rulesheets() -> dict[str, list[tuple[str, str]]]:
-    request = urllib.request.Request(
-        SILVERBALL_SITEMAP_URL,
-        headers={"User-Agent": "Mozilla/5.0 PinballApp/1.0"},
-    )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        xml_text = response.read().decode("utf-8", errors="ignore")
+def build_video_link_rows(
+    group_ids: list[str],
+    videos_by_group: dict[str, list[dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    video_links: list[dict[str, Any]] = []
+    seen_video_keys: set[tuple[str, str]] = set()
 
-    root = ET.fromstring(xml_text)
-    namespace = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-    rulesheets: dict[str, list[tuple[str, str]]] = defaultdict(list)
-    for loc in root.findall("sm:url/sm:loc", namespace):
-        value = normalize_string(loc.text)
-        if not value or not value.startswith("https://rules.silverballmania.com/rules/"):
-            continue
-        slug = value.rsplit("/", 1)[-1]
-        group_id = slug.split("-", 1)[0] if "-" in slug else slug
-        if not group_id:
-            continue
-        rulesheets[group_id].append(("bob", value))
-    return rulesheets
+    for group_id in group_ids:
+        tutorials = sorted(
+            videos_by_group.get(group_id, []),
+            key=lambda video: (
+                video.get("videoTimestamp") or 0,
+                video.get("index") or 0,
+                normalize_string(video.get("videoUrl")) or "",
+            ),
+        )
+        tutorial_number = 1
+        for video in tutorials:
+            url = normalize_string(video.get("videoUrl"))
+            if not url:
+                continue
+            key = (group_id, url)
+            if key in seen_video_keys:
+                continue
+            seen_video_keys.add(key)
+            video_links.append(
+                {
+                    "practice_identity": group_id,
+                    "provider": "matchplay",
+                    "kind": "tutorial",
+                    "label": f"Tutorial {tutorial_number}",
+                    "url": url,
+                    "priority": tutorial_number - 1,
+                }
+            )
+            tutorial_number += 1
+    return video_links
+
+
+def enrich_group_links(
+    matchplay_payload: dict[str, Any],
+    external_payload: dict[str, Any],
+) -> tuple[dict[str, list[tuple[str, str]]], dict[str, list[dict[str, Any]]]]:
+    _matchplay_group_index, videos_by_group = build_matchplay_indexes(matchplay_payload)
+    rulesheets_by_group = build_external_rulesheets(external_payload)
+    for group_id, links in MANUAL_RULESHEET_OVERRIDES.items():
+        for provider, url in links:
+            if should_include_rulesheet(url, provider):
+                normalized_url = normalize_rulesheet_url(url)
+                rulesheets_by_group[group_id].append((infer_rulesheet_provider(normalized_url, provider), normalized_url))
+    return rulesheets_by_group, videos_by_group
 
 
 def build_catalog(
     opdb_rows: list[dict[str, Any]],
     matchplay_payload: dict[str, Any],
     external_payload: dict[str, Any],
-    bob_rulesheets: dict[str, list[tuple[str, str]]] | None = None,
 ) -> dict[str, Any]:
     manufacturers, manufacturer_id_by_opdb = build_manufacturers(opdb_rows)
-    matchplay_group_index, videos_by_group = build_matchplay_indexes(matchplay_payload)
-    rulesheets_by_group = build_external_rulesheets(external_payload)
-    matchplay_rulesheets = build_matchplay_rulesheets(matchplay_group_index)
-    for group_id, links in matchplay_rulesheets.items():
-        rulesheets_by_group[group_id].extend(links)
-    if bob_rulesheets:
-        for group_id, links in bob_rulesheets.items():
-            rulesheets_by_group[group_id].extend(links)
-    for group_id, links in MANUAL_RULESHEET_OVERRIDES.items():
-        for provider, url in links:
-            if should_include_rulesheet(url, provider):
-                normalized_url = normalize_rulesheet_url(url)
-                rulesheets_by_group[group_id].append((infer_rulesheet_provider(normalized_url, provider), normalized_url))
+    matchplay_group_index, _videos_by_group = build_matchplay_indexes(matchplay_payload)
+    rulesheets_by_group, videos_by_group = enrich_group_links(matchplay_payload, external_payload)
 
     machines: list[dict[str, Any]] = []
-    rulesheet_links: list[dict[str, Any]] = []
-    video_links: list[dict[str, Any]] = []
-
-    seen_rulesheet_keys: set[tuple[str, str, str]] = set()
-    seen_video_keys: set[tuple[str, str]] = set()
+    group_ids: list[str] = []
 
     for row in sorted(opdb_rows, key=lambda item: (sort_name(item.get("name") or ""), item.get("manufacture_date") or "")):
         opdb_id = normalize_string(row.get("opdb_id"))
         if not opdb_id:
             continue
         group_id = opdb_id.split("-", 1)[0] if "-" in opdb_id else opdb_id
+        group_ids.append(group_id)
         matchplay_payload_for_group = matchplay_group_index.get(group_id) or {}
         entry = matchplay_payload_for_group.get("entry") or {}
         machine_group = entry.get("machineGroup") or {}
@@ -416,52 +471,8 @@ def build_catalog(
                 "updated_at": normalize_string(row.get("updated_at")) or datetime.now(UTC).isoformat(),
             }
         )
-
-        rulesheet_candidates = dedupe_rulesheet_candidates(rulesheets_by_group.get(group_id, []))
-        for priority, (provider, url) in enumerate(rulesheet_candidates):
-            key = (group_id, provider, url)
-            if key in seen_rulesheet_keys:
-                continue
-            seen_rulesheet_keys.add(key)
-            rulesheet_links.append(
-                {
-                    "practice_identity": group_id,
-                    "provider": provider,
-                    "label": provider_label(provider),
-                    "local_path": None,
-                    "url": url,
-                    "priority": priority,
-                }
-            )
-
-        tutorials = sorted(
-            videos_by_group.get(group_id, []),
-            key=lambda video: (
-                video.get("videoTimestamp") or 0,
-                video.get("index") or 0,
-                normalize_string(video.get("videoUrl")) or "",
-            ),
-        )
-        tutorial_number = 1
-        for video in tutorials:
-            url = normalize_string(video.get("videoUrl"))
-            if not url:
-                continue
-            key = (group_id, url)
-            if key in seen_video_keys:
-                continue
-            seen_video_keys.add(key)
-            video_links.append(
-                {
-                    "practice_identity": group_id,
-                    "provider": "matchplay",
-                    "kind": "tutorial",
-                    "label": f"Tutorial {tutorial_number}",
-                    "url": url,
-                    "priority": tutorial_number - 1,
-                }
-            )
-            tutorial_number += 1
+    rulesheet_links = build_rulesheet_link_rows(group_ids, rulesheets_by_group)
+    video_links = build_video_link_rows(group_ids, videos_by_group)
 
     return {
         "schema_version": 1,
@@ -471,6 +482,27 @@ def build_catalog(
         "rulesheet_links": rulesheet_links,
         "video_links": video_links,
     }
+
+
+def refresh_existing_catalog_links(
+    existing_catalog: dict[str, Any],
+    matchplay_payload: dict[str, Any],
+    external_payload: dict[str, Any],
+) -> dict[str, Any]:
+    rulesheets_by_group, videos_by_group = enrich_group_links(matchplay_payload, external_payload)
+    group_ids: list[str] = []
+    for row in existing_catalog.get("machines", []):
+        if not isinstance(row, dict):
+            continue
+        group_id = normalize_string(row.get("opdb_group_id")) or normalize_string(row.get("practice_identity"))
+        if group_id:
+            group_ids.append(group_id)
+
+    refreshed = dict(existing_catalog)
+    refreshed["generated_at"] = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    refreshed["rulesheet_links"] = build_rulesheet_link_rows(group_ids, rulesheets_by_group)
+    refreshed["video_links"] = build_video_link_rows(group_ids, videos_by_group)
+    return refreshed
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -488,18 +520,36 @@ def main() -> int:
     parser.add_argument("--android-output", type=Path, default=DEFAULT_ANDROID_OUTPUT)
     parser.add_argument("--skip-android", action="store_true")
     parser.add_argument("--skip-bob-sitemap", action="store_true")
+    parser.add_argument("--min-export-age-minutes", type=int, default=60)
+    parser.add_argument("--force-export", action="store_true")
     args = parser.parse_args()
 
+    matchplay_payload = load_optional_json(args.matchplay_merged, {"rows": []})
+    external_payload = load_optional_json(args.external_resources, {"groups": []})
+
+    output_candidates = [args.ios_output]
+    if not args.skip_android:
+        output_candidates.append(args.android_output)
+    if not args.force_export:
+        recent_catalog = load_recent_catalog(output_candidates, timedelta(minutes=max(args.min_export_age_minutes, 0)))
+        if recent_catalog is not None:
+            source_path, payload = recent_catalog
+            refreshed_catalog = refresh_existing_catalog_links(payload, matchplay_payload, external_payload)
+            write_json(args.ios_output, refreshed_catalog)
+            if not args.skip_android:
+                write_json(args.android_output, refreshed_catalog)
+            generated_at = normalize_string(payload.get("generated_at")) or "unknown"
+            print(
+                f"skipping OPDB export: reusing recent catalog from {source_path} and refreshing links "
+                f"(source_generated_at={generated_at}, min_age_minutes={max(args.min_export_age_minutes, 0)}, "
+                f"rulesheets={len(refreshed_catalog['rulesheet_links'])}, videos={len(refreshed_catalog['video_links'])})"
+            )
+            return 0
+
     opdb_rows = load_opdb_export()
-    matchplay_payload = load_json(args.matchplay_merged)
-    external_payload = load_json(args.external_resources)
-    bob_rulesheets: dict[str, list[tuple[str, str]]] = {}
-    if not args.skip_bob_sitemap:
-        try:
-            bob_rulesheets = fetch_silverball_bob_rulesheets()
-        except Exception as exc:
-            print(f"warning: failed to fetch Silverball Mania Bob rulesheets: {exc}", file=sys.stderr)
-    catalog = build_catalog(opdb_rows, matchplay_payload, external_payload, bob_rulesheets=bob_rulesheets)
+    if args.skip_bob_sitemap:
+        print("warning: --skip-bob-sitemap is deprecated; Bob rulesheets now come from external resources input", file=sys.stderr)
+    catalog = build_catalog(opdb_rows, matchplay_payload, external_payload)
 
     write_json(args.ios_output, catalog)
     if not args.skip_android:
@@ -508,7 +558,7 @@ def main() -> int:
     print(
         f"wrote catalog: machines={len(catalog['machines'])} manufacturers={len(catalog['manufacturers'])} "
         f"rulesheets={len(catalog['rulesheet_links'])} videos={len(catalog['video_links'])} "
-        f"bob_groups={len(bob_rulesheets)}"
+        f"external_groups={len(external_payload.get('groups', []))}"
     )
     return 0
 

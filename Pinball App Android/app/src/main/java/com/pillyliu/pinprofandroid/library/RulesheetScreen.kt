@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -37,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -48,7 +48,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.pillyliu.pinprofandroid.data.downloadTextAllowMissing
+import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
+import com.pillyliu.pinprofandroid.ui.AppReadingProgressPill
+import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppScreen
+import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -68,25 +72,11 @@ internal fun ExternalRulesheetWebScreen(
         modifier = Modifier.iosEdgeSwipeBack(enabled = true, onBack = onBack),
     ) {
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-            ) {
-                GlassBackButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart))
-                Text(
-                    text = title,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                        .padding(horizontal = 50.dp),
-                )
-            }
+            AppScreenHeader(
+                title = title,
+                onBack = onBack,
+                titleColor = MaterialTheme.colorScheme.onSurface,
+            )
             ExternalRulesheetWebView(
                 url = url,
                 modifier = Modifier.fillMaxSize(),
@@ -134,6 +124,7 @@ private fun ExternalRulesheetWebView(url: String, modifier: Modifier = Modifier)
 internal fun RulesheetScreen(
     contentPadding: PaddingValues,
     slug: String,
+    title: String? = null,
     remoteCandidates: List<String>? = null,
     externalSource: RulesheetRemoteSource? = null,
     onBack: () -> Unit,
@@ -197,15 +188,9 @@ internal fun RulesheetScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             when (status) {
-                "loading" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Loading rulesheet...", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                "missing" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Rulesheet not available.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                "error" -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Could not load rulesheet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                "loading" -> AppFullscreenStatusOverlay(text = "Loading rulesheet…", showsProgress = true)
+                "missing" -> AppFullscreenStatusOverlay(text = "Rulesheet not available.")
+                "error" -> AppFullscreenStatusOverlay(text = "Could not load rulesheet.")
                 else -> content?.let {
                     RulesheetContentWebView(
                         content = it,
@@ -238,11 +223,7 @@ internal fun RulesheetScreen(
                     ),
                     label = "pulseAlpha",
                 )
-                Text(
-                    text = percentText,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
+                Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(top = 12.dp, end = 12.dp)
@@ -251,53 +232,48 @@ internal fun RulesheetScreen(
                             savedRatio = clamped
                             prefs.edit { putFloat("rulesheet-last-progress-$slug", clamped) }
                             onSavePracticeRatio?.invoke(clamped)
-                        }
-                        .background(
-                            if (needsSave) {
-                                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.76f)
-                            } else {
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.84f)
-                            },
-                            RoundedCornerShape(999.dp),
-                        )
-                        .border(
-                            width = 0.5.dp,
-                            color = if (needsSave) {
-                                MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
-                            } else {
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.9f)
-                            },
-                            shape = RoundedCornerShape(999.dp),
-                        )
-                        .graphicsLayer {
-                            alpha = if (needsSave) pulseAlpha else 1f
-                        }
-                        .padding(horizontal = 9.dp, vertical = 4.dp),
-                )
+                        },
+                ) {
+                    AppReadingProgressPill(
+                        text = percentText,
+                        saved = !needsSave && savedRatio > 0f,
+                        alpha = if (needsSave) pulseAlpha else 1f,
+                    )
+                }
             }
             if (chromeVisible) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(contentPadding)
-                        .padding(start = 14.dp, end = 14.dp, top = 8.dp),
+                        .padding(start = 14.dp, end = 14.dp),
                 ) {
-                    GlassBackButton(
-                        onClick = onBack,
-                        modifier = Modifier.align(Alignment.CenterStart),
-                    )
-                    Text(
-                        text = slug.replace('-', ' ').replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
+                    Box(
                         modifier = Modifier
                             .align(Alignment.Center)
                             .fillMaxWidth()
-                            .padding(horizontal = 50.dp),
-                    )
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(alpha = 0.52f),
+                                        Color.Black.copy(alpha = 0.22f),
+                                        Color.Transparent,
+                                    ),
+                                ),
+                                RoundedCornerShape(16.dp),
+                            )
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f),
+                                RoundedCornerShape(16.dp),
+                            )
+                            .padding(horizontal = 6.dp, vertical = 4.dp),
+                    ) {
+                        AppScreenHeader(
+                            title = title ?: slug.replace('-', ' ').replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },
+                            onBack = onBack,
+                            titleColor = Color.White,
+                        )
+                    }
                 }
             }
         }
@@ -308,14 +284,14 @@ internal fun RulesheetScreen(
             title = { Text("Return to last saved position?") },
             text = { Text("Return to ${(savedRatio * 100f).roundToInt()}%?") },
             confirmButton = {
-                TextButton(onClick = {
+                AppTextAction(text = "Yes", onClick = {
                     resumeTargetRatio = savedRatio
                     resumeRequestId += 1
                     showResumePrompt = false
-                }) { Text("Yes") }
+                })
             },
             dismissButton = {
-                TextButton(onClick = { showResumePrompt = false }) { Text("No") }
+                AppTextAction(text = "No", onClick = { showResumePrompt = false })
             },
         )
     }

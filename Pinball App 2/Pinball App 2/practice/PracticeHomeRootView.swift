@@ -31,7 +31,10 @@ struct PracticeHomeRootView: View {
             AppBackground()
 
             if isLoadingGames {
-                ProgressView("Loading practice data...")
+                AppPanelStatusCard(
+                    text: "Loading practice data…",
+                    showsProgress: true
+                )
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
@@ -41,7 +44,7 @@ struct PracticeHomeRootView: View {
                             Button(action: onOpenSettings) {
                                 Image(systemName: "gearshape")
                             }
-                            .buttonStyle(.glass)
+                            .buttonStyle(AppCompactIconActionButtonStyle())
                         }
                         .padding(.leading, 8)
 
@@ -62,7 +65,7 @@ struct PracticeHomeRootView: View {
 
                         LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                             ForEach(PracticeHubDestination.allCases) { destination in
-                                NavigationLink(value: PracticeNavRoute.destination(destination)) {
+                                NavigationLink(value: destination.route) {
                                     PracticeHubMiniCard(destination: destination)
                                 }
                                 .buttonStyle(.plain)
@@ -97,17 +100,15 @@ struct PracticeHomeRootView: View {
         if let greetingName {
             HStack(spacing: 0) {
                 Text("Welcome back, ")
-                Button(action: onOpenIFPAProfile) {
-                    Text(greetingName)
-                        .foregroundStyle(Color(red: 0.49, green: 0.77, blue: 0.98))
-                }
-                .buttonStyle(.plain)
+                AppInlineLinkAction(text: greetingName, action: onOpenIFPAProfile)
                 .accessibilityLabel(hasIFPAProfileAccess ? "Open IFPA profile for \(greetingName)" : "Open IFPA setup for \(greetingName)")
             }
             .font(.title3.weight(.semibold))
+            .foregroundStyle(AppTheme.brandInk)
         } else {
             Text("Welcome back")
                 .font(.title3.weight(.semibold))
+                .foregroundStyle(AppTheme.brandInk)
         }
     }
 }

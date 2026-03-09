@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +30,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
+import com.pillyliu.pinprofandroid.library.PlayableVideo
+import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
+import com.pillyliu.pinprofandroid.ui.appVideoTileBorderColor
+import com.pillyliu.pinprofandroid.ui.appVideoTileContainerColor
+import com.pillyliu.pinprofandroid.ui.appVideoTileLabelColor
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -68,42 +74,67 @@ internal fun PracticeEmbeddedYouTubeView(videoId: String, modifier: Modifier = M
 
 @Composable
 internal fun PracticeVideoTile(
-    videoId: String,
-    label: String,
+    video: PlayableVideo,
     selected: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     val shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
+    var imageLoaded by remember(video.thumbnailUrl) { mutableStateOf(false) }
+    var showMissingImage by remember(video.thumbnailUrl) { mutableStateOf(video.thumbnailUrl.isBlank()) }
     Column(
         modifier = modifier
             .clip(shape)
             .clickable(onClick = onClick)
             .background(
-                if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerLow,
+                appVideoTileContainerColor(selected),
                 shape = shape,
             )
             .border(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (selected) 0.85f else 0.6f),
+                color = appVideoTileBorderColor(selected),
                 shape = shape,
             )
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        AsyncImage(
-            model = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg",
-            contentDescription = label,
-            contentScale = ContentScale.Crop,
+        androidx.compose.foundation.layout.Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f)
                 .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp)),
-        )
+        ) {
+            if (video.thumbnailUrl.isNotBlank()) {
+                AsyncImage(
+                    model = video.thumbnailUrl,
+                    contentDescription = video.label,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    onLoading = {
+                        imageLoaded = false
+                        showMissingImage = false
+                    },
+                    onSuccess = {
+                        imageLoaded = true
+                        showMissingImage = false
+                    },
+                    onError = {
+                        imageLoaded = false
+                        showMissingImage = true
+                    },
+                )
+            }
+            when {
+                video.thumbnailUrl.isBlank() -> AppMediaPreviewPlaceholder(message = "No image")
+                !imageLoaded && !showMissingImage -> AppMediaPreviewPlaceholder(showsProgress = true)
+                showMissingImage -> AppMediaPreviewPlaceholder()
+            }
+        }
         Text(
-            text = label,
+            text = video.label,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
+            color = appVideoTileLabelColor(selected),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

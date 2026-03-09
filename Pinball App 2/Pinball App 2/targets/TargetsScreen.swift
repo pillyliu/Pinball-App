@@ -95,9 +95,7 @@ struct TargetsScreen: View {
                     .padding(.horizontal, 4)
 
                 if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
+                    AppInlineStatusMessage(text: errorMessage, isError: true)
                         .padding(.horizontal, 2)
                 }
 
@@ -181,17 +179,10 @@ struct TargetsScreen: View {
     }
 
     private var navSummaryLabels: some View {
-        HStack(spacing: 12) {
-            Text("Sort: \(viewModel.sortMode.title)")
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            Text(viewModel.selectedBankLabel)
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .foregroundStyle(.secondary)
+        AppToolbarSummaryPair(
+            leading: "Sort: \(viewModel.sortMode.title)",
+            trailing: viewModel.selectedBankLabel
+        )
     }
 
     private var topRightFilterMenu: some View {
@@ -209,9 +200,7 @@ struct TargetsScreen: View {
                 }
             }
         } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                .font(.title3)
-                .frame(width: 34, height: 34)
+            AppToolbarFilterTriggerLabel()
         }
         .buttonStyle(.plain)
     }
@@ -223,7 +212,7 @@ struct TargetsScreen: View {
                     .buttonStyle(.plain)
             } else {
                 sortDropdownMenu
-                    .buttonStyle(.glass)
+                    .buttonStyle(.plain)
             }
         }
         .frame(width: sortControlWidth)
@@ -236,7 +225,7 @@ struct TargetsScreen: View {
                     .buttonStyle(.plain)
             } else {
                 bankDropdownMenu
-                    .buttonStyle(.glass)
+                    .buttonStyle(.plain)
             }
         }
         .frame(width: bankControlWidth)
@@ -248,40 +237,13 @@ struct TargetsScreen: View {
                 Button("Sort: \(mode.title)") { viewModel.sortMode = mode }
             }
         } label: {
-            ZStack {
-                HStack(spacing: AppLayout.dropdownContentSpacing) {
-                    Text("Sort: \(TargetsSortMode.widestTitle)")
-                        .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
-                        .lineLimit(1)
-                    Spacer(minLength: 4)
-                    Image(systemName: "chevron.down")
-                        .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
-                        .foregroundStyle(.secondary)
-                }
-                .opacity(0)
-
-                HStack(spacing: AppLayout.dropdownContentSpacing) {
-                    Text("Sort: \(viewModel.sortMode.title)")
-                        .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
-                        .lineLimit(1)
-                    Spacer(minLength: 4)
-                    Image(systemName: "chevron.down")
-                        .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
-            .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
-            .background(
-                embeddedInNavigation ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.clear),
-                in: Capsule()
+            AppDropdownMenuLabel(
+                text: "Sort: \(viewModel.sortMode.title)",
+                isLargeTablet: isLargeTablet,
+                widestText: "Sort: \(TargetsSortMode.widestTitle)",
+                fillsWidth: false,
+                embeddedInNavigation: embeddedInNavigation
             )
-            .overlay {
-                if embeddedInNavigation {
-                    Capsule()
-                        .stroke(Color.white.opacity(0.28), lineWidth: 0.6)
-                }
-            }
         }
     }
 
@@ -292,27 +254,12 @@ struct TargetsScreen: View {
                 Button("Bank \(bank)") { viewModel.selectedBank = bank }
             }
         } label: {
-            HStack(spacing: AppLayout.dropdownContentSpacing) {
-                Text(viewModel.selectedBankLabel)
-                    .font(AppLayout.dropdownTextFont(isLargeTablet: isLargeTablet))
-                    .lineLimit(1)
-                Spacer(minLength: 4)
-                Image(systemName: "chevron.down")
-                    .font(AppLayout.dropdownChevronFont(isLargeTablet: isLargeTablet))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, AppLayout.dropdownHorizontalPadding(isLargeTablet: isLargeTablet))
-            .padding(.vertical, AppLayout.dropdownVerticalPadding(isLargeTablet: isLargeTablet))
-            .background(
-                embeddedInNavigation ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.clear),
-                in: Capsule()
+            AppDropdownMenuLabel(
+                text: viewModel.selectedBankLabel,
+                isLargeTablet: isLargeTablet,
+                fillsWidth: false,
+                embeddedInNavigation: embeddedInNavigation
             )
-            .overlay {
-                if embeddedInNavigation {
-                    Capsule()
-                        .stroke(Color.white.opacity(0.28), lineWidth: 0.6)
-                }
-            }
         }
     }
 

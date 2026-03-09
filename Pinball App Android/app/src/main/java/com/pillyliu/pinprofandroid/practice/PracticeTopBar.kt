@@ -1,137 +1,56 @@
 package com.pillyliu.pinprofandroid.practice
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.data.redactPlayerNameForDisplay
-import com.pillyliu.pinprofandroid.library.LibrarySource
-import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.ui.AppBackButton
-
-private const val PRACTICE_TOPBAR_ALL_GAMES_SOURCE_ID = "__practice_topbar_all_games__"
+import com.pillyliu.pinprofandroid.ui.AppHeaderIconButton
+import com.pillyliu.pinprofandroid.ui.AppTextAction
+import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 
 @Composable
 internal fun PracticeTopBar(
     route: PracticeRoute,
     playerName: String,
-    ifpaPlayerID: String,
     editingGroupID: String?,
-    selectedGameName: String?,
-    games: List<PinballGame>,
-    librarySources: List<LibrarySource>,
-    selectedLibrarySourceId: String?,
-    gamePickerExpanded: Boolean,
-    onGamePickerExpandedChange: (Boolean) -> Unit,
-    onLibrarySourceSelected: (String) -> Unit,
-    onGameSelected: (PinballGame) -> Unit,
+    gamePickerContext: PracticeTopBarGamePickerContext? = null,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenIfpaProfile: () -> Unit,
     isJournalSelectionMode: Boolean = false,
     onToggleJournalSelectionMode: (() -> Unit)? = null,
 ) {
-    val orderedGames = orderedGamesForDropdown(games, collapseByPracticeIdentity = true)
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    val colors = PinballThemeTokens.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         if (route != PracticeRoute.Home) {
             AppBackButton(onClick = onBack)
         }
-        if (route == PracticeRoute.Game) {
-            androidx.compose.foundation.layout.Box(
+        if (route == PracticeRoute.Game && gamePickerContext != null) {
+            PracticeTopBarGamePicker(
+                context = gamePickerContext,
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 0.dp),
-            ) {
-                TextButton(
-                    onClick = { onGamePickerExpandedChange(true) },
-                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            text = selectedGameName ?: "Game",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 20.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.Start,
-                        )
-                        Icon(
-                            imageVector = Icons.Filled.ArrowDropDown,
-                            contentDescription = "Select game",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                DropdownMenu(
-                    expanded = gamePickerExpanded,
-                    onDismissRequest = { onGamePickerExpandedChange(false) },
-                ) {
-                    if (librarySources.size > 1) {
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    (if (selectedLibrarySourceId == null) "✓ " else "") + "All games",
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            },
-                            onClick = {
-                                onLibrarySourceSelected(PRACTICE_TOPBAR_ALL_GAMES_SOURCE_ID)
-                            },
-                        )
-                        librarySources.forEach { source ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        (if (source.id == selectedLibrarySourceId) "✓ " else "") + source.name,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                },
-                                onClick = {
-                                    onLibrarySourceSelected(source.id)
-                                },
-                            )
-                        }
-                        HorizontalDivider()
-                    }
-                    orderedGames.forEach { game ->
-                        DropdownMenuItem(
-                            text = { Text(game.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                            onClick = {
-                                onGamePickerExpandedChange(false)
-                                onGameSelected(game)
-                            },
-                        )
-                    }
-                }
-            }
+            )
         } else {
             if (route == PracticeRoute.Home) {
                 PracticeWelcomeTitle(
@@ -144,6 +63,7 @@ internal fun PracticeTopBar(
             } else {
                 Text(
                     text = practiceTopTitle(route, editingGroupID),
+                    color = colors.brandInk,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 20.sp,
                     modifier = Modifier
@@ -156,21 +76,20 @@ internal fun PracticeTopBar(
         }
         if (route == PracticeRoute.Journal && onToggleJournalSelectionMode != null) {
             if (isJournalSelectionMode) {
-                TextButton(
-                    onClick = onToggleJournalSelectionMode,
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                ) {
-                    Text("Cancel", style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false)
-                }
+                AppTextAction(text = "Cancel", onClick = onToggleJournalSelectionMode)
             } else {
-                IconButton(onClick = onToggleJournalSelectionMode) {
-                    Icon(Icons.Outlined.Edit, contentDescription = "Edit journal entries")
-                }
+                AppHeaderIconButton(
+                    icon = Icons.Outlined.Edit,
+                    contentDescription = "Edit journal entries",
+                    onClick = onToggleJournalSelectionMode,
+                )
             }
         } else if (route == PracticeRoute.Home) {
-            IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Outlined.Settings, contentDescription = "Settings")
-            }
+            AppHeaderIconButton(
+                icon = Icons.Outlined.Settings,
+                contentDescription = "Settings",
+                onClick = onOpenSettings,
+            )
         }
     }
 }
@@ -197,10 +116,12 @@ private fun PracticeWelcomeTitle(
     onOpenIfpaProfile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = PinballThemeTokens.colors
     val trimmed = playerName.trim()
     if (trimmed.isBlank()) {
         Text(
             text = "Welcome back",
+            color = colors.brandInk,
             fontWeight = FontWeight.SemiBold,
             fontSize = 20.sp,
             modifier = modifier,
@@ -219,25 +140,25 @@ private fun PracticeWelcomeTitle(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val headerStyle = androidx.compose.ui.text.TextStyle(
+            color = colors.brandInk,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 20.sp,
+        )
         Text(
             text = "Welcome back, ",
+            style = headerStyle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = display,
+            modifier = Modifier.clickable(onClick = onOpenIfpaProfile),
+            color = colors.brandGold,
             fontWeight = FontWeight.SemiBold,
             fontSize = 20.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        TextButton(
-            onClick = onOpenIfpaProfile,
-            contentPadding = PaddingValues(0.dp),
-        ) {
-            Text(
-                text = display,
-                color = androidx.compose.ui.graphics.Color(0xFF7DC4FA),
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 20.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }

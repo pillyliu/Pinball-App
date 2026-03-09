@@ -1,20 +1,10 @@
 package com.pillyliu.pinprofandroid.practice
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppConfirmDialog
+import com.pillyliu.pinprofandroid.ui.AppDatePickerSheet
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
 internal fun GroupEditorScheduleDateSheet(
     field: GroupEditorDateField,
     initialSelectedDateMillis: Long,
@@ -22,31 +12,14 @@ internal fun GroupEditorScheduleDateSheet(
     onClear: (GroupEditorDateField) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val datePickerState = rememberDatePickerState(
+    AppDatePickerSheet(
         initialSelectedDateMillis = localDisplayMillisToDatePickerUtcMillis(initialSelectedDateMillis),
+        onSave = { selectedDate ->
+            selectedDate?.let { onSave(datePickerUtcMillisToLocalDisplayMillis(it), field) }
+        },
+        onDismiss = onDismiss,
+        onClear = { onClear(field) },
     )
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                datePickerState.selectedDateMillis?.let { selectedDate ->
-                    onSave(datePickerUtcMillisToLocalDisplayMillis(selectedDate), field)
-                }
-                onDismiss()
-            }) { Text("Save") }
-        },
-        dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = {
-                    onClear(field)
-                    onDismiss()
-                }) { Text("Clear") }
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-            }
-        },
-    ) {
-        DatePicker(state = datePickerState)
-    }
 }
 
 @Composable
@@ -54,16 +27,12 @@ internal fun DeleteGroupConfirmSheet(
     onConfirmDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Delete this group?") },
-        text = { Text("This removes the group and its title list.") },
-        confirmButton = {
-            TextButton(onClick = onConfirmDelete) { Text("Delete") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
+    AppConfirmDialog(
+        title = "Delete this group?",
+        message = "This removes the group and its title list.",
+        confirmLabel = "Delete",
+        onConfirm = onConfirmDelete,
+        onDismiss = onDismiss,
     )
 }
 
@@ -72,15 +41,11 @@ internal fun DeleteTitleConfirmSheet(
     onConfirmDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Remove this title from the group?") },
-        text = { Text("This only removes the title from this group.") },
-        confirmButton = {
-            TextButton(onClick = onConfirmDelete) { Text("Delete") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
+    AppConfirmDialog(
+        title = "Remove this title from the group?",
+        message = "This only removes the title from this group.",
+        confirmLabel = "Delete",
+        onConfirm = onConfirmDelete,
+        onDismiss = onDismiss,
     )
 }

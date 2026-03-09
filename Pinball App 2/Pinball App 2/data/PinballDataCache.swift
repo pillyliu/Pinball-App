@@ -154,7 +154,15 @@ actor PinballDataCache {
     func forceRefreshText(path: String, allowMissing: Bool = false) async throws -> CachedTextResult {
         try await ensureLoaded()
         let normalizedPath = normalize(path)
-        return try await fetchTextFromNetwork(path: normalizedPath, allowMissing: allowMissing)
+        return try await fetchTextFromNetwork(path: normalizedPath, allowMissing: allowMissing, allowStaleOnFailure: false)
+    }
+
+    func forceRefreshHostedLibraryData() async throws {
+        try await ensureLoaded()
+        try await refreshMetadataIfNeeded(force: true)
+        for path in hostedLibraryCatalogPaths {
+            _ = try await fetchBinaryFromNetwork(path: path, allowMissing: path == hostedOPDBCatalogPath, allowStaleOnFailure: false)
+        }
     }
 
     func loadText(path: String, allowMissing: Bool = false, maxCacheAge: TimeInterval) async throws -> CachedTextResult {
@@ -262,8 +270,8 @@ actor PinballDataCache {
         await revalidate(path: path, allowMissing: allowMissing)
     }
 
-    private func fetchTextFromNetwork(path: String, allowMissing: Bool) async throws -> CachedTextResult {
-        let data = try await fetchBinaryFromNetwork(path: path, allowMissing: allowMissing)
+    private func fetchTextFromNetwork(path: String, allowMissing: Bool, allowStaleOnFailure: Bool = true) async throws -> CachedTextResult {
+        let data = try await fetchBinaryFromNetwork(path: path, allowMissing: allowMissing, allowStaleOnFailure: allowStaleOnFailure)
         if data == nil {
             return CachedTextResult(text: nil, isMissing: true, updatedAt: nil)
         }
@@ -280,7 +288,7 @@ actor PinballDataCache {
         )
     }
 
-    private func fetchBinaryFromNetwork(path: String, allowMissing: Bool) async throws -> Data? {
+    private func fetchBinaryFromNetwork(path: String, allowMissing: Bool, allowStaleOnFailure: Bool = true) async throws -> Data? {
         do {
             try await refreshMetadataIfNeeded(force: false)
         } catch {
@@ -319,7 +327,7 @@ actor PinballDataCache {
             try persistIndex()
             return data
         } catch {
-            if let stale = try cachedData(for: path) {
+            if allowStaleOnFailure, let stale = try cachedData(for: path) {
                 return stale
             }
             throw error

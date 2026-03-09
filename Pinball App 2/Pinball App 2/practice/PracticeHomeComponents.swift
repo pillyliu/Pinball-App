@@ -92,7 +92,7 @@ struct PracticeSelectedGameCardBackground: View {
                     .fill(Color.black.opacity(0.82))
 
                 FallbackAsyncImageView(
-                    candidates: game.miniPlayfieldCandidates,
+                    candidates: game.cardArtworkCandidates,
                     emptyMessage: nil,
                     contentMode: .fill,
                     fillAlignment: .center,

@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
@@ -85,6 +86,78 @@ fun PinballTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = MaterialTheme.typography,
-        content = content,
-    )
+    ) {
+        CompositionLocalProvider(
+            LocalPinballSemanticColors provides semanticColors(darkTheme = darkTheme),
+            LocalPinballShapeTokens provides DefaultPinballShapeTokens,
+            LocalPinballSpacingTokens provides DefaultPinballSpacingTokens,
+            LocalPinballTypographyTokens provides DefaultPinballTypographyTokens,
+        ) {
+            content()
+        }
+    }
+}
+
+private fun semanticColors(darkTheme: Boolean): PinballSemanticColors {
+    return if (darkTheme) {
+        PinballSemanticColors(
+            background = Color(0xFF111318),
+            panel = Color(0xFF1A1D23),
+            border = Color(0xFF8D919A),
+            brandInk = Color(0xFFE1EEFF),
+            brandGold = Color(0xFFFFD15C),
+            brandChalk = Color(0xFF93BEB0),
+            atmosphereTop = Color(0xFF0D1016),
+            atmosphereBottom = Color(0xFF161C25),
+            atmosphereGlow = Color(0xFFFFC947),
+            controlBackground = Color(0xFF232730),
+            controlBorder = Color(0xFF5B616B),
+            rowOdd = Color(0xFF1A1D23),
+            rowEven = Color(0xFF20242B),
+            shellSurface = Color(0xFF161A20).copy(alpha = 0.94f),
+            shellIndicator = Color(0xFF3F3620),
+            shellSelectedContent = Color(0xFFFFE29A),
+            shellUnselectedContent = Color(0xFFC3C6D0),
+            statsHigh = Color(0xFF6EE7B7),
+            statsLow = Color(0xFFFCA5A5),
+            statsMeanMedian = Color(0xFF7DD3FC),
+            podiumGold = Color(0xFFFFDE70),
+            podiumSilver = Color(0xFFEFF1F4),
+            podiumBronze = Color(0xFFFFC291),
+            targetGreat = Color(0xFFBAF3D1),
+            targetMain = Color(0xFFC5DAFC),
+            targetFloor = Color(0xFFE5E8EB),
+            rulesheetLink = Color(0xFFA6C8FF),
+        )
+    } else {
+        PinballSemanticColors(
+            background = Color(0xFFF9F9FF),
+            panel = Color(0xFFF2F4FB),
+            border = Color(0xFF737780),
+            brandInk = Color(0xFF102033),
+            brandGold = Color(0xFFD8A919),
+            brandChalk = Color(0xFF4F7668),
+            atmosphereTop = Color(0xFFF4F7FF),
+            atmosphereBottom = Color(0xFFE9EEF8),
+            atmosphereGlow = Color(0xFFFFD76A),
+            controlBackground = Color(0xFFE9EDF7),
+            controlBorder = Color(0xFFC4C8D3),
+            rowOdd = Color(0xFFF2F4FB),
+            rowEven = Color(0xFFEAEFF7),
+            shellSurface = Color(0xFFF9F9FF).copy(alpha = 0.94f),
+            shellIndicator = Color(0xFFF2D67B),
+            shellSelectedContent = Color(0xFF102033),
+            shellUnselectedContent = Color(0xFF43474E),
+            statsHigh = Color(0xFF1F8C4C),
+            statsLow = Color(0xFFC53A3A),
+            statsMeanMedian = Color(0xFF1764C7),
+            podiumGold = Color(0xFF7A5900),
+            podiumSilver = Color(0xFF4D5561),
+            podiumBronze = Color(0xFF7A4014),
+            targetGreat = Color(0xFF1F8C4C),
+            targetMain = Color(0xFF1764C7),
+            targetFloor = Color(0xFF59616E),
+            rulesheetLink = Color(0xFF0A66CC),
+        )
+    }
 }

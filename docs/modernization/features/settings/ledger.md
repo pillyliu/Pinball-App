@@ -1,0 +1,47 @@
+# Settings Ledger
+
+## 2026-03-06
+
+- Added as a lower-risk modernization feature after shell, Library, Practice, and GameRoom audits.
+
+## 2026-03-08
+
+- iOS `Add Manufacturer`, `Add Venue`, and `Add Tournament` now use shared panel/control chrome and compact menu labels instead of keeping segmented-picker and plain-list form treatment local to Settings.
+- Android `Add Manufacturer`, `Add Venue`, and `Add Tournament` now use shared dropdown/card chrome instead of keeping segmented-selector and plain form treatment local to Settings.
+- Settings source rows now use shared compact refresh/delete action-chip chrome on both platforms instead of keeping row-button styling local to the feature.
+- Settings home section titles now use the shared section-title seams on both platforms instead of feature-local title styling.
+- Android `Add Manufacturer`, `Add Venue`, and `Add Tournament` now also use the shared `AppScreenHeader` seam instead of feature-local back-button plus centered-title rows.
+- iOS and Android `Add Venue` / `Add Tournament` now also use shared inline task-status messaging for search/import progress and local errors instead of keeping feature-local alerts and text blocks.
+- iOS and Android Settings home now also use shared panel-status messaging for loading and root library-source errors instead of a feature-local alert/full-screen spinner split.
+- iOS and Android Settings home now also use shared panel-empty cards for the “no additional sources” state instead of feature-local secondary text blocks inside the Library card.
+- iOS and Android Settings home now include a manual `Refresh Pinball Data` action in the Library section that force-refreshes the hosted Library payload and OPDB catalog from `pillyliu.com`, reports progress/error through the shared task-status seams, and then reloads Settings against the refreshed hosted catalog instead of waiting for the normal hosted refresh interval.
+- That manual hosted-data refresh now consumes the shared Library hosted-data seams instead of keeping duplicate hosted fetch/decode logic inside Settings:
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryHostedData.swift`
+  - `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryHostedData.kt`
+- Android Settings source import/remove/refresh persistence now lives behind `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsDataIntegration.kt`, so `SettingsScreen.kt` no longer owns hosted manufacturer reload, hosted-data force refresh, or imported-source mutation wiring inline.
+- iOS Settings source import/remove/refresh persistence now lives behind `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/settings/SettingsDataIntegration.swift`, so `SettingsViewModel` no longer owns hosted manufacturer reload, hosted-data force refresh, or imported-source mutation wiring inline.
+- iOS Settings add/import routes now live in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/settings/SettingsImportScreens.swift`, so `SettingsScreen.swift` no longer carries the Manufacturer/Venue/Tournament route bodies inline.
+- Android Settings add/import routes now live in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsImportScreens.kt`, so `SettingsScreen.kt` no longer carries the Manufacturer/Venue/Tournament route bodies inline.
+- iOS Settings home/library/privacy/about sections now live in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/settings/SettingsHomeSections.swift`, so `SettingsScreen.swift` is closer to a root navigation and state shell than a feature-wide composition bucket.
+- Android Settings home/library/privacy/about sections now live in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsHomeSections.kt`, so `SettingsScreen.kt` is closer to a root route/state shell than a feature-wide composition bucket.
+- iOS and Android Settings manufacturer highlight badges now also use shared tinted status-chip seams in `AppFilterControls.swift` and `CommonUi.kt` instead of feature-local “Modern” pills, aligning import-surface metadata highlights with the broader PinProf brand layer.
+- Android Settings root route/loading/error/hosted-refresh state now lives behind `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreenState.kt`, so `SettingsScreen.kt` now acts as a route shell instead of mixing mutable screen state, reload logic, and route switching inline.
+- iOS Settings route destinations now live behind `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/settings/SettingsRouteContent.swift`, so `SettingsScreen.swift` is now reduced to the root shell, view-model lifecycle hooks, and navigation-path wiring instead of also owning the route switch inline.
+- Android Settings source-add buttons, hosted-data refresh, and Pinball Map / Match Play import CTAs now also use the shared `AppPrimaryButton` seam in `CommonUi.kt` instead of repeated feature-local `Button` styling in `SettingsHomeSections.kt` and `SettingsImportScreens.kt`.
+- Android Settings privacy full-name unlock CTA now also uses that same shared `AppPrimaryButton` seam in `CommonUi.kt`, removing the last obvious feature-local action-button styling pocket from `SettingsHomeSections.kt`.
+- Android Settings hosted refresh, privacy unlock, and Pinball Map / Match Play import CTAs now also expand to full card width, matching the current iOS action-row treatment more closely.
+- The Library `Manufacturer / Venue / Tournament` add controls now use the lighter translucent secondary-action chrome on Android and a proportional full-row layout on both platforms, so the row fills the card without squeezing longer labels into two lines.
+- Android `Add Manufacturer` now respects hosted `is_modern` / `featured_rank` metadata instead of hardcoding all manufacturers to non-modern, and the pre-search instructional empty card was removed from `Add Venue` so that screen stays focused on the search form and real search results.
+- iOS Settings source-add buttons, hosted-data refresh, Pinball Map / Match Play import CTAs, and the privacy full-name unlock action now also use shared `AppPrimaryActionButtonStyle` and `AppSecondaryActionButtonStyle` seams in `AppFilterControls.swift`, replacing the remaining feature-local `.glass` CTA styling pockets in `SettingsHomeSections.swift` and `SettingsImportScreens.swift`.
+- iOS Settings source-add buttons now use the compact shared secondary-action seam so `Manufacturer`, `Venue`, and `Tournament` no longer consume unnecessary width in the Library card, and the shared primary-action seam now uses the dedicated dark-on-gold foreground token so `Refresh Pinball Data`, `Unlock Full Names`, and import CTAs keep readable contrast.
+- iOS Settings source-row `Refresh` and `Delete` actions now use a shared inline action-chip button seam instead of plain buttons wrapped in a local chip modifier, so the source table no longer keeps one last feature-local row-action implementation beside the broader shared CTA system.
+- iOS Settings import screens now also use shared card-subheading and panel-empty seams for bucket labels, results headings, and empty search states, and their provider captions now use the shared PinProf chalk/gold text treatment instead of remaining one-off semibold heading and neutral-link pockets.
+- Settings source-management add labels and source-row titles now also use shared `AppCardSubheading` hierarchy on both platforms instead of feature-local semibold/body text treatment.
+- Android Settings import result rows now also use shared `AppCardSubheading` and `AppPanelEmptyCard` seams for manufacturer/venue result titles and venue empty-filter states instead of local semibold text and ad hoc card copy.
+- Android Settings manufacturer empty-search state now also uses the shared `AppPanelEmptyCard` seam, and the iOS Settings venue minimum-game control now uses shared subheading hierarchy instead of a one-off subheadline row.
+
+## Next audit targets
+
+- exact section inventory
+- settings persistence inventory
+- remaining shared row styling inventory

@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,10 +18,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.ui.AppCardSubheading
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 
 @Composable
 internal fun PracticeInputButton(label: String, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    AppSecondaryButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(label)
             Spacer(Modifier.weight(1f))
@@ -38,7 +39,7 @@ internal fun PracticeInputGridButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    OutlinedButton(
+    AppSecondaryButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = 58.dp),
     ) {
@@ -68,7 +69,7 @@ internal fun NextActionBlock(store: PracticeStore, gameSlug: String) {
         else -> "Add a fresh score and one practice note to keep trend data current."
     }
     androidx.compose.foundation.layout.Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("Next Action", fontWeight = FontWeight.SemiBold)
+        AppCardSubheading("Next Action")
         Text(line, style = MaterialTheme.typography.bodySmall)
     }
 }
@@ -90,7 +91,7 @@ internal fun AlertsBlock(store: PracticeStore, gameSlug: String) {
     }
     if (alerts.isEmpty()) return
     androidx.compose.foundation.layout.Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("Alerts", fontWeight = FontWeight.SemiBold)
+        AppCardSubheading("Alerts")
         alerts.forEach { line ->
             Text("• $line", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
         }
@@ -111,7 +112,7 @@ internal fun ConsistencyBlock(store: PracticeStore, gameSlug: String) {
         }
     }
     androidx.compose.foundation.layout.Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("Consistency", fontWeight = FontWeight.SemiBold)
+        AppCardSubheading("Consistency")
         Text(text, style = MaterialTheme.typography.bodySmall)
     }
 }

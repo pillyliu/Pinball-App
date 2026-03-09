@@ -55,27 +55,6 @@ struct GroupProgressWheel: View {
     }
 }
 
-struct MetricPill: View {
-    let label: String
-    let value: String
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 6)
-        .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-}
-
 enum GroupCreationTemplateSource: String, CaseIterable, Identifiable {
     case none
     case bank
@@ -101,8 +80,6 @@ struct GroupEditorScreen: View {
     @ObservedObject var store: PracticeStore
     let editingGroupID: UUID?
     let onSaved: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
 
     @State private var name: String = ""
     @State private var selectedGameIDs: [String] = []
@@ -144,26 +121,18 @@ struct GroupEditorScreen: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                nameSection
-                if editingGroup == nil {
-                    templatesSection
-                }
-                titlesSection
-                settingsSection
+        VStack(alignment: .leading, spacing: 12) {
+            nameSection
+            if editingGroup == nil {
+                templatesSection
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            titlesSection
+            settingsSection
         }
-        .background(AppBackground())
-        .navigationTitle(editingGroup == nil ? "Create Group" : "Edit Group")
-        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
+                AppToolbarCancelAction {
                     onSaved()
-                    dismiss()
                 }
             }
 
@@ -178,10 +147,9 @@ struct GroupEditorScreen: View {
             }
 
             ToolbarItem(placement: .confirmationAction) {
-                Button(editingGroup == nil ? "Create" : "Save") {
+                AppToolbarConfirmAction(title: editingGroup == nil ? "Create" : "Save") {
                     if save() {
                         onSaved()
-                        dismiss()
                     }
                 }
             }
@@ -192,7 +160,7 @@ struct GroupEditorScreen: View {
                 GroupGameSelectionScreen(store: store, selectedGameIDs: $selectedGameIDs)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") {
+                            AppToolbarDoneAction {
                                 showingTitleSelector = false
                             }
                         }
@@ -204,7 +172,6 @@ struct GroupEditorScreen: View {
                 guard let group = editingGroup else { return }
                 store.deleteGroup(id: group.id)
                 onSaved()
-                dismiss()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -260,9 +227,7 @@ struct GroupEditorScreen: View {
                     .foregroundStyle(.secondary)
             case .bank:
                 if availableBanks.isEmpty {
-                    Text("No bank data found in library.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: "No bank data found in library.")
                 } else {
                     Picker("Bank", selection: $selectedTemplateBank) {
                         ForEach(availableBanks, id: \.self) { bank in
@@ -274,13 +239,11 @@ struct GroupEditorScreen: View {
                     Button("Apply Bank Template") {
                         applyBankTemplate(bank: selectedTemplateBank)
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppPrimaryActionButtonStyle())
                 }
             case .duplicate:
                 if duplicateCandidates.isEmpty {
-                    Text("No existing groups to duplicate.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    AppPanelEmptyCard(text: "No existing groups to duplicate.")
                 } else {
                     Picker("Group", selection: Binding<UUID?>(
                         get: { selectedDuplicateGroupID ?? duplicateCandidates.first?.id },
@@ -295,7 +258,7 @@ struct GroupEditorScreen: View {
                     Button("Apply Duplicate Group") {
                         applyDuplicateTemplate(groupID: selectedDuplicateGroupID ?? duplicateCandidates.first?.id)
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(AppPrimaryActionButtonStyle())
                 }
             }
         }
@@ -319,9 +282,7 @@ struct GroupEditorScreen: View {
             .buttonStyle(.plain)
 
             if selectedGames.isEmpty {
-                Text("No games selected.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                AppPanelEmptyCard(text: "No games selected.")
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
@@ -390,7 +351,7 @@ struct GroupEditorScreen: View {
                     Text(option.label).tag(option)
                 }
             }
-            .pickerStyle(.segmented)
+            .appSegmentedControlStyle()
 
             HStack {
                 Text("Position")
@@ -477,14 +438,14 @@ struct GroupEditorScreen: View {
                             hasDate.wrappedValue = false
                             inlineDateEditorField = nil
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(AppDestructiveActionButtonStyle(fillsWidth: false))
 
                         Spacer()
 
                         Button("Done") {
                             inlineDateEditorField = nil
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
                     }
                 }
                 .padding(12)
@@ -514,10 +475,11 @@ struct GroupEditorScreen: View {
     @ViewBuilder
     private func sectionCard<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
+            AppSectionTitle(text: title)
             content()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .appPanelStyle()
     }
 
