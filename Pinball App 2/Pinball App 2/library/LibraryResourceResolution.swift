@@ -2,6 +2,56 @@ import Foundation
 
 private let librarySupportedPlayfieldOriginalExtensions = ["webp", "jpg", "jpeg", "png"]
 
+enum LibraryLivePlayfieldKind: String {
+    case pillyliu
+    case opdb
+    case external
+    case missing
+}
+
+struct LibraryLivePlayfieldStatus: Equatable {
+    let effectiveKind: LibraryLivePlayfieldKind
+    let effectiveURL: URL?
+}
+
+actor LibraryLivePlayfieldStatusStore {
+    static let shared = LibraryLivePlayfieldStatusStore()
+
+    func status(for practiceIdentity: String?) async -> LibraryLivePlayfieldStatus? {
+        guard let practiceIdentity = practiceIdentity?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !practiceIdentity.isEmpty else {
+            return nil
+        }
+
+        var components = URLComponents(string: "https://pillyliu.com/pinprof-admin/api.php")
+        components?.queryItems = [
+            URLQueryItem(name: "route", value: "public/playfield-status/\(practiceIdentity)")
+        ]
+        guard let url = components?.url else { return nil }
+
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.timeoutInterval = 15
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse,
+                  (200...299).contains(http.statusCode),
+                  let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let rawKind = json["effectiveKind"] as? String,
+                  let kind = LibraryLivePlayfieldKind(rawValue: rawKind) else {
+                return nil
+            }
+
+            let effectiveURL = libraryResolveURL(pathOrURL: (json["effectiveUrl"] as? String) ?? "")
+            return LibraryLivePlayfieldStatus(effectiveKind: kind, effectiveURL: effectiveURL)
+        } catch {
+            return nil
+        }
+    }
+}
+
 nonisolated func libraryResolveURL(pathOrURL: String) -> URL? {
     if let direct = URL(string: pathOrURL), direct.scheme != nil {
         return direct
@@ -161,6 +211,31 @@ extension PinballGame {
 
     var hasPlayfieldResource: Bool {
         !actualFullscreenPlayfieldCandidates.isEmpty
+    }
+
+    func resolvedPlayfieldCandidates(liveStatus: LibraryLivePlayfieldStatus?) -> [URL] {
+        if liveStatus?.effectiveKind == .missing {
+            return []
+        }
+        return deduplicatedPlayfieldURLs(
+            [liveStatus?.effectiveURL] +
+                actualFullscreenPlayfieldCandidates.map(Optional.some)
+        )
+    }
+
+    func resolvedPlayfieldButtonLabel(liveStatus: LibraryLivePlayfieldStatus?) -> String {
+        switch liveStatus?.effectiveKind {
+        case .pillyliu:
+            return "Local"
+        case .opdb:
+            return "OPDB"
+        case .external:
+            return "Remote"
+        case .missing:
+            return "Unavailable"
+        case nil:
+            return playfieldButtonLabel
+        }
     }
 
     var playfieldButtonLabel: String {

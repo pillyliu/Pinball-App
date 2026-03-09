@@ -15,7 +15,7 @@ struct PracticeGameSection: View {
     private var onGameViewed: ((String) -> Void)? { context.onGameViewed }
     private var onOpenRulesheet: (PinballGame, RulesheetRemoteSource?) -> Void { context.onOpenRulesheet }
     private var onOpenExternalRulesheet: (PinballGame, URL) -> Void { context.onOpenExternalRulesheet }
-    private var onOpenPlayfield: (PinballGame) -> Void { context.onOpenPlayfield }
+    private var onOpenPlayfield: (PinballGame, [URL]) -> Void { context.onOpenPlayfield }
     private var lifecycleContext: PracticeGameLifecycleContext {
         PracticeGameLifecycleContext(
             store: store,

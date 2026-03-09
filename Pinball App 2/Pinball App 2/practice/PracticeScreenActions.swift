@@ -54,11 +54,11 @@ extension PracticeScreen {
         openRoute(.rulesheet)
     }
 
-    func openPlayfield(for game: PinballGame) {
-        let candidates = game.fullscreenPlayfieldCandidates
-        guard !candidates.isEmpty else { return }
+    func openPlayfield(for game: PinballGame, candidates: [URL]? = nil) {
+        let resolvedCandidates = (candidates?.isEmpty == false ? candidates : nil) ?? game.fullscreenPlayfieldCandidates
+        guard !resolvedCandidates.isEmpty else { return }
         uiState.selectedGameID = store.canonicalPracticeGameID(game.canonicalPracticeKey)
-        uiState.selectedPlayfieldImageURLs = candidates
+        uiState.selectedPlayfieldImageURLs = resolvedCandidates
         openRoute(.playfield)
     }
 

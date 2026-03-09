@@ -1,10 +1,60 @@
 package com.pillyliu.pinprofandroid.library
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 
 private const val FALLBACK_WHITEWOOD_PLAYFIELD_700 = "/pinball/images/playfields/fallback-whitewood-playfield_700.webp"
 private const val FALLBACK_WHITEWOOD_PLAYFIELD_1400 = "/pinball/images/playfields/fallback-whitewood-playfield_1400.webp"
 private val supportedPlayfieldOriginalExtensions = listOf("webp", "jpg", "jpeg", "png")
+
+internal enum class LivePlayfieldKind {
+    PILLYLIU,
+    OPDB,
+    EXTERNAL,
+    MISSING,
+}
+
+internal data class LivePlayfieldStatus(
+    val effectiveKind: LivePlayfieldKind,
+    val effectiveUrl: String?,
+)
+
+internal suspend fun loadLivePlayfieldStatus(practiceIdentity: String?): LivePlayfieldStatus? = withContext(Dispatchers.IO) {
+    val normalizedPracticeIdentity = practiceIdentity?.trim()?.takeIf { it.isNotEmpty() } ?: return@withContext null
+    val route = URLEncoder.encode("public/playfield-status/$normalizedPracticeIdentity", Charsets.UTF_8.name())
+    val requestUrl = "https://pillyliu.com/pinprof-admin/api.php?route=$route"
+    val connection = (URL(requestUrl).openConnection() as HttpURLConnection).apply {
+        connectTimeout = 15_000
+        readTimeout = 15_000
+        requestMethod = "GET"
+        setRequestProperty("Cache-Control", "no-cache")
+    }
+    try {
+        val code = connection.responseCode
+        if (code !in 200..299) return@withContext null
+        val payload = connection.inputStream.bufferedReader().use { it.readText() }
+        val json = JSONObject(payload)
+        val kind = when (json.optString("effectiveKind").lowercase()) {
+            "pillyliu" -> LivePlayfieldKind.PILLYLIU
+            "opdb" -> LivePlayfieldKind.OPDB
+            "external" -> LivePlayfieldKind.EXTERNAL
+            "missing" -> LivePlayfieldKind.MISSING
+            else -> return@withContext null
+        }
+        LivePlayfieldStatus(
+            effectiveKind = kind,
+            effectiveUrl = resolveLibraryUrl(json.optString("effectiveUrl").ifBlank { null }),
+        )
+    } catch (_: Throwable) {
+        null
+    } finally {
+        connection.disconnect()
+    }
+}
 
 internal fun resolveLibraryUrl(pathOrUrl: String?): String? {
     pathOrUrl ?: return null
@@ -151,6 +201,21 @@ internal val PinballGame.actualFullscreenPlayfieldCandidates: List<String>
 
 internal val PinballGame.hasPlayfieldResource: Boolean
     get() = actualFullscreenPlayfieldCandidates.isNotEmpty()
+
+internal fun PinballGame.resolvedPlayfieldCandidates(liveStatus: LivePlayfieldStatus?): List<String> =
+    when (liveStatus?.effectiveKind) {
+        LivePlayfieldKind.MISSING -> emptyList()
+        else -> (listOfNotNull(liveStatus?.effectiveUrl) + actualFullscreenPlayfieldCandidates).distinct()
+    }
+
+internal fun PinballGame.resolvedPlayfieldButtonLabel(liveStatus: LivePlayfieldStatus?): String =
+    when (liveStatus?.effectiveKind) {
+        LivePlayfieldKind.PILLYLIU -> "Local"
+        LivePlayfieldKind.OPDB -> "OPDB"
+        LivePlayfieldKind.EXTERNAL -> "Remote"
+        LivePlayfieldKind.MISSING -> "Unavailable"
+        null -> playfieldButtonLabel
+    }
 
 internal val PinballGame.playfieldButtonLabel: String
     get() {

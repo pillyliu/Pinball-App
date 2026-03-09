@@ -7,13 +7,15 @@ struct PracticeGameResourceCard: View {
     let onOpenURL: OpenURLAction
     let onOpenRulesheet: (PinballGame, RulesheetRemoteSource?) -> Void
     let onOpenExternalRulesheet: (PinballGame, URL) -> Void
-    let onOpenPlayfield: (PinballGame) -> Void
+    let onOpenPlayfield: (PinballGame, [URL]) -> Void
+    @State private var livePlayfieldStatus: LibraryLivePlayfieldStatus?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             AppCardSubheading(text: "Study Resources")
 
             if let game {
+                let playfieldCandidates = game.resolvedPlayfieldCandidates(liveStatus: livePlayfieldStatus)
                 Text(game.metaLine)
                     .font(.subheadline)
                     .foregroundStyle(.primary)
@@ -36,10 +38,10 @@ struct PracticeGameResourceCard: View {
                     }
                 }
 
-                if game.hasPlayfieldResource {
+                if !playfieldCandidates.isEmpty {
                     PinballResourceRow("Playfield") {
-                        Button(playfieldButtonTitle(for: game)) {
-                            onOpenPlayfield(game)
+                        Button(playfieldButtonTitle(for: game, liveStatus: livePlayfieldStatus)) {
+                            onOpenPlayfield(game, playfieldCandidates)
                         }
                         .buttonStyle(AppCompactSecondaryActionButtonStyle())
                     }
@@ -85,6 +87,9 @@ struct PracticeGameResourceCard: View {
         }
         .font(.caption)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .task(id: game?.practiceIdentity) {
+            livePlayfieldStatus = await LibraryLivePlayfieldStatusStore.shared.status(for: game?.practiceIdentity)
+        }
     }
     @ViewBuilder
     private func practiceRulesheetLinkButton(title: String, game: PinballGame, source: RulesheetRemoteSource?) -> some View {
@@ -109,8 +114,8 @@ struct PracticeGameResourceCard: View {
         }
     }
 
-    private func playfieldButtonTitle(for game: PinballGame) -> String {
-        game.playfieldButtonLabel
+    private func playfieldButtonTitle(for game: PinballGame, liveStatus: LibraryLivePlayfieldStatus?) -> String {
+        game.resolvedPlayfieldButtonLabel(liveStatus: liveStatus)
     }
 }
 

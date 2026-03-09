@@ -6,7 +6,7 @@ struct PracticeGameWorkspace: View {
     var onGameViewed: ((String) -> Void)? = nil
     var onOpenRulesheet: (PinballGame, RulesheetRemoteSource?) -> Void
     var onOpenExternalRulesheet: (PinballGame, URL) -> Void
-    var onOpenPlayfield: (PinballGame) -> Void
+    var onOpenPlayfield: (PinballGame, [URL]) -> Void
 
     var workspaceContext: PracticeGameWorkspaceContext {
         PracticeGameWorkspaceContext(

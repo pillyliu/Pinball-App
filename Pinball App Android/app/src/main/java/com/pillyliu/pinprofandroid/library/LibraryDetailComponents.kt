@@ -81,6 +81,12 @@ internal fun LibraryDetailSummaryCard(
     onOpenPlayfield: (String) -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val livePlayfieldStatus by produceState<LivePlayfieldStatus?>(initialValue = null, key1 = game.practiceIdentity) {
+        value = loadLivePlayfieldStatus(game.practiceIdentity)
+    }
+    val playfieldCandidates = remember(game, livePlayfieldStatus) {
+        game.resolvedPlayfieldCandidates(livePlayfieldStatus)
+    }
     CardContainer {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -124,9 +130,8 @@ internal fun LibraryDetailSummaryCard(
                 }
             }
             AppResourceRow(label = "Playfield:") {
-                val playfieldCandidates = game.actualFullscreenPlayfieldCandidates
                 if (playfieldCandidates.isNotEmpty()) {
-                    AppResourceChip(label = game.playfieldButtonLabel) {
+                    AppResourceChip(label = game.resolvedPlayfieldButtonLabel(livePlayfieldStatus)) {
                         playfieldCandidates.firstOrNull()?.let(onOpenPlayfield)
                     }
                 } else {

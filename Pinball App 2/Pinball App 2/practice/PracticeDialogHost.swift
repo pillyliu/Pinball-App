@@ -20,8 +20,8 @@ extension PracticeScreen {
                                 openRulesheet(source: source, for: game)
                             }, onOpenExternalRulesheet: { game, url in
                                 openExternalRulesheet(url: url, for: game)
-                            }, onOpenPlayfield: { game in
-                                openPlayfield(for: game)
+                            }, onOpenPlayfield: { game, candidates in
+                                openPlayfield(for: game, candidates: candidates)
                             })
                             .onAppear { uiState.selectedGameID = gameID }
                             .navigationTransition(.zoom(sourceID: uiState.gameTransitionSourceID ?? gameID, in: gameTransition))
