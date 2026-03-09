@@ -269,7 +269,7 @@ struct SettingsHomeContent: View {
             if lplFullNameAccessUnlocked {
                 Toggle(isOn: $showFullLPLLastNames) {
                     Text("Show full last names for LPL data")
-                        .font(.caption)
+                        .font(.footnote)
                 }
             } else {
                 SecureField("LPL full-name password", text: $lplNamePassword)
