@@ -98,7 +98,7 @@ internal fun LibraryDetailSummaryCard(
         }
         AppCardSubheading(game.metaLine())
         Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             AppResourceRow(label = "Rulesheet:") {
                 if (game.rulesheetLinks.isEmpty()) {

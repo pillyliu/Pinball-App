@@ -56,7 +56,7 @@ internal fun AppResourceRow(
     ) {
         Text(
             label,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelMedium,
             color = colors.brandChalk,
         )
         Row(
