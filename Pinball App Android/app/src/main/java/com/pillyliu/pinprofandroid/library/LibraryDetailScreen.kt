@@ -127,7 +127,7 @@ internal fun LibraryDetailScreen(
     onBack: () -> Unit,
     onOpenRulesheet: (RulesheetRemoteSource?) -> Unit,
     onOpenExternalRulesheet: (String) -> Unit,
-    onOpenPlayfield: (String) -> Unit,
+    onOpenPlayfield: (List<String>) -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current

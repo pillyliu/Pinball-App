@@ -212,6 +212,7 @@ nonisolated func seedBuiltInResolvedRecord(
         primaryImageURL: row.primaryImageURL ?? resolvedMachine?.primaryImageMediumURL,
         primaryImageLargeURL: row.primaryImageLargeURL ?? resolvedMachine?.primaryImageLargeURL,
         playfieldImageURL: row.playfieldImageURL,
+        alternatePlayfieldImageURL: nil,
         playfieldLocalPath: row.playfieldLocalPath,
         playfieldSourceLabel: row.playfieldSourceLabel,
         gameinfoLocalPath: row.gameinfoLocalPath,

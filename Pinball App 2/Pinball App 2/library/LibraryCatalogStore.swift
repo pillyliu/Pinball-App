@@ -548,6 +548,7 @@ struct ResolvedCatalogRecord {
     let primaryImageURL: String?
     let primaryImageLargeURL: String?
     let playfieldImageURL: String?
+    let alternatePlayfieldImageURL: String?
     let playfieldLocalPath: String?
     let playfieldSourceLabel: String?
     let gameinfoLocalPath: String?
@@ -588,6 +589,35 @@ struct LegacyCuratedOverride {
     var rulesheetLocalPath: String?
     var rulesheetLinks: [PinballGame.ReferenceLink]
     var videos: [PinballGame.Video]
+}
+
+private struct PublicLibraryOverridesRoot: Decodable {
+    let playfieldOverrides: [PublicLibraryPlayfieldOverrideRecord]
+}
+
+private struct PublicLibraryPlayfieldOverrideRecord: Decodable {
+    let practiceIdentity: String
+    let opdbGroupId: String?
+    let playfieldLocalPath: String?
+    let playfieldSourceUrl: String?
+}
+
+private func catalogCuratedOverride(
+    practiceIdentity: String?,
+    opdbGroupID: String?,
+    overridesByKey: [String: LegacyCuratedOverride]
+) -> LegacyCuratedOverride? {
+    let candidateKeys = [
+        catalogNormalizedOptionalString(practiceIdentity),
+        catalogNormalizedOptionalString(opdbGroupID)
+    ].compactMap { $0 }
+
+    for key in candidateKeys {
+        if let override = overridesByKey[key] {
+            return override
+        }
+    }
+    return nil
 }
 
 private struct LegacyLibraryRoot: Decodable {
@@ -661,7 +691,11 @@ func decodeLibraryPayloadWithState(data: Data) throws -> LegacyCatalogExtraction
     return LegacyCatalogExtraction(payload: filterPayload(payload, using: state), state: state)
 }
 
-func decodeMergedLibraryPayloadWithState(libraryData: Data, opdbCatalogData: Data) throws -> LegacyCatalogExtraction {
+func decodeMergedLibraryPayloadWithState(
+    libraryData: Data,
+    opdbCatalogData: Data,
+    publicOverridesData: Data? = nil
+) throws -> LegacyCatalogExtraction {
     let legacyPayload = try decodeLegacyLibraryPayload(data: libraryData)
     guard let normalized = try? JSONDecoder().decode(NormalizedLibraryRoot.self, from: opdbCatalogData),
           let machines = normalized.machines, !machines.isEmpty else {
@@ -669,7 +703,12 @@ func decodeMergedLibraryPayloadWithState(libraryData: Data, opdbCatalogData: Dat
         return LegacyCatalogExtraction(payload: filterPayload(legacyPayload, using: state), state: state)
     }
 
-    let payload = resolveMergedCatalog(legacyPayload: legacyPayload, root: normalized, machines: machines)
+    let payload = resolveMergedCatalog(
+        legacyPayload: legacyPayload,
+        root: normalized,
+        machines: machines,
+        publicOverrides: parsePublicLibraryOverrides(data: publicOverridesData)
+    )
     let state = PinballLibrarySourceStateStore.synchronize(with: payload.sources)
     return LegacyCatalogExtraction(payload: filterPayload(payload, using: state), state: state)
 }
@@ -744,7 +783,8 @@ private func decodeLegacyLibraryPayload(data: Data) throws -> PinballLibraryPayl
 private func resolveMergedCatalog(
     legacyPayload: PinballLibraryPayload,
     root: NormalizedLibraryRoot,
-    machines: [CatalogMachineRecord]
+    machines: [CatalogMachineRecord],
+    publicOverrides: PublicLibraryOverridesRoot
 ) -> PinballLibraryPayload {
     let importedSources = PinballImportedSourcesStore.load()
     let machineByPracticeIdentity = Dictionary(grouping: machines, by: \.practiceIdentity)
@@ -753,13 +793,15 @@ private func resolveMergedCatalog(
         return (opdbID, machine)
     })
     let manufacturerByID = Dictionary(uniqueKeysWithValues: (root.manufacturers ?? []).map { ($0.id, $0) })
-    let curatedOverridesByPracticeIdentity = buildLegacyCuratedOverrides(from: legacyPayload.games)
+    var curatedOverridesByPracticeIdentity = buildLegacyCuratedOverrides(from: legacyPayload.games)
+    applyPublicPlayfieldOverrides(&curatedOverridesByPracticeIdentity, publicOverrides: publicOverrides)
     let opdbRulesheetsByPracticeIdentity = Dictionary(grouping: root.rulesheetLinks ?? [], by: \.practiceIdentity)
     let opdbVideosByPracticeIdentity = Dictionary(grouping: root.videoLinks ?? [], by: \.practiceIdentity)
 
     let mergedLegacyGames = legacyPayload.games.map { legacyGame in
         resolveLegacyGame(
             legacyGame: legacyGame,
+            curatedOverridesByPracticeIdentity: curatedOverridesByPracticeIdentity,
             machineByPracticeIdentity: machineByPracticeIdentity,
             machineByOPDBID: machineByOPDBID,
             manufacturerByID: manufacturerByID,
@@ -800,7 +842,11 @@ private func resolveMergedCatalog(
                         machine: $0,
                         source: importedSource,
                         manufacturerByID: manufacturerByID,
-                        curatedOverride: curatedOverridesByPracticeIdentity[$0.practiceIdentity],
+                        curatedOverride: catalogCuratedOverride(
+                            practiceIdentity: $0.practiceIdentity,
+                            opdbGroupID: $0.opdbGroupID,
+                            overridesByKey: curatedOverridesByPracticeIdentity
+                        ),
                         opdbRulesheets: opdbRulesheetsByPracticeIdentity[$0.practiceIdentity] ?? [],
                         opdbVideos: opdbVideosByPracticeIdentity[$0.practiceIdentity] ?? []
                     )
@@ -822,7 +868,11 @@ private func resolveMergedCatalog(
                         machine: $0,
                         source: importedSource,
                         manufacturerByID: manufacturerByID,
-                        curatedOverride: curatedOverridesByPracticeIdentity[$0.practiceIdentity],
+                        curatedOverride: catalogCuratedOverride(
+                            practiceIdentity: $0.practiceIdentity,
+                            opdbGroupID: $0.opdbGroupID,
+                            overridesByKey: curatedOverridesByPracticeIdentity
+                        ),
                         opdbRulesheets: opdbRulesheetsByPracticeIdentity[$0.practiceIdentity] ?? [],
                         opdbVideos: opdbVideosByPracticeIdentity[$0.practiceIdentity] ?? []
                     )
@@ -838,6 +888,7 @@ private func resolveMergedCatalog(
 
 private func resolveLegacyGame(
     legacyGame: PinballGame,
+    curatedOverridesByPracticeIdentity: [String: LegacyCuratedOverride],
     machineByPracticeIdentity: [String: [CatalogMachineRecord]],
     machineByOPDBID: [String: CatalogMachineRecord],
     manufacturerByID: [String: CatalogManufacturerRecord],
@@ -852,6 +903,11 @@ private func resolveLegacyGame(
     guard let machine else { return legacyGame }
 
     let practiceIdentity = legacyGame.practiceIdentity ?? machine.practiceIdentity
+    let curatedOverride = catalogCuratedOverride(
+        practiceIdentity: practiceIdentity,
+        opdbGroupID: legacyGame.opdbGroupID ?? machine.opdbGroupID,
+        overridesByKey: curatedOverridesByPracticeIdentity
+    )
     let manufacturerName = catalogNormalizedOptionalString(legacyGame.manufacturer)
         ?? machine.manufacturerName
         ?? machine.manufacturerID.flatMap { manufacturerByID[$0]?.name }
@@ -860,8 +916,14 @@ private func resolveLegacyGame(
         || !legacyGame.rulesheetLinks.isEmpty
         || catalogNormalizedOptionalString(legacyGame.rulesheetUrl) != nil
     let hasCuratedVideos = !legacyGame.videos.isEmpty
-    let hasCuratedPlayfield = catalogNormalizedOptionalString(legacyGame.playfieldLocalOriginal ?? legacyGame.playfieldLocal) != nil
-        || catalogNormalizedOptionalString(legacyGame.playfieldImageUrl) != nil
+    let playfieldLocalPath = catalogNormalizedOptionalString(legacyGame.playfieldLocalOriginal ?? legacyGame.playfieldLocal)
+        ?? catalogNormalizedOptionalString(curatedOverride?.playfieldLocalPath)
+    let curatedPlayfieldImageURL = catalogNormalizedOptionalString(legacyGame.playfieldImageUrl)
+        ?? catalogNormalizedOptionalString(curatedOverride?.playfieldSourceURL)
+    let hasCuratedPlayfield = playfieldLocalPath != nil || curatedPlayfieldImageURL != nil
+    let opdbPlayfieldImageURL = catalogNormalizedOptionalString(
+        machine.playfieldImage?.largeURL ?? machine.playfieldImage?.mediumURL
+    )
 
     let resolvedRulesheets: [PinballGame.ReferenceLink]
     let rulesheetLocalPath: String?
@@ -885,8 +947,8 @@ private func resolveLegacyGame(
         : resolveVideoLinks(videoLinks: opdbVideosByPracticeIdentity[practiceIdentity] ?? [])
 
     let playfieldImageURL = hasCuratedPlayfield
-        ? catalogNormalizedOptionalString(legacyGame.playfieldImageUrl)
-        : catalogNormalizedOptionalString(machine.playfieldImage?.largeURL ?? machine.playfieldImage?.mediumURL)
+        ? curatedPlayfieldImageURL
+        : opdbPlayfieldImageURL
 
     let record = ResolvedCatalogRecord(
         sourceID: legacyGame.sourceId,
@@ -907,7 +969,8 @@ private func resolveLegacyGame(
         primaryImageURL: catalogNormalizedOptionalString(machine.primaryImage?.mediumURL),
         primaryImageLargeURL: catalogNormalizedOptionalString(machine.primaryImage?.largeURL),
         playfieldImageURL: playfieldImageURL,
-        playfieldLocalPath: legacyGame.playfieldLocalOriginal ?? legacyGame.playfieldLocal,
+        alternatePlayfieldImageURL: hasCuratedPlayfield ? opdbPlayfieldImageURL : nil,
+        playfieldLocalPath: playfieldLocalPath,
         playfieldSourceLabel: hasCuratedPlayfield ? nil : (machine.playfieldImage == nil ? nil : "Playfield (OPDB)"),
         gameinfoLocalPath: legacyGame.gameinfoLocal,
         rulesheetLocalPath: rulesheetLocalPath,
@@ -1013,6 +1076,48 @@ private func buildLegacyCuratedOverrides(from games: [PinballGame]) -> [String: 
     return out
 }
 
+private func parsePublicLibraryOverrides(data: Data?) -> PublicLibraryOverridesRoot {
+    guard let data,
+          let root = try? JSONDecoder().decode(PublicLibraryOverridesRoot.self, from: data) else {
+        return PublicLibraryOverridesRoot(playfieldOverrides: [])
+    }
+    return root
+}
+
+private func applyPublicPlayfieldOverrides(
+    _ curatedOverridesByPracticeIdentity: inout [String: LegacyCuratedOverride],
+    publicOverrides: PublicLibraryOverridesRoot
+) {
+    for override in publicOverrides.playfieldOverrides {
+        guard let practiceIdentity = catalogNormalizedOptionalString(override.practiceIdentity) else { continue }
+        let playfieldLocalPath = catalogNormalizedOptionalString(override.playfieldLocalPath)
+        let playfieldSourceURL = catalogNormalizedOptionalString(override.playfieldSourceUrl)
+        guard playfieldLocalPath != nil || playfieldSourceURL != nil else { continue }
+        let opdbGroupID = catalogNormalizedOptionalString(override.opdbGroupId)
+
+        for key in [practiceIdentity, opdbGroupID].compactMap({ $0 }) {
+            var current = curatedOverridesByPracticeIdentity[key] ?? LegacyCuratedOverride(
+                practiceIdentity: key,
+                nameOverride: nil,
+                variantOverride: nil,
+                manufacturerOverride: nil,
+                yearOverride: nil,
+                playfieldLocalPath: nil,
+                playfieldSourceURL: nil,
+                gameinfoLocalPath: nil,
+                rulesheetLocalPath: nil,
+                rulesheetLinks: [],
+                videos: []
+            )
+            current.playfieldLocalPath = playfieldLocalPath
+            if let playfieldSourceURL {
+                current.playfieldSourceURL = playfieldSourceURL
+            }
+            curatedOverridesByPracticeIdentity[key] = current
+        }
+    }
+}
+
 private func resolveNormalizedCatalog(root: NormalizedLibraryRoot, machines: [CatalogMachineRecord]) -> PinballLibraryPayload {
     let machineByPracticeIdentity = Dictionary(uniqueKeysWithValues: machines.map { ($0.practiceIdentity, $0) })
     let manufacturerByID = Dictionary(uniqueKeysWithValues: (root.manufacturers ?? []).map { ($0.id, $0) })
@@ -1059,6 +1164,10 @@ private func resolveNormalizedCatalog(root: NormalizedLibraryRoot, machines: [Ca
             rulesheetLinks: rulesheetsByPracticeIdentity[membership.practiceIdentity] ?? []
         )
         let resolvedVideos = resolveVideoLinks(videoLinks: videosByPracticeIdentity[membership.practiceIdentity] ?? [])
+        let hasOverridePlayfield = override?.playfieldLocalPath != nil || override?.playfieldSourceURL != nil
+        let opdbPlayfieldImageURL = catalogNormalizedOptionalString(
+            machine.playfieldImage?.largeURL ?? machine.playfieldImage?.mediumURL
+        )
         let record = ResolvedCatalogRecord(
             sourceID: source.id,
             sourceName: source.name,
@@ -1078,10 +1187,10 @@ private func resolveNormalizedCatalog(root: NormalizedLibraryRoot, machines: [Ca
             primaryImageURL: catalogNormalizedOptionalString(machine.primaryImage?.mediumURL),
             primaryImageLargeURL: catalogNormalizedOptionalString(machine.primaryImage?.largeURL),
             playfieldImageURL: override?.playfieldSourceURL
-                ?? catalogNormalizedOptionalString(machine.playfieldImage?.largeURL)
-                ?? catalogNormalizedOptionalString(machine.playfieldImage?.mediumURL),
+                ?? opdbPlayfieldImageURL,
+            alternatePlayfieldImageURL: hasOverridePlayfield ? opdbPlayfieldImageURL : nil,
             playfieldLocalPath: override?.playfieldLocalPath,
-            playfieldSourceLabel: override?.playfieldLocalPath == nil && machine.playfieldImage != nil ? "Playfield (OPDB)" : nil,
+            playfieldSourceLabel: hasOverridePlayfield ? nil : (machine.playfieldImage != nil ? "Playfield (OPDB)" : nil),
             gameinfoLocalPath: override?.gameinfoLocalPath,
             rulesheetLocalPath: resolvedRulesheet.localPath,
             rulesheetURL: resolvedRulesheet.links.first?.url,

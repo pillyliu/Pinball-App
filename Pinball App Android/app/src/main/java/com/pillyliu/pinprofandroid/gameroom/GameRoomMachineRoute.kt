@@ -76,8 +76,6 @@ internal fun GameRoomMachineRoute(
             val machineHeroCandidates = listOfNotNull(
                 selectedArt?.primaryImageLargeUrl,
                 selectedArt?.primaryImageUrl,
-                selectedArt?.playfieldImageLargeUrl,
-                selectedArt?.playfieldImageUrl,
             )
             ConstrainedAsyncImagePreview(
                 urls = machineHeroCandidates,

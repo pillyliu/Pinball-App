@@ -314,11 +314,11 @@ internal class GameRoomCatalogLoader(private val context: Context) {
             null
         } else {
             variantRanked.firstOrNull {
-                machineVariantMatchScore(it.variant, requestedVariant) > 0 && hasRenderableArt(it)
+                machineVariantMatchScore(it.variant, requestedVariant) > 0 && hasPrimaryArt(it)
             }
         }
         val preferred = strictVariantMatch
-            ?: records.filter(::hasRenderableArt).minWithOrNull(::compareCatalogRecords)
+            ?: records.filter(::hasPrimaryArt).minWithOrNull(::compareCatalogRecords)
             ?: variantRanked.first()
         return GameRoomCatalogArt(
             primaryImageUrl = preferred.primaryImageUrl,
@@ -339,8 +339,8 @@ internal class GameRoomCatalogLoader(private val context: Context) {
     }
 
     private fun compareCatalogRecords(lhs: GameRoomCatalogMachineRecord, rhs: GameRoomCatalogMachineRecord): Int {
-        val lhsHasArt = hasRenderableArt(lhs)
-        val rhsHasArt = hasRenderableArt(rhs)
+        val lhsHasArt = hasPrimaryArt(lhs)
+        val rhsHasArt = hasPrimaryArt(rhs)
         if (lhsHasArt != rhsHasArt) return if (lhsHasArt) -1 else 1
 
         val lhsVariant = lhs.variant?.trim().orEmpty()
@@ -365,11 +365,9 @@ internal class GameRoomCatalogLoader(private val context: Context) {
         return 0
     }
 
-    private fun hasRenderableArt(record: GameRoomCatalogMachineRecord): Boolean {
+    private fun hasPrimaryArt(record: GameRoomCatalogMachineRecord): Boolean {
         return !record.primaryImageLargeUrl.isNullOrBlank() ||
-            !record.primaryImageUrl.isNullOrBlank() ||
-            !record.playfieldImageLargeUrl.isNullOrBlank() ||
-            !record.playfieldImageUrl.isNullOrBlank()
+            !record.primaryImageUrl.isNullOrBlank()
     }
 
     private fun variantRank(value: String): Int {

@@ -29,7 +29,7 @@ internal fun LibraryRouteContent(
     onBackToList: () -> Unit,
     onShowRulesheet: (RulesheetRemoteSource?) -> Unit,
     onShowExternalRulesheet: (String) -> Unit,
-    onShowPlayfield: (String) -> Unit,
+    onShowPlayfield: (List<String>) -> Unit,
     onBackToDetail: () -> Unit,
 ) {
     when (route) {
@@ -107,7 +107,7 @@ internal fun LibraryRouteContent(
                     onBack = onBackToList,
                 )
             } else {
-                val imageCandidates = (listOfNotNull(route.imageUrl) + routeGame.fullscreenPlayfieldCandidates())
+                val imageCandidates = (route.imageUrls + routeGame.fullscreenPlayfieldCandidates())
                     .filter { it.isNotBlank() }
                     .distinct()
                 PlayfieldScreen(

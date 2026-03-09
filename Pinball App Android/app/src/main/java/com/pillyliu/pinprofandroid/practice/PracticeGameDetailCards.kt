@@ -31,6 +31,7 @@ import com.pillyliu.pinprofandroid.library.metaLine
 import com.pillyliu.pinprofandroid.library.openYoutubeInApp
 import com.pillyliu.pinprofandroid.library.resolvedPlayfieldButtonLabel
 import com.pillyliu.pinprofandroid.library.resolvedPlayfieldCandidates
+import com.pillyliu.pinprofandroid.library.resolvedPlayfieldOptions
 import com.pillyliu.pinprofandroid.ui.AppResourceChip
 import com.pillyliu.pinprofandroid.ui.AppResourceRow
 import com.pillyliu.pinprofandroid.ui.AppUnavailableResourceChip
@@ -84,7 +85,7 @@ internal fun PracticeGameResourcesCard(
     val livePlayfieldStatus by produceState<LivePlayfieldStatus?>(initialValue = null, key1 = game.practiceIdentity) {
         value = loadLivePlayfieldStatus(game.practiceIdentity)
     }
-    val playfieldCandidates = game.resolvedPlayfieldCandidates(livePlayfieldStatus)
+    val playfieldOptions = game.resolvedPlayfieldOptions(livePlayfieldStatus)
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         AppCardSubheading("Study Resources")
@@ -114,9 +115,11 @@ internal fun PracticeGameResourcesCard(
                 }
             }
             AppResourceRow(label = "Playfield:") {
-                if (playfieldCandidates.isNotEmpty()) {
-                    AppResourceChip(label = game.resolvedPlayfieldButtonLabel(livePlayfieldStatus)) {
-                        onOpenPlayfield(playfieldCandidates)
+                if (playfieldOptions.isNotEmpty()) {
+                    playfieldOptions.forEach { option ->
+                        AppResourceChip(label = option.label) {
+                            onOpenPlayfield(option.candidates)
+                        }
                     }
                 } else {
                     AppUnavailableResourceChip()

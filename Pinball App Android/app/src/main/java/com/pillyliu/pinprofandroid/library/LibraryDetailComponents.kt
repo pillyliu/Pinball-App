@@ -78,14 +78,14 @@ internal fun LibraryDetailSummaryCard(
     hasRulesheet: Boolean,
     onOpenRulesheet: (RulesheetRemoteSource?) -> Unit,
     onOpenExternalRulesheet: (String) -> Unit,
-    onOpenPlayfield: (String) -> Unit,
+    onOpenPlayfield: (List<String>) -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val livePlayfieldStatus by produceState<LivePlayfieldStatus?>(initialValue = null, key1 = game.practiceIdentity) {
         value = loadLivePlayfieldStatus(game.practiceIdentity)
     }
-    val playfieldCandidates = remember(game, livePlayfieldStatus) {
-        game.resolvedPlayfieldCandidates(livePlayfieldStatus)
+    val playfieldOptions = remember(game, livePlayfieldStatus) {
+        game.resolvedPlayfieldOptions(livePlayfieldStatus)
     }
     CardContainer {
         Row(
@@ -130,9 +130,11 @@ internal fun LibraryDetailSummaryCard(
                 }
             }
             AppResourceRow(label = "Playfield:") {
-                if (playfieldCandidates.isNotEmpty()) {
-                    AppResourceChip(label = game.resolvedPlayfieldButtonLabel(livePlayfieldStatus)) {
-                        playfieldCandidates.firstOrNull()?.let(onOpenPlayfield)
+                if (playfieldOptions.isNotEmpty()) {
+                    playfieldOptions.forEach { option ->
+                        AppResourceChip(label = option.label) {
+                            onOpenPlayfield(option.candidates)
+                        }
                     }
                 } else {
                     AppUnavailableResourceChip()

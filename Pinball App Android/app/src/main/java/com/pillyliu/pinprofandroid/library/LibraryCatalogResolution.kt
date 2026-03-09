@@ -21,8 +21,9 @@ internal fun resolveImportedGame(
     }
     val resolvedVideos = if (!curatedOverride?.videos.isNullOrEmpty()) curatedOverride!!.videos else resolveVideoLinks(opdbVideos)
     val playfieldLocalPath = curatedOverride?.playfieldLocalPath
-    val playfieldSourceUrl = curatedOverride?.playfieldSourceUrl
-        ?: normalizedOptionalString(machine.playfieldImageLargeUrl ?: machine.playfieldImageMediumUrl)
+    val opdbPlayfieldSourceUrl = normalizedOptionalString(machine.playfieldImageLargeUrl ?: machine.playfieldImageMediumUrl)
+    val hasCuratedPlayfield = playfieldLocalPath != null || !curatedOverride?.playfieldSourceUrl.isNullOrBlank()
+    val playfieldSourceUrl = curatedOverride?.playfieldSourceUrl ?: opdbPlayfieldSourceUrl
     return PinballGame(
         libraryEntryId = "${source.id}:${machine.practiceIdentity}",
         practiceIdentity = machine.practiceIdentity,
@@ -44,9 +45,10 @@ internal fun resolveImportedGame(
         primaryImageUrl = normalizedOptionalString(machine.primaryImageMediumUrl),
         primaryImageLargeUrl = normalizedOptionalString(machine.primaryImageLargeUrl),
         playfieldImageUrl = playfieldSourceUrl,
+        alternatePlayfieldImageUrl = if (hasCuratedPlayfield) opdbPlayfieldSourceUrl else null,
         playfieldLocalOriginal = normalizeLibraryCachePath(playfieldLocalPath),
         playfieldLocal = normalizeLibraryPlayfieldLocalPath(playfieldLocalPath),
-        playfieldSourceLabel = if (playfieldLocalPath == null && (machine.playfieldImageLargeUrl != null || machine.playfieldImageMediumUrl != null)) "Playfield (OPDB)" else null,
+        playfieldSourceLabel = if (hasCuratedPlayfield) null else if (machine.playfieldImageLargeUrl != null || machine.playfieldImageMediumUrl != null) "Playfield (OPDB)" else null,
         gameinfoLocal = curatedOverride?.gameinfoLocalPath,
         rulesheetLocal = resolvedRulesheet.first,
         rulesheetUrl = resolvedRulesheet.second.firstOrNull()?.url,

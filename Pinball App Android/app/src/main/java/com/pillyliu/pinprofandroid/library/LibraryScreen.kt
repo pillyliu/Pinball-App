@@ -200,10 +200,10 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                 val game = routeGame ?: return@LibraryRouteContent
                 route = LibraryRoute.ExternalRulesheet(game.slug, url)
             },
-            onShowPlayfield = { imageUrl ->
+            onShowPlayfield = { imageUrls ->
                 val game = routeGame ?: return@LibraryRouteContent
                 LibraryActivityLog.log(context, game.slug, game.name, LibraryActivityKind.OpenPlayfield)
-                route = LibraryRoute.Playfield(game.slug, imageUrl)
+                route = LibraryRoute.Playfield(game.slug, imageUrls)
             },
             onBackToDetail = {
                 val game = routeGame ?: return@LibraryRouteContent

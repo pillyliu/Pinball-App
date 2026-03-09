@@ -17,7 +17,7 @@ internal sealed interface LibraryRoute {
     ) : LibraryRoute
     data class Playfield(
         val slug: String,
-        val imageUrl: String?,
+        val imageUrls: kotlin.collections.List<String>,
     ) : LibraryRoute
 }
 
@@ -28,7 +28,7 @@ internal val LibraryRouteSaver: Saver<LibraryRoute, Any> = listSaver(
             is LibraryRoute.Detail -> listOf("detail", route.slug)
             is LibraryRoute.Rulesheet -> listOf("rulesheet", route.slug, route.sourceProvider.orEmpty(), route.sourceUrl.orEmpty())
             is LibraryRoute.ExternalRulesheet -> listOf("external_rulesheet", route.slug, route.url)
-            is LibraryRoute.Playfield -> listOf("playfield", route.slug, route.imageUrl.orEmpty())
+            is LibraryRoute.Playfield -> listOf("playfield", route.slug) + route.imageUrls
         }
     },
     restore = { values ->
@@ -51,7 +51,7 @@ internal val LibraryRouteSaver: Saver<LibraryRoute, Any> = listSaver(
                 val slug = values.getOrNull(1) as? String
                 if (slug == null) null else LibraryRoute.Playfield(
                     slug = slug,
-                    imageUrl = (values.getOrNull(2) as? String)?.ifBlank { null },
+                    imageUrls = values.drop(2).mapNotNull { (it as? String)?.ifBlank { null } },
                 )
             }
             else -> LibraryRoute.List

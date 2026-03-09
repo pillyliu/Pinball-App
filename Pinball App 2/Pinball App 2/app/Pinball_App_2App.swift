@@ -16,6 +16,7 @@ struct Pinball_App_2App: App {
             ContentView()
                 .task {
                     await refreshRedactedPlayersFromCSV()
+                    await warmHostedLibraryOverrides()
                 }
         }
         .onChange(of: scenePhase) { _, phase in

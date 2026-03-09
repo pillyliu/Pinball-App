@@ -359,6 +359,7 @@ struct PinballGame: Identifiable, Decodable {
         case practiceIdentity = "practice_identity"
         case playfieldImageUrl
         case playfieldImageUrlV2 = "playfield_image_url"
+        case alternatePlayfieldImageUrl = "alternate_playfield_image_url"
         case primaryImageUrl = "primary_image_url"
         case primaryImageLargeUrl = "primary_image_large_url"
         case playfieldLocal
@@ -401,6 +402,7 @@ struct PinballGame: Identifiable, Decodable {
     let primaryImageUrl: String?
     let primaryImageLargeUrl: String?
     let playfieldImageUrl: String?
+    let alternatePlayfieldImageUrl: String?
     let playfieldSourceLabel: String?
     let playfieldLocalOriginal: String?
     let playfieldLocal: String?
@@ -463,6 +465,7 @@ struct PinballGame: Identifiable, Decodable {
         let assets = try container.decodeIfPresent(Assets.self, forKey: .assets)
         playfieldImageUrl = try container.decodeIfPresent(String.self, forKey: .playfieldImageUrl)
             ?? (try container.decodeIfPresent(String.self, forKey: .playfieldImageUrlV2))
+        alternatePlayfieldImageUrl = try container.decodeIfPresent(String.self, forKey: .alternatePlayfieldImageUrl)
         let rawPlayfieldLocal = try container.decodeIfPresent(String.self, forKey: .playfieldLocal)
             ?? assets?.playfieldLocalPractice
         playfieldLocalOriginal = normalizeLibraryCachePath(rawPlayfieldLocal)
@@ -503,6 +506,7 @@ struct PinballGame: Identifiable, Decodable {
         primaryImageUrl = record.primaryImageURL
         primaryImageLargeUrl = record.primaryImageLargeURL
         playfieldImageUrl = record.playfieldImageURL
+        alternatePlayfieldImageUrl = record.alternatePlayfieldImageURL
         playfieldSourceLabel = record.playfieldSourceLabel
         playfieldLocalOriginal = normalizeLibraryCachePath(record.playfieldLocalPath)
         playfieldLocal = normalizeLibraryPlayfieldLocalPath(record.playfieldLocalPath)

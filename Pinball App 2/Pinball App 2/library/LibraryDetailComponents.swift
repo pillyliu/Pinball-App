@@ -19,7 +19,7 @@ struct LibraryDetailSummaryCard: View {
     @State private var livePlayfieldStatus: LibraryLivePlayfieldStatus?
 
     var body: some View {
-        let playfieldCandidates = game.resolvedPlayfieldCandidates(liveStatus: livePlayfieldStatus)
+        let playfieldOptions = game.resolvedPlayfieldOptions(liveStatus: livePlayfieldStatus)
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 AppCardTitle(text: game.name, lineLimit: 2)
@@ -50,17 +50,19 @@ struct LibraryDetailSummaryCard: View {
                     }
                 }
 
-                if !playfieldCandidates.isEmpty {
+                if !playfieldOptions.isEmpty {
                     PinballResourceRow("Playfield") {
-                        NavigationLink(libraryPlayfieldButtonTitle(for: game, liveStatus: livePlayfieldStatus)) {
-                            HostedImageView(imageCandidates: playfieldCandidates)
-                        }
-                        .buttonStyle(AppCompactSecondaryActionButtonStyle())
-                        .simultaneousGesture(
-                            TapGesture().onEnded {
-                                LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openPlayfield)
+                        ForEach(playfieldOptions) { option in
+                            NavigationLink(option.title) {
+                                HostedImageView(imageCandidates: option.candidates)
                             }
-                        )
+                            .buttonStyle(AppCompactSecondaryActionButtonStyle())
+                            .simultaneousGesture(
+                                TapGesture().onEnded {
+                                    LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openPlayfield)
+                                }
+                            )
+                        }
                     }
                 } else {
                     PinballResourceRow("Playfield") {
@@ -295,10 +297,6 @@ private struct LibraryYouTubeThumbnailView: View {
             layoutMode: .fill
         )
     }
-}
-
-private func libraryPlayfieldButtonTitle(for game: PinballGame, liveStatus: LibraryLivePlayfieldStatus?) -> String {
-    game.resolvedPlayfieldButtonLabel(liveStatus: liveStatus)
 }
 
 @ViewBuilder

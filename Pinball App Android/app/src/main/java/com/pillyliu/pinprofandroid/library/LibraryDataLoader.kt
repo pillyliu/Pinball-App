@@ -57,6 +57,7 @@ internal fun decodeMergedLibraryPayloadWithState(
     context: Context,
     libraryRaw: String,
     opdbCatalogRaw: String,
+    publicOverridesRaw: String? = null,
 ): LegacyCatalogExtraction {
     val legacyPayload = parseLibraryPayload(libraryRaw)
     val root = parseNormalizedRoot(opdbCatalogRaw)
@@ -69,6 +70,7 @@ internal fun decodeMergedLibraryPayloadWithState(
         context = context,
         legacyPayload = legacyPayload,
         root = root,
+        publicOverrides = parsePublicLibraryOverrides(publicOverridesRaw),
     )
     val state = LibrarySourceStateStore.synchronize(context, payload.sources)
     return LegacyCatalogExtraction(payload = filterPayload(payload, state), state = state)
@@ -92,6 +94,29 @@ private data class NormalizedRoot(
     val rulesheetLinks: List<CatalogRulesheetLinkRecord>,
     val videoLinks: List<CatalogVideoLinkRecord>,
 )
+
+private data class PublicLibraryOverridesRoot(
+    val playfieldOverrides: List<PublicLibraryPlayfieldOverrideRecord> = emptyList(),
+)
+
+private data class PublicLibraryPlayfieldOverrideRecord(
+    val practiceIdentity: String,
+    val opdbGroupId: String?,
+    val playfieldLocalPath: String?,
+    val playfieldSourceUrl: String?,
+)
+
+private fun curatedOverrideForKeys(
+    practiceIdentity: String?,
+    opdbGroupId: String?,
+    overridesByKey: Map<String, LegacyCuratedOverride>,
+): LegacyCuratedOverride? {
+    val candidateKeys = listOf(
+        normalizedOptionalString(practiceIdentity),
+        normalizedOptionalString(opdbGroupId),
+    ).distinct().filterNotNull()
+    return candidateKeys.firstNotNullOfOrNull { overridesByKey[it] }
+}
 
 internal data class CatalogManufacturerRecord(
     val id: String,
@@ -163,19 +188,22 @@ private fun resolveMergedCatalog(
     context: Context,
     legacyPayload: ParsedLibraryData,
     root: NormalizedRoot,
+    publicOverrides: PublicLibraryOverridesRoot,
 ): ParsedLibraryData {
     val machineByPracticeIdentity = root.machines.groupBy { it.practiceIdentity }
     val machineByOpdbId = root.machines.mapNotNull { machine ->
         normalizedOptionalString(machine.opdbMachineId)?.let { it to machine }
     }.toMap()
     val manufacturerById = root.manufacturers.associateBy { it.id }
-    val curatedOverridesByPracticeIdentity = buildLegacyCuratedOverrides(legacyPayload.games)
+    val curatedOverridesByPracticeIdentity = buildLegacyCuratedOverrides(legacyPayload.games).toMutableMap()
+    applyPublicPlayfieldOverrides(curatedOverridesByPracticeIdentity, publicOverrides)
     val opdbRulesheetsByPracticeIdentity = root.rulesheetLinks.groupBy { it.practiceIdentity }
     val opdbVideosByPracticeIdentity = root.videoLinks.groupBy { it.practiceIdentity }
 
     val mergedLegacyGames = legacyPayload.games.map { legacyGame ->
         resolveLegacyGame(
             legacyGame = legacyGame,
+            curatedOverridesByPracticeIdentity = curatedOverridesByPracticeIdentity,
             machineByPracticeIdentity = machineByPracticeIdentity,
             machineByOpdbId = machineByOpdbId,
             manufacturerById = manufacturerById,
@@ -204,7 +232,11 @@ private fun resolveMergedCatalog(
                                     machine = machine,
                                     source = importedSource,
                                     manufacturerById = manufacturerById,
-                                    curatedOverride = curatedOverridesByPracticeIdentity[machine.practiceIdentity],
+                                    curatedOverride = curatedOverrideForKeys(
+                                        practiceIdentity = machine.practiceIdentity,
+                                        opdbGroupId = machine.opdbGroupId,
+                                        overridesByKey = curatedOverridesByPracticeIdentity,
+                                    ),
                                     opdbRulesheets = opdbRulesheetsByPracticeIdentity[machine.practiceIdentity].orEmpty(),
                                     opdbVideos = opdbVideosByPracticeIdentity[machine.practiceIdentity].orEmpty(),
                                 ),
@@ -225,7 +257,11 @@ private fun resolveMergedCatalog(
                                 machine = machine,
                                 source = importedSource,
                                 manufacturerById = manufacturerById,
-                                curatedOverride = curatedOverridesByPracticeIdentity[machine.practiceIdentity],
+                                curatedOverride = curatedOverrideForKeys(
+                                    practiceIdentity = machine.practiceIdentity,
+                                    opdbGroupId = machine.opdbGroupId,
+                                    overridesByKey = curatedOverridesByPracticeIdentity,
+                                ),
                                 opdbRulesheets = opdbRulesheetsByPracticeIdentity[machine.practiceIdentity].orEmpty(),
                                 opdbVideos = opdbVideosByPracticeIdentity[machine.practiceIdentity].orEmpty(),
                             ),
@@ -504,6 +540,7 @@ private fun bestTemplateForOwnedMachine(
 
 private fun resolveLegacyGame(
     legacyGame: PinballGame,
+    curatedOverridesByPracticeIdentity: Map<String, LegacyCuratedOverride>,
     machineByPracticeIdentity: Map<String, List<CatalogMachineRecord>>,
     machineByOpdbId: Map<String, CatalogMachineRecord>,
     manufacturerById: Map<String, CatalogManufacturerRecord>,
@@ -518,13 +555,23 @@ private fun resolveLegacyGame(
     ) ?: return legacyGame
 
     val practiceIdentity = legacyGame.practiceIdentity ?: machine.practiceIdentity
+    val curatedOverride = curatedOverrideForKeys(
+        practiceIdentity = practiceIdentity,
+        opdbGroupId = legacyGame.opdbGroupId ?: machine.opdbGroupId,
+        overridesByKey = curatedOverridesByPracticeIdentity,
+    )
     val manufacturerName = normalizedOptionalString(legacyGame.manufacturer)
         ?: machine.manufacturerName
         ?: machine.manufacturerId?.let { manufacturerById[it]?.name }
 
     val hasCuratedRulesheet = !legacyGame.rulesheetLocal.isNullOrBlank() || legacyGame.rulesheetLinks.isNotEmpty() || !legacyGame.rulesheetUrl.isNullOrBlank()
     val hasCuratedVideos = legacyGame.videos.isNotEmpty()
-    val hasCuratedPlayfield = !legacyGame.playfieldLocalOriginal.isNullOrBlank() || !legacyGame.playfieldLocal.isNullOrBlank() || !legacyGame.playfieldImageUrl.isNullOrBlank()
+    val playfieldLocalPath = normalizedOptionalString(legacyGame.playfieldLocalOriginal ?: legacyGame.playfieldLocal)
+        ?: normalizedOptionalString(curatedOverride?.playfieldLocalPath)
+    val curatedPlayfieldImageUrl = normalizedOptionalString(legacyGame.playfieldImageUrl)
+        ?: normalizedOptionalString(curatedOverride?.playfieldSourceUrl)
+    val hasCuratedPlayfield = playfieldLocalPath != null || curatedPlayfieldImageUrl != null
+    val opdbPlayfieldImageUrl = normalizedOptionalString(machine.playfieldImageLargeUrl ?: machine.playfieldImageMediumUrl)
 
     val resolvedRulesheets = if (hasCuratedRulesheet) {
         when {
@@ -542,9 +589,9 @@ private fun resolveLegacyGame(
     }
     val resolvedVideos = if (hasCuratedVideos) legacyGame.videos else resolveVideoLinks(opdbVideosByPracticeIdentity[practiceIdentity].orEmpty())
     val playfieldImageUrl = if (hasCuratedPlayfield) {
-        normalizedOptionalString(legacyGame.playfieldImageUrl)
+        curatedPlayfieldImageUrl
     } else {
-        normalizedOptionalString(machine.playfieldImageLargeUrl ?: machine.playfieldImageMediumUrl)
+        opdbPlayfieldImageUrl
     }
 
     return legacyGame.copy(
@@ -556,6 +603,9 @@ private fun resolveLegacyGame(
         primaryImageUrl = normalizedOptionalString(machine.primaryImageMediumUrl),
         primaryImageLargeUrl = normalizedOptionalString(machine.primaryImageLargeUrl),
         playfieldImageUrl = playfieldImageUrl,
+        alternatePlayfieldImageUrl = if (hasCuratedPlayfield) opdbPlayfieldImageUrl else null,
+        playfieldLocalOriginal = normalizeLibraryCachePath(playfieldLocalPath),
+        playfieldLocal = normalizeLibraryPlayfieldLocalPath(playfieldLocalPath),
         playfieldSourceLabel = if (hasCuratedPlayfield) null else if (machine.playfieldImageLargeUrl != null || machine.playfieldImageMediumUrl != null) "Playfield (OPDB)" else null,
         gameinfoLocal = legacyGame.gameinfoLocal,
         rulesheetLocal = rulesheetLocalPath,
@@ -590,6 +640,56 @@ private fun buildLegacyCuratedOverrides(games: List<PinballGame>): Map<String, L
         }
     }
     return out
+}
+
+private fun parsePublicLibraryOverrides(raw: String?): PublicLibraryOverridesRoot {
+    if (raw.isNullOrBlank()) return PublicLibraryOverridesRoot()
+    val root = runCatching { JSONObject(raw.trim()) }.getOrDefault(JSONObject())
+    val playfieldOverrides = root.optJSONArray("playfieldOverrides")
+        ?.let { array ->
+            buildList {
+                for (index in 0 until array.length()) {
+                    val obj = array.optJSONObject(index) ?: continue
+                    val practiceIdentity = obj.optStringOrNullLocal("practiceIdentity") ?: continue
+                    val playfieldLocalPath = obj.optStringOrNullLocal("playfieldLocalPath")
+                    val playfieldSourceUrl = obj.optStringOrNullLocal("playfieldSourceUrl")
+                    if (playfieldLocalPath == null && playfieldSourceUrl == null) continue
+                    add(
+                        PublicLibraryPlayfieldOverrideRecord(
+                            practiceIdentity = practiceIdentity,
+                            opdbGroupId = obj.optStringOrNullLocal("opdbGroupId"),
+                            playfieldLocalPath = playfieldLocalPath,
+                            playfieldSourceUrl = playfieldSourceUrl,
+                        ),
+                    )
+                }
+            }
+        }
+        .orEmpty()
+    return PublicLibraryOverridesRoot(playfieldOverrides = playfieldOverrides)
+}
+
+private fun applyPublicPlayfieldOverrides(
+    curatedOverridesByPracticeIdentity: MutableMap<String, LegacyCuratedOverride>,
+    publicOverrides: PublicLibraryOverridesRoot,
+) {
+    publicOverrides.playfieldOverrides.forEach { override ->
+        val practiceIdentity = normalizedOptionalString(override.practiceIdentity) ?: return@forEach
+        val playfieldLocalPath = normalizedOptionalString(override.playfieldLocalPath)
+        val playfieldSourceUrl = normalizedOptionalString(override.playfieldSourceUrl)
+        if (playfieldLocalPath == null && playfieldSourceUrl == null) return@forEach
+        val opdbGroupId = normalizedOptionalString(override.opdbGroupId)
+
+        listOfNotNull(practiceIdentity, opdbGroupId).forEach { key ->
+            val current = curatedOverridesByPracticeIdentity[key]
+                ?: LegacyCuratedOverride(practiceIdentity = key)
+            current.playfieldLocalPath = playfieldLocalPath
+            if (playfieldSourceUrl != null) {
+                current.playfieldSourceUrl = playfieldSourceUrl
+            }
+            curatedOverridesByPracticeIdentity[key] = current
+        }
+    }
 }
 
 private fun preferredMachineForLegacyGame(

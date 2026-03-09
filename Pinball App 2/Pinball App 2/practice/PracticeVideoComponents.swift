@@ -15,7 +15,7 @@ struct PracticeGameResourceCard: View {
             AppCardSubheading(text: "Study Resources")
 
             if let game {
-                let playfieldCandidates = game.resolvedPlayfieldCandidates(liveStatus: livePlayfieldStatus)
+                let playfieldOptions = game.resolvedPlayfieldOptions(liveStatus: livePlayfieldStatus)
                 Text(game.metaLine)
                     .font(.subheadline)
                     .foregroundStyle(.primary)
@@ -38,12 +38,14 @@ struct PracticeGameResourceCard: View {
                     }
                 }
 
-                if !playfieldCandidates.isEmpty {
+                if !playfieldOptions.isEmpty {
                     PinballResourceRow("Playfield") {
-                        Button(playfieldButtonTitle(for: game, liveStatus: livePlayfieldStatus)) {
-                            onOpenPlayfield(game, playfieldCandidates)
+                        ForEach(playfieldOptions) { option in
+                            Button(option.title) {
+                                onOpenPlayfield(game, option.candidates)
+                            }
+                            .buttonStyle(AppCompactSecondaryActionButtonStyle())
                         }
-                        .buttonStyle(AppCompactSecondaryActionButtonStyle())
                     }
                 } else {
                     PinballResourceRow("Playfield") {
@@ -114,9 +116,6 @@ struct PracticeGameResourceCard: View {
         }
     }
 
-    private func playfieldButtonTitle(for game: PinballGame, liveStatus: LibraryLivePlayfieldStatus?) -> String {
-        game.resolvedPlayfieldButtonLabel(liveStatus: liveStatus)
-    }
 }
 
 struct PracticeVideoLaunchPanel: View {

@@ -142,6 +142,7 @@ internal data class PinballGame(
     val primaryImageUrl: String? = null,
     val primaryImageLargeUrl: String? = null,
     val playfieldImageUrl: String?,
+    val alternatePlayfieldImageUrl: String? = null,
     val playfieldLocalOriginal: String?,
     val playfieldLocal: String?,
     val playfieldSourceLabel: String? = null,

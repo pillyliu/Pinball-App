@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.refreshRedactedPlayersFromCsv
+import com.pillyliu.pinprofandroid.library.warmHostedLibraryOverrides
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 
@@ -22,6 +23,9 @@ class MainActivity : ComponentActivity() {
         }
         lifecycleScope.launch {
             refreshRedactedPlayersFromCsv()
+        }
+        lifecycleScope.launch {
+            warmHostedLibraryOverrides()
         }
         setContent { PinballApp() }
     }

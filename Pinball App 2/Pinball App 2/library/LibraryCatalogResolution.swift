@@ -20,8 +20,11 @@ nonisolated func resolveImportedGame(
         opdbVideoLinks: opdbVideos
     )
     let playfieldLocalPath = curatedOverride?.playfieldLocalPath
-    let playfieldSourceURL = curatedOverride?.playfieldSourceURL
-        ?? catalogNormalizedOptionalString(machine.playfieldImage?.largeURL ?? machine.playfieldImage?.mediumURL)
+    let opdbPlayfieldSourceURL = catalogNormalizedOptionalString(
+        machine.playfieldImage?.largeURL ?? machine.playfieldImage?.mediumURL
+    )
+    let hasCuratedPlayfield = playfieldLocalPath != nil || curatedOverride?.playfieldSourceURL != nil
+    let playfieldSourceURL = curatedOverride?.playfieldSourceURL ?? opdbPlayfieldSourceURL
     let record = ResolvedCatalogRecord(
         sourceID: source.id,
         sourceName: source.name,
@@ -41,8 +44,9 @@ nonisolated func resolveImportedGame(
         primaryImageURL: catalogNormalizedOptionalString(machine.primaryImage?.mediumURL),
         primaryImageLargeURL: catalogNormalizedOptionalString(machine.primaryImage?.largeURL),
         playfieldImageURL: playfieldSourceURL,
+        alternatePlayfieldImageURL: hasCuratedPlayfield ? opdbPlayfieldSourceURL : nil,
         playfieldLocalPath: playfieldLocalPath,
-        playfieldSourceLabel: playfieldLocalPath == nil && machine.playfieldImage != nil ? "Playfield (OPDB)" : nil,
+        playfieldSourceLabel: hasCuratedPlayfield ? nil : (machine.playfieldImage != nil ? "Playfield (OPDB)" : nil),
         gameinfoLocalPath: curatedOverride?.gameinfoLocalPath,
         rulesheetLocalPath: resolvedRulesheet.localPath,
         rulesheetURL: resolvedRulesheet.links.first?.url,

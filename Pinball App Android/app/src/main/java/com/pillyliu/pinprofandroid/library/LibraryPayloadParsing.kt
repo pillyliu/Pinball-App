@@ -82,6 +82,7 @@ internal fun parseGames(array: JSONArray): List<PinballGame> {
             primaryImageUrl = obj.optStringOrNull("primary_image_url"),
             primaryImageLargeUrl = obj.optStringOrNull("primary_image_large_url"),
             playfieldImageUrl = obj.optStringOrNull("playfieldImageUrl") ?: obj.optStringOrNull("playfield_image_url"),
+            alternatePlayfieldImageUrl = obj.optStringOrNull("alternate_playfield_image_url"),
             playfieldLocalOriginal = normalizeLibraryCachePath(rawPlayfieldLocal),
             playfieldLocal = normalizeLibraryPlayfieldLocalPath(rawPlayfieldLocal),
             playfieldSourceLabel = obj.optStringOrNull("playfield_source_label"),
