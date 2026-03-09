@@ -102,7 +102,7 @@ private struct GameRoomSelectedSummaryCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            AppCardSubheading(text: "Selected Machine")
+            AppCardTitle(text: "Selected Machine")
 
             if let selectedMachine {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -181,7 +181,7 @@ private struct GameRoomCollectionCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                AppCardSubheading(text: "Collection")
+                AppCardTitle(text: "Collection")
 
                 Spacer()
 
