@@ -76,24 +76,23 @@ internal fun PracticeHomeSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Box(
+                SelectedGameMiniCard(
+                    game = resumeGame,
                     modifier = Modifier
                         .weight(1f)
                         .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
-                        .clickable { onOpenGame(resumeGame.practiceKey) },
-                ) {
-                    SelectedGameMiniCard(
-                        game = resumeGame,
-                        modifier = if (resumeControlColumnHeightPx > 0) {
-                            Modifier.height(with(density) { resumeControlColumnHeightPx.toDp() })
-                        } else {
-                            Modifier
+                        .clickable { onOpenGame(resumeGame.practiceKey) }
+                        .let { base ->
+                            if (resumeControlColumnHeightPx > 0) {
+                                base.height(with(density) { resumeControlColumnHeightPx.toDp() })
+                            } else {
+                                base
+                            }
                         },
-                        cardWidth = 184.dp,
-                        imageHeight = if (resumeControlColumnHeightPx > 0) null else 56.dp,
-                        titleTextStyle = MaterialTheme.typography.titleSmall,
-                    )
-                }
+                    cardWidth = null,
+                    imageHeight = if (resumeControlColumnHeightPx > 0) null else 56.dp,
+                    titleTextStyle = MaterialTheme.typography.titleSmall,
+                )
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier

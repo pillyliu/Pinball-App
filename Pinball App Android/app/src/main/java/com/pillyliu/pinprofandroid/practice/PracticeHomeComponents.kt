@@ -134,7 +134,7 @@ internal fun HomeMiniCard(
 internal fun SelectedGameMiniCard(
     game: PinballGame,
     modifier: Modifier = Modifier,
-    cardWidth: Dp = 122.dp,
+    cardWidth: Dp? = 122.dp,
     imageHeight: Dp? = 36.dp,
     titleTextStyle: TextStyle = MaterialTheme.typography.labelSmall,
     bottomPadding: Dp = 12.dp,
@@ -144,7 +144,13 @@ internal fun SelectedGameMiniCard(
     val cardShape = RoundedCornerShape(10.dp)
     Box(
         modifier = modifier
-            .width(cardWidth)
+            .let { base ->
+                if (cardWidth != null) {
+                    base.width(cardWidth)
+                } else {
+                    base.fillMaxWidth()
+                }
+            }
             .let { base ->
                 if (imageHeight != null) {
                     base.height(imageHeight + bottomPadding + 22.dp)

@@ -22,7 +22,7 @@ struct PracticeHomeSection: View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 8) {
                 if let game = resumeGame {
-                    HStack(spacing: 8) {
+                    HStack(alignment: .top, spacing: 8) {
                         Button {
                             onResume(resumeTransitionSourceID(for: game.canonicalPracticeKey))
                         } label: {
@@ -33,7 +33,6 @@ struct PracticeHomeSection: View {
                             .matchedTransitionSource(id: resumeTransitionSourceID(for: game.canonicalPracticeKey), in: gameTransition)
                         }
                         .buttonStyle(.plain)
-                        .frame(maxWidth: .infinity, alignment: .leading)
 
                         VStack(alignment: .leading, spacing: 8) {
                             Menu {
