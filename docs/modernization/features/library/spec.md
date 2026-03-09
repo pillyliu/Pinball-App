@@ -53,3 +53,16 @@ Library includes:
   - local `group`
   - OPDB remote playfield
 - Any matching local curated playfield should win over OPDB, even when the local asset is only group-scoped.
+
+## Hosted playfield contract
+
+- Starter bundles stay intentionally small and do not need to contain every playfield that exists on `pillyliu.com`.
+- Live app builds should still infer hosted playfield files from `pillyliu.com` for any already-known game identity.
+- Hosted playfield lookup order is:
+  - explicit local original path from exported data
+  - inferred hosted original `...-playfield.{webp,jpg,jpeg,png}`
+  - inferred hosted `...-playfield_1400.webp`
+  - inferred hosted `...-playfield_700.webp`
+  - less-specific local OPDB-group fallback
+  - OPDB-provided playfield fallback
+- That means newly uploaded hosted playfields can work without a starter-bundle update as long as the game already has the correct OPDB/practice identity in app data.
