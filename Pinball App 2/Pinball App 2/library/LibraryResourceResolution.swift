@@ -1,7 +1,5 @@
 import Foundation
 
-private let libraryBundledPlayfieldAssetPaths: Set<String> = loadBundledLibraryPlayfieldAssetPaths()
-
 nonisolated func libraryResolveURL(pathOrURL: String) -> URL? {
     if let direct = URL(string: pathOrURL), direct.scheme != nil {
         return direct
@@ -43,21 +41,6 @@ nonisolated func normalizeLibraryPlayfieldLocalPath(_ pathOrURL: String?) -> Str
 
 nonisolated func libraryFallbackPlayfieldURL(width: Int) -> URL? {
     libraryResolveURL(pathOrURL: "/pinball/images/playfields/fallback-whitewood-playfield_\(width).webp")
-}
-
-private nonisolated func loadBundledLibraryPlayfieldAssetPaths() -> Set<String> {
-    guard let data = try? loadBundledPinballData(path: "/pinball/cache-manifest.json"),
-          let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-          let files = root["files"] as? [String: Any] else {
-        return []
-    }
-
-    return Set(
-        files.keys.filter { path in
-            path.hasPrefix("/pinball/images/playfields/") &&
-                path.lowercased().hasSuffix(".webp")
-        }
-    )
 }
 
 extension PinballGame {
@@ -263,7 +246,6 @@ extension PinballGame {
             playfieldAssetKeys.flatMap { assetKey in
                 widths.compactMap { width in
                     let path = "/pinball/images/playfields/\(assetKey)-playfield_\(width).webp"
-                    guard libraryBundledPlayfieldAssetPaths.contains(path) else { return nil }
                     return libraryResolveURL(pathOrURL: path)
                 }
             }

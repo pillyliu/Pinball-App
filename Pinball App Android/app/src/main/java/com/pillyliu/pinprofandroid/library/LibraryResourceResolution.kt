@@ -1,25 +1,9 @@
 package com.pillyliu.pinprofandroid.library
 
-import com.pillyliu.pinprofandroid.data.PinballDataCache
-import org.json.JSONObject
 import java.net.URL
 
 private const val FALLBACK_WHITEWOOD_PLAYFIELD_700 = "/pinball/images/playfields/fallback-whitewood-playfield_700.webp"
 private const val FALLBACK_WHITEWOOD_PLAYFIELD_1400 = "/pinball/images/playfields/fallback-whitewood-playfield_1400.webp"
-
-private val bundledPlayfieldPaths: Set<String> by lazy {
-    val manifestText = PinballDataCache.loadBundledStarterText("/pinball/cache-manifest.json") ?: return@lazy emptySet()
-    val files = JSONObject(manifestText).optJSONObject("files") ?: return@lazy emptySet()
-    buildSet {
-        val keys = files.keys()
-        while (keys.hasNext()) {
-            val path = keys.next()
-            if (path.startsWith("/pinball/images/playfields/") && path.endsWith(".webp", ignoreCase = true)) {
-                add(path)
-            }
-        }
-    }
-}
 
 internal fun resolveLibraryUrl(pathOrUrl: String?): String? {
     pathOrUrl ?: return null
@@ -106,9 +90,7 @@ private fun PinballGame.localPlayfieldCandidates(widths: List<Int>): List<String
     playfieldAssetKeys.forEach { assetKey ->
         widths.forEach { width ->
             val path = "/pinball/images/playfields/$assetKey-playfield_${width}.webp"
-            if (path in bundledPlayfieldPaths) {
-                resolveLibraryUrl(path)?.let(candidates::add)
-            }
+            resolveLibraryUrl(path)?.let(candidates::add)
         }
     }
     return candidates.toList()
