@@ -90,7 +90,7 @@ internal fun GameRoomHomeRoute(
         }
 
         CardContainer {
-            AppCardSubheading("Selected Machine")
+            AppCardTitle("Selected Machine")
             if (selectedMachine == null) {
                 AppPanelEmptyCard(text = "Select a machine from the collection below.")
             } else {
@@ -146,7 +146,7 @@ internal fun GameRoomHomeRoute(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AppCardSubheading(
+                AppCardTitle(
                     text = "Collection",
                     modifier = Modifier.weight(1f),
                 )
