@@ -267,7 +267,10 @@ struct SettingsHomeContent: View {
                 .foregroundStyle(.secondary)
 
             if lplFullNameAccessUnlocked {
-                Toggle("Show full last names for Lansing Pinball League data", isOn: $showFullLPLLastNames)
+                Toggle(isOn: $showFullLPLLastNames) {
+                    Text("Show full last names for LPL data")
+                        .font(.caption)
+                }
             } else {
                 SecureField("LPL full-name password", text: $lplNamePassword)
                     .textContentType(.password)
