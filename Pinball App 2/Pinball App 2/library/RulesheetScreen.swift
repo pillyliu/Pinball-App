@@ -40,6 +40,7 @@ struct RulesheetScreen: View {
     var body: some View {
         GeometryReader { geo in
             let topInset = max(geo.safeAreaInsets.top, 44)
+            let anchorScrollInset = topInset + 12
 
             ZStack {
                 AppBackground()
@@ -56,8 +57,12 @@ struct RulesheetScreen: View {
                         ZStack(alignment: .topTrailing) {
                             RulesheetRenderer(
                                 content: content,
+                                anchorScrollInset: anchorScrollInset,
                                 resumeTarget: resumeTarget,
                                 resumeRequestID: resumeRequestID,
+                                onChromeToggle: {
+                                    showsBackButton.toggle()
+                                },
                                 onProgressChange: { progress in
                                     scrollProgress = progress
                                 }
@@ -77,7 +82,13 @@ struct RulesheetScreen: View {
                             .padding(.trailing, 12)
                         }
                     } else if let fallbackURL = viewModel.webFallbackURL {
-                        RulesheetWebFallbackView(url: fallbackURL)
+                        RulesheetWebFallbackView(
+                            url: fallbackURL,
+                            anchorScrollInset: anchorScrollInset,
+                            onChromeToggle: {
+                                showsBackButton.toggle()
+                            }
+                        )
                     }
                 }
 
@@ -111,11 +122,6 @@ struct RulesheetScreen: View {
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .appEdgeBackGesture(dismiss: dismiss)
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                showsBackButton.toggle()
-            }
-        )
         .task {
             await viewModel.loadIfNeeded()
             if savedProgress == nil {
@@ -196,17 +202,32 @@ struct RulesheetScreen: View {
 
 private struct RulesheetRenderer: UIViewRepresentable {
     let content: RulesheetRenderContent
+    let anchorScrollInset: CGFloat
     let resumeTarget: CGFloat?
     let resumeRequestID: Int
+    let onChromeToggle: () -> Void
     let onProgressChange: (CGFloat) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onProgressChange: onProgressChange)
+        Coordinator(
+            anchorScrollInset: anchorScrollInset,
+            onChromeToggle: onChromeToggle,
+            onProgressChange: onProgressChange
+        )
     }
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        configuration.userContentController = WKUserContentController()
+        configuration.userContentController.add(context.coordinator, name: RulesheetWebChromeBridge.chromeTapMessageName)
+        configuration.userContentController.addUserScript(
+            WKUserScript(
+                source: RulesheetWebChromeBridge.userScriptSource(initialAnchorScrollInset: anchorScrollInset),
+                injectionTime: .atDocumentEnd,
+                forMainFrameOnly: false
+            )
+        )
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.isOpaque = false
@@ -222,7 +243,10 @@ private struct RulesheetRenderer: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
+        context.coordinator.anchorScrollInset = anchorScrollInset
+        context.coordinator.onChromeToggle = onChromeToggle
         context.coordinator.onProgressChange = onProgressChange
+        context.coordinator.updateAnchorScrollInset(in: webView)
         context.coordinator.handleResumeRequest(ratio: resumeTarget, requestID: resumeRequestID, in: webView)
         guard context.coordinator.lastContent != content else { return }
         context.coordinator.lastContent = content
@@ -232,21 +256,34 @@ private struct RulesheetRenderer: UIViewRepresentable {
         )
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, UIScrollViewDelegate {
+    static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: RulesheetWebChromeBridge.chromeTapMessageName)
+    }
+
+    final class Coordinator: NSObject, WKNavigationDelegate, UIScrollViewDelegate, WKScriptMessageHandler {
         var lastContent: RulesheetRenderContent?
         weak var webView: WKWebView?
+        var anchorScrollInset: CGFloat
+        var onChromeToggle: () -> Void
         var onProgressChange: (CGFloat) -> Void
         private var didLoadPage = false
         private var lastHandledResumeRequestID: Int = -1
         private var pendingResumeRatio: CGFloat?
         private var pendingResumeRequestID: Int?
 
-        init(onProgressChange: @escaping (CGFloat) -> Void) {
+        init(
+            anchorScrollInset: CGFloat,
+            onChromeToggle: @escaping () -> Void,
+            onProgressChange: @escaping (CGFloat) -> Void
+        ) {
+            self.anchorScrollInset = anchorScrollInset
+            self.onChromeToggle = onChromeToggle
             self.onProgressChange = onProgressChange
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             didLoadPage = true
+            updateAnchorScrollInset(in: webView)
             applyPendingResumeIfPossible(in: webView)
             onProgressChange(currentScrollRatio(in: webView))
         }
@@ -263,12 +300,18 @@ private struct RulesheetRenderer: UIViewRepresentable {
             }
 
             if isSameDocumentLink(destination, currentURL: webView.url) {
-                decisionHandler(.allow)
+                scrollToFragment(destination.fragment, in: webView)
+                decisionHandler(.cancel)
                 return
             }
 
             UIApplication.shared.open(destination)
             decisionHandler(.cancel)
+        }
+
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == RulesheetWebChromeBridge.chromeTapMessageName else { return }
+            onChromeToggle()
         }
 
         func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -327,6 +370,17 @@ private struct RulesheetRenderer: UIViewRepresentable {
             return min(max(scrollView.contentOffset.y / maxY, 0), 1)
         }
 
+        func updateAnchorScrollInset(in webView: WKWebView) {
+            let script = RulesheetWebChromeBridge.setAnchorScrollInsetScript(anchorScrollInset)
+            webView.evaluateJavaScript(script)
+        }
+
+        private func scrollToFragment(_ fragment: String?, in webView: WKWebView) {
+            guard let fragment, !fragment.isEmpty else { return }
+            let script = RulesheetWebChromeBridge.scrollToFragmentScript(fragment)
+            webView.evaluateJavaScript(script)
+        }
+
         private func isSameDocumentLink(_ destination: URL, currentURL: URL?) -> Bool {
             guard let currentURL else { return destination.fragment != nil }
 
@@ -342,13 +396,37 @@ private struct RulesheetRenderer: UIViewRepresentable {
 
 private struct RulesheetWebFallbackView: UIViewRepresentable {
     let url: URL
+    let anchorScrollInset: CGFloat
+    let onChromeToggle: () -> Void
+
+    init(
+        url: URL,
+        anchorScrollInset: CGFloat = 56,
+        onChromeToggle: @escaping () -> Void = {}
+    ) {
+        self.url = url
+        self.anchorScrollInset = anchorScrollInset
+        self.onChromeToggle = onChromeToggle
+    }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(onChromeToggle: onChromeToggle)
     }
 
     func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView(frame: .zero)
+        let configuration = WKWebViewConfiguration()
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        configuration.userContentController = WKUserContentController()
+        configuration.userContentController.add(context.coordinator, name: RulesheetWebChromeBridge.chromeTapMessageName)
+        configuration.userContentController.addUserScript(
+            WKUserScript(
+                source: RulesheetWebChromeBridge.userScriptSource(initialAnchorScrollInset: anchorScrollInset),
+                injectionTime: .atDocumentEnd,
+                forMainFrameOnly: false
+            )
+        )
+
+        let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.isOpaque = false
@@ -358,13 +436,29 @@ private struct RulesheetWebFallbackView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
+        context.coordinator.onChromeToggle = onChromeToggle
+        webView.evaluateJavaScript(RulesheetWebChromeBridge.setAnchorScrollInsetScript(anchorScrollInset))
         guard context.coordinator.lastURL != url else { return }
         context.coordinator.lastURL = url
         webView.load(URLRequest(url: url))
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: RulesheetWebChromeBridge.chromeTapMessageName)
+    }
+
+    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var lastURL: URL?
+        var onChromeToggle: () -> Void
+
+        init(onChromeToggle: @escaping () -> Void) {
+            self.onChromeToggle = onChromeToggle
+        }
+
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == RulesheetWebChromeBridge.chromeTapMessageName else { return }
+            onChromeToggle()
+        }
     }
 }
 
@@ -534,6 +628,107 @@ private extension RulesheetRenderer {
         </body>
         </html>
         """
+    }
+}
+
+private enum RulesheetWebChromeBridge {
+    static let chromeTapMessageName = "rulesheetChromeTap"
+
+    static func userScriptSource(initialAnchorScrollInset: CGFloat) -> String {
+        """
+        (function() {
+          function postChromeTap() {
+            const handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.\(chromeTapMessageName);
+            if (handler) handler.postMessage(null);
+          }
+
+          function setAnchorOffset(value) {
+            const parsed = Number(value);
+            window.__pinballAnchorScrollInset = Number.isFinite(parsed) ? parsed : 0;
+          }
+
+          function candidateFragments(raw) {
+            const values = [];
+            if (!raw) return values;
+            values.push(raw);
+            try {
+              const decoded = decodeURIComponent(raw);
+              if (!values.includes(decoded)) values.unshift(decoded);
+            } catch (_) {}
+            return values;
+          }
+
+          function resolveTarget(hash) {
+            const trimmed = (hash || '').replace(/^#/, '');
+            for (const candidate of candidateFragments(trimmed)) {
+              const byId = document.getElementById(candidate);
+              if (byId) return byId;
+              const byName = document.getElementsByName(candidate);
+              if (byName && byName.length > 0) return byName[0];
+            }
+            return null;
+          }
+
+          function scrollToHash(hash) {
+            const target = resolveTarget(hash);
+            if (!target) return false;
+            const top = Math.max(
+              target.getBoundingClientRect().top + window.scrollY - (window.__pinballAnchorScrollInset || 0),
+              0
+            );
+            window.scrollTo({ top: top, behavior: 'auto' });
+            if (hash && window.history && window.history.replaceState) {
+              window.history.replaceState(null, '', hash);
+            }
+            return true;
+          }
+
+          window.__pinballSetAnchorScrollInset = setAnchorOffset;
+          window.__pinballScrollToFragment = function(fragment) {
+            const hash = fragment ? (String(fragment).charAt(0) === '#' ? String(fragment) : '#' + String(fragment)) : '';
+            return scrollToHash(hash);
+          };
+          setAnchorOffset(\(String(format: "%.2f", initialAnchorScrollInset)));
+
+          document.addEventListener('click', function(event) {
+            if (event.defaultPrevented) return;
+            const target = event.target;
+            const anchor = target && target.closest ? target.closest('a[href]') : null;
+            if (!anchor) {
+              postChromeTap();
+              return;
+            }
+
+            let destination;
+            let current;
+            try {
+              destination = new URL(anchor.href, window.location.href);
+              current = new URL(window.location.href);
+            } catch (_) {
+              return;
+            }
+
+            const sameDocument = !!destination.hash &&
+              destination.origin === current.origin &&
+              destination.pathname === current.pathname &&
+              destination.search === current.search;
+
+            if (!sameDocument) return;
+
+            event.preventDefault();
+            scrollToHash(destination.hash);
+          }, true);
+        })();
+        """
+    }
+
+    static func setAnchorScrollInsetScript(_ inset: CGFloat) -> String {
+        "window.__pinballSetAnchorScrollInset && window.__pinballSetAnchorScrollInset(\(String(format: "%.2f", inset)));"
+    }
+
+    static func scrollToFragmentScript(_ fragment: String) -> String {
+        let encoded = (try? String(data: JSONEncoder().encode(fragment), encoding: .utf8)) ?? "\"\""
+        return "window.__pinballScrollToFragment && window.__pinballScrollToFragment(\(encoded));"
     }
 }
 
