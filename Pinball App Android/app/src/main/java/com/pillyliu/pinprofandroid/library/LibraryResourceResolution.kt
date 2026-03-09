@@ -4,6 +4,7 @@ import java.net.URL
 
 private const val FALLBACK_WHITEWOOD_PLAYFIELD_700 = "/pinball/images/playfields/fallback-whitewood-playfield_700.webp"
 private const val FALLBACK_WHITEWOOD_PLAYFIELD_1400 = "/pinball/images/playfields/fallback-whitewood-playfield_1400.webp"
+private val supportedPlayfieldOriginalExtensions = listOf("webp", "jpg", "jpeg", "png")
 
 internal fun resolveLibraryUrl(pathOrUrl: String?): String? {
     pathOrUrl ?: return null
@@ -83,7 +84,21 @@ private val PinballGame.remotePlayfieldCandidates: List<String>
     get() = listOfNotNull(resolveLibraryUrl(playfieldImageUrl))
 
 private val PinballGame.preferredLocalPlayfieldCandidates: List<String>
-    get() = (listOfNotNull(playfieldLocalOriginalURL) + localPlayfieldCandidates(listOf(1400, 700))).distinct()
+    get() = (
+        listOfNotNull(playfieldLocalOriginalURL) +
+            localOriginalPlayfieldCandidates() +
+            localPlayfieldCandidates(listOf(1400, 700))
+        ).distinct()
+
+private fun PinballGame.localOriginalPlayfieldCandidates(): List<String> {
+    val candidates = LinkedHashSet<String>()
+    playfieldAssetKeys.forEach { assetKey ->
+        supportedPlayfieldOriginalExtensions.forEach { ext ->
+            resolveLibraryUrl("/pinball/images/playfields/$assetKey-playfield.$ext")?.let(candidates::add)
+        }
+    }
+    return candidates.toList()
+}
 
 private fun PinballGame.localPlayfieldCandidates(widths: List<Int>): List<String> {
     val candidates = LinkedHashSet<String>()

@@ -1,5 +1,7 @@
 import Foundation
 
+private let librarySupportedPlayfieldOriginalExtensions = ["webp", "jpg", "jpeg", "png"]
+
 nonisolated func libraryResolveURL(pathOrURL: String) -> URL? {
     if let direct = URL(string: pathOrURL), direct.scheme != nil {
         return direct
@@ -237,7 +239,18 @@ extension PinballGame {
     private var preferredLocalPlayfieldCandidates: [URL] {
         deduplicatedPlayfieldURLs(
             [playfieldLocalOriginalURL] +
+                localOriginalPlayfieldURLs().map(Optional.some) +
                 localPlayfieldURLs(widths: [1400, 700]).map(Optional.some)
+        )
+    }
+
+    private func localOriginalPlayfieldURLs() -> [URL] {
+        deduplicatedPlayfieldURLs(
+            playfieldAssetKeys.flatMap { assetKey in
+                librarySupportedPlayfieldOriginalExtensions.compactMap { ext in
+                    libraryResolveURL(pathOrURL: "/pinball/images/playfields/\(assetKey)-playfield.\(ext)")
+                }
+            }
         )
     }
 
