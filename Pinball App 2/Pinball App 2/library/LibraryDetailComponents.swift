@@ -180,51 +180,6 @@ struct LibraryDetailGameInfoCard: View {
     }
 }
 
-struct LibraryDetailSourcesCard: View {
-    let game: PinballGame
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            AppSectionTitle(text: "Sources")
-
-            if game.rulesheetLinks.isEmpty {
-                if game.hasRulesheetResource {
-                    PinballResourceRow("Rulesheet") {
-                        libraryRulesheetLinkButton(title: "Local", game: game, source: nil)
-                    }
-                } else {
-                    PinballResourceRow("Rulesheet") {
-                        PinballUnavailableResourceChip("Unavailable")
-                    }
-                }
-            } else {
-                PinballResourceRow("Rulesheet") {
-                    ForEach(game.rulesheetLinks) { link in
-                        libraryRulesheetLinkButton(link: link, game: game, title: PinballShortRulesheetTitle(for: link))
-                    }
-                }
-            }
-
-            if game.hasPlayfieldResource {
-                PinballResourceRow("Playfield") {
-                    NavigationLink(libraryPlayfieldButtonTitle(for: game)) {
-                        HostedImageView(imageCandidates: game.actualFullscreenPlayfieldCandidates)
-                    }
-                    .buttonStyle(AppCompactSecondaryActionButtonStyle())
-                }
-            }
-
-            if !game.hasRulesheetResource && !game.hasPlayfieldResource {
-                AppPanelEmptyCard(text: "No sources available.")
-            }
-        }
-        .font(.caption)
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appPanelStyle()
-    }
-}
-
 private struct LibraryVideoLaunchPanel: View {
     let selectedVideo: PinballGame.PlayableVideo?
     let usesDesktopLandscapeLayout: Bool

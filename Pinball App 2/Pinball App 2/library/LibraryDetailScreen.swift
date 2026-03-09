@@ -31,7 +31,6 @@ struct LibraryDetailScreen: View {
                         status: viewModel.status,
                         markdownText: viewModel.markdownText
                     )
-                    LibraryDetailSourcesCard(game: game)
                 }
                 .padding(.horizontal, horizontalPadding)
                 .padding(.vertical, 10)

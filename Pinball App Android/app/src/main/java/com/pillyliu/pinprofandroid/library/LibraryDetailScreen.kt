@@ -205,21 +205,6 @@ internal fun LibraryDetailScreen(
                 infoStatus = infoStatus,
                 markdown = markdown,
             )
-
-            LibraryDetailSourcesSection(
-                game = game,
-                hasRulesheet = hasRulesheet,
-                onOpenRulesheet = onOpenRulesheet,
-                onOpenExternalRulesheet = onOpenExternalRulesheet,
-                onOpenPlayfield = onOpenPlayfield,
-            )
-            if (!game.hasRulesheetResource && !game.hasPlayfieldResource) {
-                Text(
-                    "No sources available.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
-                )
-            }
             Spacer(Modifier.height(LIBRARY_CONTENT_BOTTOM_FILLER))
         }
     }
