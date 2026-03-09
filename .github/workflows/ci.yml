@@ -127,8 +127,9 @@ jobs:
           xcrun simctl boot "${UDID}" || true
           xcrun simctl bootstatus "${UDID}" -b
           echo "IOS_SIMULATOR_DESTINATION=platform=iOS Simulator,id=${UDID}" >> "$GITHUB_ENV"
+          echo "IOS_DERIVED_DATA_PATH=${RUNNER_TEMP}/pinprof-derived-data" >> "$GITHUB_ENV"
           echo "Using simulator destination: platform=iOS Simulator,id=${UDID}"
-      - name: Build iOS app
+      - name: Build iOS app for testing
         run: |
           cd "Pinball App 2"
           xcodebuild \
@@ -136,8 +137,9 @@ jobs:
             -scheme "PinProf" \
             -sdk iphonesimulator \
             -destination "${IOS_SIMULATOR_DESTINATION}" \
-            build || {
-              echo "iOS build failed; available destinations:"
+            -derivedDataPath "${IOS_DERIVED_DATA_PATH}" \
+            build-for-testing || {
+              echo "iOS build-for-testing failed; available destinations:"
               xcodebuild -project "Pinball App 2.xcodeproj" -scheme "PinProf" -showdestinations || true
               xcrun simctl list devices available || true
               exit 1
@@ -150,8 +152,9 @@ jobs:
             -scheme "PinProf" \
             -sdk iphonesimulator \
             -destination "${IOS_SIMULATOR_DESTINATION}" \
+            -derivedDataPath "${IOS_DERIVED_DATA_PATH}" \
             -only-testing:"Pinball App 2Tests/PracticeStateCodecTests" \
-            test || {
+            test-without-building || {
               echo "iOS tests failed; available destinations:"
               xcodebuild -project "Pinball App 2.xcodeproj" -scheme "PinProf" -showdestinations || true
               xcrun simctl list devices available || true
