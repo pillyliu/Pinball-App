@@ -90,11 +90,12 @@ internal fun LibraryDetailSummaryCard(
             AppCardTitle(
                 text = game.name,
                 maxLines = 2,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f, fill = false),
             )
             game.normalizedVariant?.let { variant ->
                 AppVariantBadge(variant)
             }
+            Spacer(modifier = Modifier.weight(1f))
         }
         AppCardSubheading(game.metaLine())
         Column(
