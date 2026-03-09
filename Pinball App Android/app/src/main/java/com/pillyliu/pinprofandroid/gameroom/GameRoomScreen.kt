@@ -616,11 +616,12 @@ internal fun GameRoomScreen(
                                         if (current.id != rowID) {
                                             current
                                         } else {
-                                            val availableVariants = selectedCatalogGameID?.let { catalogLoader.variantOptions(it) }.orEmpty()
+                                            val updatedRow = current.copy(selectedCatalogGameID = selectedCatalogGameID)
+                                            val availableVariants = importVariantOptions(updatedRow, catalogLoader)
                                             val keepVariant = current.selectedVariant?.takeIf { variant ->
                                                 availableVariants.any { it.equals(variant, ignoreCase = true) }
                                             }
-                                            current.copy(
+                                            updatedRow.copy(
                                                 selectedCatalogGameID = selectedCatalogGameID,
                                                 selectedVariant = keepVariant,
                                             )

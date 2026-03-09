@@ -249,12 +249,17 @@ internal fun GameRoomImportSettingsSection(
                         }
                         AnchoredDropdownFilter(
                             selectedText = row.selectedCatalogGameID?.let { selectedID ->
-                                catalogLoader.game(selectedID)?.displayTitle
+                                catalogLoader.game(selectedID)?.let(::importSuggestionLabel)
                             } ?: "No Match Selected",
                             options = buildList {
                                 row.suggestions.forEach { suggestionID ->
                                     val suggestion = catalogLoader.game(suggestionID) ?: return@forEach
-                                    add(DropdownOption(value = suggestion.catalogGameID, label = suggestion.displayTitle))
+                                    add(
+                                        DropdownOption(
+                                            value = suggestion.catalogGameID,
+                                            label = importSuggestionLabel(suggestion),
+                                        ),
+                                    )
                                 }
                                 add(DropdownOption(value = "__none__", label = "No Match Selected"))
                             },
@@ -264,7 +269,7 @@ internal fun GameRoomImportSettingsSection(
                         )
                         val selectedCatalogID = row.selectedCatalogGameID
                         if (!selectedCatalogID.isNullOrBlank()) {
-                            val variants = catalogLoader.variantOptions(selectedCatalogID)
+                            val variants = importVariantOptions(row, catalogLoader)
                             if (variants.isNotEmpty()) {
                                 AnchoredDropdownFilter(
                                     selectedText = row.selectedVariant ?: "None",

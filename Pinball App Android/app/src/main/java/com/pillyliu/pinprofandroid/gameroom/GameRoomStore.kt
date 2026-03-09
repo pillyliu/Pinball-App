@@ -179,11 +179,11 @@ internal class GameRoomStore(private val context: Context) {
     }
 
     fun existingOwnedMachine(catalogGameID: String, displayVariant: String?): OwnedMachine? {
-        val normalizedCatalogID = catalogGameID.trim()
+        val normalizedCatalogID = catalogGameID.trim().lowercase()
         if (normalizedCatalogID.isBlank()) return null
         val normalizedVariant = normalizeVariantKey(displayVariant)
         return state.ownedMachines.firstOrNull { machine ->
-            machine.catalogGameID == normalizedCatalogID &&
+            machine.catalogGameID.trim().lowercase() == normalizedCatalogID &&
                 normalizeVariantKey(machine.displayVariant) == normalizedVariant
         }
     }

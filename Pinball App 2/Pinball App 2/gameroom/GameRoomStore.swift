@@ -345,9 +345,13 @@ final class GameRoomStore: ObservableObject {
     }
 
     func existingOwnedMachine(catalogGameID: String, displayVariant: String?) -> OwnedMachine? {
+        let normalizedCatalogID = catalogGameID.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !normalizedCatalogID.isEmpty else { return nil }
         let normalizedVariant = normalizedOptionalString(displayVariant)?.lowercased()
         return state.ownedMachines.first { machine in
-            guard machine.catalogGameID == catalogGameID else { return false }
+            guard machine.catalogGameID.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedCatalogID else {
+                return false
+            }
             let machineVariant = normalizedOptionalString(machine.displayVariant)?.lowercased()
             return machineVariant == normalizedVariant
         }

@@ -36,16 +36,48 @@ internal fun makeImportDraftRow(
     )
 }
 
+internal fun importSuggestionLabel(game: GameRoomCatalogGame): String {
+    return game.year?.let { year -> "${game.displayTitle} ($year)" } ?: game.displayTitle
+}
+
+internal fun importVariantOptions(
+    row: ImportDraftRow,
+    catalogLoader: GameRoomCatalogLoader,
+): List<String> {
+    val variants = mutableListOf<String>()
+
+    fun addVariant(raw: String?) {
+        val value = raw?.trim().orEmpty()
+        if (value.isBlank()) return
+        if (variants.none { it.equals(value, ignoreCase = true) }) {
+            variants += value
+        }
+    }
+
+    addVariant(row.selectedVariant)
+    addVariant(row.rawVariant)
+    row.selectedCatalogGameID
+        ?.let(catalogLoader::variantOptions)
+        .orEmpty()
+        .forEach(::addVariant)
+
+    return variants
+}
+
 private fun scoredCatalogSuggestions(
     machine: PinsideImportedMachine,
     catalogLoader: GameRoomCatalogLoader,
 ): List<Pair<GameRoomCatalogGame, Int>> {
     val normalizedRawTitle = normalizeImportText(machine.rawTitle)
     val normalizedVariant = normalizeImportText(machine.rawVariant.orEmpty())
+    val slugMatch = catalogLoader.slugMatch(machine.slug)
     return catalogLoader.games.map { game ->
         val normalizedGameTitle = normalizeImportText(game.displayTitle)
         var score = 0
 
+        if (slugMatch != null && game.catalogGameID.equals(slugMatch.catalogGameID, ignoreCase = true)) {
+            score += 400
+        }
         if (normalizedRawTitle.isNotBlank()) {
             if (normalizedRawTitle == normalizedGameTitle) {
                 score += 120

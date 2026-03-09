@@ -136,12 +136,17 @@ internal class GameRoomCatalogLoader(private val context: Context) {
             val obj = machines.optJSONObject(index) ?: continue
             val groupID = obj.optString("opdb_group_id").ifBlank { obj.optString("practice_identity") }
             if (groupID.isBlank()) continue
-            val title = obj.optString("name").ifBlank { "Machine" }
+            val rawTitle = obj.optString("name").ifBlank { "Machine" }
             val canonicalPracticeIdentity = obj.optString("practice_identity").ifBlank { groupID }
             val manufacturerID = obj.optString("manufacturer_id").ifBlank { null }
             val manufacturer = obj.optString("manufacturer_name").ifBlank { null }
             val year = obj.optInt("year").takeIf { it > 0 }
-            val variant = obj.optString("variant").ifBlank { null }
+            val parsedTitle = parseCatalogName(
+                title = rawTitle,
+                explicitVariant = obj.optString("variant").ifBlank { null },
+            )
+            val title = parsedTitle.displayTitle
+            val variant = parsedTitle.displayVariant
             val slug = obj.optString("slug").ifBlank { canonicalPracticeIdentity }.lowercase()
             val primaryImage = obj.optJSONObject("primary_image")
             val playfieldImage = obj.optJSONObject("playfield_image")
@@ -208,7 +213,11 @@ internal class GameRoomCatalogLoader(private val context: Context) {
     }
 
     fun variantOptions(catalogGameID: String): List<String> {
-        return variantOptionsByCatalogGameID[catalogGameID].orEmpty()
+        variantOptionsByCatalogGameID[catalogGameID]
+            ?.let { return it }
+        return variantOptionsByCatalogGameID.entries.firstOrNull { (key, _) ->
+            key.equals(catalogGameID, ignoreCase = true)
+        }?.value.orEmpty()
     }
 
     fun game(catalogGameID: String): GameRoomCatalogGame? {
@@ -286,7 +295,11 @@ internal class GameRoomCatalogLoader(private val context: Context) {
     fun resolvedArt(catalogGameID: String, selectedVariant: String?): GameRoomCatalogArt? {
         val normalizedID = catalogGameID.trim()
         if (normalizedID.isBlank()) return null
-        val records = machineRecordsByCatalogGameID[normalizedID].orEmpty()
+        val records = machineRecordsByCatalogGameID[normalizedID]
+            ?: machineRecordsByCatalogGameID.entries.firstOrNull { (key, _) ->
+                key.equals(normalizedID, ignoreCase = true)
+            }?.value
+            ?: emptyList()
         if (records.isEmpty()) return null
         val variantRanked = records.sortedWith { lhs, rhs ->
             val lhsScore = machineVariantMatchScore(lhs.variant, selectedVariant)
@@ -370,4 +383,77 @@ internal class GameRoomCatalogLoader(private val context: Context) {
             else -> 10
         }
     }
+
+    private fun parseCatalogName(title: String, explicitVariant: String?): ParsedCatalogName {
+        val trimmedTitle = title.trim()
+        val normalizedExplicitVariant = normalizeVariantLabel(explicitVariant)
+        if (!normalizedExplicitVariant.isNullOrBlank()) {
+            return ParsedCatalogName(displayTitle = trimmedTitle, displayVariant = normalizedExplicitVariant)
+        }
+        if (!trimmedTitle.endsWith(")")) {
+            return ParsedCatalogName(displayTitle = trimmedTitle, displayVariant = null)
+        }
+
+        val openParenIndex = trimmedTitle.lastIndexOf('(')
+        if (openParenIndex <= 0) {
+            return ParsedCatalogName(displayTitle = trimmedTitle, displayVariant = null)
+        }
+
+        val baseTitle = trimmedTitle.substring(0, openParenIndex).trim()
+        val rawSuffix = trimmedTitle.substring(openParenIndex + 1, trimmedTitle.length - 1).trim()
+        val derivedVariant = deriveVariantFromTitleSuffix(rawSuffix)
+        return if (baseTitle.isNotBlank() && !derivedVariant.isNullOrBlank()) {
+            ParsedCatalogName(displayTitle = baseTitle, displayVariant = derivedVariant)
+        } else {
+            ParsedCatalogName(displayTitle = trimmedTitle, displayVariant = null)
+        }
+    }
+
+    private fun deriveVariantFromTitleSuffix(value: String): String? {
+        val lowered = value.trim().lowercase()
+        if (lowered.isBlank()) return null
+        val looksLikeVariant = lowered == "premium" ||
+            lowered == "pro" ||
+            lowered == "le" ||
+            lowered == "ce" ||
+            lowered == "se" ||
+            lowered == "home" ||
+            lowered.contains("anniversary") ||
+            lowered.contains("limited edition") ||
+            lowered.contains("special edition") ||
+            lowered.contains("collector") ||
+            lowered == "premium/le" ||
+            lowered == "premium le" ||
+            lowered == "premium-le"
+        return if (looksLikeVariant) normalizeVariantLabel(value) else null
+    }
+
+    private fun normalizeVariantLabel(value: String?): String? {
+        val trimmed = value?.trim().orEmpty()
+        if (trimmed.isBlank()) return null
+        val lowered = trimmed.lowercase()
+        return when {
+            lowered == "null" || lowered == "none" -> null
+            lowered == "premium" -> "Premium"
+            lowered == "pro" -> "Pro"
+            lowered == "le" || lowered.contains("limited edition") -> "LE"
+            lowered == "ce" || lowered.contains("collector") -> "CE"
+            lowered == "se" || lowered.contains("special edition") -> "SE"
+            lowered == "premium/le" || lowered == "premium le" || lowered == "premium-le" -> "Premium/LE"
+            lowered.contains("anniversary") -> trimmed.split(" ")
+                .filter { it.isNotBlank() }
+                .joinToString(" ") { token ->
+                    when (token.lowercase()) {
+                        "le", "ce", "se" -> token.uppercase()
+                        else -> token.replaceFirstChar { ch -> if (ch.isLowerCase()) ch.titlecase() else ch.toString() }
+                    }
+                }
+            else -> trimmed
+        }
+    }
+
+    private data class ParsedCatalogName(
+        val displayTitle: String,
+        val displayVariant: String?,
+    )
 }

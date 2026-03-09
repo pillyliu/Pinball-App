@@ -20,8 +20,8 @@ android {
         applicationId = "com.pillyliu.pinballandroid"
         minSdk = 26
         targetSdk = 36
-        versionCode = 38
-        versionName = "3.1.2"
+        versionCode = 39
+        versionName = "3.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

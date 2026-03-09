@@ -199,7 +199,10 @@ struct GameRoomImportSettingsView: View {
                                         Button(matchLabel(for: suggestion)) {
                                             draftRows[index].selectedCatalogGameID = suggestion.catalogGameID
                                             if let current = draftRows[index].selectedVariant {
-                                                let variants = catalogLoader.variantOptions(for: suggestion.catalogGameID)
+                                                let variants = importVariantOptions(
+                                                    for: draftRows[index],
+                                                    selectedCatalogGameID: suggestion.catalogGameID
+                                                )
                                                 if !variants.contains(where: { $0.caseInsensitiveCompare(current) == .orderedSame }) {
                                                     draftRows[index].selectedVariant = nil
                                                 }
@@ -423,9 +426,15 @@ struct GameRoomImportSettingsView: View {
     private func scoredSuggestions(for machine: PinsideImportedMachine) -> [(game: GameRoomCatalogGame, score: Int)] {
         let normalizedRawTitle = normalized(machine.rawTitle)
         let normalizedVariant = normalized(machine.rawVariant ?? "")
+        let slugMatch = catalogLoader.slugMatch(for: machine.slug)
         let candidates = catalogLoader.games.map { game -> (GameRoomCatalogGame, Int) in
             let normalizedGameTitle = normalized(game.displayTitle)
             var score = 0
+
+            if let slugMatch,
+               slugMatch.catalogGameID.caseInsensitiveCompare(game.catalogGameID) == .orderedSame {
+                score += 400
+            }
 
             if normalizedRawTitle == normalizedGameTitle {
                 score += 120
@@ -532,8 +541,8 @@ struct GameRoomImportSettingsView: View {
     }
 
     private func matchLabel(for game: GameRoomCatalogGame) -> String {
-        if let variant = game.displayVariant {
-            return "\(game.displayTitle) (\(variant))"
+        if let year = game.year {
+            return "\(game.displayTitle) (\(year))"
         }
         return game.displayTitle
     }
@@ -543,7 +552,7 @@ struct GameRoomImportSettingsView: View {
               let selected = catalogLoader.game(for: selectedCatalogGameID) else {
             return "No Match Selected"
         }
-        return "Match: \(selected.displayTitle)"
+        return "Match: \(matchLabel(for: selected))"
     }
 }
 
