@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +55,7 @@ import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
+import com.pillyliu.pinprofandroid.ui.AppSwitch
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 import com.pillyliu.pinprofandroid.ui.SectionTitle
@@ -283,7 +283,7 @@ private fun ManagedSourceRow(
         }
         Column(horizontalAlignment = Alignment.End) {
             Text("Enabled", style = MaterialTheme.typography.labelSmall)
-            Switch(
+            AppSwitch(
                 checked = enabled,
                 onCheckedChange = onEnabledChange,
                 enabled = canDisable,
@@ -291,7 +291,7 @@ private fun ManagedSourceRow(
         }
         Column(horizontalAlignment = Alignment.End) {
             Text("Pinned", style = MaterialTheme.typography.labelSmall)
-            Switch(
+            AppSwitch(
                 checked = pinned,
                 onCheckedChange = onPinnedChange,
             )
@@ -320,7 +320,7 @@ private fun SettingsPrivacySection() {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Show full last names for LPL data")
-                Switch(
+                AppSwitch(
                     checked = showFullLastName,
                     onCheckedChange = { setShowFullLplLastName(context, it) },
                 )

@@ -14,7 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,6 +26,7 @@ import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
+import com.pillyliu.pinprofandroid.ui.AppSwitch
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import java.util.Locale
@@ -167,11 +167,11 @@ internal fun GroupEditorStatusCard(
     CardContainer {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Active", modifier = Modifier.weight(1f))
-            Switch(checked = isActive, onCheckedChange = onIsActiveChange)
+            AppSwitch(checked = isActive, onCheckedChange = onIsActiveChange)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Priority", modifier = Modifier.weight(1f))
-            Switch(checked = isPriority, onCheckedChange = onIsPriorityChange)
+            AppSwitch(checked = isPriority, onCheckedChange = onIsPriorityChange)
         }
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             listOf("custom", "bank", "location").forEachIndexed { index, option ->
@@ -236,7 +236,7 @@ internal fun GroupEditorStatusCard(
                     color = if (hasStartDate) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Switch(checked = hasStartDate, onCheckedChange = onHasStartDateChange)
+            AppSwitch(checked = hasStartDate, onCheckedChange = onHasStartDateChange)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("End Date", modifier = Modifier.weight(1f))
@@ -252,11 +252,11 @@ internal fun GroupEditorStatusCard(
                     color = if (hasEndDate) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Switch(checked = hasEndDate, onCheckedChange = onHasEndDateChange)
+            AppSwitch(checked = hasEndDate, onCheckedChange = onHasEndDateChange)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Archived", modifier = Modifier.weight(1f))
-            Switch(checked = isArchived, onCheckedChange = onIsArchivedChange)
+            AppSwitch(checked = isArchived, onCheckedChange = onIsArchivedChange)
         }
         validationMessage?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
