@@ -100,8 +100,8 @@ nonisolated func normalizeLibraryPlayfieldLocalPath(_ pathOrURL: String?) -> Str
     return raw
 }
 
-nonisolated func libraryFallbackPlayfieldURL(width: Int) -> URL? {
-    libraryResolveURL(pathOrURL: "/pinball/images/playfields/fallback-whitewood-playfield_\(width).webp")
+nonisolated func libraryMissingArtworkURL() -> URL? {
+    libraryResolveURL(pathOrURL: "/pinball/images/playfields/fallback-image-not-available_2048.webp")
 }
 
 extension PinballGame {
@@ -141,12 +141,7 @@ extension PinballGame {
     }
 
     var libraryPlayfieldCandidates: [URL] {
-        deduplicatedPlayfieldURLs(
-            preferredLocalPlayfieldCandidates.map(Optional.some) +
-                remotePlayfieldCandidates.map(Optional.some) + [
-                    libraryFallbackPlayfieldURL(width: 700)
-                ]
-        )
+        realPlayfieldCandidatesOrMissingArtwork
     }
 
     var primaryArtworkCandidates: [URL] {
@@ -157,37 +152,23 @@ extension PinballGame {
     }
 
     var cardArtworkCandidates: [URL] {
-        primaryArtworkCandidates
+        artworkCandidatesOrMissingArtwork
     }
 
     var detailArtworkCandidates: [URL] {
-        primaryArtworkCandidates
+        artworkCandidatesOrMissingArtwork
     }
 
     var miniPlayfieldCandidates: [URL] {
-        deduplicatedPlayfieldURLs(
-            preferredLocalPlayfieldCandidates.map(Optional.some) +
-                remotePlayfieldCandidates.map(Optional.some) + [
-                    libraryFallbackPlayfieldURL(width: 700),
-                    libraryFallbackPlayfieldURL(width: 1400)
-                ]
-        )
+        realPlayfieldCandidatesOrMissingArtwork
     }
 
     var gamePlayfieldCandidates: [URL] {
-        deduplicatedPlayfieldURLs(
-            actualFullscreenPlayfieldCandidates.map(Optional.some) + [
-                libraryFallbackPlayfieldURL(width: 700)
-            ]
-        )
+        fullscreenArtworkCandidatesOrMissingArtwork
     }
 
     var fullscreenPlayfieldCandidates: [URL] {
-        deduplicatedPlayfieldURLs(
-            actualFullscreenPlayfieldCandidates.map(Optional.some) + [
-                libraryFallbackPlayfieldURL(width: 700)
-            ]
-        )
+        fullscreenArtworkCandidatesOrMissingArtwork
     }
 
     var actualFullscreenPlayfieldCandidates: [URL] {
@@ -382,6 +363,14 @@ extension PinballGame {
         return [playfieldImageSourceURL]
     }
 
+    private var artworkCandidatesOrMissingArtwork: [URL] {
+        let candidates = primaryArtworkCandidates
+        if !candidates.isEmpty {
+            return candidates
+        }
+        return deduplicatedPlayfieldURLs([libraryMissingArtworkURL()])
+    }
+
     private var explicitLocalPlayfieldCandidates: [URL] {
         deduplicatedPlayfieldURLs([
             playfieldLocalOriginalURL,
@@ -395,6 +384,30 @@ extension PinballGame {
                 localOriginalPlayfieldURLs().map(Optional.some) +
                 localPlayfieldURLs(widths: [1400, 700]).map(Optional.some)
         )
+    }
+
+    private var realPlayfieldCandidates: [URL] {
+        deduplicatedPlayfieldURLs(
+            preferredLocalPlayfieldCandidates.map(Optional.some) +
+                remotePlayfieldCandidates.map(Optional.some)
+        )
+    }
+
+    private var realPlayfieldCandidatesOrMissingArtwork: [URL] {
+        if !realPlayfieldCandidates.isEmpty {
+            return realPlayfieldCandidates
+        }
+        return deduplicatedPlayfieldURLs([libraryMissingArtworkURL()])
+    }
+
+    private var fullscreenArtworkCandidatesOrMissingArtwork: [URL] {
+        if !actualFullscreenPlayfieldCandidates.isEmpty {
+            return actualFullscreenPlayfieldCandidates
+        }
+        if !realPlayfieldCandidates.isEmpty {
+            return realPlayfieldCandidates
+        }
+        return deduplicatedPlayfieldURLs([libraryMissingArtworkURL()])
     }
 
     private func localOriginalPlayfieldURLs() -> [URL] {

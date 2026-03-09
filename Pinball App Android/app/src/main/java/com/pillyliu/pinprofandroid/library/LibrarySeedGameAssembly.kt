@@ -11,6 +11,7 @@ internal fun loadLibrarySeedBuiltInGames(database: SQLiteDatabase): List<Pinball
     return loadBuiltInGameRows(database).map { row ->
         val resolvedMachine = preferredSeedMachineForBuiltInGame(
             requestedMachineId = row.opdbId,
+            requestedVariant = row.variant,
             practiceIdentity = row.practiceIdentity,
             machinesByPracticeIdentity = machinesByPracticeIdentity,
             machinesByOpdbId = machinesByOpdbId,
@@ -207,7 +208,10 @@ internal fun loadMachinesById(database: SQLiteDatabase): Map<String, SeedMachine
                 opdbGroupId = cursor.getNullableString(2),
                 slug = cursor.getString(3),
                 name = cursor.getString(4),
-                variant = cursor.getNullableString(5),
+                variant = resolvedCatalogVariantLabel(
+                    title = cursor.getString(4),
+                    explicitVariant = cursor.getNullableString(5),
+                ),
                 manufacturerId = cursor.getNullableString(6),
                 manufacturerName = cursor.getNullableString(7),
                 year = cursor.getIntOrNull(8),
@@ -224,15 +228,39 @@ internal fun loadMachinesById(database: SQLiteDatabase): Map<String, SeedMachine
 
 internal fun preferredSeedMachineForBuiltInGame(
     requestedMachineId: String?,
+    requestedVariant: String?,
     practiceIdentity: String,
     machinesByPracticeIdentity: Map<String, List<SeedMachine>>,
     machinesByOpdbId: Map<String, SeedMachine>,
 ): SeedMachine? {
-    val preferredGroupMachine = preferredSeedGroupMachine(machinesByPracticeIdentity[practiceIdentity].orEmpty())
-    val exactMachine = requestedMachineId?.let { machinesByOpdbId[it] } ?: return preferredGroupMachine
+    val groupCandidates = machinesByPracticeIdentity[practiceIdentity].orEmpty()
+    val preferredGroupMachine = preferredSeedGroupMachine(groupCandidates)
+    val groupArtFallback = groupCandidates
+        .filter(::seedMachineHasPrimaryImage)
+        .minWithOrNull(::compareSeedPreferredMachine)
+    val normalizedRequestedVariant = normalizedOptionalString(requestedVariant)?.lowercase()
+    val exactMachine = requestedMachineId?.let { machinesByOpdbId[it] } ?: run {
+        val variantMatch = preferredSeedMachineForVariant(groupCandidates, normalizedRequestedVariant)
+        return when {
+            variantMatch != null && seedMachineHasPrimaryImage(variantMatch) -> variantMatch
+            preferredGroupMachine != null && seedMachineHasPrimaryImage(preferredGroupMachine) -> preferredGroupMachine
+            groupArtFallback != null -> groupArtFallback
+            else -> preferredGroupMachine
+        }
+    }
+
+    val variantCandidates = machinesByPracticeIdentity[exactMachine.practiceIdentity].orEmpty().ifEmpty { groupCandidates }
+    val variantMatch = preferredSeedMachineForVariant(variantCandidates, normalizedRequestedVariant)
+    if (variantMatch != null && seedMachineHasPrimaryImage(variantMatch)) return variantMatch
     if (seedMachineHasPrimaryImage(exactMachine)) return exactMachine
+
     val preferredExactGroupMachine = preferredSeedGroupMachine(machinesByPracticeIdentity[exactMachine.practiceIdentity].orEmpty())
-    return preferredExactGroupMachine ?: preferredGroupMachine ?: exactMachine
+    return when {
+        preferredExactGroupMachine != null && seedMachineHasPrimaryImage(preferredExactGroupMachine) -> preferredExactGroupMachine
+        preferredGroupMachine != null && seedMachineHasPrimaryImage(preferredGroupMachine) -> preferredGroupMachine
+        groupArtFallback != null -> groupArtFallback
+        else -> preferredExactGroupMachine ?: preferredGroupMachine ?: variantMatch ?: exactMachine
+    }
 }
 
 internal fun loadOverrideRulesheets(database: SQLiteDatabase): Map<String, List<ReferenceLink>> =

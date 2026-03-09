@@ -1,5 +1,6 @@
 package com.pillyliu.pinprofandroid.ui
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,6 +48,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -81,6 +84,7 @@ fun AppScreen(
         modifier = Modifier
             .then(modifier)
             .fillMaxSize()
+            .dismissKeyboardOnTapOutside()
     ) {
         PinballAtmosphereBackground()
         Box(
@@ -90,6 +94,18 @@ fun AppScreen(
                 .padding(horizontal = horizontalPadding, vertical = spacing.screenVerticalCompact),
         ) {
             content()
+        }
+    }
+}
+
+@Composable
+fun Modifier.dismissKeyboardOnTapOutside(): Modifier {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    return this.pointerInput(focusManager, keyboardController) {
+        detectTapGestures {
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
         }
     }
 }

@@ -132,14 +132,81 @@ internal fun preferredMachineForVariant(
 internal fun catalogMachineHasPrimaryImage(machine: CatalogMachineRecord): Boolean =
     machine.primaryImageMediumUrl != null || machine.primaryImageLargeUrl != null
 
+internal fun resolvedCatalogVariantLabel(title: String, explicitVariant: String?): String? {
+    normalizeCatalogVariantLabel(explicitVariant)?.let { return it }
+    val trimmedTitle = title.trim()
+    if (!trimmedTitle.endsWith(")")) return null
+    val openParenIndex = trimmedTitle.lastIndexOf('(')
+    if (openParenIndex <= 0) return null
+    val rawSuffix = trimmedTitle.substring(openParenIndex + 1, trimmedTitle.length - 1).trim()
+    if (!looksLikeCatalogVariantSuffix(rawSuffix)) return null
+    return normalizeCatalogVariantLabel(rawSuffix)
+}
+
 internal fun catalogVariantScore(machineVariant: String?, requestedVariant: String?): Int {
     val normalizedMachineVariant = normalizedOptionalString(machineVariant)?.lowercase()
     if (requestedVariant.isNullOrBlank()) return 0
     if (normalizedMachineVariant == requestedVariant) return 200
-    if (!normalizedMachineVariant.isNullOrBlank() && normalizedMachineVariant.contains(requestedVariant)) return 120
+    val machineTokens = normalizedMachineVariant
+        ?.split(Regex("[^A-Za-z0-9]+"))
+        ?.filter { it.isNotBlank() }
+        ?.toSet()
+        .orEmpty()
+    val requestTokens = requestedVariant
+        .split(Regex("[^A-Za-z0-9]+"))
+        .filter { it.isNotBlank() }
+        .toSet()
+    if (machineTokens.isNotEmpty() && requestTokens.isNotEmpty() && machineTokens.intersect(requestTokens).isNotEmpty()) {
+        return 120
+    }
+    if (!normalizedMachineVariant.isNullOrBlank() &&
+        (normalizedMachineVariant.contains(requestedVariant) || requestedVariant.contains(normalizedMachineVariant))
+    ) return 100
     if (requestedVariant.contains("premium") && normalizedMachineVariant == "le") return 80
     if (requestedVariant == "le" && normalizedMachineVariant?.contains("anniversary") == true) return 40
     return 0
+}
+
+private fun looksLikeCatalogVariantSuffix(value: String): Boolean {
+    val lowered = value.trim().lowercase()
+    if (lowered.isBlank()) return false
+    return lowered == "premium" ||
+        lowered == "pro" ||
+        lowered == "le" ||
+        lowered == "ce" ||
+        lowered == "se" ||
+        lowered == "home" ||
+        lowered.contains("anniversary") ||
+        lowered.contains("limited edition") ||
+        lowered.contains("special edition") ||
+        lowered.contains("collector") ||
+        lowered == "premium/le" ||
+        lowered == "premium le" ||
+        lowered == "premium-le"
+}
+
+private fun normalizeCatalogVariantLabel(value: String?): String? {
+    val trimmed = value?.trim().orEmpty()
+    if (trimmed.isBlank()) return null
+    val lowered = trimmed.lowercase()
+    return when {
+        lowered == "null" || lowered == "none" -> null
+        lowered == "premium" -> "Premium"
+        lowered == "pro" -> "Pro"
+        lowered == "le" || lowered.contains("limited edition") -> "LE"
+        lowered == "ce" || lowered.contains("collector") -> "CE"
+        lowered == "se" || lowered.contains("special edition") -> "SE"
+        lowered == "premium/le" || lowered == "premium le" || lowered == "premium-le" -> "Premium/LE"
+        lowered.contains("anniversary") -> trimmed.split(" ")
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { token ->
+                when (token.lowercase()) {
+                    "le", "ce", "se" -> token.uppercase()
+                    else -> token.replaceFirstChar { ch -> if (ch.isLowerCase()) ch.titlecase() else ch.toString() }
+                }
+            }
+        else -> trimmed
+    }
 }
 
 internal fun resolveRulesheetLinks(rulesheetLinks: List<CatalogRulesheetLinkRecord>): ResolvedRulesheetLinks {

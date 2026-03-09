@@ -12,10 +12,22 @@ import org.json.JSONObject
 private const val GAME_ROOM_LIBRARY_SOURCE_ID = "venue--gameroom"
 
 internal suspend fun loadLibraryExtraction(context: Context): LegacyCatalogExtraction {
+    return loadLibraryExtraction(context, filterBySourceState = true)
+}
+
+internal suspend fun loadFullLibraryExtraction(context: Context): LegacyCatalogExtraction {
+    return loadLibraryExtraction(context, filterBySourceState = false)
+}
+
+private suspend fun loadLibraryExtraction(
+    context: Context,
+    filterBySourceState: Boolean,
+): LegacyCatalogExtraction {
     return runCatching {
-        loadHostedLibraryExtraction(context)
+        loadHostedLibraryExtraction(context, filterBySourceState)
     }.getOrElse {
-        loadBundledLibraryExtraction(context) ?: LibrarySeedDatabase.loadExtraction(context)
+        loadBundledLibraryExtraction(context, filterBySourceState)
+            ?: LibrarySeedDatabase.loadExtraction(context, filterBySourceState)
     }
 }
 
@@ -47,10 +59,14 @@ internal fun decodeCatalogManufacturerOptions(raw: String): List<CatalogManufact
         )
 }
 
-internal fun decodeLibraryPayloadWithState(context: Context, raw: String): LegacyCatalogExtraction {
+internal fun decodeLibraryPayloadWithState(
+    context: Context,
+    raw: String,
+    filterBySourceState: Boolean = true,
+): LegacyCatalogExtraction {
     val payload = parseLibraryPayload(raw)
     val state = LibrarySourceStateStore.synchronize(context, payload.sources)
-    return LegacyCatalogExtraction(payload = filterPayload(payload, state), state = state)
+    return legacyCatalogExtraction(payload = payload, state = state, filterBySourceState = filterBySourceState)
 }
 
 internal fun decodeMergedLibraryPayloadWithState(
@@ -58,12 +74,13 @@ internal fun decodeMergedLibraryPayloadWithState(
     libraryRaw: String,
     opdbCatalogRaw: String,
     publicOverridesRaw: String? = null,
+    filterBySourceState: Boolean = true,
 ): LegacyCatalogExtraction {
     val legacyPayload = parseLibraryPayload(libraryRaw)
     val root = parseNormalizedRoot(opdbCatalogRaw)
     if (root.machines.isEmpty()) {
         val state = LibrarySourceStateStore.synchronize(context, legacyPayload.sources)
-        return LegacyCatalogExtraction(payload = filterPayload(legacyPayload, state), state = state)
+        return legacyCatalogExtraction(payload = legacyPayload, state = state, filterBySourceState = filterBySourceState)
     }
 
     val payload = resolveMergedCatalog(
@@ -73,7 +90,18 @@ internal fun decodeMergedLibraryPayloadWithState(
         publicOverrides = parsePublicLibraryOverrides(publicOverridesRaw),
     )
     val state = LibrarySourceStateStore.synchronize(context, payload.sources)
-    return LegacyCatalogExtraction(payload = filterPayload(payload, state), state = state)
+    return legacyCatalogExtraction(payload = payload, state = state, filterBySourceState = filterBySourceState)
+}
+
+private fun legacyCatalogExtraction(
+    payload: ParsedLibraryData,
+    state: LibrarySourceState,
+    filterBySourceState: Boolean,
+): LegacyCatalogExtraction {
+    return LegacyCatalogExtraction(
+        payload = if (filterBySourceState) filterPayload(payload, state) else payload,
+        state = state,
+    )
 }
 
 private fun filterPayload(payload: ParsedLibraryData, state: LibrarySourceState): ParsedLibraryData {
@@ -531,11 +559,51 @@ private fun bestTemplateForOwnedMachine(
     val normalizedPracticeIdentity = normalizedOptionalString(ownedMachine.canonicalPracticeIdentity)
     val normalizedCatalogID = normalizedOptionalString(ownedMachine.catalogGameID)
     val normalizedTitle = ownedMachine.displayTitle.trim().lowercase()
-    return baseGames.firstOrNull { game ->
-        normalizedOptionalString(game.practiceIdentity) == normalizedPracticeIdentity ||
-            normalizedOptionalString(game.opdbGroupId) == normalizedCatalogID ||
-            game.name.trim().lowercase() == normalizedTitle
+    val requestedVariant = normalizedOptionalString(ownedMachine.displayVariant)?.lowercase()
+    return baseGames
+        .mapNotNull { game ->
+            val matchScore = templateMatchScore(
+                game = game,
+                normalizedPracticeIdentity = normalizedPracticeIdentity,
+                normalizedCatalogID = normalizedCatalogID,
+                normalizedTitle = normalizedTitle,
+            )
+            if (matchScore <= 0) {
+                null
+            } else {
+                game to (matchScore + templateVariantScore(game, requestedVariant))
+            }
+        }
+        .maxByOrNull { it.second }
+        ?.first
+}
+
+private fun templateMatchScore(
+    game: PinballGame,
+    normalizedPracticeIdentity: String?,
+    normalizedCatalogID: String?,
+    normalizedTitle: String,
+): Int {
+    val gamePracticeIdentity = normalizedOptionalString(game.practiceIdentity)
+    val gameGroupId = normalizedOptionalString(game.opdbGroupId)
+    return when {
+        normalizedPracticeIdentity != null && gamePracticeIdentity == normalizedPracticeIdentity -> 300
+        normalizedCatalogID != null && gameGroupId == normalizedCatalogID -> 260
+        game.name.trim().lowercase() == normalizedTitle -> 180
+        else -> 0
     }
+}
+
+private fun templateVariantScore(game: PinballGame, requestedVariant: String?): Int {
+    val normalizedGameVariant = normalizedOptionalString(game.normalizedVariant)?.lowercase()
+    var score = catalogVariantScore(normalizedGameVariant, requestedVariant)
+    if (requestedVariant == null && normalizedGameVariant == null) {
+        score += 80
+    }
+    if (!game.primaryImageLargeUrl.isNullOrBlank() || !game.primaryImageUrl.isNullOrBlank()) {
+        score += 20
+    }
+    return score
 }
 
 private fun resolveLegacyGame(
@@ -793,7 +861,10 @@ private fun JSONArray?.toMachineRecords(): List<CatalogMachineRecord> {
                     opdbGroupId = obj.optStringOrNullLocal("opdb_group_id"),
                     slug = slug,
                     name = name,
-                    variant = obj.optStringOrNullLocal("variant"),
+                    variant = resolvedCatalogVariantLabel(
+                        title = name,
+                        explicitVariant = obj.optStringOrNullLocal("variant"),
+                    ),
                     manufacturerId = obj.optStringOrNullLocal("manufacturer_id"),
                     manufacturerName = obj.optStringOrNullLocal("manufacturer_name"),
                     year = obj.optIntOrNullLocal("year"),

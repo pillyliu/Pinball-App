@@ -22,6 +22,13 @@ internal object LibrarySeedDatabase {
     internal const val SEED_ASSET_PATH = "starter-pack/pinball/data/$SEED_FILE_NAME"
 
     suspend fun loadExtraction(context: Context): LegacyCatalogExtraction {
+        return loadExtraction(context, filterBySourceState = true)
+    }
+
+    suspend fun loadExtraction(
+        context: Context,
+        filterBySourceState: Boolean,
+    ): LegacyCatalogExtraction {
         val db = openLibrarySeedDatabase(context)
         db.use { database ->
             val builtInSources = loadLibrarySeedBuiltInSources(database)
@@ -39,7 +46,7 @@ internal object LibrarySeedDatabase {
             val payloadWithGameRoom = addSeedGameRoomOverlay(context = context, basePayload = payload)
             val state = LibrarySourceStateStore.synchronize(context, payloadWithGameRoom.sources)
             return LegacyCatalogExtraction(
-                payload = filterSeedLibraryPayload(payloadWithGameRoom, state),
+                payload = if (filterBySourceState) filterSeedLibraryPayload(payloadWithGameRoom, state) else payloadWithGameRoom,
                 state = state,
             )
         }

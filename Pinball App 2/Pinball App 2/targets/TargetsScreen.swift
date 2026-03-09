@@ -388,6 +388,7 @@ private struct TargetsHeaderCell: View {
 private struct LPLTargetRow: Identifiable {
     let target: LPLTarget
     let area: String?
+    let areaOrder: Int?
     let bank: Int?
     let group: Int?
     let position: Int?
@@ -420,10 +421,12 @@ private enum TargetsSortMode: String, CaseIterable, Identifiable {
     }
 }
 
+private let lplVenueSourceIDs = Set(["venue--the-avenue-cafe", "the-avenue"])
+
 @MainActor
 private final class TargetsViewModel: ObservableObject {
     @Published private(set) var rows: [LPLTargetRow] = LPLTarget.rows.enumerated().map { index, target in
-        LPLTargetRow(target: target, area: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: index)
+        LPLTargetRow(target: target, area: nil, areaOrder: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: index)
     }
     @Published var sortMode: TargetsSortMode = .location {
         didSet { applySortAndFilter() }
@@ -435,7 +438,7 @@ private final class TargetsViewModel: ObservableObject {
 
     private var didLoad = false
     private var allRows: [LPLTargetRow] = LPLTarget.rows.enumerated().map { index, target in
-        LPLTargetRow(target: target, area: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: index)
+        LPLTargetRow(target: target, area: nil, areaOrder: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: index)
     }
 
     var bankOptions: [Int] {
@@ -454,8 +457,12 @@ private final class TargetsViewModel: ObservableObject {
 
     private func loadLibraryOrdering() async {
         do {
-            let extraction = try await loadLibraryExtraction()
-            let rowsWithLibrary = mergeTargetsWithLibrary(libraryEntries: LibraryGameLookup.buildEntries(games: extraction.payload.games))
+            let extraction = try await loadFullLibraryExtraction()
+            let rowsWithLibrary = mergeTargetsWithLibrary(
+                libraryEntries: LibraryGameLookup.buildEntries(
+                    games: extraction.payload.games.filter { lplVenueSourceIDs.contains($0.sourceId) }
+                )
+            )
 
             allRows = rowsWithLibrary
             applySortAndFilter()
@@ -472,6 +479,7 @@ private final class TargetsViewModel: ObservableObject {
                 return LPLTargetRow(
                     target: target,
                     area: exact.area,
+                    areaOrder: exact.areaOrder,
                     bank: exact.bank,
                     group: exact.group,
                     position: exact.position,
@@ -480,7 +488,7 @@ private final class TargetsViewModel: ObservableObject {
                 )
             }
 
-            return LPLTargetRow(target: target, area: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: fallbackIndex)
+            return LPLTargetRow(target: target, area: nil, areaOrder: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: fallbackIndex)
         }
     }
 
@@ -488,7 +496,8 @@ private final class TargetsViewModel: ObservableObject {
         let sortedRows: [LPLTargetRow] = switch sortMode {
         case .location:
             allRows.sorted {
-                byOptionalAscending($0.group, $1.group)
+                byOptionalAscending($0.areaOrder, $1.areaOrder)
+                    ?? byOptionalAscending($0.group, $1.group)
                     ?? byOptionalAscending($0.position, $1.position)
                     ?? byAscending($0.libraryOrder, $1.libraryOrder)
                     ?? byAscending($0.fallbackOrder, $1.fallbackOrder)

@@ -18,7 +18,7 @@ DEFAULT_IOS_PINBALL_ROOT = REPO_ROOT / "Pinball App 2" / "Pinball App 2" / "Pinb
 DEFAULT_ANDROID_PINBALL_ROOT = REPO_ROOT / "Pinball App Android" / "app" / "src" / "main" / "assets" / "starter-pack" / "pinball"
 DEFAULT_SUMMARY_OUTPUT = REPO_ROOT / "output" / "asset-intake" / "local_asset_intake_summary.md"
 REPORT_FILENAME = "local_asset_intake_report.json"
-SYSTEM_STARTER_PACK_PLAYFIELDS = {"/pinball/images/playfields/fallback-whitewood-playfield_700.webp"}
+SYSTEM_STARTER_PACK_PLAYFIELDS = {"/pinball/images/playfields/fallback-image-not-available_2048.webp"}
 
 
 def iso_now() -> str:

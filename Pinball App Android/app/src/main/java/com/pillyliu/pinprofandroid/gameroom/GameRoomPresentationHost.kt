@@ -24,6 +24,7 @@ import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.DropdownOption
+import com.pillyliu.pinprofandroid.ui.dismissKeyboardOnTapOutside
 
 internal data class GameRoomInputSheetContext(
     val store: GameRoomStore,
@@ -126,6 +127,7 @@ private fun GameRoomInputSheetHost(context: GameRoomInputSheetContext) {
 
     ModalBottomSheet(
         onDismissRequest = context.onDismiss,
+        modifier = Modifier.dismissKeyboardOnTapOutside(),
     ) {
         Column(
             modifier = Modifier
@@ -627,6 +629,7 @@ private fun GameRoomIssueAttachmentDraftRow(
 private fun GameRoomEditEventSheet(context: GameRoomEditEventContext) {
     ModalBottomSheet(
         onDismissRequest = context.onDismiss,
+        modifier = Modifier.dismissKeyboardOnTapOutside(),
     ) {
         Column(
             modifier = Modifier
@@ -699,6 +702,7 @@ private fun GameRoomAttachmentPresentationHost(context: GameRoomAttachmentPresen
     if (editingAttachment != null) {
         ModalBottomSheet(
             onDismissRequest = context.onDismissAttachmentEdit,
+            modifier = Modifier.dismissKeyboardOnTapOutside(),
         ) {
             Column(
                 modifier = Modifier

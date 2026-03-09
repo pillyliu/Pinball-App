@@ -26,6 +26,7 @@ fun AppFilterSheet(
     val typography = PinballThemeTokens.typography
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
+        modifier = Modifier.dismissKeyboardOnTapOutside(),
         containerColor = colors.panel,
         contentColor = colors.brandInk,
     ) {

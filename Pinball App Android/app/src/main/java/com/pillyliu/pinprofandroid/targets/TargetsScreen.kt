@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.platform.LocalContext
 import com.pillyliu.pinprofandroid.library.LibraryGameLookup
-import com.pillyliu.pinprofandroid.library.loadLibraryExtraction
+import com.pillyliu.pinprofandroid.library.loadFullLibraryExtraction
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
 import com.pillyliu.pinprofandroid.ui.AppScreen
@@ -53,6 +53,7 @@ private data class LPLTarget(val game: String, val great: Long, val main: Long, 
 private data class TargetRow(
     val target: LPLTarget,
     val area: String?,
+    val areaOrder: Int?,
     val bank: Int?,
     val group: Int?,
     val position: Int?,
@@ -64,6 +65,8 @@ private enum class TargetSortOption(val label: String) {
     BANK("Bank"),
     ALPHABETICAL("A-Z"),
 }
+
+private val lplVenueSourceIds = setOf("venue--the-avenue-cafe", "the-avenue")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,7 +81,7 @@ fun TargetsScreen(
     var rows by remember {
         mutableStateOf(
             lplTargets.mapIndexed { idx, t ->
-                TargetRow(t, null, null, null, null, Int.MAX_VALUE, idx)
+                TargetRow(t, null, null, null, null, null, Int.MAX_VALUE, idx)
             },
         )
     }
@@ -96,16 +99,27 @@ fun TargetsScreen(
 
     LaunchedEffect(Unit) {
         try {
-            val extraction = loadLibraryExtraction(context)
-            val libraryEntries = LibraryGameLookup.buildEntries(extraction.payload.games)
+            val extraction = loadFullLibraryExtraction(context)
+            val libraryEntries = LibraryGameLookup.buildEntries(
+                extraction.payload.games.filter { it.sourceId in lplVenueSourceIds },
+            )
 
             val merged = lplTargets.mapIndexed { fallbackIndex, target ->
                 val chosen = LibraryGameLookup.bestMatch(target.game, libraryEntries)
 
                 if (chosen != null) {
-                    TargetRow(target, chosen.area, chosen.bank, chosen.group, chosen.position, chosen.order, fallbackIndex)
+                    TargetRow(
+                        target,
+                        chosen.area,
+                        chosen.areaOrder,
+                        chosen.bank,
+                        chosen.group,
+                        chosen.position,
+                        chosen.order,
+                        fallbackIndex,
+                    )
                 } else {
-                    TargetRow(target, null, null, null, null, Int.MAX_VALUE, fallbackIndex)
+                    TargetRow(target, null, null, null, null, null, Int.MAX_VALUE, fallbackIndex)
                 }
             }
 
@@ -265,7 +279,8 @@ private fun BankMenu(
 private fun sortRows(rows: List<TargetRow>, option: TargetSortOption): List<TargetRow> {
     return when (option) {
         TargetSortOption.LOCATION -> rows.sortedWith(
-            compareBy<TargetRow> { it.group ?: Int.MAX_VALUE }
+            compareBy<TargetRow> { it.areaOrder ?: Int.MAX_VALUE }
+                .thenBy { it.group ?: Int.MAX_VALUE }
                 .thenBy { it.position ?: Int.MAX_VALUE }
                 .thenBy { it.libraryOrder }
                 .thenBy { it.fallbackOrder },

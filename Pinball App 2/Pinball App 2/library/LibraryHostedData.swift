@@ -11,7 +11,7 @@ nonisolated let hostedLibraryCatalogPaths = [
 
 private let hostedLibraryRefreshInterval: TimeInterval = 24 * 60 * 60
 
-func loadHostedLibraryExtraction() async throws -> LegacyCatalogExtraction {
+func loadHostedLibraryExtraction(filterBySourceState: Bool = true) async throws -> LegacyCatalogExtraction {
     async let libraryResult = PinballDataCache.shared.loadText(
         path: hostedLibraryPath,
         allowMissing: false,
@@ -35,7 +35,8 @@ func loadHostedLibraryExtraction() async throws -> LegacyCatalogExtraction {
         return try decodeMergedLibraryPayloadWithState(
             libraryData: libraryData,
             opdbCatalogData: opdbData,
-            publicOverridesData: overridesData
+            publicOverridesData: overridesData,
+            filterBySourceState: filterBySourceState
         )
     }
     if let bundledOPDBText = try loadBundledPinballText(path: hostedOPDBCatalogPath),
@@ -46,10 +47,11 @@ func loadHostedLibraryExtraction() async throws -> LegacyCatalogExtraction {
         return try decodeMergedLibraryPayloadWithState(
             libraryData: libraryData,
             opdbCatalogData: bundledOPDBData,
-            publicOverridesData: bundledOverridesData
+            publicOverridesData: bundledOverridesData,
+            filterBySourceState: filterBySourceState
         )
     }
-    return try await LibrarySeedDatabase.shared.loadExtraction()
+    return try await LibrarySeedDatabase.shared.loadExtraction(filterBySourceState: filterBySourceState)
 }
 
 func warmHostedLibraryOverrides() async {
@@ -76,7 +78,7 @@ private func loadHostedLibraryOverridesText() async -> String? {
     }
 }
 
-func loadBundledLibraryExtraction() throws -> LegacyCatalogExtraction? {
+func loadBundledLibraryExtraction(filterBySourceState: Bool = true) throws -> LegacyCatalogExtraction? {
     guard let bundledLibraryText = try loadBundledPinballText(path: hostedLibraryPath),
           let bundledLibraryData = bundledLibraryText.data(using: .utf8) else {
         return nil
@@ -88,10 +90,11 @@ func loadBundledLibraryExtraction() throws -> LegacyCatalogExtraction? {
         return try decodeMergedLibraryPayloadWithState(
             libraryData: bundledLibraryData,
             opdbCatalogData: bundledOPDBData,
-            publicOverridesData: bundledOverridesData
+            publicOverridesData: bundledOverridesData,
+            filterBySourceState: filterBySourceState
         )
     }
-    return try decodeLibraryPayloadWithState(data: bundledLibraryData)
+    return try decodeLibraryPayloadWithState(data: bundledLibraryData, filterBySourceState: filterBySourceState)
 }
 
 func loadHostedCatalogManufacturerOptions() async throws -> [PinballCatalogManufacturerOption] {

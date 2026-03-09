@@ -7,8 +7,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 
-private const val FALLBACK_WHITEWOOD_PLAYFIELD_700 = "/pinball/images/playfields/fallback-whitewood-playfield_700.webp"
-private const val FALLBACK_WHITEWOOD_PLAYFIELD_1400 = "/pinball/images/playfields/fallback-whitewood-playfield_1400.webp"
+private const val MISSING_ARTWORK_PATH = "/pinball/images/playfields/fallback-image-not-available_2048.webp"
 private val supportedPlayfieldOriginalExtensions = listOf("webp", "jpg", "jpeg", "png")
 
 internal enum class LivePlayfieldKind {
@@ -105,8 +104,8 @@ internal fun normalizeLibraryCachePath(path: String?): String? {
     return "/$raw"
 }
 
-private fun fallbackPlayfieldUrl(width: Int): String? =
-    resolveLibraryUrl("/pinball/images/playfields/fallback-whitewood-playfield_${width}.webp")
+private fun missingArtworkUrl(): String? =
+    resolveLibraryUrl(MISSING_ARTWORK_PATH)
 
 internal val PinballGame.localAssetKey: String?
     get() = practiceIdentity?.ifBlank { null } ?: opdbGroupId?.ifBlank { null }
@@ -185,33 +184,58 @@ internal fun PinballGame.libraryPlayfieldCandidate(): String? =
     libraryPlayfieldCandidates().firstOrNull()
 
 internal fun PinballGame.cardArtworkCandidates(): List<String> =
-    primaryArtworkCandidates
+    artworkCandidatesOrMissingArtwork()
 
 internal fun PinballGame.libraryPlayfieldCandidates(): List<String> =
-    (preferredLocalPlayfieldCandidates + remotePlayfieldCandidates + listOfNotNull(
-        fallbackPlayfieldUrl(700),
-    )).distinct()
+    realPlayfieldCandidatesOrMissingArtwork()
 
 internal fun PinballGame.miniCardPlayfieldCandidates(): List<String> =
-    (preferredLocalPlayfieldCandidates + remotePlayfieldCandidates + listOfNotNull(
-        fallbackPlayfieldUrl(700),
-        fallbackPlayfieldUrl(1400),
-    )).distinct()
+    realPlayfieldCandidatesOrMissingArtwork()
 
 internal fun PinballGame.miniCardPlayfieldCandidate(): String? =
     miniCardPlayfieldCandidates().firstOrNull()
 
 internal fun PinballGame.gameInlinePlayfieldCandidates(): List<String> =
-    (actualFullscreenPlayfieldCandidates + listOfNotNull(fallbackPlayfieldUrl(700))).distinct()
+    fullscreenArtworkCandidatesOrMissingArtwork()
 
 internal fun PinballGame.detailArtworkCandidates(): List<String> =
-    primaryArtworkCandidates
+    artworkCandidatesOrMissingArtwork()
 
 internal fun PinballGame.fullscreenPlayfieldCandidates(): List<String> =
-    (actualFullscreenPlayfieldCandidates + listOfNotNull(fallbackPlayfieldUrl(700))).distinct()
+    fullscreenArtworkCandidatesOrMissingArtwork()
 
 internal val PinballGame.actualFullscreenPlayfieldCandidates: List<String>
     get() = (explicitLocalPlayfieldCandidates + remotePlayfieldCandidates).distinct()
+
+private fun PinballGame.artworkCandidatesOrMissingArtwork(): List<String> {
+    val candidates = primaryArtworkCandidates
+    if (candidates.isNotEmpty()) {
+        return candidates
+    }
+    return listOfNotNull(missingArtworkUrl()).distinct()
+}
+
+private fun PinballGame.realPlayfieldCandidates(): List<String> =
+    (preferredLocalPlayfieldCandidates + remotePlayfieldCandidates).distinct()
+
+private fun PinballGame.realPlayfieldCandidatesOrMissingArtwork(): List<String> {
+    val candidates = realPlayfieldCandidates()
+    if (candidates.isNotEmpty()) {
+        return candidates
+    }
+    return listOfNotNull(missingArtworkUrl()).distinct()
+}
+
+private fun PinballGame.fullscreenArtworkCandidatesOrMissingArtwork(): List<String> {
+    if (actualFullscreenPlayfieldCandidates.isNotEmpty()) {
+        return actualFullscreenPlayfieldCandidates
+    }
+    val candidates = realPlayfieldCandidates()
+    if (candidates.isNotEmpty()) {
+        return candidates
+    }
+    return listOfNotNull(missingArtworkUrl()).distinct()
+}
 
 internal val PinballGame.hasPlayfieldResource: Boolean
     get() = actualFullscreenPlayfieldCandidates.isNotEmpty()

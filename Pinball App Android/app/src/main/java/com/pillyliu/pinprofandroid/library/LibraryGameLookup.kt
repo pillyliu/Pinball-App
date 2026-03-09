@@ -5,6 +5,7 @@ import java.util.Locale
 internal data class LibraryGameLookupEntry(
     val normalizedName: String,
     val area: String?,
+    val areaOrder: Int?,
     val bank: Int?,
     val group: Int?,
     val position: Int?,
@@ -30,6 +31,7 @@ internal object LibraryGameLookup {
                 LibraryGameLookupEntry(
                     normalizedName = normalizedName,
                     area = game.area?.trim()?.takeIf { it.isNotBlank() },
+                    areaOrder = game.areaOrder,
                     bank = game.bank,
                     group = game.group,
                     position = game.position,

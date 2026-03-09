@@ -13,7 +13,10 @@ internal val HOSTED_LIBRARY_PATHS = listOf(
     hostedLibraryOverridesPath,
 )
 
-internal suspend fun loadHostedLibraryExtraction(context: Context): LegacyCatalogExtraction {
+internal suspend fun loadHostedLibraryExtraction(
+    context: Context,
+    filterBySourceState: Boolean = true,
+): LegacyCatalogExtraction {
     val libraryCached = PinballDataCache.loadText(
         url = LIBRARY_URL,
         allowMissing = false,
@@ -28,18 +31,25 @@ internal suspend fun loadHostedLibraryExtraction(context: Context): LegacyCatalo
     val opdbText = opdbCached.text?.takeIf { it.isNotBlank() }
     val overridesText = loadHostedLibraryOverridesText()
     return if (opdbText != null) {
-        decodeMergedLibraryPayloadWithState(context, libraryText, opdbText, overridesText)
+        decodeMergedLibraryPayloadWithState(
+            context = context,
+            libraryRaw = libraryText,
+            opdbCatalogRaw = opdbText,
+            publicOverridesRaw = overridesText,
+            filterBySourceState = filterBySourceState,
+        )
     } else {
         val bundledOpdbText = loadBundledPinballText(context, "/pinball/data/opdb_catalog_v1.json")
         if (!bundledOpdbText.isNullOrBlank()) {
             decodeMergedLibraryPayloadWithState(
-                context,
-                libraryText,
-                bundledOpdbText,
-                overridesText ?: loadBundledPinballText(context, hostedLibraryOverridesPath),
+                context = context,
+                libraryRaw = libraryText,
+                opdbCatalogRaw = bundledOpdbText,
+                publicOverridesRaw = overridesText ?: loadBundledPinballText(context, hostedLibraryOverridesPath),
+                filterBySourceState = filterBySourceState,
             )
         } else {
-            LibrarySeedDatabase.loadExtraction(context)
+            LibrarySeedDatabase.loadExtraction(context, filterBySourceState)
         }
     }
 }
@@ -69,14 +79,23 @@ private suspend fun loadHostedLibraryOverridesText(): String? {
     }.getOrNull()?.takeIf { it.isNotBlank() }
 }
 
-internal fun loadBundledLibraryExtraction(context: Context): LegacyCatalogExtraction? {
+internal fun loadBundledLibraryExtraction(
+    context: Context,
+    filterBySourceState: Boolean = true,
+): LegacyCatalogExtraction? {
     val libraryText = loadBundledPinballText(context, hostedLibraryPath) ?: return null
     val opdbText = loadBundledPinballText(context, hostedOPDBCatalogPath)
     val overridesText = loadBundledPinballText(context, hostedLibraryOverridesPath)
     return if (!opdbText.isNullOrBlank()) {
-        decodeMergedLibraryPayloadWithState(context, libraryText, opdbText, overridesText)
+        decodeMergedLibraryPayloadWithState(
+            context = context,
+            libraryRaw = libraryText,
+            opdbCatalogRaw = opdbText,
+            publicOverridesRaw = overridesText,
+            filterBySourceState = filterBySourceState,
+        )
     } else {
-        decodeLibraryPayloadWithState(context, libraryText)
+        decodeLibraryPayloadWithState(context, libraryText, filterBySourceState)
     }
 }
 

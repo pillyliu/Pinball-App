@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AppTextAction
+import com.pillyliu.pinprofandroid.ui.dismissKeyboardOnTapOutside
 
 @Composable
 internal fun JournalEditDialog(
@@ -55,6 +56,7 @@ internal fun JournalEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.dismissKeyboardOnTapOutside(),
         title = { Text("Edit Journal Entry") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

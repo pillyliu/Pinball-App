@@ -678,30 +678,35 @@ nonisolated func catalogNormalizedOptionalString(_ value: String?) -> String? {
     return trimmed
 }
 
-func decodeLibraryPayloadWithState(data: Data) throws -> LegacyCatalogExtraction {
+func decodeLibraryPayloadWithState(
+    data: Data,
+    filterBySourceState: Bool = true
+) throws -> LegacyCatalogExtraction {
     if let normalized = try? JSONDecoder().decode(NormalizedLibraryRoot.self, from: data),
        let machines = normalized.machines, !machines.isEmpty {
-        let payload = resolveNormalizedCatalog(root: normalized, machines: machines)
+        let payload = resolveNormalizedCatalog(root: normalized, machines: catalogResolvedMachines(machines))
         let state = PinballLibrarySourceStateStore.synchronize(with: payload.sources)
-        return LegacyCatalogExtraction(payload: filterPayload(payload, using: state), state: state)
+        return legacyCatalogExtraction(payload: payload, state: state, filterBySourceState: filterBySourceState)
     }
 
     let payload = try decodeLegacyLibraryPayload(data: data)
     let state = PinballLibrarySourceStateStore.synchronize(with: payload.sources)
-    return LegacyCatalogExtraction(payload: filterPayload(payload, using: state), state: state)
+    return legacyCatalogExtraction(payload: payload, state: state, filterBySourceState: filterBySourceState)
 }
 
 func decodeMergedLibraryPayloadWithState(
     libraryData: Data,
     opdbCatalogData: Data,
-    publicOverridesData: Data? = nil
+    publicOverridesData: Data? = nil,
+    filterBySourceState: Bool = true
 ) throws -> LegacyCatalogExtraction {
     let legacyPayload = try decodeLegacyLibraryPayload(data: libraryData)
     guard let normalized = try? JSONDecoder().decode(NormalizedLibraryRoot.self, from: opdbCatalogData),
-          let machines = normalized.machines, !machines.isEmpty else {
+          let decodedMachines = normalized.machines, !decodedMachines.isEmpty else {
         let state = PinballLibrarySourceStateStore.synchronize(with: legacyPayload.sources)
-        return LegacyCatalogExtraction(payload: filterPayload(legacyPayload, using: state), state: state)
+        return legacyCatalogExtraction(payload: legacyPayload, state: state, filterBySourceState: filterBySourceState)
     }
+    let machines = catalogResolvedMachines(decodedMachines)
 
     let payload = resolveMergedCatalog(
         legacyPayload: legacyPayload,
@@ -710,13 +715,13 @@ func decodeMergedLibraryPayloadWithState(
         publicOverrides: parsePublicLibraryOverrides(data: publicOverridesData)
     )
     let state = PinballLibrarySourceStateStore.synchronize(with: payload.sources)
-    return LegacyCatalogExtraction(payload: filterPayload(payload, using: state), state: state)
+    return legacyCatalogExtraction(payload: payload, state: state, filterBySourceState: filterBySourceState)
 }
 
 func decodeCatalogManufacturerOptions(data: Data) throws -> [PinballCatalogManufacturerOption] {
     let root = try JSONDecoder().decode(NormalizedLibraryRoot.self, from: data)
     let groupCountsByManufacturerID: [String: Int] = {
-        guard let machines = root.machines else { return [:] }
+        guard let machines = root.machines.map(catalogResolvedMachines) else { return [:] }
         let grouped = Dictionary(grouping: machines) { machine in
             machine.manufacturerID ?? ""
         }
@@ -743,12 +748,41 @@ func decodeCatalogManufacturerOptions(data: Data) throws -> [PinballCatalogManuf
         }
 }
 
+private func catalogResolvedMachines(_ machines: [CatalogMachineRecord]) -> [CatalogMachineRecord] {
+    machines.map { machine in
+        CatalogMachineRecord(
+            practiceIdentity: machine.practiceIdentity,
+            opdbMachineID: machine.opdbMachineID,
+            opdbGroupID: machine.opdbGroupID,
+            slug: machine.slug,
+            name: machine.name,
+            variant: catalogResolvedVariantLabel(title: machine.name, explicitVariant: machine.variant),
+            manufacturerID: machine.manufacturerID,
+            manufacturerName: machine.manufacturerName,
+            year: machine.year,
+            primaryImage: machine.primaryImage,
+            playfieldImage: machine.playfieldImage
+        )
+    }
+}
+
 private func filterPayload(_ payload: PinballLibraryPayload, using state: PinballLibrarySourceState) -> PinballLibraryPayload {
     let enabled = Set(state.enabledSourceIDs)
     let filteredSources = payload.sources.filter { enabled.contains($0.id) }
     let sourceIDs = Set(filteredSources.map(\.id))
     let filteredGames = payload.games.filter { sourceIDs.contains($0.sourceId) }
     return PinballLibraryPayload(games: filteredGames, sources: filteredSources)
+}
+
+private func legacyCatalogExtraction(
+    payload: PinballLibraryPayload,
+    state: PinballLibrarySourceState,
+    filterBySourceState: Bool
+) -> LegacyCatalogExtraction {
+    LegacyCatalogExtraction(
+        payload: filterBySourceState ? filterPayload(payload, using: state) : payload,
+        state: state
+    )
 }
 
 private func decodeLegacyLibraryPayload(data: Data) throws -> PinballLibraryPayload {

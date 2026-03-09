@@ -118,11 +118,38 @@ private fun bestSeedTemplateForOwnedMachine(
     val normalizedPracticeIdentity = normalizedOptionalString(ownedMachine.canonicalPracticeIdentity)
     val normalizedCatalogID = normalizedOptionalString(ownedMachine.catalogGameID)
     val normalizedTitle = ownedMachine.displayTitle.trim().lowercase()
-    return baseGames.firstOrNull { game ->
-        normalizedOptionalString(game.practiceIdentity) == normalizedPracticeIdentity ||
-            normalizedOptionalString(game.opdbGroupId) == normalizedCatalogID ||
-            game.name.trim().lowercase() == normalizedTitle
+    val requestedVariant = normalizedOptionalString(ownedMachine.displayVariant)?.lowercase()
+    return baseGames
+        .mapNotNull { game ->
+            val matchScore = when {
+                normalizedPracticeIdentity != null &&
+                    normalizedOptionalString(game.practiceIdentity) == normalizedPracticeIdentity -> 300
+                normalizedCatalogID != null &&
+                    normalizedOptionalString(game.opdbGroupId) == normalizedCatalogID -> 260
+                game.name.trim().lowercase() == normalizedTitle -> 180
+                else -> 0
+            }
+            if (matchScore <= 0) {
+                null
+            } else {
+                val variantScore = buildSeedTemplateVariantScore(game, requestedVariant)
+                game to (matchScore + variantScore)
+            }
+        }
+        .maxByOrNull { it.second }
+        ?.first
+}
+
+private fun buildSeedTemplateVariantScore(game: PinballGame, requestedVariant: String?): Int {
+    val normalizedGameVariant = normalizedOptionalString(game.normalizedVariant)?.lowercase()
+    var score = catalogVariantScore(normalizedGameVariant, requestedVariant)
+    if (requestedVariant == null && normalizedGameVariant == null) {
+        score += 80
     }
+    if (!game.primaryImageLargeUrl.isNullOrBlank() || !game.primaryImageUrl.isNullOrBlank()) {
+        score += 20
+    }
+    return score
 }
 
 private fun compareGameRoomOwnedMachinesForSeed(

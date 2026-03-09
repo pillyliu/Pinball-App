@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-03-09T03:26:46.119Z",
+  "generatedAt": "2026-03-09T20:52:45.329Z",
   "source": "shared/pinball",
   "totalFiles": 351,
   "files": {
@@ -19,7 +19,7 @@
     "/pinball/data/Avenue Pinball - Current.csv": {
       "hash": "0a0e1787965d5e85ad06b7c669ed49eeae1023982d9583f1f9e0565ff64a4760",
       "size": 13473,
-      "mtimeMs": 1773026803883,
+      "mtimeMs": 1773089562846,
       "contentType": "text/csv"
     },
     "/pinball/data/Codex Pinball Library - Current.csv": {
@@ -59,9 +59,9 @@
       "contentType": "application/json"
     },
     "/pinball/data/opdb_catalog_v1.json": {
-      "hash": "2f36390aad6cf9c7bac721def6412ce8a9fd725ecf90c9d18b3b77f1f351a8a5",
+      "hash": "59adeba0ea60d6c4a3413e589e2246b572994a4e46f3ee7524a1d987ef2b94da",
       "size": 1866845,
-      "mtimeMs": 1773026805356,
+      "mtimeMs": 1773089564527,
       "contentType": "application/json"
     },
     "/pinball/data/pinball_library.csv": {
@@ -71,15 +71,15 @@
       "contentType": "text/csv"
     },
     "/pinball/data/pinball_library_seed_overrides_v1.json": {
-      "hash": "5851830d6ebfde006399e1de3e2f0064a53f506879f0c24ac63bb8f434981078",
+      "hash": "dd1c1cb68b698499c2c19adb582c87b2bf69215fc75ba288e018ec21123bcba7",
       "size": 18713,
-      "mtimeMs": 1773026805560,
+      "mtimeMs": 1773089564716,
       "contentType": "application/json"
     },
     "/pinball/data/pinball_library_seed_v1.sqlite": {
-      "hash": "1c92c8429893d84f788a978f1b3a5331382c3de5d5a6e3e998a3090766d81315",
+      "hash": "ba041682fe1ac0d462703beda1383dd49e55ff6ca8d622f1dd4926500ff93201",
       "size": 1204224,
-      "mtimeMs": 1773026805517,
+      "mtimeMs": 1773089564680,
       "contentType": "application/octet-stream"
     },
     "/pinball/data/pinball_library_v3.json": {
@@ -119,9 +119,9 @@
       "contentType": "text/csv"
     },
     "/pinball/data/rulesheet_link_audit.json": {
-      "hash": "806cf919bc620870e1b5973ead6804d4f7d70b7028e9c95d026aa58baa492c56",
+      "hash": "d2dd16e2fc7dd52f7f4307335d6bb872409fc5612a59f93d5ecdf7d8362fbdef",
       "size": 1488937,
-      "mtimeMs": 1773026805686,
+      "mtimeMs": 1773089564846,
       "contentType": "application/json"
     },
     "/pinball/gameinfo/G2Lkd-gameinfo.md": {
@@ -1249,19 +1249,19 @@
     "/pinball/images/playfields/GV8wB-MRjKd-ARz2r-playfield.jpg": {
       "hash": "ea213ff773de59b6a47f75f91e37143eaf05e988051f0a66db464937883b0ff7",
       "size": 2422543,
-      "mtimeMs": 1773022136040,
+      "mtimeMs": 1773029780913,
       "contentType": "image/jpeg"
     },
     "/pinball/images/playfields/GV8wB-MRjKd-ARz2r-playfield_1400.webp": {
       "hash": "74824a78d49622023459128bee7c03868063725343d0629194e11c6a028bb5f7",
       "size": 589832,
-      "mtimeMs": 1773022136426,
+      "mtimeMs": 1773029780918,
       "contentType": "image/webp"
     },
     "/pinball/images/playfields/GV8wB-MRjKd-ARz2r-playfield_700.webp": {
       "hash": "97b3bd6ebb134d292c0a8f6b62ea8391d730edc5de4ff402abddf38124de9a80",
       "size": 152608,
-      "mtimeMs": 1773022136142,
+      "mtimeMs": 1773029780919,
       "contentType": "image/webp"
     },
     "/pinball/images/playfields/GWyBj-MdEbK-AOPdq-playfield.webp": {

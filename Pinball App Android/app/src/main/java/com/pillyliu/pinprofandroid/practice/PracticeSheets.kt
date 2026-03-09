@@ -3,6 +3,7 @@ package com.pillyliu.pinprofandroid.practice
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,6 +25,7 @@ import java.util.Locale
 import com.pillyliu.pinprofandroid.ui.AppDatePickerSheet
 import com.pillyliu.pinprofandroid.ui.AppCheckbox
 import com.pillyliu.pinprofandroid.ui.AppTextAction
+import com.pillyliu.pinprofandroid.ui.dismissKeyboardOnTapOutside
 
 @Composable
 internal fun PracticeNamePromptSheet(
@@ -36,6 +38,7 @@ internal fun PracticeNamePromptSheet(
     val trimmedName = nameValue.trim()
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.dismissKeyboardOnTapOutside(),
         title = {
             Text(
                 "Welcome to Practice",
@@ -159,6 +162,7 @@ internal fun ResetPracticeLogDialog(
     var resetConfirmText by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.dismissKeyboardOnTapOutside(),
         title = { Text("Reset Practice Log?") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

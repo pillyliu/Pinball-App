@@ -5,8 +5,15 @@ actor LibrarySeedDatabase {
     static let shared = LibrarySeedDatabase()
 
     func loadExtraction() async throws -> LegacyCatalogExtraction {
+        try await loadExtraction(filterBySourceState: true)
+    }
+
+    func loadExtraction(filterBySourceState: Bool) async throws -> LegacyCatalogExtraction {
         let payload = try await loadSeedPayload()
         let state = await MainActor.run { PinballLibrarySourceStateStore.synchronize(with: payload.sources) }
+        if !filterBySourceState {
+            return LegacyCatalogExtraction(payload: payload, state: state)
+        }
         let enabled = Set(state.enabledSourceIDs)
         let filteredSources = payload.sources.filter { enabled.contains($0.id) }
         let filteredSourceIDs = Set(filteredSources.map(\.id))

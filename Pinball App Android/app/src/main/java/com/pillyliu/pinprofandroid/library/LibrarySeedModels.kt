@@ -65,12 +65,50 @@ internal fun seedMachineHasPrimaryImage(machine: SeedMachine): Boolean =
 
 internal fun preferredSeedGroupMachine(group: List<SeedMachine>): SeedMachine? =
     group.minWithOrNull(
-        compareByDescending<SeedMachine> { seedMachineHasPrimaryImage(it) }
-            .thenBy { it.variant != null }
-            .thenBy { it.year ?: Int.MAX_VALUE }
-            .thenBy { it.name.lowercase() }
-            .thenBy { it.opdbMachineId },
+        ::compareSeedPreferredMachine,
     )
+
+internal fun compareSeedPreferredMachine(lhs: SeedMachine, rhs: SeedMachine): Int {
+    val lhsHasPrimary = seedMachineHasPrimaryImage(lhs)
+    val rhsHasPrimary = seedMachineHasPrimaryImage(rhs)
+    if (lhsHasPrimary != rhsHasPrimary) return if (lhsHasPrimary) -1 else 1
+
+    val lhsVariant = normalizedOptionalString(lhs.variant)
+    val rhsVariant = normalizedOptionalString(rhs.variant)
+    if ((lhsVariant == null) != (rhsVariant == null)) return if (lhsVariant == null) -1 else 1
+
+    val lhsYear = lhs.year ?: Int.MAX_VALUE
+    val rhsYear = rhs.year ?: Int.MAX_VALUE
+    if (lhsYear != rhsYear) return lhsYear.compareTo(rhsYear)
+
+    val lhsName = lhs.name.lowercase()
+    val rhsName = rhs.name.lowercase()
+    if (lhsName != rhsName) return lhsName.compareTo(rhsName)
+
+    return lhs.opdbMachineId.compareTo(rhs.opdbMachineId)
+}
+
+internal fun preferredSeedMachineForVariant(
+    candidates: List<SeedMachine>,
+    requestedVariant: String?,
+): SeedMachine? {
+    if (candidates.isEmpty()) return null
+    val normalizedRequested = normalizedOptionalString(requestedVariant)
+    val ranked = candidates.sortedWith { lhs, rhs ->
+        val lhsScore = catalogVariantScore(lhs.variant, normalizedRequested)
+        val rhsScore = catalogVariantScore(rhs.variant, normalizedRequested)
+        when {
+            lhsScore != rhsScore -> rhsScore.compareTo(lhsScore)
+            else -> compareSeedPreferredMachine(lhs, rhs)
+        }
+    }
+    val best = ranked.firstOrNull() ?: return null
+    if (normalizedRequested != null) {
+        val bestScore = catalogVariantScore(best.variant, normalizedRequested)
+        if (bestScore <= 0) return null
+    }
+    return best
+}
 
 internal fun dedupeRulesheetLinks(links: List<ReferenceLink>): List<ReferenceLink> {
     val grouped = linkedMapOf<String, MutableList<ReferenceLink>>()
@@ -107,7 +145,7 @@ internal fun SeedMachine.toCatalogMachineRecord(): CatalogMachineRecord =
         opdbGroupId = opdbGroupId,
         slug = slug,
         name = name,
-        variant = variant,
+        variant = resolvedCatalogVariantLabel(title = name, explicitVariant = variant),
         manufacturerId = manufacturerId,
         manufacturerName = manufacturerName,
         year = year,

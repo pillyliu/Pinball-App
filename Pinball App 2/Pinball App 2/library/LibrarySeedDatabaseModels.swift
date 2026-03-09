@@ -94,6 +94,34 @@ nonisolated func preferredSeedGroupMachine(_ group: [SeedCatalogMachineRow]) -> 
     group.min(by: preferredManufacturerMachine)
 }
 
+nonisolated func preferredSeedMachineForVariant(
+    candidates: [SeedCatalogMachineRow],
+    requestedVariant: String?
+) -> SeedCatalogMachineRow? {
+    guard !candidates.isEmpty else { return nil }
+    guard let requestedVariant = requestedVariant?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+          !requestedVariant.isEmpty else {
+        return preferredSeedGroupMachine(candidates)
+    }
+
+    let ranked = candidates.sorted { lhs, rhs in
+        let lhsScore = catalogVariantMatchScore(machineVariant: lhs.variant, requestedVariant: requestedVariant)
+        let rhsScore = catalogVariantMatchScore(machineVariant: rhs.variant, requestedVariant: requestedVariant)
+        if lhsScore != rhsScore { return lhsScore > rhsScore }
+
+        let lhsHasPrimary = seedMachineHasPrimaryImage(lhs)
+        let rhsHasPrimary = seedMachineHasPrimaryImage(rhs)
+        if lhsHasPrimary != rhsHasPrimary { return lhsHasPrimary }
+
+        return preferredManufacturerMachine(lhs, rhs)
+    }
+
+    guard let best = ranked.first else { return nil }
+    let bestScore = catalogVariantMatchScore(machineVariant: best.variant, requestedVariant: requestedVariant)
+    guard bestScore > 0 else { return nil }
+    return best
+}
+
 nonisolated func dedupeRulesheetLinks(_ links: [PinballGame.ReferenceLink]) -> [PinballGame.ReferenceLink] {
     let grouped = Dictionary(grouping: links, by: \.label)
     return grouped.values.compactMap { group in
@@ -157,7 +185,7 @@ nonisolated func catalogMachineRecord(from row: SeedCatalogMachineRow) -> Catalo
         opdbGroupID: row.opdbGroupID,
         slug: row.slug,
         name: row.name,
-        variant: row.variant,
+        variant: catalogResolvedVariantLabel(title: row.name, explicitVariant: row.variant),
         manufacturerID: row.manufacturerID,
         manufacturerName: row.manufacturerName,
         year: row.year,

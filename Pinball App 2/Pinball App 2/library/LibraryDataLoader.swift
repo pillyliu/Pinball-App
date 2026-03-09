@@ -19,6 +19,7 @@ private struct GameRoomOPDBCatalogRoot: Decodable {
         let practiceIdentity: String
         let opdbMachineID: String?
         let opdbGroupID: String?
+        let name: String
         let variant: String?
         let year: Int?
         let primaryImage: RemoteImageSet?
@@ -27,6 +28,7 @@ private struct GameRoomOPDBCatalogRoot: Decodable {
             case practiceIdentity = "practice_identity"
             case opdbMachineID = "opdb_machine_id"
             case opdbGroupID = "opdb_group_id"
+            case name
             case variant
             case year
             case primaryImage = "primary_image"
@@ -47,14 +49,22 @@ private struct GameRoomOPDBMediaRecord {
 }
 
 func loadLibraryExtraction() async throws -> LegacyCatalogExtraction {
+    try await loadLibraryExtraction(filterBySourceState: true)
+}
+
+func loadFullLibraryExtraction() async throws -> LegacyCatalogExtraction {
+    try await loadLibraryExtraction(filterBySourceState: false)
+}
+
+private func loadLibraryExtraction(filterBySourceState: Bool) async throws -> LegacyCatalogExtraction {
     do {
-        let extraction = try await loadHostedLibraryExtraction()
+        let extraction = try await loadHostedLibraryExtraction(filterBySourceState: filterBySourceState)
         return augmentExtractionWithGameRoom(extraction)
     } catch {
-        if let bundled = try loadBundledLibraryExtraction() {
+        if let bundled = try loadBundledLibraryExtraction(filterBySourceState: filterBySourceState) {
             return augmentExtractionWithGameRoom(bundled)
         }
-        let seedExtraction = try await LibrarySeedDatabase.shared.loadExtraction()
+        let seedExtraction = try await LibrarySeedDatabase.shared.loadExtraction(filterBySourceState: filterBySourceState)
         return augmentExtractionWithGameRoom(seedExtraction)
     }
 }
@@ -271,7 +281,7 @@ private func loadGameRoomOPDBMediaIndex() -> [String: [GameRoomOPDBMediaRecord]]
             practiceIdentity: machine.practiceIdentity,
             opdbMachineID: machine.opdbMachineID,
             opdbGroupID: machine.opdbGroupID,
-            variant: machine.variant,
+            variant: catalogResolvedVariantLabel(title: machine.name, explicitVariant: machine.variant),
             year: machine.year,
             primaryMediumURL: machine.primaryImage?.mediumURL,
             primaryLargeURL: machine.primaryImage?.largeURL

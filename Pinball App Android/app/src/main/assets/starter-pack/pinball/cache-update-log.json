@@ -2,6 +2,21 @@
   "schemaVersion": 1,
   "events": [
     {
+      "generatedAt": "2026-03-09T20:52:45.329Z",
+      "addedCount": 0,
+      "changedCount": 4,
+      "removedCount": 0,
+      "totalFiles": 351,
+      "added": [],
+      "changed": [
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": []
+    },
+    {
       "generatedAt": "2026-03-09T03:26:46.119Z",
       "addedCount": 0,
       "changedCount": 4,
@@ -471,7 +486,7 @@
     }
   ],
   "latest": {
-    "generatedAt": "2026-03-09T03:26:46.119Z",
+    "generatedAt": "2026-03-09T20:52:45.329Z",
     "addedCount": 0,
     "changedCount": 4,
     "removedCount": 0,

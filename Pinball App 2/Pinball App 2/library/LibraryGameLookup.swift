@@ -3,6 +3,7 @@ import Foundation
 struct LibraryGameLookupEntry {
     let normalizedName: String
     let area: String?
+    let areaOrder: Int?
     let bank: Int?
     let group: Int?
     let position: Int?
@@ -26,6 +27,7 @@ enum LibraryGameLookup {
             return LibraryGameLookupEntry(
                 normalizedName: normalizedName,
                 area: game.area?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
+                areaOrder: game.areaOrder,
                 bank: game.bank,
                 group: game.group,
                 position: game.pos,

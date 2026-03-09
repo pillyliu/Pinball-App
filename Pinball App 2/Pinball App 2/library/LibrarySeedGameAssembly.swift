@@ -14,6 +14,7 @@ extension LibrarySeedDatabase {
         return try loadBuiltInGameRows(database).map { row in
             let resolvedMachine = preferredSeedMachineForBuiltInGame(
                 requestedMachineID: row.opdbID,
+                requestedVariant: row.variant,
                 practiceIdentity: row.practiceIdentity,
                 machinesByPracticeIdentity: machinesByPracticeIdentity,
                 machinesByOPDBID: machinesByOPDBID
@@ -97,15 +98,45 @@ extension LibrarySeedDatabase {
 
     func preferredSeedMachineForBuiltInGame(
         requestedMachineID: String?,
+        requestedVariant: String?,
         practiceIdentity: String,
         machinesByPracticeIdentity: [String: [SeedCatalogMachineRow]],
         machinesByOPDBID: [String: SeedCatalogMachineRow]
     ) -> SeedCatalogMachineRow? {
-        let preferredGroupMachine = preferredSeedGroupMachine(machinesByPracticeIdentity[practiceIdentity] ?? [])
+        let groupCandidates = machinesByPracticeIdentity[practiceIdentity] ?? []
+        let preferredGroupMachine = preferredSeedGroupMachine(groupCandidates)
+        let groupArtFallback = groupCandidates
+            .filter(seedMachineHasPrimaryImage)
+            .min(by: preferredManufacturerMachine)
+        let normalizedRequestedVariant = requestedVariant?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
 
         guard let requestedMachineID,
               let exactMachine = machinesByOPDBID[requestedMachineID] else {
+            if let variantMatch = preferredSeedMachineForVariant(
+                candidates: groupCandidates,
+                requestedVariant: normalizedRequestedVariant
+            ),
+               seedMachineHasPrimaryImage(variantMatch) {
+                return variantMatch
+            }
+            if let preferredGroupMachine, seedMachineHasPrimaryImage(preferredGroupMachine) {
+                return preferredGroupMachine
+            }
+            if let groupArtFallback {
+                return groupArtFallback
+            }
             return preferredGroupMachine
+        }
+
+        let variantCandidates = machinesByPracticeIdentity[exactMachine.practiceIdentity] ?? groupCandidates
+        let variantMatch = preferredSeedMachineForVariant(
+            candidates: variantCandidates,
+            requestedVariant: normalizedRequestedVariant
+        )
+        if let variantMatch, seedMachineHasPrimaryImage(variantMatch) {
+            return variantMatch
         }
 
         if seedMachineHasPrimaryImage(exactMachine) {
@@ -113,7 +144,16 @@ extension LibrarySeedDatabase {
         }
 
         let preferredExactGroupMachine = preferredSeedGroupMachine(machinesByPracticeIdentity[exactMachine.practiceIdentity] ?? [])
-        return preferredExactGroupMachine ?? preferredGroupMachine ?? exactMachine
+        if let preferredExactGroupMachine, seedMachineHasPrimaryImage(preferredExactGroupMachine) {
+            return preferredExactGroupMachine
+        }
+        if let preferredGroupMachine, seedMachineHasPrimaryImage(preferredGroupMachine) {
+            return preferredGroupMachine
+        }
+        if let groupArtFallback {
+            return groupArtFallback
+        }
+        return preferredExactGroupMachine ?? preferredGroupMachine ?? variantMatch ?? exactMachine
     }
 
     func loadBuiltInRulesheets(_ database: OpaquePointer) throws -> [String: [PinballGame.ReferenceLink]] {
@@ -197,7 +237,10 @@ extension LibrarySeedDatabase {
                     opdbGroupID: sqliteString(statement, index: 2),
                     slug: sqliteString(statement, index: 3) ?? "",
                     name: sqliteString(statement, index: 4) ?? "",
-                    variant: sqliteString(statement, index: 5),
+                    variant: catalogResolvedVariantLabel(
+                        title: sqliteString(statement, index: 4) ?? "",
+                        explicitVariant: sqliteString(statement, index: 5)
+                    ),
                     manufacturerID: sqliteString(statement, index: 6),
                     manufacturerName: sqliteString(statement, index: 7),
                     year: sqliteInt(statement, index: 8),

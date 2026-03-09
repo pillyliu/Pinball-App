@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AppTextAction
+import com.pillyliu.pinprofandroid.ui.dismissKeyboardOnTapOutside
 import kotlin.math.roundToInt
 
 private const val QUICK_GAME_KEY_PREFIX = "practice-quick-game-"
@@ -183,6 +184,7 @@ internal fun QuickEntrySheet(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.dismissKeyboardOnTapOutside(),
         title = { Text("Quick Entry") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

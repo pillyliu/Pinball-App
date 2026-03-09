@@ -273,11 +273,13 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
         }
         Box(modifier = Modifier.fillMaxSize()) {
             val artworkCandidates = game.cardArtworkCandidates()
-            var imageLoaded by remember(artworkCandidates) { mutableStateOf(false) }
-            var showMissingImage by remember(artworkCandidates) { mutableStateOf(artworkCandidates.isEmpty()) }
+            var activeIndex by remember(artworkCandidates) { mutableIntStateOf(0) }
+            val imageModel = rememberCachedImageModel(artworkCandidates.getOrNull(activeIndex))
+            var imageLoaded by remember(artworkCandidates, activeIndex) { mutableStateOf(false) }
+            var showMissingImage by remember(artworkCandidates, activeIndex) { mutableStateOf(artworkCandidates.isEmpty()) }
             if (artworkCandidates.isNotEmpty()) {
                 AsyncImage(
-                    model = artworkCandidates.firstOrNull(),
+                    model = imageModel,
                     contentDescription = game.name,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -293,8 +295,12 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
                         showMissingImage = false
                     },
                     onError = {
-                        imageLoaded = false
-                        showMissingImage = true
+                        if (activeIndex < artworkCandidates.lastIndex) {
+                            activeIndex += 1
+                        } else {
+                            imageLoaded = false
+                            showMissingImage = true
+                        }
                     },
                 )
             }

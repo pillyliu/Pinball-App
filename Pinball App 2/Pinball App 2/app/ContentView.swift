@@ -78,6 +78,7 @@ struct ContentView: View {
             }
         }
         .tint(AppTheme.brandGold)
+        .dismissKeyboardOnTap()
         .environmentObject(appNavigation)
     }
 }
