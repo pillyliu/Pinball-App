@@ -5,6 +5,8 @@ struct PinsideImportedMachine: Identifiable, Hashable {
     let slug: String
     let rawTitle: String
     let rawVariant: String?
+    let manufacturerLabel: String?
+    let manufactureYear: Int?
     let rawPurchaseDateText: String?
     let normalizedPurchaseDate: Date?
 
@@ -53,27 +55,24 @@ actor GameRoomPinsideImportService {
         }
 
         let sourceURL = try buildCollectionURL(from: normalizedInput)
-        let html = try await fetchHTML(url: sourceURL)
-        try validateCollectionPageHTML(html)
-        let slugs = extractCollectionSlugs(from: html)
-        guard !slugs.isEmpty else {
-            throw GameRoomPinsideImportError.noMachinesFound
-        }
-
         let groupMap = try await loadGroupMap()
-        let machines = slugs.map { slug in
-            let title = groupMap[slug] ?? Self.humanizedTitle(fromSlug: slug)
-            let variant = Self.variantFromSlug(slug)
-            return PinsideImportedMachine(
-                id: slug,
-                slug: slug,
-                rawTitle: title,
-                rawVariant: variant,
-                rawPurchaseDateText: nil,
-                normalizedPurchaseDate: nil
-            )
+
+        do {
+            let html = try await fetchHTML(url: sourceURL)
+            let directMachines = try parseBasicMachines(from: html, groupMap: groupMap)
+            if let enrichedMachines = try? await fetchDetailedOrBasicMachinesFromJina(sourceURL: sourceURL, groupMap: groupMap),
+               !enrichedMachines.isEmpty {
+                return (sourceURL.absoluteString, mergeMachines(primary: enrichedMachines, fallback: directMachines))
+            }
+            return (sourceURL.absoluteString, directMachines)
+        } catch {
+            guard !isFatalImportError(error) else { throw error }
+            let fallbackMachines = try await fetchDetailedOrBasicMachinesFromJina(sourceURL: sourceURL, groupMap: groupMap)
+            guard !fallbackMachines.isEmpty else {
+                throw GameRoomPinsideImportError.noMachinesFound
+            }
+            return (sourceURL.absoluteString, fallbackMachines)
         }
-        return (sourceURL.absoluteString, machines)
     }
 
     private func buildCollectionURL(from input: String) throws -> URL {
@@ -114,6 +113,16 @@ actor GameRoomPinsideImportService {
         return html
     }
 
+    private func fetchHTMLFromJina(sourceURL: URL) async throws -> String {
+        let normalizedTarget = sourceURL.absoluteString
+            .replacingOccurrences(of: "https://", with: "")
+            .replacingOccurrences(of: "http://", with: "")
+        guard let proxyURL = URL(string: "https://r.jina.ai/http://\(normalizedTarget)") else {
+            throw GameRoomPinsideImportError.invalidURL
+        }
+        return try await fetchHTML(url: proxyURL)
+    }
+
     private func validateCollectionPageHTML(_ html: String) throws {
         let lowered = html.lowercased()
         if lowered.contains("404") && lowered.contains("page not found") {
@@ -131,6 +140,141 @@ actor GameRoomPinsideImportService {
         if lowered.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             throw GameRoomPinsideImportError.parseFailed
         }
+    }
+
+    private func looksLikeCloudflareChallenge(_ html: String) -> Bool {
+        let lowered = html.lowercased()
+        return lowered.contains("just a moment") &&
+            (lowered.contains("cf_chl_") ||
+                lowered.contains("challenge-platform") ||
+                lowered.contains("enable javascript and cookies to continue"))
+    }
+
+    private func parseBasicMachines(from html: String, groupMap: [String: String]) throws -> [PinsideImportedMachine] {
+        try validateCollectionPageHTML(html)
+        if looksLikeCloudflareChallenge(html) {
+            throw GameRoomPinsideImportError.parseFailed
+        }
+
+        let slugs = extractCollectionSlugs(from: html)
+        guard !slugs.isEmpty else {
+            throw GameRoomPinsideImportError.noMachinesFound
+        }
+
+        return slugs.map { slug in
+            let rawTitle = resolvedTitle(for: slug, groupMap: groupMap)
+            return PinsideImportedMachine(
+                id: slug,
+                slug: slug,
+                rawTitle: rawTitle,
+                rawVariant: Self.variantFromSlug(slug),
+                manufacturerLabel: nil,
+                manufactureYear: nil,
+                rawPurchaseDateText: nil,
+                normalizedPurchaseDate: nil
+            )
+        }
+    }
+
+    private func fetchDetailedOrBasicMachinesFromJina(
+        sourceURL: URL,
+        groupMap: [String: String]
+    ) async throws -> [PinsideImportedMachine] {
+        let content = try await fetchHTMLFromJina(sourceURL: sourceURL)
+        let detailedMachines = parseDetailedMachines(from: content)
+        if !detailedMachines.isEmpty {
+            return detailedMachines
+        }
+        return try parseBasicMachines(from: content, groupMap: groupMap)
+    }
+
+    private func parseDetailedMachines(from content: String) -> [PinsideImportedMachine] {
+        guard
+            let titleRegex = try? NSRegularExpression(
+                pattern: #"^####\s+(.+?)\s+\[\]\((?:https?:\/\/)?pinside\.com\/pinball\/machine\/([a-z0-9\-]+)[^)]*\)\s*$"#,
+                options: [.caseInsensitive]
+            ),
+            let metadataRegex = try? NSRegularExpression(
+                pattern: #"^#####\s+(.+?),\s*((?:19|20)\d{2})\s*$"#,
+                options: [.caseInsensitive]
+            )
+        else {
+            return []
+        }
+
+        let lines = content.components(separatedBy: .newlines)
+        var seen = Set<String>()
+        var machines: [PinsideImportedMachine] = []
+        var index = 0
+
+        while index < lines.count {
+            let line = lines[index].trimmingCharacters(in: .whitespacesAndNewlines)
+            let lineRange = NSRange(line.startIndex..<line.endIndex, in: line)
+            guard let titleMatch = titleRegex.firstMatch(in: line, options: [], range: lineRange),
+                  titleMatch.numberOfRanges >= 3,
+                  let titleRange = Range(titleMatch.range(at: 1), in: line),
+                  let slugRange = Range(titleMatch.range(at: 2), in: line) else {
+                index += 1
+                continue
+            }
+
+            let slug = String(line[slugRange]).trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard !slug.isEmpty, seen.insert(slug).inserted else {
+                index += 1
+                continue
+            }
+
+            let rawDisplayTitle = String(line[titleRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+            var scanIndex = index + 1
+            while scanIndex < lines.count, lines[scanIndex].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                scanIndex += 1
+            }
+            guard scanIndex < lines.count else { break }
+
+            let metadataLine = lines[scanIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+            let metadataRange = NSRange(metadataLine.startIndex..<metadataLine.endIndex, in: metadataLine)
+            guard let metadataMatch = metadataRegex.firstMatch(in: metadataLine, options: [], range: metadataRange),
+                  metadataMatch.numberOfRanges >= 3,
+                  let manufacturerRange = Range(metadataMatch.range(at: 1), in: metadataLine),
+                  let yearRange = Range(metadataMatch.range(at: 2), in: metadataLine) else {
+                index += 1
+                continue
+            }
+
+            let manufacturerLabel = String(metadataLine[manufacturerRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+            let manufactureYear = Int(String(metadataLine[yearRange]).trimmingCharacters(in: .whitespacesAndNewlines))
+
+            scanIndex += 1
+            while scanIndex < lines.count, lines[scanIndex].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                scanIndex += 1
+            }
+
+            var purchaseText: String?
+            if scanIndex < lines.count {
+                let purchaseLine = lines[scanIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+                if purchaseLine.lowercased().hasPrefix("purchased ") {
+                    purchaseText = String(purchaseLine.dropFirst("Purchased ".count)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    scanIndex += 1
+                }
+            }
+
+            let parsedTitle = Self.parsedDisplayedTitle(rawDisplayTitle, fallbackVariant: Self.variantFromSlug(slug))
+            machines.append(
+                PinsideImportedMachine(
+                    id: slug,
+                    slug: slug,
+                    rawTitle: parsedTitle.title,
+                    rawVariant: parsedTitle.variant,
+                    manufacturerLabel: manufacturerLabel.isEmpty ? nil : manufacturerLabel,
+                    manufactureYear: manufactureYear,
+                    rawPurchaseDateText: purchaseText,
+                    normalizedPurchaseDate: normalizedFirstOfMonth(from: purchaseText)
+                )
+            )
+            index = scanIndex
+        }
+
+        return machines
     }
 
     private func extractCollectionSlugs(from html: String) -> [String] {
@@ -176,6 +320,59 @@ actor GameRoomPinsideImportService {
         return decoded
     }
 
+    private func isFatalImportError(_ error: Error) -> Bool {
+        guard let error = error as? GameRoomPinsideImportError else { return false }
+        switch error {
+        case .invalidInput, .invalidURL, .userNotFound, .privateOrUnavailableCollection:
+            return true
+        case .httpError, .parseFailed, .noMachinesFound:
+            return false
+        }
+    }
+
+    private func resolvedTitle(for slug: String, groupMap: [String: String]) -> String {
+        if let mapped = groupMap[slug]?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !mapped.isEmpty,
+           mapped != "~" {
+            return mapped
+        }
+        return Self.humanizedTitle(fromSlug: slug)
+    }
+
+    private func mergeMachines(
+        primary: [PinsideImportedMachine],
+        fallback: [PinsideImportedMachine]
+    ) -> [PinsideImportedMachine] {
+        var fallbackBySlug = Dictionary(uniqueKeysWithValues: fallback.map { ($0.slug.lowercased(), $0) })
+        var merged: [PinsideImportedMachine] = []
+
+        for machine in primary {
+            let key = machine.slug.lowercased()
+            if let fallbackMachine = fallbackBySlug.removeValue(forKey: key) {
+                merged.append(
+                    PinsideImportedMachine(
+                        id: machine.id,
+                        slug: machine.slug,
+                        rawTitle: machine.rawTitle,
+                        rawVariant: machine.rawVariant ?? fallbackMachine.rawVariant,
+                        manufacturerLabel: machine.manufacturerLabel ?? fallbackMachine.manufacturerLabel,
+                        manufactureYear: machine.manufactureYear ?? fallbackMachine.manufactureYear,
+                        rawPurchaseDateText: machine.rawPurchaseDateText ?? fallbackMachine.rawPurchaseDateText,
+                        normalizedPurchaseDate: machine.normalizedPurchaseDate ?? fallbackMachine.normalizedPurchaseDate
+                    )
+                )
+            } else {
+                merged.append(machine)
+            }
+        }
+
+        for machine in fallback where fallbackBySlug[machine.slug.lowercased()] != nil {
+            merged.append(machine)
+        }
+
+        return merged
+    }
+
     private static func variantFromSlug(_ slug: String) -> String? {
         let lowered = slug.lowercased()
         if let anniversary = anniversaryVariant(from: lowered) {
@@ -215,5 +412,62 @@ actor GameRoomPinsideImportService {
             .split(separator: "-")
             .map { $0.capitalized }
             .joined(separator: " ")
+    }
+
+    private static func parsedDisplayedTitle(_ title: String, fallbackVariant: String?) -> (title: String, variant: String?) {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedTitle.hasSuffix(")"),
+              let openParenIndex = trimmedTitle.lastIndex(of: "(") else {
+            return (trimmedTitle, fallbackVariant)
+        }
+
+        let baseTitle = String(trimmedTitle[..<openParenIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let rawVariant = String(trimmedTitle[trimmedTitle.index(after: openParenIndex)..<trimmedTitle.index(before: trimmedTitle.endIndex)])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !baseTitle.isEmpty, let derivedVariant = normalizedVariantLabel(rawVariant) else {
+            return (trimmedTitle, fallbackVariant)
+        }
+        return (baseTitle, derivedVariant)
+    }
+
+    private static func normalizedVariantLabel(_ value: String) -> String? {
+        let lowered = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !lowered.isEmpty else { return nil }
+        if lowered == "premium" || lowered == "premium edition" { return "Premium" }
+        if lowered == "pro" || lowered == "pro edition" { return "Pro" }
+        if lowered == "le" || lowered == "limited edition" { return "LE" }
+        if lowered == "ce" || lowered.contains("collector") { return "CE" }
+        if lowered == "se" || lowered.contains("special edition") { return "SE" }
+        if lowered.contains("anniversary") { return value }
+        return nil
+    }
+
+    private func normalizedFirstOfMonth(from raw: String?) -> Date? {
+        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return nil }
+
+        let formats = [
+            "MMMM yyyy",
+            "MMM yyyy",
+            "M/yyyy",
+            "MM/yyyy",
+            "M-yyyy",
+            "MM-yyyy",
+            "yyyy-MM",
+            "yyyy/M"
+        ]
+
+        let calendar = Calendar(identifier: .gregorian)
+
+        for format in formats {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.calendar = calendar
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)
+            formatter.dateFormat = format
+            guard let date = formatter.date(from: raw) else { continue }
+            return calendar.date(from: calendar.dateComponents([.year, .month], from: date))
+        }
+
+        return nil
     }
 }

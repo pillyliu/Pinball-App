@@ -13,6 +13,8 @@ internal data class PinsideImportedMachine(
     val slug: String,
     val rawTitle: String,
     val rawVariant: String?,
+    val manufacturerLabel: String? = null,
+    val manufactureYear: Int? = null,
     val rawPurchaseDateText: String? = null,
     val normalizedPurchaseDateMs: Long? = null,
 ) {
@@ -51,22 +53,10 @@ internal class GameRoomPinsideImportService(private val context: Context) {
         }
 
         val sourceURL = buildCollectionURL(normalizedInput)
-        val slugs = fetchCollectionSlugsWithFallback(sourceURL)
-        if (slugs.isEmpty()) {
-            throw importException(GameRoomPinsideImportError.noMachinesFound)
-        }
-
         val groupMap = loadGroupMap()
-        val machines = slugs.map { slug ->
-            val title = groupMap[slug] ?: humanizedTitleFromSlug(slug)
-            PinsideImportedMachine(
-                id = slug,
-                slug = slug,
-                rawTitle = title,
-                rawVariant = variantFromSlug(slug),
-                rawPurchaseDateText = null,
-                normalizedPurchaseDateMs = null,
-            )
+        val machines = fetchCollectionMachinesWithFallback(sourceURL, groupMap)
+        if (machines.isEmpty()) {
+            throw importException(GameRoomPinsideImportError.noMachinesFound)
         }
         PinsideImportResult(sourceURL = sourceURL.toString(), machines = machines)
     }
@@ -100,10 +90,21 @@ internal class GameRoomPinsideImportService(private val context: Context) {
         }
     }
 
-    private fun fetchCollectionSlugsWithFallback(sourceURL: URL): List<String> {
+    private fun fetchCollectionMachinesWithFallback(
+        sourceURL: URL,
+        groupMap: Map<String, String>,
+    ): List<PinsideImportedMachine> {
         val directResult = runCatching {
             val directHTML = fetchHTML(sourceURL)
-            parseCollectionSlugsFromHTML(directHTML)
+            val directMachines = parseBasicMachines(directHTML, groupMap)
+            val enrichedMachines = runCatching {
+                fetchDetailedOrBasicMachinesFromJina(sourceURL, groupMap)
+            }.getOrNull().orEmpty()
+            if (enrichedMachines.isNotEmpty()) {
+                mergeMachines(primary = enrichedMachines, fallback = directMachines)
+            } else {
+                directMachines
+            }
         }
         if (directResult.isSuccess) {
             return directResult.getOrThrow()
@@ -121,11 +122,13 @@ internal class GameRoomPinsideImportService(private val context: Context) {
             if (fatal) throw directError
         }
 
-        val fallbackHTML = fetchHTMLFromJina(sourceURL)
-        return parseCollectionSlugsFromHTML(fallbackHTML)
+        return fetchDetailedOrBasicMachinesFromJina(sourceURL, groupMap)
     }
 
-    private fun parseCollectionSlugsFromHTML(html: String): List<String> {
+    private fun parseBasicMachines(
+        html: String,
+        groupMap: Map<String, String>,
+    ): List<PinsideImportedMachine> {
         validateCollectionPageHTML(html)
         if (looksLikeCloudflareChallenge(html)) {
             throw importException(GameRoomPinsideImportError.parseFailed, "Pinside returned a challenge page.")
@@ -134,7 +137,101 @@ internal class GameRoomPinsideImportService(private val context: Context) {
         if (slugs.isEmpty()) {
             throw importException(GameRoomPinsideImportError.noMachinesFound)
         }
-        return slugs
+        return slugs.map { slug ->
+            PinsideImportedMachine(
+                id = slug,
+                slug = slug,
+                rawTitle = resolveTitle(slug, groupMap),
+                rawVariant = variantFromSlug(slug),
+            )
+        }
+    }
+
+    private fun fetchDetailedOrBasicMachinesFromJina(
+        sourceURL: URL,
+        groupMap: Map<String, String>,
+    ): List<PinsideImportedMachine> {
+        val content = fetchHTMLFromJina(sourceURL)
+        val detailedMachines = parseDetailedMachines(content)
+        if (detailedMachines.isNotEmpty()) {
+            return detailedMachines
+        }
+        return parseBasicMachines(content, groupMap)
+    }
+
+    private fun parseDetailedMachines(content: String): List<PinsideImportedMachine> {
+        val titleRegex = Regex(
+            """^####\s+(.+?)\s+\[\]\((?:https?:\/\/)?pinside\.com\/pinball\/machine\/([a-z0-9\-]+)[^)]*\)\s*$""",
+            RegexOption.IGNORE_CASE,
+        )
+        val metadataRegex = Regex(
+            """^#####\s+(.+?),\s*((?:19|20)\d{2})\s*$""",
+            RegexOption.IGNORE_CASE,
+        )
+        val lines = content.lines()
+        val seen = linkedSetOf<String>()
+        val machines = mutableListOf<PinsideImportedMachine>()
+        var index = 0
+
+        while (index < lines.size) {
+            val line = lines[index].trim()
+            val titleMatch = titleRegex.matchEntire(line)
+            if (titleMatch == null) {
+                index += 1
+                continue
+            }
+
+            val slug = titleMatch.groupValues.getOrNull(2)?.trim()?.lowercase().orEmpty()
+            if (slug.isBlank() || !seen.add(slug)) {
+                index += 1
+                continue
+            }
+
+            val displayTitle = titleMatch.groupValues.getOrNull(1)?.trim().orEmpty()
+            var scanIndex = index + 1
+            while (scanIndex < lines.size && lines[scanIndex].trim().isEmpty()) {
+                scanIndex += 1
+            }
+            if (scanIndex >= lines.size) break
+
+            val metadataMatch = metadataRegex.matchEntire(lines[scanIndex].trim())
+            if (metadataMatch == null) {
+                index += 1
+                continue
+            }
+
+            val parsedTitle = parseDisplayedTitle(displayTitle, variantFromSlug(slug))
+            val manufacturer = metadataMatch.groupValues.getOrNull(1)?.trim()?.ifBlank { null }
+            val year = metadataMatch.groupValues.getOrNull(2)?.trim()?.toIntOrNull()
+
+            scanIndex += 1
+            while (scanIndex < lines.size && lines[scanIndex].trim().isEmpty()) {
+                scanIndex += 1
+            }
+
+            var purchaseText: String? = null
+            if (scanIndex < lines.size) {
+                val purchaseLine = lines[scanIndex].trim()
+                if (purchaseLine.startsWith("Purchased ", ignoreCase = true)) {
+                    purchaseText = purchaseLine.substring("Purchased ".length).trim().ifBlank { null }
+                    scanIndex += 1
+                }
+            }
+
+            machines += PinsideImportedMachine(
+                id = slug,
+                slug = slug,
+                rawTitle = parsedTitle.first,
+                rawVariant = parsedTitle.second,
+                manufacturerLabel = manufacturer,
+                manufactureYear = year,
+                rawPurchaseDateText = purchaseText,
+                normalizedPurchaseDateMs = normalizeFirstOfMonthMs(purchaseText),
+            )
+            index = scanIndex
+        }
+
+        return machines
     }
 
     private fun looksLikeCloudflareChallenge(html: String): Boolean {
@@ -273,6 +370,49 @@ internal class GameRoomPinsideImportService(private val context: Context) {
         return out
     }
 
+    private fun resolveTitle(
+        slug: String,
+        groupMap: Map<String, String>,
+    ): String {
+        val mapped = groupMap[slug]?.trim().orEmpty()
+        if (mapped.isNotEmpty() && mapped != "~") {
+            return mapped
+        }
+        return humanizedTitleFromSlug(slug)
+    }
+
+    private fun mergeMachines(
+        primary: List<PinsideImportedMachine>,
+        fallback: List<PinsideImportedMachine>,
+    ): List<PinsideImportedMachine> {
+        val fallbackBySlug = fallback.associateBy { it.slug.lowercase() }.toMutableMap()
+        val merged = mutableListOf<PinsideImportedMachine>()
+
+        primary.forEach { machine ->
+            val key = machine.slug.lowercase()
+            val fallbackMachine = fallbackBySlug.remove(key)
+            if (fallbackMachine == null) {
+                merged += machine
+            } else {
+                merged += machine.copy(
+                    rawVariant = machine.rawVariant ?: fallbackMachine.rawVariant,
+                    manufacturerLabel = machine.manufacturerLabel ?: fallbackMachine.manufacturerLabel,
+                    manufactureYear = machine.manufactureYear ?: fallbackMachine.manufactureYear,
+                    rawPurchaseDateText = machine.rawPurchaseDateText ?: fallbackMachine.rawPurchaseDateText,
+                    normalizedPurchaseDateMs = machine.normalizedPurchaseDateMs ?: fallbackMachine.normalizedPurchaseDateMs,
+                )
+            }
+        }
+
+        fallback.forEach { machine ->
+            if (fallbackBySlug.containsKey(machine.slug.lowercase())) {
+                merged += machine
+            }
+        }
+
+        return merged
+    }
+
     private fun variantFromSlug(slug: String): String? {
         val lowered = slug.lowercase()
         val anniversaryMatch = Regex("""(\d+)(st|nd|rd|th)-anniversary""", RegexOption.IGNORE_CASE)
@@ -302,6 +442,42 @@ internal class GameRoomPinsideImportService(private val context: Context) {
                 token.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
             }
             .ifBlank { "Imported Machine" }
+    }
+
+    private fun parseDisplayedTitle(
+        title: String,
+        fallbackVariant: String?,
+    ): Pair<String, String?> {
+        val trimmedTitle = title.trim()
+        if (!trimmedTitle.endsWith(")")) {
+            return trimmedTitle to fallbackVariant
+        }
+        val openParenIndex = trimmedTitle.lastIndexOf('(')
+        if (openParenIndex <= 0) {
+            return trimmedTitle to fallbackVariant
+        }
+        val baseTitle = trimmedTitle.substring(0, openParenIndex).trim()
+        val rawVariant = trimmedTitle.substring(openParenIndex + 1, trimmedTitle.length - 1).trim()
+        val normalizedVariant = normalizedVariantLabel(rawVariant)
+        return if (baseTitle.isNotBlank() && normalizedVariant != null) {
+            baseTitle to normalizedVariant
+        } else {
+            trimmedTitle to fallbackVariant
+        }
+    }
+
+    private fun normalizedVariantLabel(value: String): String? {
+        val lowered = value.trim().lowercase()
+        if (lowered.isBlank()) return null
+        return when {
+            lowered == "premium" || lowered == "premium edition" -> "Premium"
+            lowered == "pro" || lowered == "pro edition" -> "Pro"
+            lowered == "le" || lowered == "limited edition" -> "LE"
+            lowered == "ce" || lowered.contains("collector") -> "CE"
+            lowered == "se" || lowered.contains("special edition") -> "SE"
+            lowered.contains("anniversary") -> value.trim()
+            else -> null
+        }
     }
 
     private fun importException(

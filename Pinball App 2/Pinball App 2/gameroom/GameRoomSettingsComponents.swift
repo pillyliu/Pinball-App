@@ -451,15 +451,20 @@ struct GameRoomImportSettingsView: View {
                 }
             }
 
+            score += metadataScore(machine: machine, game: game)
+
             return (game, score)
         }
 
         return candidates
             .filter { $0.1 > 0 }
-            .sorted {
+            .sorted(by: {
                 if $0.1 != $1.1 { return $0.1 > $1.1 }
+                let lhsMetadata = metadataScore(machine: machine, game: $0.0)
+                let rhsMetadata = metadataScore(machine: machine, game: $1.0)
+                if lhsMetadata != rhsMetadata { return lhsMetadata > rhsMetadata }
                 return $0.0.displayTitle.localizedCaseInsensitiveCompare($1.0.displayTitle) == .orderedAscending
-            }
+            })
             .prefix(3)
             .map { $0 }
     }
@@ -487,6 +492,68 @@ struct GameRoomImportSettingsView: View {
             .replacingOccurrences(of: "[^a-z0-9 ]", with: " ", options: .regularExpression)
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func metadataScore(machine: PinsideImportedMachine, game: GameRoomCatalogGame) -> Int {
+        manufacturerMatchScore(imported: machine.manufacturerLabel, catalog: game.manufacturer) +
+            yearMatchScore(imported: machine.manufactureYear, catalog: game.year)
+    }
+
+    private func manufacturerMatchScore(imported: String?, catalog: String?) -> Int {
+        let importedLabel = canonicalManufacturerLabel(imported)
+        let catalogLabel = canonicalManufacturerLabel(catalog)
+        guard !importedLabel.isEmpty, !catalogLabel.isEmpty else { return 0 }
+        if importedLabel == catalogLabel { return 35 }
+
+        let importedTokens = Set(importedLabel.split(separator: " ").map(String.init))
+        let catalogTokens = Set(catalogLabel.split(separator: " ").map(String.init))
+        let sharedTokens = importedTokens.intersection(catalogTokens).count
+        if sharedTokens > 0 {
+            return max(10, Int((Double(sharedTokens) / Double(max(importedTokens.count, catalogTokens.count))) * 24.0))
+        }
+        return -12
+    }
+
+    private func yearMatchScore(imported: Int?, catalog: Int?) -> Int {
+        guard let imported, let catalog else { return 0 }
+        let difference = abs(imported - catalog)
+        switch difference {
+        case 0:
+            return 25
+        case 1:
+            return 16
+        case 2:
+            return 10
+        case 3:
+            return 4
+        default:
+            return -12
+        }
+    }
+
+    private func canonicalManufacturerLabel(_ value: String?) -> String {
+        let normalizedValue = normalized(value ?? "")
+        guard !normalizedValue.isEmpty else { return "" }
+
+        let ignoredTokens: Set<String> = [
+            "co",
+            "company",
+            "corp",
+            "corporation",
+            "inc",
+            "ltd",
+            "limited",
+            "manufacturing",
+            "pinball"
+        ]
+        let filteredTokens = normalizedValue
+            .split(separator: " ")
+            .map(String.init)
+            .filter { !ignoredTokens.contains($0) }
+        if filteredTokens.isEmpty {
+            return normalizedValue
+        }
+        return filteredTokens.joined(separator: " ")
     }
 
     private func normalizedFirstOfMonth(from raw: String?) -> Date? {

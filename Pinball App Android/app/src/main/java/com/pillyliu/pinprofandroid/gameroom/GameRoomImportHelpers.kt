@@ -94,10 +94,12 @@ private fun scoredCatalogSuggestions(
             val variants = catalogLoader.variantOptions(game.catalogGameID).map(::normalizeImportText)
             if (variants.contains(normalizedVariant)) score += 20
         }
+        score += metadataScore(machine, game)
         game to score
     }.filter { (_, score) -> score > 0 }
         .sortedWith(
             compareByDescending<Pair<GameRoomCatalogGame, Int>> { it.second }
+                .thenByDescending { metadataScore(machine, it.first) }
                 .thenBy { it.first.displayTitle.lowercase() },
         )
         .take(3)
@@ -127,6 +129,66 @@ private fun normalizeImportText(value: String): String {
         .replace(Regex("[^a-z0-9 ]"), " ")
         .replace(Regex("\\s+"), " ")
         .trim()
+}
+
+private fun metadataScore(
+    machine: PinsideImportedMachine,
+    game: GameRoomCatalogGame,
+): Int {
+    return manufacturerMatchScore(machine.manufacturerLabel, game.manufacturer) +
+        yearMatchScore(machine.manufactureYear, game.year)
+}
+
+private fun manufacturerMatchScore(
+    imported: String?,
+    catalog: String?,
+): Int {
+    val importedLabel = canonicalManufacturerLabel(imported)
+    val catalogLabel = canonicalManufacturerLabel(catalog)
+    if (importedLabel.isBlank() || catalogLabel.isBlank()) return 0
+    if (importedLabel == catalogLabel) return 35
+
+    val importedTokens = importedLabel.split(" ").filter { it.isNotBlank() }.toSet()
+    val catalogTokens = catalogLabel.split(" ").filter { it.isNotBlank() }.toSet()
+    val sharedTokens = importedTokens.intersect(catalogTokens).size
+    if (sharedTokens > 0) {
+        return maxOf(10, ((sharedTokens.toDouble() / maxOf(importedTokens.size, catalogTokens.size)) * 24.0).toInt())
+    }
+    return -12
+}
+
+private fun yearMatchScore(
+    imported: Int?,
+    catalog: Int?,
+): Int {
+    if (imported == null || catalog == null) return 0
+    return when (kotlin.math.abs(imported - catalog)) {
+        0 -> 25
+        1 -> 16
+        2 -> 10
+        3 -> 4
+        else -> -12
+    }
+}
+
+private fun canonicalManufacturerLabel(value: String?): String {
+    val normalizedValue = normalizeImportText(value.orEmpty())
+    if (normalizedValue.isBlank()) return ""
+    val ignoredTokens = setOf(
+        "co",
+        "company",
+        "corp",
+        "corporation",
+        "inc",
+        "limited",
+        "ltd",
+        "manufacturing",
+        "pinball",
+    )
+    val filteredTokens = normalizedValue
+        .split(" ")
+        .filter { it.isNotBlank() && it !in ignoredTokens }
+    return if (filteredTokens.isEmpty()) normalizedValue else filteredTokens.joinToString(" ")
 }
 
 internal fun normalizeFirstOfMonthMs(rawValue: String?): Long? {
