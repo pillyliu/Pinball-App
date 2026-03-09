@@ -40,26 +40,42 @@ extension PracticeScreen {
     }
 
     func openRulesheet(source: RulesheetRemoteSource?, for game: PinballGame) {
-        guard game.hasRulesheetResource || source != nil else { return }
-        uiState.selectedGameID = store.canonicalPracticeGameID(game.canonicalPracticeKey)
-        uiState.selectedRulesheetSource = source
-        uiState.selectedExternalRulesheetURL = nil
+        guard prepareRulesheet(source: source, for: game) else { return }
         openRoute(.rulesheet)
     }
 
     func openExternalRulesheet(url: URL, for game: PinballGame) {
-        uiState.selectedGameID = store.canonicalPracticeGameID(game.canonicalPracticeKey)
-        uiState.selectedRulesheetSource = nil
-        uiState.selectedExternalRulesheetURL = url
+        prepareExternalRulesheet(url: url, for: game)
         openRoute(.rulesheet)
     }
 
     func openPlayfield(for game: PinballGame, candidates: [URL]? = nil) {
+        guard preparePlayfield(for: game, candidates: candidates) else { return }
+        openRoute(.playfield)
+    }
+
+    @discardableResult
+    func prepareRulesheet(source: RulesheetRemoteSource?, for game: PinballGame) -> Bool {
+        guard game.hasLocalRulesheetResource || source != nil else { return false }
+        uiState.selectedGameID = store.canonicalPracticeGameID(game.canonicalPracticeKey)
+        uiState.selectedRulesheetSource = source
+        uiState.selectedExternalRulesheetURL = nil
+        return true
+    }
+
+    func prepareExternalRulesheet(url: URL, for game: PinballGame) {
+        uiState.selectedGameID = store.canonicalPracticeGameID(game.canonicalPracticeKey)
+        uiState.selectedRulesheetSource = nil
+        uiState.selectedExternalRulesheetURL = url
+    }
+
+    @discardableResult
+    func preparePlayfield(for game: PinballGame, candidates: [URL]? = nil) -> Bool {
         let resolvedCandidates = (candidates?.isEmpty == false ? candidates : nil) ?? game.fullscreenPlayfieldCandidates
-        guard !resolvedCandidates.isEmpty else { return }
+        guard !resolvedCandidates.isEmpty else { return false }
         uiState.selectedGameID = store.canonicalPracticeGameID(game.canonicalPracticeKey)
         uiState.selectedPlayfieldImageURLs = resolvedCandidates
-        openRoute(.playfield)
+        return true
     }
 
     func resumeToPracticeGame(zoomSourceID: String? = nil) {

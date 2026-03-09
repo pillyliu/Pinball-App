@@ -314,8 +314,11 @@ private fun isOpdbPlayfieldUrl(url: String?): Boolean {
 
 internal val PinballGame.rulesheetPathCandidates: List<String>
     get() = listOfNotNull(
-        localAssetKey?.let { "/pinball/rulesheets/${it}-rulesheet.md" },
+        normalizeLibraryCachePath(rulesheetLocal),
     ).distinct()
+
+internal val PinballGame.hasLocalRulesheetResource: Boolean
+    get() = rulesheetPathCandidates.isNotEmpty()
 
 internal val PinballGame.gameinfoPathCandidates: List<String>
     get() = listOfNotNull(
@@ -323,4 +326,4 @@ internal val PinballGame.gameinfoPathCandidates: List<String>
     ).distinct()
 
 internal val PinballGame.hasRulesheetResource: Boolean
-    get() = rulesheetPathCandidates.isNotEmpty() || rulesheetLinks.isNotEmpty() || !rulesheetUrl.isNullOrBlank()
+    get() = hasLocalRulesheetResource || rulesheetLinks.isNotEmpty() || !rulesheetUrl.isNullOrBlank()

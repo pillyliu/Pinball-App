@@ -33,7 +33,7 @@ struct LibraryDetailSummaryCard: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 if game.rulesheetLinks.isEmpty {
-                    if game.hasRulesheetResource {
+                    if game.hasLocalRulesheetResource {
                         PinballResourceRow("Rulesheet") {
                             libraryRulesheetLinkButton(title: "Local", game: game, source: nil)
                         }
@@ -56,7 +56,7 @@ struct LibraryDetailSummaryCard: View {
                             NavigationLink(option.title) {
                                 HostedImageView(imageCandidates: option.candidates)
                             }
-                            .buttonStyle(AppCompactSecondaryActionButtonStyle())
+                            .buttonStyle(PinballResourceChipButtonStyle())
                             .simultaneousGesture(
                                 TapGesture().onEnded {
                                     LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openPlayfield)
@@ -309,7 +309,7 @@ private func libraryRulesheetLinkButton(title: String, game: PinballGame, source
             externalSource: source
         )
     }
-    .buttonStyle(AppCompactSecondaryActionButtonStyle())
+    .buttonStyle(PinballResourceChipButtonStyle())
     .simultaneousGesture(
         TapGesture().onEnded {
             LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: title)
@@ -328,7 +328,7 @@ private func libraryRulesheetLinkButton(link: PinballGame.ReferenceLink, game: P
                 externalSource: embeddedSource
             )
         }
-        .buttonStyle(AppCompactSecondaryActionButtonStyle())
+        .buttonStyle(PinballResourceChipButtonStyle())
         .simultaneousGesture(
             TapGesture().onEnded {
                 LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: link.label)
@@ -338,7 +338,7 @@ private func libraryRulesheetLinkButton(link: PinballGame.ReferenceLink, game: P
         NavigationLink(title) {
             ExternalRulesheetWebScreen(title: game.name, url: destination)
         }
-        .buttonStyle(AppCompactSecondaryActionButtonStyle())
+        .buttonStyle(PinballResourceChipButtonStyle())
         .simultaneousGesture(
             TapGesture().onEnded {
                 LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: link.label)

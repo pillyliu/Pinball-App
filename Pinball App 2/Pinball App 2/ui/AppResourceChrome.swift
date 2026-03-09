@@ -1,5 +1,42 @@
 import SwiftUI
 
+struct PinballResourceChipButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(AppTheme.brandInk.opacity(isEnabled ? 1 : 0.55))
+            .lineLimit(1)
+            .minimumScaleFactor(0.85)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                    .fill(
+                        configuration.isPressed
+                            ? AppTheme.brandGold.opacity(isEnabled ? 0.24 : 0.14)
+                            : AppTheme.controlBg
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                            .stroke(
+                                AppTheme.brandGold.opacity(
+                                    isEnabled
+                                        ? (configuration.isPressed ? 0.62 : 0.34)
+                                        : 0.18
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .opacity(isEnabled ? 1 : 0.72)
+            .animation(nil, value: configuration.isPressed)
+    }
+}
+
 enum AppVariantPillStyle {
     case resource
     case mini

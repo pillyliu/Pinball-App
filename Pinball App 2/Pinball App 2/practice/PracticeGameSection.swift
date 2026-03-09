@@ -13,9 +13,9 @@ struct PracticeGameSection: View {
         nonmutating set { context.selectedGameID.wrappedValue = newValue }
     }
     private var onGameViewed: ((String) -> Void)? { context.onGameViewed }
-    private var onOpenRulesheet: (PinballGame, RulesheetRemoteSource?) -> Void { context.onOpenRulesheet }
-    private var onOpenExternalRulesheet: (PinballGame, URL) -> Void { context.onOpenExternalRulesheet }
-    private var onOpenPlayfield: (PinballGame, [URL]) -> Void { context.onOpenPlayfield }
+    private var onPrepareRulesheet: (PinballGame, RulesheetRemoteSource?) -> Bool { context.onPrepareRulesheet }
+    private var onPrepareExternalRulesheet: (PinballGame, URL) -> Void { context.onPrepareExternalRulesheet }
+    private var onPreparePlayfield: (PinballGame, [URL]) -> Bool { context.onPreparePlayfield }
     private var lifecycleContext: PracticeGameLifecycleContext {
         PracticeGameLifecycleContext(
             store: store,
@@ -119,9 +119,9 @@ struct PracticeGameSection: View {
             playableVideos: playableVideos,
             activeVideoID: $uiState.activeVideoID,
             onOpenURL: openURL,
-            onOpenRulesheet: onOpenRulesheet,
-            onOpenExternalRulesheet: onOpenExternalRulesheet,
-            onOpenPlayfield: onOpenPlayfield
+            onPrepareRulesheet: onPrepareRulesheet,
+            onPrepareExternalRulesheet: onPrepareExternalRulesheet,
+            onPreparePlayfield: onPreparePlayfield
         )
     }
 

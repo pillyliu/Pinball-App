@@ -139,8 +139,6 @@ internal fun LibraryDetailScreen(
     var activeVideoId by rememberSaveable(game.slug) {
         mutableStateOf<String?>(null)
     }
-    val hasRulesheet = game.hasRulesheetResource
-
     LaunchedEffect(game.slug) {
         if (infoStatus == "loaded" || infoStatus == "missing") return@LaunchedEffect
         val candidates = game.gameinfoPathCandidates.mapNotNull { candidate -> game.resolve(candidate) }.distinct()
@@ -189,7 +187,6 @@ internal fun LibraryDetailScreen(
 
             LibraryDetailSummaryCard(
                 game = game,
-                hasRulesheet = hasRulesheet,
                 onOpenRulesheet = onOpenRulesheet,
                 onOpenExternalRulesheet = onOpenExternalRulesheet,
                 onOpenPlayfield = onOpenPlayfield,

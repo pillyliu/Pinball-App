@@ -5,9 +5,9 @@ struct PracticeGameResourceCard: View {
     let playableVideos: [PinballGame.PlayableVideo]
     @Binding var activeVideoID: String?
     let onOpenURL: OpenURLAction
-    let onOpenRulesheet: (PinballGame, RulesheetRemoteSource?) -> Void
-    let onOpenExternalRulesheet: (PinballGame, URL) -> Void
-    let onOpenPlayfield: (PinballGame, [URL]) -> Void
+    let onPrepareRulesheet: (PinballGame, RulesheetRemoteSource?) -> Bool
+    let onPrepareExternalRulesheet: (PinballGame, URL) -> Void
+    let onPreparePlayfield: (PinballGame, [URL]) -> Bool
     @State private var livePlayfieldStatus: LibraryLivePlayfieldStatus?
 
     var body: some View {
@@ -21,7 +21,7 @@ struct PracticeGameResourceCard: View {
                     .foregroundStyle(.primary)
 
                 if game.rulesheetLinks.isEmpty {
-                    if game.hasRulesheetResource {
+                    if game.hasLocalRulesheetResource {
                         PinballResourceRow("Rulesheet") {
                             practiceRulesheetLinkButton(title: "Local", game: game, source: nil)
                         }
@@ -41,10 +41,15 @@ struct PracticeGameResourceCard: View {
                 if !playfieldOptions.isEmpty {
                     PinballResourceRow("Playfield") {
                         ForEach(playfieldOptions) { option in
-                            Button(option.title) {
-                                onOpenPlayfield(game, option.candidates)
+                            NavigationLink(value: PracticeRoute.playfield) {
+                                Text(option.title)
                             }
-                            .buttonStyle(AppCompactSecondaryActionButtonStyle())
+                            .buttonStyle(PinballResourceChipButtonStyle())
+                            .simultaneousGesture(
+                                TapGesture().onEnded {
+                                    _ = onPreparePlayfield(game, option.candidates)
+                                }
+                            )
                         }
                     }
                 } else {
@@ -95,24 +100,39 @@ struct PracticeGameResourceCard: View {
     }
     @ViewBuilder
     private func practiceRulesheetLinkButton(title: String, game: PinballGame, source: RulesheetRemoteSource?) -> some View {
-        Button(title) {
-            onOpenRulesheet(game, source)
+        NavigationLink(value: PracticeRoute.rulesheet) {
+            Text(title)
         }
-        .buttonStyle(AppCompactSecondaryActionButtonStyle())
+        .buttonStyle(PinballResourceChipButtonStyle())
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                _ = onPrepareRulesheet(game, source)
+            }
+        )
     }
 
     @ViewBuilder
     private func practiceRulesheetLinkButton(link: PinballGame.ReferenceLink, game: PinballGame, title: String) -> some View {
         if let embeddedSource = link.embeddedRulesheetSource {
-            Button(title) {
-                onOpenRulesheet(game, embeddedSource)
+            NavigationLink(value: PracticeRoute.rulesheet) {
+                Text(title)
             }
-            .buttonStyle(AppCompactSecondaryActionButtonStyle())
+            .buttonStyle(PinballResourceChipButtonStyle())
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    _ = onPrepareRulesheet(game, embeddedSource)
+                }
+            )
         } else if let destination = link.destinationURL {
-            Button(title) {
-                onOpenExternalRulesheet(game, destination)
+            NavigationLink(value: PracticeRoute.rulesheet) {
+                Text(title)
             }
-            .buttonStyle(AppCompactSecondaryActionButtonStyle())
+            .buttonStyle(PinballResourceChipButtonStyle())
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    onPrepareExternalRulesheet(game, destination)
+                }
+            )
         }
     }
 

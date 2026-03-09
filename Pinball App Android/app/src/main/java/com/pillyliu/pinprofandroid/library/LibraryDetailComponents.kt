@@ -62,6 +62,7 @@ import com.pillyliu.pinprofandroid.ui.AppVariantBadge
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import com.pillyliu.pinprofandroid.ui.appShortRulesheetTitle
+import com.pillyliu.pinprofandroid.library.hasLocalRulesheetResource
 
 @Composable
 internal fun LibraryDetailScreenshotSection(game: PinballGame) {
@@ -75,7 +76,6 @@ internal fun LibraryDetailScreenshotSection(game: PinballGame) {
 @Composable
 internal fun LibraryDetailSummaryCard(
     game: PinballGame,
-    hasRulesheet: Boolean,
     onOpenRulesheet: (RulesheetRemoteSource?) -> Unit,
     onOpenExternalRulesheet: (String) -> Unit,
     onOpenPlayfield: (List<String>) -> Unit,
@@ -109,7 +109,7 @@ internal fun LibraryDetailSummaryCard(
         ) {
             AppResourceRow(label = "Rulesheet:") {
                 if (game.rulesheetLinks.isEmpty()) {
-                    if (hasRulesheet) {
+                    if (game.hasLocalRulesheetResource) {
                         AppResourceChip(label = "Local") { onOpenRulesheet(null) }
                     } else {
                         AppUnavailableResourceChip()

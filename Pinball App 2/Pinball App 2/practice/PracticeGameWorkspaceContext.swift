@@ -7,4 +7,7 @@ struct PracticeGameWorkspaceContext {
     let onOpenRulesheet: (PinballGame, RulesheetRemoteSource?) -> Void
     let onOpenExternalRulesheet: (PinballGame, URL) -> Void
     let onOpenPlayfield: (PinballGame, [URL]) -> Void
+    let onPrepareRulesheet: (PinballGame, RulesheetRemoteSource?) -> Bool
+    let onPrepareExternalRulesheet: (PinballGame, URL) -> Void
+    let onPreparePlayfield: (PinballGame, [URL]) -> Bool
 }

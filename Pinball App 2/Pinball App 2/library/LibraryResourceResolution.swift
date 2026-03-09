@@ -206,15 +206,16 @@ extension PinballGame {
     }
 
     var rulesheetPathCandidates: [String] {
-        var paths: [String] = []
-        if let localAssetKey {
-            paths.append("/pinball/rulesheets/\(localAssetKey)-rulesheet.md")
-        }
-        return Array(NSOrderedSet(array: paths)) as? [String] ?? paths
+        guard let normalized = normalizeLibraryCachePath(rulesheetLocal) else { return [] }
+        return [normalized]
+    }
+
+    var hasLocalRulesheetResource: Bool {
+        !rulesheetPathCandidates.isEmpty
     }
 
     var hasRulesheetResource: Bool {
-        !rulesheetPathCandidates.isEmpty || !rulesheetLinks.isEmpty || rulesheetSourceURL != nil
+        hasLocalRulesheetResource || !rulesheetLinks.isEmpty || rulesheetSourceURL != nil
     }
 
     var hasPlayfieldResource: Bool {

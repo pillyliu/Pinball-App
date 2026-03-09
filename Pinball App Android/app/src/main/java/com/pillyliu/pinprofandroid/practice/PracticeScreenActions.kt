@@ -2,8 +2,8 @@ package com.pillyliu.pinprofandroid.practice
 
 import androidx.compose.ui.platform.UriHandler
 import com.pillyliu.pinprofandroid.library.PinballGame
+import com.pillyliu.pinprofandroid.library.hasLocalRulesheetResource
 import com.pillyliu.pinprofandroid.library.RulesheetRemoteSource
-import com.pillyliu.pinprofandroid.library.hasRulesheetResource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -99,7 +99,7 @@ internal class PracticeScreenActions(
     }
 
     fun openRulesheet(source: RulesheetRemoteSource?) {
-        if (selectedGame?.hasRulesheetResource != true) return
+        if (selectedGame?.hasLocalRulesheetResource != true && source == null) return
         uiState.navigation.selectedRulesheetSource = source
         uiState.navigation.selectedExternalRulesheetUrl = null
         uiState.navigateTo(PracticeRoute.Rulesheet)
