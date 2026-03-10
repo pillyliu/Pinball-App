@@ -15,7 +15,6 @@ struct PracticeGameSection: View {
     private var onGameViewed: ((String) -> Void)? { context.onGameViewed }
     private var onOpenRulesheet: (PinballGame, RulesheetRemoteSource?) -> Void { context.onOpenRulesheet }
     private var onOpenExternalRulesheet: (PinballGame, URL) -> Void { context.onOpenExternalRulesheet }
-    private var onOpenPlayfield: (PinballGame, [URL]) -> Void { context.onOpenPlayfield }
     private var lifecycleContext: PracticeGameLifecycleContext {
         PracticeGameLifecycleContext(
             store: store,
@@ -120,8 +119,7 @@ struct PracticeGameSection: View {
             activeVideoID: $uiState.activeVideoID,
             onOpenURL: openURL,
             onOpenRulesheet: onOpenRulesheet,
-            onOpenExternalRulesheet: onOpenExternalRulesheet,
-            onOpenPlayfield: onOpenPlayfield
+            onOpenExternalRulesheet: onOpenExternalRulesheet
         )
     }
 

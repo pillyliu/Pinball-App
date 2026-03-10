@@ -7,7 +7,6 @@ struct PracticeGameResourceCard: View {
     let onOpenURL: OpenURLAction
     let onOpenRulesheet: (PinballGame, RulesheetRemoteSource?) -> Void
     let onOpenExternalRulesheet: (PinballGame, URL) -> Void
-    let onOpenPlayfield: (PinballGame, [URL]) -> Void
     @State private var livePlayfieldStatus: LibraryLivePlayfieldStatus?
 
     var body: some View {
@@ -37,10 +36,8 @@ struct PracticeGameResourceCard: View {
                 if !playfieldOptions.isEmpty {
                     PinballResourceRow("Playfield") {
                         ForEach(playfieldOptions) { option in
-                            Button {
-                                onOpenPlayfield(game, option.candidates)
-                            } label: {
-                                Text(option.title)
+                            NavigationLink(option.title) {
+                                HostedImageView(imageCandidates: option.candidates)
                             }
                             .buttonStyle(PinballResourceChipButtonStyle())
                         }
