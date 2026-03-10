@@ -31,6 +31,7 @@ struct PinballResourceChipButtonStyle: ButtonStyle {
                     )
             )
             .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
             .opacity(isEnabled ? 1 : 0.72)
             .animation(nil, value: configuration.isPressed)
@@ -109,17 +110,80 @@ enum AppVariantPillStyle {
 
 @ViewBuilder
 func PinballResourceRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-    HStack(alignment: .center, spacing: 8) {
+    VStack(alignment: .leading, spacing: 6) {
         Text("\(title):")
             .font(.caption.weight(.semibold))
             .foregroundStyle(AppTheme.brandChalk)
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                content()
+        PinballChipWrapLayout(spacing: 8, rowSpacing: 8) {
+            content()
+        }
+    }
+}
+
+struct PinballChipWrapLayout: Layout {
+    var spacing: CGFloat = 8
+    var rowSpacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .greatestFiniteMagnitude
+        var currentRowWidth: CGFloat = 0
+        var currentRowHeight: CGFloat = 0
+        var totalHeight: CGFloat = 0
+        var maxRowWidth: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            let needsWrap = currentRowWidth > 0 && (currentRowWidth + spacing + size.width) > maxWidth
+
+            if needsWrap {
+                totalHeight += currentRowHeight + rowSpacing
+                maxRowWidth = max(maxRowWidth, currentRowWidth)
+                currentRowWidth = size.width
+                currentRowHeight = size.height
+            } else {
+                if currentRowWidth > 0 {
+                    currentRowWidth += spacing
+                }
+                currentRowWidth += size.width
+                currentRowHeight = max(currentRowHeight, size.height)
             }
         }
-        .fixedSize(horizontal: false, vertical: true)
-        Spacer(minLength: 0)
+
+        if currentRowHeight > 0 {
+            totalHeight += currentRowHeight
+            maxRowWidth = max(maxRowWidth, currentRowWidth)
+        }
+
+        return CGSize(width: maxRowWidth, height: totalHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var cursorX = bounds.minX
+        var cursorY = bounds.minY
+        var currentRowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            let nextMaxX = cursorX == bounds.minX ? cursorX + size.width : cursorX + spacing + size.width
+
+            if nextMaxX > bounds.maxX, cursorX > bounds.minX {
+                cursorX = bounds.minX
+                cursorY += currentRowHeight + rowSpacing
+                currentRowHeight = 0
+            }
+
+            if cursorX > bounds.minX {
+                cursorX += spacing
+            }
+
+            subview.place(
+                at: CGPoint(x: cursorX, y: cursorY),
+                proposal: ProposedViewSize(width: size.width, height: size.height)
+            )
+
+            cursorX += size.width
+            currentRowHeight = max(currentRowHeight, size.height)
+        }
     }
 }
 

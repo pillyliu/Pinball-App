@@ -20,24 +20,20 @@ struct PracticeGameResourceCard: View {
                     .font(.subheadline)
                     .foregroundStyle(.primary)
 
-                if game.rulesheetLinks.isEmpty {
+                PinballResourceRow("Rulesheet") {
                     if game.hasLocalRulesheetResource {
-                        PinballResourceRow("Rulesheet") {
-                            practiceRulesheetLinkButton(title: "Local", game: game, source: nil)
-                        }
-                    } else {
-                        PinballResourceRow("Rulesheet") {
+                        practiceRulesheetLinkButton(title: "Local", game: game, source: nil)
+                    }
+                    if game.rulesheetLinks.isEmpty {
+                        if !game.hasLocalRulesheetResource {
                             PinballUnavailableResourceChip("Unavailable")
                         }
-                    }
-                } else {
-                    PinballResourceRow("Rulesheet") {
+                    } else {
                         ForEach(game.rulesheetLinks) { link in
                             practiceRulesheetLinkButton(link: link, game: game, title: PinballShortRulesheetTitle(for: link))
                         }
                     }
                 }
-
                 if !playfieldOptions.isEmpty {
                     PinballResourceRow("Playfield") {
                         ForEach(playfieldOptions) { option in

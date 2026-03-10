@@ -94,10 +94,11 @@ internal fun PracticeGameResourcesCard(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             AppResourceRow(label = "Rulesheet:") {
+                if (game.hasLocalRulesheetResource) {
+                    AppResourceChip(label = "Local") { onOpenRulesheet(null) }
+                }
                 if (game.rulesheetLinks.isEmpty()) {
-                    if (game.hasLocalRulesheetResource) {
-                        AppResourceChip(label = "Local") { onOpenRulesheet(null) }
-                    } else {
+                    if (!game.hasLocalRulesheetResource) {
                         AppUnavailableResourceChip()
                     }
                 } else {
