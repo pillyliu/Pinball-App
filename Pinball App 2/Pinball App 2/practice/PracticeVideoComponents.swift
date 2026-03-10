@@ -5,9 +5,9 @@ struct PracticeGameResourceCard: View {
     let playableVideos: [PinballGame.PlayableVideo]
     @Binding var activeVideoID: String?
     let onOpenURL: OpenURLAction
-    let onPrepareRulesheet: (PinballGame, RulesheetRemoteSource?) -> Bool
-    let onPrepareExternalRulesheet: (PinballGame, URL) -> Void
-    let onPreparePlayfield: (PinballGame, [URL]) -> Bool
+    let onOpenRulesheet: (PinballGame, RulesheetRemoteSource?) -> Void
+    let onOpenExternalRulesheet: (PinballGame, URL) -> Void
+    let onOpenPlayfield: (PinballGame, [URL]) -> Void
     @State private var livePlayfieldStatus: LibraryLivePlayfieldStatus?
 
     var body: some View {
@@ -41,15 +41,12 @@ struct PracticeGameResourceCard: View {
                 if !playfieldOptions.isEmpty {
                     PinballResourceRow("Playfield") {
                         ForEach(playfieldOptions) { option in
-                            NavigationLink(value: PracticeRoute.playfield) {
+                            Button {
+                                onOpenPlayfield(game, option.candidates)
+                            } label: {
                                 Text(option.title)
                             }
                             .buttonStyle(PinballResourceChipButtonStyle())
-                            .simultaneousGesture(
-                                TapGesture().onEnded {
-                                    _ = onPreparePlayfield(game, option.candidates)
-                                }
-                            )
                         }
                     }
                 } else {
@@ -100,39 +97,30 @@ struct PracticeGameResourceCard: View {
     }
     @ViewBuilder
     private func practiceRulesheetLinkButton(title: String, game: PinballGame, source: RulesheetRemoteSource?) -> some View {
-        NavigationLink(value: PracticeRoute.rulesheet) {
+        Button {
+            onOpenRulesheet(game, source)
+        } label: {
             Text(title)
         }
         .buttonStyle(PinballResourceChipButtonStyle())
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                _ = onPrepareRulesheet(game, source)
-            }
-        )
     }
 
     @ViewBuilder
     private func practiceRulesheetLinkButton(link: PinballGame.ReferenceLink, game: PinballGame, title: String) -> some View {
         if let embeddedSource = link.embeddedRulesheetSource {
-            NavigationLink(value: PracticeRoute.rulesheet) {
+            Button {
+                onOpenRulesheet(game, embeddedSource)
+            } label: {
                 Text(title)
             }
             .buttonStyle(PinballResourceChipButtonStyle())
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    _ = onPrepareRulesheet(game, embeddedSource)
-                }
-            )
         } else if let destination = link.destinationURL {
-            NavigationLink(value: PracticeRoute.rulesheet) {
+            Button {
+                onOpenExternalRulesheet(game, destination)
+            } label: {
                 Text(title)
             }
             .buttonStyle(PinballResourceChipButtonStyle())
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    onPrepareExternalRulesheet(game, destination)
-                }
-            )
         }
     }
 

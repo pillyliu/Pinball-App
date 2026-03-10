@@ -761,12 +761,19 @@ private struct GameRoomImageThumbnailView: View {
 
     private func loadImage(from url: URL?) async -> UIImage? {
         guard let url else { return nil }
+        if let cached = RemoteUIImageMemoryCache.shared.image(for: url) {
+            return cached
+        }
         if url.isFileURL {
-            return UIImage(contentsOfFile: url.path)
+            guard let image = UIImage(contentsOfFile: url.path) else { return nil }
+            RemoteUIImageMemoryCache.shared.insert(image, for: url)
+            return image
         }
         do {
             let data = try await PinballDataCache.shared.loadData(url: url)
-            return UIImage(data: data)
+            guard let image = UIImage(data: data) else { return nil }
+            RemoteUIImageMemoryCache.shared.insert(image, for: url)
+            return image
         } catch {
             return nil
         }

@@ -32,18 +32,15 @@ struct LibraryDetailSummaryCard: View {
             AppCardSubheading(text: game.metaLine)
 
             VStack(alignment: .leading, spacing: 10) {
-                if game.rulesheetLinks.isEmpty {
+                PinballResourceRow("Rulesheet") {
                     if game.hasLocalRulesheetResource {
-                        PinballResourceRow("Rulesheet") {
-                            libraryRulesheetLinkButton(title: "Local", game: game, source: nil)
-                        }
-                    } else {
-                        PinballResourceRow("Rulesheet") {
+                        libraryRulesheetLinkButton(title: "Local", game: game, source: nil)
+                    }
+                    if game.rulesheetLinks.isEmpty {
+                        if !game.hasLocalRulesheetResource {
                             PinballUnavailableResourceChip("Unavailable")
                         }
-                    }
-                } else {
-                    PinballResourceRow("Rulesheet") {
+                    } else {
                         ForEach(game.rulesheetLinks) { link in
                             libraryRulesheetLinkButton(link: link, game: game, title: PinballShortRulesheetTitle(for: link))
                         }
@@ -262,7 +259,7 @@ struct PinballVideoLaunchPanel: View {
                     guard let selectedVideo, let youtubeURL = selectedVideo.youtubeWatchURL else { return }
                     openURL(youtubeURL)
                 }
-                .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+                .buttonStyle(PinballVideoLaunchButtonStyle())
                 .disabled(selectedVideo?.youtubeWatchURL == nil)
             }
             .padding(16)

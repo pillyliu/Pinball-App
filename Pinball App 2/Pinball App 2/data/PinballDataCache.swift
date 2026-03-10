@@ -113,6 +113,8 @@ actor PinballDataCache {
     private let updateLogURL = URL(string: "https://pillyliu.com/pinball/cache-update-log.json")!
     private let metadataRefreshInterval: TimeInterval = 300
     private let backgroundRevalidateInterval: TimeInterval = 180
+    private let remoteImageDiskRevalidateInterval: TimeInterval = 6 * 60 * 60
+    private let remoteImageDiskCacheSizeLimit: Int64 = 512 * 1024 * 1024
     private let starterPackBundleName = "PinballStarter"
     private let starterPackBundleExt = "bundle"
     private let starterPackBundlePath = "pinball"
@@ -131,6 +133,7 @@ actor PinballDataCache {
     private var index = CacheIndex()
     private var manifest: Manifest?
     private var inFlightRevalidations: Set<String> = []
+    private var inFlightRemoteImageRevalidations: Set<String> = []
     private let remoteImageLimiter = RequestLimiter(limit: 8)
 
     private let fileManager = FileManager.default
@@ -208,7 +211,7 @@ actor PinballDataCache {
         try await ensureLoaded()
 
         guard shouldUseManifestCache(for: url) else {
-            return try await loadRemoteData(url: url)
+            return try await loadRemoteImageData(url: url)
         }
 
         let path = normalize(url.path)
@@ -224,7 +227,16 @@ actor PinballDataCache {
         return data
     }
 
-    private func loadRemoteData(url: URL) async throws -> Data {
+    private func loadRemoteImageData(url: URL) async throws -> Data {
+        if let cached = try cachedRemoteImageData(for: url) {
+            scheduleRemoteImageRevalidateIfNeeded(url: url)
+            return cached
+        }
+
+        return try await fetchRemoteImageFromNetwork(url: url, allowStaleOnFailure: false)
+    }
+
+    private func fetchRemoteImageFromNetwork(url: URL, allowStaleOnFailure: Bool = true) async throws -> Data {
         await remoteImageLimiter.acquire()
         defer {
             Task {
@@ -233,12 +245,46 @@ actor PinballDataCache {
         }
 
         var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.timeoutInterval = 20
-        let (data, response) = try await URLSession.shared.data(for: request)
-        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            throw URLError(.badServerResponse)
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                throw URLError(.badServerResponse)
+            }
+            try writeRemoteImage(data: data, for: url)
+            return data
+        } catch {
+            if allowStaleOnFailure, let stale = try cachedRemoteImageData(for: url) {
+                return stale
+            }
+            throw error
         }
-        return data
+    }
+
+    private func scheduleRemoteImageRevalidateIfNeeded(url: URL) {
+        let key = remoteImageCacheKey(for: url)
+        guard let updatedAt = remoteImageFileUpdatedAt(for: url),
+              Date().timeIntervalSince(updatedAt) >= remoteImageDiskRevalidateInterval else {
+            return
+        }
+        if inFlightRemoteImageRevalidations.contains(key) {
+            return
+        }
+
+        inFlightRemoteImageRevalidations.insert(key)
+        Task.detached(priority: .utility) {
+            await PinballDataCache.shared.runRemoteImageRevalidate(url: url)
+        }
+    }
+
+    private func runRemoteImageRevalidate(url: URL) async {
+        defer { inFlightRemoteImageRevalidations.remove(remoteImageCacheKey(for: url)) }
+        do {
+            _ = try await fetchRemoteImageFromNetwork(url: url)
+        } catch {
+            // Keep stale data if revalidation fails.
+        }
     }
 
     private func revalidate(path: String, allowMissing: Bool) async {
@@ -577,11 +623,82 @@ actor PinballDataCache {
         return base.appendingPathComponent("pinball-data-cache", isDirectory: true)
     }
 
+    private func remoteImagesRootURL() -> URL {
+        cacheRootURL().appendingPathComponent("remote-images", isDirectory: true)
+    }
+
     private func fileURL(for path: String) -> URL {
         let ext = URL(fileURLWithPath: path).pathExtension
         let digest = SHA256.hash(data: Data(path.utf8)).compactMap { String(format: "%02x", $0) }.joined()
         let fileName = ext.isEmpty ? digest : "\(digest).\(ext)"
         return cacheRootURL().appendingPathComponent("resources", isDirectory: true).appendingPathComponent(fileName)
+    }
+
+    private func remoteImageFileURL(for url: URL) -> URL {
+        let ext = url.pathExtension
+        let digest = remoteImageCacheKey(for: url)
+        let fileName = ext.isEmpty ? digest : "\(digest).\(ext)"
+        return remoteImagesRootURL().appendingPathComponent(fileName)
+    }
+
+    private func remoteImageCacheKey(for url: URL) -> String {
+        SHA256.hash(data: Data(url.absoluteString.utf8)).compactMap { String(format: "%02x", $0) }.joined()
+    }
+
+    private func cachedRemoteImageData(for url: URL) throws -> Data? {
+        let fileURL = remoteImageFileURL(for: url)
+        guard fileManager.fileExists(atPath: fileURL.path) else { return nil }
+        return try Data(contentsOf: fileURL)
+    }
+
+    private func remoteImageFileUpdatedAt(for url: URL) -> Date? {
+        let fileURL = remoteImageFileURL(for: url)
+        guard let attrs = try? fileManager.attributesOfItem(atPath: fileURL.path),
+              let modified = attrs[.modificationDate] as? Date else {
+            return nil
+        }
+        return modified
+    }
+
+    private func writeRemoteImage(data: Data, for url: URL) throws {
+        let fileURL = remoteImageFileURL(for: url)
+        let dir = fileURL.deletingLastPathComponent()
+        try fileManager.createDirectory(at: dir, withIntermediateDirectories: true, attributes: nil)
+        try data.write(to: fileURL, options: .atomic)
+        try pruneRemoteImageCacheIfNeeded()
+    }
+
+    private func pruneRemoteImageCacheIfNeeded() throws {
+        let root = remoteImagesRootURL()
+        guard fileManager.fileExists(atPath: root.path) else { return }
+
+        let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey]
+        let files = try fileManager.contentsOfDirectory(
+            at: root,
+            includingPropertiesForKeys: keys,
+            options: [.skipsHiddenFiles]
+        )
+
+        var totalSize: Int64 = 0
+        var regularFiles: [(url: URL, size: Int64, modified: Date)] = []
+
+        for file in files {
+            let values = try file.resourceValues(forKeys: Set(keys))
+            guard values.isRegularFile == true else { continue }
+            let size = Int64(values.fileSize ?? 0)
+            totalSize += size
+            regularFiles.append((file, size, values.contentModificationDate ?? .distantPast))
+        }
+
+        guard totalSize > remoteImageDiskCacheSizeLimit else { return }
+
+        for file in regularFiles.sorted(by: { $0.modified < $1.modified }) {
+            try? fileManager.removeItem(at: file.url)
+            totalSize -= file.size
+            if totalSize <= remoteImageDiskCacheSizeLimit {
+                break
+            }
+        }
     }
 
     private func normalize(_ path: String) -> String {

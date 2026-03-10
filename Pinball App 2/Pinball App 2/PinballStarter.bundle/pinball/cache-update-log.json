@@ -2,6 +2,26 @@
   "schemaVersion": 1,
   "events": [
     {
+      "generatedAt": "2026-03-09T21:51:03.855Z",
+      "addedCount": 1,
+      "changedCount": 4,
+      "removedCount": 2,
+      "totalFiles": 350,
+      "added": [
+        "/pinball/images/playfields/fallback-image-not-available_2048.webp"
+      ],
+      "changed": [
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": [
+        "/pinball/images/playfields/fallback-whitewood-playfield_1400.webp",
+        "/pinball/images/playfields/fallback-whitewood-playfield_700.webp"
+      ]
+    },
+    {
       "generatedAt": "2026-03-09T20:52:45.329Z",
       "addedCount": 0,
       "changedCount": 4,
@@ -486,10 +506,10 @@
     }
   ],
   "latest": {
-    "generatedAt": "2026-03-09T20:52:45.329Z",
-    "addedCount": 0,
+    "generatedAt": "2026-03-09T21:51:03.855Z",
+    "addedCount": 1,
     "changedCount": 4,
-    "removedCount": 0,
-    "totalFiles": 351
+    "removedCount": 2,
+    "totalFiles": 350
   }
 }

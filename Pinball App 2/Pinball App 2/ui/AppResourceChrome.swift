@@ -37,6 +37,35 @@ struct PinballResourceChipButtonStyle: ButtonStyle {
     }
 }
 
+struct PinballVideoLaunchButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(Color.white.opacity(isEnabled ? 1 : 0.55))
+            .lineLimit(1)
+            .minimumScaleFactor(0.9)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                    .fill(Color.white.opacity(configuration.isPressed ? 0.22 : 0.14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                            .stroke(
+                                Color.white.opacity(isEnabled ? (configuration.isPressed ? 0.52 : 0.26) : 0.16),
+                                lineWidth: 1
+                            )
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(isEnabled ? 1 : 0.72)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
 enum AppVariantPillStyle {
     case resource
     case mini
