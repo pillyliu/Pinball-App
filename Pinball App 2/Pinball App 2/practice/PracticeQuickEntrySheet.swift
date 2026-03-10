@@ -30,6 +30,7 @@ struct PracticeQuickEntrySheet: View {
     @State private var noteText: String = ""
     @State private var validationMessage: String?
     @State private var selectedLibraryFilterID: String = ""
+    @State private var showingScoreScanner = false
 
     init(
         kind: QuickEntrySheet,
@@ -203,6 +204,17 @@ struct PracticeQuickEntrySheet: View {
                                         if formatted != newValue { scoreText = formatted }
                                     }
 
+                                Button {
+                                    showingScoreScanner = true
+                                } label: {
+                                    Label("Scan Score", systemImage: "viewfinder")
+                                        .font(.subheadline.weight(.semibold))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                }
+                                .buttonStyle(.plain)
+                                .appControlStyle()
+
                                 Picker("Context", selection: $scoreContext) {
                                     ForEach(ScoreContext.allCases) { context in
                                         Text(context.label).tag(context)
@@ -332,6 +344,18 @@ struct PracticeQuickEntrySheet: View {
             }
             .navigationTitle(kind.title)
             .navigationBarTitleDisplayMode(.inline)
+            .fullScreenCover(isPresented: $showingScoreScanner) {
+                ScoreScannerView(
+                    onUseReading: { score in
+                        scoreText = ScoreParsingService.formattedScore(score: score)
+                        validationMessage = nil
+                        showingScoreScanner = false
+                    },
+                    onClose: {
+                        showingScoreScanner = false
+                    }
+                )
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     AppToolbarCancelAction {

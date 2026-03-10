@@ -336,6 +336,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = PinProf;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Scan pinball score displays to prefill score entry.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -347,7 +348,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.2.6;
+				MARKETING_VERSION = 3.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.pillyliu.Pinball-App-2";
 				PRODUCT_NAME = PinProf;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -373,6 +374,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = PinProf;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Scan pinball score displays to prefill score entry.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -384,7 +386,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.2.6;
+				MARKETING_VERSION = 3.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.pillyliu.Pinball-App-2";
 				PRODUCT_NAME = PinProf;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

@@ -11,6 +11,7 @@ struct GameScoreEntrySheet: View {
     @State private var scoreContext: ScoreContext = .practice
     @State private var tournamentName: String = ""
     @State private var validationMessage: String?
+    @State private var showingScoreScanner = false
 
     var body: some View {
         NavigationStack {
@@ -29,6 +30,17 @@ struct GameScoreEntrySheet: View {
                                 let formatted = formatScoreInputWithCommas(newValue)
                                 if formatted != newValue { scoreText = formatted }
                             }
+
+                        Button {
+                            showingScoreScanner = true
+                        } label: {
+                            Label("Scan Score", systemImage: "viewfinder")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.plain)
+                        .appControlStyle()
 
                         Picker("Context", selection: $scoreContext) {
                             ForEach(ScoreContext.allCases) { context in
@@ -59,6 +71,18 @@ struct GameScoreEntrySheet: View {
             }
             .navigationTitle("Log Score")
             .navigationBarTitleDisplayMode(.inline)
+            .fullScreenCover(isPresented: $showingScoreScanner) {
+                ScoreScannerView(
+                    onUseReading: { score in
+                        scoreText = ScoreParsingService.formattedScore(score: score)
+                        validationMessage = nil
+                        showingScoreScanner = false
+                    },
+                    onClose: {
+                        showingScoreScanner = false
+                    }
+                )
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     AppToolbarCancelAction {
