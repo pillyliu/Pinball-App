@@ -742,11 +742,18 @@ struct GroupGameSelectionScreen: View {
 
     private var filteredGames: [PinballGame] {
         let ordered = orderedGamesForDropdown(baseGamesForSelection, collapseByPracticeIdentity: true)
-        if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return ordered.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-        }
         return ordered
-            .filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+            .filter { game in
+                matchesSearchQuery(
+                    searchText,
+                    fields: [
+                        game.name,
+                        game.normalizedVariant,
+                        game.manufacturer,
+                        game.year.map(String.init)
+                    ]
+                )
+            }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 

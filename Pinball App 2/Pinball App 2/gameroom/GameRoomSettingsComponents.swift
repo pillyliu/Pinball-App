@@ -1148,23 +1148,15 @@ struct GameRoomEditMachinesView: View {
 
     private var filteredCatalogGames: [GameRoomCatalogGame] {
         let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalizedSearch = trimmedSearch.localizedLowercase
 
         return catalogLoader.games.filter { game in
             let manufacturerMatches = selectedManufacturerID == nil || game.manufacturerID == selectedManufacturerID
             guard manufacturerMatches else { return false }
-            guard !normalizedSearch.isEmpty else { return true }
-
-            let haystack = [
-                game.displayTitle,
-                game.displayVariant,
-                game.manufacturer,
-                game.year.map(String.init)
-            ]
-            .compactMap { $0?.localizedLowercase }
-            .joined(separator: " ")
-
-            return haystack.contains(normalizedSearch)
+            return gameRoomCatalogMatchesSearch(
+                game,
+                query: trimmedSearch,
+                variantAliases: catalogLoader.variantOptions(for: game.catalogGameID)
+            )
         }
     }
 

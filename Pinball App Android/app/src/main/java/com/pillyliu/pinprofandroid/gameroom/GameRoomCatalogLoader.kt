@@ -74,6 +74,9 @@ internal class GameRoomCatalogLoader(private val context: Context) {
         private set
 
     private var allCatalogGames: List<GameRoomCatalogGame> = emptyList()
+    private var gamesByCatalogGameID: Map<String, List<GameRoomCatalogGame>> = emptyMap()
+    private var gamesByNormalizedCatalogGameID: Map<String, List<GameRoomCatalogGame>> = emptyMap()
+    private var variantOptionsByNormalizedCatalogGameID: Map<String, List<String>> = emptyMap()
     private var machineRecordsByCatalogGameID: Map<String, List<GameRoomCatalogMachineRecord>> = emptyMap()
     private var slugMatchesBySlug: Map<String, GameRoomCatalogSlugMatch> = emptyMap()
 
@@ -90,6 +93,9 @@ internal class GameRoomCatalogLoader(private val context: Context) {
             manufacturerOptions = emptyList()
             variantOptionsByCatalogGameID = emptyMap()
             allCatalogGames = emptyList()
+            gamesByCatalogGameID = emptyMap()
+            gamesByNormalizedCatalogGameID = emptyMap()
+            variantOptionsByNormalizedCatalogGameID = emptyMap()
             machineRecordsByCatalogGameID = emptyMap()
             slugMatchesBySlug = emptyMap()
             errorMessage = "Failed to load catalog data: ${error.localizedMessage ?: error::class.java.simpleName}"
@@ -129,7 +135,6 @@ internal class GameRoomCatalogLoader(private val context: Context) {
                 .thenBy { it.name.lowercase() },
         )
 
-        val representativeByGroup = LinkedHashMap<String, GameRoomCatalogGame>()
         val allGames = mutableListOf<GameRoomCatalogGame>()
         val variantsByGroup = LinkedHashMap<String, MutableSet<String>>()
         val recordsByGroup = LinkedHashMap<String, MutableList<GameRoomCatalogMachineRecord>>()
@@ -189,10 +194,6 @@ internal class GameRoomCatalogLoader(private val context: Context) {
                 primaryImageUrl = primaryImageUrl ?: primaryImageLargeUrl,
             )
             allGames += candidate
-            val existing = representativeByGroup[groupID]
-            if (existing == null || isPreferredRepresentative(candidate, existing)) {
-                representativeByGroup[groupID] = candidate
-            }
 
             val slugMatch = GameRoomCatalogSlugMatch(
                 catalogGameID = groupID,
@@ -206,15 +207,21 @@ internal class GameRoomCatalogLoader(private val context: Context) {
             }
         }
 
-        games = representativeByGroup.values.sortedWith(
-            compareBy<GameRoomCatalogGame> { it.displayTitle.lowercase() }.thenBy { it.year ?: Int.MAX_VALUE },
-        )
+        allCatalogGames = allGames
+        gamesByCatalogGameID = allGames.groupBy { it.catalogGameID }
+        gamesByNormalizedCatalogGameID = allGames.groupBy { normalizedCatalogGameID(it.catalogGameID) }
+        games = dedupedCatalogGames(allGames)
         manufacturers = manufacturerBucket.toList().sortedBy { it.lowercase() }
         errorMessage = null
         variantOptionsByCatalogGameID = variantsByGroup.mapValues { (_, values) ->
-            values.sortedWith(compareBy<String> { variantRank(it) }.thenBy { it.lowercase() })
+            values.sortedWith(
+                compareBy<String> { gameRoomVariantPreferenceRank(it) }
+                    .thenBy { it.lowercase() },
+            )
         }
-        allCatalogGames = allGames
+        variantOptionsByNormalizedCatalogGameID = variantOptionsByCatalogGameID
+            .entries
+            .associate { (key, values) -> normalizedCatalogGameID(key) to values }
         machineRecordsByCatalogGameID = recordsByGroup
         slugMatchesBySlug = slugMatches
     }
@@ -222,18 +229,18 @@ internal class GameRoomCatalogLoader(private val context: Context) {
     fun variantOptions(catalogGameID: String): List<String> {
         variantOptionsByCatalogGameID[catalogGameID]
             ?.let { return it }
-        return variantOptionsByCatalogGameID.entries.firstOrNull { (key, _) ->
-            key.equals(catalogGameID, ignoreCase = true)
-        }?.value.orEmpty()
+        return variantOptionsByNormalizedCatalogGameID[normalizedCatalogGameID(catalogGameID)].orEmpty()
     }
 
     fun game(catalogGameID: String): GameRoomCatalogGame? {
-        val normalizedID = catalogGameID.trim()
-        if (normalizedID.isBlank()) return null
-        games.firstOrNull { it.catalogGameID == normalizedID }?.let { return it }
-        val caseInsensitiveMatches = games.filter { it.catalogGameID.equals(normalizedID, ignoreCase = true) }
-        val distinctCatalogIDs = caseInsensitiveMatches.map { it.catalogGameID }.toSet()
-        return if (distinctCatalogIDs.size == 1) caseInsensitiveMatches.firstOrNull() else null
+        val normalizedID = catalogGameID.trim().takeIf { it.isNotEmpty() } ?: return null
+        gamesByCatalogGameID[normalizedID]
+            ?.let(::preferredCatalogGame)
+            ?.let { return it }
+        gamesByNormalizedCatalogGameID[normalizedCatalogGameID(normalizedID)]
+            ?.let(::preferredCatalogGame)
+            ?.let { return it }
+        return games.firstOrNull { it.catalogGameID.equals(normalizedID, ignoreCase = true) }
     }
 
     fun slugMatch(slug: String): GameRoomCatalogSlugMatch? {
@@ -243,13 +250,14 @@ internal class GameRoomCatalogLoader(private val context: Context) {
     }
 
     fun imageCandidates(machine: OwnedMachine): List<String> {
-        val grouped = allCatalogGames.filter { it.catalogGameID.equals(machine.catalogGameID, ignoreCase = true) }
+        val grouped = gamesByCatalogGameID[machine.catalogGameID]
+            ?: gamesByNormalizedCatalogGameID[normalizedCatalogGameID(machine.catalogGameID)]
             ?: emptyList()
         if (grouped.isEmpty()) return emptyList()
 
         val normalizedVariant = normalizeVariantLabel(machine.displayVariant)?.lowercase()
         val normalizedTitle = machine.displayTitle.trim().lowercase()
-        val rawCandidates = linkedSetOf<String>()
+        val rawCandidates = mutableListOf<String>()
 
         if (normalizedVariant != null) {
             val variantMatches = grouped.filter {
@@ -267,7 +275,9 @@ internal class GameRoomCatalogLoader(private val context: Context) {
         val titleMatches = allCatalogGames.filter { it.displayTitle.trim().lowercase() == normalizedTitle }
         rawCandidates.addAll(titleMatches.mapNotNull { it.primaryImageUrl })
 
-        return rawCandidates.toList()
+        val seen = linkedSetOf<String>()
+        return rawCandidates.mapNotNull(::resolveUrl)
+            .filter { candidate -> seen.add(candidate.lowercase()) }
     }
 
     private fun buildSlugKeys(slug: String): List<String> {
@@ -370,16 +380,6 @@ internal class GameRoomCatalogLoader(private val context: Context) {
         )
     }
 
-    private fun isPreferredRepresentative(candidate: GameRoomCatalogGame, current: GameRoomCatalogGame): Boolean {
-        val candidateYear = candidate.year ?: Int.MAX_VALUE
-        val currentYear = current.year ?: Int.MAX_VALUE
-        if (candidateYear != currentYear) return candidateYear < currentYear
-        val candidateVariantRank = variantRank(candidate.displayVariant.orEmpty())
-        val currentVariantRank = variantRank(current.displayVariant.orEmpty())
-        if (candidateVariantRank != currentVariantRank) return candidateVariantRank < currentVariantRank
-        return candidate.displayTitle.lowercase() < current.displayTitle.lowercase()
-    }
-
     private fun compareCatalogRecords(lhs: GameRoomCatalogMachineRecord, rhs: GameRoomCatalogMachineRecord): Int {
         val lhsHasArt = hasPrimaryArt(lhs)
         val rhsHasArt = hasPrimaryArt(rhs)
@@ -431,18 +431,6 @@ internal class GameRoomCatalogLoader(private val context: Context) {
     private fun hasPrimaryArt(record: GameRoomCatalogMachineRecord): Boolean {
         return !record.primaryImageLargeUrl.isNullOrBlank() ||
             !record.primaryImageUrl.isNullOrBlank()
-    }
-
-    private fun variantRank(value: String): Int {
-        val normalized = value.trim().lowercase()
-        return when {
-            normalized == "premium" -> 0
-            normalized == "le" -> 1
-            normalized == "pro" -> 2
-            normalized.contains("premium") -> 3
-            normalized == "none" -> 90
-            else -> 10
-        }
     }
 
     private fun parseCatalogName(title: String, explicitVariant: String?): ParsedCatalogName {
@@ -517,4 +505,17 @@ internal class GameRoomCatalogLoader(private val context: Context) {
         val displayTitle: String,
         val displayVariant: String?,
     )
+
+    private fun normalizedCatalogGameID(value: String): String =
+        value.trim().lowercase()
+
+    private fun resolveUrl(pathOrUrl: String?): String? {
+        val value = pathOrUrl?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        if (value.startsWith("http://") || value.startsWith("https://")) return value
+        return if (value.startsWith("/")) {
+            "https://pillyliu.com$value"
+        } else {
+            "https://pillyliu.com/$value"
+        }
+    }
 }

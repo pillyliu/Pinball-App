@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.LibrarySource
+import com.pillyliu.pinprofandroid.library.matchesSearchQuery
+import com.pillyliu.pinprofandroid.library.normalizedVariant
 import com.pillyliu.pinprofandroid.ui.AppCheckbox
 import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -84,7 +86,17 @@ internal fun GroupGameSelectionScreen(
     }
     val filteredGames = remember(selectablePool, searchText) {
         selectablePool
-            .filter { searchText.isBlank() || it.name.contains(searchText, ignoreCase = true) }
+            .filter { game ->
+                matchesSearchQuery(
+                    query = searchText,
+                    fields = listOf(
+                        game.name,
+                        game.normalizedVariant,
+                        game.manufacturer,
+                        game.year?.toString(),
+                    ),
+                )
+            }
             .sortedBy { it.name.lowercase(Locale.US) }
     }
     val groupedGames = remember(filteredGames) {

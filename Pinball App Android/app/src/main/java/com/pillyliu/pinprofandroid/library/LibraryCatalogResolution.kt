@@ -115,20 +115,25 @@ internal fun preferredMachineForVariant(
     requestedVariant: String?,
 ): CatalogMachineRecord? {
     if (candidates.isEmpty()) return null
+    val normalizedRequested = normalizedOptionalString(requestedVariant)?.lowercase()
+    if (normalizedRequested == null) {
+        return candidates.minWithOrNull(::comparePreferredMachine)
+    }
     val ranked = candidates.sortedWith { lhs, rhs ->
-        val lhsScore = catalogVariantScore(lhs.variant, requestedVariant)
-        val rhsScore = catalogVariantScore(rhs.variant, requestedVariant)
+        val lhsScore = catalogVariantScore(lhs.variant, normalizedRequested)
+        val rhsScore = catalogVariantScore(rhs.variant, normalizedRequested)
         when {
             lhsScore != rhsScore -> rhsScore.compareTo(lhsScore)
-            else -> comparePreferredMachine(lhs, rhs)
+            catalogMachineHasPrimaryImage(lhs) != catalogMachineHasPrimaryImage(rhs) ->
+                if (catalogMachineHasPrimaryImage(lhs)) -1 else 1
+            (lhs.year ?: Int.MAX_VALUE) != (rhs.year ?: Int.MAX_VALUE) ->
+                (lhs.year ?: Int.MAX_VALUE).compareTo(rhs.year ?: Int.MAX_VALUE)
+            else -> (lhs.opdbMachineId ?: lhs.practiceIdentity).compareTo(rhs.opdbMachineId ?: rhs.practiceIdentity)
         }
     }
     val best = ranked.firstOrNull() ?: return null
-    val normalizedRequested = normalizedOptionalString(requestedVariant)
-    if (normalizedRequested != null) {
-        val bestScore = catalogVariantScore(best.variant, normalizedRequested)
-        if (bestScore <= 0) return null
-    }
+    val bestScore = catalogVariantScore(best.variant, normalizedRequested)
+    if (bestScore <= 0) return null
     return best
 }
 
@@ -163,14 +168,15 @@ internal fun resolvedCatalogDisplayTitle(title: String, explicitVariant: String?
 
 internal fun catalogVariantScore(machineVariant: String?, requestedVariant: String?): Int {
     val normalizedMachineVariant = normalizedOptionalString(machineVariant)?.lowercase()
-    if (requestedVariant.isNullOrBlank()) return 0
-    if (normalizedMachineVariant == requestedVariant) return 200
+    val normalizedRequested = normalizedOptionalString(requestedVariant)?.lowercase() ?: return 0
+    if (normalizedMachineVariant.isNullOrBlank()) return 0
+    if (normalizedMachineVariant == normalizedRequested) return 200
     val machineTokens = normalizedMachineVariant
         ?.split(Regex("[^A-Za-z0-9]+"))
         ?.filter { it.isNotBlank() }
         ?.toSet()
         .orEmpty()
-    val requestTokens = requestedVariant
+    val requestTokens = normalizedRequested
         .split(Regex("[^A-Za-z0-9]+"))
         .filter { it.isNotBlank() }
         .toSet()
@@ -184,10 +190,8 @@ internal fun catalogVariantScore(machineVariant: String?, requestedVariant: Stri
         return score
     }
     if (!normalizedMachineVariant.isNullOrBlank() &&
-        (normalizedMachineVariant.contains(requestedVariant) || requestedVariant.contains(normalizedMachineVariant))
+        (normalizedMachineVariant.contains(normalizedRequested) || normalizedRequested.contains(normalizedMachineVariant))
     ) return 80
-    if (requestedVariant.contains("premium") && normalizedMachineVariant == "le") return 80
-    if (requestedVariant == "le" && normalizedMachineVariant?.contains("anniversary") == true) return 40
     return 0
 }
 

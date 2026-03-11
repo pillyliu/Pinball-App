@@ -159,17 +159,18 @@ struct PinballLibraryBrowsingState {
     }
 
     var filteredGames: [PinballGame] {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let effectiveBank = supportsBankFilter ? selectedBank : nil
 
         return sourceScopedGames.filter { game in
-            let matchesQuery: Bool
-            if trimmed.isEmpty {
-                matchesQuery = true
-            } else {
-                let haystack = "\(game.name) \(game.manufacturer ?? "") \(game.year.map(String.init) ?? "")".lowercased()
-                matchesQuery = haystack.contains(trimmed)
-            }
+            let matchesQuery = matchesSearchQuery(
+                query,
+                fields: [
+                    game.name,
+                    game.normalizedVariant,
+                    game.manufacturer,
+                    game.year.map(String.init)
+                ]
+            )
 
             let matchesBank = effectiveBank == nil || game.bank == effectiveBank
             return matchesQuery && matchesBank

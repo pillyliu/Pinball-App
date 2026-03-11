@@ -12,6 +12,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.text.Normalizer
 import java.util.concurrent.ConcurrentHashMap
 
 internal const val LIBRARY_URL = "https://pillyliu.com/pinball/data/pinball_library_v3.json"
@@ -65,6 +66,27 @@ internal data class LibraryVenueSearchResult(
     val distanceMiles: Double?,
     val machineCount: Int,
 )
+
+internal fun normalizedSearchTokens(value: String): List<String> {
+    val folded = Normalizer.normalize(value, Normalizer.Form.NFD)
+        .replace(Regex("\\p{M}+"), "")
+    return folded
+        .lowercase()
+        .split(Regex("[^a-z0-9]+"))
+        .filter { it.isNotBlank() }
+}
+
+internal fun matchesSearchQuery(query: String, fields: Iterable<String?>): Boolean {
+    val queryTokens = normalizedSearchTokens(query)
+    if (queryTokens.isEmpty()) return true
+
+    val haystackTokens = fields.flatMap { normalizedSearchTokens(it.orEmpty()) }
+    if (haystackTokens.isEmpty()) return false
+
+    return queryTokens.all { queryToken ->
+        haystackTokens.any { haystackToken -> haystackToken.contains(queryToken) }
+    }
+}
 
 internal data class ReferenceLink(
     val label: String,

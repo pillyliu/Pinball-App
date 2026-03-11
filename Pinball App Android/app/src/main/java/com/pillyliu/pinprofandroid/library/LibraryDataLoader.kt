@@ -378,12 +378,7 @@ private fun buildGameRoomOverlay(
         }
         val playfieldLocalRaw = normalizedOptionalString(template?.playfieldLocalOriginal ?: template?.playfieldLocal)
         val playfieldImageUrl = normalizedOptionalString(template?.playfieldImageUrl)
-        val playfieldSourceLabel = when {
-            isPinProfPlayfieldUrl(playfieldImageUrl) || isPinProfPlayfieldUrl(playfieldLocalRaw) -> "Prof"
-            playfieldLocalRaw != null -> "Local"
-            playfieldImageUrl != null -> "Playfield (OPDB)"
-            else -> null
-        }
+        val playfieldSourceLabel = template?.let(::resolvedPlayfieldSourceLabel)
         val resolvedName = ownedMachine.displayTitle.trim().ifBlank { template?.name ?: ownedMachine.catalogGameID }
         val slugFallback = canonicalPracticeIdentity.ifBlank {
             normalizedOptionalString(ownedMachine.catalogGameID) ?: ownedMachine.id
@@ -634,7 +629,7 @@ private fun templateScore(game: PinballGame, machineVariant: String?): Int {
     if (!game.playfieldImageUrl.isNullOrBlank() || !game.primaryImageUrl.isNullOrBlank()) {
         score += 20
     }
-    if (!game.rulesheetLocal.isNullOrBlank() || game.rulesheetLinks.isNotEmpty()) {
+    if (game.hasRulesheetResource || game.rulesheetLinks.isNotEmpty()) {
         score += 10
     }
     return score
@@ -753,6 +748,25 @@ private fun variantPreferenceScore(normalizedVariant: String?): Int {
         normalizedVariant == "pro" || normalizedVariant.contains("pro") -> 90
         normalizedVariant.contains("anniversary") -> 20
         else -> 60
+    }
+}
+
+internal fun resolvedPlayfieldSourceLabel(game: PinballGame): String? {
+    if (isPinProfPlayfieldUrl(game.playfieldImageUrl) || isPinProfPlayfieldUrl(game.playfieldLocalOriginalURL)) {
+        return "Prof"
+    }
+    if (!game.playfieldLocal.isNullOrBlank()) {
+        return "Local"
+    }
+    val explicit = game.playfieldSourceLabel?.trim()?.takeIf { it.isNotEmpty() }
+    if (explicit != null) {
+        return explicit
+    }
+    val sourceUrl = resolveLibraryUrl(game.playfieldImageUrl) ?: return null
+    return when {
+        sourceUrl.contains("img.opdb.org", ignoreCase = true) -> "Playfield (OPDB)"
+        isPinProfPlayfieldUrl(sourceUrl) -> "Prof"
+        else -> null
     }
 }
 

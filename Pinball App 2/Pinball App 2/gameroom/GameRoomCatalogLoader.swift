@@ -19,6 +19,21 @@ struct GameRoomCatalogSlugMatch: Hashable {
     let variant: String?
 }
 
+nonisolated func gameRoomCatalogMatchesSearch(
+    _ game: GameRoomCatalogGame,
+    query: String,
+    variantAliases: [String] = []
+) -> Bool {
+    var fields: [String?] = [
+        game.displayTitle,
+        game.displayVariant,
+        game.manufacturer,
+        game.year.map(String.init)
+    ]
+    fields.append(contentsOf: variantAliases.map(Optional.some))
+    return matchesSearchQuery(query, fields: fields)
+}
+
 private struct GameRoomCatalogRoot: Decodable {
     let manufacturers: [CatalogManufacturer]
     let machines: [CatalogMachine]

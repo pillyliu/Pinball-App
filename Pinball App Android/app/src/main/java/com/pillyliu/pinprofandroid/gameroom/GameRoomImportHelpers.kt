@@ -68,11 +68,11 @@ private fun scoredCatalogSuggestions(
     machine: PinsideImportedMachine,
     catalogLoader: GameRoomCatalogLoader,
 ): List<Pair<GameRoomCatalogGame, Int>> {
-    val normalizedRawTitle = normalizeImportText(machine.rawTitle)
-    val normalizedVariant = normalizeImportText(machine.rawVariant.orEmpty())
+    val normalizedRawTitle = normalizeGameRoomImportText(machine.rawTitle)
+    val normalizedVariant = normalizeGameRoomImportText(machine.rawVariant.orEmpty())
     val slugMatch = catalogLoader.slugMatch(machine.slug)
     return catalogLoader.games.map { game ->
-        val normalizedGameTitle = normalizeImportText(game.displayTitle)
+        val normalizedGameTitle = normalizeGameRoomImportText(game.displayTitle)
         var score = 0
 
         if (slugMatch != null && game.catalogGameID.equals(slugMatch.catalogGameID, ignoreCase = true)) {
@@ -91,7 +91,7 @@ private fun scoredCatalogSuggestions(
             }
         }
         if (normalizedVariant.isNotBlank()) {
-            val variants = catalogLoader.variantOptions(game.catalogGameID).map(::normalizeImportText)
+            val variants = catalogLoader.variantOptions(game.catalogGameID).map(::normalizeGameRoomImportText)
             if (variants.contains(normalizedVariant)) score += 20
         }
         score += metadataScore(machine, game)
@@ -121,14 +121,6 @@ private fun tokenOverlapScore(lhs: String, rhs: String): Int {
     val intersection = lhsSet.intersect(rhsSet).size
     if (intersection == 0) return 0
     return ((intersection.toDouble() / maxOf(lhsSet.size, rhsSet.size)) * 70.0).toInt()
-}
-
-private fun normalizeImportText(value: String): String {
-    return value
-        .lowercase(Locale.US)
-        .replace(Regex("[^a-z0-9 ]"), " ")
-        .replace(Regex("\\s+"), " ")
-        .trim()
 }
 
 private fun metadataScore(
@@ -172,7 +164,7 @@ private fun yearMatchScore(
 }
 
 private fun canonicalManufacturerLabel(value: String?): String {
-    val normalizedValue = normalizeImportText(value.orEmpty())
+    val normalizedValue = normalizeGameRoomImportText(value.orEmpty())
     if (normalizedValue.isBlank()) return ""
     val ignoredTokens = setOf(
         "co",

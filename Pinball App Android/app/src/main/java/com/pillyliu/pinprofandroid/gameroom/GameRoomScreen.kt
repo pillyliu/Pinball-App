@@ -346,9 +346,11 @@ internal fun GameRoomScreen(
 
     val filteredCatalogGames = catalogLoader.games.filter { game ->
         val manufacturerMatches = addManufacturerFilter == null || game.manufacturerID == addManufacturerFilter
-        val queryMatches = addQuery.isBlank() ||
-            game.displayTitle.contains(addQuery, ignoreCase = true) ||
-            (game.manufacturer?.contains(addQuery, ignoreCase = true) == true)
+        val queryMatches = gameRoomCatalogMatchesSearch(
+            game = game,
+            query = addQuery,
+            variantAliases = catalogLoader.variantOptions(game.catalogGameID),
+        )
         manufacturerMatches && queryMatches
     }
     val safeResultWindowStart = resultWindowStart.coerceIn(0, filteredCatalogGames.size)

@@ -61,14 +61,16 @@ internal data class LibraryBrowseState(
 
     val filteredGames: List<PinballGame>
         get() {
-            val normalizedQuery = query.trim().lowercase()
             return sourceScopedGames.filter { game ->
-                val queryMatch = if (normalizedQuery.isBlank()) {
-                    true
-                } else {
-                    "${game.name} ${game.manufacturer.orEmpty()} ${game.year?.toString().orEmpty()}".lowercase()
-                        .contains(normalizedQuery)
-                }
+                val queryMatch = matchesSearchQuery(
+                    query = query,
+                    fields = listOf(
+                        game.name,
+                        game.normalizedVariant,
+                        game.manufacturer,
+                        game.year?.toString(),
+                    ),
+                )
                 val bankMatch = effectiveSelectedBank == null || game.bank == effectiveSelectedBank
                 queryMatch && bankMatch
             }

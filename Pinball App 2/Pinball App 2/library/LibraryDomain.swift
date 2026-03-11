@@ -28,6 +28,28 @@ struct PinballLibrarySource: Identifiable {
     }
 }
 
+nonisolated func normalizedSearchTokens(_ value: String) -> [String] {
+    value
+        .folding(options: [.diacriticInsensitive], locale: .current)
+        .lowercased()
+        .components(separatedBy: CharacterSet.alphanumerics.inverted)
+        .filter { !$0.isEmpty }
+}
+
+nonisolated func matchesSearchQuery(_ query: String, fields: [String?]) -> Bool {
+    let queryTokens = normalizedSearchTokens(query)
+    guard !queryTokens.isEmpty else { return true }
+
+    let haystackTokens = fields.flatMap { normalizedSearchTokens($0 ?? "") }
+    guard !haystackTokens.isEmpty else { return false }
+
+    return queryTokens.allSatisfy { queryToken in
+        haystackTokens.contains { haystackToken in
+            haystackToken.contains(queryToken)
+        }
+    }
+}
+
 enum PinballLibrarySortOption: String, CaseIterable, Identifiable {
     case area
     case bank
