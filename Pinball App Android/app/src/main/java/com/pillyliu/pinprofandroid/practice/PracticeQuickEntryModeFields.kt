@@ -1,5 +1,6 @@
 package com.pillyliu.pinprofandroid.practice
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +24,11 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material3.Icon
+import androidx.compose.ui.platform.LocalFocusManager
+import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import kotlin.math.roundToInt
 
 @Composable
@@ -58,7 +64,9 @@ internal fun QuickEntryModeFields(
     mechanicsSkills: List<String>,
     mechanicsCompetency: Float,
     onMechanicsCompetencyChange: (Float) -> Unit,
+    onOpenScoreScanner: (() -> Unit)? = null,
 ) {
+    val focusManager = LocalFocusManager.current
     when (mode) {
         QuickActivity.Score -> {
             var scoreFieldValue by remember { mutableStateOf(TextFieldValue(scoreText, TextRange(scoreText.length))) }
@@ -67,21 +75,42 @@ internal fun QuickEntryModeFields(
                     scoreFieldValue = TextFieldValue(scoreText, TextRange(scoreText.length))
                 }
             }
-            OutlinedTextField(
-                value = scoreFieldValue,
-                onValueChange = { incoming ->
-                    onScoreTextChange(incoming.text)
-                    val formatted = formatScoreInputWithCommasForQuickEntryField(incoming.text)
-                    scoreFieldValue = TextFieldValue(formatted, TextRange(formatted.length))
-                },
-                label = { Text("Score") },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                textStyle = LocalTextStyle.current.copy(
-                    textAlign = TextAlign.End,
-                    fontFamily = FontFamily.Monospace,
-                ),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = scoreFieldValue,
+                    onValueChange = { incoming ->
+                        onScoreTextChange(incoming.text)
+                        val formatted = formatScoreInputWithCommasForQuickEntryField(incoming.text)
+                        scoreFieldValue = TextFieldValue(formatted, TextRange(formatted.length))
+                    },
+                    label = { Text("Score") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = LocalTextStyle.current.copy(
+                        textAlign = TextAlign.End,
+                        fontFamily = FontFamily.Monospace,
+                    ),
+                )
+                if (onOpenScoreScanner != null) {
+                    AppSecondaryButton(
+                        onClick = {
+                            focusManager.clearFocus(force = true)
+                            onOpenScoreScanner()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.CameraAlt,
+                            contentDescription = null,
+                        )
+                        Text(
+                            text = "Scan Score",
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+            }
             SimpleMenuDropdown(
                 title = "Context",
                 options = listOf("practice", "league", "tournament"),

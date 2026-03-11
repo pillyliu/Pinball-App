@@ -384,7 +384,11 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     }
 
     private func renderPreviewImage(from frame: CIImage) -> UIImage? {
-        guard let cgImage = ciContext.createCGImage(frame, from: frame.extent) else { return nil }
+        let normalizedFrame = frame.transformed(
+            by: CGAffineTransform(translationX: -frame.extent.minX, y: -frame.extent.minY)
+        )
+        let normalizedExtent = normalizedFrame.extent.integral
+        guard let cgImage = ciContext.createCGImage(normalizedFrame, from: normalizedExtent) else { return nil }
         return UIImage(cgImage: cgImage)
     }
 

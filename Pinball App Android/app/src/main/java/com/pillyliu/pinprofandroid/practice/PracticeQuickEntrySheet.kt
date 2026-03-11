@@ -39,6 +39,7 @@ internal fun QuickEntrySheet(
     val context = LocalContext.current
     val prefs = remember { practiceSharedPreferences(context) }
     var mode by remember(presetActivity) { mutableStateOf(presetActivity) }
+    var showScoreScanner by remember { mutableStateOf(false) }
     val studyActivities = remember {
         listOf(QuickActivity.Rulesheet, QuickActivity.Tutorial, QuickActivity.Gameplay, QuickActivity.Playfield)
     }
@@ -273,6 +274,11 @@ internal fun QuickEntrySheet(
                     mechanicsSkills = mechanicsSkills,
                     mechanicsCompetency = mechanicsCompetency,
                     onMechanicsCompetencyChange = { mechanicsCompetency = it.roundToInt().toFloat() },
+                    onOpenScoreScanner = if (mode == QuickActivity.Score) {
+                        { showScoreScanner = true }
+                    } else {
+                        null
+                    },
                 )
                 validation?.let {
                     Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -311,6 +317,16 @@ internal fun QuickEntrySheet(
         },
         dismissButton = { AppTextAction(text = "Cancel", onClick = onDismiss) },
     )
+
+    if (showScoreScanner) {
+        ScoreScannerDialog(
+            onUseReading = { score ->
+                scoreText = formatScoreInputWithCommas(score.toString())
+                showScoreScanner = false
+            },
+            onClose = { showScoreScanner = false },
+        )
+    }
 }
 
 private fun formatScoreInputWithCommas(raw: String): String {

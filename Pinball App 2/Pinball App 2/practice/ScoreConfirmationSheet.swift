@@ -5,10 +5,20 @@ struct ScoreConfirmationSheet: View {
     let lockedReading: ScoreScannerLockedReading?
     @Binding var confirmationText: String
     let validationMessage: String?
+    let onManualEntryFocusChange: (Bool) -> Void
     let onUseReading: () -> Void
     let onRetake: () -> Void
 
     @FocusState private var scoreFieldFocused: Bool
+
+    private var formattedConfirmationBinding: Binding<String> {
+        Binding(
+            get: { confirmationText },
+            set: { newValue in
+                confirmationText = ScoreParsingService.formattedScoreInput(from: newValue)
+            }
+        )
+    }
 
     private var canUseReading: Bool {
         ScoreParsingService.normalizedScore(fromManualInput: confirmationText) != nil
@@ -16,11 +26,6 @@ struct ScoreConfirmationSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Capsule()
-                .fill(Color.white.opacity(0.28))
-                .frame(width: 42, height: 5)
-                .frame(maxWidth: .infinity)
-
             VStack(alignment: .leading, spacing: 6) {
                 Text(status == .locked ? "Locked score" : "Confirm score")
                     .font(.headline)
@@ -41,7 +46,7 @@ struct ScoreConfirmationSheet: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
 
-                TextField("Score", text: $confirmationText)
+                TextField("Score", text: formattedConfirmationBinding)
                     .font(.title3.weight(.semibold))
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(.trailing)
@@ -52,11 +57,8 @@ struct ScoreConfirmationSheet: View {
                     .padding(.vertical, 10)
                     .appControlStyle()
                     .focused($scoreFieldFocused)
-                    .onChange(of: confirmationText) { _, newValue in
-                        let formatted = ScoreParsingService.formattedScoreInput(from: newValue)
-                        if formatted != newValue {
-                            confirmationText = formatted
-                        }
+                    .onChange(of: scoreFieldFocused) { _, isFocused in
+                        onManualEntryFocusChange(isFocused)
                     }
 
                 if let validationMessage {

@@ -1,17 +1,24 @@
 import SwiftUI
+import Combine
+import UIKit
 
 struct ScoreScannerView: View {
     let onUseReading: (Int) -> Void
     let onClose: () -> Void
 
     @StateObject private var viewModel = ScoreScannerViewModel()
+    @StateObject private var keyboardObserver = KeyboardFrameObserver()
+    @State private var stableViewportSize: CGSize = .zero
+    @State private var manualEntryFocused = false
 
     var body: some View {
         GeometryReader { geometry in
+            let layoutSize = resolvedLayoutSize(for: geometry.size)
             let targetRect = ScoreScannerTargetBoxLayout.rect(
-                in: geometry.size,
+                in: layoutSize,
                 safeAreaInsets: geometry.safeAreaInsets
             )
+            let controlsBottomPadding = resolvedControlsBottomPadding(for: geometry.safeAreaInsets)
 
             ZStack {
                 Color.black.ignoresSafeArea()
@@ -41,8 +48,15 @@ struct ScoreScannerView: View {
                     .padding(.top, 18)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
-                header(targetRect: targetRect, containerSize: geometry.size)
-                liveReadingPanel(targetRect: targetRect, containerSize: geometry.size)
+                header(targetRect: targetRect, containerSize: layoutSize)
+                liveReadingPanel(targetRect: targetRect, containerSize: layoutSize)
+
+                if viewModel.isFrozen, keyboardObserver.overlap > 0 {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .ignoresSafeArea()
+                        .onTapGesture(perform: dismissKeyboard)
+                }
 
                 VStack(spacing: 14) {
                     if viewModel.isFrozen {
@@ -51,6 +65,9 @@ struct ScoreScannerView: View {
                             lockedReading: viewModel.lockedReading,
                             confirmationText: $viewModel.confirmationText,
                             validationMessage: viewModel.confirmationValidationMessage,
+                            onManualEntryFocusChange: { isFocused in
+                                manualEntryFocused = isFocused
+                            },
                             onUseReading: useReading,
                             onRetake: viewModel.retake
                         )
@@ -59,9 +76,10 @@ struct ScoreScannerView: View {
                     }
                 }
                 .padding(.horizontal, 18)
-                .padding(.bottom, max(geometry.safeAreaInsets.bottom, 18))
+                .padding(.bottom, controlsBottomPadding)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                 .animation(.easeInOut(duration: 0.2), value: viewModel.isFrozen)
+                .animation(.easeInOut(duration: 0.22), value: keyboardObserver.overlap)
 
                 if viewModel.status == .cameraPermissionRequired {
                     cameraOverlayCard(
@@ -82,12 +100,15 @@ struct ScoreScannerView: View {
                     )
                 }
             }
+            .ignoresSafeArea(.keyboard)
             .statusBarHidden()
             .onAppear {
+                updateStableViewportSize(with: geometry.size)
                 viewModel.onAppear()
                 viewModel.updateTargetRect(targetRect)
             }
             .onChange(of: geometry.size) { _, _ in
+                updateStableViewportSize(with: geometry.size)
                 viewModel.updateTargetRect(targetRect)
             }
             .onDisappear {
@@ -216,6 +237,47 @@ struct ScoreScannerView: View {
         }
     }
 
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    private func resolvedControlsBottomPadding(for safeAreaInsets: EdgeInsets) -> CGFloat {
+        if keyboardObserver.overlap > 0 {
+            return max(
+                keyboardObserver.overlap,
+                max(safeAreaInsets.bottom, 18)
+            )
+        }
+        return max(safeAreaInsets.bottom, 18)
+    }
+
+    private func resolvedLayoutSize(for currentSize: CGSize) -> CGSize {
+        guard stableViewportSize.width > 0, stableViewportSize.height > 0 else {
+            return currentSize
+        }
+        return keyboardObserver.overlap > 0 || manualEntryFocused ? stableViewportSize : currentSize
+    }
+
+    private func updateStableViewportSize(with size: CGSize) {
+        guard size.width > 0, size.height > 0 else { return }
+        guard stableViewportSize.width > 0, stableViewportSize.height > 0 else {
+            stableViewportSize = size
+            return
+        }
+
+        // Treat width changes as a real viewport change, but ignore same-width height
+        // reductions so the keyboard cannot collapse the scanner overlay geometry.
+        if abs(size.width - stableViewportSize.width) > 1 {
+            stableViewportSize = size
+            return
+        }
+
+        stableViewportSize = CGSize(
+            width: max(stableViewportSize.width, size.width),
+            height: max(stableViewportSize.height, size.height)
+        )
+    }
+
     private func controlButton(
         title: String,
         systemImage: String?,
@@ -314,6 +376,49 @@ struct ScoreScannerView: View {
             .ignoresSafeArea()
             .transition(.opacity)
         }
+    }
+}
+
+private final class KeyboardFrameObserver: ObservableObject {
+    @Published private(set) var overlap: CGFloat = 0
+
+    private var notificationTokens: [NSObjectProtocol] = []
+
+    init() {
+        let center = NotificationCenter.default
+        notificationTokens = [
+            center.addObserver(
+                forName: UIResponder.keyboardWillChangeFrameNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                self?.handle(notification: notification)
+            },
+            center.addObserver(
+                forName: UIResponder.keyboardWillHideNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                self?.handle(notification: notification)
+            }
+        ]
+    }
+
+    deinit {
+        let center = NotificationCenter.default
+        notificationTokens.forEach(center.removeObserver)
+    }
+
+    private func handle(notification: Notification) {
+        guard let endFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
+            overlap = 0
+            return
+        }
+
+        let screenBounds = UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.screen.bounds }
+            .first ?? CGRect(x: 0, y: 0, width: endFrame.width, height: endFrame.maxY)
+        overlap = max(0, screenBounds.maxY - endFrame.minY)
     }
 }
 
