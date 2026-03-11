@@ -116,7 +116,7 @@ internal fun LibraryDetailSummaryCard(
                         AppUnavailableResourceChip()
                     }
                 } else {
-                    game.rulesheetLinks.forEach { link ->
+                    game.orderedRulesheetLinks.forEach { link ->
                         val destination = link.destinationUrl
                         val embedded = link.embeddedRulesheetSource
                         AppResourceChip(label = appShortRulesheetTitle(link)) {

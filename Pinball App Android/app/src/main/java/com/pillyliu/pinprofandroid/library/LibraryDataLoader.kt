@@ -379,6 +379,7 @@ private fun buildGameRoomOverlay(
         val playfieldLocalRaw = normalizedOptionalString(template?.playfieldLocalOriginal ?: template?.playfieldLocal)
         val playfieldImageUrl = normalizedOptionalString(template?.playfieldImageUrl)
         val playfieldSourceLabel = when {
+            isPinProfPlayfieldUrl(playfieldImageUrl) || isPinProfPlayfieldUrl(playfieldLocalRaw) -> "Prof"
             playfieldLocalRaw != null -> "Local"
             playfieldImageUrl != null -> "Playfield (OPDB)"
             else -> null
@@ -813,8 +814,8 @@ private fun resolveLegacyGame(
     val hasCuratedVideos = legacyGame.videos.isNotEmpty()
     val playfieldLocalPath = normalizedOptionalString(legacyGame.playfieldLocalOriginal ?: legacyGame.playfieldLocal)
         ?: normalizedOptionalString(curatedOverride?.playfieldLocalPath)
-    val curatedPlayfieldImageUrl = preferredLegacyPlayfieldOverride(legacyGame)
-        ?: normalizedOptionalString(curatedOverride?.playfieldSourceUrl)
+    val curatedPlayfieldImageUrl = normalizedOptionalString(curatedOverride?.playfieldSourceUrl)
+        ?: preferredLegacyPlayfieldOverride(legacyGame)
     val hasCuratedPlayfield = playfieldLocalPath != null || curatedPlayfieldImageUrl != null
     val opdbPlayfieldImageUrl = normalizedOptionalString(machine.playfieldImageLargeUrl ?: machine.playfieldImageMediumUrl)
 
@@ -900,10 +901,8 @@ private fun preferredLegacyNameOverride(game: PinballGame): String? {
 }
 
 private fun preferredLegacyPlayfieldOverride(game: PinballGame): String? {
-    if (normalizedOptionalString(game.playfieldLocalOriginal ?: game.playfieldLocal) != null) {
-        return normalizedOptionalString(game.playfieldImageUrl)
-    }
-    return if (game.sourceType.name != "VENUE") normalizedOptionalString(game.playfieldImageUrl) else null
+    val playfieldUrl = normalizedOptionalString(game.playfieldImageUrl) ?: return null
+    return playfieldUrl.takeIf(::isPinProfPlayfieldUrl)
 }
 
 private fun parsePublicLibraryOverrides(raw: String?): PublicLibraryOverridesRoot {

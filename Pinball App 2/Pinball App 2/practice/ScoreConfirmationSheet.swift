@@ -42,11 +42,14 @@ struct ScoreConfirmationSheet: View {
                     .foregroundStyle(.secondary)
 
                 TextField("Score", text: $confirmationText)
+                    .font(.title3.weight(.semibold))
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(.trailing)
+                    .textFieldStyle(.plain)
                     .monospacedDigit()
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
                     .appControlStyle()
                     .focused($scoreFieldFocused)
                     .onChange(of: confirmationText) { _, newValue in

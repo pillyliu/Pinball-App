@@ -41,7 +41,7 @@ struct LibraryDetailSummaryCard: View {
                             PinballUnavailableResourceChip("Unavailable")
                         }
                     } else {
-                        ForEach(game.rulesheetLinks) { link in
+                        ForEach(game.orderedRulesheetLinks) { link in
                             libraryRulesheetLinkButton(link: link, game: game, title: PinballShortRulesheetTitle(for: link))
                         }
                     }

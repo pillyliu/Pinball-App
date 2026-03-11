@@ -9,6 +9,12 @@ import java.net.URLEncoder
 
 private const val MISSING_ARTWORK_PATH = "/pinball/images/playfields/fallback-image-not-available_2048.webp"
 private val supportedPlayfieldOriginalExtensions = listOf("webp", "jpg", "jpeg", "png")
+private val pinProfHosts = setOf(
+    "pillyliu.com",
+    "www.pillyliu.com",
+    "pinprof.com",
+    "www.pinprof.com",
+)
 
 internal enum class LivePlayfieldKind {
     PILLYLIU,
@@ -64,6 +70,25 @@ internal fun resolveLibraryUrl(pathOrUrl: String?): String? {
     pathOrUrl ?: return null
     if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) return pathOrUrl
     return if (pathOrUrl.startsWith("/")) "https://pillyliu.com$pathOrUrl" else "https://pillyliu.com/$pathOrUrl"
+}
+
+internal fun isPinProfHost(host: String?): Boolean =
+    host?.lowercase()?.let(pinProfHosts::contains) == true
+
+internal fun isPinProfPlayfieldUrl(url: String?): Boolean {
+    val resolved = resolveLibraryUrl(url) ?: return false
+    return runCatching {
+        val parsed = URL(resolved)
+        isPinProfHost(parsed.host) && parsed.path.startsWith("/pinball/images/playfields/")
+    }.getOrDefault(false)
+}
+
+internal fun isPinProfRulesheetUrl(url: String?): Boolean {
+    val resolved = resolveLibraryUrl(url) ?: return false
+    return runCatching {
+        val parsed = URL(resolved)
+        isPinProfHost(parsed.host) && parsed.path.startsWith("/pinball/rulesheets/")
+    }.getOrDefault(false)
 }
 
 internal fun PinballGame.resolve(pathOrUrl: String?): String? =
@@ -134,8 +159,15 @@ private val PinballGame.playfieldAssetKeys: List<String>
         return keys.toList()
     }
 
-private val PinballGame.remotePlayfieldCandidates: List<String>
-    get() = listOfNotNull(resolveLibraryUrl(playfieldImageUrl))
+private val PinballGame.supportedSourcePlayfieldCandidates: List<String>
+    get() = listOfNotNull(
+        resolveLibraryUrl(playfieldImageUrl)?.takeIf {
+            isPinProfPlayfieldUrl(it) || isOpdbPlayfieldUrl(it)
+        },
+        alternatePlayfieldImageSourceUrl?.takeIf {
+            isPinProfPlayfieldUrl(it) || isOpdbPlayfieldUrl(it)
+        },
+    ).distinct()
 
 private val PinballGame.explicitLocalPlayfieldCandidates: List<String>
     get() = listOfNotNull(
@@ -205,7 +237,35 @@ internal fun PinballGame.fullscreenPlayfieldCandidates(): List<String> =
     fullscreenArtworkCandidatesOrMissingArtwork()
 
 internal val PinballGame.actualFullscreenPlayfieldCandidates: List<String>
-    get() = (explicitLocalPlayfieldCandidates + remotePlayfieldCandidates).distinct()
+    get() = (explicitLocalPlayfieldCandidates + supportedSourcePlayfieldCandidates).distinct()
+
+private val PinballGame.localFallbackPlayfieldCandidates: List<String>
+    get() = listOfNotNull(playfieldLocalURL).distinct()
+
+private val PinballGame.profPlayfieldBaseCandidates: List<String>
+    get() = listOfNotNull(
+        playfieldLocalOriginalURL?.takeIf(::isPinProfPlayfieldUrl),
+        resolveLibraryUrl(playfieldImageUrl)?.takeIf(::isPinProfPlayfieldUrl),
+    ).distinct()
+
+private fun PinballGame.profPlayfieldCandidates(liveStatus: LivePlayfieldStatus?): List<String> {
+    val liveUrl = liveStatus?.effectiveUrl?.takeIf { liveStatus.effectiveKind == LivePlayfieldKind.PILLYLIU }
+    val hasHostedCandidate = liveUrl != null || profPlayfieldBaseCandidates.isNotEmpty()
+    return buildList {
+        liveUrl?.let(::add)
+        addAll(profPlayfieldBaseCandidates)
+        if (hasHostedCandidate) {
+            addAll(localFallbackPlayfieldCandidates)
+        }
+    }.distinct()
+}
+
+private fun PinballGame.opdbPlayfieldCandidates(liveStatus: LivePlayfieldStatus?): List<String> =
+    listOfNotNull(
+        liveStatus?.effectiveUrl?.takeIf { liveStatus.effectiveKind == LivePlayfieldKind.OPDB },
+        resolveLibraryUrl(playfieldImageUrl)?.takeIf(::isOpdbPlayfieldUrl),
+        alternatePlayfieldImageSourceUrl?.takeIf(::isOpdbPlayfieldUrl),
+    ).distinct()
 
 private fun PinballGame.artworkCandidatesOrMissingArtwork(): List<String> {
     val candidates = primaryArtworkCandidates
@@ -216,7 +276,7 @@ private fun PinballGame.artworkCandidatesOrMissingArtwork(): List<String> {
 }
 
 private fun PinballGame.realPlayfieldCandidates(): List<String> =
-    (preferredLocalPlayfieldCandidates + remotePlayfieldCandidates).distinct()
+    (preferredLocalPlayfieldCandidates + supportedSourcePlayfieldCandidates).distinct()
 
 private fun PinballGame.realPlayfieldCandidatesOrMissingArtwork(): List<String> {
     val candidates = realPlayfieldCandidates()
@@ -241,16 +301,18 @@ internal val PinballGame.hasPlayfieldResource: Boolean
     get() = actualFullscreenPlayfieldCandidates.isNotEmpty()
 
 internal fun PinballGame.resolvedPlayfieldCandidates(liveStatus: LivePlayfieldStatus?): List<String> =
-    when (liveStatus?.effectiveKind) {
-        LivePlayfieldKind.MISSING -> if (actualFullscreenPlayfieldCandidates.isEmpty()) emptyList() else actualFullscreenPlayfieldCandidates
-        else -> (listOfNotNull(liveStatus?.effectiveUrl) + actualFullscreenPlayfieldCandidates).distinct()
+    when {
+        profPlayfieldCandidates(liveStatus).isNotEmpty() -> profPlayfieldCandidates(liveStatus)
+        localFallbackPlayfieldCandidates.isNotEmpty() -> localFallbackPlayfieldCandidates
+        opdbPlayfieldCandidates(liveStatus).isNotEmpty() -> opdbPlayfieldCandidates(liveStatus)
+        else -> emptyList()
     }
 
 internal fun PinballGame.resolvedPlayfieldButtonLabel(liveStatus: LivePlayfieldStatus?): String =
     when (liveStatus?.effectiveKind) {
-        LivePlayfieldKind.PILLYLIU -> "Local"
+        LivePlayfieldKind.PILLYLIU -> "Prof"
         LivePlayfieldKind.OPDB -> "OPDB"
-        LivePlayfieldKind.EXTERNAL -> "Remote"
+        LivePlayfieldKind.EXTERNAL -> playfieldButtonLabel
         LivePlayfieldKind.MISSING -> if (actualFullscreenPlayfieldCandidates.isEmpty()) "Unavailable" else playfieldButtonLabel
         null -> playfieldButtonLabel
     }
@@ -258,45 +320,27 @@ internal fun PinballGame.resolvedPlayfieldButtonLabel(liveStatus: LivePlayfieldS
 internal fun PinballGame.resolvedPlayfieldOptions(liveStatus: LivePlayfieldStatus?): List<PlayfieldOption> {
     val options = mutableListOf<PlayfieldOption>()
     val usedCandidates = mutableSetOf<String>()
-    val explicitCandidates = actualFullscreenPlayfieldCandidates
-    if (liveStatus?.effectiveKind == LivePlayfieldKind.MISSING && explicitCandidates.isEmpty()) {
+    if (liveStatus?.effectiveKind == LivePlayfieldKind.MISSING &&
+        actualFullscreenPlayfieldCandidates.isEmpty() &&
+        resolvedPlayfieldCandidates(liveStatus).isEmpty()
+    ) {
         return emptyList()
     }
 
-    if (explicitCandidates.isNotEmpty()) {
-        options += PlayfieldOption(
-            label = playfieldButtonLabel,
-            candidates = explicitCandidates,
-        )
-        usedCandidates += explicitCandidates
+    fun appendOption(label: String, candidates: List<String>) {
+        val filtered = candidates.filter { candidate -> usedCandidates.add(candidate) }
+        if (filtered.isEmpty()) return
+        options += PlayfieldOption(label = label, candidates = filtered)
+    }
+
+    val profCandidates = profPlayfieldCandidates(liveStatus)
+    if (profCandidates.isNotEmpty()) {
+        appendOption(label = "Prof", candidates = profCandidates)
     } else {
-        val primaryCandidates = resolvedPlayfieldCandidates(liveStatus)
-        if (primaryCandidates.isNotEmpty()) {
-            options += PlayfieldOption(
-                label = resolvedPlayfieldButtonLabel(liveStatus),
-                candidates = primaryCandidates,
-            )
-            usedCandidates += primaryCandidates
-        }
+        appendOption(label = "Local", candidates = localFallbackPlayfieldCandidates)
     }
 
-    val liveUrl = liveStatus?.effectiveUrl
-    if (liveUrl != null && liveStatus.effectiveKind != LivePlayfieldKind.MISSING && liveUrl !in usedCandidates) {
-        options += PlayfieldOption(
-            label = resolvedPlayfieldButtonLabel(liveStatus),
-            candidates = listOf(liveUrl),
-        )
-        usedCandidates += liveUrl
-    }
-
-    val alternate = alternatePlayfieldImageSourceUrl
-    if (alternate != null && alternate !in usedCandidates) {
-        options += PlayfieldOption(
-            label = "OPDB",
-            candidates = listOf(alternate),
-        )
-        usedCandidates += alternate
-    }
+    appendOption(label = "OPDB", candidates = opdbPlayfieldCandidates(liveStatus))
     return options
 }
 
@@ -304,29 +348,34 @@ internal val PinballGame.playfieldButtonLabel: String
     get() {
         val explicitLabel = playfieldSourceLabel?.trim()?.takeIf { it.isNotEmpty() }
         if (explicitLabel != null) {
-            return if (explicitLabel == "Playfield (OPDB)") "OPDB" else "Local"
+            val normalized = explicitLabel.lowercase()
+            return when {
+                "opdb" in normalized -> "OPDB"
+                "prof" in normalized -> "Prof"
+                "local" in normalized -> "Local"
+                "remote" in normalized || "external" in normalized -> "View"
+                else -> explicitLabel
+            }
         }
-        if (playfieldLocalURL != null || playfieldLocalOriginalURL != null) {
+        if (profPlayfieldBaseCandidates.isNotEmpty()) {
+            return "Prof"
+        }
+        if (localFallbackPlayfieldCandidates.isNotEmpty()) {
             return "Local"
         }
         val resolved = resolveLibraryUrl(playfieldImageUrl)
         if (resolved != null) {
             return when {
-                isCuratedPlayfieldUrl(resolved) -> "Local"
+                isPinProfPlayfieldUrl(resolved) -> "Prof"
                 isOpdbPlayfieldUrl(resolved) -> "OPDB"
-                else -> "Remote"
+                else -> "View"
             }
+        }
+        if (alternatePlayfieldImageSourceUrl?.let(::isOpdbPlayfieldUrl) == true) {
+            return "OPDB"
         }
         return "View"
     }
-
-private fun isCuratedPlayfieldUrl(url: String?): Boolean {
-    val resolved = url ?: return false
-    return runCatching {
-        val parsed = URL(resolved)
-        parsed.host.equals("pillyliu.com", ignoreCase = true) && parsed.path.startsWith("/pinball/images/playfields/")
-    }.getOrDefault(false)
-}
 
 private fun isOpdbPlayfieldUrl(url: String?): Boolean {
     val resolved = url ?: return false

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.library.ReferenceLink
+import com.pillyliu.pinprofandroid.library.shortRulesheetTitle
 import java.util.Locale
 
 internal enum class AppVariantPillStyle {
@@ -44,6 +46,7 @@ internal enum class AppVariantPillStyle {
     EditSelector,
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun AppResourceRow(
     label: String,
@@ -249,15 +252,7 @@ internal fun AppReadingProgressPill(
 }
 
 internal fun appShortRulesheetTitle(link: ReferenceLink): String {
-    val label = link.label.lowercase(Locale.US)
-    return when {
-        "(tf)" in label -> "TF"
-        "(pp)" in label -> "PP"
-        "(papa)" in label -> "PAPA"
-        "(bob)" in label -> "Bob"
-        "(local)" in label || "(source)" in label -> "Local"
-        else -> "Local"
-    }
+    return link.shortRulesheetTitle
 }
 
 @Composable

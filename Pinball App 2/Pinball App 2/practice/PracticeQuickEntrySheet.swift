@@ -31,6 +31,7 @@ struct PracticeQuickEntrySheet: View {
     @State private var validationMessage: String?
     @State private var selectedLibraryFilterID: String = ""
     @State private var showingScoreScanner = false
+    @State private var pendingScoreScannerPresentation = false
     @FocusState private var scoreFieldFocused: Bool
 
     init(
@@ -214,6 +215,7 @@ struct PracticeQuickEntrySheet: View {
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 10)
                                 }
+                                .contentShape(Rectangle())
                                 .buttonStyle(.plain)
                                 .appControlStyle()
 
@@ -429,12 +431,24 @@ struct PracticeQuickEntrySheet: View {
                     selectedVideoSource = videoSourceOptions.first ?? ""
                 }
             }
+            .onChange(of: scoreFieldFocused) { _, isFocused in
+                guard !isFocused, pendingScoreScannerPresentation else { return }
+                pendingScoreScannerPresentation = false
+                Task { @MainActor in
+                    await Task.yield()
+                    showingScoreScanner = true
+                }
+            }
         }
     }
 
     private func presentScoreScanner() {
-        scoreFieldFocused = false
-        DispatchQueue.main.async {
+        validationMessage = nil
+        guard !showingScoreScanner else { return }
+        if scoreFieldFocused {
+            pendingScoreScannerPresentation = true
+            scoreFieldFocused = false
+        } else {
             showingScoreScanner = true
         }
     }

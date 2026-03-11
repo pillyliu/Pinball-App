@@ -279,7 +279,7 @@ struct PinballGame: Identifiable, Decodable {
             "\(label)|\(url)"
         }
 
-        var destinationURL: URL? {
+        nonisolated var destinationURL: URL? {
             URL(string: url)
         }
     }

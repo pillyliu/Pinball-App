@@ -12,6 +12,7 @@ struct GameScoreEntrySheet: View {
     @State private var tournamentName: String = ""
     @State private var validationMessage: String?
     @State private var showingScoreScanner = false
+    @State private var pendingScoreScannerPresentation = false
     @FocusState private var scoreFieldFocused: Bool
 
     var body: some View {
@@ -41,6 +42,7 @@ struct GameScoreEntrySheet: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
                         }
+                        .contentShape(Rectangle())
                         .buttonStyle(.plain)
                         .appControlStyle()
 
@@ -73,6 +75,14 @@ struct GameScoreEntrySheet: View {
             }
             .navigationTitle("Log Score")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: scoreFieldFocused) { _, isFocused in
+                guard !isFocused, pendingScoreScannerPresentation else { return }
+                pendingScoreScannerPresentation = false
+                Task { @MainActor in
+                    await Task.yield()
+                    showingScoreScanner = true
+                }
+            }
             .fullScreenCover(isPresented: $showingScoreScanner) {
                 ScoreScannerView(
                     onUseReading: { score in
@@ -104,8 +114,12 @@ struct GameScoreEntrySheet: View {
     }
 
     private func presentScoreScanner() {
-        scoreFieldFocused = false
-        DispatchQueue.main.async {
+        validationMessage = nil
+        guard !showingScoreScanner else { return }
+        if scoreFieldFocused {
+            pendingScoreScannerPresentation = true
+            scoreFieldFocused = false
+        } else {
             showingScoreScanner = true
         }
     }

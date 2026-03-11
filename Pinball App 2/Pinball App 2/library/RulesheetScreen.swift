@@ -1117,7 +1117,7 @@ enum RemoteRulesheetLoader {
 }
 
 extension PinballGame.ReferenceLink {
-    var embeddedRulesheetSource: RulesheetRemoteSource? {
+    nonisolated var embeddedRulesheetSource: RulesheetRemoteSource? {
         guard let destinationURL else { return nil }
         guard let provider = RulesheetRemoteSource.Provider(url: destinationURL, label: label) else {
             return nil
@@ -1127,13 +1127,13 @@ extension PinballGame.ReferenceLink {
 }
 
 extension PinballGame {
-    var preferredExternalRulesheetSource: RulesheetRemoteSource? {
-        rulesheetLinks.compactMap(\.embeddedRulesheetSource).first
+    nonisolated var preferredExternalRulesheetSource: RulesheetRemoteSource? {
+        orderedRulesheetLinks.compactMap(\.embeddedRulesheetSource).first
     }
 }
 
 private extension RulesheetRemoteSource.Provider {
-    init?(url: URL, label: String) {
+    nonisolated init?(url: URL, label: String) {
         let host = url.host?.lowercased() ?? ""
         let normalizedLabel = label.lowercased()
 

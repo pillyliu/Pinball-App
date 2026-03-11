@@ -158,12 +158,12 @@ enum ScoreScannerFrameMapper {
 struct ScoreScannerTargetBoxLayout {
     static func rect(in size: CGSize, safeAreaInsets: EdgeInsets) -> CGRect {
         let width = min(size.width * 0.82, 420)
-        let height = min(max(size.height * 0.16, 96), 146)
+        let height = min(max(size.height * 0.10, 78), 104)
         let x = (size.width - width) / 2
         let topInset = safeAreaInsets.top + 192
         let y = min(max(topInset, 190), max(size.height * 0.26, topInset))
         return CGRect(x: x, y: y, width: width, height: height)
     }
 
-    static let fallbackNormalizedRect = CGRect(x: 0.12, y: 0.24, width: 0.76, height: 0.20)
+    static let fallbackNormalizedRect = CGRect(x: 0.12, y: 0.27, width: 0.76, height: 0.13)
 }

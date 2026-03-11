@@ -55,6 +55,14 @@ Upload release AAB to Google Play internal track using the existing Gradle versi
 
 Upload release AAB to Google Play closed testing (alpha track) using the existing Gradle version
 
+### android production
+
+```sh
+[bundle exec] fastlane android production
+```
+
+Upload release AAB to Google Play production using the existing Gradle version
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.

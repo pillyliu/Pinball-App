@@ -1,11 +1,10 @@
 package com.pillyliu.pinprofandroid
 
 import android.os.Bundle
-import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.pillyliu.pinprofandroid.data.getAppDisplayMode
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.refreshRedactedPlayersFromCsv
 import com.pillyliu.pinprofandroid.library.warmHostedLibraryOverrides
@@ -17,10 +16,10 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         PinballDataCache.initialize(applicationContext)
-        enableEdgeToEdge()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            window.isNavigationBarContrastEnforced = false
-        }
+        applyPinballEdgeToEdge(
+            activity = this,
+            darkTheme = appUsesDarkTheme(getAppDisplayMode(this), this),
+        )
         lifecycleScope.launch {
             refreshRedactedPlayersFromCsv()
         }

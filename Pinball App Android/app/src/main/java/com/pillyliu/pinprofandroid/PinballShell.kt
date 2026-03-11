@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.BarChart
@@ -97,6 +98,7 @@ fun PinballApp() {
         AppDisplayMode.LIGHT -> false
         AppDisplayMode.DARK -> true
     }
+    PinballEdgeToEdgeEffect(darkTheme = darkTheme)
     PinballTheme(darkTheme = darkTheme) {
         CompositionLocalProvider(LocalBottomBarVisible provides bottomBarVisible) {
             PinballShell(
@@ -134,6 +136,7 @@ private fun PinballShell(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = PinballThemeTokens.colors.background,
+        contentWindowInsets = WindowInsets.safeDrawing,
     ) { padding ->
         Box(
             modifier = Modifier

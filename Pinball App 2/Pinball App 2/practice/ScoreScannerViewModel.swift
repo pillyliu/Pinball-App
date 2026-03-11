@@ -265,7 +265,9 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
             self?.processingPaused = true
         }
 
-        let previewImage = renderPreviewImage(from: frame)
+        let mapping = captureQueue.sync { previewMapping }
+        let cropped = crop(frame: frame, previewMapping: mapping)
+        let previewImage = renderPreviewImage(from: cropped ?? frame)
         DispatchQueue.main.async {
             self.isFrozen = true
             self.frozenPreviewImage = previewImage
@@ -277,8 +279,6 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
             self.status = preferredReading == nil ? .stableCandidate : .locked
         }
 
-        let mapping = captureQueue.sync { previewMapping }
-        let cropped = crop(frame: frame, previewMapping: mapping)
         ocrQueue.async { [weak self] in
             guard let self, let cropped else { return }
             do {
@@ -286,7 +286,8 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                 let filteredAnalysis = self.filteredAnalysis(
                     analysis,
                     minimumDigitCount: self.minimumFinalDigitCount,
-                    minimumHorizontalPadding: 0.04
+                    minimumHorizontalPadding: 0.04,
+                    minimumVerticalPadding: 0.04
                 )
                 let locked = filteredAnalysis.bestCandidate.map {
                     ScoreScannerLockedReading(
@@ -322,7 +323,8 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
         let filteredAnalysis = filteredAnalysis(
             analysis,
             minimumDigitCount: minimumLiveDigitCount,
-            minimumHorizontalPadding: 0.10
+            minimumHorizontalPadding: 0.10,
+            minimumVerticalPadding: 0.10
         )
         let snapshot = captureQueue.sync { () -> ScoreStabilityService.Snapshot in
             let snapshot = stabilityService.ingest(candidate: filteredAnalysis.bestCandidate)
@@ -389,12 +391,15 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     private func filteredAnalysis(
         _ analysis: ScoreOCRAnalysis,
         minimumDigitCount: Int,
-        minimumHorizontalPadding: CGFloat
+        minimumHorizontalPadding: CGFloat,
+        minimumVerticalPadding: CGFloat
     ) -> ScoreOCRAnalysis {
         let filteredCandidates = analysis.candidates.filter { candidate in
             candidate.digitCount >= minimumDigitCount &&
             candidate.boundingBox.minX >= minimumHorizontalPadding &&
-            candidate.boundingBox.maxX <= (1 - minimumHorizontalPadding)
+            candidate.boundingBox.maxX <= (1 - minimumHorizontalPadding) &&
+            candidate.boundingBox.minY >= minimumVerticalPadding &&
+            candidate.boundingBox.maxY <= (1 - minimumVerticalPadding)
         }
         return ScoreOCRAnalysis(bestCandidate: filteredCandidates.first, candidates: filteredCandidates)
     }
@@ -411,6 +416,10 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     }
 
     fileprivate func handleCapturedFrame(_ fullFrame: CIImage) {
+        captureQueue.async { [weak self] in
+            self?.latestOrientedFrame = fullFrame
+        }
+
         if processingPaused || isProcessingFrame {
             return
         }
@@ -420,7 +429,6 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
         lastOCRTime = now
         isProcessingFrame = true
 
-        latestOrientedFrame = fullFrame
         let mapping = captureQueue.sync { previewMapping }
 
         guard let cropped = crop(frame: fullFrame, previewMapping: mapping) else {

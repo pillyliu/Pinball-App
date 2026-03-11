@@ -560,6 +560,7 @@ struct ResolvedCatalogRecord {
 
 enum CatalogRulesheetProvider: String {
     case local
+    case prof
     case tf
     case pp
     case bob
@@ -952,8 +953,8 @@ private func resolveLegacyGame(
     let hasCuratedVideos = !legacyGame.videos.isEmpty
     let playfieldLocalPath = catalogNormalizedOptionalString(legacyGame.playfieldLocalOriginal ?? legacyGame.playfieldLocal)
         ?? catalogNormalizedOptionalString(curatedOverride?.playfieldLocalPath)
-    let curatedPlayfieldImageURL = preferredLegacyPlayfieldOverride(for: legacyGame)
-        ?? catalogNormalizedOptionalString(curatedOverride?.playfieldSourceURL)
+    let curatedPlayfieldImageURL = catalogNormalizedOptionalString(curatedOverride?.playfieldSourceURL)
+        ?? preferredLegacyPlayfieldOverride(for: legacyGame)
     let hasCuratedPlayfield = playfieldLocalPath != nil || curatedPlayfieldImageURL != nil
     let opdbPlayfieldImageURL = catalogNormalizedOptionalString(
         machine.playfieldImage?.largeURL ?? machine.playfieldImage?.mediumURL
@@ -1120,10 +1121,11 @@ private func preferredLegacyNameOverride(for game: PinballGame) -> String? {
 }
 
 private func preferredLegacyPlayfieldOverride(for game: PinballGame) -> String? {
-    if catalogNormalizedOptionalString(game.playfieldLocalOriginal ?? game.playfieldLocal) != nil {
-        return catalogNormalizedOptionalString(game.playfieldImageUrl)
+    guard let playfieldURL = catalogNormalizedOptionalString(game.playfieldImageUrl),
+          libraryIsPinProfPlayfieldURL(libraryResolveURL(pathOrURL: playfieldURL)) else {
+        return nil
     }
-    return game.sourceType == .venue ? nil : catalogNormalizedOptionalString(game.playfieldImageUrl)
+    return playfieldURL
 }
 
 private func parsePublicLibraryOverrides(data: Data?) -> PublicLibraryOverridesRoot {

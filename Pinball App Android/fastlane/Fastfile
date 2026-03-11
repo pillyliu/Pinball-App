@@ -38,4 +38,15 @@ platform :android do
       aab: "app/build/outputs/bundle/release/app-release.aab"
     )
   end
+
+  desc "Upload release AAB to Google Play production using the existing Gradle version"
+  lane :production do
+    test_migration
+    gradle(task: "clean bundle", build_type: "Release")
+    upload_to_play_store(
+      track: "production",
+      release_status: "completed",
+      aab: "app/build/outputs/bundle/release/app-release.aab"
+    )
+  end
 end

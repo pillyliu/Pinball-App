@@ -289,14 +289,7 @@ func AppReadingProgressPill(
 }
 
 func PinballShortRulesheetTitle(for link: PinballGame.ReferenceLink) -> String {
-    let label = link.label.lowercased()
-    if label.contains("(tf)") { return "TF" }
-    if label.contains("(pp)") { return "PP" }
-    if label.contains("(papa)") { return "PAPA" }
-    if label.contains("(bob)") { return "Bob" }
-    if label.contains("(local)") || label.contains("(source)") { return "Local" }
-    if link.destinationURL == nil && link.embeddedRulesheetSource == nil { return "Local" }
-    return "Local"
+    link.shortRulesheetTitle
 }
 
 @ViewBuilder

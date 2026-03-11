@@ -1,6 +1,12 @@
 import Foundation
 
-private let librarySupportedPlayfieldOriginalExtensions = ["webp", "jpg", "jpeg", "png"]
+nonisolated private let librarySupportedPlayfieldOriginalExtensions = ["webp", "jpg", "jpeg", "png"]
+nonisolated private let libraryPinProfHosts: Set<String> = [
+    "pillyliu.com",
+    "www.pillyliu.com",
+    "pinprof.com",
+    "www.pinprof.com"
+]
 
 enum LibraryLivePlayfieldKind: String {
     case pillyliu
@@ -20,6 +26,38 @@ struct LibraryPlayfieldOption: Identifiable, Equatable {
 
     var id: String {
         title + "|" + candidates.map(\.absoluteString).joined(separator: "|")
+    }
+}
+
+enum LibraryRulesheetSourceKind: Int {
+    case local = 0
+    case prof = 1
+    case bob = 2
+    case papa = 3
+    case pp = 4
+    case tf = 5
+    case opdb = 6
+    case other = 7
+
+    nonisolated var shortTitle: String {
+        switch self {
+        case .local:
+            return "Local"
+        case .prof:
+            return "Prof"
+        case .bob:
+            return "Bob"
+        case .papa:
+            return "PAPA"
+        case .pp:
+            return "PP"
+        case .tf:
+            return "TF"
+        case .opdb:
+            return "OPDB"
+        case .other:
+            return "Local"
+        }
     }
 }
 
@@ -71,6 +109,27 @@ nonisolated func libraryResolveURL(pathOrURL: String) -> URL? {
     }
 
     return URL(string: "https://pillyliu.com/\(pathOrURL)")
+}
+
+nonisolated func libraryIsPinProfHost(_ host: String?) -> Bool {
+    guard let host = host?.lowercased() else { return false }
+    return libraryPinProfHosts.contains(host)
+}
+
+nonisolated func libraryIsPinProfPlayfieldURL(_ url: URL?) -> Bool {
+    guard let url,
+          libraryIsPinProfHost(url.host) else {
+        return false
+    }
+    return url.path.hasPrefix("/pinball/images/playfields/")
+}
+
+nonisolated func libraryIsPinProfRulesheetURL(_ url: URL?) -> Bool {
+    guard let url,
+          libraryIsPinProfHost(url.host) else {
+        return false
+    }
+    return url.path.hasPrefix("/pinball/rulesheets/")
 }
 
 nonisolated func normalizeLibraryCachePath(_ pathOrURL: String?) -> String? {
@@ -174,7 +233,7 @@ extension PinballGame {
     var actualFullscreenPlayfieldCandidates: [URL] {
         deduplicatedPlayfieldURLs(
             explicitLocalPlayfieldCandidates.map(Optional.some) +
-                remotePlayfieldCandidates.map(Optional.some)
+                supportedSourcePlayfieldCandidates.map(Optional.some)
         )
     }
 
@@ -199,29 +258,37 @@ extension PinballGame {
         hasLocalRulesheetResource || !rulesheetLinks.isEmpty || rulesheetSourceURL != nil
     }
 
+    nonisolated var orderedRulesheetLinks: [ReferenceLink] {
+        rulesheetLinks.sorted { lhs, rhs in
+            lhs.rulesheetSortKey < rhs.rulesheetSortKey
+        }
+    }
+
     var hasPlayfieldResource: Bool {
         !actualFullscreenPlayfieldCandidates.isEmpty
     }
 
     func resolvedPlayfieldCandidates(liveStatus: LibraryLivePlayfieldStatus?) -> [URL] {
-        if liveStatus?.effectiveKind == .missing,
-           actualFullscreenPlayfieldCandidates.isEmpty {
-            return []
-        }
-        return deduplicatedPlayfieldURLs(
-            [liveStatus?.effectiveURL] +
-                actualFullscreenPlayfieldCandidates.map(Optional.some)
-        )
+        let prof = profPlayfieldCandidates(liveStatus: liveStatus)
+        if !prof.isEmpty { return prof }
+
+        let local = localFallbackPlayfieldCandidates
+        if !local.isEmpty { return local }
+
+        let opdb = opdbPlayfieldCandidates(liveStatus: liveStatus)
+        if !opdb.isEmpty { return opdb }
+
+        return liveStatus?.effectiveKind == .missing ? [] : []
     }
 
     func resolvedPlayfieldButtonLabel(liveStatus: LibraryLivePlayfieldStatus?) -> String {
         switch liveStatus?.effectiveKind {
         case .pillyliu:
-            return "Local"
+            return "Prof"
         case .opdb:
             return "OPDB"
         case .external:
-            return "Remote"
+            return playfieldButtonLabel
         case .missing:
             return actualFullscreenPlayfieldCandidates.isEmpty ? "Unavailable" : playfieldButtonLabel
         case nil:
@@ -232,71 +299,67 @@ extension PinballGame {
     func resolvedPlayfieldOptions(liveStatus: LibraryLivePlayfieldStatus?) -> [LibraryPlayfieldOption] {
         var options: [LibraryPlayfieldOption] = []
         var usedCandidates = Set<URL>()
-        let explicitCandidates = actualFullscreenPlayfieldCandidates
+
+        func appendOption(title: String, candidates: [URL]) {
+            let filtered = candidates.filter { candidate in
+                usedCandidates.insert(candidate).inserted
+            }
+            guard !filtered.isEmpty else { return }
+            options.append(
+                LibraryPlayfieldOption(
+                    title: title,
+                    candidates: filtered
+                )
+            )
+        }
+
         if liveStatus?.effectiveKind == .missing,
-           explicitCandidates.isEmpty {
+           actualFullscreenPlayfieldCandidates.isEmpty,
+           resolvedPlayfieldCandidates(liveStatus: liveStatus).isEmpty {
             return []
         }
 
-        if !explicitCandidates.isEmpty {
-            options.append(
-                LibraryPlayfieldOption(
-                    title: playfieldButtonLabel,
-                    candidates: explicitCandidates
-                )
-            )
-            usedCandidates.formUnion(explicitCandidates)
+        let profCandidates = profPlayfieldCandidates(liveStatus: liveStatus)
+        if !profCandidates.isEmpty {
+            appendOption(title: "Prof", candidates: profCandidates)
         } else {
-            let primaryCandidates = resolvedPlayfieldCandidates(liveStatus: liveStatus)
-            if !primaryCandidates.isEmpty {
-                options.append(
-                    LibraryPlayfieldOption(
-                        title: resolvedPlayfieldButtonLabel(liveStatus: liveStatus),
-                        candidates: primaryCandidates
-                    )
-                )
-                usedCandidates.formUnion(primaryCandidates)
-            }
+            appendOption(title: "Local", candidates: localFallbackPlayfieldCandidates)
         }
 
-        if let liveURL = liveStatus?.effectiveURL,
-           liveStatus?.effectiveKind != .missing,
-           !usedCandidates.contains(liveURL) {
-            options.append(
-                LibraryPlayfieldOption(
-                    title: resolvedPlayfieldButtonLabel(liveStatus: liveStatus),
-                    candidates: [liveURL]
-                )
-            )
-            usedCandidates.insert(liveURL)
-        }
-
-        if let alternateURL = alternatePlayfieldImageSourceURL,
-           !usedCandidates.contains(alternateURL) {
-            options.append(
-                LibraryPlayfieldOption(
-                    title: "OPDB",
-                    candidates: [alternateURL]
-                )
-            )
-            usedCandidates.insert(alternateURL)
-        }
+        appendOption(title: "OPDB", candidates: opdbPlayfieldCandidates(liveStatus: liveStatus))
 
         return options
     }
 
     var playfieldButtonLabel: String {
         if let explicit = normalizedPlayfieldSourceLabel {
-            return explicit == "Playfield (OPDB)" ? "OPDB" : "Local"
+            let normalized = explicit.lowercased()
+            if normalized.contains("opdb") {
+                return "OPDB"
+            }
+            if normalized.contains("prof") {
+                return "Prof"
+            }
+            if normalized.contains("local") {
+                return "Local"
+            }
         }
-        if playfieldLocalURL != nil || playfieldLocalOriginalURL != nil {
+        if !profPlayfieldBaseCandidates.isEmpty {
+            return "Prof"
+        }
+        if !localFallbackPlayfieldCandidates.isEmpty {
             return "Local"
         }
         if let playfieldImageSourceURL {
-            if isPillyliuPlayfieldURL(playfieldImageSourceURL) {
-                return "Local"
+            if libraryIsPinProfPlayfieldURL(playfieldImageSourceURL) {
+                return "Prof"
             }
-            return isOPDBPlayfieldURL(playfieldImageSourceURL) ? "OPDB" : "Remote"
+            if isOPDBPlayfieldURL(playfieldImageSourceURL) {
+                return "OPDB"
+            }
+        }
+        if let alternatePlayfieldImageSourceURL, isOPDBPlayfieldURL(alternatePlayfieldImageSourceURL) {
+            return "OPDB"
         }
         return "View"
     }
@@ -345,22 +408,18 @@ extension PinballGame {
         return trimmed?.isEmpty == false ? trimmed : nil
     }
 
-    private func isPillyliuPlayfieldURL(_ url: URL?) -> Bool {
-        guard let url,
-              let host = url.host?.lowercased() else {
-            return false
-        }
-        return host == "pillyliu.com" && url.path.hasPrefix("/pinball/images/playfields/")
-    }
-
     private func isOPDBPlayfieldURL(_ url: URL?) -> Bool {
         guard let host = url?.host?.lowercased() else { return false }
         return host.contains("opdb.org")
     }
 
-    private var remotePlayfieldCandidates: [URL] {
-        guard let playfieldImageSourceURL else { return [] }
-        return [playfieldImageSourceURL]
+    private var supportedSourcePlayfieldCandidates: [URL] {
+        deduplicatedPlayfieldURLs([
+            libraryIsPinProfPlayfieldURL(playfieldImageSourceURL) ? playfieldImageSourceURL : nil,
+            isOPDBPlayfieldURL(playfieldImageSourceURL) ? playfieldImageSourceURL : nil,
+            libraryIsPinProfPlayfieldURL(alternatePlayfieldImageSourceURL) ? alternatePlayfieldImageSourceURL : nil,
+            isOPDBPlayfieldURL(alternatePlayfieldImageSourceURL) ? alternatePlayfieldImageSourceURL : nil
+        ])
     }
 
     private var artworkCandidatesOrMissingArtwork: [URL] {
@@ -378,6 +437,38 @@ extension PinballGame {
         ])
     }
 
+    private var localFallbackPlayfieldCandidates: [URL] {
+        deduplicatedPlayfieldURLs([
+            playfieldLocalURL
+        ])
+    }
+
+    private var profPlayfieldBaseCandidates: [URL] {
+        deduplicatedPlayfieldURLs([
+            libraryIsPinProfPlayfieldURL(playfieldLocalOriginalURL) ? playfieldLocalOriginalURL : nil,
+            libraryIsPinProfPlayfieldURL(playfieldImageSourceURL) ? playfieldImageSourceURL : nil
+        ])
+    }
+
+    private func profPlayfieldCandidates(liveStatus: LibraryLivePlayfieldStatus?) -> [URL] {
+        let liveURL = liveStatus?.effectiveKind == .pillyliu ? liveStatus?.effectiveURL : nil
+        let hasHostedCandidate = liveURL != nil || !profPlayfieldBaseCandidates.isEmpty
+        return deduplicatedPlayfieldURLs(
+            [liveURL] +
+                profPlayfieldBaseCandidates.map(Optional.some) +
+                (hasHostedCandidate ? localFallbackPlayfieldCandidates.map(Optional.some) : [])
+        )
+    }
+
+    private func opdbPlayfieldCandidates(liveStatus: LibraryLivePlayfieldStatus?) -> [URL] {
+        let liveURL = liveStatus?.effectiveKind == .opdb ? liveStatus?.effectiveURL : nil
+        return deduplicatedPlayfieldURLs([
+            liveURL,
+            isOPDBPlayfieldURL(playfieldImageSourceURL) ? playfieldImageSourceURL : nil,
+            isOPDBPlayfieldURL(alternatePlayfieldImageSourceURL) ? alternatePlayfieldImageSourceURL : nil
+        ])
+    }
+
     private var preferredLocalPlayfieldCandidates: [URL] {
         deduplicatedPlayfieldURLs(
             explicitLocalPlayfieldCandidates.map(Optional.some) +
@@ -389,7 +480,7 @@ extension PinballGame {
     private var realPlayfieldCandidates: [URL] {
         deduplicatedPlayfieldURLs(
             preferredLocalPlayfieldCandidates.map(Optional.some) +
-                remotePlayfieldCandidates.map(Optional.some)
+                supportedSourcePlayfieldCandidates.map(Optional.some)
         )
     }
 
@@ -440,5 +531,56 @@ extension PinballGame {
             }
         }
         return urls
+    }
+}
+
+extension PinballGame.ReferenceLink {
+    nonisolated var rulesheetSourceKind: LibraryRulesheetSourceKind {
+        let normalizedLabel = label.lowercased()
+        let resolvedURL = libraryResolveURL(pathOrURL: url)
+
+        if libraryIsPinProfRulesheetURL(resolvedURL) || normalizedLabel.contains("(prof)") {
+            return .prof
+        }
+        if resolvedURL?.host?.lowercased().contains("tiltforums.com") == true || normalizedLabel.contains("(tf)") {
+            return .tf
+        }
+        if resolvedURL?.host?.lowercased().contains("pinballprimer.github.io") == true
+            || resolvedURL?.host?.lowercased().contains("pinballprimer.com") == true
+            || normalizedLabel.contains("(pp)") {
+            return .pp
+        }
+        if resolvedURL?.host?.lowercased().contains("pinball.org") == true
+            || resolvedURL?.host?.lowercased().contains("replayfoundation.org") == true
+            || normalizedLabel.contains("(papa)") {
+            return .papa
+        }
+        if resolvedURL?.host?.lowercased().contains("silverballmania.com") == true
+            || resolvedURL?.host?.lowercased().contains("flippers.be") == true
+            || normalizedLabel.contains("(bob)") {
+            return .bob
+        }
+        if normalizedLabel.contains("(opdb)") {
+            return .opdb
+        }
+        if normalizedLabel.contains("(local)") || normalizedLabel.contains("(source)") {
+            return .local
+        }
+        if resolvedURL == nil && embeddedRulesheetSource == nil {
+            return .local
+        }
+        return .other
+    }
+
+    nonisolated var shortRulesheetTitle: String {
+        rulesheetSourceKind.shortTitle
+    }
+
+    nonisolated fileprivate var rulesheetSortKey: (Int, String, String) {
+        (
+            rulesheetSourceKind.rawValue,
+            label.lowercased(),
+            (libraryResolveURL(pathOrURL: url)?.absoluteString ?? url).lowercased()
+        )
     }
 }

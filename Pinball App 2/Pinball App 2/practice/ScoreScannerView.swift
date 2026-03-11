@@ -28,17 +28,7 @@ struct ScoreScannerView: View {
                         .ignoresSafeArea()
                 }
 
-                if let frozenPreview = viewModel.frozenPreviewImage {
-                    Color.black.ignoresSafeArea()
-
-                    Image(uiImage: frozenPreview)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black)
-                        .ignoresSafeArea()
-                        .transition(.opacity)
-                }
+                frozenPreview(targetRect: targetRect)
 
                 ScoreScannerTargetOverlay(
                     targetRect: targetRect,
@@ -303,6 +293,27 @@ struct ScoreScannerView: View {
     private func useReading() {
         guard let score = viewModel.validatedConfirmedScore() else { return }
         onUseReading(score)
+    }
+
+    @ViewBuilder
+    private func frozenPreview(targetRect: CGRect) -> some View {
+        if let frozenPreview = viewModel.frozenPreviewImage {
+            GeometryReader { _ in
+                Color.black.ignoresSafeArea()
+
+                Image(uiImage: frozenPreview)
+                    .resizable()
+                    .frame(width: targetRect.width, height: targetRect.height)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    )
+                    .position(x: targetRect.midX, y: targetRect.midY)
+            }
+            .ignoresSafeArea()
+            .transition(.opacity)
+        }
     }
 }
 

@@ -329,12 +329,17 @@ nonisolated func resolveRulesheetLinks(
         return (local, [])
     }
 
-    let sortedLinks = rulesheetLinks.sorted {
-        ($0.priority ?? Int.max, $0.label) < ($1.priority ?? Int.max, $1.label)
-    }
+    let sortedLinks = rulesheetLinks.sorted(by: compareCatalogRulesheetLinks)
     let links = sortedLinks.compactMap { link -> PinballGame.ReferenceLink? in
         guard let url = catalogNormalizedOptionalString(link.url) else { return nil }
-        return PinballGame.ReferenceLink(label: catalogRulesheetLabel(providerRawValue: link.provider, fallback: link.label), url: url)
+        return PinballGame.ReferenceLink(
+            label: catalogRulesheetLabel(
+                providerRawValue: link.provider,
+                fallback: link.label,
+                url: url
+            ),
+            url: url
+        )
     }
     return (catalogNormalizedOptionalString(sortedLinks.first?.localPath), links)
 }
@@ -358,7 +363,51 @@ nonisolated func compareVideoLinks(_ lhs: CatalogVideoLinkRecord, _ rhs: Catalog
     return lhs.label.localizedCaseInsensitiveCompare(rhs.label) == .orderedAscending
 }
 
-nonisolated func catalogRulesheetLabel(providerRawValue: String, fallback: String) -> String {
+nonisolated func compareCatalogRulesheetLinks(_ lhs: CatalogRulesheetLinkRecord, _ rhs: CatalogRulesheetLinkRecord) -> Bool {
+    let leftRank = catalogRulesheetSortRank(providerRawValue: lhs.provider, label: lhs.label, url: lhs.url)
+    let rightRank = catalogRulesheetSortRank(providerRawValue: rhs.provider, label: rhs.label, url: rhs.url)
+    if leftRank != rightRank {
+        return leftRank < rightRank
+    }
+
+    let leftPriority = lhs.priority ?? Int.max
+    let rightPriority = rhs.priority ?? Int.max
+    if leftPriority != rightPriority {
+        return leftPriority < rightPriority
+    }
+
+    let leftLabel = lhs.label.lowercased()
+    let rightLabel = rhs.label.lowercased()
+    if leftLabel != rightLabel {
+        return leftLabel < rightLabel
+    }
+
+    return (lhs.url ?? "") < (rhs.url ?? "")
+}
+
+nonisolated func catalogRulesheetSortRank(providerRawValue: String, label: String, url: String?) -> Int {
+    switch CatalogRulesheetProvider(rawValue: providerRawValue.lowercased()) {
+    case .local:
+        return LibraryRulesheetSourceKind.local.rawValue
+    case .prof:
+        return LibraryRulesheetSourceKind.prof.rawValue
+    case .bob:
+        return LibraryRulesheetSourceKind.bob.rawValue
+    case .papa:
+        return LibraryRulesheetSourceKind.papa.rawValue
+    case .pp:
+        return LibraryRulesheetSourceKind.pp.rawValue
+    case .tf:
+        return LibraryRulesheetSourceKind.tf.rawValue
+    case .opdb:
+        return LibraryRulesheetSourceKind.opdb.rawValue
+    case nil:
+        let inferred = PinballGame.ReferenceLink(label: label, url: url ?? "").rulesheetSourceKind
+        return inferred.rawValue
+    }
+}
+
+nonisolated func catalogRulesheetLabel(providerRawValue: String, fallback: String, url: String? = nil) -> String {
     switch CatalogRulesheetProvider(rawValue: providerRawValue.lowercased()) {
     case .tf:
         return "Rulesheet (TF)"
@@ -368,11 +417,31 @@ nonisolated func catalogRulesheetLabel(providerRawValue: String, fallback: Strin
         return "Rulesheet (Bob)"
     case .papa:
         return "Rulesheet (PAPA)"
+    case .prof:
+        return "Rulesheet (Prof)"
     case .opdb:
         return "Rulesheet (OPDB)"
     case .local:
-        return "Rulesheet"
+        return "Rulesheet (Local)"
     case nil:
-        return fallback
+        let inferred = PinballGame.ReferenceLink(label: fallback, url: url ?? "").rulesheetSourceKind
+        switch inferred {
+        case .prof:
+            return "Rulesheet (Prof)"
+        case .bob:
+            return "Rulesheet (Bob)"
+        case .papa:
+            return "Rulesheet (PAPA)"
+        case .pp:
+            return "Rulesheet (PP)"
+        case .tf:
+            return "Rulesheet (TF)"
+        case .opdb:
+            return "Rulesheet (OPDB)"
+        case .local:
+            return "Rulesheet (Local)"
+        case .other:
+            return fallback
+        }
     }
 }

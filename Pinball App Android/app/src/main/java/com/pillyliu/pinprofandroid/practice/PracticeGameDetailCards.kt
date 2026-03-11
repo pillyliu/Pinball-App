@@ -29,6 +29,7 @@ import com.pillyliu.pinprofandroid.library.hasLocalRulesheetResource
 import com.pillyliu.pinprofandroid.library.loadLivePlayfieldStatus
 import com.pillyliu.pinprofandroid.library.metaLine
 import com.pillyliu.pinprofandroid.library.openYoutubeInApp
+import com.pillyliu.pinprofandroid.library.orderedRulesheetLinks
 import com.pillyliu.pinprofandroid.library.resolvedPlayfieldButtonLabel
 import com.pillyliu.pinprofandroid.library.resolvedPlayfieldCandidates
 import com.pillyliu.pinprofandroid.library.resolvedPlayfieldOptions
@@ -102,7 +103,7 @@ internal fun PracticeGameResourcesCard(
                         AppUnavailableResourceChip()
                     }
                 } else {
-                    game.rulesheetLinks.forEach { link ->
+                    game.orderedRulesheetLinks.forEach { link ->
                         val destination = link.destinationUrl
                         val embedded = link.embeddedRulesheetSource
                         AppResourceChip(label = appShortRulesheetTitle(link)) {
