@@ -116,10 +116,8 @@ internal fun resolveLibrarySelection(
     sourceState: LibrarySourceState,
     savedSourceId: String?,
     currentSelectedSourceId: String,
-    avenueSourceCandidates: List<String>,
 ): LibrarySelectionResolution? {
     val preferredSourceId = listOfNotNull(sourceState.selectedSourceId, savedSourceId, currentSelectedSourceId)
-        .plus(avenueSourceCandidates)
         .firstOrNull { candidate -> payload.sources.any { it.id == candidate } }
     val chosenSource = payload.sources.firstOrNull { it.id == preferredSourceId } ?: payload.sources.firstOrNull()
     return chosenSource?.let { source ->

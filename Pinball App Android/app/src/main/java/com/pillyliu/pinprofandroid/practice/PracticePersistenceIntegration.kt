@@ -44,7 +44,12 @@ internal class PracticePersistenceIntegration(
     }
 
     fun resumeSlug(lookupGames: List<PinballGame>): String? {
-        return resumeSlugFromLibraryOrPractice(prefs)?.let { canonicalPracticeKey(it, lookupGames) }
+        val raw = resumeSlugFromLibraryOrPractice(prefs)?.trim().orEmpty()
+        if (raw.isEmpty()) return null
+        if (lookupGames.any { it.slug == raw }) {
+            return raw
+        }
+        return canonicalPracticeKey(raw, lookupGames)
     }
 
     fun migrateLoadedState(
@@ -68,7 +73,6 @@ internal class PracticePersistenceIntegration(
         if (lookupGames.isEmpty()) return false
         val gamePrefKeys = listOf(
             KEY_PRACTICE_LAST_VIEWED_SLUG,
-            KEY_LIBRARY_LAST_VIEWED_SLUG,
         ) + quickGamePrefKeys
 
         var changed = false

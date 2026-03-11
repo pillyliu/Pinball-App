@@ -30,7 +30,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     val sourceVersion by LibrarySourceEvents.version.collectAsState()
     var games by remember { mutableStateOf(emptyList<PinballGame>()) }
     var sources by remember { mutableStateOf(emptyList<LibrarySource>()) }
-    var selectedSourceId by rememberSaveable { mutableStateOf("the-avenue") }
+    var selectedSourceId by rememberSaveable { mutableStateOf("") }
     var query by rememberSaveable { mutableStateOf("") }
     var sortOptionName by rememberSaveable { mutableStateOf(LibrarySortOption.AREA.name) }
     var yearSortDescending by rememberSaveable { mutableStateOf(false) }
@@ -38,7 +38,6 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var route by rememberSaveable(stateSaver = LibraryRouteSaver) { mutableStateOf<LibraryRoute>(LibraryRoute.List) }
-    val avenueSourceCandidates = remember { listOf("venue--the-avenue-cafe", "the-avenue") }
     val pinnedSourceIds = remember(sources, selectedSourceId, sourceVersion) {
         LibrarySourceStateStore.load(context).pinnedSourceIds
     }
@@ -91,7 +90,6 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                 sourceState = sourceState,
                 savedSourceId = prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null),
                 currentSelectedSourceId = selectedSourceId,
-                avenueSourceCandidates = avenueSourceCandidates,
             )?.let { resolution ->
                 selectedSourceId = resolution.selectedSourceId
                 sortOptionName = resolution.sortOptionName

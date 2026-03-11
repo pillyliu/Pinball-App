@@ -6,6 +6,31 @@ extension PinballGame {
     }
 }
 
+func preferredPracticeRepresentative(_ games: [PinballGame]) -> PinballGame? {
+    games.max {
+        let lhsScore = practiceRepresentativeScore($0)
+        let rhsScore = practiceRepresentativeScore($1)
+        if lhsScore != rhsScore { return lhsScore < rhsScore }
+        return $0.slug.localizedCaseInsensitiveCompare($1.slug) == .orderedDescending
+    }
+}
+
+private func practiceRepresentativeScore(_ game: PinballGame) -> Int {
+    var score = 0
+    if game.sourceId == "venue--gameroom" { score += 600 }
+    if game.sourceId != "venue--the-avenue-cafe" && game.sourceId != "the-avenue" { score += 250 }
+    if game.sourceType != .venue { score += 150 }
+    if game.name.contains(":") { score += 120 }
+    if let variant = game.normalizedVariant?.trimmingCharacters(in: .whitespacesAndNewlines), !variant.isEmpty {
+        score += 100
+        if variant.localizedCaseInsensitiveContains("anniversary") { score += 120 }
+    }
+    if game.primaryImageLargeUrl != nil || game.primaryImageUrl != nil { score += 60 }
+    if let year = game.year { score += year }
+    score += game.name.count
+    return score
+}
+
 extension PracticeStore {
     private static let practiceIdentityAliases: [String: String] = [:]
     private static let practicePreferenceGameIDKeys: [String] = [
@@ -37,21 +62,27 @@ extension PracticeStore {
         let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         let pool = practiceLookupGamesPool
-        return pool.first(where: { $0.canonicalPracticeKey == trimmed })
-            ?? pool.first(where: { $0.id == trimmed })
-            ?? pool.first(where: { $0.slug == trimmed })
+        if let exactID = pool.first(where: { $0.id == trimmed }) {
+            return exactID
+        }
+        if let exactSlug = pool.first(where: { $0.slug == trimmed }) {
+            return exactSlug
+        }
+        let practiceMatches = pool.filter { $0.canonicalPracticeKey == trimmed }
+        if !practiceMatches.isEmpty {
+            return preferredPracticeRepresentative(practiceMatches)
+        }
+        return nil
     }
 
     func practiceGamesDeduped() -> [PinballGame] {
-        var seen = Set<String>()
-        var out: [PinballGame] = []
-        for game in practiceLookupGamesPool {
-            let key = game.canonicalPracticeKey
-            if seen.insert(key).inserted {
-                out.append(game)
+        Dictionary(grouping: practiceLookupGamesPool, by: \.canonicalPracticeKey)
+            .compactMap { preferredPracticeRepresentative($0.value) }
+            .sorted {
+                let nameCompare = $0.name.localizedCaseInsensitiveCompare($1.name)
+                if nameCompare != .orderedSame { return nameCompare == .orderedAscending }
+                return $0.slug.localizedCaseInsensitiveCompare($1.slug) == .orderedAscending
             }
-        }
-        return out
     }
 
     func migratePracticeStateKeysToCanonicalIfNeeded() {
@@ -121,8 +152,14 @@ extension PracticeStore {
 
         let normalized = normalizedLegacyGameKey(raw)
         guard !normalized.isEmpty else { return nil }
-        return pool.first(where: { normalizedLegacyGameKey($0.slug) == normalized })
-            ?? pool.first(where: { normalizedLegacyGameKey($0.canonicalPracticeKey) == normalized })
+        if let slugMatch = pool.first(where: { normalizedLegacyGameKey($0.slug) == normalized }) {
+            return slugMatch
+        }
+        let canonicalMatches = pool.filter { normalizedLegacyGameKey($0.canonicalPracticeKey) == normalized }
+        if !canonicalMatches.isEmpty {
+            return preferredPracticeRepresentative(canonicalMatches)
+        }
+        return nil
     }
 
     private func extractLikelyOPDBGroupID(from raw: String) -> String? {

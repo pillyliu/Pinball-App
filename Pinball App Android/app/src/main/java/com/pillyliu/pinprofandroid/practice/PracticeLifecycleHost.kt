@@ -56,8 +56,9 @@ internal fun PracticeLifecycleHost(
     LaunchedEffect(context.sourceVersion) {
         if (context.sourceVersion == 0L) return@LaunchedEffect
         store.loadGames()
+        val refreshedLookupPool = if (store.allLibraryGames.isNotEmpty()) store.allLibraryGames else store.games
         if (uiState.navigation.selectedGameSlug != null &&
-            findGameByPracticeLookupKey(store.games, uiState.navigation.selectedGameSlug) == null
+            findGameByPracticeLookupKey(refreshedLookupPool, uiState.navigation.selectedGameSlug) == null
         ) {
             uiState.navigation.selectedGameSlug = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey
         }

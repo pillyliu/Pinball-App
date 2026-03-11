@@ -110,13 +110,16 @@ enum AppVariantPillStyle {
 
 @ViewBuilder
 func PinballResourceRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
+    HStack(alignment: .center, spacing: 8) {
         Text("\(title):")
             .font(.caption.weight(.semibold))
             .foregroundStyle(AppTheme.brandChalk)
+            .fixedSize(horizontal: true, vertical: false)
         PinballChipWrapLayout(spacing: 8, rowSpacing: 8) {
             content()
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .layoutPriority(1)
     }
 }
 

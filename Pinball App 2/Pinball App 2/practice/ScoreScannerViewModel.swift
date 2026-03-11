@@ -1,21 +1,21 @@
 import SwiftUI
 import Combine
-import AVFoundation
+@preconcurrency import AVFoundation
 import CoreImage
 import ImageIO
 import UIKit
 
 final class ScoreScannerViewModel: NSObject, ObservableObject {
+    @Published private(set) var isCameraAuthorized = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
     @Published private(set) var status: ScoreScannerStatus = .searching
     @Published private(set) var liveReadingText: String = "No reading yet"
     @Published private(set) var rawReadingText: String = ""
+    @Published private(set) var candidateHighlights: [ScoreScannerCandidate] = []
     @Published private(set) var lockedReading: ScoreScannerLockedReading?
     @Published private(set) var isFrozen = false
     @Published private(set) var frozenPreviewImage: UIImage?
-    @Published private(set) var torchEnabled = false
     @Published private(set) var zoomFactor: CGFloat = 1
-    @Published private(set) var availableZoomRange: ClosedRange<CGFloat> = 1...2
-    @Published private(set) var hasTorch = false
+    @Published private(set) var availableZoomRange: ClosedRange<CGFloat> = 1...8
     @Published var confirmationText: String = ""
     @Published var confirmationValidationMessage: String?
 
@@ -28,11 +28,18 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     private let ocrService = ScoreOCRService()
     private let stabilityService = ScoreStabilityService()
     private let liveOCRInterval: CFTimeInterval = 0.34
+    private let minimumLiveDigitCount = 5
+    private let minimumFinalDigitCount = 4
 
     private var sessionConfigured = false
     private var currentDevice: AVCaptureDevice?
+    private lazy var videoOutputDelegate = ScoreScannerVideoOutputDelegate { [weak self] fullFrame in
+        Task { @MainActor [weak self] in
+            self?.handleCapturedFrame(fullFrame)
+        }
+    }
     private weak var previewLayer: AVCaptureVideoPreviewLayer?
-    private var normalizedROI = ScoreScannerTargetBoxLayout.fallbackNormalizedRect
+    private var previewMapping: ScoreScannerPreviewMapping?
     private var latestOrientedFrame: CIImage?
     private var latestSnapshot: ScoreStabilityService.Snapshot?
     private var lastOCRTime: CFTimeInterval = 0
@@ -55,40 +62,23 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
 
     func attachPreviewLayer(_ layer: AVCaptureVideoPreviewLayer) {
         previewLayer = layer
-        if let connection = layer.connection, connection.isVideoOrientationSupported {
-            connection.videoOrientation = .portrait
+        if let connection = layer.connection {
+            applyPortraitRotation(to: connection)
         }
     }
 
     func updateTargetRect(_ targetRect: CGRect) {
-        guard let previewLayer else { return }
-        let normalized = previewLayer.metadataOutputRectConverted(fromLayerRect: targetRect).standardized
+        guard let previewLayer,
+              previewLayer.bounds.width > 0,
+              previewLayer.bounds.height > 0 else { return }
+        let layerRect = targetRect.intersection(previewLayer.bounds)
+        guard !layerRect.isNull, !layerRect.isEmpty else { return }
+        let mapping = ScoreScannerPreviewMapping(
+            previewBounds: previewLayer.bounds,
+            targetRect: layerRect.standardized
+        )
         captureQueue.async { [weak self] in
-            self?.normalizedROI = normalized
-        }
-    }
-
-    func toggleTorch() {
-        sessionQueue.async { [weak self] in
-            guard let self, let device = self.currentDevice, device.hasTorch else { return }
-            do {
-                try device.lockForConfiguration()
-                if device.torchMode == .on {
-                    device.torchMode = .off
-                    device.unlockForConfiguration()
-                    DispatchQueue.main.async {
-                        self.torchEnabled = false
-                    }
-                } else {
-                    try device.setTorchModeOn(level: AVCaptureDevice.maxAvailableTorchLevel)
-                    device.unlockForConfiguration()
-                    DispatchQueue.main.async {
-                        self.torchEnabled = true
-                    }
-                }
-            } catch {
-                device.unlockForConfiguration()
-            }
+            self?.previewMapping = mapping
         }
     }
 
@@ -98,14 +88,12 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
             guard let self, let device = self.currentDevice else { return }
             do {
                 try device.lockForConfiguration()
+                defer { device.unlockForConfiguration() }
                 device.videoZoomFactor = clamped
-                device.unlockForConfiguration()
                 DispatchQueue.main.async {
                     self.zoomFactor = clamped
                 }
-            } catch {
-                device.unlockForConfiguration()
-            }
+            } catch {}
         }
     }
 
@@ -128,6 +116,7 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
             self.isFrozen = false
             self.frozenPreviewImage = nil
             self.lockedReading = nil
+            self.candidateHighlights = []
             self.confirmationText = ""
             self.confirmationValidationMessage = nil
             self.liveReadingText = "No reading yet"
@@ -153,24 +142,33 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     private func checkAuthorizationAndStart() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
+            DispatchQueue.main.async {
+                self.isCameraAuthorized = true
+            }
             configureAndStartSessionIfNeeded()
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
                 guard let self else { return }
                 if granted {
+                    DispatchQueue.main.async {
+                        self.isCameraAuthorized = true
+                    }
                     self.configureAndStartSessionIfNeeded()
                 } else {
                     DispatchQueue.main.async {
+                        self.isCameraAuthorized = false
                         self.status = .cameraPermissionRequired
                     }
                 }
             }
         case .restricted, .denied:
             DispatchQueue.main.async {
+                self.isCameraAuthorized = false
                 self.status = .cameraPermissionRequired
             }
         @unknown default:
             DispatchQueue.main.async {
+                self.isCameraAuthorized = false
                 self.status = .cameraUnavailable
             }
         }
@@ -186,21 +184,23 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                 return
             }
 
-            self.session.beginConfiguration()
-            self.session.sessionPreset = .hd1280x720
-
-            defer {
-                self.session.commitConfiguration()
-            }
-
-            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
-                DispatchQueue.main.async {
-                    self.status = .cameraUnavailable
-                }
-                return
-            }
+            var shouldStartSession = false
 
             do {
+                self.session.beginConfiguration()
+                self.session.sessionPreset = .hd1280x720
+
+                defer {
+                    self.session.commitConfiguration()
+                }
+
+                guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+                    DispatchQueue.main.async {
+                        self.status = .cameraUnavailable
+                    }
+                    return
+                }
+
                 let input = try AVCaptureDeviceInput(device: device)
                 guard self.session.canAddInput(input) else {
                     DispatchQueue.main.async {
@@ -213,7 +213,7 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                 let output = AVCaptureVideoDataOutput()
                 output.alwaysDiscardsLateVideoFrames = true
                 output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
-                output.setSampleBufferDelegate(self, queue: self.captureQueue)
+                output.setSampleBufferDelegate(self.videoOutputDelegate, queue: self.captureQueue)
 
                 guard self.session.canAddOutput(output) else {
                     DispatchQueue.main.async {
@@ -223,10 +223,6 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                 }
                 self.session.addOutput(output)
 
-                if let connection = output.connection(with: .video), connection.isVideoOrientationSupported {
-                    connection.videoOrientation = .portrait
-                }
-
                 try device.lockForConfiguration()
                 if device.isFocusModeSupported(.continuousAutoFocus) {
                     device.focusMode = .continuousAutoFocus
@@ -234,18 +230,19 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                 if device.isExposureModeSupported(.continuousAutoExposure) {
                     device.exposureMode = .continuousAutoExposure
                 }
-                device.videoZoomFactor = 1
+                let deviceMaxZoom = max(CGFloat(1), min(device.activeFormat.videoMaxZoomFactor, CGFloat(8)))
+                let defaultZoom = CGFloat(1)
+                device.videoZoomFactor = defaultZoom
                 device.unlockForConfiguration()
 
                 currentDevice = device
                 sessionConfigured = true
+                shouldStartSession = true
 
-                let maxZoom = max(CGFloat(2), min(device.activeFormat.videoMaxZoomFactor, CGFloat(3)))
+                let maxZoom = max(defaultZoom, deviceMaxZoom)
                 DispatchQueue.main.async {
-                    self.availableZoomRange = 1...maxZoom
-                    self.zoomFactor = 1
-                    self.hasTorch = device.hasTorch
-                    self.torchEnabled = false
+                    self.availableZoomRange = defaultZoom...maxZoom
+                    self.zoomFactor = defaultZoom
                     self.status = .searching
                 }
             } catch {
@@ -255,7 +252,7 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                 return
             }
 
-            if !self.session.isRunning {
+            if shouldStartSession, !self.session.isRunning {
                 self.session.startRunning()
             }
         }
@@ -280,13 +277,18 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
             self.status = preferredReading == nil ? .stableCandidate : .locked
         }
 
-        let roi = captureQueue.sync { normalizedROI }
-        let cropped = crop(frame: frame, normalizedRect: roi)
+        let mapping = captureQueue.sync { previewMapping }
+        let cropped = crop(frame: frame, previewMapping: mapping)
         ocrQueue.async { [weak self] in
             guard let self, let cropped else { return }
             do {
                 let analysis = try self.ocrService.recognize(in: cropped, mode: .finalPass, displayMode: self.displayMode)
-                let locked = analysis.bestCandidate.map {
+                let filteredAnalysis = self.filteredAnalysis(
+                    analysis,
+                    minimumDigitCount: self.minimumFinalDigitCount,
+                    minimumHorizontalPadding: 0.04
+                )
+                let locked = filteredAnalysis.bestCandidate.map {
                     ScoreScannerLockedReading(
                         score: $0.normalizedScore,
                         formattedScore: $0.formattedScore,
@@ -296,6 +298,7 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                     )
                 } ?? preferredReading
                 DispatchQueue.main.async {
+                    self.candidateHighlights = filteredAnalysis.candidates
                     self.lockedReading = locked
                     if let locked {
                         self.confirmationText = locked.formattedScore
@@ -316,17 +319,23 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     }
 
     private func process(analysis: ScoreOCRAnalysis, fullFrame: CIImage) {
+        let filteredAnalysis = filteredAnalysis(
+            analysis,
+            minimumDigitCount: minimumLiveDigitCount,
+            minimumHorizontalPadding: 0.10
+        )
         let snapshot = captureQueue.sync { () -> ScoreStabilityService.Snapshot in
-            let snapshot = stabilityService.ingest(candidate: analysis.bestCandidate)
+            let snapshot = stabilityService.ingest(candidate: filteredAnalysis.bestCandidate)
             latestSnapshot = snapshot
             return snapshot
         }
 
         DispatchQueue.main.async {
-            self.rawReadingText = analysis.bestCandidate?.rawText ?? ""
+            self.candidateHighlights = Array(filteredAnalysis.candidates.prefix(3))
+            self.rawReadingText = filteredAnalysis.bestCandidate?.rawText ?? ""
             if let reading = snapshot.dominantReading {
                 self.liveReadingText = reading.formattedScore
-            } else if let best = analysis.bestCandidate {
+            } else if let best = filteredAnalysis.bestCandidate {
                 self.liveReadingText = best.formattedScore
             } else {
                 self.liveReadingText = "No reading yet"
@@ -354,17 +363,21 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
         )
     }
 
-    private func crop(frame: CIImage, normalizedRect: CGRect) -> CIImage? {
-        let bounds = frame.extent
-        guard bounds.width > 0, bounds.height > 0 else { return nil }
+    private func crop(frame: CIImage, previewMapping: ScoreScannerPreviewMapping?) -> CIImage? {
+        let cropRect: CGRect?
+        if let previewMapping {
+            cropRect = ScoreScannerFrameMapper.cropRect(
+                frameExtent: frame.extent,
+                previewMapping: previewMapping
+            )
+        } else {
+            cropRect = ScoreScannerFrameMapper.cropRect(
+                frameExtent: frame.extent,
+                normalizedRect: ScoreScannerTargetBoxLayout.fallbackNormalizedRect
+            )
+        }
 
-        let width = bounds.width * normalizedRect.width
-        let height = bounds.height * normalizedRect.height
-        let x = bounds.origin.x + (bounds.width * normalizedRect.minX)
-        let y = bounds.origin.y + (bounds.height * (1 - normalizedRect.maxY))
-        let cropRect = CGRect(x: x, y: y, width: width, height: height).integral
-
-        guard cropRect.width > 0, cropRect.height > 0 else { return nil }
+        guard let cropRect else { return nil }
         return frame.cropped(to: cropRect)
     }
 
@@ -372,18 +385,32 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
         guard let cgImage = ciContext.createCGImage(frame, from: frame.extent) else { return nil }
         return UIImage(cgImage: cgImage)
     }
-}
 
-extension ScoreScannerViewModel: AVCaptureVideoDataOutputSampleBufferDelegate {
-    func captureOutput(
-        _ output: AVCaptureOutput,
-        didOutput sampleBuffer: CMSampleBuffer,
-        from connection: AVCaptureConnection
-    ) {
-        if connection.isVideoOrientationSupported {
+    private func filteredAnalysis(
+        _ analysis: ScoreOCRAnalysis,
+        minimumDigitCount: Int,
+        minimumHorizontalPadding: CGFloat
+    ) -> ScoreOCRAnalysis {
+        let filteredCandidates = analysis.candidates.filter { candidate in
+            candidate.digitCount >= minimumDigitCount &&
+            candidate.boundingBox.minX >= minimumHorizontalPadding &&
+            candidate.boundingBox.maxX <= (1 - minimumHorizontalPadding)
+        }
+        return ScoreOCRAnalysis(bestCandidate: filteredCandidates.first, candidates: filteredCandidates)
+    }
+
+    private func applyPortraitRotation(to connection: AVCaptureConnection) {
+        if #available(iOS 17.0, *) {
+            let portraitAngle: CGFloat = 90
+            if connection.isVideoRotationAngleSupported(portraitAngle) {
+                connection.videoRotationAngle = portraitAngle
+            }
+        } else if connection.isVideoOrientationSupported {
             connection.videoOrientation = .portrait
         }
+    }
 
+    fileprivate func handleCapturedFrame(_ fullFrame: CIImage) {
         if processingPaused || isProcessingFrame {
             return
         }
@@ -393,18 +420,10 @@ extension ScoreScannerViewModel: AVCaptureVideoDataOutputSampleBufferDelegate {
         lastOCRTime = now
         isProcessingFrame = true
 
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
-            isProcessingFrame = false
-            return
-        }
-
-        let fullFrame = CIImage(cvPixelBuffer: pixelBuffer)
-            .oriented(forExifOrientation: Int32(CGImagePropertyOrientation.right.rawValue))
-
         latestOrientedFrame = fullFrame
-        let roi = normalizedROI
+        let mapping = captureQueue.sync { previewMapping }
 
-        guard let cropped = crop(frame: fullFrame, normalizedRect: roi) else {
+        guard let cropped = crop(frame: fullFrame, previewMapping: mapping) else {
             isProcessingFrame = false
             return
         }
@@ -431,5 +450,28 @@ extension ScoreScannerViewModel: AVCaptureVideoDataOutputSampleBufferDelegate {
                 }
             }
         }
+    }
+
+    nonisolated fileprivate static func portraitOrientedFrame(from pixelBuffer: CVPixelBuffer) -> CIImage {
+        CIImage(cvPixelBuffer: pixelBuffer)
+            .oriented(forExifOrientation: Int32(CGImagePropertyOrientation.right.rawValue))
+    }
+}
+
+private final class ScoreScannerVideoOutputDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+    nonisolated private let onCaptureFrame: (CIImage) -> Void
+
+    init(onCaptureFrame: @escaping (CIImage) -> Void) {
+        self.onCaptureFrame = onCaptureFrame
+    }
+
+    nonisolated func captureOutput(
+        _ output: AVCaptureOutput,
+        didOutput sampleBuffer: CMSampleBuffer,
+        from connection: AVCaptureConnection
+    ) {
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        let fullFrame = ScoreScannerViewModel.portraitOrientedFrame(from: pixelBuffer)
+        onCaptureFrame(fullFrame)
     }
 }

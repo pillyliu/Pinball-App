@@ -1,6 +1,7 @@
 package com.pillyliu.pinprofandroid.practice
 
 import com.pillyliu.pinprofandroid.library.PinballGame
+import com.pillyliu.pinprofandroid.library.normalizedVariant
 import java.util.Locale
 
 internal val PinballGame.practiceKey: String
@@ -18,27 +19,38 @@ internal fun PinballGame.matchesPracticeLookupKey(value: String?): Boolean {
 internal fun findGameByPracticeLookupKey(games: List<PinballGame>, value: String?): PinballGame? {
     val key = value?.trim().orEmpty()
     if (key.isBlank()) return null
-    return games.firstOrNull { it.practiceKey == key }
-        ?: games.firstOrNull { it.slug == key }
+    val exactSlugMatch = games.firstOrNull { it.slug == key }
+    if (exactSlugMatch != null) return exactSlugMatch
+
+    val practiceMatches = games.filter { it.practiceKey == key }
+    if (practiceMatches.isNotEmpty()) {
+        return practiceMatches.maxWithOrNull(compareBy<PinballGame>(::practiceRepresentativeScore).thenBy { it.slug })
+    }
+
+    return null
 }
 
 internal fun gamesByPracticeLookupKey(games: List<PinballGame>): Map<String, PinballGame> {
     val out = LinkedHashMap<String, PinballGame>()
+    games
+        .groupBy { it.practiceKey }
+        .forEach { (key, grouped) ->
+            preferredPracticeRepresentative(grouped)?.let { representative ->
+                out[key] = representative
+            }
+        }
     games.forEach { game ->
-        out.putIfAbsent(game.practiceKey, game)
         out.putIfAbsent(game.slug, game)
     }
     return out
 }
 
 internal fun distinctGamesByPracticeIdentity(games: List<PinballGame>): List<PinballGame> {
-    val seen = LinkedHashSet<String>()
-    val out = ArrayList<PinballGame>(games.size)
-    games.forEach { game ->
-        val key = game.practiceKey
-        if (seen.add(key)) out += game
-    }
-    return out
+    return games
+        .groupBy { it.practiceKey }
+        .values
+        .mapNotNull(::preferredPracticeRepresentative)
+        .sortedWith(compareBy<PinballGame> { it.name.lowercase(Locale.US) }.thenBy { it.slug.lowercase(Locale.US) })
 }
 
 private val PRACTICE_IDENTITY_ALIASES: Map<String, String> = emptyMap()
@@ -126,3 +138,20 @@ private fun normalizedLegacyGameKey(raw: String): String =
         .replace("&", "and")
         .replace(Regex("[^a-z0-9]+"), "-")
         .trim('-')
+
+private fun preferredPracticeRepresentative(games: List<PinballGame>): PinballGame? =
+    games.maxWithOrNull(compareBy<PinballGame>(::practiceRepresentativeScore).thenBy { it.slug })
+
+private fun practiceRepresentativeScore(game: PinballGame): Int {
+    var score = 0
+    if (game.sourceId == "venue--gameroom") score += 600
+    if (game.sourceId != "venue--the-avenue-cafe" && game.sourceId != "the-avenue") score += 250
+    if (game.sourceType.name != "VENUE") score += 150
+    if (game.name.contains(":")) score += 120
+    if (!game.normalizedVariant.isNullOrBlank()) score += 100
+    if (game.normalizedVariant?.contains("anniversary", ignoreCase = true) == true) score += 120
+    if (!game.primaryImageLargeUrl.isNullOrBlank() || !game.primaryImageUrl.isNullOrBlank()) score += 60
+    if (game.year != null) score += game.year
+    score += game.name.length
+    return score
+}

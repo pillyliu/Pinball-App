@@ -17,15 +17,8 @@ func orderedGamesForDropdown(_ games: [PinballGame], collapseByPracticeIdentity:
 }
 
 private func dedupePracticeGames(_ games: [PinballGame]) -> [PinballGame] {
-    var seen = Set<String>()
-    var out: [PinballGame] = []
-    for game in games {
-        let key = game.canonicalPracticeKey
-        if seen.insert(key).inserted {
-            out.append(game)
-        }
-    }
-    return out
+    Dictionary(grouping: games, by: \.canonicalPracticeKey)
+        .compactMap { preferredPracticeRepresentative($0.value) }
 }
 
 private func compareOptionalIntAscending(_ lhs: Int?, _ rhs: Int?) -> ComparisonResult? {

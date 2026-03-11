@@ -34,8 +34,11 @@ nonisolated func resolveImportedGame(
         groupNumber: nil,
         position: nil,
         bank: nil,
-        name: curatedOverride?.nameOverride ?? machine.name,
-        variant: source.type == .manufacturer ? nil : (curatedOverride?.variantOverride ?? catalogNormalizedOptionalString(machine.variant)),
+        name: curatedOverride?.nameOverride ?? catalogResolvedDisplayTitle(
+            title: machine.name,
+            explicitVariant: machine.variant
+        ),
+        variant: curatedOverride?.variantOverride ?? catalogNormalizedOptionalString(machine.variant),
         manufacturer: catalogNormalizedOptionalString(manufacturerName),
         year: curatedOverride?.yearOverride ?? machine.year,
         slug: machine.slug,
@@ -128,6 +131,27 @@ nonisolated func catalogResolvedVariantLabel(title: String, explicitVariant: Str
         .trimmingCharacters(in: .whitespacesAndNewlines)
     guard catalogLooksLikeVariantSuffix(rawSuffix) else { return nil }
     return catalogNormalizedVariantLabel(rawSuffix)
+}
+
+nonisolated func catalogResolvedDisplayTitle(title: String, explicitVariant: String?) -> String {
+    let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedTitle.hasSuffix(")") else { return trimmedTitle }
+    guard let openParenIndex = trimmedTitle.lastIndex(of: "("), openParenIndex > trimmedTitle.startIndex else {
+        return trimmedTitle
+    }
+
+    let rawSuffix = trimmedTitle[trimmedTitle.index(after: openParenIndex)..<trimmedTitle.index(before: trimmedTitle.endIndex)]
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    guard catalogLooksLikeVariantSuffix(rawSuffix) else { return trimmedTitle }
+
+    let normalizedSuffix = catalogNormalizedVariantLabel(rawSuffix)
+    let normalizedExplicit = catalogNormalizedVariantLabel(explicitVariant)
+    if let normalizedExplicit, let normalizedSuffix, normalizedExplicit != normalizedSuffix {
+        return trimmedTitle
+    }
+
+    let baseTitle = trimmedTitle[..<openParenIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+    return baseTitle.isEmpty ? trimmedTitle : baseTitle
 }
 
 nonisolated func catalogNormalizedVariantLabel(_ value: String?) -> String? {
@@ -238,7 +262,7 @@ nonisolated func catalogVariantMatchScore(machineVariant: String?, requestedVari
         .trimmingCharacters(in: .whitespacesAndNewlines)
         .lowercased() ?? ""
     guard !normalizedMachineVariant.isEmpty else { return 0 }
-    if normalizedMachineVariant == requestedVariant { return 100 }
+    if normalizedMachineVariant == requestedVariant { return 200 }
 
     let machineTokens = Set(
         normalizedMachineVariant
@@ -250,11 +274,17 @@ nonisolated func catalogVariantMatchScore(machineVariant: String?, requestedVari
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
             .filter { !$0.isEmpty }
     )
-    if !machineTokens.isDisjoint(with: requestTokens) {
-        return 70
+    let sharedTokens = machineTokens.intersection(requestTokens)
+    if !sharedTokens.isEmpty {
+        var score = 100 + (sharedTokens.count * 20)
+        if sharedTokens.contains("anniversary") { score += 200 }
+        if sharedTokens.contains(where: { $0.hasSuffix("th") || Int($0) != nil }) { score += 120 }
+        if sharedTokens.contains("premium") { score += 40 }
+        if sharedTokens.contains("le") { score += 40 }
+        return score
     }
     if normalizedMachineVariant.contains(requestedVariant) || requestedVariant.contains(normalizedMachineVariant) {
-        return 40
+        return 80
     }
     return 0
 }

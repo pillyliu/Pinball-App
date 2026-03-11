@@ -2,10 +2,12 @@ import SwiftUI
 
 extension View {
     func appSheetChrome(
-        detents: Set<PresentationDetent> = [.medium, .large]
+        detents: Set<PresentationDetent> = [.medium, .large],
+        dismissesKeyboardOnTap: Bool = true
     ) -> some View {
         appSheetChrome(
             detents: detents,
+            dismissesKeyboardOnTap: dismissesKeyboardOnTap,
             background: LinearGradient(
                 colors: [
                     AppTheme.atmosphereTop.opacity(0.88),
@@ -17,14 +19,21 @@ extension View {
         )
     }
 
+    @ViewBuilder
     func appSheetChrome<S: ShapeStyle>(
         detents: Set<PresentationDetent> = [.medium, .large],
+        dismissesKeyboardOnTap: Bool = true,
         background: S
     ) -> some View {
-        presentationDetents(detents)
+        let chrome = presentationDetents(detents)
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(AppRadii.panel)
             .presentationBackground(background)
-            .dismissKeyboardOnTap()
+
+        if dismissesKeyboardOnTap {
+            chrome.dismissKeyboardOnTap()
+        } else {
+            chrome
+        }
     }
 }

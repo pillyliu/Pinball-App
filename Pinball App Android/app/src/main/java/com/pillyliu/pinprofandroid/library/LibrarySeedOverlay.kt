@@ -119,6 +119,7 @@ private fun bestSeedTemplateForOwnedMachine(
     val normalizedCatalogID = normalizedOptionalString(ownedMachine.catalogGameID)
     val normalizedTitle = ownedMachine.displayTitle.trim().lowercase()
     val requestedVariant = normalizedOptionalString(ownedMachine.displayVariant)?.lowercase()
+    val requestedYear = ownedMachine.year
     return baseGames
         .mapNotNull { game ->
             val matchScore = when {
@@ -132,7 +133,7 @@ private fun bestSeedTemplateForOwnedMachine(
             if (matchScore <= 0) {
                 null
             } else {
-                val variantScore = buildSeedTemplateVariantScore(game, requestedVariant)
+                val variantScore = buildSeedTemplateVariantScore(game, requestedVariant, requestedYear)
                 game to (matchScore + variantScore)
             }
         }
@@ -140,11 +141,14 @@ private fun bestSeedTemplateForOwnedMachine(
         ?.first
 }
 
-private fun buildSeedTemplateVariantScore(game: PinballGame, requestedVariant: String?): Int {
+private fun buildSeedTemplateVariantScore(game: PinballGame, requestedVariant: String?, requestedYear: Int?): Int {
     val normalizedGameVariant = normalizedOptionalString(game.normalizedVariant)?.lowercase()
     var score = catalogVariantScore(normalizedGameVariant, requestedVariant)
     if (requestedVariant == null && normalizedGameVariant == null) {
         score += 80
+    }
+    if (requestedYear != null && game.year == requestedYear) {
+        score += 90
     }
     if (!game.primaryImageLargeUrl.isNullOrBlank() || !game.primaryImageUrl.isNullOrBlank()) {
         score += 20

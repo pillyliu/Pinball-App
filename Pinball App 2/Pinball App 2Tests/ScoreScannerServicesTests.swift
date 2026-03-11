@@ -24,6 +24,28 @@ final class ScoreScannerServicesTests: XCTestCase {
         XCTAssertEqual(candidate?.normalizedScore, 123_456)
     }
 
+    func testParsingExtractsScoreFromMixedOCRText() {
+        let observations = [
+            ScoreOCRObservation(text: "SCORE 12,450,000 BALL 2", confidence: 0.68, boundingBox: CGRect(x: 0.44, y: 0.38, width: 0.28, height: 0.16))
+        ]
+
+        let candidate = ScoreParsingService.bestCandidate(from: observations)
+
+        XCTAssertEqual(candidate?.normalizedScore, 12_450_000)
+        XCTAssertEqual(candidate?.formattedScore, "12,450,000")
+    }
+
+    func testParsingPrefersLongerScoreOverTinyCenteredFragmentWhenGapIsLarge() {
+        let observations = [
+            ScoreOCRObservation(text: "65", confidence: 0.90, boundingBox: CGRect(x: 0.45, y: 0.42, width: 0.10, height: 0.16)),
+            ScoreOCRObservation(text: "650,781,260", confidence: 0.64, boundingBox: CGRect(x: 0.22, y: 0.38, width: 0.54, height: 0.16))
+        ]
+
+        let candidate = ScoreParsingService.bestCandidate(from: observations)
+
+        XCTAssertEqual(candidate?.normalizedScore, 650_781_260)
+    }
+
     func testStabilityLocksAfterRepeatedConsensus() {
         let service = ScoreStabilityService()
         let candidate = ScoreScannerCandidate(
@@ -42,5 +64,33 @@ final class ScoreScannerServicesTests: XCTestCase {
 
         XCTAssertEqual(snapshot.state, .locked)
         XCTAssertEqual(snapshot.dominantReading?.score, 12_450_000)
+    }
+
+    func testFrameMapperMapsTargetRectWhenPreviewMatchesFrameAspectRatio() {
+        let mapping = ScoreScannerPreviewMapping(
+            previewBounds: CGRect(x: 0, y: 0, width: 50, height: 100),
+            targetRect: CGRect(x: 10, y: 20, width: 30, height: 10)
+        )
+
+        let cropRect = ScoreScannerFrameMapper.cropRect(
+            frameExtent: CGRect(x: 0, y: 0, width: 100, height: 200),
+            previewMapping: mapping
+        )
+
+        XCTAssertEqual(cropRect, CGRect(x: 20, y: 140, width: 60, height: 20))
+    }
+
+    func testFrameMapperAccountsForAspectFillCropping() {
+        let mapping = ScoreScannerPreviewMapping(
+            previewBounds: CGRect(x: 0, y: 0, width: 50, height: 200),
+            targetRect: CGRect(x: 5, y: 50, width: 40, height: 20)
+        )
+
+        let cropRect = ScoreScannerFrameMapper.cropRect(
+            frameExtent: CGRect(x: 0, y: 0, width: 100, height: 200),
+            previewMapping: mapping
+        )
+
+        XCTAssertEqual(cropRect, CGRect(x: 30, y: 130, width: 40, height: 20))
     }
 }

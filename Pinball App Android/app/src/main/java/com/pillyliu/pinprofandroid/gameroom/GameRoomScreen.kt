@@ -735,7 +735,7 @@ internal fun GameRoomScreen(
                                         catalogGameID = game.catalogGameID,
                                         canonicalPracticeIdentity = game.canonicalPracticeIdentity,
                                         displayTitle = game.displayTitle,
-                                        displayVariant = null,
+                                        displayVariant = game.displayVariant,
                                         manufacturer = game.manufacturer,
                                         year = game.year,
                                     )

@@ -185,10 +185,10 @@ internal fun GameRoomHomeRoute(
                     ) {
                         leftColumn.forEach { machine ->
                             val snapshot = store.snapshot(machine.id)
-                            val art = context.catalogLoader.resolvedArt(machine.catalogGameID, machine.displayVariant)
+                            val imageUrl = context.catalogLoader.imageCandidates(machine).firstOrNull()
                             MiniMachineCard(
                                 machine = machine,
-                                imageUrl = art?.primaryImageLargeUrl ?: art?.primaryImageUrl,
+                                imageUrl = imageUrl,
                                 attentionState = snapshot.attentionState,
                                 selected = context.selectedMachineID == machine.id,
                                 onClick = {
@@ -207,10 +207,10 @@ internal fun GameRoomHomeRoute(
                     ) {
                         rightColumn.forEach { machine ->
                             val snapshot = store.snapshot(machine.id)
-                            val art = context.catalogLoader.resolvedArt(machine.catalogGameID, machine.displayVariant)
+                            val imageUrl = context.catalogLoader.imageCandidates(machine).firstOrNull()
                             MiniMachineCard(
                                 machine = machine,
-                                imageUrl = art?.primaryImageLargeUrl ?: art?.primaryImageUrl,
+                                imageUrl = imageUrl,
                                 attentionState = snapshot.attentionState,
                                 selected = context.selectedMachineID == machine.id,
                                 onClick = {
@@ -228,10 +228,10 @@ internal fun GameRoomHomeRoute(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     activeMachines.forEach { machine ->
                         val snapshot = store.snapshot(machine.id)
-                        val art = context.catalogLoader.resolvedArt(machine.catalogGameID, machine.displayVariant)
+                        val imageUrl = context.catalogLoader.imageCandidates(machine).firstOrNull()
                         MachineListRow(
                             machine = machine,
-                            imageUrl = art?.primaryImageLargeUrl ?: art?.primaryImageUrl,
+                            imageUrl = imageUrl,
                             areaName = store.area(machine.gameRoomAreaID)?.name ?: "No area",
                             attentionState = snapshot.attentionState,
                             selected = context.selectedMachineID == machine.id,

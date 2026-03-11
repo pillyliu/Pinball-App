@@ -63,12 +63,15 @@ internal fun PracticeHomeSection(
     onOpenMechanics: () -> Unit,
 ) {
     val orderedGames = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true)
+    val resumeLookupGames = if (store.allLibraryGames.isNotEmpty()) store.allLibraryGames else store.games
     var resumeLibraryExpanded by rememberSaveable { mutableStateOf(false) }
     var resumeControlColumnHeightPx by rememberSaveable { mutableIntStateOf(0) }
     val density = LocalDensity.current
     CardContainer {
         val resumeSlug = store.resumeSlugFromLibraryOrPractice()
-        val resumeGame = findGameByPracticeLookupKey(orderedGames, resumeSlug) ?: orderedGames.firstOrNull()
+        val resumeGame = findGameByPracticeLookupKey(resumeLookupGames, resumeSlug) ?: orderedGames.firstOrNull()
+        val resumeOpenKey = resumeSlug?.takeIf { findGameByPracticeLookupKey(resumeLookupGames, it) != null }
+            ?: resumeGame?.practiceKey
         val selectedLibraryLabel = librarySources.firstOrNull { it.id == selectedLibrarySourceId }?.name ?: "All games"
         if (resumeGame != null) {
             Row(
@@ -81,7 +84,7 @@ internal fun PracticeHomeSection(
                     modifier = Modifier
                         .weight(1f)
                         .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
-                        .clickable { onOpenGame(resumeGame.practiceKey) }
+                        .clickable { resumeOpenKey?.let(onOpenGame) }
                         .let { base ->
                             if (resumeControlColumnHeightPx > 0) {
                                 base.height(with(density) { resumeControlColumnHeightPx.toDp() })

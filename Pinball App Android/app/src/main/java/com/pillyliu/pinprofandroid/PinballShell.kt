@@ -1,6 +1,7 @@
 package com.pillyliu.pinprofandroid
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -40,6 +41,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.data.AppDisplayMode
+import com.pillyliu.pinprofandroid.data.rememberAppDisplayMode
 import com.pillyliu.pinprofandroid.gameroom.GameRoomCatalogLoader
 import com.pillyliu.pinprofandroid.gameroom.GameRoomPinsideImportService
 import com.pillyliu.pinprofandroid.gameroom.GameRoomScreen
@@ -87,7 +90,14 @@ fun PinballApp() {
     var selectedTab by rememberSaveable { mutableStateOf(PinballTab.League) }
     var leagueDestination by rememberSaveable { mutableStateOf<LeagueDestination?>(null) }
     val bottomBarVisible = rememberSaveable { mutableStateOf(true) }
-    PinballTheme {
+    val displayMode = rememberAppDisplayMode()
+    val systemDarkTheme = isSystemInDarkTheme()
+    val darkTheme = when (displayMode) {
+        AppDisplayMode.SYSTEM -> systemDarkTheme
+        AppDisplayMode.LIGHT -> false
+        AppDisplayMode.DARK -> true
+    }
+    PinballTheme(darkTheme = darkTheme) {
         CompositionLocalProvider(LocalBottomBarVisible provides bottomBarVisible) {
             PinballShell(
                 selectedTab = selectedTab,

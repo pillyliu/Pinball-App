@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct GroupProgressWheel: View {
     let taskProgress: [StudyTaskKind: Int]
+    @Environment(\.colorScheme) private var colorScheme
 
     private let taskColors: [StudyTaskKind: Color] = [
         .playfield: .cyan,
@@ -20,6 +21,9 @@ struct GroupProgressWheel: View {
             let tasks = StudyTaskKind.allCases
             let segment = 360.0 / Double(tasks.count)
             let gap = 6.0
+            let trackColor = colorScheme == .dark
+                ? AppTheme.brandInk.opacity(0.26)
+                : AppTheme.brandInk.opacity(0.30)
 
             ZStack {
                 ForEach(Array(tasks.enumerated()), id: \.offset) { index, task in
@@ -37,7 +41,7 @@ struct GroupProgressWheel: View {
                             clockwise: false
                         )
                     }
-                    .stroke(Color.white.opacity(0.14), style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .stroke(trackColor, style: StrokeStyle(lineWidth: 5, lineCap: .round))
 
                     Path { path in
                         path.addArc(

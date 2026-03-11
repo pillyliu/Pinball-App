@@ -2,7 +2,6 @@ import Foundation
 
 extension PracticeStore {
     private static let preferredLibrarySourceDefaultsKey = "preferred-library-source-id"
-    private static let avenueSourceCandidates = ["venue--the-avenue-cafe", "the-avenue"]
 
     func loadGames() async {
         isLoadingGames = true
@@ -12,11 +11,10 @@ extension PracticeStore {
             let extraction = try await loadLibraryExtraction()
             let payload = extraction.payload
             let savedSourceID = UserDefaults.standard.string(forKey: Self.preferredLibrarySourceDefaultsKey)
-            let preferredCandidates = [extraction.state.selectedSourceID, savedSourceID] + Self.avenueSourceCandidates.map(Optional.some)
+            let preferredCandidates = [extraction.state.selectedSourceID, savedSourceID]
             let selectedSource =
                 preferredCandidates.compactMap { $0 }.first(where: { id in payload.sources.contains(where: { $0.id == id }) })
                     .flatMap { id in payload.sources.first(where: { $0.id == id }) }
-                ?? payload.sources.first(where: { $0.type == .venue })
                 ?? payload.sources.first
             allLibraryGames = payload.games
             librarySources = payload.sources

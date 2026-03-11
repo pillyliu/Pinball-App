@@ -3,7 +3,6 @@ package com.pillyliu.pinprofandroid.practice
 import android.content.Context
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.library.LibrarySource
-import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.loadLibraryExtraction
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +20,6 @@ internal suspend fun loadPracticeGamesFromLibrary(context: Context): PracticeLib
         val extraction = loadLibraryExtraction(context)
         val parsed = extraction.payload
         val selectedSource = parsed.sources.firstOrNull { it.id == extraction.state.selectedSourceId }
-            ?: parsed.sources.firstOrNull { it.type == LibrarySourceType.VENUE }
             ?: parsed.sources.firstOrNull()
         if (selectedSource == null) {
             PracticeLibraryLoadResult(

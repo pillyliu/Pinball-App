@@ -14,7 +14,7 @@ final class ScoreOCRService {
         displayMode: ScoreScannerDisplayMode = .lcd
     ) throws -> ScoreOCRAnalysis {
         let request = VNRecognizeTextRequest()
-        request.recognitionLevel = mode == .livePreview ? .fast : .accurate
+        request.recognitionLevel = .accurate
         request.usesLanguageCorrection = false
         request.recognitionLanguages = ["en-US"]
         request.minimumTextHeight = minimumTextHeight(for: displayMode, mode: mode)
@@ -39,17 +39,17 @@ final class ScoreOCRService {
     private func minimumTextHeight(for displayMode: ScoreScannerDisplayMode, mode: Mode) -> Float {
         switch (displayMode, mode) {
         case (.lcd, .livePreview):
-            return 0.10
+            return 0.03
         case (.lcd, .finalPass):
-            return 0.06
+            return 0.02
         case (.dmd, .livePreview):
-            return 0.08
+            return 0.025
         case (.dmd, .finalPass):
-            return 0.05
+            return 0.018
         case (.segmented, .livePreview):
-            return 0.12
+            return 0.04
         case (.segmented, .finalPass):
-            return 0.08
+            return 0.025
         }
     }
 }

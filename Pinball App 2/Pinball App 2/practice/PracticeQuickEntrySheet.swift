@@ -31,6 +31,7 @@ struct PracticeQuickEntrySheet: View {
     @State private var validationMessage: String?
     @State private var selectedLibraryFilterID: String = ""
     @State private var showingScoreScanner = false
+    @FocusState private var scoreFieldFocused: Bool
 
     init(
         kind: QuickEntrySheet,
@@ -199,13 +200,14 @@ struct PracticeQuickEntrySheet: View {
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 8)
                                     .appControlStyle()
+                                    .focused($scoreFieldFocused)
                                     .onChange(of: scoreText) { _, newValue in
                                         let formatted = formatScoreInputWithCommas(newValue)
                                         if formatted != newValue { scoreText = formatted }
                                     }
 
                                 Button {
-                                    showingScoreScanner = true
+                                    presentScoreScanner()
                                 } label: {
                                     Label("Scan Score", systemImage: "viewfinder")
                                         .font(.subheadline.weight(.semibold))
@@ -427,6 +429,13 @@ struct PracticeQuickEntrySheet: View {
                     selectedVideoSource = videoSourceOptions.first ?? ""
                 }
             }
+        }
+    }
+
+    private func presentScoreScanner() {
+        scoreFieldFocused = false
+        DispatchQueue.main.async {
+            showingScoreScanner = true
         }
     }
 

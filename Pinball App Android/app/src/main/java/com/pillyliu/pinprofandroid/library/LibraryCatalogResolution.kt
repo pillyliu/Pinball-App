@@ -29,7 +29,7 @@ internal fun resolveImportedGame(
         practiceIdentity = machine.practiceIdentity,
         opdbId = machine.opdbMachineId,
         opdbGroupId = machine.opdbGroupId,
-        variant = if (source.type == LibrarySourceType.MANUFACTURER) null else (curatedOverride?.variantOverride ?: normalizedOptionalString(machine.variant)),
+        variant = curatedOverride?.variantOverride ?: normalizedOptionalString(machine.variant),
         sourceId = source.id,
         sourceName = source.name,
         sourceType = source.type,
@@ -38,7 +38,10 @@ internal fun resolveImportedGame(
         group = null,
         position = null,
         bank = null,
-        name = curatedOverride?.nameOverride ?: machine.name,
+        name = curatedOverride?.nameOverride ?: resolvedCatalogDisplayTitle(
+            title = machine.name,
+            explicitVariant = machine.variant,
+        ),
         manufacturer = normalizedOptionalString(manufacturerName),
         year = curatedOverride?.yearOverride ?: machine.year,
         slug = normalizedOptionalString(machine.slug) ?: machine.practiceIdentity,
@@ -143,6 +146,21 @@ internal fun resolvedCatalogVariantLabel(title: String, explicitVariant: String?
     return normalizeCatalogVariantLabel(rawSuffix)
 }
 
+internal fun resolvedCatalogDisplayTitle(title: String, explicitVariant: String?): String {
+    val trimmedTitle = title.trim()
+    if (!trimmedTitle.endsWith(")")) return trimmedTitle
+    val openParenIndex = trimmedTitle.lastIndexOf('(')
+    if (openParenIndex <= 0) return trimmedTitle
+    val rawSuffix = trimmedTitle.substring(openParenIndex + 1, trimmedTitle.length - 1).trim()
+    val normalizedSuffix = normalizeCatalogVariantLabel(rawSuffix)
+    val normalizedExplicit = normalizeCatalogVariantLabel(explicitVariant)
+    if (!looksLikeCatalogVariantSuffix(rawSuffix)) return trimmedTitle
+    if (normalizedExplicit != null && normalizedSuffix != null && normalizedExplicit != normalizedSuffix) {
+        return trimmedTitle
+    }
+    return trimmedTitle.substring(0, openParenIndex).trim().ifBlank { trimmedTitle }
+}
+
 internal fun catalogVariantScore(machineVariant: String?, requestedVariant: String?): Int {
     val normalizedMachineVariant = normalizedOptionalString(machineVariant)?.lowercase()
     if (requestedVariant.isNullOrBlank()) return 0
@@ -156,12 +174,18 @@ internal fun catalogVariantScore(machineVariant: String?, requestedVariant: Stri
         .split(Regex("[^A-Za-z0-9]+"))
         .filter { it.isNotBlank() }
         .toSet()
-    if (machineTokens.isNotEmpty() && requestTokens.isNotEmpty() && machineTokens.intersect(requestTokens).isNotEmpty()) {
-        return 120
+    val sharedTokens = machineTokens.intersect(requestTokens)
+    if (machineTokens.isNotEmpty() && requestTokens.isNotEmpty() && sharedTokens.isNotEmpty()) {
+        var score = 100 + (sharedTokens.size * 20)
+        if ("anniversary" in sharedTokens) score += 200
+        if (sharedTokens.any { it.endsWith("th") || it.all(Char::isDigit) }) score += 120
+        if ("premium" in sharedTokens) score += 40
+        if ("le" in sharedTokens) score += 40
+        return score
     }
     if (!normalizedMachineVariant.isNullOrBlank() &&
         (normalizedMachineVariant.contains(requestedVariant) || requestedVariant.contains(normalizedMachineVariant))
-    ) return 100
+    ) return 80
     if (requestedVariant.contains("premium") && normalizedMachineVariant == "le") return 80
     if (requestedVariant == "le" && normalizedMachineVariant?.contains("anniversary") == true) return 40
     return 0

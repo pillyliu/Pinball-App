@@ -1,6 +1,32 @@
 import SwiftUI
 import UIKit
 
+enum AppDisplayMode: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    static let defaultsKey = "app-display-mode"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .system: return "System"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        }
+    }
+
+    var preferredColorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
+
 struct AppSemanticColors {
     let background: Color
     let panel: Color
@@ -297,7 +323,7 @@ extension View {
             TapGesture().onEnded {
                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             },
-            including: .all
+            including: .gesture
         )
     }
 }

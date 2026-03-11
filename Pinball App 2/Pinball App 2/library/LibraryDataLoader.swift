@@ -158,8 +158,11 @@ private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueNa
             }
             return canonicalPracticeIdentity.isEmpty ? machine.catalogGameID : canonicalPracticeIdentity
         }()
+        let resolvedName = machine.displayTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? (template?.name ?? machine.catalogGameID)
+            : machine.displayTitle
         let normalizedSlug = slugForLibraryGame(
-            title: template?.name ?? machine.displayTitle,
+            title: resolvedName,
             fallback: normalizedPracticeIdentity.isEmpty ? machine.id.uuidString : normalizedPracticeIdentity
         )
 
@@ -167,7 +170,7 @@ private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueNa
             "library_id": LibraryDataLoader.gameRoomLibrarySourceID,
             "library_name": venueName,
             "library_type": PinballLibrarySourceType.venue.rawValue,
-            "name": template?.name ?? machine.displayTitle,
+            "name": resolvedName,
             "slug": normalizedSlug,
             "library_entry_id": "\(LibraryDataLoader.gameRoomLibrarySourceID)--\(machine.id.uuidString)",
             "practice_identity": normalizedPracticeIdentity
@@ -397,7 +400,15 @@ private func opdbVariantMatchScore(recordVariant: String?, requestedVariant: Str
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
             .filter { !$0.isEmpty }
     )
-    if !recordTokens.isDisjoint(with: requestTokens) { return 120 }
+    let sharedTokens = recordTokens.intersection(requestTokens)
+    if !sharedTokens.isEmpty {
+        var score = 100 + (sharedTokens.count * 20)
+        if sharedTokens.contains("anniversary") { score += 200 }
+        if sharedTokens.contains(where: { $0.hasSuffix("th") || Int($0) != nil }) { score += 120 }
+        if sharedTokens.contains("premium") { score += 40 }
+        if sharedTokens.contains("le") { score += 40 }
+        return score
+    }
     if normalizedRecordVariant.contains(requestedVariant) || requestedVariant.contains(normalizedRecordVariant) { return 80 }
     if requestedVariant.contains("premium") && normalizedRecordVariant == "le" { return 70 }
     return 0

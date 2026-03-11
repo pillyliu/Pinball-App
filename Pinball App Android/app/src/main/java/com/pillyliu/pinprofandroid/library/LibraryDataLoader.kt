@@ -346,22 +346,22 @@ private fun buildGameRoomOverlay(
 
     if (activeMachines.isEmpty()) return GameRoomOverlay(source = null, games = emptyList())
 
-    val machineByPracticeIdentity = root.machines.groupBy { it.practiceIdentity }
-    val machineByGroupID = root.machines.groupBy { normalizedOptionalString(it.opdbGroupId) ?: "" }
+    val opdbMediaIndex = loadGameRoomOPDBMediaIndex(root.machines)
     val rulesheetsByPracticeIdentity = root.rulesheetLinks.groupBy { it.practiceIdentity }
     val videosByPracticeIdentity = root.videoLinks.groupBy { it.practiceIdentity }
 
     val games = activeMachines.map { ownedMachine ->
-        val catalogMachine = preferredCatalogMachineForOwnedMachine(
+        val template = bestTemplateForOwnedMachine(ownedMachine = ownedMachine, baseGames = baseGames)
+        val opdbMedia = bestOPDBMediaRecord(
             ownedMachine = ownedMachine,
-            machineByPracticeIdentity = machineByPracticeIdentity,
-            machineByGroupID = machineByGroupID,
+            mediaIndex = opdbMediaIndex,
         )
-        val practiceIdentity = normalizedOptionalString(ownedMachine.canonicalPracticeIdentity)
-            ?: normalizedOptionalString(catalogMachine?.practiceIdentity)
+        val canonicalPracticeIdentity = ownedMachine.canonicalPracticeIdentity.trim()
+        val practiceIdentity = normalizedOptionalString(opdbMedia?.practiceIdentity)
+            ?: normalizedOptionalString(template?.practiceIdentity)
+            ?: canonicalPracticeIdentity.takeIf { it.isNotBlank() }
             ?: normalizedOptionalString(ownedMachine.catalogGameID)
             ?: ownedMachine.id
-        val template = bestTemplateForOwnedMachine(ownedMachine = ownedMachine, baseGames = baseGames)
         val area = areasByID[ownedMachine.gameRoomAreaID]
         val resolvedRulesheet = when {
             !template?.rulesheetLocal.isNullOrBlank() -> normalizedOptionalString(template?.rulesheetLocal) to emptyList()
@@ -378,18 +378,21 @@ private fun buildGameRoomOverlay(
         }
         val playfieldLocalRaw = normalizedOptionalString(template?.playfieldLocalOriginal ?: template?.playfieldLocal)
         val playfieldImageUrl = normalizedOptionalString(template?.playfieldImageUrl)
-            ?: normalizedOptionalString(catalogMachine?.playfieldImageLargeUrl ?: catalogMachine?.playfieldImageMediumUrl)
         val playfieldSourceLabel = when {
             playfieldLocalRaw != null -> "Local"
             playfieldImageUrl != null -> "Playfield (OPDB)"
             else -> null
         }
+        val resolvedName = ownedMachine.displayTitle.trim().ifBlank { template?.name ?: ownedMachine.catalogGameID }
+        val slugFallback = canonicalPracticeIdentity.ifBlank {
+            normalizedOptionalString(ownedMachine.catalogGameID) ?: ownedMachine.id
+        }
 
         PinballGame(
             libraryEntryId = "gameroom:${ownedMachine.id}",
             practiceIdentity = practiceIdentity,
-            opdbId = normalizedOptionalString(catalogMachine?.opdbMachineId),
-            opdbGroupId = normalizedOptionalString(ownedMachine.catalogGameID) ?: normalizedOptionalString(catalogMachine?.opdbGroupId),
+            opdbId = normalizedOptionalString(ownedMachine.catalogGameID),
+            opdbGroupId = normalizedOptionalString(ownedMachine.catalogGameID),
             variant = normalizedOptionalString(ownedMachine.displayVariant),
             sourceId = GAME_ROOM_LIBRARY_SOURCE_ID,
             sourceName = venueName,
@@ -399,12 +402,14 @@ private fun buildGameRoomOverlay(
             group = ownedMachine.groupNumber,
             position = ownedMachine.position,
             bank = null,
-            name = ownedMachine.displayTitle,
-            manufacturer = normalizedOptionalString(ownedMachine.manufacturer) ?: normalizedOptionalString(catalogMachine?.manufacturerName),
-            year = ownedMachine.year ?: catalogMachine?.year,
-            slug = normalizedOptionalString(catalogMachine?.slug) ?: practiceIdentity,
-            primaryImageUrl = normalizedOptionalString(catalogMachine?.primaryImageMediumUrl),
-            primaryImageLargeUrl = normalizedOptionalString(catalogMachine?.primaryImageLargeUrl),
+            name = resolvedName,
+            manufacturer = normalizedOptionalString(ownedMachine.manufacturer),
+            year = ownedMachine.year,
+            slug = slugForLibraryGame(title = resolvedName, fallback = slugFallback),
+            primaryImageUrl = normalizedOptionalString(opdbMedia?.primaryImageMediumUrl)
+                ?: normalizedOptionalString(template?.primaryImageUrl),
+            primaryImageLargeUrl = normalizedOptionalString(opdbMedia?.primaryImageLargeUrl)
+                ?: normalizedOptionalString(template?.primaryImageLargeUrl),
             playfieldImageUrl = playfieldImageUrl,
             playfieldLocalOriginal = normalizeLibraryCachePath(playfieldLocalRaw),
             playfieldLocal = normalizeLibraryPlayfieldLocalPath(playfieldLocalRaw),
@@ -425,6 +430,23 @@ private fun buildGameRoomOverlay(
         ),
         games = games,
     )
+}
+
+private fun loadGameRoomOPDBMediaIndex(
+    machines: List<CatalogMachineRecord>,
+): Map<String, List<CatalogMachineRecord>> {
+    val index = linkedMapOf<String, MutableList<CatalogMachineRecord>>()
+    machines.forEach { machine ->
+        val keys = listOfNotNull(
+            normalizedGameRoomID(machine.opdbGroupId),
+            normalizedGameRoomID(machine.opdbMachineId),
+            normalizedGameRoomID(machine.practiceIdentity),
+        ).distinct()
+        keys.forEach { key ->
+            index.getOrPut(key) { mutableListOf() }.add(machine)
+        }
+    }
+    return index
 }
 
 private data class DecodedGameRoomOverlayState(
@@ -528,82 +550,237 @@ private fun compareGameRoomOwnedMachinesForLibrary(
     return lhs.id.compareTo(rhs.id)
 }
 
-private fun preferredCatalogMachineForOwnedMachine(
-    ownedMachine: OwnedMachine,
-    machineByPracticeIdentity: Map<String, List<CatalogMachineRecord>>,
-    machineByGroupID: Map<String, List<CatalogMachineRecord>>,
-): CatalogMachineRecord? {
-    val byPractice = normalizedOptionalString(ownedMachine.canonicalPracticeIdentity)
-        ?.let { machineByPracticeIdentity[it] }
-        .orEmpty()
-    val byGroup = normalizedOptionalString(ownedMachine.catalogGameID)
-        ?.let { machineByGroupID[it] }
-        .orEmpty()
-    val candidates = (byPractice + byGroup).distinctBy { it.opdbMachineId ?: it.practiceIdentity }
-    if (candidates.isEmpty()) return null
-    val requestedVariant = normalizedOptionalString(ownedMachine.displayVariant)?.lowercase()
-    return candidates.sortedWith { lhs, rhs ->
-        val lhsScore = catalogVariantScore(lhs.variant, requestedVariant)
-        val rhsScore = catalogVariantScore(rhs.variant, requestedVariant)
-        when {
-            lhsScore != rhsScore -> rhsScore.compareTo(lhsScore)
-            else -> comparePreferredMachine(lhs, rhs)
-        }
-    }.firstOrNull()
-}
-
 private fun bestTemplateForOwnedMachine(
     ownedMachine: OwnedMachine,
     baseGames: List<PinballGame>,
 ): PinballGame? {
-    val normalizedPracticeIdentity = normalizedOptionalString(ownedMachine.canonicalPracticeIdentity)
-    val normalizedCatalogID = normalizedOptionalString(ownedMachine.catalogGameID)
-    val normalizedTitle = ownedMachine.displayTitle.trim().lowercase()
-    val requestedVariant = normalizedOptionalString(ownedMachine.displayVariant)?.lowercase()
-    return baseGames
-        .mapNotNull { game ->
-            val matchScore = templateMatchScore(
+    val normalizedCatalogID = normalizedGameRoomID(ownedMachine.catalogGameID)
+    val normalizedCatalogGroup = normalizedGroupFromOpdbID(ownedMachine.catalogGameID)
+    val normalizedPracticeIdentity = normalizedGameRoomID(ownedMachine.canonicalPracticeIdentity)
+    val normalizedMachineTitle = normalizedGameRoomID(ownedMachine.displayTitle)
+    val normalizedMachineVariant = normalizedGameRoomVariant(ownedMachine.displayVariant)
+
+    val candidates = baseGames.mapNotNull { game ->
+        if (game.sourceId == GAME_ROOM_LIBRARY_SOURCE_ID) {
+            null
+        } else {
+            val gameMatchScore = templateMatchScore(
                 game = game,
-                normalizedPracticeIdentity = normalizedPracticeIdentity,
-                normalizedCatalogID = normalizedCatalogID,
-                normalizedTitle = normalizedTitle,
+                catalogID = normalizedCatalogID,
+                catalogGroupID = normalizedCatalogGroup,
+                canonicalPracticeIdentity = normalizedPracticeIdentity,
+                machineTitle = normalizedMachineTitle,
             )
-            if (matchScore <= 0) {
+            if (gameMatchScore <= 0) {
                 null
             } else {
-                game to (matchScore + templateVariantScore(game, requestedVariant))
+                game to (gameMatchScore + templateScore(game, machineVariant = normalizedMachineVariant))
             }
         }
-        .maxByOrNull { it.second }
-        ?.first
+    }
+
+    return candidates.maxByOrNull { it.second }?.first
 }
 
 private fun templateMatchScore(
     game: PinballGame,
-    normalizedPracticeIdentity: String?,
-    normalizedCatalogID: String?,
-    normalizedTitle: String,
+    catalogID: String?,
+    catalogGroupID: String?,
+    canonicalPracticeIdentity: String?,
+    machineTitle: String?,
 ): Int {
-    val gamePracticeIdentity = normalizedOptionalString(game.practiceIdentity)
-    val gameGroupId = normalizedOptionalString(game.opdbGroupId)
+    val gameOPDBID = normalizedGameRoomID(game.opdbId)
+    val gameOPDBGroupID = normalizedGameRoomID(game.opdbGroupId)
+    val gamePracticeIdentity = normalizedGameRoomID(game.practiceIdentity)
+    val gameTitle = normalizedGameRoomID(game.name)
+
+    var score = 0
+
+    if (catalogID != null) {
+        if (gameOPDBID == catalogID) score = maxOf(score, 1200)
+        if (gameOPDBGroupID == catalogID) score = maxOf(score, 1150)
+        if (gamePracticeIdentity == catalogID) score = maxOf(score, 1100)
+    }
+
+    if (catalogGroupID != null) {
+        if (gameOPDBGroupID == catalogGroupID) score = maxOf(score, 1125)
+        if (gameOPDBID == catalogGroupID) score = maxOf(score, 1075)
+    }
+
+    if (canonicalPracticeIdentity != null) {
+        if (gamePracticeIdentity == canonicalPracticeIdentity) score = maxOf(score, 1050)
+        if (gameOPDBID == canonicalPracticeIdentity) score = maxOf(score, 1000)
+        if (gameOPDBGroupID == canonicalPracticeIdentity) score = maxOf(score, 1000)
+    }
+
+    if (score == 0 && machineTitle != null && gameTitle == machineTitle) {
+        score = 700
+    }
+
+    return score
+}
+
+private fun templateScore(game: PinballGame, machineVariant: String?): Int {
+    val normalizedTemplateVariant = normalizedGameRoomVariant(game.normalizedVariant)
+    var score = 0
+    if (machineVariant == normalizedTemplateVariant) {
+        score += 100
+    } else if (machineVariant == null && normalizedTemplateVariant == null) {
+        score += 80
+    } else if (machineVariant == null) {
+        score += 20
+    }
+    if (!game.playfieldImageUrl.isNullOrBlank() || !game.primaryImageUrl.isNullOrBlank()) {
+        score += 20
+    }
+    if (!game.rulesheetLocal.isNullOrBlank() || game.rulesheetLinks.isNotEmpty()) {
+        score += 10
+    }
+    return score
+}
+
+private fun bestOPDBMediaRecord(
+    ownedMachine: OwnedMachine,
+    mediaIndex: Map<String, List<CatalogMachineRecord>>,
+): CatalogMachineRecord? {
+    val keys = listOfNotNull(
+        normalizedGameRoomID(ownedMachine.catalogGameID),
+        normalizedGroupFromOpdbID(ownedMachine.catalogGameID),
+        normalizedGameRoomID(ownedMachine.canonicalPracticeIdentity),
+    ).distinct()
+    val candidates = keys.flatMap { mediaIndex[it].orEmpty() }
+    if (candidates.isEmpty()) return null
+
+    val normalizedMachineVariant = normalizedGameRoomVariant(ownedMachine.displayVariant)
+    if (normalizedMachineVariant != null) {
+        val variantMatches = candidates
+            .filter { opdbVariantMatchScore(it.variant, normalizedMachineVariant) > 0 }
+            .sortedWith { lhs, rhs ->
+                val lhsScore = opdbVariantMatchScore(lhs.variant, normalizedMachineVariant)
+                val rhsScore = opdbVariantMatchScore(rhs.variant, normalizedMachineVariant)
+                when {
+                    lhsScore != rhsScore -> rhsScore.compareTo(lhsScore)
+                    opdbRecordHasPrimaryImage(lhs) != opdbRecordHasPrimaryImage(rhs) ->
+                        if (opdbRecordHasPrimaryImage(lhs)) -1 else 1
+                    (lhs.year ?: Int.MAX_VALUE) != (rhs.year ?: Int.MAX_VALUE) ->
+                        (lhs.year ?: Int.MAX_VALUE).compareTo(rhs.year ?: Int.MAX_VALUE)
+                    else -> lhs.practiceIdentity.compareTo(rhs.practiceIdentity)
+                }
+            }
+        variantMatches.firstOrNull(::opdbRecordHasPrimaryImage)?.let { return it }
+    }
+
+    candidates
+        .filter(::opdbRecordHasPrimaryImage)
+        .sortedWith(
+            compareByDescending<CatalogMachineRecord> { opdbMediaScore(it, machineVariant = null) }
+                .thenBy { it.year ?: Int.MAX_VALUE }
+                .thenBy { it.practiceIdentity },
+        )
+        .firstOrNull()
+        ?.let { return it }
+
+    return candidates
+        .sortedWith(
+            compareByDescending<CatalogMachineRecord> { opdbMediaScore(it, machineVariant = normalizedMachineVariant) }
+                .thenBy { it.year ?: Int.MAX_VALUE }
+                .thenBy { it.practiceIdentity },
+        )
+        .firstOrNull()
+}
+
+private fun opdbMediaScore(
+    machine: CatalogMachineRecord,
+    machineVariant: String?,
+): Int {
+    val recordVariant = normalizedGameRoomVariant(machine.variant)
+    var score = 0
+
+    if (machineVariant != null) {
+        score += opdbVariantMatchScore(machine.variant, machineVariant)
+    } else if (recordVariant == null) {
+        score += 140
+    } else {
+        score += variantPreferenceScore(recordVariant)
+    }
+
+    if (opdbRecordHasPrimaryImage(machine)) {
+        score += 20
+    }
+
+    return score
+}
+
+private fun opdbVariantMatchScore(
+    recordVariant: String?,
+    requestedVariant: String,
+): Int {
+    val normalizedRecordVariant = normalizedGameRoomVariant(recordVariant).orEmpty()
+    if (normalizedRecordVariant.isEmpty()) return 0
+    if (normalizedRecordVariant == requestedVariant) return 200
+
+    val recordTokens = normalizedRecordVariant
+        .split(Regex("[^A-Za-z0-9]+"))
+        .filter { it.isNotBlank() }
+        .toSet()
+    val requestTokens = requestedVariant
+        .split(Regex("[^A-Za-z0-9]+"))
+        .filter { it.isNotBlank() }
+        .toSet()
+    val sharedTokens = recordTokens.intersect(requestTokens)
+    if (sharedTokens.isNotEmpty()) {
+        var score = 100 + (sharedTokens.size * 20)
+        if ("anniversary" in sharedTokens) score += 200
+        if (sharedTokens.any { it.endsWith("th") || it.all(Char::isDigit) }) score += 120
+        if ("premium" in sharedTokens) score += 40
+        if ("le" in sharedTokens) score += 40
+        return score
+    }
+    if (normalizedRecordVariant.contains(requestedVariant) || requestedVariant.contains(normalizedRecordVariant)) return 80
+    if (requestedVariant.contains("premium") && normalizedRecordVariant == "le") return 70
+    return 0
+}
+
+private fun opdbRecordHasPrimaryImage(machine: CatalogMachineRecord): Boolean =
+    machine.primaryImageLargeUrl != null || machine.primaryImageMediumUrl != null
+
+private fun variantPreferenceScore(normalizedVariant: String?): Int {
+    if (normalizedVariant == null) return 120
     return when {
-        normalizedPracticeIdentity != null && gamePracticeIdentity == normalizedPracticeIdentity -> 300
-        normalizedCatalogID != null && gameGroupId == normalizedCatalogID -> 260
-        game.name.trim().lowercase() == normalizedTitle -> 180
-        else -> 0
+        normalizedVariant == "premium" || normalizedVariant.contains("premium") -> 110
+        normalizedVariant == "le" || normalizedVariant.contains("limited") -> 100
+        normalizedVariant == "pro" || normalizedVariant.contains("pro") -> 90
+        normalizedVariant.contains("anniversary") -> 20
+        else -> 60
     }
 }
 
-private fun templateVariantScore(game: PinballGame, requestedVariant: String?): Int {
-    val normalizedGameVariant = normalizedOptionalString(game.normalizedVariant)?.lowercase()
-    var score = catalogVariantScore(normalizedGameVariant, requestedVariant)
-    if (requestedVariant == null && normalizedGameVariant == null) {
-        score += 80
-    }
-    if (!game.primaryImageLargeUrl.isNullOrBlank() || !game.primaryImageUrl.isNullOrBlank()) {
-        score += 20
-    }
-    return score
+private fun normalizedGameRoomVariant(raw: String?): String? =
+    raw?.trim()?.takeIf { it.isNotEmpty() }?.lowercase()
+
+private fun normalizedGameRoomID(raw: String?): String? =
+    raw?.trim()?.takeIf { it.isNotEmpty() }?.lowercase()
+
+private fun normalizedGroupFromOpdbID(raw: String?): String? {
+    val normalized = normalizedGameRoomID(raw) ?: return null
+    if (!normalized.startsWith("g")) return null
+    val dashIndex = normalized.indexOf('-')
+    return if (dashIndex == -1) normalized else normalized.substring(0, dashIndex).ifBlank { null }
+}
+
+private fun slugForLibraryGame(title: String, fallback: String): String {
+    val slugified = title
+        .trim()
+        .lowercase()
+        .replace("&", "and")
+        .replace(Regex("[^a-z0-9]+"), "-")
+        .trim('-')
+    if (slugified.isNotEmpty()) return slugified
+    return fallback
+        .trim()
+        .lowercase()
+        .replace(Regex("[^a-z0-9]+"), "-")
+        .trim('-')
 }
 
 private fun resolveLegacyGame(
@@ -636,7 +813,7 @@ private fun resolveLegacyGame(
     val hasCuratedVideos = legacyGame.videos.isNotEmpty()
     val playfieldLocalPath = normalizedOptionalString(legacyGame.playfieldLocalOriginal ?: legacyGame.playfieldLocal)
         ?: normalizedOptionalString(curatedOverride?.playfieldLocalPath)
-    val curatedPlayfieldImageUrl = normalizedOptionalString(legacyGame.playfieldImageUrl)
+    val curatedPlayfieldImageUrl = preferredLegacyPlayfieldOverride(legacyGame)
         ?: normalizedOptionalString(curatedOverride?.playfieldSourceUrl)
     val hasCuratedPlayfield = playfieldLocalPath != null || curatedPlayfieldImageUrl != null
     val opdbPlayfieldImageUrl = normalizedOptionalString(machine.playfieldImageLargeUrl ?: machine.playfieldImageMediumUrl)
@@ -665,6 +842,8 @@ private fun resolveLegacyGame(
     return legacyGame.copy(
         practiceIdentity = practiceIdentity,
         opdbId = normalizedOptionalString(legacyGame.opdbId) ?: normalizedOptionalString(machine.opdbMachineId),
+        name = normalizedOptionalString(curatedOverride?.nameOverride)
+            ?: resolvedCatalogDisplayTitle(title = machine.name, explicitVariant = machine.variant),
         variant = normalizedOptionalString(legacyGame.normalizedVariant ?: machine.variant),
         manufacturer = normalizedOptionalString(manufacturerName),
         year = legacyGame.year ?: machine.year,
@@ -688,12 +867,12 @@ private fun buildLegacyCuratedOverrides(games: List<PinballGame>): Map<String, L
     games.forEach { game ->
         val practiceIdentity = normalizedOptionalString(game.practiceIdentity ?: game.opdbGroupId) ?: return@forEach
         val current = out.getOrPut(practiceIdentity) { LegacyCuratedOverride(practiceIdentity = practiceIdentity) }
-        current.nameOverride = current.nameOverride ?: normalizedOptionalString(game.name)
+        current.nameOverride = current.nameOverride ?: preferredLegacyNameOverride(game)
         current.variantOverride = current.variantOverride ?: normalizedOptionalString(game.normalizedVariant)
         current.manufacturerOverride = current.manufacturerOverride ?: normalizedOptionalString(game.manufacturer)
         current.yearOverride = current.yearOverride ?: game.year
         current.playfieldLocalPath = current.playfieldLocalPath ?: normalizedOptionalString(game.playfieldLocalOriginal ?: game.playfieldLocal)
-        current.playfieldSourceUrl = current.playfieldSourceUrl ?: normalizedOptionalString(game.playfieldImageUrl)
+        current.playfieldSourceUrl = current.playfieldSourceUrl ?: preferredLegacyPlayfieldOverride(game)
         current.gameinfoLocalPath = current.gameinfoLocalPath ?: normalizedOptionalString(game.gameinfoLocal)
         current.rulesheetLocalPath = current.rulesheetLocalPath ?: normalizedOptionalString(game.rulesheetLocal)
         if (current.rulesheetLinks.isEmpty()) {
@@ -708,6 +887,23 @@ private fun buildLegacyCuratedOverrides(games: List<PinballGame>): Map<String, L
         }
     }
     return out
+}
+
+private fun preferredLegacyNameOverride(game: PinballGame): String? {
+    val name = normalizedOptionalString(game.name) ?: return null
+    return when {
+        game.sourceId == GAME_ROOM_LIBRARY_SOURCE_ID -> name
+        game.sourceType.name != "VENUE" -> name
+        name.contains(":") -> name
+        else -> null
+    }
+}
+
+private fun preferredLegacyPlayfieldOverride(game: PinballGame): String? {
+    if (normalizedOptionalString(game.playfieldLocalOriginal ?: game.playfieldLocal) != null) {
+        return normalizedOptionalString(game.playfieldImageUrl)
+    }
+    return if (game.sourceType.name != "VENUE") normalizedOptionalString(game.playfieldImageUrl) else null
 }
 
 private fun parsePublicLibraryOverrides(raw: String?): PublicLibraryOverridesRoot {

@@ -28,6 +28,6 @@ extension View {
     }
 
     func practiceEntrySheetStyle(detents: Set<PresentationDetent>) -> some View {
-        appSheetChrome(detents: detents, background: .clear)
+        appSheetChrome(detents: detents, dismissesKeyboardOnTap: false, background: .clear)
     }
 }

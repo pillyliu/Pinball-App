@@ -231,6 +231,7 @@ struct PinballVideoLaunchPanel: View {
                     panelShape
                         .stroke(Color(uiColor: .separator).opacity(0.7), lineWidth: 1)
                 )
+                .allowsHitTesting(false)
 
             VStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {

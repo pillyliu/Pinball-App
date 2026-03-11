@@ -56,6 +56,9 @@ enum ScoreParsingService {
     }
 
     nonisolated private static func candidateSort(lhs: ScoreScannerCandidate, rhs: ScoreScannerCandidate) -> Bool {
+        if abs(lhs.digitCount - rhs.digitCount) >= 3 {
+            return lhs.digitCount > rhs.digitCount
+        }
         if abs(lhs.centerBias - rhs.centerBias) > 0.001 {
             return lhs.centerBias > rhs.centerBias
         }
@@ -85,18 +88,38 @@ enum ScoreParsingService {
             }
         }
 
-        let unsupportedLetters = mapped.unicodeScalars.contains { scalar in
-            CharacterSet.letters.contains(scalar)
-        }
-        guard !unsupportedLetters else { return nil }
-
-        let filtered = mapped.filter { $0.isNumber || $0 == "," || $0 == "." || $0 == "'" }
-        let digits = filtered.filter(\.isNumber)
-
-        guard !digits.isEmpty, digits.count <= 15, let score = Int(digits), score > 0 else {
+        let numericRuns = digitLikeRuns(in: mapped)
+        guard let bestRun = numericRuns.max(by: { lhs, rhs in
+            if lhs.count != rhs.count {
+                return lhs.count < rhs.count
+            }
+            return lhs < rhs
+        }) else {
             return nil
         }
 
+        let digits = bestRun.filter(\.isNumber)
+        guard !digits.isEmpty, digits.count <= 15, let score = Int(digits), score > 0 else { return nil }
         return (score, digits.count)
+    }
+
+    nonisolated private static func digitLikeRuns(in text: String) -> [String] {
+        var runs: [String] = []
+        var current = ""
+
+        for character in text {
+            if character.isNumber || character == "," || character == "." || character == "'" {
+                current.append(character)
+            } else if !current.isEmpty {
+                runs.append(current)
+                current.removeAll(keepingCapacity: true)
+            }
+        }
+
+        if !current.isEmpty {
+            runs.append(current)
+        }
+
+        return runs
     }
 }

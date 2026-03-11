@@ -54,7 +54,7 @@ enum PinballLibrarySortOption: String, CaseIterable, Identifiable {
 final class PinballLibraryViewModel: ObservableObject {
     @Published private(set) var games: [PinballGame] = []
     @Published private(set) var sources: [PinballLibrarySource] = []
-    @Published var selectedSourceID: String = "the-avenue"
+    @Published var selectedSourceID: String = ""
     @Published var query: String = "" {
         didSet {
             if query != oldValue {
@@ -93,8 +93,6 @@ final class PinballLibraryViewModel: ObservableObject {
     private static let libraryPath = "/pinball/data/pinball_library_v3.json"
     private static let opdbCatalogPath = "/pinball/data/opdb_catalog_v1.json"
     private static let preferredSourceDefaultsKey = "preferred-library-source-id"
-    private static let avenueSourceCandidates = ["venue--the-avenue-cafe", "the-avenue"]
-
     private var browsingState: PinballLibraryBrowsingState {
         PinballLibraryBrowsingState(
             games: games,
@@ -242,7 +240,7 @@ final class PinballLibraryViewModel: ObservableObject {
             sources = payload.sources
             resetVisibleGameLimit()
             let savedSourceID = UserDefaults.standard.string(forKey: Self.preferredSourceDefaultsKey)
-            let preferredCandidates = [extraction.state.selectedSourceID, savedSourceID, selectedSourceID] + Self.avenueSourceCandidates.map(Optional.some)
+            let preferredCandidates = [extraction.state.selectedSourceID, savedSourceID, selectedSourceID]
             let preferredSourceID = preferredCandidates
                 .compactMap { $0 }
                 .first(where: { id in sources.contains(where: { $0.id == id }) })

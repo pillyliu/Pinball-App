@@ -12,6 +12,7 @@ struct GameScoreEntrySheet: View {
     @State private var tournamentName: String = ""
     @State private var validationMessage: String?
     @State private var showingScoreScanner = false
+    @FocusState private var scoreFieldFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -26,13 +27,14 @@ struct GameScoreEntrySheet: View {
                             .padding(.horizontal, 10)
                             .padding(.vertical, 8)
                             .appControlStyle()
+                            .focused($scoreFieldFocused)
                             .onChange(of: scoreText) { _, newValue in
                                 let formatted = formatScoreInputWithCommas(newValue)
                                 if formatted != newValue { scoreText = formatted }
                             }
 
                         Button {
-                            showingScoreScanner = true
+                            presentScoreScanner()
                         } label: {
                             Label("Scan Score", systemImage: "viewfinder")
                                 .font(.subheadline.weight(.semibold))
@@ -98,6 +100,13 @@ struct GameScoreEntrySheet: View {
                     }
                 }
             }
+        }
+    }
+
+    private func presentScoreScanner() {
+        scoreFieldFocused = false
+        DispatchQueue.main.async {
+            showingScoreScanner = true
         }
     }
 

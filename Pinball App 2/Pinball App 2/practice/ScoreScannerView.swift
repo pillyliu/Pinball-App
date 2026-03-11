@@ -16,29 +16,40 @@ struct ScoreScannerView: View {
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                CameraPreviewView(session: viewModel.session) { previewLayer in
-                    viewModel.attachPreviewLayer(previewLayer)
-                    viewModel.updateTargetRect(targetRect)
+                if viewModel.isCameraAuthorized {
+                    CameraPreviewView(session: viewModel.session) { previewLayer in
+                        viewModel.attachPreviewLayer(previewLayer)
+                        viewModel.updateTargetRect(targetRect)
+                    }
+                    .ignoresSafeArea()
+                } else {
+                    Rectangle()
+                        .fill(Color.black)
+                        .ignoresSafeArea()
                 }
-                .ignoresSafeArea()
 
                 if let frozenPreview = viewModel.frozenPreviewImage {
+                    Color.black.ignoresSafeArea()
+
                     Image(uiImage: frozenPreview)
                         .resizable()
-                        .scaledToFill()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black)
                         .ignoresSafeArea()
                         .transition(.opacity)
                 }
 
-                ScoreScannerTargetOverlay(targetRect: targetRect)
+                ScoreScannerTargetOverlay(
+                    targetRect: targetRect,
+                    candidateHighlights: viewModel.candidateHighlights
+                )
                     .ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    topBar
-                    Spacer()
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, geometry.safeAreaInsets.top + 10)
+                topBar
+                    .padding(.leading, 18)
+                    .padding(.top, 18)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 header(targetRect: targetRect, containerSize: geometry.size)
                 liveReadingPanel(targetRect: targetRect, containerSize: geometry.size)
@@ -97,18 +108,19 @@ struct ScoreScannerView: View {
     }
 
     private var topBar: some View {
-        HStack {
-            Button(action: onClose) {
-                Label("Close", systemImage: "xmark")
-                    .labelStyle(.iconOnly)
+        Button(action: onClose) {
+            HStack(spacing: 8) {
+                Image(systemName: "xmark")
                     .font(.headline)
-                    .frame(width: 40, height: 40)
-                    .background(Color.black.opacity(0.34), in: Circle())
+                Text("Close")
+                    .font(.headline.weight(.semibold))
+                    .lineLimit(1)
             }
-            .buttonStyle(.plain)
-
-            Spacer()
+            .padding(.horizontal, 14)
+            .frame(height: 40)
+            .background(Color.black.opacity(0.42), in: Capsule())
         }
+        .buttonStyle(.plain)
     }
 
     private func header(targetRect: CGRect, containerSize: CGSize) -> some View {
@@ -116,15 +128,10 @@ struct ScoreScannerView: View {
             Text("Align the score display inside the box")
                 .font(.headline)
                 .multilineTextAlignment(.center)
-
-            Text("Tilt slightly if reflections block digits")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 22)
         .frame(maxWidth: .infinity)
-        .position(x: containerSize.width / 2, y: max(targetRect.minY - 54, 96))
+        .position(x: containerSize.width / 2, y: max(targetRect.minY - 84, 78))
     }
 
     private func liveReadingPanel(targetRect: CGRect, containerSize: CGSize) -> some View {
@@ -162,22 +169,20 @@ struct ScoreScannerView: View {
     private var scannerControls: some View {
         VStack(spacing: 14) {
             HStack(spacing: 12) {
-                controlButton(
-                    title: viewModel.torchEnabled ? "Torch On" : "Torch",
-                    systemImage: viewModel.torchEnabled ? "flashlight.on.fill" : "flashlight.off.fill",
-                    disabled: !viewModel.hasTorch,
-                    action: viewModel.toggleTorch
-                )
-
                 controlButton(title: "1x", systemImage: nil, disabled: false) {
-                    viewModel.setZoomFactor(1)
+                    viewModel.setZoomFactor(viewModel.availableZoomRange.lowerBound)
                 }
 
-                controlButton(title: "2x", systemImage: nil, disabled: viewModel.availableZoomRange.upperBound < 2) {
-                    viewModel.setZoomFactor(min(2, viewModel.availableZoomRange.upperBound))
+                controlButton(title: "8x", systemImage: nil, disabled: viewModel.availableZoomRange.upperBound < 8) {
+                    viewModel.setZoomFactor(min(8, viewModel.availableZoomRange.upperBound))
                 }
 
-                controlButton(title: "Freeze", systemImage: "camera.metering.center.weighted", disabled: false) {
+                controlButton(
+                    title: "Freeze",
+                    systemImage: "camera.metering.center.weighted",
+                    disabled: false,
+                    stackIconAboveTitle: true
+                ) {
                     viewModel.freezeCurrentFrame()
                 }
             }
@@ -225,17 +230,34 @@ struct ScoreScannerView: View {
         title: String,
         systemImage: String?,
         disabled: Bool,
+        stackIconAboveTitle: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            HStack(spacing: 6) {
-                if let systemImage {
-                    Image(systemName: systemImage)
+            Group {
+                if stackIconAboveTitle, let systemImage {
+                    VStack(spacing: 4) {
+                        Image(systemName: systemImage)
+                            .font(.body.weight(.semibold))
+                        Text(title)
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                    }
+                } else {
+                    HStack(spacing: 6) {
+                        if let systemImage {
+                            Image(systemName: systemImage)
+                        }
+                        Text(title)
+                            .fontWeight(.semibold)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                    }
                 }
-                Text(title)
-                    .fontWeight(.semibold)
             }
             .frame(maxWidth: .infinity)
+            .frame(minHeight: 44)
             .padding(.vertical, 12)
         }
         .buttonStyle(.plain)
@@ -284,8 +306,15 @@ struct ScoreScannerView: View {
     }
 }
 
+private struct FreezeButtonLayoutModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+    }
+}
+
 private struct ScoreScannerTargetOverlay: View {
     let targetRect: CGRect
+    let candidateHighlights: [ScoreScannerCandidate]
 
     var body: some View {
         GeometryReader { geometry in
@@ -309,6 +338,38 @@ private struct ScoreScannerTargetOverlay: View {
                 .blur(radius: 8)
                 .frame(width: targetRect.width, height: targetRect.height)
                 .position(x: targetRect.midX, y: targetRect.midY)
+
+            ForEach(Array(candidateHighlights.enumerated()), id: \.offset) { _, candidate in
+                let box = overlayRect(for: candidate.boundingBox)
+
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(Color.green.opacity(0.95), lineWidth: 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color.green.opacity(0.12))
+                    )
+                    .frame(width: box.width, height: box.height)
+                    .position(x: box.midX, y: box.midY)
+
+                Text(candidate.formattedScore)
+                    .font(.caption2.monospacedDigit().weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.green.opacity(0.92), in: Capsule())
+                    .foregroundStyle(.black)
+                    .position(
+                        x: min(max(box.midX, targetRect.minX + 44), targetRect.maxX - 44),
+                        y: max(box.minY - 14, targetRect.minY + 12)
+                    )
+            }
         }
+    }
+
+    private func overlayRect(for normalizedBox: CGRect) -> CGRect {
+        let width = targetRect.width * normalizedBox.width
+        let height = targetRect.height * normalizedBox.height
+        let x = targetRect.minX + (normalizedBox.minX * targetRect.width)
+        let y = targetRect.minY + ((1 - normalizedBox.maxY) * targetRect.height)
+        return CGRect(x: x, y: y, width: width, height: height)
     }
 }

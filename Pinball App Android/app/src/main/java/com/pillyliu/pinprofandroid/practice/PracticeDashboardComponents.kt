@@ -1,8 +1,6 @@
 package com.pillyliu.pinprofandroid.practice
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -15,6 +13,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.ui.AppMetricPill
 import com.pillyliu.pinprofandroid.ui.AppTintedStatusChip
+import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 
 @Composable
 internal fun DashboardStatusChip(text: String, color: Color, modifier: Modifier = Modifier) {
@@ -33,7 +32,7 @@ internal fun DashboardMetricPill(label: String, value: String, modifier: Modifie
 @Composable
 internal fun GroupProgressWheel(taskProgress: Map<String, Int>, modifier: Modifier = Modifier) {
     val keys = listOf("playfield", "rulesheet", "tutorial", "gameplay", "practice")
-    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f)
+    val trackColor = PinballThemeTokens.colors.brandInk.copy(alpha = 0.30f)
     val colors = mapOf(
         "playfield" to Color(0xFF0E7490),
         "rulesheet" to Color(0xFF1D4ED8),

@@ -54,6 +54,8 @@ import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.AppSelectionPill
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
+import com.pillyliu.pinprofandroid.ui.DropdownOptionGroup
+import com.pillyliu.pinprofandroid.ui.GroupedAnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import kotlin.math.max
@@ -542,10 +544,27 @@ internal fun GameRoomEditSettingsSection(
             onToggle = { context.onEditMachinesExpandedChange(!context.editMachinesExpanded) },
         )
         if (context.editMachinesExpanded) {
+            val machineGroups = context.allMachines
+                .groupBy { machine -> context.store.area(machine.gameRoomAreaID)?.name ?: "No Area" }
+                .toSortedMap(String.CASE_INSENSITIVE_ORDER)
+                .map { (title, machines) ->
+                    DropdownOptionGroup(
+                        title = title,
+                        options = machines.sortedWith(
+                            compareBy<OwnedMachine> { it.displayTitle.lowercase() }
+                                .thenBy { it.id },
+                        ).map { machine ->
+                            DropdownOption(
+                                value = machine.id,
+                                label = editMachineLabel(machine),
+                            )
+                        },
+                    )
+                }
             if (context.selectedEditMachine == null) {
-                AnchoredDropdownFilter(
+                GroupedAnchoredDropdownFilter(
                     selectedText = "Select Machine",
-                    options = context.allMachines.map { DropdownOption(value = it.id, label = it.displayTitle) },
+                    groups = machineGroups,
                     onSelect = context.onSelectedEditMachineChange,
                 )
             }
@@ -555,9 +574,9 @@ internal fun GameRoomEditSettingsSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    AnchoredDropdownFilter(
-                        selectedText = context.selectedEditMachine.displayTitle,
-                        options = context.allMachines.map { DropdownOption(value = it.id, label = it.displayTitle) },
+                    GroupedAnchoredDropdownFilter(
+                        selectedText = editMachineLabel(context.selectedEditMachine),
+                        groups = machineGroups,
                         onSelect = context.onSelectedEditMachineChange,
                         modifier = Modifier.weight(1f),
                     )
@@ -724,5 +743,13 @@ internal fun GameRoomArchiveSettingsSection(
             text = "Archived machines: ${filteredArchivedMachines.size}",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+private fun editMachineLabel(machine: OwnedMachine): String {
+    return if (machine.status == OwnedMachineStatus.active) {
+        machine.displayTitle
+    } else {
+        "${machine.displayTitle} (${machine.status.name.replaceFirstChar { it.uppercase() }})"
     }
 }

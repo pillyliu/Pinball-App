@@ -7,6 +7,7 @@ struct SettingsHomeContent: View {
     @Binding var showFullLPLLastNames: Bool
     @Binding var lplNamePassword: String
     @Binding var lplNamePrivacyError: String?
+    @AppStorage(AppDisplayMode.defaultsKey) private var displayModeRawValue = AppDisplayMode.system.rawValue
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -21,11 +22,38 @@ struct SettingsHomeContent: View {
                     isError: true
                 )
             }
+            appearanceSection
             librarySection
             hostedRefreshSection
             privacySection
             aboutSection
         }
+    }
+
+    private var appearanceSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            AppSectionTitle(text: "Appearance")
+
+            Text("Choose whether PinProf follows the system appearance or stays in light or dark mode.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Picker(
+                "Display Mode",
+                selection: Binding(
+                    get: { AppDisplayMode(rawValue: displayModeRawValue) ?? .system },
+                    set: { displayModeRawValue = $0.rawValue }
+                )
+            ) {
+                ForEach(AppDisplayMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+            .appSegmentedControlStyle()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .appPanelStyle()
     }
 
     private var librarySection: some View {

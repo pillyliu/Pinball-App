@@ -54,7 +54,7 @@ internal fun GameRoomMachineRoute(
     onEditEvent: (MachineEvent) -> Unit,
     onDeleteEvent: (MachineEvent) -> Unit,
 ) {
-    val selectedArt = selectedMachine?.let { catalogLoader.resolvedArt(it.catalogGameID, it.displayVariant) }
+    val machineHeroCandidates = selectedMachine?.let(catalogLoader::imageCandidates).orEmpty()
     val machineEvents = selectedMachine?.let { machine ->
         store.state.events.filter { it.ownedMachineID == machine.id }.sortedByDescending { it.occurredAtMs }
     }.orEmpty()
@@ -73,10 +73,6 @@ internal fun GameRoomMachineRoute(
         )
 
         if (selectedMachine != null) {
-            val machineHeroCandidates = listOfNotNull(
-                selectedArt?.primaryImageLargeUrl,
-                selectedArt?.primaryImageUrl,
-            )
             ConstrainedAsyncImagePreview(
                 urls = machineHeroCandidates,
                 contentDescription = selectedMachine.displayTitle,

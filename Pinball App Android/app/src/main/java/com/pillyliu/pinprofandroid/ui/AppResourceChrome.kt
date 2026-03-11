@@ -50,8 +50,9 @@ internal fun AppResourceRow(
     content: @Composable () -> Unit,
 ) {
     val colors = PinballThemeTokens.colors
-    Column(
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             label,
@@ -61,6 +62,7 @@ internal fun AppResourceRow(
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f),
         ) {
             content()
         }

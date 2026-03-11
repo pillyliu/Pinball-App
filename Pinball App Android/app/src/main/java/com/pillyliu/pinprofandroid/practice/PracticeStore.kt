@@ -410,9 +410,12 @@ internal class PracticeStore(private val context: Context) {
     }
 
     fun markPracticeViewedGame(slug: String) {
-        val canonicalKey = canonicalGameID(slug)
-        if (canonicalKey.isBlank()) return
-        persistenceIntegration.markViewedGame(canonicalKey, System.currentTimeMillis())
+        val exactSlug = slug.trim().takeIf { raw ->
+            raw.isNotEmpty() && practiceLookupGames().any { it.slug == raw }
+        }
+        val persistedKey = exactSlug ?: canonicalGameID(slug)
+        if (persistedKey.isBlank()) return
+        persistenceIntegration.markViewedGame(persistedKey, System.currentTimeMillis())
     }
 
     fun resumeSlugFromLibraryOrPractice(): String? =

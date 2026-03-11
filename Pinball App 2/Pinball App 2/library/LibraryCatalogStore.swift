@@ -952,7 +952,7 @@ private func resolveLegacyGame(
     let hasCuratedVideos = !legacyGame.videos.isEmpty
     let playfieldLocalPath = catalogNormalizedOptionalString(legacyGame.playfieldLocalOriginal ?? legacyGame.playfieldLocal)
         ?? catalogNormalizedOptionalString(curatedOverride?.playfieldLocalPath)
-    let curatedPlayfieldImageURL = catalogNormalizedOptionalString(legacyGame.playfieldImageUrl)
+    let curatedPlayfieldImageURL = preferredLegacyPlayfieldOverride(for: legacyGame)
         ?? catalogNormalizedOptionalString(curatedOverride?.playfieldSourceURL)
     let hasCuratedPlayfield = playfieldLocalPath != nil || curatedPlayfieldImageURL != nil
     let opdbPlayfieldImageURL = catalogNormalizedOptionalString(
@@ -993,7 +993,8 @@ private func resolveLegacyGame(
         groupNumber: legacyGame.group,
         position: legacyGame.pos,
         bank: legacyGame.bank,
-        name: legacyGame.name,
+        name: catalogNormalizedOptionalString(curatedOverride?.nameOverride)
+            ?? catalogResolvedDisplayTitle(title: machine.name, explicitVariant: machine.variant),
         variant: catalogNormalizedOptionalString(legacyGame.normalizedVariant ?? machine.variant),
         manufacturer: catalogNormalizedOptionalString(manufacturerName),
         year: legacyGame.year ?? machine.year,
@@ -1083,12 +1084,12 @@ private func buildLegacyCuratedOverrides(from games: [PinballGame]) -> [String: 
             videos: []
         )
 
-        current.nameOverride = current.nameOverride ?? catalogNormalizedOptionalString(game.name)
+        current.nameOverride = current.nameOverride ?? preferredLegacyNameOverride(for: game)
         current.variantOverride = current.variantOverride ?? catalogNormalizedOptionalString(game.normalizedVariant)
         current.manufacturerOverride = current.manufacturerOverride ?? catalogNormalizedOptionalString(game.manufacturer)
         current.yearOverride = current.yearOverride ?? game.year
         current.playfieldLocalPath = current.playfieldLocalPath ?? catalogNormalizedOptionalString(game.playfieldLocalOriginal ?? game.playfieldLocal)
-        current.playfieldSourceURL = current.playfieldSourceURL ?? catalogNormalizedOptionalString(game.playfieldImageUrl)
+        current.playfieldSourceURL = current.playfieldSourceURL ?? preferredLegacyPlayfieldOverride(for: game)
         current.gameinfoLocalPath = current.gameinfoLocalPath ?? catalogNormalizedOptionalString(game.gameinfoLocal)
         current.rulesheetLocalPath = current.rulesheetLocalPath ?? catalogNormalizedOptionalString(game.rulesheetLocal)
 
@@ -1108,6 +1109,21 @@ private func buildLegacyCuratedOverrides(from games: [PinballGame]) -> [String: 
     }
 
     return out
+}
+
+private func preferredLegacyNameOverride(for game: PinballGame) -> String? {
+    guard let name = catalogNormalizedOptionalString(game.name) else { return nil }
+    if game.sourceId == "venue--gameroom" { return name }
+    if game.sourceType != .venue { return name }
+    if name.contains(":") { return name }
+    return nil
+}
+
+private func preferredLegacyPlayfieldOverride(for game: PinballGame) -> String? {
+    if catalogNormalizedOptionalString(game.playfieldLocalOriginal ?? game.playfieldLocal) != nil {
+        return catalogNormalizedOptionalString(game.playfieldImageUrl)
+    }
+    return game.sourceType == .venue ? nil : catalogNormalizedOptionalString(game.playfieldImageUrl)
 }
 
 private func parsePublicLibraryOverrides(data: Data?) -> PublicLibraryOverridesRoot {

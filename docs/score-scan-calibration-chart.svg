@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="2048" viewBox="0 0 1536 2048" role="img" aria-labelledby="title desc">
+<title id="title">Score Scan Calibration Chart</title>
+<desc id="desc">A portrait calibration chart with isolated number rows for testing score scanner alignment and crop size.</desc>
+<rect width="1536" height="2048" fill="#050505"/>
+<rect x="72" y="72" width="1392" height="1904" rx="36" fill="#0b0b0b" stroke="#f2f2f2" stroke-width="6"/>
+
+<text x="768" y="182" text-anchor="middle" fill="#ffffff" font-size="56" font-family="Menlo, Consolas, monospace" font-weight="700">
+  SCORE SCAN CALIBRATION
+</text>
+<text x="768" y="238" text-anchor="middle" fill="#b8b8b8" font-size="28" font-family="Menlo, Consolas, monospace">
+  Aim the white scanner box at one row at a time. If it reads a neighboring row, the ROI is oversized or shifted.
+</text>
+
+<g fill="none" stroke="#2a2a2a" stroke-width="4">
+  <line x1="152" y1="324" x2="1384" y2="324"/>
+  <line x1="152" y1="548" x2="1384" y2="548"/>
+  <line x1="152" y1="772" x2="1384" y2="772"/>
+  <line x1="152" y1="996" x2="1384" y2="996"/>
+  <line x1="152" y1="1220" x2="1384" y2="1220"/>
+  <line x1="152" y1="1444" x2="1384" y2="1444"/>
+  <line x1="152" y1="1668" x2="1384" y2="1668"/>
+  <line x1="152" y1="1892" x2="1384" y2="1892"/>
+</g>
+
+<g>
+  <rect x="182" y="366" width="1172" height="132" rx="22" fill="#111111" stroke="#4c4c4c" stroke-width="4"/>
+  <text x="768" y="457" text-anchor="middle" fill="#f5f5f5" font-size="92" font-family="Menlo, Consolas, monospace" font-weight="700" letter-spacing="4">111,111,111</text>
+
+  <rect x="182" y="590" width="1172" height="132" rx="22" fill="#111111" stroke="#4c4c4c" stroke-width="4"/>
+  <text x="768" y="681" text-anchor="middle" fill="#f5f5f5" font-size="92" font-family="Menlo, Consolas, monospace" font-weight="700" letter-spacing="4">222,222,222</text>
+
+  <rect x="182" y="814" width="1172" height="132" rx="22" fill="#111111" stroke="#4c4c4c" stroke-width="4"/>
+  <text x="768" y="905" text-anchor="middle" fill="#f5f5f5" font-size="92" font-family="Menlo, Consolas, monospace" font-weight="700" letter-spacing="4">333,333,333</text>
+
+  <rect x="182" y="1038" width="1172" height="132" rx="22" fill="#111111" stroke="#4c4c4c" stroke-width="4"/>
+  <text x="768" y="1129" text-anchor="middle" fill="#f5f5f5" font-size="92" font-family="Menlo, Consolas, monospace" font-weight="700" letter-spacing="4">444,444,444</text>
+
+  <rect x="182" y="1262" width="1172" height="132" rx="22" fill="#111111" stroke="#4c4c4c" stroke-width="4"/>
+  <text x="768" y="1353" text-anchor="middle" fill="#f5f5f5" font-size="92" font-family="Menlo, Consolas, monospace" font-weight="700" letter-spacing="4">555,555,555</text>
+
+  <rect x="182" y="1486" width="1172" height="132" rx="22" fill="#111111" stroke="#4c4c4c" stroke-width="4"/>
+  <text x="768" y="1577" text-anchor="middle" fill="#f5f5f5" font-size="92" font-family="Menlo, Consolas, monospace" font-weight="700" letter-spacing="4">808,080,808</text>
+
+  <rect x="182" y="1710" width="1172" height="132" rx="22" fill="#111111" stroke="#4c4c4c" stroke-width="4"/>
+  <text x="768" y="1801" text-anchor="middle" fill="#f5f5f5" font-size="92" font-family="Menlo, Consolas, monospace" font-weight="700" letter-spacing="4">909,090,909</text>
+</g>
+
+<g fill="#8d8d8d" font-size="24" font-family="Menlo, Consolas, monospace">
+  <text x="768" y="1956" text-anchor="middle">
+    Extra checks: 123,456,789 and 987,654,321 should read cleanly when shown full-screen one at a time on another device.
+  </text>
+</g>
+</svg>

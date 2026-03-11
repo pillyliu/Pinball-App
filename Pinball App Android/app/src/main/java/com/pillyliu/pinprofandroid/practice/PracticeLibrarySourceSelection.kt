@@ -18,9 +18,7 @@ internal fun resolvePreferredPracticeSource(
     loaded: PracticeLibraryLoadResult,
     savedSourceId: String?,
 ): LibrarySource? {
-    val avenueCandidates = listOf("venue--the-avenue-cafe", "the-avenue")
     return listOfNotNull(savedSourceId, loaded.defaultSourceId)
-        .plus(avenueCandidates)
         .firstOrNull { id -> loaded.sources.any { it.id == id } }
         ?.let { id -> loaded.sources.firstOrNull { it.id == id } }
         ?: loaded.sources.firstOrNull()
