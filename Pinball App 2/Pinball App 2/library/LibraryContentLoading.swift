@@ -75,10 +75,6 @@ final class RulesheetScreenModel: ObservableObject {
         self.externalSource = externalSource
     }
 
-    convenience init(slug: String) {
-        self.init(pathCandidates: ["/pinball/rulesheets/\(slug).md"])
-    }
-
     func loadIfNeeded() async {
         guard !didLoad else { return }
         didLoad = true

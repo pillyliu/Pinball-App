@@ -93,6 +93,9 @@ internal class ScoreScannerController(
     @Volatile
     private var processingPaused = false
 
+    @Volatile
+    private var pendingFreezeRequest = false
+
     private var displayMode = ScoreScannerDisplayMode.Lcd
     private var latestSnapshot: ScoreScannerStabilityService.Snapshot? = null
     private var boundLifecycleOwner: LifecycleOwner? = null
@@ -185,11 +188,13 @@ internal class ScoreScannerController(
     }
 
     fun freezeCurrentFrame() {
-        freeze(preferredReading = latestLockedReading(latestSnapshot))
+        if (isFrozen) return
+        pendingFreezeRequest = true
     }
 
     fun retake() {
         processingPaused = false
+        pendingFreezeRequest = false
         isProcessingFrame = false
         lastOcrTimeMs = 0L
         latestSnapshot = null
@@ -206,7 +211,7 @@ internal class ScoreScannerController(
         status = if (hasCameraPermission) ScoreScannerStatus.Searching else ScoreScannerStatus.CameraPermissionRequired
     }
 
-    fun validatedConfirmedScore(): Int? {
+    fun validatedConfirmedScore(): Long? {
         val score = ScoreScannerParsingService.normalizedScore(confirmationText)
         if (score == null || score <= 0) {
             confirmationValidationMessage = "Enter a valid score above 0."
@@ -261,19 +266,50 @@ internal class ScoreScannerController(
         )
 
         val inputImage = com.google.mlkit.vision.common.InputImage.fromMediaImage(mediaImage, rotationDegrees)
+        val requestedFreeze = pendingFreezeRequest
+        if (requestedFreeze) {
+            pendingFreezeRequest = false
+        }
         scope.launch {
             try {
+                if (requestedFreeze) {
+                    freeze(
+                        preferredReading = latestLockedReading(latestSnapshot),
+                        sourceImage = inputImage,
+                        sourceCropRect = cropRect,
+                        previewBitmap = capturePreviewCropBitmap(),
+                    )
+                    return@launch
+                }
+
                 val analysis = ocrService.recognize(
                     inputImage = inputImage,
                     mode = ScoreScannerOcrService.Mode.LivePreview,
                     cropRect = cropRect,
                     displayMode = displayMode,
                 )
-                process(analysis)
+                process(
+                    analysis = analysis,
+                    sourceImage = inputImage,
+                    sourceCropRect = cropRect,
+                )
             } catch (_: Exception) {
                 val snapshot = stabilityService.ingest(candidate = null)
                 latestSnapshot = snapshot
-                status = snapshot.state
+                val lockedReading = latestLockedReading(snapshot)
+                if (snapshot.state == ScoreScannerStatus.Locked && lockedReading != null) {
+                    freeze(
+                        preferredReading = lockedReading,
+                        sourceImage = inputImage,
+                        sourceCropRect = cropRect,
+                        previewBitmap = capturePreviewCropBitmap(),
+                    )
+                } else {
+                    candidateHighlights.clear()
+                    rawReadingText = lockedReading?.rawText.orEmpty()
+                    liveReadingText = lockedReading?.formattedScore ?: "No reading yet"
+                    status = snapshot.state
+                }
             } finally {
                 imageProxy.close()
                 isProcessingFrame = false
@@ -281,7 +317,11 @@ internal class ScoreScannerController(
         }
     }
 
-    private fun process(analysis: ScoreScannerAnalysis) {
+    private fun process(
+        analysis: ScoreScannerAnalysis,
+        sourceImage: com.google.mlkit.vision.common.InputImage,
+        sourceCropRect: RectF?,
+    ) {
         val filtered = filteredAnalysis(
             analysis = analysis,
             minimumDigitCount = minimumLiveDigitCount,
@@ -302,15 +342,24 @@ internal class ScoreScannerController(
         status = snapshot.state
 
         if (snapshot.state == ScoreScannerStatus.Locked) {
-            freeze(preferredReading = latestLockedReading(snapshot))
+            freeze(
+                preferredReading = latestLockedReading(snapshot),
+                sourceImage = sourceImage,
+                sourceCropRect = sourceCropRect,
+                previewBitmap = capturePreviewCropBitmap(),
+            )
         }
     }
 
-    private fun freeze(preferredReading: ScoreScannerLockedReading?) {
+    private fun freeze(
+        preferredReading: ScoreScannerLockedReading?,
+        sourceImage: com.google.mlkit.vision.common.InputImage? = null,
+        sourceCropRect: RectF? = null,
+        previewBitmap: Bitmap? = null,
+    ) {
         if (isFrozen) return
 
         processingPaused = true
-        val previewBitmap = capturePreviewCropBitmap()
         isFrozen = true
         frozenPreviewBitmap = previewBitmap
         lockedReading = preferredReading
@@ -318,15 +367,22 @@ internal class ScoreScannerController(
         confirmationValidationMessage = null
         status = if (preferredReading == null) ScoreScannerStatus.StableCandidate else ScoreScannerStatus.Locked
 
-        if (previewBitmap == null) return
-
         scope.launch {
             try {
-                val analysis = ocrService.recognize(
-                    bitmap = previewBitmap,
-                    mode = ScoreScannerOcrService.Mode.FinalPass,
-                    displayMode = displayMode,
-                )
+                val analysis = when {
+                    sourceImage != null -> ocrService.recognize(
+                        inputImage = sourceImage,
+                        mode = ScoreScannerOcrService.Mode.FinalPass,
+                        cropRect = sourceCropRect,
+                        displayMode = displayMode,
+                    )
+                    previewBitmap != null -> ocrService.recognize(
+                        bitmap = previewBitmap,
+                        mode = ScoreScannerOcrService.Mode.FinalPass,
+                        displayMode = displayMode,
+                    )
+                    else -> null
+                } ?: return@launch
                 val filtered = filteredAnalysis(
                     analysis = analysis,
                     minimumDigitCount = minimumFinalDigitCount,

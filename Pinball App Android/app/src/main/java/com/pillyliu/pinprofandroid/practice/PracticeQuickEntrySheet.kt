@@ -275,7 +275,10 @@ internal fun QuickEntrySheet(
                     mechanicsCompetency = mechanicsCompetency,
                     onMechanicsCompetencyChange = { mechanicsCompetency = it.roundToInt().toFloat() },
                     onOpenScoreScanner = if (mode == QuickActivity.Score) {
-                        { showScoreScanner = true }
+                        {
+                            validation = null
+                            showScoreScanner = true
+                        }
                     } else {
                         null
                     },
@@ -322,15 +325,10 @@ internal fun QuickEntrySheet(
         ScoreScannerDialog(
             onUseReading = { score ->
                 scoreText = formatScoreInputWithCommas(score.toString())
+                validation = null
                 showScoreScanner = false
             },
             onClose = { showScoreScanner = false },
         )
     }
-}
-
-private fun formatScoreInputWithCommas(raw: String): String {
-    val digits = raw.filter { it.isDigit() }
-    if (digits.isEmpty()) return ""
-    return digits.reversed().chunked(3).joinToString(",").reversed()
 }

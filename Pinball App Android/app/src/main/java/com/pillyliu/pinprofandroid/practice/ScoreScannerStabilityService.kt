@@ -11,7 +11,7 @@ internal class ScoreScannerStabilityService(
     )
 
     data class Reading(
-        val score: Int,
+        val score: Long,
         val formattedScore: String,
         val rawText: String,
         val confidence: Float,

@@ -62,6 +62,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -74,6 +75,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -84,7 +86,7 @@ import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 
 @Composable
 internal fun ScoreScannerDialog(
-    onUseReading: (Int) -> Unit,
+    onUseReading: (Long) -> Unit,
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -92,10 +94,12 @@ internal fun ScoreScannerDialog(
     val controller = rememberScoreScannerController(context)
     val density = LocalDensity.current
     val view = LocalView.current
+    val hapticFeedback = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var rootSize by remember { mutableStateOf(IntSize.Zero) }
     var targetRect by remember { mutableStateOf<RectF?>(null) }
+    var previousStatus by remember { mutableStateOf(controller.status) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -141,6 +145,14 @@ internal fun ScoreScannerDialog(
     }
 
     BackHandler(onBack = onClose)
+
+    LaunchedEffect(controller.status) {
+        val nextStatus = controller.status
+        if (nextStatus == ScoreScannerStatus.Locked && previousStatus != ScoreScannerStatus.Locked) {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+        previousStatus = nextStatus
+    }
 
     Dialog(
         onDismissRequest = onClose,
@@ -269,6 +281,7 @@ internal fun ScoreScannerDialog(
             when (controller.status) {
                 ScoreScannerStatus.CameraPermissionRequired -> {
                     AppFullscreenStatusOverlay(
+                        title = controller.status.title,
                         text = controller.status.detail,
                     )
                     AppFullscreenActionButton(
@@ -288,6 +301,7 @@ internal fun ScoreScannerDialog(
 
                 ScoreScannerStatus.CameraUnavailable -> {
                     AppFullscreenStatusOverlay(
+                        title = controller.status.title,
                         text = controller.status.detail,
                     )
                 }
@@ -516,6 +530,7 @@ private fun ScoreConfirmationSheet(
 ) {
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
+    val rawReadingText = controller.rawReadingText.ifBlank { controller.lockedReading?.rawText.orEmpty() }
 
     Column(
         modifier = Modifier
@@ -527,7 +542,7 @@ private fun ScoreConfirmationSheet(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            text = "Locked score",
+            text = if (controller.status == ScoreScannerStatus.Locked) "Locked score" else "Confirm score",
             color = Color.White,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
@@ -540,11 +555,13 @@ private fun ScoreConfirmationSheet(
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
         )
-        Text(
-            text = "OCR: ${controller.rawReadingText.ifBlank { controller.lockedReading?.rawText.orEmpty() }}",
-            color = Color.White.copy(alpha = 0.62f),
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        if (rawReadingText.isNotBlank()) {
+            Text(
+                text = "OCR: $rawReadingText",
+                color = Color.White.copy(alpha = 0.62f),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
         ScoreManualEntryField(
             value = controller.confirmationText,
             onValueChange = {

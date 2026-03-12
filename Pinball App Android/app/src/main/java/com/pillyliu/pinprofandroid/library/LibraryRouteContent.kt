@@ -27,8 +27,8 @@ internal fun LibraryRouteContent(
     onBankChange: (Int?) -> Unit,
     onOpenGame: (PinballGame) -> Unit,
     onBackToList: () -> Unit,
-    onShowRulesheet: (RulesheetRemoteSource?) -> Unit,
-    onShowExternalRulesheet: (String) -> Unit,
+    onShowRulesheet: (RulesheetRemoteSource?, String?) -> Unit,
+    onShowExternalRulesheet: (String, String?) -> Unit,
     onShowPlayfield: (List<String>) -> Unit,
     onBackToDetail: () -> Unit,
 ) {

@@ -12,6 +12,7 @@ struct MarkdownOrderedItem {
 }
 
 enum MarkdownBlock {
+    case anchor(String)
     case heading(level: Int, text: String)
     case paragraph(String)
     case unorderedList([String])
@@ -19,6 +20,7 @@ enum MarkdownBlock {
     case blockquote([String])
     case codeBlock(language: String?, code: String)
     case horizontalRule
+    case image(url: String, alt: String?)
     case table(headers: [String], alignments: [MarkdownTableAlignment], rows: [[String]])
 }
 
@@ -33,6 +35,29 @@ enum NativeMarkdownParser {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
 
             if trimmed.isEmpty {
+                index += 1
+                continue
+            }
+
+            if shouldSkipRawHTMLLine(trimmed) {
+                index += 1
+                continue
+            }
+
+            if let anchorID = parseAnchorID(trimmed) {
+                blocks.append(.anchor(anchorID))
+                index += 1
+                continue
+            }
+
+            if let htmlTable = parseHTMLTable(startingAt: index, in: lines) {
+                blocks.append(htmlTable.block)
+                index = htmlTable.nextIndex
+                continue
+            }
+
+            if let image = parseStandaloneImage(trimmed) {
+                blocks.append(.image(url: image.url, alt: image.alt))
                 index += 1
                 continue
             }
@@ -243,10 +268,186 @@ enum NativeMarkdownParser {
         }
         return String(line[firstNonWhitespace...])
     }
+
+    private static func shouldSkipRawHTMLLine(_ line: String) -> Bool {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return trimmed == "<div class=\"pinball-rulesheet\">" ||
+            trimmed == "<div class='pinball-rulesheet'>" ||
+            trimmed == "</div>"
+    }
+
+    private static func parseAnchorID(_ line: String) -> String? {
+        line.firstRegexCapture(#"<a\s+id=['"]([^'"]+)['"]\s*>\s*</a>"#)
+    }
+
+    private static func parseStandaloneImage(_ line: String) -> (url: String, alt: String?)? {
+        if let markdownMatch = line.firstRegexCaptures(#"!\[([^\]]*)\]\(([^)]+)\)"#, options: .caseInsensitive),
+           let url = markdownMatch.1 {
+            return (url: url, alt: markdownMatch.0.isEmpty ? nil : markdownMatch.0)
+        }
+
+        if let imageMatch = line.firstRegexCaptures(#"<img\b[^>]*src=['"]([^'"]+)['"][^>]*?(?:alt=['"]([^'"]*)['"])?[^>]*?/?>"#, options: [.caseInsensitive, .dotMatchesLineSeparators]) {
+            return (url: imageMatch.0, alt: imageMatch.1?.isEmpty == true ? nil : imageMatch.1)
+        }
+
+        return nil
+    }
+
+    private static func parseHTMLTable(
+        startingAt startIndex: Int,
+        in lines: [String]
+    ) -> (block: MarkdownBlock, nextIndex: Int)? {
+        let startLine = lines[startIndex].trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard startLine.contains("<table") || startLine == "<div class=\"md-table\">" || startLine == "<div class='md-table'>" else {
+            return nil
+        }
+
+        var collected: [String] = []
+        var index = startIndex
+        var foundTable = startLine.contains("<table")
+        var foundClosingTable = false
+
+        while index < lines.count {
+            let rawLine = lines[index]
+            let trimmed = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
+            let lowercased = trimmed.lowercased()
+
+            if !foundTable && lowercased.contains("<table") {
+                foundTable = true
+            }
+
+            collected.append(rawLine)
+
+            if foundTable && lowercased.contains("</table>") {
+                foundClosingTable = true
+                index += 1
+                while index < lines.count {
+                    let trailing = lines[index].trimmingCharacters(in: .whitespacesAndNewlines)
+                    if trailing == "</div>" {
+                        collected.append(lines[index])
+                        index += 1
+                        continue
+                    }
+                    break
+                }
+                break
+            }
+
+            if !foundTable && trimmed.isEmpty {
+                return nil
+            }
+
+            index += 1
+        }
+
+        guard foundTable, foundClosingTable else { return nil }
+        let html = collected.joined(separator: "\n")
+        guard let table = parseHTMLTableHTML(html) else { return nil }
+        return (table, index)
+    }
+
+    private static func parseHTMLTableHTML(_ html: String) -> MarkdownBlock? {
+        let rowHTML = regexMatches(
+            pattern: #"<tr\b[^>]*>(.*?)</tr>"#,
+            in: html,
+            options: [.caseInsensitive, .dotMatchesLineSeparators]
+        )
+        guard !rowHTML.isEmpty else { return nil }
+
+        var headerRow: [String]?
+        var rows: [[String]] = []
+
+        for row in rowHTML {
+            let cells = regexMatches(
+                pattern: #"<t[dh]\b[^>]*>(.*?)</t[dh]>"#,
+                in: row,
+                options: [.caseInsensitive, .dotMatchesLineSeparators]
+            )
+            guard !cells.isEmpty else { continue }
+
+            let isHeaderRow = row.range(of: "<th", options: .caseInsensitive) != nil
+            if isHeaderRow && headerRow == nil {
+                headerRow = cells
+            } else {
+                rows.append(cells)
+            }
+        }
+
+        if headerRow == nil, let firstRow = rows.first {
+            headerRow = firstRow
+            rows.removeFirst()
+        }
+
+        guard let headerRow, !headerRow.isEmpty else { return nil }
+        let columnCount = max(headerRow.count, rows.map(\.count).max() ?? 0)
+        let paddedHeaders = padCells(headerRow, to: columnCount)
+        let paddedRows = rows.map { padCells($0, to: columnCount) }
+        let alignments = Array(repeating: MarkdownTableAlignment.left, count: columnCount)
+        return .table(headers: paddedHeaders, alignments: alignments, rows: paddedRows)
+    }
+
+    private static func padCells(_ cells: [String], to count: Int) -> [String] {
+        guard cells.count < count else { return cells }
+        return cells + Array(repeating: "", count: count - cells.count)
+    }
+
+    private static func regexMatches(
+        pattern: String,
+        in text: String,
+        options: NSRegularExpression.Options = []
+    ) -> [String] {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else {
+            return []
+        }
+
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        return regex.matches(in: text, options: [], range: range).compactMap { match in
+            guard match.numberOfRanges >= 2,
+                  let captureRange = Range(match.range(at: 1), in: text) else {
+                return nil
+            }
+            return String(text[captureRange])
+        }
+    }
 }
 
 extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
+    }
+}
+
+private extension String {
+    func firstRegexCapture(_ pattern: String, options: NSRegularExpression.Options = []) -> String? {
+        let range = NSRange(startIndex..<endIndex, in: self)
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: options),
+              let match = regex.firstMatch(in: self, options: [], range: range),
+              match.numberOfRanges >= 2,
+              let captureRange = Range(match.range(at: 1), in: self) else {
+            return nil
+        }
+        return String(self[captureRange])
+    }
+
+    func firstRegexCaptures(
+        _ pattern: String,
+        options: NSRegularExpression.Options = []
+    ) -> (String, String?)? {
+        let range = NSRange(startIndex..<endIndex, in: self)
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: options),
+              let match = regex.firstMatch(in: self, options: [], range: range),
+              match.numberOfRanges >= 2,
+              let firstRange = Range(match.range(at: 1), in: self) else {
+            return nil
+        }
+        let first = String(self[firstRange])
+        let second: String?
+        if match.numberOfRanges >= 3,
+           let secondRange = Range(match.range(at: 2), in: self) {
+            second = String(self[secondRange])
+        } else {
+            second = nil
+        }
+        return (first, second)
     }
 }

@@ -273,7 +273,7 @@ func AppReadingProgressPill(
 ) -> some View {
     let foreground = saved ? AppTheme.statsHigh : AppTheme.brandInk
     let background = saved ? AppTheme.statsHigh.opacity(0.18) : AppTheme.controlBg.opacity(0.88)
-    let border = saved ? AppTheme.statsHigh.opacity(0.34) : AppTheme.brandChalk.opacity(0.24)
+    let border = saved ? AppTheme.statsHigh.opacity(0.34) : AppTheme.brandGold.opacity(0.34)
 
     Text(text)
         .font(.caption2.weight(.semibold))

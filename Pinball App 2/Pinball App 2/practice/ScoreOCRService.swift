@@ -2,7 +2,7 @@ import Foundation
 import Vision
 import CoreImage
 
-final class ScoreOCRService {
+nonisolated final class ScoreOCRService {
     enum Mode {
         case livePreview
         case finalPass

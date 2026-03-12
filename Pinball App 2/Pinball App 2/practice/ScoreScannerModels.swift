@@ -2,7 +2,7 @@ import Foundation
 import CoreGraphics
 import SwiftUI
 
-enum ScoreScannerDisplayMode: String, CaseIterable, Identifiable {
+nonisolated enum ScoreScannerDisplayMode: String, CaseIterable, Identifiable {
     case lcd
     case dmd
     case segmented
@@ -10,7 +10,7 @@ enum ScoreScannerDisplayMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-enum ScoreScannerStatus: Equatable {
+nonisolated enum ScoreScannerStatus: Equatable {
     case cameraPermissionRequired
     case cameraUnavailable
     case searching
@@ -58,13 +58,13 @@ enum ScoreScannerStatus: Equatable {
     }
 }
 
-struct ScoreOCRObservation: Equatable {
+nonisolated struct ScoreOCRObservation: Equatable {
     let text: String
     let confidence: Float
     let boundingBox: CGRect
 }
 
-struct ScoreScannerCandidate: Equatable {
+nonisolated struct ScoreScannerCandidate: Equatable {
     let rawText: String
     let normalizedScore: Int
     let formattedScore: String
@@ -74,12 +74,12 @@ struct ScoreScannerCandidate: Equatable {
     let centerBias: Double
 }
 
-struct ScoreOCRAnalysis: Equatable {
+nonisolated struct ScoreOCRAnalysis: Equatable {
     let bestCandidate: ScoreScannerCandidate?
     let candidates: [ScoreScannerCandidate]
 }
 
-struct ScoreScannerLockedReading: Equatable {
+nonisolated struct ScoreScannerLockedReading: Equatable {
     let score: Int
     let formattedScore: String
     let rawText: String
@@ -87,12 +87,12 @@ struct ScoreScannerLockedReading: Equatable {
     let averageConfidence: Float
 }
 
-struct ScoreScannerPreviewMapping: Equatable {
+nonisolated struct ScoreScannerPreviewMapping: Equatable {
     let previewBounds: CGRect
     let targetRect: CGRect
 }
 
-enum ScoreScannerFrameMapper {
+nonisolated enum ScoreScannerFrameMapper {
     static func cropRect(frameExtent: CGRect, previewMapping: ScoreScannerPreviewMapping) -> CGRect? {
         guard frameExtent.width > 0, frameExtent.height > 0 else { return nil }
 
@@ -155,7 +155,7 @@ enum ScoreScannerFrameMapper {
     }
 }
 
-struct ScoreScannerTargetBoxLayout {
+nonisolated struct ScoreScannerTargetBoxLayout {
     static func rect(in size: CGSize, safeAreaInsets: EdgeInsets) -> CGRect {
         let width = min(size.width * 0.82, 420)
         let height = min(max(size.height * 0.10, 78), 104)

@@ -125,8 +125,8 @@ internal fun LibraryDetailScreen(
     contentPadding: PaddingValues,
     game: PinballGame,
     onBack: () -> Unit,
-    onOpenRulesheet: (RulesheetRemoteSource?) -> Unit,
-    onOpenExternalRulesheet: (String) -> Unit,
+    onOpenRulesheet: (RulesheetRemoteSource?, String?) -> Unit,
+    onOpenExternalRulesheet: (String, String?) -> Unit,
     onOpenPlayfield: (List<String>) -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current

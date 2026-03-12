@@ -1,33 +1,40 @@
 package com.pillyliu.pinprofandroid.practice
 
+import java.text.NumberFormat
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.hypot
 
 internal object ScoreScannerParsingService {
     fun rankedCandidates(observations: List<ScoreOcrObservation>): List<ScoreScannerCandidate> {
-        val seen = linkedSetOf<Int>()
+        val seen = linkedSetOf<Long>()
         return observations
             .mapNotNull(::candidateFrom)
             .sortedWith(::candidateSort)
             .filter { candidate -> seen.add(candidate.normalizedScore) }
     }
 
-    fun normalizedScore(raw: String): Int? {
+    fun normalizedScore(raw: String): Long? {
         val digits = raw.filter(Char::isDigit)
-        val score = digits.toIntOrNull() ?: return null
+        val score = digits.toLongOrNull() ?: return null
         return score.takeIf { it > 0 }
     }
 
-    fun formattedScore(score: Int): String {
-        val digits = score.toString()
-        if (digits.length <= 3) return digits
-        return digits.reversed().chunked(3).joinToString(",").reversed()
+    fun formattedScore(score: Long): String {
+        val formatter = NumberFormat.getIntegerInstance(Locale.US)
+        formatter.isGroupingUsed = true
+        return formatter.format(score)
     }
 
     fun formattedScoreInput(raw: String): String {
         val digits = raw.filter(Char::isDigit)
-        val value = digits.toIntOrNull() ?: return digits
-        return value.takeIf { it > 0 }?.let(::formattedScore).orEmpty()
+        val value = digits.toLongOrNull()
+        return when {
+            digits.isEmpty() -> ""
+            value == null -> digits
+            value > 0 -> formattedScore(value)
+            else -> digits
+        }
     }
 
     private fun candidateFrom(observation: ScoreOcrObservation): ScoreScannerCandidate? {
@@ -77,8 +84,8 @@ internal object ScoreScannerParsingService {
                 append(
                     when (character) {
                         'O', 'o' -> '0'
-                        'I', 'l' -> '1'
-                        'S' -> '5'
+                        'I', 'l', 'L', '|', '!' -> '1'
+                        'S', 's' -> '5'
                         else -> character
                     }
                 )
@@ -91,7 +98,7 @@ internal object ScoreScannerParsingService {
 
         val digits = bestRun.filter(Char::isDigit)
         if (digits.isEmpty() || digits.length > 15) return null
-        val score = digits.toIntOrNull() ?: return null
+        val score = digits.toLongOrNull() ?: return null
         if (score <= 0) return null
 
         return NormalizedScore(score = score, digitCount = digits.length)
@@ -115,7 +122,7 @@ internal object ScoreScannerParsingService {
     }
 
     private data class NormalizedScore(
-        val score: Int,
+        val score: Long,
         val digitCount: Int,
     )
 }

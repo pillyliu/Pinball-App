@@ -33,14 +33,27 @@ internal object LibraryActivityLog {
     fun log(context: Context, gameSlug: String, gameName: String, kind: LibraryActivityKind, detail: String? = null) {
         val prefs = practiceSharedPreferences(context)
         val current = events(context).toMutableList()
+        val now = System.currentTimeMillis()
+        val trimmedDetail = detail?.trim()?.takeIf { it.isNotBlank() }
+
+        val latest = current.firstOrNull()
+        if (latest != null &&
+            latest.gameSlug == gameSlug &&
+            latest.kind == kind &&
+            (latest.detail ?: "") == (trimmedDetail ?: "") &&
+            now - latest.timestampMs < 2_000
+        ) {
+            return
+        }
+
         current.add(
             LibraryActivityEvent(
                 id = "library-${System.nanoTime()}",
                 gameSlug = gameSlug,
                 gameName = gameName,
                 kind = kind,
-                detail = detail?.trim()?.takeIf { it.isNotBlank() },
-                timestampMs = System.currentTimeMillis(),
+                detail = trimmedDetail,
+                timestampMs = now,
             ),
         )
         val trimmed = current.sortedByDescending { it.timestampMs }.take(500)

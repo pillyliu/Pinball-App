@@ -32,18 +32,34 @@ internal fun PracticeDialogHost(
     }
 
     if (context.openQuickEntry) {
-        QuickEntrySheet(
-            store = context.store,
-            selectedGameSlug = context.selectedGameSlug,
-            presetActivity = context.quickPresetActivity,
-            origin = context.quickEntryOrigin,
-            fromGameView = context.quickEntryFromGameView,
-            onDismiss = { context.onOpenQuickEntryChange(false) },
-            onSave = { slug ->
-                context.onQuickSave(slug)
-                context.onOpenQuickEntryChange(false)
-            },
-        )
+        val useDedicatedGameScoreSheet = context.quickPresetActivity == QuickActivity.Score &&
+            context.quickEntryOrigin == QuickEntryOrigin.Score &&
+            context.quickEntryFromGameView &&
+            !context.selectedGameSlug.isNullOrBlank()
+        if (useDedicatedGameScoreSheet) {
+            PracticeGameScoreEntrySheet(
+                store = context.store,
+                selectedGameSlug = context.selectedGameSlug!!,
+                onDismiss = { context.onOpenQuickEntryChange(false) },
+                onSave = { slug ->
+                    context.onQuickSave(slug)
+                    context.onOpenQuickEntryChange(false)
+                },
+            )
+        } else {
+            QuickEntrySheet(
+                store = context.store,
+                selectedGameSlug = context.selectedGameSlug,
+                presetActivity = context.quickPresetActivity,
+                origin = context.quickEntryOrigin,
+                fromGameView = context.quickEntryFromGameView,
+                onDismiss = { context.onOpenQuickEntryChange(false) },
+                onSave = { slug ->
+                    context.onQuickSave(slug)
+                    context.onOpenQuickEntryChange(false)
+                },
+            )
+        }
     }
 
     if (context.openGroupDateDialog) {

@@ -53,7 +53,7 @@ internal data class ScoreOcrObservation(
 
 internal data class ScoreScannerCandidate(
     val rawText: String,
-    val normalizedScore: Int,
+    val normalizedScore: Long,
     val formattedScore: String,
     val confidence: Float,
     val boundingBox: RectF,
@@ -67,7 +67,7 @@ internal data class ScoreScannerAnalysis(
 )
 
 internal data class ScoreScannerLockedReading(
-    val score: Int,
+    val score: Long,
     val formattedScore: String,
     val rawText: String,
     val confidence: Float,

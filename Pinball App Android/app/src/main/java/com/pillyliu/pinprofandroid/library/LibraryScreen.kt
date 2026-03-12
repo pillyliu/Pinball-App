@@ -178,9 +178,15 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
             onBackToList = {
                 route = LibraryRoute.List
             },
-            onShowRulesheet = { source ->
+            onShowRulesheet = { source, detail ->
                 val game = routeGame ?: return@LibraryRouteContent
-                LibraryActivityLog.log(context, game.slug, game.name, LibraryActivityKind.OpenRulesheet, source?.sourceName)
+                LibraryActivityLog.log(
+                    context,
+                    game.slug,
+                    game.name,
+                    LibraryActivityKind.OpenRulesheet,
+                    detail ?: source?.sourceName,
+                )
                 val provider = when (source) {
                     is RulesheetRemoteSource.TiltForums -> "tiltforums"
                     is RulesheetRemoteSource.PinballPrimer -> "primer"
@@ -194,8 +200,15 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                     sourceUrl = source?.url,
                 )
             },
-            onShowExternalRulesheet = { url ->
+            onShowExternalRulesheet = { url, detail ->
                 val game = routeGame ?: return@LibraryRouteContent
+                LibraryActivityLog.log(
+                    context,
+                    game.slug,
+                    game.name,
+                    LibraryActivityKind.OpenRulesheet,
+                    detail,
+                )
                 route = LibraryRoute.ExternalRulesheet(game.slug, url)
             },
             onShowPlayfield = { imageUrls ->

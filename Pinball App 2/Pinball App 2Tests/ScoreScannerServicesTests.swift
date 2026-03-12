@@ -13,6 +13,17 @@ final class ScoreScannerServicesTests: XCTestCase {
         XCTAssertEqual(candidate?.formattedScore, "12,050,005")
     }
 
+    func testParsingNormalizesLowercaseAndSegmentedGlyphConfusions() {
+        let observations = [
+            ScoreOCRObservation(text: "!2,s50,0L5", confidence: 0.69, boundingBox: CGRect(x: 0.48, y: 0.42, width: 0.24, height: 0.14))
+        ]
+
+        let candidate = ScoreParsingService.bestCandidate(from: observations)
+
+        XCTAssertEqual(candidate?.normalizedScore, 12_550_015)
+        XCTAssertEqual(candidate?.formattedScore, "12,550,015")
+    }
+
     func testParsingPrefersCenteredCandidateBeforeConfidence() {
         let observations = [
             ScoreOCRObservation(text: "1234567", confidence: 0.92, boundingBox: CGRect(x: 0.02, y: 0.10, width: 0.24, height: 0.14)),
@@ -44,6 +55,13 @@ final class ScoreScannerServicesTests: XCTestCase {
         let candidate = ScoreParsingService.bestCandidate(from: observations)
 
         XCTAssertEqual(candidate?.normalizedScore, 650_781_260)
+    }
+
+    func testManualScoreFormattingSupportsLargeValuesAndPreservesZeroInput() {
+        XCTAssertEqual(ScoreParsingService.normalizedScore(fromManualInput: "9,876,543,210"), 9_876_543_210)
+        XCTAssertEqual(ScoreParsingService.formattedScoreInput(from: "9876543210"), "9,876,543,210")
+        XCTAssertEqual(ScoreParsingService.formattedScoreInput(from: "0"), "0")
+        XCTAssertNil(ScoreParsingService.normalizedScore(fromManualInput: "0"))
     }
 
     func testStabilityLocksAfterRepeatedConsensus() {

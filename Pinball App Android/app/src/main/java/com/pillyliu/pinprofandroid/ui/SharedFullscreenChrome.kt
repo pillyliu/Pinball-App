@@ -11,6 +11,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 fun AppFullscreenStatusOverlay(
     text: String,
     modifier: Modifier = Modifier,
+    title: String? = null,
     showsProgress: Boolean = false,
     foregroundColor: Color = PinballThemeTokens.colors.brandChalk,
 ) {
@@ -51,9 +53,18 @@ fun AppFullscreenStatusOverlay(
             if (showsProgress) {
                 CircularProgressIndicator(color = colors.brandGold)
             }
+            title?.let { heading ->
+                Text(
+                    text = heading,
+                    color = foregroundColor,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                )
+            }
             Text(
                 text = text,
-                color = foregroundColor,
+                color = foregroundColor.copy(alpha = if (title != null) 0.78f else 1f),
                 style = PinballThemeTokens.typography.emptyState,
                 textAlign = TextAlign.Center,
             )

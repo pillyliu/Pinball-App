@@ -312,6 +312,7 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                     if let preferredReading {
                         self.lockedReading = preferredReading
                         self.confirmationText = preferredReading.formattedScore
+                        self.rawReadingText = preferredReading.rawText
                         self.status = .locked
                     }
                 }
@@ -457,8 +458,20 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                     self.latestSnapshot = snapshot
                     return snapshot
                 }
-                DispatchQueue.main.async {
-                    self.status = snapshot.state
+                if snapshot.state == .locked, let locked = self.latestLockedReading(from: snapshot) {
+                    DispatchQueue.main.async {
+                        let feedback = UINotificationFeedbackGenerator()
+                        feedback.notificationOccurred(.success)
+                    }
+                    self.freeze(using: fullFrame, preferredReading: locked)
+                } else {
+                    let locked = self.latestLockedReading(from: snapshot)
+                    DispatchQueue.main.async {
+                        self.candidateHighlights = []
+                        self.rawReadingText = locked?.rawText ?? ""
+                        self.liveReadingText = locked?.formattedScore ?? "No reading yet"
+                        self.status = snapshot.state
+                    }
                 }
             }
         }

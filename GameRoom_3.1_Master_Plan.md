@@ -77,7 +77,7 @@ Layout:
 - both boxes span standard app content width (no narrow intrinsic cards)
 
 Collection presentation:
-- toggle between `Tiles` and `List`
+- toggle between `Cards` and `List`
 - tile mode uses compact/short mini cards (Practice-like visual density)
 - tile grid is 2 columns
 - status light(s) in upper-right on mini cards

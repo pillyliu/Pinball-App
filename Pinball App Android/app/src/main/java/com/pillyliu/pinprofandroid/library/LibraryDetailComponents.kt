@@ -76,11 +76,10 @@ internal fun LibraryDetailScreenshotSection(game: PinballGame) {
 @Composable
 internal fun LibraryDetailSummaryCard(
     game: PinballGame,
-    onOpenRulesheet: (RulesheetRemoteSource?) -> Unit,
-    onOpenExternalRulesheet: (String) -> Unit,
+    onOpenRulesheet: (RulesheetRemoteSource?, String?) -> Unit,
+    onOpenExternalRulesheet: (String, String?) -> Unit,
     onOpenPlayfield: (List<String>) -> Unit,
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
     val livePlayfieldStatus by produceState<LivePlayfieldStatus?>(initialValue = null, key1 = game.practiceIdentity) {
         value = loadLivePlayfieldStatus(game.practiceIdentity)
     }
@@ -109,7 +108,7 @@ internal fun LibraryDetailSummaryCard(
         ) {
             AppResourceRow(label = "Rulesheet:") {
                 if (game.hasLocalRulesheetResource) {
-                    AppResourceChip(label = "Local") { onOpenRulesheet(null) }
+                    AppResourceChip(label = "Local") { onOpenRulesheet(null, "Local") }
                 }
                 if (game.rulesheetLinks.isEmpty()) {
                     if (!game.hasLocalRulesheetResource) {
@@ -120,11 +119,10 @@ internal fun LibraryDetailSummaryCard(
                         val destination = link.destinationUrl
                         val embedded = link.embeddedRulesheetSource
                         AppResourceChip(label = appShortRulesheetTitle(link)) {
-                            LibraryActivityLog.log(context, game.slug, game.name, LibraryActivityKind.OpenRulesheet, link.label)
                             when {
-                                embedded != null -> onOpenRulesheet(embedded)
-                                destination != null -> onOpenExternalRulesheet(destination)
-                                else -> onOpenRulesheet(null)
+                                embedded != null -> onOpenRulesheet(embedded, link.label)
+                                destination != null -> onOpenExternalRulesheet(destination, link.label)
+                                else -> onOpenRulesheet(null, link.label)
                             }
                         }
                     }

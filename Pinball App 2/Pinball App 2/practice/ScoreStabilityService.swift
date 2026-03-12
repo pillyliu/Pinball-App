@@ -1,6 +1,6 @@
 import Foundation
 
-final class ScoreStabilityService {
+nonisolated final class ScoreStabilityService {
     struct Configuration {
         var maxRecentReadings = 6
         var requiredMatches = 3

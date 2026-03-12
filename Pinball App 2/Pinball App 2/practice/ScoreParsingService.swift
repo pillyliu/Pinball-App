@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 
-enum ScoreParsingService {
+nonisolated enum ScoreParsingService {
     nonisolated static func rankedCandidates(from observations: [ScoreOCRObservation]) -> [ScoreScannerCandidate] {
         var seen = Set<Int>()
 
@@ -79,9 +79,9 @@ enum ScoreParsingService {
             switch character {
             case "O", "o":
                 mapped.append("0")
-            case "I", "l":
+            case "I", "l", "L", "|", "!":
                 mapped.append("1")
-            case "S":
+            case "S", "s":
                 mapped.append("5")
             default:
                 mapped.append(character)

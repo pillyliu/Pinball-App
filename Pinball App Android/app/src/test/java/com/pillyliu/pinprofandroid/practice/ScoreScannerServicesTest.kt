@@ -4,6 +4,7 @@ import android.graphics.RectF
 import androidx.compose.ui.geometry.Size
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -13,25 +14,146 @@ import org.robolectric.RobolectricTestRunner
 class ScoreScannerServicesTest {
 
     @Test
-    fun parsingService_formatsAndRanksNumericCandidates() {
-        val ranked = ScoreScannerParsingService.rankedCandidates(
-            listOf(
+    fun parsingNormalizesCommonOcrConfusions() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
                 ScoreOcrObservation(
-                    text = "555,555,555",
-                    confidence = 1f,
-                    boundingBox = RectF(0.20f, 0.25f, 0.78f, 0.60f),
+                    text = "I2,O5O,O0S",
+                    confidence = 0.72f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                )
+            )
+        )
+
+        assertEquals(12_050_005L, candidate.first().normalizedScore)
+        assertEquals("12,050,005", candidate.first().formattedScore)
+    }
+
+    @Test
+    fun parsingNormalizesLowercaseAndSegmentedGlyphConfusions() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = "!2,s50,0L5",
+                    confidence = 0.69f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                )
+            )
+        )
+
+        assertEquals(12_550_015L, candidate.first().normalizedScore)
+        assertEquals("12,550,015", candidate.first().formattedScore)
+    }
+
+    @Test
+    fun parsingPrefersCenteredCandidateBeforeConfidence() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = "1234567",
+                    confidence = 0.92f,
+                    boundingBox = RectF(0.02f, 0.10f, 0.26f, 0.24f),
                 ),
                 ScoreOcrObservation(
-                    text = "55",
-                    confidence = 1f,
-                    boundingBox = RectF(0.10f, 0.10f, 0.18f, 0.18f),
+                    text = "123456",
+                    confidence = 0.70f,
+                    boundingBox = RectF(0.38f, 0.42f, 0.62f, 0.56f),
                 ),
             )
         )
 
-        assertTrue(ranked.isNotEmpty())
-        assertEquals(555_555_555, ranked.first().normalizedScore)
-        assertEquals("555,555,555", ranked.first().formattedScore)
+        assertEquals(123_456L, candidate.first().normalizedScore)
+    }
+
+    @Test
+    fun parsingExtractsScoreFromMixedOcrText() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = "SCORE 12,450,000 BALL 2",
+                    confidence = 0.68f,
+                    boundingBox = RectF(0.44f, 0.38f, 0.72f, 0.54f),
+                )
+            )
+        )
+
+        assertEquals(12_450_000L, candidate.first().normalizedScore)
+        assertEquals("12,450,000", candidate.first().formattedScore)
+    }
+
+    @Test
+    fun parsingPrefersLongerScoreOverTinyCenteredFragmentWhenGapIsLarge() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = "65",
+                    confidence = 0.90f,
+                    boundingBox = RectF(0.45f, 0.42f, 0.55f, 0.58f),
+                ),
+                ScoreOcrObservation(
+                    text = "650,781,260",
+                    confidence = 0.64f,
+                    boundingBox = RectF(0.22f, 0.38f, 0.76f, 0.54f),
+                ),
+            )
+        )
+
+        assertEquals(650_781_260L, candidate.first().normalizedScore)
+    }
+
+    @Test
+    fun parsingSupportsLargeScoresAndPreservesZeroInputForManualCorrection() {
+        assertEquals(9_876_543_210L, ScoreScannerParsingService.normalizedScore("9,876,543,210"))
+        assertEquals("9,876,543,210", ScoreScannerParsingService.formattedScoreInput("9876543210"))
+        assertEquals("0", ScoreScannerParsingService.formattedScoreInput("0"))
+        assertNull(ScoreScannerParsingService.normalizedScore("0"))
+    }
+
+    @Test
+    fun stabilityLocksAfterRepeatedConsensus() {
+        val service = ScoreScannerStabilityService()
+        val candidate = ScoreScannerCandidate(
+            rawText = "12,450,000",
+            normalizedScore = 12_450_000L,
+            formattedScore = "12,450,000",
+            confidence = 0.56f,
+            boundingBox = RectF(0.4f, 0.4f, 0.6f, 0.5f),
+            digitCount = 8,
+            centerBias = 0.95,
+        )
+
+        service.ingest(candidate)
+        service.ingest(candidate)
+        val snapshot = service.ingest(candidate)
+
+        assertEquals(ScoreScannerStatus.Locked, snapshot.state)
+        assertEquals(12_450_000L, snapshot.dominantReading?.score)
+    }
+
+    @Test
+    fun frameMapperMapsTargetRectWhenPreviewMatchesFrameAspectRatio() {
+        val cropRect = ScoreScannerFrameMapper.cropRect(
+            frameSize = Size(100f, 200f),
+            previewMapping = ScoreScannerPreviewMapping(
+                previewBounds = RectF(0f, 0f, 50f, 100f),
+                targetRect = RectF(10f, 20f, 40f, 30f),
+            ),
+        )
+
+        assertEquals(RectF(20f, 140f, 80f, 160f), cropRect)
+    }
+
+    @Test
+    fun frameMapperAccountsForAspectFillCropping() {
+        val cropRect = ScoreScannerFrameMapper.cropRect(
+            frameSize = Size(100f, 200f),
+            previewMapping = ScoreScannerPreviewMapping(
+                previewBounds = RectF(0f, 0f, 50f, 200f),
+                targetRect = RectF(5f, 50f, 45f, 70f),
+            ),
+        )
+
+        assertEquals(RectF(30f, 130f, 70f, 150f), cropRect)
     }
 
     @Test
@@ -50,11 +172,5 @@ class ScoreScannerServicesTest {
         assertTrue(cropRect.height() > 0f)
         assertTrue(cropRect.top >= 0f)
         assertTrue(cropRect.bottom <= 1280f)
-    }
-
-    @Test
-    fun scoreInputFormatter_stripsNoise() {
-        assertEquals("1,234,567", ScoreScannerParsingService.formattedScoreInput("12a34,567"))
-        assertEquals(9_999, ScoreScannerParsingService.normalizedScore("9,999"))
     }
 }
