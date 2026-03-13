@@ -4,37 +4,42 @@ struct PinballResourceChipButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(AppTheme.brandInk.opacity(isEnabled ? 1 : 0.55))
-            .lineLimit(1)
-            .minimumScaleFactor(0.85)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(
-                RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
-                    .fill(
-                        configuration.isPressed
-                            ? AppTheme.brandGold.opacity(isEnabled ? 0.24 : 0.14)
-                            : AppTheme.controlBg
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
-                            .stroke(
-                                AppTheme.brandGold.opacity(
-                                    isEnabled
-                                        ? (configuration.isPressed ? 0.62 : 0.34)
-                                        : 0.18
-                                ),
-                                lineWidth: 1
-                            )
-                    )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .opacity(isEnabled ? 1 : 0.72)
-            .animation(nil, value: configuration.isPressed)
+        AppPressFeedbackButtonStyleBody(isPressed: configuration.isPressed) { isPressed in
+            configuration.label
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.brandInk.opacity(isEnabled ? 1 : 0.55))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(
+                    RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                        .fill(
+                            isPressed
+                                ? AppTheme.brandGold.opacity(isEnabled ? 0.24 : 0.14)
+                                : AppTheme.controlBg
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                                .fill(Color.white.opacity(isEnabled && isPressed ? 0.14 : 0))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                                .stroke(
+                                    AppTheme.brandGold.opacity(
+                                        isEnabled
+                                            ? (isPressed ? 0.74 : 0.34)
+                                            : 0.18
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
+                .scaleEffect(isPressed ? 0.975 : 1)
+                .opacity(isEnabled ? 1 : 0.72)
+        }
     }
 }
 
@@ -42,28 +47,33 @@ struct PinballVideoLaunchButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(Color.white.opacity(isEnabled ? 1 : 0.55))
-            .lineLimit(1)
-            .minimumScaleFactor(0.9)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
-                    .fill(Color.white.opacity(configuration.isPressed ? 0.22 : 0.14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
-                            .stroke(
-                                Color.white.opacity(isEnabled ? (configuration.isPressed ? 0.52 : 0.26) : 0.16),
-                                lineWidth: 1
-                            )
-                    )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .opacity(isEnabled ? 1 : 0.72)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+        AppPressFeedbackButtonStyleBody(isPressed: configuration.isPressed) { isPressed in
+            configuration.label
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.white.opacity(isEnabled ? 1 : 0.55))
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                        .fill(Color.white.opacity(isPressed ? 0.28 : 0.14))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                                .fill(Color.white.opacity(isEnabled && isPressed ? 0.08 : 0))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                                .stroke(
+                                    Color.white.opacity(isEnabled ? (isPressed ? 0.66 : 0.26) : 0.16),
+                                    lineWidth: 1
+                                )
+                        )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
+                .scaleEffect(isPressed ? 0.975 : 1)
+                .opacity(isEnabled ? 1 : 0.72)
+        }
     }
 }
 

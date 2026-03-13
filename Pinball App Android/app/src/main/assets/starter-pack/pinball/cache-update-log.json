@@ -2,6 +2,136 @@
   "schemaVersion": 1,
   "events": [
     {
+      "generatedAt": "2026-03-13T09:49:51.803Z",
+      "addedCount": 0,
+      "changedCount": 4,
+      "removedCount": 0,
+      "totalFiles": 353,
+      "added": [],
+      "changed": [
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": []
+    },
+    {
+      "generatedAt": "2026-03-13T09:45:49.272Z",
+      "addedCount": 1,
+      "changedCount": 4,
+      "removedCount": 0,
+      "totalFiles": 353,
+      "added": [
+        "/pinball/images/ui/shake-warnings/professor-tilt_1024.webp"
+      ],
+      "changed": [
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": []
+    },
+    {
+      "generatedAt": "2026-03-13T09:39:38.762Z",
+      "addedCount": 0,
+      "changedCount": 4,
+      "removedCount": 0,
+      "totalFiles": 352,
+      "added": [],
+      "changed": [
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": []
+    },
+    {
+      "generatedAt": "2026-03-13T09:33:07.440Z",
+      "addedCount": 1,
+      "changedCount": 4,
+      "removedCount": 0,
+      "totalFiles": 352,
+      "added": [
+        "/pinball/images/ui/shake-warnings/professor-danger-danger_1024.webp"
+      ],
+      "changed": [
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": []
+    },
+    {
+      "generatedAt": "2026-03-13T09:31:46.562Z",
+      "addedCount": 1,
+      "changedCount": 4,
+      "removedCount": 1,
+      "totalFiles": 351,
+      "added": [
+        "/pinball/images/ui/shake-warnings/professor-danger_1024.webp"
+      ],
+      "changed": [
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": [
+        "/pinball/images/playfields/professor-shake-danger_1024.webp"
+      ]
+    },
+    {
+      "generatedAt": "2026-03-13T09:26:29.470Z",
+      "addedCount": 1,
+      "changedCount": 4,
+      "removedCount": 0,
+      "totalFiles": 351,
+      "added": [
+        "/pinball/images/playfields/professor-shake-danger_1024.webp"
+      ],
+      "changed": [
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": []
+    },
+    {
+      "generatedAt": "2026-03-13T08:28:30.799Z",
+      "addedCount": 0,
+      "changedCount": 4,
+      "removedCount": 0,
+      "totalFiles": 350,
+      "added": [],
+      "changed": [
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": []
+    },
+    {
+      "generatedAt": "2026-03-13T07:16:48.671Z",
+      "addedCount": 0,
+      "changedCount": 4,
+      "removedCount": 0,
+      "totalFiles": 350,
+      "added": [],
+      "changed": [
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": []
+    },
+    {
       "generatedAt": "2026-03-09T21:51:03.855Z",
       "addedCount": 1,
       "changedCount": 4,
@@ -506,10 +636,10 @@
     }
   ],
   "latest": {
-    "generatedAt": "2026-03-09T21:51:03.855Z",
-    "addedCount": 1,
+    "generatedAt": "2026-03-13T09:49:51.803Z",
+    "addedCount": 0,
     "changedCount": 4,
-    "removedCount": 2,
-    "totalFiles": 350
+    "removedCount": 0,
+    "totalFiles": 353
   }
 }

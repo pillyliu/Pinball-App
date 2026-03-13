@@ -3,6 +3,15 @@ import UIKit
 import CoreMotion
 import Combine
 
+enum AppShakeMotionTuning {
+    static let updateInterval: TimeInterval = 1.0 / 30.0
+    static let minimumAcceptedShakeInterval: TimeInterval = 0.85
+    static let candidateWindow: TimeInterval = 0.18
+    static let strongMagnitudeThreshold = 2.45
+    static let combinedMagnitudeThreshold = 1.85
+    static let combinedPeakAxisThreshold = 1.35
+}
+
 private struct AppInteractivePopEnabler: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> EnablerViewController {
         EnablerViewController()
@@ -38,6 +47,7 @@ private final class AppShakeMotionObserver: ObservableObject {
     private let motionManager = CMMotionManager()
     private var onShake: (() -> Void)?
     private var lastShakeAt = Date.distantPast
+    private var candidateShakeAt: Date?
 
     func update(isEnabled: Bool, onShake: @escaping () -> Void) {
         self.onShake = onShake
@@ -50,13 +60,14 @@ private final class AppShakeMotionObserver: ObservableObject {
 
     func stop() {
         motionManager.stopDeviceMotionUpdates()
+        candidateShakeAt = nil
     }
 
     private func startIfNeeded() {
         guard motionManager.isDeviceMotionAvailable else { return }
         guard !motionManager.isDeviceMotionActive else { return }
 
-        motionManager.deviceMotionUpdateInterval = 1.0 / 30.0
+        motionManager.deviceMotionUpdateInterval = AppShakeMotionTuning.updateInterval
         motionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
             guard let self, let motion else { return }
             process(motion)
@@ -73,11 +84,28 @@ private final class AppShakeMotionObserver: ObservableObject {
         let peakAxis = max(abs(acceleration.x), max(abs(acceleration.y), abs(acceleration.z)))
         let now = Date()
 
-        guard now.timeIntervalSince(lastShakeAt) > 0.85 else { return }
-        guard magnitude > 2.15 || (magnitude > 1.55 && peakAxis > 1.15) else { return }
+        guard now.timeIntervalSince(lastShakeAt) > AppShakeMotionTuning.minimumAcceptedShakeInterval else { return }
+        let exceedsThreshold =
+            magnitude > AppShakeMotionTuning.strongMagnitudeThreshold ||
+            (magnitude > AppShakeMotionTuning.combinedMagnitudeThreshold &&
+                peakAxis > AppShakeMotionTuning.combinedPeakAxisThreshold)
+        guard exceedsThreshold else {
+            if let candidateShakeAt,
+               now.timeIntervalSince(candidateShakeAt) > AppShakeMotionTuning.candidateWindow {
+                self.candidateShakeAt = nil
+            }
+            return
+        }
 
-        lastShakeAt = now
-        onShake?()
+        if let candidateShakeAt,
+           now.timeIntervalSince(candidateShakeAt) <= AppShakeMotionTuning.candidateWindow {
+            self.candidateShakeAt = nil
+            lastShakeAt = now
+            onShake?()
+            return
+        }
+
+        candidateShakeAt = now
     }
 
     deinit {

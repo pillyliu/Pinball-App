@@ -57,6 +57,8 @@ internal class ScoreScannerController(
         private set
     var liveReadingText by mutableStateOf("No reading yet")
         private set
+    var liveCandidateReading by mutableStateOf<ScoreScannerLockedReading?>(null)
+        private set
     var rawReadingText by mutableStateOf("")
         private set
     val candidateHighlights = mutableStateListOf<ScoreScannerCandidate>()
@@ -78,14 +80,22 @@ internal class ScoreScannerController(
     private val ocrService = ScoreScannerOcrService()
     private val stabilityService = ScoreScannerStabilityService()
     private val liveOcrIntervalMs = 340L
-    private val minimumLiveDigitCount = 5
+    private val liveBitmapFallbackIntervalMs = 450L
+    private val minimumLiveDigitCount = 4
     private val minimumFinalDigitCount = 4
+    private val minimumLiveHorizontalPadding = 0.04f
+    private val minimumLiveVerticalPadding = 0.04f
+    private val strongLiveCandidateDigitCount = 6
+    private val strongLiveCandidateFormatQuality = 5
 
     @Volatile
     private var previewMapping: ScoreScannerPreviewMapping? = null
 
     @Volatile
     private var lastOcrTimeMs = 0L
+
+    @Volatile
+    private var lastLiveBitmapFallbackTimeMs = 0L
 
     @Volatile
     private var isProcessingFrame = false
@@ -95,6 +105,9 @@ internal class ScoreScannerController(
 
     @Volatile
     private var pendingFreezeRequest = false
+
+    @Volatile
+    private var pendingFreezePreferredReading: ScoreScannerLockedReading? = null
 
     private var displayMode = ScoreScannerDisplayMode.Lcd
     private var latestSnapshot: ScoreScannerStabilityService.Snapshot? = null
@@ -189,20 +202,40 @@ internal class ScoreScannerController(
 
     fun freezeCurrentFrame() {
         if (isFrozen) return
+        pendingFreezePreferredReading = preferredFreezeReading()
+        pendingFreezeRequest = true
+    }
+
+    fun freezeDisplayedCandidate() {
+        if (isFrozen) return
+        val preferredReading = preferredFreezeReading() ?: return
+        val previewBitmap = capturePreviewCropBitmap()
+        if (previewBitmap != null) {
+            freeze(
+                preferredReading = preferredReading,
+                previewBitmap = previewBitmap,
+            )
+            return
+        }
+
+        pendingFreezePreferredReading = preferredReading
         pendingFreezeRequest = true
     }
 
     fun retake() {
         processingPaused = false
         pendingFreezeRequest = false
+        pendingFreezePreferredReading = null
         isProcessingFrame = false
         lastOcrTimeMs = 0L
+        lastLiveBitmapFallbackTimeMs = 0L
         latestSnapshot = null
         stabilityService.reset()
 
         isFrozen = false
         frozenPreviewBitmap = null
         lockedReading = null
+        liveCandidateReading = null
         candidateHighlights.clear()
         confirmationText = ""
         confirmationValidationMessage = null
@@ -267,26 +300,28 @@ internal class ScoreScannerController(
 
         val inputImage = com.google.mlkit.vision.common.InputImage.fromMediaImage(mediaImage, rotationDegrees)
         val requestedFreeze = pendingFreezeRequest
+        val requestedFreezePreferredReading = pendingFreezePreferredReading
         if (requestedFreeze) {
             pendingFreezeRequest = false
+            pendingFreezePreferredReading = null
         }
         scope.launch {
             try {
+                val previewBitmap = if (requestedFreeze) capturePreviewCropBitmap() else null
                 if (requestedFreeze) {
                     freeze(
-                        preferredReading = latestLockedReading(latestSnapshot),
+                        preferredReading = requestedFreezePreferredReading ?: preferredFreezeReading(),
                         sourceImage = inputImage,
                         sourceCropRect = cropRect,
-                        previewBitmap = capturePreviewCropBitmap(),
+                        previewBitmap = previewBitmap,
                     )
                     return@launch
                 }
 
-                val analysis = ocrService.recognize(
-                    inputImage = inputImage,
-                    mode = ScoreScannerOcrService.Mode.LivePreview,
-                    cropRect = cropRect,
-                    displayMode = displayMode,
+                val analysis = liveAnalysis(
+                    sourceImage = inputImage,
+                    sourceCropRect = cropRect,
+                    now = now,
                 )
                 process(
                     analysis = analysis,
@@ -308,6 +343,7 @@ internal class ScoreScannerController(
                     candidateHighlights.clear()
                     rawReadingText = lockedReading?.rawText.orEmpty()
                     liveReadingText = lockedReading?.formattedScore ?: "No reading yet"
+                    liveCandidateReading = lockedReading
                     status = snapshot.state
                 }
             } finally {
@@ -325,15 +361,20 @@ internal class ScoreScannerController(
         val filtered = filteredAnalysis(
             analysis = analysis,
             minimumDigitCount = minimumLiveDigitCount,
-            minimumHorizontalPadding = 0.10f,
-            minimumVerticalPadding = 0.10f,
+            minimumHorizontalPadding = minimumLiveHorizontalPadding,
+            minimumVerticalPadding = minimumLiveVerticalPadding,
         )
         val snapshot = stabilityService.ingest(filtered.bestCandidate)
         latestSnapshot = snapshot
+        val displayedReading = latestDisplayedReading(
+            snapshot = snapshot,
+            bestCandidate = filtered.bestCandidate,
+        )
 
         candidateHighlights.clear()
         candidateHighlights.addAll(filtered.candidates.take(3))
         rawReadingText = filtered.bestCandidate?.rawText.orEmpty()
+        liveCandidateReading = displayedReading
         liveReadingText = when {
             snapshot.dominantReading != null -> snapshot.dominantReading.formattedScore
             filtered.bestCandidate != null -> filtered.bestCandidate.formattedScore
@@ -370,15 +411,15 @@ internal class ScoreScannerController(
         scope.launch {
             try {
                 val analysis = when {
+                    previewBitmap != null -> ocrService.recognize(
+                        bitmap = previewBitmap,
+                        mode = ScoreScannerOcrService.Mode.FinalPass,
+                        displayMode = displayMode,
+                    )
                     sourceImage != null -> ocrService.recognize(
                         inputImage = sourceImage,
                         mode = ScoreScannerOcrService.Mode.FinalPass,
                         cropRect = sourceCropRect,
-                        displayMode = displayMode,
-                    )
-                    previewBitmap != null -> ocrService.recognize(
-                        bitmap = previewBitmap,
-                        mode = ScoreScannerOcrService.Mode.FinalPass,
                         displayMode = displayMode,
                     )
                     else -> null
@@ -393,13 +434,7 @@ internal class ScoreScannerController(
                 candidateHighlights.addAll(filtered.candidates.take(3))
 
                 val locked = filtered.bestCandidate?.let {
-                    ScoreScannerLockedReading(
-                        score = it.normalizedScore,
-                        formattedScore = it.formattedScore,
-                        rawText = it.rawText,
-                        confidence = it.confidence,
-                        averageConfidence = it.confidence,
-                    )
+                    readingFrom(it)
                 } ?: preferredReading
 
                 lockedReading = locked
@@ -449,6 +484,90 @@ internal class ScoreScannerController(
             rawText = reading.rawText,
             confidence = reading.confidence,
             averageConfidence = snapshot.averageConfidence,
+        )
+    }
+
+    private fun preferredFreezeReading(): ScoreScannerLockedReading? {
+        return liveCandidateReading ?: latestLockedReading(latestSnapshot)
+    }
+
+    private fun latestDisplayedReading(
+        snapshot: ScoreScannerStabilityService.Snapshot?,
+        bestCandidate: ScoreScannerCandidate?,
+    ): ScoreScannerLockedReading? {
+        latestLockedReading(snapshot)?.let { return it }
+        val candidate = bestCandidate ?: return null
+        return readingFrom(candidate)
+    }
+
+    private fun readingFrom(candidate: ScoreScannerCandidate): ScoreScannerLockedReading {
+        return ScoreScannerLockedReading(
+            score = candidate.normalizedScore,
+            formattedScore = candidate.formattedScore,
+            rawText = candidate.rawText,
+            confidence = candidate.confidence,
+            averageConfidence = candidate.confidence,
+        )
+    }
+
+    private suspend fun liveAnalysis(
+        sourceImage: com.google.mlkit.vision.common.InputImage,
+        sourceCropRect: RectF?,
+        now: Long,
+    ): ScoreScannerAnalysis {
+        val sourceAnalysis = ocrService.recognize(
+            inputImage = sourceImage,
+            mode = ScoreScannerOcrService.Mode.LivePreview,
+            cropRect = sourceCropRect,
+            displayMode = displayMode,
+        )
+        val filteredSourceAnalysis = filteredAnalysis(
+            analysis = sourceAnalysis,
+            minimumDigitCount = minimumLiveDigitCount,
+            minimumHorizontalPadding = minimumLiveHorizontalPadding,
+            minimumVerticalPadding = minimumLiveVerticalPadding,
+        )
+        if (!shouldAttemptLiveBitmapFallback(now, filteredSourceAnalysis.bestCandidate)) {
+            return sourceAnalysis
+        }
+
+        val previewBitmap = capturePreviewCropBitmap() ?: return sourceAnalysis
+        lastLiveBitmapFallbackTimeMs = now
+        return try {
+            ocrService.recognize(
+                bitmap = previewBitmap,
+                mode = ScoreScannerOcrService.Mode.LivePreview,
+                displayMode = displayMode,
+            )
+                .let { mergeAnalyses(primary = sourceAnalysis, secondary = it) }
+        } finally {
+            if (!previewBitmap.isRecycled) {
+                previewBitmap.recycle()
+            }
+        }
+    }
+
+    private fun shouldAttemptLiveBitmapFallback(
+        now: Long,
+        sourceBestCandidate: ScoreScannerCandidate?,
+    ): Boolean {
+        if (now - lastLiveBitmapFallbackTimeMs < liveBitmapFallbackIntervalMs) return false
+        if (latestSnapshot?.state == ScoreScannerStatus.Locked) return false
+        val candidate = sourceBestCandidate ?: return true
+        return candidate.digitCount < strongLiveCandidateDigitCount ||
+            candidate.formatQuality < strongLiveCandidateFormatQuality
+    }
+
+    private fun mergeAnalyses(
+        primary: ScoreScannerAnalysis,
+        secondary: ScoreScannerAnalysis,
+    ): ScoreScannerAnalysis {
+        val rankedCandidates = ScoreScannerParsingService.rankCandidates(
+            primary.candidates + secondary.candidates
+        )
+        return ScoreScannerAnalysis(
+            bestCandidate = rankedCandidates.firstOrNull(),
+            candidates = rankedCandidates,
         )
     }
 

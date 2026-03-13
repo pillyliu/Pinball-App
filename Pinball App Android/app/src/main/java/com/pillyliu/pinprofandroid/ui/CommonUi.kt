@@ -561,20 +561,39 @@ fun AppSuccessBanner(
     text: String,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    prominent: Boolean = false,
 ) {
     val colors = PinballThemeTokens.colors
-    val paddingHorizontal = if (compact) 8.dp else 10.dp
-    val paddingVertical = if (compact) 5.dp else 7.dp
-    val iconSize = if (compact) 14.dp else 16.dp
+    val paddingHorizontal = if (compact) 8.dp else 12.dp
+    val paddingVertical = if (compact) 5.dp else 9.dp
+    val iconSize = if (compact) 14.dp else 18.dp
+    val contentColor = if (prominent) Color.White.copy(alpha = 0.98f) else colors.statsHigh
+    val backgroundAlpha = when {
+        prominent && compact -> 0.56f
+        prominent -> 0.76f
+        compact -> 0.18f
+        else -> 0.24f
+    }
+    val borderAlpha = when {
+        prominent && compact -> 0.72f
+        prominent -> 0.92f
+        compact -> 0.3f
+        else -> 0.4f
+    }
+    val textStyle = if (compact) {
+        PinballThemeTokens.typography.filterSummary
+    } else {
+        PinballThemeTokens.typography.filterSummary.copy(fontSize = 13.sp)
+    }
     Row(
         modifier = modifier
             .background(
-                colors.statsHigh.copy(alpha = 0.16f),
+                colors.statsHigh.copy(alpha = backgroundAlpha),
                 RoundedCornerShape(999.dp),
             )
             .border(
                 1.dp,
-                colors.statsHigh.copy(alpha = 0.28f),
+                colors.statsHigh.copy(alpha = borderAlpha),
                 RoundedCornerShape(999.dp),
             )
             .padding(horizontal = paddingHorizontal, vertical = paddingVertical),
@@ -584,13 +603,13 @@ fun AppSuccessBanner(
         Icon(
             imageVector = Icons.Filled.CheckCircle,
             contentDescription = null,
-            tint = colors.statsHigh,
+            tint = contentColor,
             modifier = Modifier.size(iconSize),
         )
         Text(
             text = text,
-            color = colors.statsHigh,
-            style = PinballThemeTokens.typography.filterSummary,
+            color = contentColor,
+            style = textStyle,
             maxLines = 2,
         )
     }

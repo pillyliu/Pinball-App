@@ -41,10 +41,11 @@ struct GameScoreEntrySheet: View {
                                 .font(.subheadline.weight(.semibold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
+                                .appControlStyle()
+                                .contentShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
                         }
-                        .contentShape(Rectangle())
                         .buttonStyle(.plain)
-                        .appControlStyle()
+                        .frame(maxWidth: .infinity)
 
                         Picker("Context", selection: $scoreContext) {
                             ForEach(ScoreContext.allCases) { context in

@@ -28,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -91,29 +92,49 @@ fun PinballApp() {
     var selectedTab by rememberSaveable { mutableStateOf(PinballTab.League) }
     var leagueDestination by rememberSaveable { mutableStateOf<LeagueDestination?>(null) }
     val bottomBarVisible = rememberSaveable { mutableStateOf(true) }
+    val appContext = LocalContext.current.applicationContext
     val displayMode = rememberAppDisplayMode()
     val systemDarkTheme = isSystemInDarkTheme()
+    val shakeHaptics = remember(appContext) { AppShakeWarningHaptics(appContext) }
+    val shakeCoordinator = remember(shakeHaptics) {
+        AppShakeCoordinator(hapticsPlayer = shakeHaptics::play)
+    }
     val darkTheme = when (displayMode) {
         AppDisplayMode.SYSTEM -> systemDarkTheme
         AppDisplayMode.LIGHT -> false
         AppDisplayMode.DARK -> true
     }
+    DisposableEffect(shakeCoordinator, shakeHaptics) {
+        onDispose {
+            shakeCoordinator.dispose()
+            shakeHaptics.dispose()
+        }
+    }
     PinballEdgeToEdgeEffect(darkTheme = darkTheme)
     PinballTheme(darkTheme = darkTheme) {
         CompositionLocalProvider(LocalBottomBarVisible provides bottomBarVisible) {
-            PinballShell(
-                selectedTab = selectedTab,
-                onSelectTab = { tab ->
-                    selectedTab = tab
-                    if (tab == PinballTab.League) {
-                        leagueDestination = null
-                    }
-                },
-                leagueDestination = leagueDestination,
-                onOpenLeagueDestination = { leagueDestination = it },
-                onBackFromLeagueDestination = { leagueDestination = null },
-                bottomBarVisible = bottomBarVisible,
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                AppShakeMotionEffect {
+                    shakeCoordinator.handleDetectedShake()
+                }
+                PinballShell(
+                    selectedTab = selectedTab,
+                    onSelectTab = { tab ->
+                        selectedTab = tab
+                        if (tab == PinballTab.League) {
+                            leagueDestination = null
+                        }
+                    },
+                    leagueDestination = leagueDestination,
+                    onOpenLeagueDestination = { leagueDestination = it },
+                    onBackFromLeagueDestination = { leagueDestination = null },
+                    bottomBarVisible = bottomBarVisible,
+                )
+                AppShakeWarningHost(
+                    overlayLevel = shakeCoordinator.overlayLevel,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
     }
 }

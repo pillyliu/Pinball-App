@@ -5,6 +5,8 @@ struct GameRoomSettingsView: View {
     @ObservedObject var catalogLoader: GameRoomCatalogLoader
     let onOpenMachineView: (UUID) -> Void
     @State private var selectedSection: GameRoomSettingsSection = .importFromPinside
+    @State private var saveFeedbackText: String?
+    @State private var saveFeedbackToken = 0
 
     var body: some View {
         ZStack {
@@ -23,13 +25,24 @@ struct GameRoomSettingsView: View {
                         store: store,
                         catalogLoader: catalogLoader,
                         selectedSection: selectedSection,
-                        onOpenMachineView: onOpenMachineView
+                        onOpenMachineView: onOpenMachineView,
+                        onShowSaveFeedback: { text in
+                            saveFeedbackText = text
+                            saveFeedbackToken += 1
+                        }
                     )
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
             }
+
+            GameRoomFloatingSaveFeedbackOverlay(
+                token: saveFeedbackToken,
+                text: saveFeedbackText
+            )
+            .allowsHitTesting(false)
+            .padding(.horizontal, 28)
         }
         .navigationTitle("GameRoom Settings")
         .navigationBarTitleDisplayMode(.inline)
@@ -44,6 +57,7 @@ struct GameRoomSettingsSectionCard: View {
     @ObservedObject var catalogLoader: GameRoomCatalogLoader
     let selectedSection: GameRoomSettingsSection
     let onOpenMachineView: (UUID) -> Void
+    let onShowSaveFeedback: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -53,7 +67,11 @@ struct GameRoomSettingsSectionCard: View {
             case .importFromPinside:
                 GameRoomImportSettingsView(store: store, catalogLoader: catalogLoader)
             case .editMachines:
-                GameRoomEditMachinesView(store: store, catalogLoader: catalogLoader)
+                GameRoomEditMachinesView(
+                    store: store,
+                    catalogLoader: catalogLoader,
+                    onShowSaveFeedback: onShowSaveFeedback
+                )
             case .archive:
                 GameRoomArchiveSettingsView(store: store, onOpenMachineView: onOpenMachineView)
             }
@@ -641,6 +659,7 @@ struct GameRoomEditMachinesView: View {
 
     @ObservedObject var store: GameRoomStore
     @ObservedObject var catalogLoader: GameRoomCatalogLoader
+    let onShowSaveFeedback: (String) -> Void
     @State private var searchText = ""
     @State private var selectedManufacturerID: String?
     @State private var selectedMachineID: UUID?
@@ -850,6 +869,7 @@ struct GameRoomEditMachinesView: View {
             Button("Save") {
                 store.updateVenueName(venueNameDraft)
                 venueNameDraft = store.venueName
+                onShowSaveFeedback("GameRoom name saved")
             }
             .buttonStyle(AppPrimaryActionButtonStyle())
         }
@@ -872,6 +892,7 @@ struct GameRoomEditMachinesView: View {
                 selectedAreaID = nil
                 newAreaName = ""
                 newAreaOrder = 1
+                onShowSaveFeedback("Area saved")
             }
             .buttonStyle(AppPrimaryActionButtonStyle())
 
@@ -904,6 +925,7 @@ struct GameRoomEditMachinesView: View {
                                     newAreaOrder = 1
                                 }
                                 store.deleteArea(id: area.id)
+                                onShowSaveFeedback("Area deleted")
                             } label: {
                                 Image(systemName: "trash")
                             }
@@ -1019,6 +1041,7 @@ struct GameRoomEditMachinesView: View {
                                     serialNumber: draftSerialNumber,
                                     ownershipNotes: draftOwnershipNotes
                                 )
+                                onShowSaveFeedback("Machine details saved")
                             }
                             .buttonStyle(AppPrimaryActionButtonStyle())
 
@@ -1026,6 +1049,7 @@ struct GameRoomEditMachinesView: View {
                                 store.deleteMachine(id: selectedMachine.id)
                                 selectedMachineID = allMachines.first?.id
                                 syncDraftFromSelection()
+                                onShowSaveFeedback("Machine deleted")
                             } label: {
                                 Text("Delete")
                             }
@@ -1047,6 +1071,7 @@ struct GameRoomEditMachinesView: View {
                                         ownershipNotes: draftOwnershipNotes
                                     )
                                     draftStatus = .archived
+                                    onShowSaveFeedback("Machine archived")
                                 }
                                 .buttonStyle(AppSecondaryActionButtonStyle())
                             }
@@ -1356,5 +1381,73 @@ struct GameRoomArchiveSettingsView: View {
             parts.append(soldOrTradedDate.formatted(date: .abbreviated, time: .omitted))
         }
         return parts.joined(separator: " • ")
+    }
+}
+
+private struct GameRoomFloatingSaveFeedbackOverlay: View {
+    private static let fadeInDuration = 0.14
+    private static let fadeOutDuration = 0.18
+    private static let totalDisplayDuration = 1.2
+
+    let token: Int
+    let text: String?
+
+    @State private var displayedText: String?
+    @State private var isVisible = false
+    @State private var showTask: Task<Void, Never>?
+    @State private var hideTask: Task<Void, Never>?
+
+    var body: some View {
+        Group {
+            if let displayedText {
+                AppSuccessBanner(text: displayedText, prominent: true)
+                    .shadow(color: .black.opacity(0.16), radius: 12, y: 6)
+                    .opacity(isVisible ? 1 : 0)
+                    .scaleEffect(isVisible ? 1 : 0.985)
+                    .offset(y: isVisible ? 0 : 10)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .onChange(of: token) { _, newValue in
+            guard newValue > 0, let text, !text.isEmpty else { return }
+            show(text)
+        }
+        .onDisappear {
+            showTask?.cancel()
+            hideTask?.cancel()
+        }
+    }
+
+    @MainActor
+    private func show(_ text: String) {
+        showTask?.cancel()
+        hideTask?.cancel()
+        displayedText = text
+
+        if !isVisible {
+            showTask = Task { @MainActor in
+                await Task.yield()
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeOut(duration: Self.fadeInDuration)) {
+                    isVisible = true
+                }
+                showTask = nil
+            }
+        }
+
+        hideTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Self.totalDisplayDuration - Self.fadeOutDuration))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: Self.fadeOutDuration)) {
+                isVisible = false
+            }
+            try? await Task.sleep(for: .seconds(Self.fadeOutDuration))
+            guard !Task.isCancelled else { return }
+            if !isVisible {
+                displayedText = nil
+            }
+            showTask = nil
+            hideTask = nil
+        }
     }
 }

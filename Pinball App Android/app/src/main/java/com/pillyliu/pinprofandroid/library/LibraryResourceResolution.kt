@@ -7,7 +7,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 
-private const val MISSING_ARTWORK_PATH = "/pinball/images/playfields/fallback-image-not-available_2048.webp"
+internal const val libraryMissingArtworkPath = "/pinball/images/playfields/fallback-image-not-available_2048.webp"
 private val supportedPlayfieldOriginalExtensions = listOf("webp", "jpg", "jpeg", "png")
 private val pinProfHosts = setOf(
     "pillyliu.com",
@@ -130,7 +130,7 @@ internal fun normalizeLibraryCachePath(path: String?): String? {
 }
 
 private fun missingArtworkUrl(): String? =
-    resolveLibraryUrl(MISSING_ARTWORK_PATH)
+    resolveLibraryUrl(libraryMissingArtworkPath)
 
 internal val PinballGame.localAssetKey: String?
     get() = practiceIdentity?.ifBlank { null } ?: opdbGroupId?.ifBlank { null }

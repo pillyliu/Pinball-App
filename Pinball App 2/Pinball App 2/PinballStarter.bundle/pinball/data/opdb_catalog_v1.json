@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-03-09T21:51:03Z",
+  "generated_at": "2026-03-13T09:49:51Z",
   "manufacturers": [
     {
       "id": "manufacturer-12",
@@ -27420,7 +27420,10 @@
       "manufacturer_id": "manufacturer-12",
       "manufacturer_name": "Stern",
       "year": 2026,
-      "primary_image": null,
+      "primary_image": {
+        "medium_url": "https://img.opdb.org/6760f322-aac9-4d6e-85e0-8998e29aa53f-medium.jpg",
+        "large_url": "https://img.opdb.org/6760f322-aac9-4d6e-85e0-8998e29aa53f-large.jpg"
+      },
       "playfield_image": null,
       "updated_at": "2026-02-12"
     },
@@ -27434,7 +27437,10 @@
       "manufacturer_id": "manufacturer-12",
       "manufacturer_name": "Stern",
       "year": 2026,
-      "primary_image": null,
+      "primary_image": {
+        "medium_url": "https://img.opdb.org/54d0e2d4-7cbf-49e5-b378-6a573ce82f28-medium.jpg",
+        "large_url": "https://img.opdb.org/54d0e2d4-7cbf-49e5-b378-6a573ce82f28-large.jpg"
+      },
       "playfield_image": null,
       "updated_at": "2026-02-12"
     },
@@ -27462,7 +27468,10 @@
       "manufacturer_id": "manufacturer-12",
       "manufacturer_name": "Stern",
       "year": 2026,
-      "primary_image": null,
+      "primary_image": {
+        "medium_url": "https://img.opdb.org/fd10f07d-ffdf-4a45-a8e1-32546e3e4b52-medium.jpg",
+        "large_url": "https://img.opdb.org/fd10f07d-ffdf-4a45-a8e1-32546e3e4b52-large.jpg"
+      },
       "playfield_image": null,
       "updated_at": "2026-02-12"
     },

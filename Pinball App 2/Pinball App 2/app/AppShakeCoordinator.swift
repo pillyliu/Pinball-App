@@ -99,18 +99,25 @@ enum AppShakeWarningLevel: Int {
 final class AppShakeCoordinator: ObservableObject {
     @Published private(set) var overlayLevel: AppShakeWarningLevel?
 
-    private let nativeUndoAvailabilityProvider: @MainActor () -> Bool
-    private let hapticsPlayer: @MainActor (AppShakeWarningLevel) -> Void
+    private let nativeUndoAvailabilityProvider: () -> Bool
+    private let hapticsPlayer: (AppShakeWarningLevel) -> Void
     private var fallbackShakeCount = 0
     private var overlayToken = 0
 
+    init() {
+        self.nativeUndoAvailabilityProvider = { AppShakeCoordinator.nativeUndoWouldHandleShake() }
+        self.hapticsPlayer = { AppShakeWarningHaptics.play($0) }
+    }
+
     init(
-        nativeUndoAvailabilityProvider: @escaping @MainActor () -> Bool = AppShakeCoordinator.nativeUndoWouldHandleShake,
-        hapticsPlayer: @escaping @MainActor (AppShakeWarningLevel) -> Void = AppShakeWarningHaptics.play
+        nativeUndoAvailabilityProvider: @escaping () -> Bool,
+        hapticsPlayer: @escaping (AppShakeWarningLevel) -> Void
     ) {
         self.nativeUndoAvailabilityProvider = nativeUndoAvailabilityProvider
         self.hapticsPlayer = hapticsPlayer
     }
+
+    nonisolated deinit {}
 
     func handleDetectedShake() {
         guard !nativeUndoAvailabilityProvider() else {

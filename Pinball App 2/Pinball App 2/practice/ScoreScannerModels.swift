@@ -72,6 +72,27 @@ nonisolated struct ScoreScannerCandidate: Equatable {
     let boundingBox: CGRect
     let digitCount: Int
     let centerBias: Double
+    let formatQuality: Int
+
+    init(
+        rawText: String,
+        normalizedScore: Int,
+        formattedScore: String,
+        confidence: Float,
+        boundingBox: CGRect,
+        digitCount: Int,
+        centerBias: Double,
+        formatQuality: Int = 0
+    ) {
+        self.rawText = rawText
+        self.normalizedScore = normalizedScore
+        self.formattedScore = formattedScore
+        self.confidence = confidence
+        self.boundingBox = boundingBox
+        self.digitCount = digitCount
+        self.centerBias = centerBias
+        self.formatQuality = formatQuality
+    }
 }
 
 nonisolated struct ScoreOCRAnalysis: Equatable {

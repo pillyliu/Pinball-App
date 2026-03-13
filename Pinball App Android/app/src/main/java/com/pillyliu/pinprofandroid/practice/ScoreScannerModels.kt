@@ -59,6 +59,7 @@ internal data class ScoreScannerCandidate(
     val boundingBox: RectF,
     val digitCount: Int,
     val centerBias: Double,
+    val formatQuality: Int = 0,
 )
 
 internal data class ScoreScannerAnalysis(

@@ -233,16 +233,16 @@ struct StatsScreen: View {
 
                     HStack(spacing: gap) {
                         HStack(spacing: gap) {
-                            filterMenu(selectedText: seasonDisplayText, options: seasonOptions, setValue: { viewModel.season = $0 })
+                            filterMenu(selectedText: seasonDisplayText, options: seasonOptions, setValue: { viewModel.selectSeason($0) })
                                 .frame(width: narrowWidth)
-                            filterMenu(selectedText: bankDisplayText, options: bankOptions, setValue: { viewModel.bankNumber = Int($0) })
+                            filterMenu(selectedText: bankDisplayText, options: bankOptions, setValue: { viewModel.selectBankNumber(Int($0)) })
                                 .frame(width: wideWidth)
                         }
 
                         HStack(spacing: gap) {
-                            filterMenu(selectedText: playerDisplayText, options: playerOptions, setValue: { viewModel.player = $0 })
+                            filterMenu(selectedText: playerDisplayText, options: playerOptions, setValue: { viewModel.selectPlayer($0) })
                                 .frame(width: narrowWidth)
-                            filterMenu(selectedText: machineDisplayText, options: machineOptions, setValue: { viewModel.machine = $0 })
+                            filterMenu(selectedText: machineDisplayText, options: machineOptions, setValue: { viewModel.selectMachine($0) })
                                 .frame(width: wideWidth)
                         }
                     }
@@ -255,15 +255,15 @@ struct StatsScreen: View {
                     let rightWidth = max(0, geo.size.width - gap - leftWidth)
                     VStack(spacing: 8) {
                         HStack(spacing: gap) {
-                            filterMenu(selectedText: seasonDisplayText, options: seasonOptions, setValue: { viewModel.season = $0 })
+                            filterMenu(selectedText: seasonDisplayText, options: seasonOptions, setValue: { viewModel.selectSeason($0) })
                                 .frame(width: leftWidth)
-                            filterMenu(selectedText: bankDisplayText, options: bankOptions, setValue: { viewModel.bankNumber = Int($0) })
+                            filterMenu(selectedText: bankDisplayText, options: bankOptions, setValue: { viewModel.selectBankNumber(Int($0)) })
                                 .frame(width: rightWidth)
                         }
                         HStack(spacing: gap) {
-                            filterMenu(selectedText: playerDisplayText, options: playerOptions, setValue: { viewModel.player = $0 })
+                            filterMenu(selectedText: playerDisplayText, options: playerOptions, setValue: { viewModel.selectPlayer($0) })
                                 .frame(width: leftWidth)
-                            filterMenu(selectedText: machineDisplayText, options: machineOptions, setValue: { viewModel.machine = $0 })
+                            filterMenu(selectedText: machineDisplayText, options: machineOptions, setValue: { viewModel.selectMachine($0) })
                                 .frame(width: rightWidth)
                         }
                     }
@@ -276,37 +276,34 @@ struct StatsScreen: View {
     private var topRightFilterMenu: some View {
         Menu {
             Button("Clear all filters") {
-                viewModel.season = ""
-                viewModel.player = ""
-                viewModel.bankNumber = nil
-                viewModel.machine = ""
+                viewModel.clearAllFilters()
             }
 
             Menu("Season") {
-                Button("All seasons") { viewModel.season = "" }
+                Button("All seasons") { viewModel.selectSeason("") }
                 ForEach(viewModel.seasons, id: \.self) { season in
-                    Button(seasonToken(season)) { viewModel.season = season }
+                    Button(seasonToken(season)) { viewModel.selectSeason(season) }
                 }
             }
 
             Menu("Bank") {
-                Button("All banks") { viewModel.bankNumber = nil }
+                Button("All banks") { viewModel.selectBankNumber(nil) }
                 ForEach(viewModel.bankNumbers, id: \.self) { bank in
-                    Button("B\(bank)") { viewModel.bankNumber = bank }
+                    Button("B\(bank)") { viewModel.selectBankNumber(bank) }
                 }
             }
 
             Menu("Player") {
-                Button("All players") { viewModel.player = "" }
+                Button("All players") { viewModel.selectPlayer("") }
                 ForEach(viewModel.players, id: \.self) { player in
-                    Button(displayLPLPlayerName(player)) { viewModel.player = player }
+                    Button(displayLPLPlayerName(player)) { viewModel.selectPlayer(player) }
                 }
             }
 
             Menu("Machine") {
-                Button("All machines") { viewModel.machine = "" }
+                Button("All machines") { viewModel.selectMachine("") }
                 ForEach(viewModel.machines, id: \.self) { machine in
-                    Button(machine) { viewModel.machine = machine }
+                    Button(machine) { viewModel.selectMachine(machine) }
                 }
             }
         } label: {
@@ -653,34 +650,36 @@ private final class StatsViewModel: ObservableObject {
     @Published var hasNewerData: Bool = false
     private var didLoad = false
 
-    @Published var season: String = "" {
-        didSet {
-            if oldValue != season {
-                player = ""
-                bankNumber = nil
-                machine = ""
-            }
-        }
-    }
-
-    @Published var player: String = "" {
-        didSet {
-            if oldValue != player {
-                bankNumber = nil
-                machine = ""
-            }
-        }
-    }
-
-    @Published var bankNumber: Int? {
-        didSet {
-            if oldValue != bankNumber {
-                machine = ""
-            }
-        }
-    }
-
+    @Published var season: String = ""
+    @Published var player: String = ""
+    @Published var bankNumber: Int?
     @Published var machine: String = ""
+
+    func selectSeason(_ newSeason: String) {
+        season = newSeason
+        reconcileSeasonScopedSelections()
+    }
+
+    func selectPlayer(_ newPlayer: String) {
+        player = newPlayer
+        reconcilePlayerScopedSelections()
+    }
+
+    func selectBankNumber(_ newBankNumber: Int?) {
+        bankNumber = newBankNumber
+        reconcileBankScopedSelections()
+    }
+
+    func selectMachine(_ newMachine: String) {
+        machine = newMachine
+    }
+
+    func clearAllFilters() {
+        season = ""
+        player = ""
+        bankNumber = nil
+        machine = ""
+    }
 
     var seasons: [String] {
         Array(Set(rows.map(\.season))).sorted()
@@ -797,21 +796,46 @@ private final class StatsViewModel: ObservableObject {
         if !season.isEmpty, !seasons.contains(season) {
             season = latestSeason(in: loaded.rows) ?? ""
         }
-        if !player.isEmpty, !players.contains(player) {
+        reconcileSeasonScopedSelections()
+    }
+
+    private func reconcileSeasonScopedSelections() {
+        if !player.isEmpty, !hasRows(season: season, player: player) {
             player = ""
         }
-        if let bankNumber, !bankNumbers.contains(bankNumber) {
+        if let bankNumber, !hasRows(season: season, player: player, bankNumber: bankNumber) {
             self.bankNumber = nil
         }
-        if !machine.isEmpty, !machines.contains(machine) {
+        reconcileBankScopedSelections()
+    }
+
+    private func reconcilePlayerScopedSelections() {
+        if let bankNumber, !hasRows(season: season, player: player, bankNumber: bankNumber) {
+            self.bankNumber = nil
+        }
+        reconcileBankScopedSelections()
+    }
+
+    private func reconcileBankScopedSelections() {
+        if let bankNumber, !player.isEmpty, !hasRows(season: season, player: player, bankNumber: bankNumber) {
+            player = ""
+        }
+        if !machine.isEmpty, !hasRows(season: season, player: player, bankNumber: bankNumber, machine: machine) {
             machine = ""
         }
+    }
 
-        if !rows.isEmpty, filteredRows.isEmpty {
-            season = latestSeason(in: loaded.rows) ?? ""
-            player = ""
-            bankNumber = nil
-            machine = ""
+    private func hasRows(
+        season: String,
+        player: String = "",
+        bankNumber: Int? = nil,
+        machine: String = ""
+    ) -> Bool {
+        rows.contains { row in
+            (season.isEmpty || row.season == season) &&
+            (player.isEmpty || row.player == player) &&
+            (bankNumber == nil || row.bankNumber == bankNumber) &&
+            (machine.isEmpty || row.machine == machine)
         }
     }
 

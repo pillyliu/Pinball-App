@@ -12,6 +12,7 @@ nonisolated final class ScoreStabilityService {
         let score: Int
         let formattedScore: String
         let rawText: String
+        let digitCount: Int
         let confidence: Float
         let timestamp: Date
     }
@@ -44,6 +45,7 @@ nonisolated final class ScoreStabilityService {
                     score: candidate.normalizedScore,
                     formattedScore: candidate.formattedScore,
                     rawText: candidate.rawText,
+                    digitCount: candidate.digitCount,
                     confidence: candidate.confidence,
                     timestamp: Date()
                 )
@@ -111,6 +113,8 @@ nonisolated final class ScoreStabilityService {
         }
 
         return ranked.sorted { lhs, rhs in
+            if abs(lhs.1 - rhs.1) >= 2 { return lhs.1 > rhs.1 }
+            if lhs.0.digitCount != rhs.0.digitCount { return lhs.0.digitCount > rhs.0.digitCount }
             if lhs.1 != rhs.1 { return lhs.1 > rhs.1 }
             if lhs.2 != rhs.2 { return lhs.2 > rhs.2 }
             return lhs.0.timestamp > rhs.0.timestamp

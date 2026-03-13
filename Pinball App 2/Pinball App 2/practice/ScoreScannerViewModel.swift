@@ -2,13 +2,22 @@ import SwiftUI
 import Combine
 @preconcurrency import AVFoundation
 import CoreImage
-import ImageIO
 import UIKit
 
 final class ScoreScannerViewModel: NSObject, ObservableObject {
+    private struct BufferedFreezeFrame {
+        let score: Int
+        let previewImage: UIImage
+        let confidence: Float
+        let digitCount: Int
+        let formatQuality: Int
+        let capturedAt: Date
+    }
+
     @Published private(set) var isCameraAuthorized = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
     @Published private(set) var status: ScoreScannerStatus = .searching
     @Published private(set) var liveReadingText: String = "No reading yet"
+    @Published private(set) var liveCandidateReading: ScoreScannerLockedReading?
     @Published private(set) var rawReadingText: String = ""
     @Published private(set) var candidateHighlights: [ScoreScannerCandidate] = []
     @Published private(set) var lockedReading: ScoreScannerLockedReading?
@@ -30,6 +39,8 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     private let liveOCRInterval: CFTimeInterval = 0.34
     private let minimumLiveDigitCount = 5
     private let minimumFinalDigitCount = 4
+    private let bufferedFreezeFrameLifetime: TimeInterval = 1.5
+    private let maximumBufferedFreezeFrames = 4
 
     private var sessionConfigured = false
     private var currentDevice: AVCaptureDevice?
@@ -42,6 +53,7 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     private var previewMapping: ScoreScannerPreviewMapping?
     private var latestOrientedFrame: CIImage?
     private var latestSnapshot: ScoreStabilityService.Snapshot?
+    private var bufferedFreezeFrames: [Int: BufferedFreezeFrame] = [:]
     private var lastOCRTime: CFTimeInterval = 0
     private var isProcessingFrame = false
     private var processingPaused = false
@@ -98,8 +110,25 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     }
 
     func freezeCurrentFrame() {
+        let preferredReading = preferredFreezeReading()
         let frame = captureQueue.sync { latestOrientedFrame }
-        freeze(using: frame, preferredReading: latestLockedReading(from: latestSnapshot))
+        freeze(
+            using: frame,
+            preferredReading: preferredReading,
+            preferredPreviewImage: preferredReading.flatMap { bufferedFreezePreviewImage(for: $0.score) }
+        )
+    }
+
+    func freezeDisplayedCandidate() {
+        guard !isFrozen else { return }
+        let preferredReading = preferredFreezeReading()
+        guard let preferredReading else { return }
+        let frame = captureQueue.sync { latestOrientedFrame }
+        freeze(
+            using: frame,
+            preferredReading: preferredReading,
+            preferredPreviewImage: bufferedFreezePreviewImage(for: preferredReading.score)
+        )
     }
 
     func retake() {
@@ -110,12 +139,14 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
             self.stabilityService.reset()
             self.lastOCRTime = 0
             self.isProcessingFrame = false
+            self.bufferedFreezeFrames.removeAll()
         }
 
         DispatchQueue.main.async {
             self.isFrozen = false
             self.frozenPreviewImage = nil
             self.lockedReading = nil
+            self.liveCandidateReading = nil
             self.candidateHighlights = []
             self.confirmationText = ""
             self.confirmationValidationMessage = nil
@@ -258,16 +289,22 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
         }
     }
 
-    private func freeze(using frame: CIImage?, preferredReading: ScoreScannerLockedReading?) {
-        guard let frame else { return }
+    private func freeze(
+        using frame: CIImage?,
+        preferredReading: ScoreScannerLockedReading?,
+        preferredPreviewImage: UIImage?
+    ) {
+        guard frame != nil || preferredPreviewImage != nil else { return }
 
         captureQueue.async { [weak self] in
             self?.processingPaused = true
         }
 
         let mapping = captureQueue.sync { previewMapping }
-        let cropped = crop(frame: frame, previewMapping: mapping)
-        let previewImage = renderPreviewImage(from: cropped ?? frame)
+        let cropped = frame.flatMap { crop(frame: $0, previewMapping: mapping) }
+        let previewSource = cropped ?? frame
+        let previewImage = preferredPreviewImage ?? previewSource.flatMap(renderPreviewImage(from:))
+        let frozenOcrImage = previewImage.flatMap(renderedOCRImage(from:)) ?? cropped
         DispatchQueue.main.async {
             self.isFrozen = true
             self.frozenPreviewImage = previewImage
@@ -280,24 +317,20 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
         }
 
         ocrQueue.async { [weak self] in
-            guard let self, let cropped else { return }
+            guard let self, let frozenOcrImage else { return }
             do {
-                let analysis = try self.ocrService.recognize(in: cropped, mode: .finalPass, displayMode: self.displayMode)
+                let analysis = try self.ocrService.recognize(
+                    in: frozenOcrImage,
+                    mode: .finalPass,
+                    displayMode: self.displayMode
+                )
                 let filteredAnalysis = self.filteredAnalysis(
                     analysis,
                     minimumDigitCount: self.minimumFinalDigitCount,
                     minimumHorizontalPadding: 0.04,
                     minimumVerticalPadding: 0.04
                 )
-                let locked = filteredAnalysis.bestCandidate.map {
-                    ScoreScannerLockedReading(
-                        score: $0.normalizedScore,
-                        formattedScore: $0.formattedScore,
-                        rawText: $0.rawText,
-                        confidence: $0.confidence,
-                        averageConfidence: $0.confidence
-                    )
-                } ?? preferredReading
+                let locked = filteredAnalysis.bestCandidate.map(candidateReading(from:)) ?? preferredReading
                 DispatchQueue.main.async {
                     self.candidateHighlights = filteredAnalysis.candidates
                     self.lockedReading = locked
@@ -320,13 +353,21 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
         }
     }
 
-    private func process(analysis: ScoreOCRAnalysis, fullFrame: CIImage) {
+    private func process(
+        analysis: ScoreOCRAnalysis,
+        fullFrame: CIImage,
+        croppedFrame: CIImage
+    ) {
         let filteredAnalysis = filteredAnalysis(
             analysis,
             minimumDigitCount: minimumLiveDigitCount,
             minimumHorizontalPadding: 0.10,
             minimumVerticalPadding: 0.10
         )
+        if let candidate = filteredAnalysis.bestCandidate,
+           shouldBufferFreezeFrame(for: candidate) {
+            bufferFreezeFrame(croppedFrame: croppedFrame, candidate: candidate)
+        }
         let snapshot = captureQueue.sync { () -> ScoreStabilityService.Snapshot in
             let snapshot = stabilityService.ingest(candidate: filteredAnalysis.bestCandidate)
             latestSnapshot = snapshot
@@ -334,8 +375,14 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
         }
 
         DispatchQueue.main.async {
+            let displayedReading = self.displayedReading(
+                from: snapshot,
+                bestCandidate: filteredAnalysis.bestCandidate
+            )
+
             self.candidateHighlights = Array(filteredAnalysis.candidates.prefix(3))
             self.rawReadingText = filteredAnalysis.bestCandidate?.rawText ?? ""
+            self.liveCandidateReading = displayedReading
             if let reading = snapshot.dominantReading {
                 self.liveReadingText = reading.formattedScore
             } else if let best = filteredAnalysis.bestCandidate {
@@ -351,7 +398,11 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                 let feedback = UINotificationFeedbackGenerator()
                 feedback.notificationOccurred(.success)
             }
-            freeze(using: fullFrame, preferredReading: locked)
+            freeze(
+                using: fullFrame,
+                preferredReading: locked,
+                preferredPreviewImage: bufferedFreezePreviewImage(for: locked.score)
+            )
         }
     }
 
@@ -364,6 +415,31 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
             confidence: reading.confidence,
             averageConfidence: snapshot.averageConfidence
         )
+    }
+
+    private func displayedReading(
+        from snapshot: ScoreStabilityService.Snapshot,
+        bestCandidate: ScoreScannerCandidate?
+    ) -> ScoreScannerLockedReading? {
+        if let locked = latestLockedReading(from: snapshot) {
+            return locked
+        }
+        guard let bestCandidate else { return nil }
+        return candidateReading(from: bestCandidate)
+    }
+
+    private func candidateReading(from candidate: ScoreScannerCandidate) -> ScoreScannerLockedReading {
+        ScoreScannerLockedReading(
+            score: candidate.normalizedScore,
+            formattedScore: candidate.formattedScore,
+            rawText: candidate.rawText,
+            confidence: candidate.confidence,
+            averageConfidence: candidate.confidence
+        )
+    }
+
+    private func preferredFreezeReading() -> ScoreScannerLockedReading? {
+        liveCandidateReading ?? latestLockedReading(from: latestSnapshot)
     }
 
     private func crop(frame: CIImage, previewMapping: ScoreScannerPreviewMapping?) -> CIImage? {
@@ -391,6 +467,76 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
         let normalizedExtent = normalizedFrame.extent.integral
         guard let cgImage = ciContext.createCGImage(normalizedFrame, from: normalizedExtent) else { return nil }
         return UIImage(cgImage: cgImage)
+    }
+
+    private func renderedOCRImage(from image: UIImage) -> CIImage? {
+        if let cgImage = image.cgImage {
+            return CIImage(cgImage: cgImage)
+        }
+        return image.ciImage
+    }
+
+    private func shouldBufferFreezeFrame(for candidate: ScoreScannerCandidate) -> Bool {
+        captureQueue.sync {
+            pruneBufferedFreezeFrames()
+            guard let existing = bufferedFreezeFrames[candidate.normalizedScore] else { return true }
+            if candidate.formatQuality != existing.formatQuality {
+                return candidate.formatQuality > existing.formatQuality
+            }
+            if candidate.digitCount != existing.digitCount {
+                return candidate.digitCount > existing.digitCount
+            }
+            if candidate.confidence != existing.confidence {
+                return candidate.confidence > existing.confidence
+            }
+            return Date().timeIntervalSince(existing.capturedAt) > 0.4
+        }
+    }
+
+    private func bufferFreezeFrame(croppedFrame: CIImage, candidate: ScoreScannerCandidate) {
+        guard let previewImage = renderPreviewImage(from: croppedFrame) else { return }
+        let buffered = BufferedFreezeFrame(
+            score: candidate.normalizedScore,
+            previewImage: previewImage,
+            confidence: candidate.confidence,
+            digitCount: candidate.digitCount,
+            formatQuality: candidate.formatQuality,
+            capturedAt: Date()
+        )
+        captureQueue.async { [weak self] in
+            guard let self else { return }
+            self.pruneBufferedFreezeFrames()
+            if let existing = self.bufferedFreezeFrames[buffered.score] {
+                if buffered.formatQuality < existing.formatQuality { return }
+                if buffered.formatQuality == existing.formatQuality && buffered.digitCount < existing.digitCount { return }
+                if buffered.formatQuality == existing.formatQuality &&
+                    buffered.digitCount == existing.digitCount &&
+                    buffered.confidence < existing.confidence {
+                    return
+                }
+            }
+            self.bufferedFreezeFrames[buffered.score] = buffered
+            if self.bufferedFreezeFrames.count > self.maximumBufferedFreezeFrames {
+                let staleScores = self.bufferedFreezeFrames.values
+                    .sorted(by: { $0.capturedAt < $1.capturedAt })
+                    .prefix(self.bufferedFreezeFrames.count - self.maximumBufferedFreezeFrames)
+                    .map(\.score)
+                staleScores.forEach { self.bufferedFreezeFrames.removeValue(forKey: $0) }
+            }
+        }
+    }
+
+    private func bufferedFreezePreviewImage(for score: Int) -> UIImage? {
+        captureQueue.sync {
+            pruneBufferedFreezeFrames()
+            return bufferedFreezeFrames[score]?.previewImage
+        }
+    }
+
+    private func pruneBufferedFreezeFrames(now: Date = Date()) {
+        bufferedFreezeFrames = bufferedFreezeFrames.filter { _, frame in
+            now.timeIntervalSince(frame.capturedAt) <= bufferedFreezeFrameLifetime
+        }
     }
 
     private func filteredAnalysis(
@@ -451,7 +597,7 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
 
             do {
                 let analysis = try self.ocrService.recognize(in: cropped, mode: .livePreview, displayMode: self.displayMode)
-                self.process(analysis: analysis, fullFrame: fullFrame)
+                self.process(analysis: analysis, fullFrame: fullFrame, croppedFrame: cropped)
             } catch {
                 let snapshot = self.captureQueue.sync { () -> ScoreStabilityService.Snapshot in
                     let snapshot = self.stabilityService.ingest(candidate: nil)
@@ -463,7 +609,11 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                         let feedback = UINotificationFeedbackGenerator()
                         feedback.notificationOccurred(.success)
                     }
-                    self.freeze(using: fullFrame, preferredReading: locked)
+                    self.freeze(
+                        using: fullFrame,
+                        preferredReading: locked,
+                        preferredPreviewImage: self.bufferedFreezePreviewImage(for: locked.score)
+                    )
                 } else {
                     let locked = self.latestLockedReading(from: snapshot)
                     DispatchQueue.main.async {

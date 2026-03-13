@@ -36,7 +36,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -193,10 +192,14 @@ internal fun ScoreScannerDialog(
                         PreviewView(viewContext).apply {
                             implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                             scaleType = PreviewView.ScaleType.FILL_CENTER
+                            alpha = 1f
                             previewView = this
                         }
                     },
-                    update = { previewView = it },
+                    update = {
+                        it.alpha = if (controller.isFrozen) 0f else 1f
+                        previewView = it
+                    },
                 )
             }
 
@@ -423,6 +426,10 @@ private fun LiveReadingPanel(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .clickable(
+                enabled = controller.liveCandidateReading != null && !controller.isFrozen,
+                onClick = controller::freezeDisplayedCandidate,
+            )
             .clip(RoundedCornerShape(24.dp))
             .background(Color.Black.copy(alpha = 0.44f))
             .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(24.dp))

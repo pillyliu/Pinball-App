@@ -3,6 +3,15 @@ import XCTest
 
 @MainActor
 final class AppShakeCoordinatorTests: XCTestCase {
+    func testMotionTuningMatchesSharedParitySpec() {
+        XCTAssertEqual(AppShakeMotionTuning.updateInterval, 1.0 / 30.0, accuracy: 0.000_1)
+        XCTAssertEqual(AppShakeMotionTuning.minimumAcceptedShakeInterval, 0.85, accuracy: 0.000_1)
+        XCTAssertEqual(AppShakeMotionTuning.candidateWindow, 0.18, accuracy: 0.000_1)
+        XCTAssertEqual(AppShakeMotionTuning.strongMagnitudeThreshold, 2.45, accuracy: 0.000_1)
+        XCTAssertEqual(AppShakeMotionTuning.combinedMagnitudeThreshold, 1.85, accuracy: 0.000_1)
+        XCTAssertEqual(AppShakeMotionTuning.combinedPeakAxisThreshold, 1.35, accuracy: 0.000_1)
+    }
+
     func testWarningDurationsMatchEscalationTiming() {
         XCTAssertEqual(AppShakeWarningLevel.danger.displayDurationNanoseconds, 3_000_000_000)
         XCTAssertEqual(AppShakeWarningLevel.doubleDanger.displayDurationNanoseconds, 3_500_000_000)

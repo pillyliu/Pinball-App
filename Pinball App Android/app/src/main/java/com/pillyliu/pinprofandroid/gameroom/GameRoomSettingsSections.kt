@@ -1,5 +1,4 @@
 package com.pillyliu.pinprofandroid.gameroom
-
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -69,6 +68,7 @@ internal data class GameRoomEditSettingsContext(
     val venueNameDraft: String,
     val onVenueNameDraftChange: (String) -> Unit,
     val onSaveVenueName: () -> Unit,
+    val onShowSaveFeedback: (String) -> Unit,
     val addMachineExpanded: Boolean,
     val onAddMachineExpandedChange: (Boolean) -> Unit,
     val addQuery: String,
@@ -334,7 +334,10 @@ internal fun GameRoomEditSettingsSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 AppPrimaryButton(
-                    onClick = context.onSaveVenueName,
+                    onClick = {
+                        context.onSaveVenueName()
+                        context.onShowSaveFeedback("GameRoom name saved")
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Save")
@@ -509,7 +512,10 @@ internal fun GameRoomEditSettingsSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 AppPrimaryButton(
-                    onClick = context.onSaveArea,
+                    onClick = {
+                        context.onSaveArea()
+                        context.onShowSaveFeedback("Area saved")
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text("Save") }
             }
@@ -529,7 +535,10 @@ internal fun GameRoomEditSettingsSection(
                     AppCompactIconButton(
                         icon = Icons.Outlined.Delete,
                         contentDescription = "Delete area",
-                        onClick = { context.onDeleteArea(area.id) },
+                        onClick = {
+                            context.onDeleteArea(area.id)
+                            context.onShowSaveFeedback("Area deleted")
+                        },
                         destructive = true,
                     )
                 }
@@ -647,16 +656,25 @@ internal fun GameRoomEditSettingsSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     AppPrimaryButton(
-                        onClick = context.onSaveMachine,
+                        onClick = {
+                            context.onSaveMachine()
+                            context.onShowSaveFeedback("Machine details saved")
+                        },
                         modifier = Modifier.weight(1f),
                     ) { Text("Save") }
                     AppDestructiveButton(
-                        onClick = context.onDeleteMachine,
+                        onClick = {
+                            context.onDeleteMachine()
+                            context.onShowSaveFeedback("Machine deleted")
+                        },
                         modifier = Modifier.weight(1f),
                     ) { Text("Delete") }
                     if (context.onArchiveMachine != null) {
                         AppSecondaryButton(
-                            onClick = context.onArchiveMachine,
+                            onClick = {
+                                context.onArchiveMachine.invoke()
+                                context.onShowSaveFeedback("Machine archived")
+                            },
                             modifier = Modifier.weight(1f),
                         ) { Text("Archive") }
                     }

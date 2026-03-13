@@ -46,7 +46,179 @@ class ScoreScannerServicesTest {
     }
 
     @Test
-    fun parsingPrefersCenteredCandidateBeforeConfidence() {
+    fun parsingNormalizesStylizedLeadingGlyphsInsideScoreRuns() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = "b.264,010",
+                    confidence = 0.63f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                )
+            )
+        )
+
+        assertEquals(6_264_010L, candidate.first().normalizedScore)
+        assertEquals("6,264,010", candidate.first().formattedScore)
+    }
+
+    @Test
+    fun parsingRecoversLeadingEightFromGroupedLeadingZeroRuns() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = "0,082.000",
+                    confidence = 0.79f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                )
+            )
+        )
+
+        assertEquals(8_082_000L, candidate.first().normalizedScore)
+        assertEquals(7, candidate.first().digitCount)
+    }
+
+    @Test
+    fun parsingRecoversLeadingSixFromGroupedLeadingZeroRuns() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = "0.264.010",
+                    confidence = 0.79f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                )
+            )
+        )
+
+        assertEquals(6_264_010L, candidate.first().normalizedScore)
+        assertEquals("6,264,010", candidate.first().formattedScore)
+    }
+
+    @Test
+    fun parsingRecoversMissingLeadingSixFromLeadingSeparatorRun() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = ".264.010",
+                    confidence = 0.79f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                )
+            )
+        )
+
+        assertEquals(6_264_010L, candidate.first().normalizedScore)
+        assertEquals("6,264,010", candidate.first().formattedScore)
+    }
+
+    @Test
+    fun parsingRecoversMissingLeadingEightFromLeadingSeparatorRun() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = ".082.060",
+                    confidence = 0.79f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                )
+            )
+        )
+
+        assertEquals(8_082_060L, candidate.first().normalizedScore)
+        assertEquals("8,082,060", candidate.first().formattedScore)
+    }
+
+    @Test
+    fun parsingRecoversLeadingSevenFromGroupedLeadingOneRuns() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = "1.082.060",
+                    confidence = 0.79f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                )
+            )
+        )
+
+        assertEquals(7_082_060L, candidate.first().normalizedScore)
+        assertEquals("7,082,060", candidate.first().formattedScore)
+    }
+
+    @Test
+    fun parsingRecoversZeroHeavyGroupedRunBackToStylizedEightAndSix() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = "0.002.000",
+                    confidence = 0.74f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                )
+            )
+        )
+
+        assertEquals(8_082_060L, candidate.first().normalizedScore)
+        assertEquals("8,082,060", candidate.first().formattedScore)
+    }
+
+    @Test
+    fun parsingKeepsLegitimateZeroHeavyGroupedScore() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = "2.004.050",
+                    confidence = 0.74f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                )
+            )
+        )
+
+        assertEquals(2_004_050L, candidate.first().normalizedScore)
+        assertEquals("2,004,050", candidate.first().formattedScore)
+    }
+
+    @Test
+    fun parsingPrefersRecoveredFullLengthCandidateOverNoisyRead() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = "0.082.060",
+                    confidence = 0.93f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                ),
+                ScoreOcrObservation(
+                    text = "8.082.060",
+                    confidence = 0.58f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                ),
+            )
+        )
+
+        assertEquals(8_082_060L, candidate.first().normalizedScore)
+        assertEquals("8.082.060", candidate.first().rawText)
+        assertEquals("8,082,060", candidate.first().formattedScore)
+    }
+
+    @Test
+    fun parsingPrefersExactGroupedCandidateOverRecoveredLeadingEightVariant() {
+        val candidate = ScoreScannerParsingService.rankedCandidates(
+            observations = listOf(
+                ScoreOcrObservation(
+                    text = "0.082.060",
+                    confidence = 0.93f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                ),
+                ScoreOcrObservation(
+                    text = "8.082.060",
+                    confidence = 0.58f,
+                    boundingBox = RectF(0.48f, 0.42f, 0.72f, 0.56f),
+                ),
+            )
+        )
+
+        assertEquals(8_082_060L, candidate.first().normalizedScore)
+        assertEquals("8.082.060", candidate.first().rawText)
+        assertEquals("8,082,060", candidate.first().formattedScore)
+    }
+
+    @Test
+    fun parsingPrefersLongerPlausibleCandidateBeforeCenterBias() {
         val candidate = ScoreScannerParsingService.rankedCandidates(
             observations = listOf(
                 ScoreOcrObservation(
@@ -62,7 +234,7 @@ class ScoreScannerServicesTest {
             )
         )
 
-        assertEquals(123_456L, candidate.first().normalizedScore)
+        assertEquals(1_234_567L, candidate.first().normalizedScore)
     }
 
     @Test
@@ -128,6 +300,37 @@ class ScoreScannerServicesTest {
 
         assertEquals(ScoreScannerStatus.Locked, snapshot.state)
         assertEquals(12_450_000L, snapshot.dominantReading?.score)
+    }
+
+    @Test
+    fun stabilityPrefersLongerDominantScoreWhenOccurrenceGapIsSmall() {
+        val service = ScoreScannerStabilityService()
+        val shortCandidate = ScoreScannerCandidate(
+            rawText = "123,456",
+            normalizedScore = 123_456L,
+            formattedScore = "123,456",
+            confidence = 0.72f,
+            boundingBox = RectF(0.4f, 0.4f, 0.6f, 0.5f),
+            digitCount = 6,
+            centerBias = 0.95,
+        )
+        val longCandidate = ScoreScannerCandidate(
+            rawText = "1,234,567",
+            normalizedScore = 1_234_567L,
+            formattedScore = "1,234,567",
+            confidence = 0.58f,
+            boundingBox = RectF(0.4f, 0.4f, 0.6f, 0.5f),
+            digitCount = 7,
+            centerBias = 0.9,
+        )
+
+        service.ingest(shortCandidate)
+        service.ingest(shortCandidate)
+        service.ingest(longCandidate)
+        val snapshot = service.ingest(longCandidate)
+
+        assertEquals(ScoreScannerStatus.StableCandidate, snapshot.state)
+        assertEquals(1_234_567L, snapshot.dominantReading?.score)
     }
 
     @Test

@@ -133,6 +133,66 @@ fun StatsScreen(
     var machine by rememberSaveable { mutableStateOf("") }
     var showFilterSheet by rememberSaveable { mutableStateOf(false) }
 
+    fun hasRows(
+        seasonValue: String = season,
+        playerValue: String = player,
+        bankValue: Int? = bankNumber,
+        machineValue: String = machine,
+    ): Boolean = rows.any { row ->
+        (seasonValue.isEmpty() || row.season == seasonValue) &&
+            (playerValue.isEmpty() || row.player == playerValue) &&
+            (bankValue == null || row.bankNumber == bankValue) &&
+            (machineValue.isEmpty() || row.machine == machineValue)
+    }
+
+    fun reconcileBankScopedSelections() {
+        val currentBank = bankNumber
+        if (currentBank != null && player.isNotEmpty() && !hasRows(bankValue = currentBank, playerValue = player, machineValue = "")) {
+            player = ""
+        }
+        if (machine.isNotEmpty() && !hasRows(playerValue = player, bankValue = currentBank, machineValue = machine)) {
+            machine = ""
+        }
+    }
+
+    fun reconcilePlayerScopedSelections() {
+        val currentBank = bankNumber
+        if (currentBank != null && !hasRows(playerValue = player, bankValue = currentBank, machineValue = "")) {
+            bankNumber = null
+        }
+        reconcileBankScopedSelections()
+    }
+
+    fun reconcileSeasonScopedSelections() {
+        if (player.isNotEmpty() && !hasRows(playerValue = player, bankValue = null, machineValue = "")) {
+            player = ""
+        }
+        val currentBank = bankNumber
+        if (currentBank != null && !hasRows(playerValue = player, bankValue = currentBank, machineValue = "")) {
+            bankNumber = null
+        }
+        reconcileBankScopedSelections()
+    }
+
+    fun selectSeason(newSeason: String) {
+        season = newSeason
+        reconcileSeasonScopedSelections()
+    }
+
+    fun selectPlayer(newPlayer: String) {
+        player = newPlayer
+        reconcilePlayerScopedSelections()
+    }
+
+    fun selectBankNumber(newBankNumber: Int?) {
+        bankNumber = newBankNumber
+        reconcileBankScopedSelections()
+    }
+
+    fun selectMachine(newMachine: String) {
+        machine = newMachine
+    }
+
     fun refresh(force: Boolean) {
         if (isRefreshing) return
         scope.launch {
@@ -149,44 +209,10 @@ fun StatsScreen(
                 dataUpdatedAtMs = cached.updatedAtMs
                 if (rows.isNotEmpty()) {
                     val seasonsNow = rows.map { it.season }.toSet().sortedWith(::compareSeasons)
-                    if (season.isBlank() || season !in seasonsNow) {
+                    if ((!initialLoadComplete && season.isBlank()) || (season.isNotBlank() && season !in seasonsNow)) {
                         season = seasonsNow.lastOrNull().orEmpty()
-                        player = ""
-                        bankNumber = null
-                        machine = ""
                     }
-
-                    val playersNow = rows
-                        .filter { season.isEmpty() || it.season == season }
-                        .map { it.player }
-                        .toSet()
-                    if (player.isNotEmpty() && player !in playersNow) {
-                        player = ""
-                        bankNumber = null
-                        machine = ""
-                    }
-
-                    val banksNow = rows
-                        .filter { (season.isEmpty() || it.season == season) && (player.isEmpty() || it.player == player) }
-                        .map { it.bankNumber }
-                        .toSet()
-                    if (bankNumber != null && bankNumber !in banksNow) {
-                        bankNumber = null
-                        machine = ""
-                    }
-
-                    val machinesNow = rows
-                        .filter {
-                            (season.isEmpty() || it.season == season) &&
-                                (player.isEmpty() || it.player == player) &&
-                                (bankNumber == null || it.bankNumber == bankNumber)
-                        }
-                        .map { it.machine }
-                        .filter { it.isNotBlank() }
-                        .toSet()
-                    if (machine.isNotEmpty() && machine !in machinesNow) {
-                        machine = ""
-                    }
+                    reconcileSeasonScopedSelections()
                 }
                 error = null
                 if (dataUpdatedAtMs != null) {
@@ -211,16 +237,6 @@ fun StatsScreen(
     }
 
     val seasons = rows.map { it.season }.toSet().sortedWith(::compareSeasons)
-
-    LaunchedEffect(seasons) {
-        if (seasons.isEmpty()) return@LaunchedEffect
-        if (season.isBlank() || season !in seasons) {
-            season = seasons.last()
-            player = ""
-            bankNumber = null
-            machine = ""
-        }
-    }
     val players = rows.filter { season.isEmpty() || it.season == season }.map { it.player }.toSet().sorted()
     val banks = rows.filter { (season.isEmpty() || it.season == season) && (player.isEmpty() || it.player == player) }
         .map { it.bankNumber }
@@ -360,34 +376,22 @@ fun StatsScreen(
             AnchoredDropdownFilter(
                 selectedText = seasonDisplayText(season),
                 options = seasonOptions,
-                onSelect = {
-                    season = it
-                    player = ""
-                    bankNumber = null
-                    machine = ""
-                },
+                onSelect = { selectSeason(it) },
             )
             AnchoredDropdownFilter(
                 selectedText = bankDisplayText(bankNumber),
                 options = bankOptions,
-                onSelect = {
-                    bankNumber = it.toIntOrNull()
-                    machine = ""
-                },
+                onSelect = { selectBankNumber(it.toIntOrNull()) },
             )
             AnchoredDropdownFilter(
                 selectedText = playerDisplayText(player, showFullLplLastName),
                 options = playerOptions,
-                onSelect = {
-                    player = it
-                    bankNumber = null
-                    machine = ""
-                },
+                onSelect = { selectPlayer(it) },
             )
             AnchoredDropdownFilter(
                 selectedText = machineDisplayText(machine),
                 options = machineOptions,
-                onSelect = { machine = it },
+                onSelect = { selectMachine(it) },
             )
         }
     }

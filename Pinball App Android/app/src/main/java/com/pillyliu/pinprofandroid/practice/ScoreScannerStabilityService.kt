@@ -1,5 +1,7 @@
 package com.pillyliu.pinprofandroid.practice
 
+import kotlin.math.abs
+
 internal class ScoreScannerStabilityService(
     private val configuration: Configuration = Configuration(),
 ) {
@@ -14,6 +16,7 @@ internal class ScoreScannerStabilityService(
         val score: Long,
         val formattedScore: String,
         val rawText: String,
+        val digitCount: Int,
         val confidence: Float,
         val timestampMs: Long,
     )
@@ -40,6 +43,7 @@ internal class ScoreScannerStabilityService(
                 score = candidate.normalizedScore,
                 formattedScore = candidate.formattedScore,
                 rawText = candidate.rawText,
+                digitCount = candidate.digitCount,
                 confidence = candidate.confidence,
                 timestampMs = System.currentTimeMillis(),
             )
@@ -108,11 +112,19 @@ internal class ScoreScannerStabilityService(
                 )
             }
 
-        return ranked.maxWithOrNull(
-            compareBy<Consensus> { it.occurrences }
-                .thenBy { it.averageConfidence }
-                .thenBy { it.reading.timestampMs }
-        )
+        return ranked.maxWithOrNull { lhs, rhs ->
+            when {
+                abs(lhs.occurrences - rhs.occurrences) >= 2 ->
+                    lhs.occurrences.compareTo(rhs.occurrences)
+                lhs.reading.digitCount != rhs.reading.digitCount ->
+                    lhs.reading.digitCount.compareTo(rhs.reading.digitCount)
+                lhs.occurrences != rhs.occurrences ->
+                    lhs.occurrences.compareTo(rhs.occurrences)
+                lhs.averageConfidence != rhs.averageConfidence ->
+                    lhs.averageConfidence.compareTo(rhs.averageConfidence)
+                else -> lhs.reading.timestampMs.compareTo(rhs.reading.timestampMs)
+            }
+        }
     }
 
     private data class Consensus(

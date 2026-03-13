@@ -146,31 +146,39 @@ struct ScoreScannerView: View {
     }
 
     private func liveReadingPanel(targetRect: CGRect, containerSize: CGSize) -> some View {
-        VStack(spacing: 10) {
-            Text(viewModel.status.title)
-                .font(.caption.weight(.semibold))
-                .textCase(.uppercase)
-                .foregroundStyle(statusColor)
+        Button {
+            viewModel.freezeDisplayedCandidate()
+        } label: {
+            VStack(spacing: 10) {
+                Text(viewModel.status.title)
+                    .font(.caption.weight(.semibold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(statusColor)
 
-            Text(viewModel.liveReadingText)
-                .font(.system(size: 34, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .foregroundStyle(.white)
+                Text(viewModel.liveReadingText)
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(.white)
 
-            Text(viewModel.status.detail)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 320)
+                Text(viewModel.status.detail)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 320)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(Color.black.opacity(0.42), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .opacity(viewModel.liveCandidateReading == nil || viewModel.isFrozen ? 1 : 0.98)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
-        .background(Color.black.opacity(0.42), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
-        )
+        .buttonStyle(.plain)
+        .disabled(viewModel.liveCandidateReading == nil || viewModel.isFrozen)
         .position(
             x: containerSize.width / 2,
             y: min(targetRect.maxY + 86, containerSize.height - 220)

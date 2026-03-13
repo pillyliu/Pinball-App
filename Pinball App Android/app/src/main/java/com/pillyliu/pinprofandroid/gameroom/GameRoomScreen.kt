@@ -279,6 +279,8 @@ internal fun GameRoomScreen(
     var importErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var importResultMessage by rememberSaveable { mutableStateOf<String?>(null) }
     var importReviewFilter by rememberSaveable { mutableStateOf(ImportReviewFilter.All) }
+    var settingsSaveFeedbackMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var settingsSaveFeedbackTick by rememberSaveable { mutableIntStateOf(0) }
     val activeMachines = store.activeMachines
     val selectedMachineFromAll = store.state.ownedMachines.firstOrNull { it.id == selectedMachineID }
     val selectedMachine = activeMachines.firstOrNull { it.id == selectedMachineID } ?: activeMachines.firstOrNull()
@@ -561,6 +563,13 @@ internal fun GameRoomScreen(
                     selectedSettingsSection = selectedSettingsSection,
                     onSelectedSettingsSectionChange = { selectedSettingsSection = it },
                     onBack = { route = GameRoomRoute.Home },
+                    overlayContent = {
+                        GameRoomFloatingSaveFeedbackOverlay(
+                            message = settingsSaveFeedbackMessage,
+                            token = settingsSaveFeedbackTick,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    },
                     importContent = {
                         GameRoomImportSettingsSection(
                         store = store,
@@ -684,6 +693,10 @@ internal fun GameRoomScreen(
                                 onSaveVenueName = {
                                     store.updateVenueName(venueNameDraft)
                                     venueNameDraft = store.venueName
+                                },
+                                onShowSaveFeedback = { message ->
+                                    settingsSaveFeedbackMessage = message
+                                    settingsSaveFeedbackTick += 1
                                 },
                                 addMachineExpanded = addMachineExpanded,
                                 onAddMachineExpandedChange = { addMachineExpanded = it },
