@@ -1,0 +1,85 @@
+import XCTest
+@testable import PinProf
+
+@MainActor
+final class AppShakeCoordinatorTests: XCTestCase {
+    func testWarningDurationsMatchEscalationTiming() {
+        XCTAssertEqual(AppShakeWarningLevel.danger.displayDurationNanoseconds, 3_000_000_000)
+        XCTAssertEqual(AppShakeWarningLevel.doubleDanger.displayDurationNanoseconds, 3_500_000_000)
+        XCTAssertEqual(AppShakeWarningLevel.tilt.displayDurationNanoseconds, 4_500_000_000)
+        XCTAssertEqual(AppShakeWarningLevel.danger.hapticStartDelayNanoseconds, 50_000_000)
+        XCTAssertEqual(AppShakeWarningLevel.doubleDanger.hapticStartDelayNanoseconds, 200_000_000)
+        XCTAssertEqual(AppShakeWarningLevel.tilt.hapticStartDelayNanoseconds, 200_000_000)
+        XCTAssertEqual(
+            AppShakeWarningLevel.danger.bundledArtPath,
+            "/pinball/images/ui/shake-warnings/professor-danger_1024.webp"
+        )
+        XCTAssertEqual(
+            AppShakeWarningLevel.doubleDanger.bundledArtPath,
+            "/pinball/images/ui/shake-warnings/professor-danger-danger_1024.webp"
+        )
+        XCTAssertEqual(
+            AppShakeWarningLevel.tilt.bundledArtPath,
+            "/pinball/images/ui/shake-warnings/professor-tilt_1024.webp"
+        )
+    }
+
+    func testShakeStaysQuietWhenNativeUndoWouldHandleIt() {
+        let coordinator = AppShakeCoordinator(
+            nativeUndoAvailabilityProvider: { true },
+            hapticsPlayer: { _ in }
+        )
+
+        coordinator.handleDetectedShake()
+
+        XCTAssertNil(coordinator.overlayLevel)
+    }
+
+    func testFallbackShakesEscalateToTiltAcrossSeparateShakes() {
+        let coordinator = AppShakeCoordinator(
+            nativeUndoAvailabilityProvider: { false },
+            hapticsPlayer: { _ in }
+        )
+
+        coordinator.handleDetectedShake()
+        XCTAssertEqual(coordinator.overlayLevel, .danger)
+
+        coordinator.handleDetectedShake()
+        XCTAssertEqual(coordinator.overlayLevel, .doubleDanger)
+
+        coordinator.handleDetectedShake()
+        XCTAssertEqual(coordinator.overlayLevel, .tilt)
+    }
+
+    func testNativeUndoDoesNotResetEscalationProgress() {
+        var nativeUndoAvailable = false
+        let coordinator = AppShakeCoordinator(
+            nativeUndoAvailabilityProvider: { nativeUndoAvailable },
+            hapticsPlayer: { _ in }
+        )
+
+        coordinator.handleDetectedShake()
+        XCTAssertEqual(coordinator.overlayLevel, .danger)
+
+        nativeUndoAvailable = true
+        coordinator.handleDetectedShake()
+
+        nativeUndoAvailable = false
+        coordinator.handleDetectedShake()
+        XCTAssertEqual(coordinator.overlayLevel, .doubleDanger)
+    }
+
+    func testFallbackShakesTriggerEscalatingHaptics() {
+        var playedLevels: [AppShakeWarningLevel] = []
+        let coordinator = AppShakeCoordinator(
+            nativeUndoAvailabilityProvider: { false },
+            hapticsPlayer: { playedLevels.append($0) }
+        )
+
+        coordinator.handleDetectedShake()
+        coordinator.handleDetectedShake()
+        coordinator.handleDetectedShake()
+
+        XCTAssertEqual(playedLevels, [.danger, .doubleDanger, .tilt])
+    }
+}

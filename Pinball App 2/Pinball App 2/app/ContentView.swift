@@ -66,6 +66,8 @@ final class AppNavigationModel: ObservableObject {
 
 struct ContentView: View {
     @StateObject private var appNavigation = AppNavigationModel()
+    @StateObject private var shakeCoordinator = AppShakeCoordinator()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         TabView(selection: $appNavigation.selectedTab) {
@@ -79,6 +81,14 @@ struct ContentView: View {
         }
         .tint(AppTheme.brandGold)
         .dismissKeyboardOnTap()
+        .appShakeMotionHandler(isEnabled: scenePhase == .active) {
+            shakeCoordinator.handleDetectedShake()
+        }
+        .overlay {
+            if let overlayLevel = shakeCoordinator.overlayLevel {
+                AppShakeWarningOverlay(level: overlayLevel)
+            }
+        }
         .environmentObject(appNavigation)
     }
 }

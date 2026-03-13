@@ -1,6 +1,7 @@
 import Foundation
 
 nonisolated private let librarySupportedPlayfieldOriginalExtensions = ["webp", "jpg", "jpeg", "png"]
+nonisolated let libraryMissingArtworkPath = "/pinball/images/playfields/fallback-image-not-available_2048.webp"
 nonisolated private let libraryPinProfHosts: Set<String> = [
     "pillyliu.com",
     "www.pillyliu.com",
@@ -160,7 +161,7 @@ nonisolated func normalizeLibraryPlayfieldLocalPath(_ pathOrURL: String?) -> Str
 }
 
 nonisolated func libraryMissingArtworkURL() -> URL? {
-    libraryResolveURL(pathOrURL: "/pinball/images/playfields/fallback-image-not-available_2048.webp")
+    libraryResolveURL(pathOrURL: libraryMissingArtworkPath)
 }
 
 extension PinballGame {
