@@ -88,9 +88,12 @@ extension PracticeScreen {
 
     func openQuickEntry(_ sheet: QuickEntrySheet) {
         let orderedGames = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true)
+        let resumeID = resumeGame?.canonicalPracticeKey ?? ""
         let remembered = store.canonicalPracticeGameID(rememberedQuickEntryGame(for: sheet))
         if sheet == .mechanics {
             uiState.selectedGameID = ""
+        } else if !resumeID.isEmpty {
+            uiState.selectedGameID = resumeID
         } else if !remembered.isEmpty {
             uiState.selectedGameID = remembered
         } else if !uiState.selectedGameID.isEmpty {

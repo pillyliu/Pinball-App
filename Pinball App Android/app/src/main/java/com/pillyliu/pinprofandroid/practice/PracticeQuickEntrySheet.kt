@@ -26,6 +26,63 @@ private const val QUICK_GAME_KEY_PREFIX = "practice-quick-game-"
 private const val QUICK_LIBRARY_KEY_PREFIX = "practice-quick-library-"
 private const val ALL_GAMES_LIBRARY_OPTION = "__all_games__"
 
+internal fun resolveInitialQuickEntryLibraryOption(
+    origin: QuickEntryOrigin,
+    fromGameView: Boolean,
+    selectedGameSourceId: String,
+    resumeGameSourceId: String,
+    savedLibraryOption: String,
+    preferredLibraryOption: String,
+    avenueLibraryOption: String,
+    defaultPracticeSourceId: String,
+    availableLibraryOptionIds: Set<String>,
+): String {
+    fun validSourceOrBlank(sourceId: String): String {
+        return sourceId.takeIf { it.isNotBlank() && it in availableLibraryOptionIds }.orEmpty()
+    }
+
+    fun validLibraryOptionOrBlank(option: String): String {
+        return when {
+            option == ALL_GAMES_LIBRARY_OPTION -> ALL_GAMES_LIBRARY_OPTION
+            option.isNotBlank() && option in availableLibraryOptionIds -> option
+            else -> ""
+        }
+    }
+
+    return when {
+        origin == QuickEntryOrigin.Mechanics -> ALL_GAMES_LIBRARY_OPTION
+        fromGameView -> validLibraryOptionOrBlank(defaultPracticeSourceId)
+            .ifBlank { validSourceOrBlank(selectedGameSourceId) }
+            .ifBlank { ALL_GAMES_LIBRARY_OPTION }
+        else -> validSourceOrBlank(resumeGameSourceId)
+            .ifBlank { validSourceOrBlank(selectedGameSourceId) }
+            .ifBlank { validLibraryOptionOrBlank(savedLibraryOption) }
+            .ifBlank { validLibraryOptionOrBlank(preferredLibraryOption) }
+            .ifBlank { validLibraryOptionOrBlank(avenueLibraryOption) }
+            .ifBlank { validLibraryOptionOrBlank(defaultPracticeSourceId) }
+            .ifBlank { availableLibraryOptionIds.firstOrNull().orEmpty() }
+            .ifBlank { ALL_GAMES_LIBRARY_OPTION }
+    }
+}
+
+internal fun resolveInitialQuickEntryGameSlug(
+    origin: QuickEntryOrigin,
+    fromGameView: Boolean,
+    selectedGameSlug: String,
+    resumeGameSlug: String,
+    savedQuickGameSlug: String,
+    fallbackGameSlug: String,
+): String {
+    return when {
+        origin == QuickEntryOrigin.Mechanics -> ""
+        fromGameView -> selectedGameSlug
+        resumeGameSlug.isNotBlank() -> resumeGameSlug
+        selectedGameSlug.isNotBlank() -> selectedGameSlug
+        savedQuickGameSlug.isNotBlank() -> savedQuickGameSlug
+        else -> fallbackGameSlug
+    }
+}
+
 @Composable
 internal fun QuickEntrySheet(
     store: PracticeStore,
@@ -79,31 +136,66 @@ internal fun QuickEntrySheet(
         val canonical = canonicalPracticeKey(raw, allLibraryGames)
         return canonical.takeIf { it.isNotBlank() && findGameByPracticeLookupKey(allLibraryGames, it) != null }.orEmpty()
     }
-    var selectedLibraryOption by remember(origin, fromGameView, librarySources, store.defaultPracticeSourceId) {
+    val resumeGameSlug = remember(store.games, store.allLibraryGames) {
+        canonicalExistingQuickGameKey(store.resumeSlugFromLibraryOrPractice())
+    }
+    val resumeGameSourceId = remember(resumeGameSlug, allLibraryGames) {
+        findGameByPracticeLookupKey(allLibraryGames, resumeGameSlug)?.sourceId.orEmpty()
+    }
+    val savedQuickGameSlug = remember(origin, store.games, store.allLibraryGames) {
+        canonicalExistingQuickGameKey(prefs.getString("$QUICK_GAME_KEY_PREFIX${origin.keySuffix}", null))
+    }
+    val currentSelectedGameSlug = remember(selectedGameSlug, store.games, store.allLibraryGames) {
+        canonicalExistingQuickGameKey(selectedGameSlug)
+    }
+    val currentSelectedGameSourceId = remember(currentSelectedGameSlug, allLibraryGames) {
+        findGameByPracticeLookupKey(allLibraryGames, currentSelectedGameSlug)?.sourceId.orEmpty()
+    }
+    val fallbackGameSlug = remember(store.games, store.allLibraryGames) {
+        orderedGamesForDropdown(allLibraryGames, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey.orEmpty()
+    }
+    var selectedLibraryOption by remember(
+        origin,
+        fromGameView,
+        librarySources,
+        store.defaultPracticeSourceId,
+        resumeGameSourceId,
+        currentSelectedGameSourceId,
+    ) {
         val saved = prefs.getString("$QUICK_LIBRARY_KEY_PREFIX${origin.keySuffix}", null)
         val preferred = prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null)
         val avenue = avenueLibraryOptionId()
-        val initial = when {
-            origin == QuickEntryOrigin.Mechanics -> ALL_GAMES_LIBRARY_OPTION
-            fromGameView -> store.defaultPracticeSourceId ?: ALL_GAMES_LIBRARY_OPTION
-            avenue != null -> avenue
-            saved == ALL_GAMES_LIBRARY_OPTION -> ALL_GAMES_LIBRARY_OPTION
-            saved != null && librarySources.any { it.id == saved } -> saved
-            preferred != null && librarySources.any { it.id == preferred } -> preferred
-            else -> store.defaultPracticeSourceId ?: librarySources.firstOrNull()?.id ?: ALL_GAMES_LIBRARY_OPTION
-        }
+        val initial = resolveInitialQuickEntryLibraryOption(
+            origin = origin,
+            fromGameView = fromGameView,
+            selectedGameSourceId = currentSelectedGameSourceId,
+            resumeGameSourceId = resumeGameSourceId,
+            savedLibraryOption = saved.orEmpty(),
+            preferredLibraryOption = preferred.orEmpty(),
+            avenueLibraryOption = avenue.orEmpty(),
+            defaultPracticeSourceId = store.defaultPracticeSourceId.orEmpty(),
+            availableLibraryOptionIds = librarySources.mapTo(linkedSetOf()) { it.id },
+        )
         mutableStateOf(initial)
     }
-    var gameSlug by remember(origin, selectedGameSlug, fromGameView, store.games, store.allLibraryGames) {
-        val saved = prefs.getString("$QUICK_GAME_KEY_PREFIX${origin.keySuffix}", null)
-        val initial = when {
-            origin == QuickEntryOrigin.Mechanics -> ""
-            fromGameView -> canonicalExistingQuickGameKey(selectedGameSlug)
-            else -> canonicalExistingQuickGameKey(saved)
-                .ifBlank { canonicalExistingQuickGameKey(selectedGameSlug) }
-                .ifBlank { orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey.orEmpty() }
-        }
-        mutableStateOf(initial)
+    var gameSlug by remember(
+        origin,
+        fromGameView,
+        resumeGameSlug,
+        currentSelectedGameSlug,
+        savedQuickGameSlug,
+        fallbackGameSlug,
+    ) {
+        mutableStateOf(
+            resolveInitialQuickEntryGameSlug(
+                origin = origin,
+                fromGameView = fromGameView,
+                selectedGameSlug = currentSelectedGameSlug,
+                resumeGameSlug = resumeGameSlug,
+                savedQuickGameSlug = savedQuickGameSlug,
+                fallbackGameSlug = fallbackGameSlug,
+            )
+        )
     }
     var scoreText by remember { mutableStateOf("") }
     var scoreContext by remember { mutableStateOf("practice") }

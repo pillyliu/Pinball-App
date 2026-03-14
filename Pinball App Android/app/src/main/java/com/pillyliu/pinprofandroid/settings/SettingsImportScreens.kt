@@ -1,8 +1,14 @@
 package com.pillyliu.pinprofandroid.settings
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationManager
 import android.text.method.LinkMovementMethod
 import android.widget.TextView
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
@@ -16,9 +22,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -41,6 +50,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.location.LocationManagerCompat
+import androidx.core.os.CancellationSignal
 import com.pillyliu.pinprofandroid.ui.AppTintedStatusChip
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.HtmlCompat
@@ -59,7 +71,10 @@ import com.pillyliu.pinprofandroid.ui.DropdownOption
 import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 internal enum class ManufacturerBucket(val label: String) {
     MODERN("Modern"),
@@ -190,19 +205,24 @@ internal fun AddVenueScreen(
     var minimumGameCount by remember { mutableIntStateOf(prefs.getInt("settings-add-venue-min-game-count", 5)) }
     var results by remember { mutableStateOf<List<LibraryVenueSearchResult>>(emptyList()) }
     var searching by remember { mutableStateOf(false) }
+    var locating by remember { mutableStateOf(false) }
     var hasSearched by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var lastSearchContext by remember { mutableStateOf("") }
 
     val filteredResults = remember(results, minimumGameCount) {
         results.filter { it.machineCount >= minimumGameCount }
     }
 
     suspend fun runSearch() {
+        val trimmedQuery = query.trim()
+        if (trimmedQuery.isBlank()) return
         searching = true
         error = null
         hasSearched = true
+        lastSearchContext = trimmedQuery
         runCatching {
-            withContext(Dispatchers.IO) { PinballMapClient.searchVenues(query, radiusMiles) }
+            withContext(Dispatchers.IO) { PinballMapClient.searchVenues(trimmedQuery, radiusMiles) }
         }.onSuccess {
             results = it
         }.onFailure {
@@ -210,6 +230,78 @@ internal fun AddVenueScreen(
             results = emptyList()
         }
         searching = false
+    }
+
+    suspend fun runCurrentLocationSearch() {
+        locating = true
+        error = null
+        val coordinate = runCatching { currentVenueSearchCoordinate(context) }
+            .onFailure {
+                error = it.message ?: "Current location is unavailable."
+            }
+            .getOrNull()
+        locating = false
+        if (coordinate == null) return
+
+        searching = true
+        error = null
+        hasSearched = true
+        lastSearchContext = "Current location"
+        runCatching {
+            withContext(Dispatchers.IO) {
+                PinballMapClient.searchVenues(
+                    latitude = coordinate.latitude,
+                    longitude = coordinate.longitude,
+                    radiusMiles = radiusMiles,
+                )
+            }
+        }.onSuccess {
+            results = it
+        }.onFailure {
+            error = it.message ?: "Venue search failed."
+            results = emptyList()
+        }
+        searching = false
+    }
+
+    fun launchCurrentLocationSearch() {
+        if (searching || locating) return
+        focusManager.clearFocus()
+        scope.launch { runCurrentLocationSearch() }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grants ->
+        val granted = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            launchCurrentLocationSearch()
+        } else {
+            error = "Location permission is required to search near you."
+        }
+    }
+
+    fun requestCurrentLocationSearch() {
+        if (searching || locating) return
+        val fineGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (fineGranted || coarseGranted) {
+            launchCurrentLocationSearch()
+        } else {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                )
+            )
+        }
     }
 
     val emptyResultsMessage = remember(hasSearched, results, filteredResults, minimumGameCount) {
@@ -237,11 +329,26 @@ internal fun AddVenueScreen(
                     label = { Text("City or ZIP code") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    trailingIcon = {
+                        if (locating) {
+                            CircularProgressIndicator(modifier = Modifier.padding(8.dp))
+                        } else {
+                            IconButton(
+                                onClick = { requestCurrentLocationSearch() },
+                                enabled = !searching,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.MyLocation,
+                                    contentDescription = "Use current location",
+                                )
+                            }
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(
                         onSearch = {
                             focusManager.clearFocus()
-                            if (!searching && query.isNotBlank()) {
+                            if (!searching && !locating && query.isNotBlank()) {
                                 scope.launch { runSearch() }
                             }
                         },
@@ -266,11 +373,13 @@ internal fun AddVenueScreen(
                 AppPrimaryButton(
                     onClick = { scope.launch { runSearch() } },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !searching && query.isNotBlank(),
+                    enabled = !searching && !locating && query.isNotBlank(),
                 ) {
                     Text(if (searching) "Searching..." else "Search Pinball Map")
                 }
-                if (searching) {
+                if (locating) {
+                    AppInlineTaskStatus(text = "Getting current location…", showsProgress = true)
+                } else if (searching) {
                     AppInlineTaskStatus(text = "Searching Pinball Map…", showsProgress = true)
                 } else if (error != null) {
                     AppInlineTaskStatus(text = error.orEmpty(), isError = true)
@@ -309,7 +418,12 @@ internal fun AddVenueScreen(
                                                 PinballMapClient.fetchVenueMachineIds(result.id.removePrefix("venue--pm-"))
                                             }
                                         }.onSuccess { machineIds ->
-                                            onImport(result, machineIds, query.trim(), radiusMiles)
+                                            onImport(
+                                                result,
+                                                machineIds,
+                                                lastSearchContext.ifBlank { query.trim() },
+                                                radiusMiles,
+                                            )
                                         }.onFailure {
                                             error = it.message ?: "Venue import failed."
                                         }
@@ -328,6 +442,76 @@ internal fun AddVenueScreen(
         }
     }
 }
+
+private data class VenueSearchCoordinate(
+    val latitude: Double,
+    val longitude: Double,
+)
+
+private suspend fun currentVenueSearchCoordinate(context: Context): VenueSearchCoordinate =
+    suspendCancellableCoroutine { continuation ->
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        if (locationManager == null) {
+            continuation.resumeWithException(IllegalStateException("Location services are unavailable on this device."))
+            return@suspendCancellableCoroutine
+        }
+
+        val fineGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!fineGranted && !coarseGranted) {
+            continuation.resumeWithException(IllegalStateException("Location permission is required to search near you."))
+            return@suspendCancellableCoroutine
+        }
+
+        val provider = when {
+            fineGranted && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
+            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
+            fineGranted -> LocationManager.GPS_PROVIDER
+            coarseGranted -> LocationManager.NETWORK_PROVIDER
+            else -> null
+        }
+        val lastKnownLocation = sequenceOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+            .filter { providerName ->
+                providerName != LocationManager.GPS_PROVIDER || fineGranted
+            }
+            .mapNotNull { providerName ->
+                runCatching { locationManager.getLastKnownLocation(providerName) }.getOrNull()
+            }
+            .maxByOrNull(Location::getTime)
+
+        if (provider == null) {
+            val fallback = lastKnownLocation
+            if (fallback != null) {
+                continuation.resume(VenueSearchCoordinate(fallback.latitude, fallback.longitude))
+            } else {
+                continuation.resumeWithException(IllegalStateException("Turn on Location Services to search near you."))
+            }
+            return@suspendCancellableCoroutine
+        }
+
+        val cancellationSignal = CancellationSignal()
+        continuation.invokeOnCancellation { cancellationSignal.cancel() }
+        LocationManagerCompat.getCurrentLocation(
+            locationManager,
+            provider,
+            cancellationSignal,
+            ContextCompat.getMainExecutor(context),
+        ) { location ->
+            if (!continuation.isActive) return@getCurrentLocation
+            val resolvedLocation = location ?: lastKnownLocation
+            if (resolvedLocation != null) {
+                continuation.resume(VenueSearchCoordinate(resolvedLocation.latitude, resolvedLocation.longitude))
+            } else {
+                continuation.resumeWithException(IllegalStateException("Couldn't get your current location."))
+            }
+        }
+    }
 
 @Composable
 internal fun AddTournamentScreen(

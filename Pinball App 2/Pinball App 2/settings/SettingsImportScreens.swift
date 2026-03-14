@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 struct AddManufacturerScreen: View {
     @ObservedObject var viewModel: SettingsViewModel
@@ -138,12 +139,15 @@ struct AddVenueScreen: View {
     @ObservedObject var viewModel: SettingsViewModel
     @Environment(\.dismiss) private var dismiss
     @AppStorage("settings-add-venue-min-game-count") private var minimumGameCount = 5
+    @State private var locationRequester = VenueLocationRequester()
     @State private var query: String = ""
     @State private var radiusMiles: Int = 25
     @State private var searchResults: [PinballLibraryVenueSearchResult] = []
     @State private var isSearching = false
+    @State private var isLocating = false
     @State private var hasSearched = false
     @State private var errorMessage: String?
+    @State private var lastSearchContext: String = ""
 
     private var filteredResults: [PinballLibraryVenueSearchResult] {
         searchResults.filter { $0.machineCount >= minimumGameCount }
@@ -171,14 +175,35 @@ struct AddVenueScreen: View {
                     VStack(alignment: .leading, spacing: 10) {
                         SettingsProviderCaption(prefix: "Search powered by ", linkText: "Pinball Map", urlString: "https://www.pinballmap.com")
 
-                        TextField("City or ZIP code", text: $query)
-                            .submitLabel(.search)
-                            .onSubmit {
-                                Task { await runSearch() }
+                        HStack(alignment: .center, spacing: 8) {
+                            TextField("City or ZIP code", text: $query)
+                                .submitLabel(.search)
+                                .onSubmit {
+                                    Task { await runSearch() }
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .appControlStyle()
+                                .frame(maxWidth: .infinity)
+
+                            Button {
+                                Task { await runCurrentLocationSearch() }
+                            } label: {
+                                Group {
+                                    if isLocating {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    } else {
+                                        Image(systemName: "scope")
+                                            .font(.title3)
+                                    }
+                                }
+                                .frame(width: 36, height: 36)
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .appControlStyle()
+                            .buttonStyle(AppCompactIconActionButtonStyle())
+                            .disabled(isSearching || isLocating)
+                            .accessibilityLabel("Use current location")
+                        }
 
                         Menu {
                             ForEach([10, 25, 50, 100], id: \.self) { miles in
@@ -215,9 +240,11 @@ struct AddVenueScreen: View {
                             Task { await runSearch() }
                         }
                         .buttonStyle(AppPrimaryActionButtonStyle())
-                        .disabled(isSearching || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(isSearching || isLocating || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                        if isSearching {
+                        if isLocating {
+                            AppInlineTaskStatus(text: "Getting current location…", showsProgress: true)
+                        } else if isSearching {
                             AppInlineTaskStatus(text: "Searching Pinball Map…", showsProgress: true)
                         } else if let errorMessage {
                             AppInlineTaskStatus(text: errorMessage, isError: true)
@@ -266,13 +293,38 @@ struct AddVenueScreen: View {
     }
 
     private func runSearch() async {
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuery.isEmpty else { return }
         isSearching = true
         defer { isSearching = false }
         do {
             hasSearched = true
-            searchResults = try await PinballMapClient.searchVenues(query: query, radiusMiles: radiusMiles)
+            lastSearchContext = trimmedQuery
+            searchResults = try await PinballMapClient.searchVenues(query: trimmedQuery, radiusMiles: radiusMiles)
             errorMessage = nil
         } catch {
+            searchResults = []
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func runCurrentLocationSearch() async {
+        isLocating = true
+        do {
+            let coordinate = try await locationRequester.requestCurrentLocation()
+            isLocating = false
+            isSearching = true
+            defer { isSearching = false }
+            hasSearched = true
+            lastSearchContext = "Current location"
+            searchResults = try await PinballMapClient.searchVenues(
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude,
+                radiusMiles: radiusMiles
+            )
+            errorMessage = nil
+        } catch {
+            isLocating = false
             errorMessage = error.localizedDescription
         }
     }
@@ -280,7 +332,12 @@ struct AddVenueScreen: View {
     private func importVenue(_ venue: PinballLibraryVenueSearchResult) async {
         do {
             let machineIDs = try await PinballMapClient.fetchVenueMachineIDs(locationID: venue.id.replacingOccurrences(of: "venue--pm-", with: ""))
-            viewModel.importVenue(result: venue, machineIDs: machineIDs, searchQuery: query, radiusMiles: radiusMiles)
+            viewModel.importVenue(
+                result: venue,
+                machineIDs: machineIDs,
+                searchQuery: lastSearchContext.isEmpty ? query : lastSearchContext,
+                radiusMiles: radiusMiles
+            )
             dismiss()
         } catch {
             errorMessage = "Venue import failed: \(error.localizedDescription)"
@@ -297,6 +354,99 @@ struct AddVenueScreen: View {
         }
         parts.append(venue.machineCount == 1 ? "1 game" : "\(venue.machineCount) games")
         return parts.joined(separator: " • ")
+    }
+}
+
+private enum VenueLocationError: LocalizedError {
+    case servicesDisabled
+    case permissionDenied
+    case unavailable
+
+    var errorDescription: String? {
+        switch self {
+        case .servicesDisabled:
+            return "Turn on Location Services to search near you."
+        case .permissionDenied:
+            return "Location permission is required to search near you."
+        case .unavailable:
+            return "Couldn't get your current location."
+        }
+    }
+}
+
+@MainActor
+private final class VenueLocationRequester: NSObject, CLLocationManagerDelegate {
+    private let manager = CLLocationManager()
+    private var continuation: CheckedContinuation<CLLocationCoordinate2D, Error>?
+    private var isAwaitingAuthorization = false
+
+    override init() {
+        super.init()
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+    }
+
+    func requestCurrentLocation() async throws -> CLLocationCoordinate2D {
+        guard continuation == nil else {
+            throw VenueLocationError.unavailable
+        }
+        return try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+            switch manager.authorizationStatus {
+            case .authorizedAlways, .authorizedWhenInUse:
+                manager.requestLocation()
+            case .notDetermined:
+                isAwaitingAuthorization = true
+                manager.requestWhenInUseAuthorization()
+            case .restricted, .denied:
+                finish(with: VenueLocationError.permissionDenied)
+            @unknown default:
+                finish(with: VenueLocationError.unavailable)
+            }
+        }
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        guard isAwaitingAuthorization else { return }
+        switch manager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            isAwaitingAuthorization = false
+            manager.requestLocation()
+        case .restricted, .denied:
+            finish(with: VenueLocationError.permissionDenied)
+        case .notDetermined:
+            break
+        @unknown default:
+            finish(with: VenueLocationError.unavailable)
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let coordinate = locations.last?.coordinate else {
+            finish(with: VenueLocationError.unavailable)
+            return
+        }
+        finish(with: coordinate)
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        if let locationError = error as? CLError, locationError.code == .denied {
+            finish(with: VenueLocationError.permissionDenied)
+        } else {
+            finish(with: VenueLocationError.unavailable)
+        }
+    }
+
+    private func finish(with coordinate: CLLocationCoordinate2D) {
+        continuation?.resume(returning: coordinate)
+        continuation = nil
+        isAwaitingAuthorization = false
+    }
+
+    private func finish(with error: Error) {
+        continuation?.resume(throwing: error)
+        continuation = nil
+        isAwaitingAuthorization = false
     }
 }
 

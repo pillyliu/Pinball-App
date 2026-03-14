@@ -13,6 +13,15 @@ internal object PinballMapClient {
         if (trimmed.isBlank()) return emptyList()
         val encoded = URLEncoder.encode(trimmed, Charsets.UTF_8.name())
         val url = "https://pinballmap.com/api/v1/locations/closest_by_address.json?address=$encoded&max_distance=$radiusMiles&send_all_within_distance=true"
+        return searchVenues(url)
+    }
+
+    fun searchVenues(latitude: Double, longitude: Double, radiusMiles: Int): List<LibraryVenueSearchResult> {
+        val url = "https://pinballmap.com/api/v1/locations/closest_by_lat_lon.json?lat=$latitude&lon=$longitude&max_distance=$radiusMiles&send_all_within_distance=true"
+        return searchVenues(url)
+    }
+
+    private fun searchVenues(url: String): List<LibraryVenueSearchResult> {
         val root = JSONObject(fetchText(url))
         val locations = root.optJSONArray("locations") ?: JSONArray()
         return buildList {

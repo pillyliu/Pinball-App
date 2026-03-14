@@ -13,6 +13,21 @@ enum PinballMapClient {
             URLQueryItem(name: "max_distance", value: String(radiusMiles)),
             URLQueryItem(name: "send_all_within_distance", value: "true"),
         ]
+        return try await fetchVenues(components: components)
+    }
+
+    static func searchVenues(latitude: Double, longitude: Double, radiusMiles: Int) async throws -> [PinballLibraryVenueSearchResult] {
+        var components = URLComponents(string: "https://pinballmap.com/api/v1/locations/closest_by_lat_lon.json")
+        components?.queryItems = [
+            URLQueryItem(name: "lat", value: String(latitude)),
+            URLQueryItem(name: "lon", value: String(longitude)),
+            URLQueryItem(name: "max_distance", value: String(radiusMiles)),
+            URLQueryItem(name: "send_all_within_distance", value: "true"),
+        ]
+        return try await fetchVenues(components: components)
+    }
+
+    private static func fetchVenues(components: URLComponents?) async throws -> [PinballLibraryVenueSearchResult] {
         guard let url = components?.url else { return [] }
 
         let (data, _) = try await URLSession.shared.data(from: url)

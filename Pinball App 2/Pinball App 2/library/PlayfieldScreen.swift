@@ -250,11 +250,14 @@ final class RemoteUIImageLoader: ObservableObject {
     @Published private(set) var image: UIImage?
     @Published private(set) var failed = false
 
-    private var didLoad = false
+    private var loadedCandidateKey: String?
 
     func loadIfNeeded(from urls: [URL]) async {
-        guard !didLoad else { return }
-        didLoad = true
+        let candidateKey = urls.map(\.absoluteString).joined(separator: "|")
+        guard loadedCandidateKey != candidateKey else { return }
+        loadedCandidateKey = candidateKey
+        image = nil
+        failed = false
 
         for url in urls {
             if let cachedImage = RemoteUIImageMemoryCache.shared.image(for: url) {
@@ -289,6 +292,10 @@ struct ConstrainedAsyncImagePreview: View {
 
     @StateObject private var loader = RemoteUIImageLoader()
 
+    private var candidateKey: String {
+        candidates.map(\.absoluteString).joined(separator: "|")
+    }
+
     private var effectiveAspectRatio: CGFloat {
         guard let image = loader.image, image.size.width > 0, image.size.height > 0 else {
             return maxAspectRatio
@@ -315,7 +322,7 @@ struct ConstrainedAsyncImagePreview: View {
             }
         }
         .aspectRatio(effectiveAspectRatio, contentMode: .fit)
-        .task {
+        .task(id: candidateKey) {
             await loader.loadIfNeeded(from: candidates)
         }
     }
