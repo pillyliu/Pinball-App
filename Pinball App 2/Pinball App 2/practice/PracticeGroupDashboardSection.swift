@@ -186,8 +186,12 @@ struct PracticeGroupDashboardSectionView: View {
                                 onDeleteGroup(group.id)
                             },
                             formattedDashboardDate: formattedDashboardDate,
-                            startDatePopoverContent: { AnyView(popoverCalendar(for: group, field: .start)) },
-                            endDatePopoverContent: { AnyView(popoverCalendar(for: group, field: .end)) }
+                            startDatePopoverContent: { availableHeight in
+                                AnyView(popoverCalendar(for: group, field: .start, availableHeight: availableHeight))
+                            },
+                            endDatePopoverContent: { availableHeight in
+                                AnyView(popoverCalendar(for: group, field: .end, availableHeight: availableHeight))
+                            }
                         )
                     }
                 }
@@ -203,42 +207,49 @@ struct PracticeGroupDashboardSectionView: View {
     }
 
     @ViewBuilder
-    private func popoverCalendar(for group: CustomGameGroup, field: GroupEditorDateField) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            DatePicker(
-                field == .start ? "Start Date" : "End Date",
-                selection: Binding(
-                    get: {
-                        switch field {
-                        case .start: return group.startDate ?? Date()
-                        case .end: return group.endDate ?? Date()
-                        }
-                    },
-                    set: { onUpdateGroupDate(group.id, field, $0) }
-                ),
-                displayedComponents: .date
-            )
-            .datePickerStyle(.graphical)
+    private func popoverCalendar(
+        for group: CustomGameGroup,
+        field: GroupEditorDateField,
+        availableHeight: CGFloat
+    ) -> some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 8) {
+                DatePicker(
+                    field == .start ? "Start Date" : "End Date",
+                    selection: Binding(
+                        get: {
+                            switch field {
+                            case .start: return group.startDate ?? Date()
+                            case .end: return group.endDate ?? Date()
+                            }
+                        },
+                        set: { onUpdateGroupDate(group.id, field, $0) }
+                    ),
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
 
-            HStack {
-                Button("Clear", role: .destructive) {
-                    onUpdateGroupDate(group.id, field, nil)
-                    inlineDateEditorGroupID = nil
-                    inlineDateEditorField = nil
+                HStack {
+                    Button("Clear", role: .destructive) {
+                        onUpdateGroupDate(group.id, field, nil)
+                        inlineDateEditorGroupID = nil
+                        inlineDateEditorField = nil
+                    }
+                    .buttonStyle(AppDestructiveActionButtonStyle(fillsWidth: false))
+
+                    Spacer()
+
+                    Button("Done") {
+                        inlineDateEditorGroupID = nil
+                        inlineDateEditorField = nil
+                    }
+                    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
                 }
-                .buttonStyle(AppDestructiveActionButtonStyle(fillsWidth: false))
-
-                Spacer()
-
-                Button("Done") {
-                    inlineDateEditorGroupID = nil
-                    inlineDateEditorField = nil
-                }
-                .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
             }
         }
+        .scrollBounceBehavior(.basedOnSize)
         .padding(12)
-        .frame(minWidth: 320)
+        .frame(minWidth: 320, maxHeight: availableHeight, alignment: .top)
         .presentationCompactAdaptation(.popover)
     }
 
@@ -310,8 +321,8 @@ private struct SwipeableGroupListRow: View {
     let onArchiveToggle: () -> Void
     let onDelete: () -> Void
     let formattedDashboardDate: (Date?) -> String
-    let startDatePopoverContent: () -> AnyView
-    let endDatePopoverContent: () -> AnyView
+    let startDatePopoverContent: (CGFloat) -> AnyView
+    let endDatePopoverContent: (CGFloat) -> AnyView
 
     @State private var offsetX: CGFloat = 0
     @State private var dragStartX: CGFloat = 0
@@ -387,12 +398,11 @@ private struct SwipeableGroupListRow: View {
                 .buttonStyle(.plain)
                 .frame(width: 78, alignment: .center)
                 .contentShape(Rectangle())
-                .popover(
+                .practiceAdaptivePopover(
                     isPresented: isStartDatePopoverPresented,
-                    attachmentAnchor: .rect(.bounds),
-                    arrowEdge: .top
-                ) {
-                    startDatePopoverContent()
+                    preferredHeight: 420
+                ) { availableHeight in
+                    startDatePopoverContent(availableHeight)
                 }
 
                 Button(action: onEndDateTap) {
@@ -404,12 +414,11 @@ private struct SwipeableGroupListRow: View {
                 .buttonStyle(.plain)
                 .frame(width: 78, alignment: .center)
                 .contentShape(Rectangle())
-                .popover(
+                .practiceAdaptivePopover(
                     isPresented: isEndDatePopoverPresented,
-                    attachmentAnchor: .rect(.bounds),
-                    arrowEdge: .top
-                ) {
-                    endDatePopoverContent()
+                    preferredHeight: 420
+                ) { availableHeight in
+                    endDatePopoverContent(availableHeight)
                 }
             }
             .frame(maxWidth: .infinity)
