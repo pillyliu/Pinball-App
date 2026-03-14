@@ -3,6 +3,37 @@ import SwiftUI
 let quickEntryAllGamesLibraryID = "__all_games__"
 private let preferredLibrarySourceDefaultsKey = "preferred-library-source-id"
 
+func resolveInitialQuickEntryLibraryFilterID(
+    kind: QuickEntrySheet,
+    currentSelectedGameSourceID: String,
+    preferredLibrarySourceID: String,
+    avenueLibrarySourceID: String,
+    defaultPracticeSourceID: String,
+    availableLibrarySourceIDs: [String]
+) -> String {
+    func validSourceID(_ sourceID: String) -> String {
+        let trimmed = sourceID.trimmingCharacters(in: .whitespacesAndNewlines)
+        return availableLibrarySourceIDs.contains(trimmed) ? trimmed : ""
+    }
+
+    if kind == .mechanics {
+        return quickEntryAllGamesLibraryID
+    }
+
+    return validSourceID(currentSelectedGameSourceID)
+        .nonEmpty(or: validSourceID(preferredLibrarySourceID))
+        .nonEmpty(or: validSourceID(avenueLibrarySourceID))
+        .nonEmpty(or: validSourceID(defaultPracticeSourceID))
+        .nonEmpty(or: availableLibrarySourceIDs.first ?? "")
+        .nonEmpty(or: quickEntryAllGamesLibraryID)
+}
+
+private extension String {
+    func nonEmpty(or fallback: @autoclosure () -> String) -> String {
+        isEmpty ? fallback() : self
+    }
+}
+
 struct PracticeQuickEntrySheet: View {
     let kind: QuickEntrySheet
     let initialActivity: QuickEntryActivity?
@@ -83,6 +114,10 @@ struct PracticeQuickEntrySheet: View {
         availableLibrarySources.first(where: { $0.id == "venue--the-avenue-cafe" })?.id
             ?? availableLibrarySources.first(where: { $0.id == "the-avenue" })?.id
             ?? availableLibrarySources.first(where: { $0.name.localizedCaseInsensitiveContains("the avenue") })?.id
+    }
+
+    private var selectedGameSourceIDForQuickEntry: String {
+        selectedGame?.sourceId ?? ""
     }
 
     private var filteredGamesForPicker: [PinballGame] {
@@ -383,15 +418,14 @@ struct PracticeQuickEntrySheet: View {
                 let requestedActivity = initialActivity ?? kind.defaultActivity
                 selectedActivity = availableActivities.contains(requestedActivity) ? requestedActivity : kind.defaultActivity
                 if selectedLibraryFilterID.isEmpty {
-                    if kind == .mechanics {
-                        selectedLibraryFilterID = quickEntryAllGamesLibraryID
-                    } else {
-                        selectedLibraryFilterID =
-                            avenueLibrarySourceIDForQuickEntry
-                            ?? store.defaultPracticeSourceID
-                            ?? availableLibrarySources.first?.id
-                            ?? quickEntryAllGamesLibraryID
-                    }
+                    selectedLibraryFilterID = resolveInitialQuickEntryLibraryFilterID(
+                        kind: kind,
+                        currentSelectedGameSourceID: selectedGameSourceIDForQuickEntry,
+                        preferredLibrarySourceID: UserDefaults.standard.string(forKey: preferredLibrarySourceDefaultsKey) ?? "",
+                        avenueLibrarySourceID: avenueLibrarySourceIDForQuickEntry ?? "",
+                        defaultPracticeSourceID: store.defaultPracticeSourceID ?? "",
+                        availableLibrarySourceIDs: availableLibrarySources.map(\.id)
+                    )
                 }
                 if kind == .mechanics {
                     selectedGameID = ""
