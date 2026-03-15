@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-03-13T09:49:51.803Z",
+  "generatedAt": "2026-03-15T04:04:57.819Z",
   "source": "shared/pinball",
-  "totalFiles": 353,
+  "totalFiles": 346,
   "files": {
     "/pinball/api/.htaccess": {
       "hash": "74d7c0a057cc6a4e4b762757f8f69194a1249028bff3ede8ed80a66f06494d21",
@@ -19,7 +19,7 @@
     "/pinball/data/Avenue Pinball - Current.csv": {
       "hash": "0a0e1787965d5e85ad06b7c669ed49eeae1023982d9583f1f9e0565ff64a4760",
       "size": 13473,
-      "mtimeMs": 1773395389985,
+      "mtimeMs": 1773547496227,
       "contentType": "text/csv"
     },
     "/pinball/data/Codex Pinball Library - Current.csv": {
@@ -29,15 +29,15 @@
       "contentType": "text/csv"
     },
     "/pinball/data/LPL_Standings.csv": {
-      "hash": "09f16b44c61d0302948a6c3d4a1180e43ce79a73a1f2b514ca581a5a0664aeed",
-      "size": 24776,
-      "mtimeMs": 1772077282000,
+      "hash": "fbbc978723c416c5c38a22b6102605d112cfc02a7a7bf43ba7f49ecb6bd32dea",
+      "size": 24184,
+      "mtimeMs": 1773547490415,
       "contentType": "text/csv"
     },
     "/pinball/data/LPL_Stats.csv": {
-      "hash": "c5ac9064814a264ad821bccd484241223eb0006843ebc41eb771a2acb08e5856",
-      "size": 1048553,
-      "mtimeMs": 1772078494000,
+      "hash": "0ba181f6d9e73759ec2de7a45f2b7dbaf862a64c141afed35cb6ea0c0f9d26f5",
+      "size": 1059541,
+      "mtimeMs": 1773476533756,
       "contentType": "text/csv"
     },
     "/pinball/data/LPL_Targets.csv": {
@@ -59,9 +59,9 @@
       "contentType": "application/json"
     },
     "/pinball/data/opdb_catalog_v1.json": {
-      "hash": "4777022098e23334a66bca2759a703e022f5934cddf573ddce56e023225accb6",
+      "hash": "59694d51b4347b4b7f0ffd238a1309df579865c1020f3fda412381c11c768086",
       "size": 1867415,
-      "mtimeMs": 1773395391076,
+      "mtimeMs": 1773547497245,
       "contentType": "application/json"
     },
     "/pinball/data/pinball_library.csv": {
@@ -71,15 +71,15 @@
       "contentType": "text/csv"
     },
     "/pinball/data/pinball_library_seed_overrides_v1.json": {
-      "hash": "82fbe8f8a396c55a575adbb1b044ea871792489b26a65c9ad9a4ff6ba5db8686",
-      "size": 18713,
-      "mtimeMs": 1773395391299,
+      "hash": "5cf139367448382c3334f29d9fc17e5644ceb2cfdebfb35d7229911e6cefbbd1",
+      "size": 18363,
+      "mtimeMs": 1773547497433,
       "contentType": "application/json"
     },
     "/pinball/data/pinball_library_seed_v1.sqlite": {
-      "hash": "1dd60655fb60718070b5babe2705cf5512c5d2bdb5d710aaa3cc0d3863fa73dd",
+      "hash": "6e5d72988a2971b4fadf18dcc408654ba18cdcdcb4a408f481407b95f02c05ff",
       "size": 1204224,
-      "mtimeMs": 1773395391253,
+      "mtimeMs": 1773547497390,
       "contentType": "application/octet-stream"
     },
     "/pinball/data/pinball_library_v3.json": {
@@ -119,9 +119,9 @@
       "contentType": "text/csv"
     },
     "/pinball/data/rulesheet_link_audit.json": {
-      "hash": "e2ff2511f82f184172da07c6e0560aa710a8cc6b8aa9a86680a4d5d998480a38",
+      "hash": "d13169c27f7ad489aa24f6720960c61522225693a8e51634792f2ef945b61e39",
       "size": 1488937,
-      "mtimeMs": 1773395391427,
+      "mtimeMs": 1773547497556,
       "contentType": "application/json"
     },
     "/pinball/gameinfo/G2Lkd-gameinfo.md": {
@@ -580,12 +580,6 @@
       "mtimeMs": 1772987487074,
       "contentType": "image/webp"
     },
-    "/pinball/images/playfields/G48w3-Mq1Zk-playfield.jpg": {
-      "hash": "f3d3a75d024fd88b56b48c8edb2349e3a9b37455d011e3254455879e02bec779",
-      "size": 7412293,
-      "mtimeMs": 1772987487079,
-      "contentType": "image/jpeg"
-    },
     "/pinball/images/playfields/G48w3-Mq1Zk-playfield_1400.webp": {
       "hash": "9d46c291a4df6924e571a8aca4f8fa3ccd744758ec968215ca383b3e5a36d74b",
       "size": 616114,
@@ -777,12 +771,6 @@
       "size": 164536,
       "mtimeMs": 1771949867683,
       "contentType": "image/webp"
-    },
-    "/pinball/images/playfields/G56lO-MDXpW-playfield.jpg": {
-      "hash": "3639ac6558e0b1996f5f081b1200458e908f904c73cb059bf1a8c4415ea03634",
-      "size": 5873913,
-      "mtimeMs": 1772987487134,
-      "contentType": "image/jpeg"
     },
     "/pinball/images/playfields/G56lO-MDXpW-playfield_1400.webp": {
       "hash": "c050a8fe51a51ddf1958d7e7756555ac99e01fe976acd6975d001f193bee4eb9",
@@ -1174,12 +1162,6 @@
       "mtimeMs": 1771949867708,
       "contentType": "image/webp"
     },
-    "/pinball/images/playfields/GRVjq-MD0z2-playfield.jpg": {
-      "hash": "c53c997afad3aa251af5b4c53dbd09645b0f65627e6910cfe97d957e943ff968",
-      "size": 3228842,
-      "mtimeMs": 1772987487236,
-      "contentType": "image/jpeg"
-    },
     "/pinball/images/playfields/GRVjq-MD0z2-playfield_1400.webp": {
       "hash": "284197ca1ea628917920ba24acde5cbbca18ab8c019e985fafd4e8f8070058be",
       "size": 695818,
@@ -1227,12 +1209,6 @@
       "size": 161548,
       "mtimeMs": 1771938105104,
       "contentType": "image/webp"
-    },
-    "/pinball/images/playfields/GRwv0-MJ99E-playfield.jpg": {
-      "hash": "dad33036e03771e2caccab034f26e360d8f1846c1ac4bc57cf89a66ad214dac4",
-      "size": 5255111,
-      "mtimeMs": 1772987487240,
-      "contentType": "image/jpeg"
     },
     "/pinball/images/playfields/GRwv0-MJ99E-playfield_1400.webp": {
       "hash": "14c56c9fd680d684787e5846892d8be152382a5f9bb6a14b359b21b7542116da",
@@ -1498,12 +1474,6 @@
       "mtimeMs": 1771949867664,
       "contentType": "image/webp"
     },
-    "/pinball/images/playfields/GrPKO-MLO5X-playfield.jpg": {
-      "hash": "c21096105d4dd0bfd3473d263949f6d9c09efb05e3dff7401ab3fb5d7c16f2b9",
-      "size": 7542442,
-      "mtimeMs": 1772987487300,
-      "contentType": "image/jpeg"
-    },
     "/pinball/images/playfields/GrPKO-MLO5X-playfield_1400.webp": {
       "hash": "b7bd9760b1a0d2e7b13f26440e7a143f2871ce551eab280a6dc0f3ae2ba6ec96",
       "size": 633700,
@@ -1570,12 +1540,6 @@
       "mtimeMs": 1772987487310,
       "contentType": "image/webp"
     },
-    "/pinball/images/playfields/GrqZX-MDEPd-playfield.jpg": {
-      "hash": "f5120b1a22d4f4dc37c7bbd3e8a51265a83e9adbecd3b5fa6cbe995419302596",
-      "size": 4997663,
-      "mtimeMs": 1772987487313,
-      "contentType": "image/jpeg"
-    },
     "/pinball/images/playfields/GrqZX-MDEPd-playfield_1400.webp": {
       "hash": "babe1d0c7653f5e0374556a28c863372c237de602afceb0a6b48cf391399ab9f",
       "size": 601692,
@@ -1623,12 +1587,6 @@
       "size": 188216,
       "mtimeMs": 1771949867761,
       "contentType": "image/webp"
-    },
-    "/pinball/images/playfields/Grybw-M5R0n-playfield.jpg": {
-      "hash": "98e64eb058570032bacfcc0596ba78682d9b02658db885b7daa99c365bfc1789",
-      "size": 7754712,
-      "mtimeMs": 1772987487318,
-      "contentType": "image/jpeg"
     },
     "/pinball/images/playfields/Grybw-M5R0n-playfield_1400.webp": {
       "hash": "e44b305fbb096fe31d6699b23ce40502abc115d7bc5dc657d8d107e30099b3c4",

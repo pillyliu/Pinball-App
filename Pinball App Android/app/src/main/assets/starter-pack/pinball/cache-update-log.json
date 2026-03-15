@@ -2,6 +2,77 @@
   "schemaVersion": 1,
   "events": [
     {
+      "generatedAt": "2026-03-15T04:04:57.819Z",
+      "addedCount": 0,
+      "changedCount": 5,
+      "removedCount": 0,
+      "totalFiles": 346,
+      "added": [],
+      "changed": [
+        "/pinball/data/LPL_Standings.csv",
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": []
+    },
+    {
+      "generatedAt": "2026-03-15T04:01:57.527Z",
+      "addedCount": 0,
+      "changedCount": 4,
+      "removedCount": 7,
+      "totalFiles": 346,
+      "added": [],
+      "changed": [
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": [
+        "/pinball/images/playfields/G48w3-Mq1Zk-playfield.jpg",
+        "/pinball/images/playfields/G56lO-MDXpW-playfield.jpg",
+        "/pinball/images/playfields/GRVjq-MD0z2-playfield.jpg",
+        "/pinball/images/playfields/GRwv0-MJ99E-playfield.jpg",
+        "/pinball/images/playfields/GrPKO-MLO5X-playfield.jpg",
+        "/pinball/images/playfields/GrqZX-MDEPd-playfield.jpg",
+        "/pinball/images/playfields/Grybw-M5R0n-playfield.jpg"
+      ]
+    },
+    {
+      "generatedAt": "2026-03-14T16:12:19.063Z",
+      "addedCount": 0,
+      "changedCount": 4,
+      "removedCount": 0,
+      "totalFiles": 353,
+      "added": [],
+      "changed": [
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": []
+    },
+    {
+      "generatedAt": "2026-03-14T08:25:14.530Z",
+      "addedCount": 0,
+      "changedCount": 6,
+      "removedCount": 0,
+      "totalFiles": 353,
+      "added": [],
+      "changed": [
+        "/pinball/data/LPL_Standings.csv",
+        "/pinball/data/LPL_Stats.csv",
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/rulesheet_link_audit.json"
+      ],
+      "removed": []
+    },
+    {
       "generatedAt": "2026-03-13T09:49:51.803Z",
       "addedCount": 0,
       "changedCount": 4,
@@ -636,10 +707,10 @@
     }
   ],
   "latest": {
-    "generatedAt": "2026-03-13T09:49:51.803Z",
+    "generatedAt": "2026-03-15T04:04:57.819Z",
     "addedCount": 0,
-    "changedCount": 4,
+    "changedCount": 5,
     "removedCount": 0,
-    "totalFiles": 353
+    "totalFiles": 346
   }
 }
