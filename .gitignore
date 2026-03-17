@@ -28,6 +28,7 @@ local.properties
 **/vendor/bundle/
 **/build/
 **/captures/
+**/gradle/gradle-daemon-jvm.properties
 **/keystore.properties
 **/*.apk
 **/*.aab
