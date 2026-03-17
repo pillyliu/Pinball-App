@@ -1307,10 +1307,12 @@ private func buildLegacyCuratedOverrides(from games: [PinballGame]) -> [String: 
             videos: []
         )
 
-        current.nameOverride = current.nameOverride ?? preferredLegacyNameOverride(for: game)
-        current.variantOverride = current.variantOverride ?? catalogNormalizedOptionalString(game.normalizedVariant)
-        current.manufacturerOverride = current.manufacturerOverride ?? catalogNormalizedOptionalString(game.manufacturer)
-        current.yearOverride = current.yearOverride ?? game.year
+        if !isImportedPinballMapSourceID(game.sourceId) {
+            current.nameOverride = current.nameOverride ?? preferredLegacyNameOverride(for: game)
+            current.variantOverride = current.variantOverride ?? catalogNormalizedOptionalString(game.normalizedVariant)
+            current.manufacturerOverride = current.manufacturerOverride ?? catalogNormalizedOptionalString(game.manufacturer)
+            current.yearOverride = current.yearOverride ?? game.year
+        }
         current.playfieldLocalPath = current.playfieldLocalPath ?? catalogNormalizedOptionalString(game.playfieldLocalOriginal ?? game.playfieldLocal)
         current.playfieldSourceURL = current.playfieldSourceURL ?? preferredLegacyPlayfieldOverride(for: game)
         current.gameinfoLocalPath = current.gameinfoLocalPath ?? catalogNormalizedOptionalString(game.gameinfoLocal)

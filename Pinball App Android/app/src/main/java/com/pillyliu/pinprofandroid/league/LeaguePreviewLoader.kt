@@ -2,8 +2,7 @@ package com.pillyliu.pinprofandroid.league
 
 import android.content.Context
 import com.pillyliu.pinprofandroid.data.PinballDataCache
-import com.pillyliu.pinprofandroid.library.LibraryGameLookup
-import com.pillyliu.pinprofandroid.library.loadLibraryExtraction
+import com.pillyliu.pinprofandroid.practice.loadResolvedLeagueTargets
 import com.pillyliu.pinprofandroid.practice.loadPreferredLeaguePlayerName
 import com.pillyliu.pinprofandroid.practice.practiceSharedPreferences
 import kotlinx.coroutines.Dispatchers
@@ -12,14 +11,21 @@ import java.util.Locale
 
 internal suspend fun loadLeaguePreviewState(context: Context): LeaguePreviewState = withContext(Dispatchers.IO) {
     try {
-        val targetsCsv = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/LPL_Targets.csv").text.orEmpty()
         val standingsCsv = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/LPL_Standings.csv", allowMissing = true).text.orEmpty()
         val statsCsv = PinballDataCache.passthroughOrCachedText("https://pillyliu.com/pinball/data/LPL_Stats.csv", allowMissing = true).text.orEmpty()
-        val libraryEntries = LibraryGameLookup.buildEntries(loadLibraryExtraction(context).payload.games)
         val selectedPlayer = loadPreferredLeaguePlayerName(practiceSharedPreferences(context))
 
         val statsRows = parseStatsRows(statsCsv)
-        val targets = mergeTargetsWithLibrary(parseTargetRows(targetsCsv), libraryEntries)
+        val targets = loadResolvedLeagueTargets("/pinball/data/lpl_targets_resolved_v1.json").map { row ->
+            TargetPreviewRow(
+                game = row.game,
+                second = row.secondHighestAvg,
+                fourth = row.fourthHighestAvg,
+                eighth = row.eighthHighestAvg,
+                bank = row.bank,
+                order = row.order,
+            )
+        }
         val standingsRows = parseStandingsRows(standingsCsv)
 
         val availableBanks = targets.mapNotNull { it.bank }.toSet()

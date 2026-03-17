@@ -350,7 +350,7 @@
 					"@executable_path/Frameworks",
 				);
 				LM_FILTER_WARNINGS = YES;
-				MARKETING_VERSION = 3.3.8;
+				MARKETING_VERSION = 3.4.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -395,7 +395,7 @@
 					"@executable_path/Frameworks",
 				);
 				LM_FILTER_WARNINGS = YES;
-				MARKETING_VERSION = 3.3.8;
+				MARKETING_VERSION = 3.4.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",

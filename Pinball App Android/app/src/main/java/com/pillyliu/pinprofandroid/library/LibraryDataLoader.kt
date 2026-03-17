@@ -936,10 +936,12 @@ private fun buildLegacyCuratedOverrides(games: List<PinballGame>): Map<String, L
     games.forEach { game ->
         val practiceIdentity = normalizedOptionalString(game.practiceIdentity ?: game.opdbGroupId) ?: return@forEach
         val current = out.getOrPut(practiceIdentity) { LegacyCuratedOverride(practiceIdentity = practiceIdentity) }
-        current.nameOverride = current.nameOverride ?: preferredLegacyNameOverride(game)
-        current.variantOverride = current.variantOverride ?: normalizedOptionalString(game.normalizedVariant)
-        current.manufacturerOverride = current.manufacturerOverride ?: normalizedOptionalString(game.manufacturer)
-        current.yearOverride = current.yearOverride ?: game.year
+        if (!isImportedPinballMapSourceId(game.sourceId)) {
+            current.nameOverride = current.nameOverride ?: preferredLegacyNameOverride(game)
+            current.variantOverride = current.variantOverride ?: normalizedOptionalString(game.normalizedVariant)
+            current.manufacturerOverride = current.manufacturerOverride ?: normalizedOptionalString(game.manufacturer)
+            current.yearOverride = current.yearOverride ?: game.year
+        }
         current.playfieldLocalPath = current.playfieldLocalPath ?: normalizedOptionalString(game.playfieldLocalOriginal ?: game.playfieldLocal)
         current.playfieldSourceUrl = current.playfieldSourceUrl ?: preferredLegacyPlayfieldOverride(game)
         current.gameinfoLocalPath = current.gameinfoLocalPath ?: normalizedOptionalString(game.gameinfoLocal)
