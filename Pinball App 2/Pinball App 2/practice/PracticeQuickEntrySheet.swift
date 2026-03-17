@@ -111,7 +111,8 @@ struct PracticeQuickEntrySheet: View {
     }
 
     private var avenueLibrarySourceIDForQuickEntry: String? {
-        availableLibrarySources.first(where: { $0.id == "venue--the-avenue-cafe" })?.id
+        availableLibrarySources.first(where: { $0.id == "venue--pm-8760" })?.id
+            ?? availableLibrarySources.first(where: { $0.id == "venue--the-avenue-cafe" })?.id
             ?? availableLibrarySources.first(where: { $0.id == "the-avenue" })?.id
             ?? availableLibrarySources.first(where: { $0.name.localizedCaseInsensitiveContains("the avenue") })?.id
     }

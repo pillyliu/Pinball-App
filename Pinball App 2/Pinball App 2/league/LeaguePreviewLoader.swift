@@ -14,26 +14,28 @@ struct LeaguePreviewSnapshot {
 
 func loadLeaguePreviewSnapshot() async -> LeaguePreviewSnapshot {
     do {
-        async let targetsResult = PinballDataCache.shared.loadText(path: LeaguePreviewPaths.targetsPath)
+        async let targetsResult = PinballDataCache.shared.loadText(path: LeaguePreviewPaths.targetsPath, allowMissing: true)
         async let standingsResult = PinballDataCache.shared.loadText(path: LeaguePreviewPaths.standingsPath, allowMissing: true)
         async let statsResult = PinballDataCache.shared.loadText(path: LeaguePreviewPaths.statsPath, allowMissing: true)
-        async let libraryExtraction = loadLibraryExtraction()
 
-        let (targetsTextResult, standingsTextResult, statsTextResult, extraction) = try await (
+        let (targetsTextResult, standingsTextResult, statsTextResult) = try await (
             targetsResult,
             standingsResult,
-            statsResult,
-            libraryExtraction
+            statsResult
         )
 
         let selectedPlayer = PracticeStore.loadPreferredLeaguePlayerNameFromDefaults()
-        let libraryEntries = LibraryGameLookup.buildEntries(games: extraction.payload.games)
-
         let mergedTargets = targetsTextResult.text.map {
-            mergeLeagueTargetsWithLibrary(
-                targetRows: parseLeagueTargetRows($0),
-                libraryEntries: libraryEntries
-            )
+            parseResolvedLeagueTargets(text: $0).map { row in
+                LeagueTargetPreviewRow(
+                    game: row.game,
+                    secondHighest: row.secondHighestAvg,
+                    fourthHighest: row.fourthHighestAvg,
+                    eighthHighest: row.eighthHighestAvg,
+                    bank: row.bank,
+                    order: row.order
+                )
+            }
         } ?? []
         let availableBanks = Set(mergedTargets.compactMap(\.bank))
         let nextBank = resolveLeagueNextBank(
@@ -85,7 +87,7 @@ func loadLeaguePreviewSnapshot() async -> LeaguePreviewSnapshot {
 }
 
 private enum LeaguePreviewPaths {
-    static let targetsPath = "/pinball/data/LPL_Targets.csv"
+    static let targetsPath = "/pinball/data/lpl_targets_resolved_v1.json"
     static let standingsPath = "/pinball/data/LPL_Standings.csv"
     static let statsPath = "/pinball/data/LPL_Stats.csv"
 }

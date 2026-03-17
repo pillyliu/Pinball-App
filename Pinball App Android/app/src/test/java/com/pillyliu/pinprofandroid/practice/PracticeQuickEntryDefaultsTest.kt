@@ -14,9 +14,9 @@ class PracticeQuickEntryDefaultsTest {
             resumeGameSourceId = "venue--latest-spot",
             savedLibraryOption = "",
             preferredLibraryOption = "",
-            avenueLibraryOption = "venue--the-avenue-cafe",
+            avenueLibraryOption = "venue--pm-8760",
             defaultPracticeSourceId = "",
-            availableLibraryOptionIds = linkedSetOf("venue--the-avenue-cafe", "venue--latest-spot"),
+            availableLibraryOptionIds = linkedSetOf("venue--pm-8760", "venue--latest-spot"),
         )
 
         assertEquals("venue--latest-spot", initial)

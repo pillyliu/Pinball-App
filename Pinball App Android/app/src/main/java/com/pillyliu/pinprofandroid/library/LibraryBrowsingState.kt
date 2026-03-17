@@ -175,7 +175,8 @@ internal fun preferredDefaultSortOption(source: LibrarySource, games: List<Pinba
                 val area = it.area?.trim()
                 !area.isNullOrEmpty() && !area.equals("null", ignoreCase = true)
             }
-            if (hasArea) LibrarySortOption.AREA else LibrarySortOption.ALPHABETICAL
+            val hasPosition = games.any { (it.group ?: 0) > 0 || (it.position ?: 0) > 0 }
+            if (hasArea || hasPosition) LibrarySortOption.AREA else LibrarySortOption.ALPHABETICAL
         }
     }
 }

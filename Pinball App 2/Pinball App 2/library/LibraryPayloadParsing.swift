@@ -1,5 +1,8 @@
 import Foundation
 
+private nonisolated func pmAvenueLibrarySourceID() -> String { "venue--pm-8760" }
+private nonisolated func pmRLMLibrarySourceID() -> String { "venue--pm-16470" }
+
 struct PinballLibraryPayload {
     let games: [PinballGame]
     let sources: [PinballLibrarySource]
@@ -43,7 +46,7 @@ nonisolated func libraryInferSources(from games: [PinballGame]) -> [PinballLibra
         seen.append(PinballLibrarySource(id: game.sourceId, name: game.sourceName, type: game.sourceType))
     }
     if seen.isEmpty {
-        seen.append(PinballLibrarySource(id: "the-avenue", name: "The Avenue", type: .venue))
+        seen.append(PinballLibrarySource(id: pmAvenueLibrarySourceID(), name: "The Avenue Cafe", type: .venue))
     }
     return seen
 }
@@ -62,14 +65,31 @@ nonisolated func libraryParseSourceType(_ raw: String?) -> PinballLibrarySourceT
     return .venue
 }
 
+nonisolated func libraryCanonicalSourceID(_ raw: String?) -> String? {
+    guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+        return nil
+    }
+    switch trimmed {
+    case "the-avenue", "the-avenue-cafe", "venue--the-avenue-cafe":
+        return pmAvenueLibrarySourceID()
+    case "rlm-amusements", "venue--rlm-amusements":
+        return pmRLMLibrarySourceID()
+    default:
+        return trimmed
+    }
+}
+
 nonisolated func librarySlugifySourceID(_ value: String) -> String {
     let lower = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    if lower.isEmpty { return "the-avenue" }
+    if lower.isEmpty { return pmAvenueLibrarySourceID() }
     let mapped = lower
         .replacingOccurrences(of: "&", with: "and")
         .replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
         .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-    return mapped.isEmpty ? "the-avenue" : mapped
+    if mapped.isEmpty { return pmAvenueLibrarySourceID() }
+    if mapped == "the-avenue" || mapped == "the-avenue-cafe" { return pmAvenueLibrarySourceID() }
+    if mapped == "rlm-amusements" { return pmRLMLibrarySourceID() }
+    return mapped
 }
 
 nonisolated func libraryNormalizedOptionalString(_ value: String?) -> String? {
@@ -277,7 +297,8 @@ struct PinballLibraryBrowsingState {
                 guard let area = $0.area?.trimmingCharacters(in: .whitespacesAndNewlines) else { return false }
                 return !area.isEmpty && area.lowercased() != "null"
             }
-            return hasArea ? .area : .alphabetical
+            let hasPosition = games.contains { ($0.group ?? 0) > 0 || ($0.pos ?? 0) > 0 }
+            return (hasArea || hasPosition) ? .area : .alphabetical
         }
     }
 

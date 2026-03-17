@@ -18,7 +18,7 @@ func preferredPracticeRepresentative(_ games: [PinballGame]) -> PinballGame? {
 private func practiceRepresentativeScore(_ game: PinballGame) -> Int {
     var score = 0
     if game.sourceId == "venue--gameroom" { score += 600 }
-    if game.sourceId != "venue--the-avenue-cafe" && game.sourceId != "the-avenue" { score += 250 }
+    if game.sourceId != "venue--pm-8760" && game.sourceId != "venue--the-avenue-cafe" && game.sourceId != "the-avenue" { score += 250 }
     if game.sourceType != .venue { score += 150 }
     if game.name.contains(":") { score += 120 }
     if let variant = game.normalizedVariant?.trimmingCharacters(in: .whitespacesAndNewlines), !variant.isEmpty {

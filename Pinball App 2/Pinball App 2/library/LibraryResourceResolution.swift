@@ -32,11 +32,11 @@ struct LibraryPlayfieldOption: Identifiable, Equatable {
 
 enum LibraryRulesheetSourceKind: Int {
     case local = 0
-    case prof = 1
-    case bob = 2
-    case papa = 3
-    case pp = 4
-    case tf = 5
+    case tf = 1
+    case prof = 2
+    case bob = 3
+    case papa = 4
+    case pp = 5
     case opdb = 6
     case other = 7
 
@@ -45,7 +45,7 @@ enum LibraryRulesheetSourceKind: Int {
         case .local:
             return "Local"
         case .prof:
-            return "Prof"
+            return "PinProf"
         case .bob:
             return "Bob"
         case .papa:
@@ -137,11 +137,21 @@ nonisolated func normalizeLibraryCachePath(_ pathOrURL: String?) -> String? {
     guard let raw = pathOrURL?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
         return nil
     }
-    if let url = URL(string: raw), let host = url.host?.lowercased(), host == "pillyliu.com" {
-        return url.path
+    func normalizePlayfieldPublishedPath(_ value: String) -> String {
+        value.replacingOccurrences(
+            of: #"(/pinball/images/playfields/.+?)(?:_(700|1400))?\.[A-Za-z0-9]+$"#,
+            with: "$1.webp",
+            options: .regularExpression
+        )
     }
-    if raw.hasPrefix("/") { return raw }
-    return "/" + raw
+    if let url = URL(string: raw), let host = url.host?.lowercased(), host == "pillyliu.com" {
+        return url.path.contains("/pinball/images/playfields/") ? normalizePlayfieldPublishedPath(url.path) : url.path
+    }
+    if raw.hasPrefix("/") {
+        return raw.contains("/pinball/images/playfields/") ? normalizePlayfieldPublishedPath(raw) : raw
+    }
+    let normalized = "/" + raw
+    return normalized.contains("/pinball/images/playfields/") ? normalizePlayfieldPublishedPath(normalized) : normalized
 }
 
 nonisolated func normalizeLibraryPlayfieldLocalPath(_ pathOrURL: String?) -> String? {
@@ -285,7 +295,7 @@ extension PinballGame {
     func resolvedPlayfieldButtonLabel(liveStatus: LibraryLivePlayfieldStatus?) -> String {
         switch liveStatus?.effectiveKind {
         case .pillyliu:
-            return "Prof"
+            return "PinProf"
         case .opdb:
             return "OPDB"
         case .external:
@@ -322,7 +332,7 @@ extension PinballGame {
 
         let profCandidates = profPlayfieldCandidates(liveStatus: liveStatus)
         if !profCandidates.isEmpty {
-            appendOption(title: "Prof", candidates: profCandidates)
+            appendOption(title: "PinProf", candidates: profCandidates)
         } else {
             appendOption(title: "Local", candidates: localFallbackPlayfieldCandidates)
         }
@@ -339,21 +349,21 @@ extension PinballGame {
                 return "OPDB"
             }
             if normalized.contains("prof") {
-                return "Prof"
+                return "PinProf"
             }
             if normalized.contains("local") {
                 return "Local"
             }
         }
         if !profPlayfieldBaseCandidates.isEmpty {
-            return "Prof"
+            return "PinProf"
         }
         if !localFallbackPlayfieldCandidates.isEmpty {
             return "Local"
         }
         if let playfieldImageSourceURL {
             if libraryIsPinProfPlayfieldURL(playfieldImageSourceURL) {
-                return "Prof"
+                return "PinProf"
             }
             if isOPDBPlayfieldURL(playfieldImageSourceURL) {
                 return "OPDB"

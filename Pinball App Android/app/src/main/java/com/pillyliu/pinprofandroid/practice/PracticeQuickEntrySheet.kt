@@ -128,7 +128,8 @@ internal fun QuickEntrySheet(
     }
     val showLibraryDropdown = !fromGameView && librarySources.size > 1
     fun avenueLibraryOptionId(): String? {
-        return librarySources.firstOrNull { it.id == "venue--the-avenue-cafe" }?.id
+        return librarySources.firstOrNull { it.id == "venue--pm-8760" }?.id
+            ?: librarySources.firstOrNull { it.id == "venue--the-avenue-cafe" }?.id
             ?: librarySources.firstOrNull { it.id == "the-avenue" }?.id
             ?: librarySources.firstOrNull { it.name.contains("the avenue", ignoreCase = true) }?.id
     }

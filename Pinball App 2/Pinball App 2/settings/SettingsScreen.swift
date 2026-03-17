@@ -20,8 +20,8 @@ final class SettingsViewModel: ObservableObject {
 
     private var didLoad = false
     let builtinSources: [PinballLibrarySource] = [
-        .init(id: "venue--rlm-amusements", name: "RLM Amusements", type: .venue),
-        .init(id: "venue--the-avenue-cafe", name: "The Avenue Cafe", type: .venue),
+        .init(id: "venue--pm-16470", name: "RLM Amusements", type: .venue),
+        .init(id: "venue--pm-8760", name: "The Avenue Cafe", type: .venue),
     ]
 
     private func applySnapshot(_ snapshot: SettingsDataSnapshot) {

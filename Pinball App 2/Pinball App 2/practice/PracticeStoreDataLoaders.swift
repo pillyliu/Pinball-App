@@ -41,13 +41,26 @@ extension PracticeStore {
 
     func loadLeagueTargets() async {
         do {
+            let resolvedCached = try await PinballDataCache.shared.loadText(path: Self.resolvedLeagueTargetsPath, allowMissing: true)
+            if let resolvedText = resolvedCached.text, !resolvedText.isEmpty {
+                let resolvedRecords = parseResolvedLeagueTargets(text: resolvedText)
+                if !resolvedRecords.isEmpty {
+                    leagueTargetsByPracticeIdentity = resolvedLeagueTargetScoresByPracticeIdentity(records: resolvedRecords)
+                    leagueTargetsByNormalizedMachine = [:]
+                    return
+                }
+            }
+
             let cached = try await PinballDataCache.shared.loadText(path: Self.leagueTargetsPath, allowMissing: true)
             guard let text = cached.text, !text.isEmpty else {
+                leagueTargetsByPracticeIdentity = [:]
                 leagueTargetsByNormalizedMachine = [:]
                 return
             }
+            leagueTargetsByPracticeIdentity = [:]
             leagueTargetsByNormalizedMachine = parseLeagueTargets(text: text)
         } catch {
+            leagueTargetsByPracticeIdentity = [:]
             leagueTargetsByNormalizedMachine = [:]
         }
     }

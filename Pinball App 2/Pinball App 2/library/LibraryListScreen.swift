@@ -180,7 +180,7 @@ extension LibraryScreen {
             .clipped()
 
             HStack(spacing: 4) {
-                AppOverlaySubtitle(game.manufacturerYearLine)
+                AppOverlaySubtitle(game.manufacturerYearCardLine)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .layoutPriority(1)

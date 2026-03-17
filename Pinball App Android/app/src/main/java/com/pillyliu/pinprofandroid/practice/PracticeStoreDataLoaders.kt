@@ -55,3 +55,13 @@ internal suspend fun loadLeagueTargetsMap(path: String): Map<String, LeagueTarge
         emptyMap()
     }
 }
+
+internal suspend fun loadResolvedLeagueTargets(path: String): List<ResolvedLeagueTargetRecord> = withContext(Dispatchers.IO) {
+    try {
+        val result = PinballDataCache.loadText(path, allowMissing = true)
+        val text = result.text ?: return@withContext emptyList()
+        parseResolvedLeagueTargets(text)
+    } catch (_: Throwable) {
+        emptyList()
+    }
+}

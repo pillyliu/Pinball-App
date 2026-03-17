@@ -185,8 +185,11 @@ struct SettingsHomeContent: View {
                 sourceType: source.type
             )
         }
-        let importedRows = viewModel.importedSources.map { source in
-            ManagedSourceRow(
+        let importedRows = viewModel.importedSources.compactMap { source -> ManagedSourceRow? in
+            guard !viewModel.builtinSources.contains(where: { $0.id == source.id }) else {
+                return nil
+            }
+            return ManagedSourceRow(
                 id: source.id,
                 title: source.name,
                 subtitle: managedSourceSubtitle(for: source),

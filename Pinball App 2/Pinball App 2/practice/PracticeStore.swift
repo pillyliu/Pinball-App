@@ -120,10 +120,12 @@ final class PracticeStore: ObservableObject {
 
     static let leagueStatsPath = "/pinball/data/LPL_Stats.csv"
     static let leagueTargetsPath = "/pinball/data/LPL_Targets.csv"
+    static let resolvedLeagueTargetsPath = "/pinball/data/lpl_targets_resolved_v1.json"
     static let storageKey = "practice-state-json"
     static let legacyStorageKey = "practice-upgrade-state-v1"
 
     var didLoad = false
+    var leagueTargetsByPracticeIdentity: [String: LeagueTargetScores] = [:]
     var leagueTargetsByNormalizedMachine: [String: LeagueTargetScores] = [:]
 
     func loadIfNeeded() async {
@@ -138,6 +140,9 @@ final class PracticeStore: ObservableObject {
 
     func leagueTargetScores(for gameID: String) -> LeagueTargetScores? {
         let canonical = canonicalPracticeGameID(gameID)
+        if let direct = leagueTargetsByPracticeIdentity[canonical] {
+            return direct
+        }
         guard let game = gameForAnyID(canonical) else { return nil }
         return leagueTargetScores(forGameName: game.name)
     }

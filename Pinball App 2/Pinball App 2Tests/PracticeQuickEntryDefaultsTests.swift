@@ -7,9 +7,9 @@ final class PracticeQuickEntryDefaultsTests: XCTestCase {
             kind: .score,
             currentSelectedGameSourceID: "venue--latest-spot",
             preferredLibrarySourceID: "",
-            avenueLibrarySourceID: "venue--the-avenue-cafe",
+            avenueLibrarySourceID: "venue--pm-8760",
             defaultPracticeSourceID: "",
-            availableLibrarySourceIDs: ["venue--the-avenue-cafe", "venue--latest-spot"]
+            availableLibrarySourceIDs: ["venue--pm-8760", "venue--latest-spot"]
         )
 
         XCTAssertEqual(initial, "venue--latest-spot")
@@ -20,9 +20,9 @@ final class PracticeQuickEntryDefaultsTests: XCTestCase {
             kind: .mechanics,
             currentSelectedGameSourceID: "venue--latest-spot",
             preferredLibrarySourceID: "venue--preferred",
-            avenueLibrarySourceID: "venue--the-avenue-cafe",
+            avenueLibrarySourceID: "venue--pm-8760",
             defaultPracticeSourceID: "venue--default",
-            availableLibrarySourceIDs: ["venue--the-avenue-cafe", "venue--latest-spot"]
+            availableLibrarySourceIDs: ["venue--pm-8760", "venue--latest-spot"]
         )
 
         XCTAssertEqual(initial, quickEntryAllGamesLibraryID)

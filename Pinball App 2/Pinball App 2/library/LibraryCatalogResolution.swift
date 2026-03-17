@@ -6,7 +6,8 @@ nonisolated func resolveImportedGame(
     manufacturerByID: [String: CatalogManufacturerRecord],
     curatedOverride: LegacyCuratedOverride?,
     opdbRulesheets: [CatalogRulesheetLinkRecord],
-    opdbVideos: [CatalogVideoLinkRecord]
+    opdbVideos: [CatalogVideoLinkRecord],
+    venueMetadata: ResolvedImportedVenueMetadata?
 ) -> PinballGame {
     let manufacturerName = curatedOverride?.manufacturerOverride
         ?? machine.manufacturerName
@@ -29,11 +30,11 @@ nonisolated func resolveImportedGame(
         sourceID: source.id,
         sourceName: source.name,
         sourceType: source.type,
-        area: nil,
-        areaOrder: nil,
-        groupNumber: nil,
-        position: nil,
-        bank: nil,
+        area: venueMetadata?.area,
+        areaOrder: venueMetadata?.areaOrder,
+        groupNumber: venueMetadata?.groupNumber,
+        position: venueMetadata?.position,
+        bank: venueMetadata?.bank,
         name: curatedOverride?.nameOverride ?? catalogResolvedDisplayTitle(
             title: machine.name,
             explicitVariant: machine.variant
@@ -167,6 +168,8 @@ nonisolated func catalogNormalizedVariantLabel(_ value: String?) -> String? {
     if lowered == "le" || lowered.contains("limited edition") { return "LE" }
     if lowered == "ce" || lowered.contains("collector") { return "CE" }
     if lowered == "se" || lowered.contains("special edition") { return "SE" }
+    if lowered == "arcade" { return "Arcade" }
+    if lowered == "wizard" { return "Wizard" }
     if lowered == "premium/le" || lowered == "premium le" || lowered == "premium-le" {
         return "Premium/LE"
     }
@@ -195,6 +198,8 @@ private nonisolated func catalogLooksLikeVariantSuffix(_ value: String) -> Bool 
         lowered == "ce" ||
         lowered == "se" ||
         lowered == "home" ||
+        lowered == "arcade" ||
+        lowered == "wizard" ||
         lowered.contains("anniversary") ||
         lowered.contains("limited edition") ||
         lowered.contains("special edition") ||
@@ -293,25 +298,29 @@ nonisolated func resolveImportedRulesheetLinks(
     curatedOverride: LegacyCuratedOverride?,
     opdbRulesheetLinks: [CatalogRulesheetLinkRecord]
 ) -> (localPath: String?, links: [PinballGame.ReferenceLink]) {
+    let resolvedCatalogRulesheets = resolveRulesheetLinks(override: nil, rulesheetLinks: opdbRulesheetLinks)
     if let localPath = catalogNormalizedOptionalString(curatedOverride?.rulesheetLocalPath) {
-        return (localPath, [])
+        return (localPath, mergeRulesheetLinks(
+            primary: curatedOverride?.rulesheetLinks ?? [],
+            secondary: resolvedCatalogRulesheets.links
+        ))
     }
 
     if let curatedOverride, !curatedOverride.rulesheetLinks.isEmpty {
-        return (nil, curatedOverride.rulesheetLinks)
+        return (nil, mergeRulesheetLinks(primary: curatedOverride.rulesheetLinks, secondary: resolvedCatalogRulesheets.links))
     }
 
-    return resolveRulesheetLinks(override: nil, rulesheetLinks: opdbRulesheetLinks)
+    return resolvedCatalogRulesheets
 }
 
 nonisolated func resolveImportedVideos(
     curatedOverride: LegacyCuratedOverride?,
     opdbVideoLinks: [CatalogVideoLinkRecord]
 ) -> [PinballGame.Video] {
-    if let curatedOverride, !curatedOverride.videos.isEmpty {
-        return curatedOverride.videos
-    }
-    return resolveVideoLinks(videoLinks: opdbVideoLinks)
+    mergeResolvedVideos(
+        primary: curatedOverride?.videos ?? [],
+        secondary: resolveVideoLinks(videoLinks: opdbVideoLinks)
+    )
 }
 
 nonisolated func catalogDedupedSources(_ sources: [PinballLibrarySource]) -> [PinballLibrarySource] {
@@ -325,10 +334,6 @@ nonisolated func resolveRulesheetLinks(
     override: CatalogOverrideRecord?,
     rulesheetLinks: [CatalogRulesheetLinkRecord]
 ) -> (localPath: String?, links: [PinballGame.ReferenceLink]) {
-    if let local = catalogNormalizedOptionalString(override?.rulesheetLocalPath) {
-        return (local, [])
-    }
-
     let sortedLinks = rulesheetLinks.sorted(by: compareCatalogRulesheetLinks)
     let links = sortedLinks.compactMap { link -> PinballGame.ReferenceLink? in
         guard let url = catalogNormalizedOptionalString(link.url) else { return nil }
@@ -341,26 +346,138 @@ nonisolated func resolveRulesheetLinks(
             url: url
         )
     }
-    return (catalogNormalizedOptionalString(sortedLinks.first?.localPath), links)
+    return (
+        catalogNormalizedOptionalString(override?.rulesheetLocalPath) ?? catalogNormalizedOptionalString(sortedLinks.first?.localPath),
+        links
+    )
+}
+
+nonisolated func mergeRulesheetLinks(
+    primary: [PinballGame.ReferenceLink],
+    secondary: [PinballGame.ReferenceLink]
+) -> [PinballGame.ReferenceLink] {
+    var seen = Set<String>()
+    var merged: [PinballGame.ReferenceLink] = []
+    for link in primary + secondary {
+        let key = canonicalRulesheetMergeKey(link)
+        if seen.contains(key) { continue }
+        seen.insert(key)
+        merged.append(link)
+    }
+    return merged
+}
+
+nonisolated private func canonicalRulesheetMergeKey(_ link: PinballGame.ReferenceLink) -> String {
+    let url = link.url.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !url.isEmpty {
+        return "url|\(url.lowercased())"
+    }
+    let label = link.label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    return "label|\(label)"
 }
 
 nonisolated func resolveVideoLinks(videoLinks: [CatalogVideoLinkRecord]) -> [PinballGame.Video] {
-    let groupedByProvider = Dictionary(grouping: videoLinks) { link in
-        CatalogVideoProvider(rawValue: link.provider.lowercased()) ?? .matchplay
+    var selected: [String: CatalogVideoLinkRecord] = [:]
+    for link in videoLinks.sorted(by: compareVideoLinks) {
+        let key = canonicalVideoMergeKey(kind: link.kind, url: link.url)
+        if selected[key] == nil {
+            selected[key] = link
+        }
     }
-    let preferred = groupedByProvider[.local]?.sorted(by: compareVideoLinks)
-        ?? groupedByProvider[.matchplay]?.sorted(by: compareVideoLinks)
-        ?? []
-    return preferred.map { link in
+    return selected.values.sorted(by: compareVideoLinks).map { link in
         PinballGame.Video(kind: link.kind, label: link.label, url: link.url)
     }
 }
 
 nonisolated func compareVideoLinks(_ lhs: CatalogVideoLinkRecord, _ rhs: CatalogVideoLinkRecord) -> Bool {
+    let leftProvider = videoProviderOrder(lhs.provider)
+    let rightProvider = videoProviderOrder(rhs.provider)
+    if leftProvider != rightProvider { return leftProvider < rightProvider }
+    let leftKind = videoKindOrder(lhs.kind)
+    let rightKind = videoKindOrder(rhs.kind)
+    if leftKind != rightKind { return leftKind < rightKind }
     let left = lhs.priority ?? Int.max
     let right = rhs.priority ?? Int.max
     if left != right { return left < right }
     return lhs.label.localizedCaseInsensitiveCompare(rhs.label) == .orderedAscending
+}
+
+nonisolated private func videoProviderOrder(_ provider: String) -> Int {
+    switch provider.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+    case "local":
+        return 0
+    case "matchplay":
+        return 1
+    default:
+        return 99
+    }
+}
+
+nonisolated private func videoKindOrder(_ kind: String?) -> Int {
+    switch kind?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+    case "tutorial":
+        return 0
+    case "gameplay":
+        return 1
+    case "competition":
+        return 2
+    default:
+        return 99
+    }
+}
+
+nonisolated private func extractYouTubeVideoID(from rawURL: String) -> String? {
+    guard let components = URLComponents(string: rawURL),
+          let host = components.host?.lowercased() else {
+        return nil
+    }
+    let pathComponents = components.path.split(separator: "/").map(String.init)
+    if host == "youtu.be" || host == "www.youtu.be" {
+        return pathComponents.first
+    }
+    if host == "youtube.com" || host == "www.youtube.com" || host == "m.youtube.com" || host == "music.youtube.com" || host == "youtube-nocookie.com" || host == "www.youtube-nocookie.com" || host.hasSuffix(".youtube.com") || host.hasSuffix(".youtube-nocookie.com") {
+        if pathComponents.first == "watch" {
+            return components.queryItems?.first(where: { $0.name == "v" })?.value
+        }
+        if let first = pathComponents.first, ["embed", "shorts", "live"].contains(first), pathComponents.count >= 2 {
+            return pathComponents[1]
+        }
+        return components.queryItems?.first(where: { $0.name == "v" })?.value
+    }
+    return nil
+}
+
+nonisolated private func canonicalVideoIdentity(url: String) -> String {
+    if let youtubeID = extractYouTubeVideoID(from: url) {
+        return "youtube:\(youtubeID)"
+    }
+    return "url:\(url.trimmingCharacters(in: .whitespacesAndNewlines))"
+}
+
+nonisolated private func canonicalVideoMergeKey(kind: String?, url: String) -> String {
+    let normalizedKind = kind?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+    return "\(normalizedKind)::\(canonicalVideoIdentity(url: url))"
+}
+
+nonisolated func mergeResolvedVideos(
+    primary: [PinballGame.Video],
+    secondary: [PinballGame.Video]
+) -> [PinballGame.Video] {
+    var merged: [String: PinballGame.Video] = [:]
+    var orderedKeys: [String] = []
+
+    for video in primary + secondary {
+        guard let url = catalogNormalizedOptionalString(video.url) else {
+            continue
+        }
+        let key = canonicalVideoMergeKey(kind: video.kind, url: url)
+        if merged[key] == nil {
+            orderedKeys.append(key)
+            merged[key] = video
+        }
+    }
+
+    return orderedKeys.compactMap { merged[$0] }
 }
 
 nonisolated func compareCatalogRulesheetLinks(_ lhs: CatalogRulesheetLinkRecord, _ rhs: CatalogRulesheetLinkRecord) -> Bool {
@@ -418,7 +535,7 @@ nonisolated func catalogRulesheetLabel(providerRawValue: String, fallback: Strin
     case .papa:
         return "Rulesheet (PAPA)"
     case .prof:
-        return "Rulesheet (Prof)"
+        return "Rulesheet (PinProf)"
     case .opdb:
         return "Rulesheet (OPDB)"
     case .local:
@@ -427,7 +544,7 @@ nonisolated func catalogRulesheetLabel(providerRawValue: String, fallback: Strin
         let inferred = PinballGame.ReferenceLink(label: fallback, url: url ?? "").rulesheetSourceKind
         switch inferred {
         case .prof:
-            return "Rulesheet (Prof)"
+            return "Rulesheet (PinProf)"
         case .bob:
             return "Rulesheet (Bob)"
         case .papa:

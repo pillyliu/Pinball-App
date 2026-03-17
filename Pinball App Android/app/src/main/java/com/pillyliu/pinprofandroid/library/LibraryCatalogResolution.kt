@@ -7,19 +7,26 @@ internal fun resolveImportedGame(
     curatedOverride: LegacyCuratedOverride?,
     opdbRulesheets: List<CatalogRulesheetLinkRecord>,
     opdbVideos: List<CatalogVideoLinkRecord>,
+    venueMetadata: ResolvedImportedVenueMetadata?,
 ): PinballGame {
     val manufacturerName = curatedOverride?.manufacturerOverride
         ?: machine.manufacturerName
         ?: machine.manufacturerId?.let { manufacturerById[it]?.name }
+    val resolvedCatalogRulesheet = resolveRulesheetLinks(opdbRulesheets)
     val resolvedRulesheet = if (!curatedOverride?.rulesheetLocalPath.isNullOrBlank()) {
-        normalizedOptionalString(curatedOverride?.rulesheetLocalPath) to emptyList()
+        normalizedOptionalString(curatedOverride?.rulesheetLocalPath) to mergeRulesheetLinks(
+            curatedOverride?.rulesheetLinks.orEmpty(),
+            resolvedCatalogRulesheet.links,
+        )
     } else if (!curatedOverride?.rulesheetLinks.isNullOrEmpty()) {
-        null to curatedOverride!!.rulesheetLinks
+        null to mergeRulesheetLinks(curatedOverride!!.rulesheetLinks, resolvedCatalogRulesheet.links)
     } else {
-        val resolved = resolveRulesheetLinks(opdbRulesheets)
-        resolved.localPath to resolved.links
+        resolvedCatalogRulesheet.localPath to resolvedCatalogRulesheet.links
     }
-    val resolvedVideos = if (!curatedOverride?.videos.isNullOrEmpty()) curatedOverride!!.videos else resolveVideoLinks(opdbVideos)
+    val resolvedVideos = mergeResolvedVideos(
+        primary = curatedOverride?.videos.orEmpty(),
+        secondary = resolveVideoLinks(opdbVideos),
+    )
     val playfieldLocalPath = curatedOverride?.playfieldLocalPath
     val opdbPlayfieldSourceUrl = normalizedOptionalString(machine.playfieldImageLargeUrl ?: machine.playfieldImageMediumUrl)
     val hasCuratedPlayfield = playfieldLocalPath != null || !curatedOverride?.playfieldSourceUrl.isNullOrBlank()
@@ -33,11 +40,11 @@ internal fun resolveImportedGame(
         sourceId = source.id,
         sourceName = source.name,
         sourceType = source.type,
-        area = null,
-        areaOrder = null,
-        group = null,
-        position = null,
-        bank = null,
+        area = venueMetadata?.area,
+        areaOrder = venueMetadata?.areaOrder,
+        group = venueMetadata?.group,
+        position = venueMetadata?.position,
+        bank = venueMetadata?.bank,
         name = curatedOverride?.nameOverride ?: resolvedCatalogDisplayTitle(
             title = machine.name,
             explicitVariant = machine.variant,
@@ -204,6 +211,8 @@ private fun looksLikeCatalogVariantSuffix(value: String): Boolean {
         lowered == "ce" ||
         lowered == "se" ||
         lowered == "home" ||
+        lowered == "arcade" ||
+        lowered == "wizard" ||
         lowered.contains("anniversary") ||
         lowered.contains("limited edition") ||
         lowered.contains("special edition") ||
@@ -224,6 +233,8 @@ private fun normalizeCatalogVariantLabel(value: String?): String? {
         lowered == "le" || lowered.contains("limited edition") -> "LE"
         lowered == "ce" || lowered.contains("collector") -> "CE"
         lowered == "se" || lowered.contains("special edition") -> "SE"
+        lowered == "arcade" -> "Arcade"
+        lowered == "wizard" -> "Wizard"
         lowered == "premium/le" || lowered == "premium le" || lowered == "premium-le" -> "Premium/LE"
         lowered.contains("anniversary") -> trimmed.split(" ")
             .filter { it.isNotBlank() }
@@ -249,16 +260,95 @@ internal fun resolveRulesheetLinks(rulesheetLinks: List<CatalogRulesheetLinkReco
     )
 }
 
+internal fun mergeRulesheetLinks(primary: List<ReferenceLink>, secondary: List<ReferenceLink>): List<ReferenceLink> {
+    val seen = linkedSetOf<String>()
+    return buildList {
+        for (link in primary + secondary) {
+            val key = canonicalRulesheetMergeKey(link)
+            if (!seen.add(key)) continue
+            add(link)
+        }
+    }
+}
+
+private fun canonicalRulesheetMergeKey(link: ReferenceLink): String {
+    val normalizedUrl = normalizedOptionalString(link.url)?.lowercase()
+    if (normalizedUrl != null) return "url|$normalizedUrl"
+    return "label|${link.label.trim().lowercase()}"
+}
+
 internal fun resolveVideoLinks(videoLinks: List<CatalogVideoLinkRecord>): List<Video> {
-    val groupedByProvider = videoLinks.groupBy { it.provider.lowercase() }
-    val preferred = groupedByProvider["local"]?.sortedWith(compareVideoLinks())
-        ?: groupedByProvider["matchplay"]?.sortedWith(compareVideoLinks())
-        ?: emptyList()
-    return preferred.map { link -> Video(kind = link.kind, label = link.label, url = link.url) }
+    val selected = linkedMapOf<String, CatalogVideoLinkRecord>()
+    videoLinks.sortedWith(compareVideoLinks()).forEach { link ->
+        val url = normalizedOptionalString(link.url) ?: return@forEach
+        val key = canonicalVideoMergeKey(link.kind, url)
+        if (key !in selected) {
+            selected[key] = link
+        }
+    }
+    return selected.values.map { link -> Video(kind = link.kind, label = link.label, url = link.url) }
 }
 
 internal fun compareVideoLinks(): Comparator<CatalogVideoLinkRecord> =
-    compareBy<CatalogVideoLinkRecord> { it.priority ?: Int.MAX_VALUE }.thenBy { it.label.lowercase() }
+    compareBy<CatalogVideoLinkRecord> { videoProviderOrder(it.provider) }
+        .thenBy { videoKindOrder(it.kind) }
+        .thenBy { it.priority ?: Int.MAX_VALUE }
+        .thenBy { it.label.lowercase() }
+
+private fun videoProviderOrder(provider: String): Int =
+    when (provider.trim().lowercase()) {
+        "local" -> 0
+        "matchplay" -> 1
+        else -> 99
+    }
+
+private fun videoKindOrder(kind: String?): Int =
+    when (kind?.trim()?.lowercase()) {
+        "tutorial" -> 0
+        "gameplay" -> 1
+        "competition" -> 2
+        else -> 99
+    }
+
+private fun extractYouTubeVideoId(rawUrl: String): String? {
+    val uri = runCatching { android.net.Uri.parse(rawUrl) }.getOrNull() ?: return null
+    val host = uri.host?.trim()?.lowercase() ?: return null
+    val pathParts = uri.pathSegments?.filter { it.isNotBlank() }.orEmpty()
+    return when {
+        host == "youtu.be" || host == "www.youtu.be" -> pathParts.firstOrNull()
+        host == "youtube.com" ||
+            host == "www.youtube.com" ||
+            host == "m.youtube.com" ||
+            host == "music.youtube.com" ||
+            host == "youtube-nocookie.com" ||
+            host == "www.youtube-nocookie.com" ||
+            host.endsWith(".youtube.com") ||
+            host.endsWith(".youtube-nocookie.com") -> when {
+                pathParts.firstOrNull() == "watch" -> uri.getQueryParameter("v")
+                pathParts.firstOrNull() in setOf("embed", "shorts", "live") && pathParts.size >= 2 -> pathParts[1]
+                else -> uri.getQueryParameter("v")
+            }
+        else -> null
+    }
+}
+
+private fun canonicalVideoIdentity(url: String): String =
+    extractYouTubeVideoId(url)?.let { "youtube:$it" } ?: "url:${url.trim()}"
+
+private fun canonicalVideoMergeKey(kind: String?, url: String): String =
+    "${kind?.trim()?.lowercase().orEmpty()}::${canonicalVideoIdentity(url)}"
+
+internal fun mergeResolvedVideos(primary: List<Video>, secondary: List<Video>): List<Video> {
+    val merged = linkedMapOf<String, Video>()
+    (primary + secondary).forEach { video ->
+        val url = normalizedOptionalString(video.url) ?: return@forEach
+        val key = canonicalVideoMergeKey(video.kind, url)
+        if (key !in merged) {
+            merged[key] = video
+        }
+    }
+    return merged.values.toList()
+}
 
 internal fun compareCatalogRulesheetLinks(): Comparator<CatalogRulesheetLinkRecord> =
     compareBy<CatalogRulesheetLinkRecord> {
@@ -286,11 +376,11 @@ internal fun catalogRulesheetLabel(providerRawValue: String, fallback: String, u
         "pp" -> "Rulesheet (PP)"
         "bob" -> "Rulesheet (Bob)"
         "papa" -> "Rulesheet (PAPA)"
-        "prof" -> "Rulesheet (Prof)"
+        "prof" -> "Rulesheet (PinProf)"
         "opdb" -> "Rulesheet (OPDB)"
         "local" -> "Rulesheet (Local)"
         else -> when (ReferenceLink(label = fallback, url = url).rulesheetSourceKind) {
-            RulesheetSourceKind.PROF -> "Rulesheet (Prof)"
+            RulesheetSourceKind.PROF -> "Rulesheet (PinProf)"
             RulesheetSourceKind.BOB -> "Rulesheet (Bob)"
             RulesheetSourceKind.PAPA -> "Rulesheet (PAPA)"
             RulesheetSourceKind.PP -> "Rulesheet (PP)"

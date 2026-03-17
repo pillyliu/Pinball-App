@@ -36,9 +36,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.ui.platform.LocalContext
-import com.pillyliu.pinprofandroid.library.LibraryGameLookup
-import com.pillyliu.pinprofandroid.library.loadFullLibraryExtraction
+import com.pillyliu.pinprofandroid.data.PinballDataCache
+import com.pillyliu.pinprofandroid.practice.parseResolvedLeagueTargets
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
 import com.pillyliu.pinprofandroid.ui.AppScreen
@@ -66,7 +65,7 @@ private enum class TargetSortOption(val label: String) {
     ALPHABETICAL("A-Z"),
 }
 
-private val lplVenueSourceIds = setOf("venue--the-avenue-cafe", "the-avenue")
+private const val RESOLVED_TARGETS_PATH = "/pinball/data/lpl_targets_resolved_v1.json"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,7 +73,6 @@ fun TargetsScreen(
     contentPadding: PaddingValues,
     onBack: (() -> Unit)? = null,
 ) {
-    val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -99,34 +97,36 @@ fun TargetsScreen(
 
     LaunchedEffect(Unit) {
         try {
-            val extraction = loadFullLibraryExtraction(context)
-            val libraryEntries = LibraryGameLookup.buildEntries(
-                extraction.payload.games.filter { it.sourceId in lplVenueSourceIds },
-            )
+            val cached = PinballDataCache.loadText(RESOLVED_TARGETS_PATH, allowMissing = true)
+            val text = cached.text
+            val resolved = if (text.isNullOrBlank()) emptyList() else parseResolvedLeagueTargets(text)
 
-            val merged = lplTargets.mapIndexed { fallbackIndex, target ->
-                val chosen = LibraryGameLookup.bestMatch(target.game, libraryEntries)
-
-                if (chosen != null) {
+            rows = if (resolved.isNotEmpty()) {
+                resolved.mapIndexed { fallbackIndex, row ->
                     TargetRow(
-                        target,
-                        chosen.area,
-                        chosen.areaOrder,
-                        chosen.bank,
-                        chosen.group,
-                        chosen.position,
-                        chosen.order,
-                        fallbackIndex,
+                        target = LPLTarget(
+                            game = row.game,
+                            great = row.secondHighestAvg,
+                            main = row.fourthHighestAvg,
+                            floor = row.eighthHighestAvg,
+                        ),
+                        area = row.area,
+                        areaOrder = row.areaOrder,
+                        bank = row.bank,
+                        group = row.group,
+                        position = row.position,
+                        libraryOrder = row.order,
+                        fallbackOrder = fallbackIndex,
                     )
-                } else {
-                    TargetRow(target, null, null, null, null, null, Int.MAX_VALUE, fallbackIndex)
+                }
+            } else {
+                lplTargets.mapIndexed { idx, t ->
+                    TargetRow(t, null, null, null, null, null, Int.MAX_VALUE, idx)
                 }
             }
-
-            rows = merged
             error = null
         } catch (t: Throwable) {
-            error = "Using default order (v3 library unavailable: ${t.message ?: t::class.java.simpleName})."
+            error = "Using bundled target order (resolved targets unavailable: ${t.message ?: t::class.java.simpleName})."
         }
     }
 

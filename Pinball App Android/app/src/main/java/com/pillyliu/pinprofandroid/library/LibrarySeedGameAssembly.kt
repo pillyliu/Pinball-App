@@ -93,6 +93,7 @@ internal fun loadLibrarySeedImportedGames(
     val catalogRulesheets = loadCatalogRulesheetRecords(database)
     val overrideVideos = loadOverrideVideos(database)
     val catalogVideos = loadCatalogVideoRecords(database)
+    val venueMetadataByKey = loadSeedVenueMachineMetadata(database)
     val machineById = loadMachinesById(database)
     val catalogMachineById = machineById.mapValues { (_, machine) -> machine.toCatalogMachineRecord() }
     val catalogMachines = catalogMachineById.values.toList()
@@ -119,6 +120,7 @@ internal fun loadLibrarySeedImportedGames(
                             ),
                             opdbRulesheets = catalogRulesheets[machine.practiceIdentity].orEmpty(),
                             opdbVideos = catalogVideos[machine.practiceIdentity].orEmpty(),
+                            venueMetadata = null,
                         )
                     }
             }
@@ -142,6 +144,12 @@ internal fun loadLibrarySeedImportedGames(
                         ),
                         opdbRulesheets = catalogRulesheets[preferred.practiceIdentity].orEmpty(),
                         opdbVideos = catalogVideos[preferred.practiceIdentity].orEmpty(),
+                        venueMetadata = resolveSeedImportedVenueMetadata(
+                            sourceId = source.id,
+                            requestedOpdbId = machineId,
+                            machine = preferred,
+                            metadataByKey = venueMetadataByKey,
+                        ),
                     )
                 }
             }
@@ -150,6 +158,84 @@ internal fun loadLibrarySeedImportedGames(
         }
     }
     return out
+}
+
+private data class SeedVenueMachineMetadataRow(
+    val sourceId: String,
+    val opdbId: String,
+    val area: String?,
+    val areaOrder: Int?,
+    val group: Int?,
+    val position: Int?,
+    val bank: Int?,
+)
+
+private fun loadSeedVenueMachineMetadata(database: SQLiteDatabase): Map<String, SeedVenueMachineMetadataRow> {
+    database.rawQuery(
+        """
+        SELECT source_id, opdb_id, area, area_order, group_number, position, bank
+        FROM venue_machine_metadata
+        """.trimIndent(),
+        emptyArray(),
+    ).use { cursor ->
+        val out = linkedMapOf<String, SeedVenueMachineMetadataRow>()
+        while (cursor.moveToNext()) {
+            val sourceId = cursor.getString(0).orEmpty()
+            val opdbId = cursor.getString(1).orEmpty()
+            out["$sourceId|$opdbId"] = SeedVenueMachineMetadataRow(
+                sourceId = sourceId,
+                opdbId = opdbId,
+                area = cursor.getNullableString(2),
+                areaOrder = cursor.getIntOrNull(3),
+                group = cursor.getIntOrNull(4),
+                position = cursor.getIntOrNull(5),
+                bank = cursor.getIntOrNull(6),
+            )
+        }
+        return out
+    }
+}
+
+private fun resolveSeedImportedVenueMetadata(
+    sourceId: String,
+    requestedOpdbId: String,
+    machine: CatalogMachineRecord,
+    metadataByKey: Map<String, SeedVenueMachineMetadataRow>,
+): ResolvedImportedVenueMetadata? {
+    fun expandedOverlayCandidateIds(value: String?): List<String> {
+        val normalized = normalizedOptionalString(value) ?: return emptyList()
+        val out = mutableListOf<String>()
+        var current: String? = normalized
+        while (current != null) {
+            if (!out.contains(current)) out += current
+            val dashIndex = current.lastIndexOf('-')
+            if (dashIndex <= 0) break
+            current = current.substring(0, dashIndex)
+        }
+        return out
+    }
+
+    val candidateIds = buildList {
+        (
+            expandedOverlayCandidateIds(requestedOpdbId) +
+                expandedOverlayCandidateIds(machine.opdbMachineId) +
+                expandedOverlayCandidateIds(machine.opdbGroupId) +
+                expandedOverlayCandidateIds(machine.practiceIdentity)
+            ).forEach { candidate ->
+            if (candidate != null && !contains(candidate)) add(candidate)
+        }
+    }
+    for (candidateId in candidateIds) {
+        val row = metadataByKey["$sourceId|$candidateId"] ?: continue
+        return ResolvedImportedVenueMetadata(
+            area = normalizedOptionalString(row.area),
+            areaOrder = row.areaOrder,
+            group = row.group,
+            position = row.position,
+            bank = row.bank,
+        )
+    }
+    return null
 }
 
 internal fun loadManufacturers(database: SQLiteDatabase): Map<String, SeedManufacturer> {

@@ -40,6 +40,7 @@ extension LibrarySeedDatabase {
         let overrideVideos = try loadOverrideVideos(database)
         let catalogRulesheets = try loadCatalogRulesheetRecords(database)
         let catalogVideos = try loadCatalogVideoRecords(database)
+        let venueMetadataByKey = try loadSeedVenueMachineMetadata(database)
         let catalogMachines = machines.map(catalogMachineRecord(from:))
         let catalogMachinesByPracticeIdentity = Dictionary(grouping: catalogMachines, by: \.practiceIdentity)
         let catalogMachinesByOPDBID: [String: CatalogMachineRecord] = Dictionary(uniqueKeysWithValues: catalogMachines.compactMap { machine in
@@ -49,7 +50,7 @@ extension LibrarySeedDatabase {
 
         var games: [PinballGame] = []
         for source in importedSources {
-            let sourceMachines: [CatalogMachineRecord]
+            let sourceMachines: [(requestedOPDBID: String, machine: CatalogMachineRecord)]
             switch source.type {
             case .manufacturer:
                 let grouped = Dictionary(grouping: catalogMachines.filter { $0.manufacturerID == source.providerSourceID }) {
@@ -62,19 +63,24 @@ extension LibrarySeedDatabase {
                     ($0.year ?? Int.max, $0.name.lowercased(), $0.opdbMachineID ?? $0.practiceIdentity)
                         < ($1.year ?? Int.max, $1.name.lowercased(), $1.opdbMachineID ?? $1.practiceIdentity)
                 }
+                .map { machine in
+                    (requestedOPDBID: machine.opdbMachineID ?? machine.practiceIdentity, machine: machine)
+                }
             case .venue, .tournament:
                 sourceMachines = source.machineIDs.compactMap { machineID in
-                    catalogPreferredMachineForSourceLookup(
+                    guard let machine = catalogPreferredMachineForSourceLookup(
                         requestedMachineID: machineID,
                         machineByOPDBID: catalogMachinesByOPDBID,
                         machineByPracticeIdentity: catalogMachinesByPracticeIdentity
-                    )
+                    ) else { return nil }
+                    return (requestedOPDBID: machineID, machine: machine)
                 }
             case .category:
                 sourceMachines = []
             }
 
-            for machine in sourceMachines {
+            for sourceMachine in sourceMachines {
+                let machine = sourceMachine.machine
                 let curatedOverride = seedLegacyCuratedOverride(
                     row: overridesByPractice[machine.practiceIdentity],
                     rulesheetLinks: overrideRulesheets[machine.practiceIdentity] ?? [],
@@ -87,13 +93,102 @@ extension LibrarySeedDatabase {
                         manufacturerByID: manufacturersByID,
                         curatedOverride: curatedOverride,
                         opdbRulesheets: catalogRulesheets[machine.practiceIdentity] ?? [],
-                        opdbVideos: catalogVideos[machine.practiceIdentity] ?? []
+                        opdbVideos: catalogVideos[machine.practiceIdentity] ?? [],
+                        venueMetadata: resolveSeedImportedVenueMetadata(
+                            sourceID: source.id,
+                            requestedOPDBID: sourceMachine.requestedOPDBID,
+                            machine: machine,
+                            metadataByKey: venueMetadataByKey
+                        )
                     )
                 )
             }
         }
 
         return games
+    }
+
+    private struct SeedVenueMachineMetadataRow {
+        let sourceID: String
+        let opdbID: String
+        let area: String?
+        let areaOrder: Int?
+        let groupNumber: Int?
+        let position: Int?
+        let bank: Int?
+    }
+
+    private func loadSeedVenueMachineMetadata(_ database: OpaquePointer) throws -> [String: SeedVenueMachineMetadataRow] {
+        let sql = """
+        SELECT source_id, opdb_id, area, area_order, group_number, position, bank
+        FROM venue_machine_metadata
+        """
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
+            throw SeedDatabaseError.prepareStatement(message: currentSQLiteMessage(from: database))
+        }
+        defer { sqlite3_finalize(statement) }
+
+        var rows: [String: SeedVenueMachineMetadataRow] = [:]
+        while sqlite3_step(statement) == SQLITE_ROW {
+            let sourceID = sqliteString(statement, index: 0) ?? ""
+            let opdbID = sqliteString(statement, index: 1) ?? ""
+            rows["\(sourceID)|\(opdbID)"] = SeedVenueMachineMetadataRow(
+                sourceID: sourceID,
+                opdbID: opdbID,
+                area: sqliteString(statement, index: 2),
+                areaOrder: sqliteInt(statement, index: 3),
+                groupNumber: sqliteInt(statement, index: 4),
+                position: sqliteInt(statement, index: 5),
+                bank: sqliteInt(statement, index: 6)
+            )
+        }
+        return rows
+    }
+
+    private func resolveSeedImportedVenueMetadata(
+        sourceID: String,
+        requestedOPDBID: String,
+        machine: CatalogMachineRecord,
+        metadataByKey: [String: SeedVenueMachineMetadataRow]
+    ) -> ResolvedImportedVenueMetadata? {
+        func expandedOverlayCandidateIDs(_ value: String?) -> [String] {
+            guard let normalized = value?.trimmingCharacters(in: .whitespacesAndNewlines), !normalized.isEmpty else {
+                return []
+            }
+            var out: [String] = []
+            var current: String? = normalized
+            while let currentValue = current, !currentValue.isEmpty {
+                if !out.contains(currentValue) {
+                    out.append(currentValue)
+                }
+                guard let dashIndex = currentValue.lastIndex(of: "-"), dashIndex > currentValue.startIndex else {
+                    break
+                }
+                current = String(currentValue[..<dashIndex])
+            }
+            return out
+        }
+
+        let candidateIDs = (
+            expandedOverlayCandidateIDs(requestedOPDBID) +
+            expandedOverlayCandidateIDs(machine.opdbMachineID) +
+            expandedOverlayCandidateIDs(machine.opdbGroupID) +
+            expandedOverlayCandidateIDs(machine.practiceIdentity)
+        ).reduce(into: [String]()) { result, id in
+            if !result.contains(id) { result.append(id) }
+        }
+        for candidateID in candidateIDs {
+            guard let row = metadataByKey["\(sourceID)|\(candidateID)"] else { continue }
+            return ResolvedImportedVenueMetadata(
+                area: row.area?.trimmingCharacters(in: .whitespacesAndNewlines),
+                areaOrder: row.areaOrder,
+                groupNumber: row.groupNumber,
+                position: row.position,
+                bank: row.bank
+            )
+        }
+        return nil
     }
 
     func preferredSeedMachineForBuiltInGame(

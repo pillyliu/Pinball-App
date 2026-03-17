@@ -7,10 +7,12 @@ internal const val HOSTED_LIBRARY_REFRESH_INTERVAL_MS = 24L * 60L * 60L * 1000L
 internal const val hostedLibraryPath = "/pinball/data/pinball_library_v3.json"
 internal const val hostedOPDBCatalogPath = "/pinball/data/opdb_catalog_v1.json"
 internal const val hostedLibraryOverridesPath = "/pinball/data/pinball_library_seed_overrides_v1.json"
+internal const val hostedVenueMetadataOverlaysPath = "/pinball/data/venue_metadata_overlays_v1.json"
 internal val HOSTED_LIBRARY_PATHS = listOf(
     hostedLibraryPath,
     hostedOPDBCatalogPath,
     hostedLibraryOverridesPath,
+    hostedVenueMetadataOverlaysPath,
 )
 
 internal suspend fun loadHostedLibraryExtraction(
@@ -30,12 +32,14 @@ internal suspend fun loadHostedLibraryExtraction(
     val libraryText = libraryCached.text ?: error("Missing library payload")
     val opdbText = opdbCached.text?.takeIf { it.isNotBlank() }
     val overridesText = loadHostedLibraryOverridesText()
+    val venueMetadataText = loadHostedVenueMetadataText()
     return if (opdbText != null) {
         decodeMergedLibraryPayloadWithState(
             context = context,
             libraryRaw = libraryText,
             opdbCatalogRaw = opdbText,
             publicOverridesRaw = overridesText,
+            venueMetadataRaw = venueMetadataText,
             filterBySourceState = filterBySourceState,
         )
     } else {
@@ -46,6 +50,7 @@ internal suspend fun loadHostedLibraryExtraction(
                 libraryRaw = libraryText,
                 opdbCatalogRaw = bundledOpdbText,
                 publicOverridesRaw = overridesText ?: loadBundledPinballText(context, hostedLibraryOverridesPath),
+                venueMetadataRaw = venueMetadataText ?: loadBundledPinballText(context, hostedVenueMetadataOverlaysPath),
                 filterBySourceState = filterBySourceState,
             )
         } else {
@@ -79,6 +84,27 @@ private suspend fun loadHostedLibraryOverridesText(): String? {
     }.getOrNull()?.takeIf { it.isNotBlank() }
 }
 
+private suspend fun loadHostedVenueMetadataText(): String? {
+    return runCatching {
+        if (PinballDataCache.hasRemoteUpdate(hostedVenueMetadataOverlaysPath)) {
+            PinballDataCache.forceRefreshText(
+                url = hostedVenueMetadataOverlaysPath,
+                allowMissing = true,
+            ).text
+        } else {
+            PinballDataCache.loadText(
+                url = hostedVenueMetadataOverlaysPath,
+                allowMissing = true,
+            ).text
+        }
+    }.recoverCatching {
+        PinballDataCache.loadText(
+            url = hostedVenueMetadataOverlaysPath,
+            allowMissing = true,
+        ).text
+    }.getOrNull()?.takeIf { it.isNotBlank() }
+}
+
 internal fun loadBundledLibraryExtraction(
     context: Context,
     filterBySourceState: Boolean = true,
@@ -92,6 +118,7 @@ internal fun loadBundledLibraryExtraction(
             libraryRaw = libraryText,
             opdbCatalogRaw = opdbText,
             publicOverridesRaw = overridesText,
+            venueMetadataRaw = loadBundledPinballText(context, hostedVenueMetadataOverlaysPath),
             filterBySourceState = filterBySourceState,
         )
     } else {

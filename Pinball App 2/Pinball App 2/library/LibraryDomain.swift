@@ -88,6 +88,7 @@ final class PinballLibraryViewModel: ObservableObject {
         didSet {
             if sortOption != oldValue {
                 resetVisibleGameLimit()
+                persistSelectedSort()
             }
         }
     }
@@ -95,6 +96,7 @@ final class PinballLibraryViewModel: ObservableObject {
         didSet {
             if yearSortDescending != oldValue {
                 resetVisibleGameLimit()
+                persistSelectedSort()
             }
         }
     }
@@ -102,6 +104,7 @@ final class PinballLibraryViewModel: ObservableObject {
         didSet {
             if selectedBank != oldValue {
                 resetVisibleGameLimit()
+                persistSelectedBank()
             }
         }
     }
@@ -208,14 +211,14 @@ final class PinballLibraryViewModel: ObservableObject {
                 sortOption = .year
                 yearSortDescending = true
             } else {
-                sortOption = browsingState.preferredDefaultSortOption(for: selectedSource, games: sourceScopedGames)
-                if !options.contains(sortOption), let first = options.first {
-                    sortOption = first
-                }
-                yearSortDescending = browsingState.preferredDefaultYearSortDescending(for: selectedSource, games: sourceScopedGames)
+                let selection = resolvedSelectionState(for: selectedSource, options: options, state: state)
+                sortOption = selection.sortOption
+                yearSortDescending = selection.yearSortDescending
             }
+            selectedBank = restoredSelectedBank(for: selectedSource, state: state)
+        } else {
+            selectedBank = nil
         }
-        selectedBank = nil
     }
 
     func selectSortOption(_ option: PinballLibrarySortOption) {
@@ -273,14 +276,10 @@ final class PinballLibraryViewModel: ObservableObject {
                 state.selectedSourceID = selected.id
                 PinballLibrarySourceStateStore.save(state)
                 let options = sortOptions
-                sortOption = browsingState.preferredDefaultSortOption(for: selected, games: sourceScopedGames)
-                if !options.contains(sortOption), let first = options.first {
-                    sortOption = first
-                }
-                yearSortDescending = browsingState.preferredDefaultYearSortDescending(for: selected, games: sourceScopedGames)
-                if !supportsBankFilter {
-                    selectedBank = nil
-                }
+                let selection = resolvedSelectionState(for: selected, options: options, state: state)
+                sortOption = selection.sortOption
+                yearSortDescending = selection.yearSortDescending
+                selectedBank = restoredSelectedBank(for: selected, state: state)
             }
             errorMessage = nil
         } catch {
@@ -290,6 +289,61 @@ final class PinballLibraryViewModel: ObservableObject {
         }
     }
 
+    private func resolvedSelectionState(
+        for source: PinballLibrarySource,
+        options: [PinballLibrarySortOption],
+        state: PinballLibrarySourceState
+    ) -> (sortOption: PinballLibrarySortOption, yearSortDescending: Bool) {
+        if source.type == .manufacturer {
+            return (.year, true)
+        }
+
+        if let persisted = state.selectedSortBySource[source.id] {
+            if persisted == "YEAR_DESC", options.contains(.year) {
+                return (.year, true)
+            }
+            if let sort = PinballLibrarySortOption(rawValue: persisted), options.contains(sort) {
+                return (sort, false)
+            }
+        }
+
+        let defaultSort = browsingState.preferredDefaultSortOption(for: source, games: sourceScopedGames)
+        let resolvedSort = options.contains(defaultSort) ? defaultSort : (options.first ?? .alphabetical)
+        let yearDescending = resolvedSort == .year
+            ? browsingState.preferredDefaultYearSortDescending(for: source, games: sourceScopedGames)
+            : false
+        return (resolvedSort, yearDescending)
+    }
+
+    private func restoredSelectedBank(for source: PinballLibrarySource, state: PinballLibrarySourceState) -> Int? {
+        guard source.type == .venue else { return nil }
+        guard sourceScopedGames.contains(where: { ($0.bank ?? 0) > 0 }) else { return nil }
+        return state.selectedBankBySource[source.id]
+    }
+
+    private func persistSelectedSort() {
+        guard let selectedSource else { return }
+        var state = PinballLibrarySourceStateStore.load()
+        let persistedValue: String
+        if sortOption == .year && yearSortDescending {
+            persistedValue = "YEAR_DESC"
+        } else {
+            persistedValue = sortOption.rawValue
+        }
+        state.selectedSortBySource[selectedSource.id] = persistedValue
+        PinballLibrarySourceStateStore.save(state)
+    }
+
+    private func persistSelectedBank() {
+        guard let selectedSource else { return }
+        var state = PinballLibrarySourceStateStore.load()
+        if let selectedBank {
+            state.selectedBankBySource[selectedSource.id] = selectedBank
+        } else {
+            state.selectedBankBySource.removeValue(forKey: selectedSource.id)
+        }
+        PinballLibrarySourceStateStore.save(state)
+    }
 }
 
 struct PinballGame: Identifiable, Decodable {
@@ -452,11 +506,13 @@ struct PinballGame: Identifiable, Decodable {
                 sourceNameVenueName ??
                 sourceNameVenue
         )
-        sourceName = decodedSourceName ?? "The Avenue"
-        sourceId = libraryNormalizedOptionalString(
-            try container.decodeIfPresent(String.self, forKey: .libraryId) ??
-                (try container.decodeIfPresent(String.self, forKey: .libraryIdV2)) ??
-                (try container.decodeIfPresent(String.self, forKey: .sourceId))
+        sourceName = decodedSourceName ?? "The Avenue Cafe"
+        sourceId = libraryCanonicalSourceID(
+            libraryNormalizedOptionalString(
+                try container.decodeIfPresent(String.self, forKey: .libraryId) ??
+                    (try container.decodeIfPresent(String.self, forKey: .libraryIdV2)) ??
+                    (try container.decodeIfPresent(String.self, forKey: .sourceId))
+            )
         ) ?? librarySlugifySourceID(sourceName)
         area = (
             try container.decodeIfPresent(String.self, forKey: .area) ??
@@ -568,6 +624,14 @@ struct PinballGame: Identifiable, Decodable {
         return maker
     }
 
+    var manufacturerYearCardLine: String {
+        let maker = abbreviatedLibraryCardManufacturer(manufacturer) ?? "-"
+        if let year {
+            return "\(maker) • \(year)"
+        }
+        return maker
+    }
+
     var normalizedVariant: String? {
         guard let variant else { return nil }
         let trimmed = variant.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -628,5 +692,21 @@ struct PinballGame: Identifiable, Decodable {
         }
 
         return nil
+    }
+}
+
+private nonisolated func abbreviatedLibraryCardManufacturer(_ manufacturer: String?) -> String? {
+    guard let trimmed = manufacturer?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+        return nil
+    }
+    switch trimmed.lowercased() {
+    case "jersey jack pinball":
+        return "JJP"
+    case "barrels of fun":
+        return "BoF"
+    case "chicago gaming company":
+        return "CGC"
+    default:
+        return trimmed
     }
 }

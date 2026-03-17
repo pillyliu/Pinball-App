@@ -74,6 +74,7 @@ internal fun decodeMergedLibraryPayloadWithState(
     libraryRaw: String,
     opdbCatalogRaw: String,
     publicOverridesRaw: String? = null,
+    venueMetadataRaw: String? = null,
     filterBySourceState: Boolean = true,
 ): LegacyCatalogExtraction {
     val legacyPayload = parseLibraryPayload(libraryRaw)
@@ -88,6 +89,7 @@ internal fun decodeMergedLibraryPayloadWithState(
         legacyPayload = legacyPayload,
         root = root,
         publicOverrides = parsePublicLibraryOverrides(publicOverridesRaw),
+        venueMetadataOverlays = parseVenueMetadataOverlays(venueMetadataRaw),
     )
     val state = LibrarySourceStateStore.synchronize(context, payload.sources)
     return legacyCatalogExtraction(payload = payload, state = state, filterBySourceState = filterBySourceState)
@@ -134,6 +136,34 @@ private data class PublicLibraryPlayfieldOverrideRecord(
     val playfieldSourceUrl: String?,
 )
 
+private data class VenueMachineLayoutOverlayRecord(
+    val sourceId: String,
+    val opdbId: String,
+    val area: String?,
+    val groupNumber: Int?,
+    val position: Int?,
+)
+
+private data class VenueMachineBankOverlayRecord(
+    val sourceId: String,
+    val opdbId: String,
+    val bank: Int,
+)
+
+private data class VenueMetadataOverlayIndex(
+    val areaOrderByKey: Map<String, Int> = emptyMap(),
+    val machineLayoutByKey: Map<String, VenueMachineLayoutOverlayRecord> = emptyMap(),
+    val machineBankByKey: Map<String, VenueMachineBankOverlayRecord> = emptyMap(),
+)
+
+internal data class ResolvedImportedVenueMetadata(
+    val area: String?,
+    val areaOrder: Int?,
+    val group: Int?,
+    val position: Int?,
+    val bank: Int?,
+)
+
 private fun curatedOverrideForKeys(
     practiceIdentity: String?,
     opdbGroupId: String?,
@@ -145,6 +175,13 @@ private fun curatedOverrideForKeys(
     ).distinct().filterNotNull()
     return candidateKeys.firstNotNullOfOrNull { overridesByKey[it] }
 }
+
+private fun isImportedPinballMapSourceId(raw: String?): Boolean =
+    raw?.trim()?.lowercase()?.startsWith("venue--pm-") == true
+
+private fun venueOverlayAreaKey(sourceId: String, area: String): String = "$sourceId::$area"
+
+private fun venueOverlayMachineKey(sourceId: String, opdbId: String): String = "$sourceId::$opdbId"
 
 internal data class CatalogManufacturerRecord(
     val id: String,
@@ -217,7 +254,12 @@ private fun resolveMergedCatalog(
     legacyPayload: ParsedLibraryData,
     root: NormalizedRoot,
     publicOverrides: PublicLibraryOverridesRoot,
+    venueMetadataOverlays: VenueMetadataOverlayIndex,
 ): ParsedLibraryData {
+    val importedSources = ImportedSourcesStore.load(context)
+    val importedSourceIds = importedSources.map { it.id }.toSet()
+    val filteredLegacyGames = legacyPayload.games.filter { it.sourceId !in importedSourceIds }
+    val filteredLegacySources = legacyPayload.sources.filter { it.id !in importedSourceIds }
     val machineByPracticeIdentity = root.machines.groupBy { it.practiceIdentity }
     val machineByOpdbId = root.machines.mapNotNull { machine ->
         normalizedOptionalString(machine.opdbMachineId)?.let { it to machine }
@@ -228,7 +270,7 @@ private fun resolveMergedCatalog(
     val opdbRulesheetsByPracticeIdentity = root.rulesheetLinks.groupBy { it.practiceIdentity }
     val opdbVideosByPracticeIdentity = root.videoLinks.groupBy { it.practiceIdentity }
 
-    val mergedLegacyGames = legacyPayload.games.map { legacyGame ->
+    val mergedLegacyGames = filteredLegacyGames.map { legacyGame ->
         resolveLegacyGame(
             legacyGame = legacyGame,
             curatedOverridesByPracticeIdentity = curatedOverridesByPracticeIdentity,
@@ -240,7 +282,6 @@ private fun resolveMergedCatalog(
         )
     }
 
-    val importedSources = ImportedSourcesStore.load(context)
     val additionalSources = importedSources.map { source ->
         LibrarySource(id = source.id, name = source.name, type = source.type)
     }
@@ -267,6 +308,7 @@ private fun resolveMergedCatalog(
                                     ),
                                     opdbRulesheets = opdbRulesheetsByPracticeIdentity[machine.practiceIdentity].orEmpty(),
                                     opdbVideos = opdbVideosByPracticeIdentity[machine.practiceIdentity].orEmpty(),
+                                    venueMetadata = null,
                                 ),
                             )
                         }
@@ -292,6 +334,12 @@ private fun resolveMergedCatalog(
                                 ),
                                 opdbRulesheets = opdbRulesheetsByPracticeIdentity[machine.practiceIdentity].orEmpty(),
                                 opdbVideos = opdbVideosByPracticeIdentity[machine.practiceIdentity].orEmpty(),
+                                venueMetadata = resolveImportedVenueMetadata(
+                                    sourceId = importedSource.id,
+                                    requestedOpdbId = machineId,
+                                    machine = machine,
+                                    overlays = venueMetadataOverlays,
+                                ),
                             ),
                         )
                     }
@@ -311,7 +359,7 @@ private fun resolveMergedCatalog(
 
     return ParsedLibraryData(
         games = mergedGames + gameRoomOverlay.games,
-        sources = dedupeSources(legacyPayload.sources + additionalSources + listOfNotNull(gameRoomOverlay.source)),
+        sources = dedupeSources(filteredLegacySources + additionalSources + listOfNotNull(gameRoomOverlay.source)),
     )
 }
 
@@ -371,11 +419,10 @@ private fun buildGameRoomOverlay(
                 resolved.localPath to resolved.links
             }
         }
-        val resolvedVideos = if (!template?.videos.isNullOrEmpty()) {
-            template?.videos ?: emptyList()
-        } else {
-            resolveVideoLinks(videosByPracticeIdentity[practiceIdentity].orEmpty())
-        }
+        val resolvedVideos = mergeResolvedVideos(
+            primary = template?.videos.orEmpty(),
+            secondary = resolveVideoLinks(videosByPracticeIdentity[practiceIdentity].orEmpty()),
+        )
         val playfieldLocalRaw = normalizedOptionalString(template?.playfieldLocalOriginal ?: template?.playfieldLocal)
         val playfieldImageUrl = normalizedOptionalString(template?.playfieldImageUrl)
         val playfieldSourceLabel = template?.let(::resolvedPlayfieldSourceLabel)
@@ -753,7 +800,7 @@ private fun variantPreferenceScore(normalizedVariant: String?): Int {
 
 internal fun resolvedPlayfieldSourceLabel(game: PinballGame): String? {
     if (isPinProfPlayfieldUrl(game.playfieldImageUrl) || isPinProfPlayfieldUrl(game.playfieldLocalOriginalURL)) {
-        return "Prof"
+        return "PinProf"
     }
     if (!game.playfieldLocal.isNullOrBlank()) {
         return "Local"
@@ -765,7 +812,7 @@ internal fun resolvedPlayfieldSourceLabel(game: PinballGame): String? {
     val sourceUrl = resolveLibraryUrl(game.playfieldImageUrl) ?: return null
     return when {
         sourceUrl.contains("img.opdb.org", ignoreCase = true) -> "Playfield (OPDB)"
-        isPinProfPlayfieldUrl(sourceUrl) -> "Prof"
+        isPinProfPlayfieldUrl(sourceUrl) -> "PinProf"
         else -> null
     }
 }
@@ -833,21 +880,28 @@ private fun resolveLegacyGame(
     val hasCuratedPlayfield = playfieldLocalPath != null || curatedPlayfieldImageUrl != null
     val opdbPlayfieldImageUrl = normalizedOptionalString(machine.playfieldImageLargeUrl ?: machine.playfieldImageMediumUrl)
 
+    val resolvedCatalogRulesheets = resolveRulesheetLinks(opdbRulesheetsByPracticeIdentity[practiceIdentity].orEmpty())
     val resolvedRulesheets = if (hasCuratedRulesheet) {
-        when {
-            legacyGame.rulesheetLinks.isNotEmpty() -> legacyGame.rulesheetLinks
-            !legacyGame.rulesheetUrl.isNullOrBlank() -> listOf(ReferenceLink(label = "Rulesheet", url = legacyGame.rulesheetUrl))
-            else -> emptyList()
-        }
+        mergeRulesheetLinks(
+            when {
+                legacyGame.rulesheetLinks.isNotEmpty() -> legacyGame.rulesheetLinks
+                !legacyGame.rulesheetUrl.isNullOrBlank() -> listOf(ReferenceLink(label = "Rulesheet", url = legacyGame.rulesheetUrl))
+                else -> emptyList()
+            },
+            resolvedCatalogRulesheets.links,
+        )
     } else {
-        resolveRulesheetLinks(opdbRulesheetsByPracticeIdentity[practiceIdentity].orEmpty()).links
+        resolvedCatalogRulesheets.links
     }
     val rulesheetLocalPath = if (hasCuratedRulesheet) {
         normalizedOptionalString(legacyGame.rulesheetLocal)
     } else {
-        resolveRulesheetLinks(opdbRulesheetsByPracticeIdentity[practiceIdentity].orEmpty()).localPath
+        resolvedCatalogRulesheets.localPath
     }
-    val resolvedVideos = if (hasCuratedVideos) legacyGame.videos else resolveVideoLinks(opdbVideosByPracticeIdentity[practiceIdentity].orEmpty())
+    val resolvedVideos = mergeResolvedVideos(
+        primary = if (hasCuratedVideos) legacyGame.videos else emptyList(),
+        secondary = resolveVideoLinks(opdbVideosByPracticeIdentity[practiceIdentity].orEmpty()),
+    )
     val playfieldImageUrl = if (hasCuratedPlayfield) {
         curatedPlayfieldImageUrl
     } else {
@@ -892,6 +946,7 @@ private fun buildLegacyCuratedOverrides(games: List<PinballGame>): Map<String, L
         current.rulesheetLocalPath = current.rulesheetLocalPath ?: normalizedOptionalString(game.rulesheetLocal)
         if (current.rulesheetLinks.isEmpty()) {
             current.rulesheetLinks = when {
+                isImportedPinballMapSourceId(game.sourceId) -> emptyList()
                 game.rulesheetLinks.isNotEmpty() -> game.rulesheetLinks
                 !game.rulesheetUrl.isNullOrBlank() -> listOf(ReferenceLink(label = "Rulesheet", url = game.rulesheetUrl))
                 else -> emptyList()
@@ -944,6 +999,115 @@ private fun parsePublicLibraryOverrides(raw: String?): PublicLibraryOverridesRoo
         }
         .orEmpty()
     return PublicLibraryOverridesRoot(playfieldOverrides = playfieldOverrides)
+}
+
+private fun parseVenueMetadataOverlays(raw: String?): VenueMetadataOverlayIndex {
+    if (raw.isNullOrBlank()) return VenueMetadataOverlayIndex()
+    val root = runCatching { JSONObject(raw.trim()) }.getOrDefault(JSONObject())
+
+    val areaOrderByKey = buildMap {
+        val array = root.optJSONArray("layout_areas") ?: return@buildMap
+        for (index in 0 until array.length()) {
+            val obj = array.optJSONObject(index) ?: continue
+            val sourceId = obj.optStringOrNullLocal("source_id") ?: continue
+            val area = obj.optStringOrNullLocal("area") ?: continue
+            val areaOrder = if (obj.has("area_order") && !obj.isNull("area_order")) obj.optInt("area_order") else continue
+            put(venueOverlayAreaKey(sourceId, area), areaOrder)
+        }
+    }
+
+    val machineLayoutByKey = buildMap {
+        val array = root.optJSONArray("machine_layout") ?: return@buildMap
+        for (index in 0 until array.length()) {
+            val obj = array.optJSONObject(index) ?: continue
+            val sourceId = obj.optStringOrNullLocal("source_id") ?: continue
+            val opdbId = obj.optStringOrNullLocal("opdb_id") ?: continue
+            put(
+                venueOverlayMachineKey(sourceId, opdbId),
+                VenueMachineLayoutOverlayRecord(
+                    sourceId = sourceId,
+                    opdbId = opdbId,
+                    area = obj.optStringOrNullLocal("area"),
+                    groupNumber = if (obj.has("group_number") && !obj.isNull("group_number")) obj.optInt("group_number") else null,
+                    position = if (obj.has("position") && !obj.isNull("position")) obj.optInt("position") else null,
+                ),
+            )
+        }
+    }
+
+    val machineBankByKey = buildMap {
+        val array = root.optJSONArray("machine_bank") ?: return@buildMap
+        for (index in 0 until array.length()) {
+            val obj = array.optJSONObject(index) ?: continue
+            val sourceId = obj.optStringOrNullLocal("source_id") ?: continue
+            val opdbId = obj.optStringOrNullLocal("opdb_id") ?: continue
+            if (!obj.has("bank") || obj.isNull("bank")) continue
+            put(
+                venueOverlayMachineKey(sourceId, opdbId),
+                VenueMachineBankOverlayRecord(
+                    sourceId = sourceId,
+                    opdbId = opdbId,
+                    bank = obj.optInt("bank"),
+                ),
+            )
+        }
+    }
+
+    return VenueMetadataOverlayIndex(
+        areaOrderByKey = areaOrderByKey,
+        machineLayoutByKey = machineLayoutByKey,
+        machineBankByKey = machineBankByKey,
+    )
+}
+
+private fun resolveImportedVenueMetadata(
+    sourceId: String,
+    requestedOpdbId: String,
+    machine: CatalogMachineRecord,
+    overlays: VenueMetadataOverlayIndex,
+): ResolvedImportedVenueMetadata? {
+    fun expandedOverlayCandidateIds(value: String?): List<String> {
+        val normalized = normalizedOptionalString(value) ?: return emptyList()
+        val out = mutableListOf<String>()
+        var current: String? = normalized
+        while (current != null) {
+            if (!out.contains(current)) out += current
+            val dashIndex = current.lastIndexOf('-')
+            if (dashIndex <= 0) break
+            current = current.substring(0, dashIndex)
+        }
+        return out
+    }
+
+    val candidateIds = buildList {
+        (
+            expandedOverlayCandidateIds(requestedOpdbId) +
+                expandedOverlayCandidateIds(machine.opdbMachineId) +
+                expandedOverlayCandidateIds(machine.opdbGroupId) +
+                expandedOverlayCandidateIds(machine.practiceIdentity)
+            ).forEach { candidate ->
+            if (candidate != null && !contains(candidate)) {
+                add(candidate)
+            }
+        }
+    }
+
+    for (candidateId in candidateIds) {
+        val layout = overlays.machineLayoutByKey[venueOverlayMachineKey(sourceId, candidateId)]
+        val bank = overlays.machineBankByKey[venueOverlayMachineKey(sourceId, candidateId)]
+        if (layout == null && bank == null) continue
+
+        val area = normalizedOptionalString(layout?.area)
+        return ResolvedImportedVenueMetadata(
+            area = area,
+            areaOrder = area?.let { overlays.areaOrderByKey[venueOverlayAreaKey(sourceId, it)] },
+            group = layout?.groupNumber,
+            position = layout?.position,
+            bank = bank?.bank,
+        )
+    }
+
+    return null
 }
 
 private fun applyPublicPlayfieldOverrides(

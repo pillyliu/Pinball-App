@@ -145,7 +145,7 @@ private fun preferredPracticeRepresentative(games: List<PinballGame>): PinballGa
 private fun practiceRepresentativeScore(game: PinballGame): Int {
     var score = 0
     if (game.sourceId == "venue--gameroom") score += 600
-    if (game.sourceId != "venue--the-avenue-cafe" && game.sourceId != "the-avenue") score += 250
+    if (game.sourceId != "venue--pm-8760" && game.sourceId != "venue--the-avenue-cafe" && game.sourceId != "the-avenue") score += 250
     if (game.sourceType.name != "VENUE") score += 150
     if (game.name.contains(":")) score += 120
     if (!game.normalizedVariant.isNullOrBlank()) score += 100

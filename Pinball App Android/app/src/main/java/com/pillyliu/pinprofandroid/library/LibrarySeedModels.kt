@@ -113,7 +113,7 @@ internal fun preferredSeedMachineForVariant(
 internal fun dedupeRulesheetLinks(links: List<ReferenceLink>): List<ReferenceLink> {
     val grouped = linkedMapOf<String, MutableList<ReferenceLink>>()
     links.forEach { link ->
-        grouped.getOrPut(link.label) { mutableListOf() }.add(link)
+        grouped.getOrPut(seedRulesheetMergeKey(link)) { mutableListOf() }.add(link)
     }
     return grouped.values.mapNotNull { group ->
         group.minWithOrNull(
@@ -122,6 +122,12 @@ internal fun dedupeRulesheetLinks(links: List<ReferenceLink>): List<ReferenceLin
                 .thenBy { it.url ?: "" },
         )
     }
+}
+
+private fun seedRulesheetMergeKey(link: ReferenceLink): String {
+    val normalizedUrl = normalizedOptionalString(link.url)?.lowercase()
+    if (normalizedUrl != null) return "url|$normalizedUrl"
+    return "label|${link.label.trim().lowercase()}"
 }
 
 private fun isCanonicalTiltForumsLink(url: String?): Boolean {

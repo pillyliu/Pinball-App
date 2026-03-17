@@ -31,6 +31,7 @@ private const val STARTER_SEED_MARKER = "starter-pack-seeded-v3-only"
 private const val LEGACY_CACHE_RESET_MARKER = "legacy-cache-reset-v3-assets-v1"
 private val STARTER_PRIORITY_PATHS = listOf(
     "/pinball/data/pinball_library_v3.json",
+    "/pinball/data/lpl_targets_resolved_v1.json",
     "/pinball/data/LPL_Targets.csv",
     "/pinball/data/LPL_Stats.csv",
     "/pinball/data/LPL_Standings.csv",

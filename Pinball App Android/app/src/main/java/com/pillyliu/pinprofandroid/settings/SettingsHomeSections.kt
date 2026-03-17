@@ -232,7 +232,7 @@ private fun SettingsLibrarySection(
                 onDelete = null,
             )
         }
-        importedSources.forEach { source ->
+        importedSources.filterNot { source -> builtinSources.any { it.id == source.id } }.forEach { source ->
             ManagedSourceRow(
                 title = source.name,
                 subtitle = importedSourceSubtitle(source, manufacturers),

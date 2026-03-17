@@ -119,11 +119,11 @@ internal data class ReferenceLink(
 
 internal enum class RulesheetSourceKind(val rank: Int, val shortLabel: String) {
     LOCAL(0, "Local"),
-    PROF(1, "Prof"),
-    BOB(2, "Bob"),
-    PAPA(3, "PAPA"),
-    PP(4, "PP"),
-    TF(5, "TF"),
+    TF(1, "TF"),
+    PROF(2, "PinProf"),
+    BOB(3, "Bob"),
+    PAPA(4, "PAPA"),
+    PP(5, "PP"),
     OPDB(6, "OPDB"),
     OTHER(7, "Local"),
 }
@@ -306,6 +306,21 @@ internal fun PinballGame.metaLine(): String {
 
 internal fun PinballGame.manufacturerYearLine(): String {
     return if (year != null) "${manufacturer ?: "-"} • $year" else (manufacturer ?: "-")
+}
+
+internal fun PinballGame.manufacturerYearCardLine(): String {
+    val maker = abbreviatedLibraryCardManufacturer(manufacturer) ?: "-"
+    return if (year != null) "$maker • $year" else maker
+}
+
+private fun abbreviatedLibraryCardManufacturer(manufacturer: String?): String? {
+    val trimmed = manufacturer?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    return when (trimmed.lowercase()) {
+        "jersey jack pinball" -> "JJP"
+        "barrels of fun" -> "BoF"
+        "chicago gaming company" -> "CGC"
+        else -> trimmed
+    }
 }
 
 internal val PinballGame.normalizedVariant: String?

@@ -421,8 +421,6 @@ private enum TargetsSortMode: String, CaseIterable, Identifiable {
     }
 }
 
-private let lplVenueSourceIDs = Set(["venue--the-avenue-cafe", "the-avenue"])
-
 @MainActor
 private final class TargetsViewModel: ObservableObject {
     @Published private(set) var rows: [LPLTargetRow] = LPLTarget.rows.enumerated().map { index, target in
@@ -452,43 +450,56 @@ private final class TargetsViewModel: ObservableObject {
     func loadIfNeeded() async {
         guard !didLoad else { return }
         didLoad = true
-        await loadLibraryOrdering()
+        await loadResolvedTargets()
     }
 
-    private func loadLibraryOrdering() async {
+    private func loadResolvedTargets() async {
         do {
-            let extraction = try await loadFullLibraryExtraction()
-            let rowsWithLibrary = mergeTargetsWithLibrary(
-                libraryEntries: LibraryGameLookup.buildEntries(
-                    games: extraction.payload.games.filter { lplVenueSourceIDs.contains($0.sourceId) }
-                )
-            )
+            let cached = try await PinballDataCache.shared.loadText(path: PracticeStore.resolvedLeagueTargetsPath, allowMissing: true)
+            guard let text = cached.text, !text.isEmpty else {
+                allRows = Self.fallbackRows()
+                applySortAndFilter()
+                errorMessage = nil
+                return
+            }
 
-            allRows = rowsWithLibrary
-            applySortAndFilter()
+            let resolvedRows = parseResolvedLeagueTargets(text: text)
+            guard !resolvedRows.isEmpty else {
+                allRows = Self.fallbackRows()
+                applySortAndFilter()
+                errorMessage = nil
+                return
+            }
 
-            errorMessage = nil
-        } catch {
-            errorMessage = "Using default order (v3 library unavailable: \(error.localizedDescription))."
-        }
-    }
-
-    private func mergeTargetsWithLibrary(libraryEntries: [LibraryGameLookupEntry]) -> [LPLTargetRow] {
-        return LPLTarget.rows.enumerated().map { fallbackIndex, target in
-            if let exact = LibraryGameLookup.bestMatch(gameName: target.game, entries: libraryEntries) {
-                return LPLTargetRow(
-                    target: target,
-                    area: exact.area,
-                    areaOrder: exact.areaOrder,
-                    bank: exact.bank,
-                    group: exact.group,
-                    position: exact.position,
-                    libraryOrder: exact.order,
+            allRows = resolvedRows.enumerated().map { fallbackIndex, row in
+                LPLTargetRow(
+                    target: .init(
+                        game: row.game,
+                        great: row.secondHighestAvg,
+                        main: row.fourthHighestAvg,
+                        floor: row.eighthHighestAvg
+                    ),
+                    area: row.area,
+                    areaOrder: row.areaOrder,
+                    bank: row.bank,
+                    group: row.group,
+                    position: row.position,
+                    libraryOrder: row.order,
                     fallbackOrder: fallbackIndex
                 )
             }
+            applySortAndFilter()
+            errorMessage = nil
+        } catch {
+            allRows = Self.fallbackRows()
+            applySortAndFilter()
+            errorMessage = "Using bundled target order (resolved targets unavailable: \(error.localizedDescription))."
+        }
+    }
 
-            return LPLTargetRow(target: target, area: nil, areaOrder: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: fallbackIndex)
+    private static func fallbackRows() -> [LPLTargetRow] {
+        return LPLTarget.rows.enumerated().map { fallbackIndex, target in
+            LPLTargetRow(target: target, area: nil, areaOrder: nil, bank: nil, group: nil, position: nil, libraryOrder: Int.max, fallbackOrder: fallbackIndex)
         }
     }
 

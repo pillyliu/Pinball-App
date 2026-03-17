@@ -3,10 +3,12 @@ import Foundation
 nonisolated let hostedLibraryPath = "/pinball/data/pinball_library_v3.json"
 nonisolated let hostedOPDBCatalogPath = "/pinball/data/opdb_catalog_v1.json"
 nonisolated let hostedLibraryOverridesPath = "/pinball/data/pinball_library_seed_overrides_v1.json"
+nonisolated let hostedVenueMetadataOverlaysPath = "/pinball/data/venue_metadata_overlays_v1.json"
 nonisolated let hostedLibraryCatalogPaths = [
     hostedLibraryPath,
     hostedOPDBCatalogPath,
     hostedLibraryOverridesPath,
+    hostedVenueMetadataOverlaysPath,
 ]
 
 private let hostedLibraryRefreshInterval: TimeInterval = 24 * 60 * 60
@@ -23,12 +25,14 @@ func loadHostedLibraryExtraction(filterBySourceState: Bool = true) async throws 
         maxCacheAge: hostedLibraryRefreshInterval
     )
     async let overridesTextTask = loadHostedLibraryOverridesText()
-    let (libraryCached, opdbCached, overridesText) = try await (libraryResult, opdbResult, overridesTextTask)
+    async let venueMetadataTextTask = loadHostedVenueMetadataText()
+    let (libraryCached, opdbCached, overridesText, venueMetadataText) = try await (libraryResult, opdbResult, overridesTextTask, venueMetadataTextTask)
     guard let libraryText = libraryCached.text,
           let libraryData = libraryText.data(using: .utf8) else {
         throw URLError(.cannotDecodeRawData)
     }
     let overridesData = overridesText?.data(using: .utf8)
+    let venueMetadataData = venueMetadataText?.data(using: .utf8)
     if let opdbText = opdbCached.text,
        let opdbData = opdbText.data(using: .utf8),
        !opdbData.isEmpty {
@@ -36,6 +40,7 @@ func loadHostedLibraryExtraction(filterBySourceState: Bool = true) async throws 
             libraryData: libraryData,
             opdbCatalogData: opdbData,
             publicOverridesData: overridesData,
+            venueMetadataData: venueMetadataData,
             filterBySourceState: filterBySourceState
         )
     }
@@ -44,10 +49,13 @@ func loadHostedLibraryExtraction(filterBySourceState: Bool = true) async throws 
        !bundledOPDBData.isEmpty {
         let bundledOverridesText = try loadBundledPinballText(path: hostedLibraryOverridesPath)
         let bundledOverridesData = overridesData ?? bundledOverridesText?.data(using: .utf8)
+        let bundledVenueMetadataText = try loadBundledPinballText(path: hostedVenueMetadataOverlaysPath)
+        let bundledVenueMetadataData = venueMetadataData ?? bundledVenueMetadataText?.data(using: .utf8)
         return try decodeMergedLibraryPayloadWithState(
             libraryData: libraryData,
             opdbCatalogData: bundledOPDBData,
             publicOverridesData: bundledOverridesData,
+            venueMetadataData: bundledVenueMetadataData,
             filterBySourceState: filterBySourceState
         )
     }
@@ -78,12 +86,33 @@ private func loadHostedLibraryOverridesText() async -> String? {
     }
 }
 
+private func loadHostedVenueMetadataText() async -> String? {
+    do {
+        if try await PinballDataCache.shared.hasRemoteUpdate(path: hostedVenueMetadataOverlaysPath) {
+            return try await PinballDataCache.shared.forceRefreshText(
+                path: hostedVenueMetadataOverlaysPath,
+                allowMissing: true
+            ).text?.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return try await PinballDataCache.shared.loadText(
+            path: hostedVenueMetadataOverlaysPath,
+            allowMissing: true
+        ).text?.trimmingCharacters(in: .whitespacesAndNewlines)
+    } catch {
+        return try? await PinballDataCache.shared.loadText(
+            path: hostedVenueMetadataOverlaysPath,
+            allowMissing: true
+        ).text?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
 func loadBundledLibraryExtraction(filterBySourceState: Bool = true) throws -> LegacyCatalogExtraction? {
     guard let bundledLibraryText = try loadBundledPinballText(path: hostedLibraryPath),
           let bundledLibraryData = bundledLibraryText.data(using: .utf8) else {
         return nil
     }
     let bundledOverridesData = try loadBundledPinballText(path: hostedLibraryOverridesPath)?.data(using: .utf8)
+    let bundledVenueMetadataData = try loadBundledPinballText(path: hostedVenueMetadataOverlaysPath)?.data(using: .utf8)
     if let bundledOPDBText = try loadBundledPinballText(path: hostedOPDBCatalogPath),
        let bundledOPDBData = bundledOPDBText.data(using: .utf8),
        !bundledOPDBData.isEmpty {
@@ -91,6 +120,7 @@ func loadBundledLibraryExtraction(filterBySourceState: Bool = true) throws -> Le
             libraryData: bundledLibraryData,
             opdbCatalogData: bundledOPDBData,
             publicOverridesData: bundledOverridesData,
+            venueMetadataData: bundledVenueMetadataData,
             filterBySourceState: filterBySourceState
         )
     }

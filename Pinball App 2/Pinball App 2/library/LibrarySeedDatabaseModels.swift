@@ -123,7 +123,7 @@ nonisolated func preferredSeedMachineForVariant(
 }
 
 nonisolated func dedupeRulesheetLinks(_ links: [PinballGame.ReferenceLink]) -> [PinballGame.ReferenceLink] {
-    let grouped = Dictionary(grouping: links, by: \.label)
+    let grouped = Dictionary(grouping: links, by: canonicalSeedRulesheetLinkKey)
     return grouped.values.compactMap { group in
         group.min {
             let left = preferredRulesheetRank(for: $0.url)
@@ -132,6 +132,14 @@ nonisolated func dedupeRulesheetLinks(_ links: [PinballGame.ReferenceLink]) -> [
             return $0.url < $1.url
         }
     }
+}
+
+nonisolated private func canonicalSeedRulesheetLinkKey(_ link: PinballGame.ReferenceLink) -> String {
+    let url = link.url.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !url.isEmpty {
+        return "url|\(url.lowercased())"
+    }
+    return "label|\(link.label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())"
 }
 
 nonisolated func preferredRulesheetRank(for url: String) -> Int {

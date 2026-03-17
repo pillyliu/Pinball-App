@@ -349,7 +349,7 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     AppOverlaySubtitle(
-                        text = game.manufacturerYearLine(),
+                        text = game.manufacturerYearCardLine(),
                         modifier = Modifier.widthIn(max = if (makerMaxWidth > 48.dp) makerMaxWidth else 48.dp),
                         alpha = 0.95f,
                     )

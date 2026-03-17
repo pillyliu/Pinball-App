@@ -113,12 +113,18 @@ internal fun normalizeLibraryPlayfieldLocalPath(path: String?): String? {
 
 internal fun normalizeLibraryCachePath(path: String?): String? {
     val raw = path?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-    if (raw.startsWith("/")) return raw
+    fun normalizePlayfieldPublishedPath(value: String): String =
+        value.replace(Regex("(/pinball/images/playfields/.+?)(?:_(700|1400))?\\.[A-Za-z0-9]+$", RegexOption.IGNORE_CASE), "$1.webp")
+    if (raw.startsWith("/")) {
+        return if (raw.contains("/pinball/images/playfields/")) normalizePlayfieldPublishedPath(raw) else raw
+    }
     if (raw.startsWith("http://") || raw.startsWith("https://")) {
         return try {
             val uri = java.net.URI(raw)
             if (uri.host?.equals("pillyliu.com", ignoreCase = true) == true) {
-                uri.path?.takeIf { it.isNotBlank() } ?: raw
+                uri.path?.takeIf { it.isNotBlank() }?.let {
+                    if (it.contains("/pinball/images/playfields/")) normalizePlayfieldPublishedPath(it) else it
+                } ?: raw
             } else {
                 raw
             }
@@ -126,7 +132,8 @@ internal fun normalizeLibraryCachePath(path: String?): String? {
             raw
         }
     }
-    return "/$raw"
+    val normalized = "/$raw"
+    return if (normalized.contains("/pinball/images/playfields/")) normalizePlayfieldPublishedPath(normalized) else normalized
 }
 
 private fun missingArtworkUrl(): String? =
@@ -310,7 +317,7 @@ internal fun PinballGame.resolvedPlayfieldCandidates(liveStatus: LivePlayfieldSt
 
 internal fun PinballGame.resolvedPlayfieldButtonLabel(liveStatus: LivePlayfieldStatus?): String =
     when (liveStatus?.effectiveKind) {
-        LivePlayfieldKind.PILLYLIU -> "Prof"
+        LivePlayfieldKind.PILLYLIU -> "PinProf"
         LivePlayfieldKind.OPDB -> "OPDB"
         LivePlayfieldKind.EXTERNAL -> playfieldButtonLabel
         LivePlayfieldKind.MISSING -> if (actualFullscreenPlayfieldCandidates.isEmpty()) "Unavailable" else playfieldButtonLabel
@@ -335,7 +342,7 @@ internal fun PinballGame.resolvedPlayfieldOptions(liveStatus: LivePlayfieldStatu
 
     val profCandidates = profPlayfieldCandidates(liveStatus)
     if (profCandidates.isNotEmpty()) {
-        appendOption(label = "Prof", candidates = profCandidates)
+        appendOption(label = "PinProf", candidates = profCandidates)
     } else {
         appendOption(label = "Local", candidates = localFallbackPlayfieldCandidates)
     }
@@ -351,14 +358,14 @@ internal val PinballGame.playfieldButtonLabel: String
             val normalized = explicitLabel.lowercase()
             return when {
                 "opdb" in normalized -> "OPDB"
-                "prof" in normalized -> "Prof"
+                "prof" in normalized -> "PinProf"
                 "local" in normalized -> "Local"
                 "remote" in normalized || "external" in normalized -> "View"
                 else -> explicitLabel
             }
         }
         if (profPlayfieldBaseCandidates.isNotEmpty()) {
-            return "Prof"
+            return "PinProf"
         }
         if (localFallbackPlayfieldCandidates.isNotEmpty()) {
             return "Local"
@@ -366,7 +373,7 @@ internal val PinballGame.playfieldButtonLabel: String
         val resolved = resolveLibraryUrl(playfieldImageUrl)
         if (resolved != null) {
             return when {
-                isPinProfPlayfieldUrl(resolved) -> "Prof"
+                isPinProfPlayfieldUrl(resolved) -> "PinProf"
                 isOpdbPlayfieldUrl(resolved) -> "OPDB"
                 else -> "View"
             }

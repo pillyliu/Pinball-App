@@ -122,6 +122,7 @@ actor PinballDataCache {
     private let legacyCacheResetMarkerName = "legacy-cache-reset-v3-assets-v1"
     private let starterPriorityPaths = [
         "/pinball/data/pinball_library_v3.json",
+        "/pinball/data/lpl_targets_resolved_v1.json",
         "/pinball/data/LPL_Targets.csv",
         "/pinball/data/LPL_Stats.csv",
         "/pinball/data/LPL_Standings.csv",

@@ -32,8 +32,8 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
     val state = rememberSettingsScreenState(context)
     val builtinSources = remember {
         listOf(
-            LibrarySource(id = "venue--rlm-amusements", name = "RLM Amusements", type = LibrarySourceType.VENUE),
-            LibrarySource(id = "venue--the-avenue-cafe", name = "The Avenue Cafe", type = LibrarySourceType.VENUE),
+            LibrarySource(id = "venue--pm-16470", name = "RLM Amusements", type = LibrarySourceType.VENUE),
+            LibrarySource(id = "venue--pm-8760", name = "The Avenue Cafe", type = LibrarySourceType.VENUE),
         )
     }
     val sourceVersion by LibrarySourceEvents.version.collectAsState()
