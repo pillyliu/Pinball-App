@@ -809,7 +809,7 @@ struct GameRoomEditMachinesView: View {
             } else if hasSearchFilters {
                 AppInlineTaskStatus(text: "\(filteredCatalogGames.count) matches")
             } else {
-                AppPanelEmptyCard(text: "Search by game name, shortname, or common name. Open Advanced Filters for manufacturer, year, and game type.")
+                AppPanelEmptyCard(text: "Search by name or abbreviation. Open Advanced Filters for manufacturer, year, and game type.")
             }
 
             if hasSearchFilters {

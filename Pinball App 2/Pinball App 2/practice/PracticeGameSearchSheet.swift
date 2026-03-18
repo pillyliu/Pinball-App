@@ -179,7 +179,7 @@ struct PracticeGameSearchSheet: View {
                     }
                 }
             } else {
-                AppPanelEmptyCard(text: "Search by name, shortname, or common name. Open Advanced Filters for manufacturer, year, and game type.")
+                AppPanelEmptyCard(text: "Search by name or abbreviation. Open Advanced Filters for manufacturer, year, and game type.")
             }
         }
     }

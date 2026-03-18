@@ -515,7 +515,7 @@ internal fun GameRoomEditSettingsSection(
             if (context.catalogIsLoading) {
                 AppInlineTaskStatus(text = "Loading catalog data…", showsProgress = true)
             } else if (!hasSearchFilters) {
-                AppPanelEmptyCard(text = "Search by game name, shortname, or common name. Open Advanced Filters for manufacturer, year, and game type.")
+                AppPanelEmptyCard(text = "Search by name or abbreviation. Open Advanced Filters for manufacturer, year, and game type.")
             } else {
                 AppInlineTaskStatus(text = "${filteredCatalogGames.size} matches")
                 if (filteredCatalogGames.isEmpty()) {
