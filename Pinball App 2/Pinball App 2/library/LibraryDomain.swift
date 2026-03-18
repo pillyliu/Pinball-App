@@ -2,14 +2,14 @@ import Foundation
 import SwiftUI
 import Combine
 
-enum PinballLibrarySourceType: String, CaseIterable, Codable {
+nonisolated enum PinballLibrarySourceType: String, CaseIterable, Codable {
     case venue
     case category
     case manufacturer
     case tournament
 }
 
-struct PinballLibrarySource: Identifiable {
+nonisolated struct PinballLibrarySource: Identifiable {
     let id: String
     let name: String
     let type: PinballLibrarySourceType
@@ -56,7 +56,7 @@ nonisolated func matchesSearchTokens(_ queryTokens: [String], haystackTokens: [S
     }
 }
 
-enum PinballLibrarySortOption: String, CaseIterable, Identifiable {
+nonisolated enum PinballLibrarySortOption: String, CaseIterable, Identifiable {
     case area
     case bank
     case alphabetical
@@ -352,7 +352,7 @@ final class PinballLibraryViewModel: ObservableObject {
     }
 }
 
-struct PinballGame: Identifiable, Decodable {
+nonisolated struct PinballGame: Identifiable, Decodable {
     struct ReferenceLink: Identifiable, Decodable {
         let label: String
         let url: String

@@ -562,7 +562,7 @@ struct CatalogVideoLinkRecord: Decodable {
     }
 }
 
-struct ResolvedCatalogRecord {
+nonisolated struct ResolvedCatalogRecord {
     let sourceID: String
     let sourceName: String
     let sourceType: PinballLibrarySourceType

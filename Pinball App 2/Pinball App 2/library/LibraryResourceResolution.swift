@@ -175,7 +175,7 @@ nonisolated func libraryMissingArtworkURL() -> URL? {
 }
 
 extension PinballGame {
-    var opdbGroupID: String? {
+    nonisolated var opdbGroupID: String? {
         guard let opdbID else { return nil }
         let trimmed = opdbID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.hasPrefix("G") else { return nil }

@@ -1,10 +1,10 @@
 import Foundation
 
-let pmAvenueLibrarySourceID = "venue--pm-8760"
-let pmRLMLibrarySourceID = "venue--pm-16470"
-let gameRoomLibrarySourceID = "venue--gameroom"
+nonisolated let pmAvenueLibrarySourceID = "venue--pm-8760"
+nonisolated let pmRLMLibrarySourceID = "venue--pm-16470"
+nonisolated let gameRoomLibrarySourceID = "venue--gameroom"
 
-private let builtinVenueSourceIDAliases: [String: String] = [
+nonisolated private let builtinVenueSourceIDAliases: [String: String] = [
     "the-avenue": pmAvenueLibrarySourceID,
     "the-avenue-cafe": pmAvenueLibrarySourceID,
     "venue--the-avenue-cafe": pmAvenueLibrarySourceID,
@@ -12,13 +12,13 @@ private let builtinVenueSourceIDAliases: [String: String] = [
     "venue--rlm-amusements": pmRLMLibrarySourceID
 ]
 
-private let builtinVenueSourceNames: [String: String] = [
+nonisolated private let builtinVenueSourceNames: [String: String] = [
     pmRLMLibrarySourceID: "RLM Amusements",
     pmAvenueLibrarySourceID: "The Avenue Cafe",
     gameRoomLibrarySourceID: "GameRoom"
 ]
 
-let defaultBuiltinVenueSourceIDs = [
+nonisolated let defaultBuiltinVenueSourceIDs = [
     pmRLMLibrarySourceID,
     pmAvenueLibrarySourceID
 ]
