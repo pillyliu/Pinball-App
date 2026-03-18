@@ -11,6 +11,10 @@ struct GameRoomCatalogGame: Identifiable, Hashable {
     let manufacturer: String?
     let year: Int?
     let primaryImageURL: String?
+    let opdbType: String?
+    let opdbDisplay: String?
+    let opdbShortname: String?
+    let opdbCommonName: String?
 }
 
 struct GameRoomCatalogSlugMatch: Hashable {
@@ -27,6 +31,8 @@ nonisolated func gameRoomCatalogMatchesSearch(
     var fields: [String?] = [
         game.displayTitle,
         game.displayVariant,
+        game.opdbShortname,
+        game.opdbCommonName,
         game.manufacturer,
         game.year.map(String.init)
     ]
@@ -73,6 +79,10 @@ private struct GameRoomCatalogRoot: Decodable {
         let manufacturerName: String?
         let year: Int?
         let primaryImage: RemoteImageSet?
+        let opdbType: String?
+        let opdbDisplay: String?
+        let opdbShortname: String?
+        let opdbCommonName: String?
 
         enum CodingKeys: String, CodingKey {
             case practiceIdentity = "practice_identity"
@@ -85,6 +95,10 @@ private struct GameRoomCatalogRoot: Decodable {
             case manufacturerName = "manufacturer_name"
             case year
             case primaryImage = "primary_image"
+            case opdbType = "opdb_type"
+            case opdbDisplay = "opdb_display"
+            case opdbShortname = "opdb_shortname"
+            case opdbCommonName = "opdb_common_name"
         }
     }
 }
@@ -149,6 +163,16 @@ final class GameRoomCatalogLoader: ObservableObject {
             []
     }
 
+    func games(for catalogGameID: String) -> [GameRoomCatalogGame] {
+        if let grouped = gamesByCatalogGameID[catalogGameID], !grouped.isEmpty {
+            return grouped.sorted(by: Self.sortGames)
+        }
+        if let grouped = gamesByNormalizedCatalogGameID[Self.normalizedCatalogGameID(catalogGameID)], !grouped.isEmpty {
+            return grouped.sorted(by: Self.sortGames)
+        }
+        return []
+    }
+
     func game(for catalogGameID: String) -> GameRoomCatalogGame? {
         if let grouped = gamesByCatalogGameID[catalogGameID], !grouped.isEmpty {
             return Self.preferredGame(in: grouped)
@@ -159,20 +183,32 @@ final class GameRoomCatalogLoader: ObservableObject {
         return games.first(where: { $0.catalogGameID.caseInsensitiveCompare(catalogGameID) == .orderedSame })
     }
 
+    func game(for catalogGameID: String, variant: String?) -> GameRoomCatalogGame? {
+        if Self.normalizedVariant(variant) != nil {
+            let matches = games(for: catalogGameID).filter {
+                Self.variantMatchesSelection(candidate: $0.displayVariant, selected: variant)
+            }
+            if !matches.isEmpty {
+                return Self.preferredGame(in: matches)
+            }
+        }
+        return game(for: catalogGameID)
+    }
+
     func slugMatch(for slug: String) -> GameRoomCatalogSlugMatch? {
         Self.buildSlugKeys(from: slug).first { slugMatchesByKey[$0] != nil }.flatMap { slugMatchesByKey[$0] }
     }
 
     func imageCandidates(for machine: OwnedMachine) -> [URL] {
         var rawCandidates: [String] = []
-        let normalizedVariant = Self.normalizedVariant(machine.displayVariant)?.lowercased()
+        let normalizedVariant = Self.normalizedVariant(machine.displayVariant)
         let grouped = gamesByCatalogGameID[machine.catalogGameID] ??
             gamesByNormalizedCatalogGameID[Self.normalizedCatalogGameID(machine.catalogGameID)] ??
             []
 
         if let normalizedVariant {
             let variantMatches = grouped.filter {
-                Self.normalizedVariant($0.displayVariant)?.lowercased() == normalizedVariant
+                Self.variantMatchesSelection(candidate: $0.displayVariant, selected: normalizedVariant)
             }
             rawCandidates.append(contentsOf: variantMatches.compactMap(\.primaryImageURL))
         }
@@ -229,7 +265,11 @@ final class GameRoomCatalogLoader: ObservableObject {
             manufacturerID: machine.manufacturerID,
             manufacturer: machine.manufacturerName,
             year: machine.year,
-            primaryImageURL: machine.primaryImage?.mediumURL ?? machine.primaryImage?.largeURL
+            primaryImageURL: machine.primaryImage?.mediumURL ?? machine.primaryImage?.largeURL,
+            opdbType: machine.opdbType,
+            opdbDisplay: machine.opdbDisplay,
+            opdbShortname: machine.opdbShortname,
+            opdbCommonName: machine.opdbCommonName
         )
     }
 
@@ -251,7 +291,7 @@ final class GameRoomCatalogLoader: ObservableObject {
 
         var map: [String: [String]] = [:]
         for (key, values) in buckets {
-            map[key] = values.sorted { lhs, rhs in
+            map[key] = sanitizedVariantOptions(Array(values)).sorted { lhs, rhs in
                 let lhsRank = variantPreferenceRank(lhs)
                 let rhsRank = variantPreferenceRank(rhs)
                 if lhsRank != rhsRank { return lhsRank < rhsRank }
@@ -311,6 +351,18 @@ final class GameRoomCatalogLoader: ObservableObject {
         return 20
     }
 
+    private static func sanitizedVariantOptions(_ values: [String]) -> [String] {
+        var normalized = Set(values.compactMap(normalizedVariant))
+        guard normalized.contains("Premium/LE") else {
+            return Array(normalized)
+        }
+
+        normalized.remove("Premium/LE")
+        normalized.insert("Premium")
+        normalized.insert("LE")
+        return Array(normalized)
+    }
+
     private static func sortGames(lhs: GameRoomCatalogGame, rhs: GameRoomCatalogGame) -> Bool {
         let lhsName = lhs.displayTitle.localizedLowercase
         let rhsName = rhs.displayTitle.localizedLowercase
@@ -361,6 +413,20 @@ final class GameRoomCatalogLoader: ObservableObject {
                 .joined(separator: " ")
         }
         return trimmed
+    }
+
+    private static func variantMatchesSelection(candidate: String?, selected: String?) -> Bool {
+        guard let candidate = normalizedVariant(candidate)?.localizedLowercase,
+              let selected = normalizedVariant(selected)?.localizedLowercase else {
+            return false
+        }
+        if candidate == selected {
+            return true
+        }
+        if candidate == "premium/le" {
+            return selected == "premium" || selected == "le"
+        }
+        return false
     }
 
     private static func parsedCatalogName(title: String, explicitVariant: String?) -> (title: String, variant: String?) {

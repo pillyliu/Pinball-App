@@ -31,7 +31,7 @@ extension PracticeScreen {
                             })
                             .onAppear { uiState.selectedGameID = gameID }
                             .navigationTransition(.zoom(sourceID: uiState.gameTransitionSourceID ?? gameID, in: gameTransition))
-                        case .rulesheet, .playfield, .ifpaProfile, .groupDashboard, .groupEditor, .journal, .insights, .mechanics, .settings:
+                        case .search, .rulesheet, .playfield, .ifpaProfile, .groupDashboard, .groupEditor, .journal, .insights, .mechanics, .settings:
                             routeView(for: route)
                         }
                     }

@@ -60,7 +60,13 @@ internal fun PracticeTopBarGamePicker(
             }
             orderedGames.forEach { game ->
                 DropdownMenuItem(
-                    text = { Text(game.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    text = {
+                        Text(
+                            practiceDisplayTitleForKey(game.practiceKey, context.games) ?: game.name,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
                     onClick = {
                         context.onExpandedChange(false)
                         context.onGameSelected(game)

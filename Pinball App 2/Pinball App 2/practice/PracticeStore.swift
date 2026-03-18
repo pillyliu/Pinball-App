@@ -112,9 +112,11 @@ struct LeagueTargetScores {
 final class PracticeStore: ObservableObject {
     @Published var games: [PinballGame] = []
     @Published var allLibraryGames: [PinballGame] = []
+    @Published var searchCatalogGames: [PinballGame] = []
     @Published var librarySources: [PinballLibrarySource] = []
     @Published var defaultPracticeSourceID: String?
     @Published var isLoadingGames = false
+    @Published var isLoadingSearchCatalog = false
     @Published var state = PracticePersistedState.empty
     @Published var lastErrorMessage: String?
 
@@ -150,7 +152,20 @@ final class PracticeStore: ObservableObject {
     func gameName(for id: String) -> String {
         let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return "None" }
-        return gameForAnyID(trimmed)?.name ?? trimmed
+        let canonical = canonicalPracticeGameID(trimmed)
+        let lookupGames: [PinballGame]
+        if !searchCatalogGames.isEmpty && !allLibraryGames.isEmpty {
+            lookupGames = allLibraryGames + searchCatalogGames
+        } else if !searchCatalogGames.isEmpty {
+            lookupGames = games + searchCatalogGames
+        } else if !allLibraryGames.isEmpty {
+            lookupGames = allLibraryGames
+        } else {
+            lookupGames = games
+        }
+        return practiceDisplayTitle(for: canonical, in: lookupGames)
+            ?? gameForAnyID(trimmed)?.name
+            ?? trimmed
     }
 
     func actionType(for task: StudyTaskKind) -> JournalActionType {

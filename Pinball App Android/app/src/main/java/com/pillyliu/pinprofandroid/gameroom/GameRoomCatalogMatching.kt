@@ -1,6 +1,7 @@
 package com.pillyliu.pinprofandroid.gameroom
 
 import com.pillyliu.pinprofandroid.library.matchesSearchQuery
+import com.pillyliu.pinprofandroid.library.normalizedSearchTokens
 import java.text.Normalizer
 import java.util.Locale
 
@@ -27,9 +28,21 @@ private fun gameRoomCatalogSearchFields(
     listOfNotNull(
         game.displayTitle,
         game.displayVariant,
+        game.opdbShortname,
+        game.opdbCommonName,
         game.manufacturer,
         game.year?.toString(),
     ) + variantAliases
+
+internal fun gameRoomMatchesSearchTokens(queryTokens: List<String>, haystackTokens: List<String>): Boolean {
+    if (queryTokens.isEmpty()) return true
+    if (haystackTokens.isEmpty()) return false
+    return queryTokens.all { queryToken ->
+        haystackTokens.any { haystackToken -> haystackToken.contains(queryToken) }
+    }
+}
+
+internal fun gameRoomNormalizedTokens(value: String): List<String> = normalizedSearchTokens(value)
 
 internal fun preferredCatalogGame(games: List<GameRoomCatalogGame>): GameRoomCatalogGame? =
     games.minWithOrNull(::comparePreferredCatalogGame)

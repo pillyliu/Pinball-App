@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
+import android.os.CancellationSignal
 import android.text.method.LinkMovementMethod
 import android.widget.TextView
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -52,7 +53,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
-import androidx.core.os.CancellationSignal
 import com.pillyliu.pinprofandroid.ui.AppTintedStatusChip
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.HtmlCompat

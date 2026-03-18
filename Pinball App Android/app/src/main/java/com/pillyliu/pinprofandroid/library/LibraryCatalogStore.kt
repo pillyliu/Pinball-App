@@ -7,29 +7,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
 
-private const val PM_AVENUE_SOURCE_ID = "venue--pm-8760"
-private const val PM_RLM_SOURCE_ID = "venue--pm-16470"
 private const val DEFAULT_IMPORTED_SOURCES_ASSET_PATH = "starter-pack/pinball/data/default_pm_venue_sources_v1.json"
 
 private val canonicalBuiltinSourceIds = setOf(
-    PM_RLM_SOURCE_ID,
-    PM_AVENUE_SOURCE_ID,
-    "venue--gameroom",
+    PM_RLM_LIBRARY_SOURCE_ID,
+    PM_AVENUE_LIBRARY_SOURCE_ID,
+    BUILTIN_GAME_ROOM_LIBRARY_SOURCE_ID,
 )
-
-private val legacySourceIdAliases = mapOf(
-    "the-avenue" to PM_AVENUE_SOURCE_ID,
-    "the-avenue-cafe" to PM_AVENUE_SOURCE_ID,
-    "venue--the-avenue-cafe" to PM_AVENUE_SOURCE_ID,
-    "rlm-amusements" to PM_RLM_SOURCE_ID,
-    "venue--rlm-amusements" to PM_RLM_SOURCE_ID,
-)
-
-private fun canonicalLibrarySourceId(raw: String?): String? {
-    val trimmed = raw?.trim().orEmpty()
-    if (trimmed.isEmpty()) return null
-    return legacySourceIdAliases[trimmed] ?: trimmed
-}
 
 internal data class LibrarySourceState(
     val enabledSourceIds: List<String> = emptyList(),

@@ -50,7 +50,7 @@ struct PracticeGameToolbarMenu: View {
                     Text("No game data").tag("")
                 } else {
                     ForEach(orderedGameOptions) { game in
-                        Text(game.name).tag(game.canonicalPracticeKey)
+                        Text(practiceDisplayTitle(for: game.canonicalPracticeKey, in: store.games) ?? game.name).tag(game.canonicalPracticeKey)
                     }
                 }
             }

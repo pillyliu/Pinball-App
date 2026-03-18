@@ -26,7 +26,12 @@ internal class PracticeScreenActions(
 
     fun selectLibrarySource(sourceId: String) {
         store.setPreferredLibrarySource(normalizePracticeLibrarySourceId(sourceId))
-        val lookupPool = if (store.allLibraryGames.isNotEmpty()) store.allLibraryGames else store.games
+        val lookupPool = when {
+            store.searchCatalogGames.isNotEmpty() && store.allLibraryGames.isNotEmpty() -> store.allLibraryGames + store.searchCatalogGames
+            store.searchCatalogGames.isNotEmpty() -> store.games + store.searchCatalogGames
+            store.allLibraryGames.isNotEmpty() -> store.allLibraryGames
+            else -> store.games
+        }
         if (uiState.navigation.selectedGameSlug != null &&
             findGameByPracticeLookupKey(lookupPool, uiState.navigation.selectedGameSlug) == null
         ) {

@@ -17,8 +17,8 @@ func preferredPracticeRepresentative(_ games: [PinballGame]) -> PinballGame? {
 
 private func practiceRepresentativeScore(_ game: PinballGame) -> Int {
     var score = 0
-    if game.sourceId == "venue--gameroom" { score += 600 }
-    if game.sourceId != "venue--pm-8760" && game.sourceId != "venue--the-avenue-cafe" && game.sourceId != "the-avenue" { score += 250 }
+    if canonicalLibrarySourceID(game.sourceId) == gameRoomLibrarySourceID { score += 600 }
+    if !isAvenueLibrarySourceID(game.sourceId) { score += 250 }
     if game.sourceType != .venue { score += 150 }
     if game.name.contains(":") { score += 120 }
     if let variant = game.normalizedVariant?.trimmingCharacters(in: .whitespacesAndNewlines), !variant.isEmpty {
@@ -42,7 +42,9 @@ extension PracticeStore {
         "library-last-viewed-game-id"
     ]
     private var practiceLookupGamesPool: [PinballGame] {
-        allLibraryGames.isEmpty ? games : allLibraryGames
+        let baseGames = allLibraryGames.isEmpty ? games : allLibraryGames
+        guard !searchCatalogGames.isEmpty else { return baseGames }
+        return baseGames + searchCatalogGames
     }
 
     func canonicalPracticeGameID(_ raw: String) -> String {

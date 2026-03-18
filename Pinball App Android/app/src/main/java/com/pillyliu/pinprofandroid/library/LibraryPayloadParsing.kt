@@ -3,19 +3,6 @@ package com.pillyliu.pinprofandroid.library
 import org.json.JSONArray
 import org.json.JSONObject
 
-private const val PM_AVENUE_LIBRARY_SOURCE_ID = "venue--pm-8760"
-private const val PM_RLM_LIBRARY_SOURCE_ID = "venue--pm-16470"
-
-private fun canonicalPayloadSourceId(raw: String?): String? {
-    val trimmed = raw?.trim().orEmpty()
-    if (trimmed.isEmpty()) return null
-    return when (trimmed) {
-        "the-avenue", "the-avenue-cafe", "venue--the-avenue-cafe" -> PM_AVENUE_LIBRARY_SOURCE_ID
-        "rlm-amusements", "venue--rlm-amusements" -> PM_RLM_LIBRARY_SOURCE_ID
-        else -> trimmed
-    }
-}
-
 internal fun parseLibraryPayload(raw: String): ParsedLibraryData {
     val trimmed = raw.trim()
     if (trimmed.startsWith("{")) {
@@ -51,15 +38,17 @@ internal fun parseGames(array: JSONArray): List<PinballGame> {
                 ?: obj.optStringOrNull("library_type"),
         )
         val fallbackVenue = obj.optStringOrNull("venueName") ?: obj.optStringOrNull("venue")
-        val sourceName = obj.optStringOrNull("libraryName")
-            ?: obj.optStringOrNull("sourceName")
-            ?: obj.optStringOrNull("library_name")
-            ?: fallbackVenue
-            ?: "The Avenue Cafe"
         val sourceId = obj.optStringOrNull("libraryId")
             ?: obj.optStringOrNull("sourceId")
             ?: obj.optStringOrNull("library_id")
-        val canonicalSourceId = canonicalPayloadSourceId(sourceId) ?: slugifySourceId(sourceName)
+        val fallbackSourceName = obj.optStringOrNull("libraryName")
+            ?: obj.optStringOrNull("sourceName")
+            ?: obj.optStringOrNull("library_name")
+            ?: fallbackVenue
+            ?: builtinVenueSourceName(PM_AVENUE_LIBRARY_SOURCE_ID)
+            ?: "The Avenue Cafe"
+        val canonicalSourceId = canonicalLibrarySourceId(sourceId) ?: slugifySourceId(fallbackSourceName)
+        val sourceName = builtinVenueSourceName(canonicalSourceId) ?: fallbackSourceName
         val assets = obj.optJSONObject("assets")
         val rawPlayfieldLocal = obj.optStringOrNull("playfieldLocal")
             ?: assets?.optStringOrNull("playfield_local_practice")
@@ -79,6 +68,7 @@ internal fun parseGames(array: JSONArray): List<PinballGame> {
             practiceIdentity = obj.optStringOrNull("practice_identity"),
             opdbId = obj.optStringOrNull("opdb_id"),
             opdbGroupId = obj.optStringOrNull("opdb_group_id"),
+            opdbMachineId = obj.optStringOrNull("opdb_machine_id"),
             variant = obj.optStringOrNull("variant"),
             sourceId = canonicalSourceId,
             sourceName = sourceName,
@@ -92,6 +82,17 @@ internal fun parseGames(array: JSONArray): List<PinballGame> {
             manufacturer = obj.optStringOrNull("manufacturer"),
             year = obj.optIntOrNull("year") ?: parseIntFlexible(obj.opt("year")),
             slug = slug,
+            opdbName = obj.optStringOrNull("opdb_name"),
+            opdbCommonName = obj.optStringOrNull("opdb_common_name"),
+            opdbShortname = obj.optStringOrNull("opdb_shortname"),
+            opdbDescription = obj.optStringOrNull("opdb_description"),
+            opdbType = obj.optStringOrNull("opdb_type"),
+            opdbDisplay = obj.optStringOrNull("opdb_display"),
+            opdbPlayerCount = obj.optIntOrNull("opdb_player_count") ?: parseIntFlexible(obj.opt("opdb_player_count")),
+            opdbManufactureDate = obj.optStringOrNull("opdb_manufacture_date"),
+            opdbIpdbId = obj.optIntOrNull("opdb_ipdb_id") ?: parseIntFlexible(obj.opt("opdb_ipdb_id")),
+            opdbGroupShortname = obj.optStringOrNull("opdb_group_shortname"),
+            opdbGroupDescription = obj.optStringOrNull("opdb_group_description"),
             primaryImageUrl = obj.optStringOrNull("primary_image_url"),
             primaryImageLargeUrl = obj.optStringOrNull("primary_image_large_url"),
             playfieldImageUrl = obj.optStringOrNull("playfieldImageUrl") ?: obj.optStringOrNull("playfield_image_url"),
@@ -123,7 +124,7 @@ private fun parseSources(array: JSONArray?): List<LibrarySource> {
     if (array == null) return emptyList()
     return (0 until array.length()).mapNotNull { i ->
         val obj = array.optJSONObject(i) ?: return@mapNotNull null
-        val id = canonicalPayloadSourceId(obj.optStringOrNull("id") ?: obj.optStringOrNull("library_id")) ?: return@mapNotNull null
+        val id = canonicalLibrarySourceId(obj.optStringOrNull("id") ?: obj.optStringOrNull("library_id")) ?: return@mapNotNull null
         val name = obj.optStringOrNull("name") ?: obj.optStringOrNull("library_name") ?: id
         val type = parseSourceType(obj.optStringOrNull("type") ?: obj.optStringOrNull("library_type"))
         LibrarySource(id = id, name = name, type = type)
@@ -142,11 +143,9 @@ private fun inferSourcesFromGames(games: List<PinballGame>): List<LibrarySource>
         }
     }
     if (seen.isEmpty()) {
-        seen[PM_AVENUE_LIBRARY_SOURCE_ID] = LibrarySource(
-            id = PM_AVENUE_LIBRARY_SOURCE_ID,
-            name = "The Avenue Cafe",
-            type = LibrarySourceType.VENUE,
-        )
+        builtinVenueSources().firstOrNull { it.id == PM_AVENUE_LIBRARY_SOURCE_ID }?.let { avenue ->
+            seen[avenue.id] = avenue
+        }
     }
     return seen.values.toList()
 }
@@ -174,11 +173,7 @@ private fun slugifySourceId(input: String): String {
         .replace(Regex("[^a-z0-9]+"), "-")
         .trim('-')
         .ifBlank { PM_AVENUE_LIBRARY_SOURCE_ID }
-    return when (slug) {
-        "the-avenue", "the-avenue-cafe" -> PM_AVENUE_LIBRARY_SOURCE_ID
-        "rlm-amusements" -> PM_RLM_LIBRARY_SOURCE_ID
-        else -> slug
-    }
+    return canonicalLibrarySourceId(slug) ?: slug
 }
 
 private fun JSONObject.optIntOrNull(name: String): Int? = if (has(name) && !isNull(name)) optInt(name) else null

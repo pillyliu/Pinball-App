@@ -222,7 +222,7 @@ private fun resolveSeedImportedVenueMetadata(
                 expandedOverlayCandidateIds(machine.opdbGroupId) +
                 expandedOverlayCandidateIds(machine.practiceIdentity)
             ).forEach { candidate ->
-            if (candidate != null && !contains(candidate)) add(candidate)
+            if (!contains(candidate)) add(candidate)
         }
     }
     for (candidateId in candidateIds) {

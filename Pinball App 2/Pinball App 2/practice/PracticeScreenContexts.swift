@@ -8,6 +8,7 @@ extension PracticeScreen {
             hasIFPAProfileAccess: !uiState.ifpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             resumeGame: resumeGame,
             allGames: store.games,
+            searchGames: store.searchCatalogGames,
             librarySources: store.librarySources,
             selectedLibrarySourceID: store.defaultPracticeSourceID,
             activeGroups: store.state.customGroups.filter { $0.isActive && !$0.isArchived },
@@ -19,6 +20,9 @@ extension PracticeScreen {
             showingNamePrompt: uiState.showingNamePrompt,
             firstNamePromptValue: $uiState.firstNamePromptValue,
             importLplStatsOnNameSave: $uiState.importLplStatsOnNameSave,
+            onOpenSearch: {
+                openRoute(.search)
+            },
             onOpenSettings: {
                 openRoute(.settings)
             },

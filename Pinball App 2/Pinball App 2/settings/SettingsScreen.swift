@@ -19,10 +19,7 @@ final class SettingsViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private var didLoad = false
-    let builtinSources: [PinballLibrarySource] = [
-        .init(id: "venue--pm-16470", name: "RLM Amusements", type: .venue),
-        .init(id: "venue--pm-8760", name: "The Avenue Cafe", type: .venue),
-    ]
+    let builtinSources: [PinballLibrarySource] = builtinVenueSources()
 
     private func applySnapshot(_ snapshot: SettingsDataSnapshot) {
         manufacturers = snapshot.manufacturers

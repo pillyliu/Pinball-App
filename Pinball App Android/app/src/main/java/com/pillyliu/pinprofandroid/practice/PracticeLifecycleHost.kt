@@ -13,7 +13,12 @@ internal fun PracticeLifecycleHost(
 ) {
     val store = context.store
     val uiState = context.uiState
-    val gameLookupPool = if (store.allLibraryGames.isNotEmpty()) store.allLibraryGames else store.games
+    val gameLookupPool = when {
+        store.searchCatalogGames.isNotEmpty() && store.allLibraryGames.isNotEmpty() -> store.allLibraryGames + store.searchCatalogGames
+        store.searchCatalogGames.isNotEmpty() -> store.games + store.searchCatalogGames
+        store.allLibraryGames.isNotEmpty() -> store.allLibraryGames
+        else -> store.games
+    }
 
     LaunchedEffect(Unit) {
         store.loadIfNeeded()
@@ -37,7 +42,7 @@ internal fun PracticeLifecycleHost(
         }
     }
 
-    LaunchedEffect(uiState.navigation.selectedGameSlug, store.games, store.allLibraryGames) {
+    LaunchedEffect(uiState.navigation.selectedGameSlug, store.games, store.allLibraryGames, store.searchCatalogGames) {
         val lookup = uiState.navigation.selectedGameSlug ?: return@LaunchedEffect
         val game = findGameByPracticeLookupKey(gameLookupPool, lookup) ?: return@LaunchedEffect
         uiState.game.summaryDraft = store.gameSummaryNoteFor(game.practiceKey)
@@ -56,7 +61,12 @@ internal fun PracticeLifecycleHost(
     LaunchedEffect(context.sourceVersion) {
         if (context.sourceVersion == 0L) return@LaunchedEffect
         store.loadGames()
-        val refreshedLookupPool = if (store.allLibraryGames.isNotEmpty()) store.allLibraryGames else store.games
+        val refreshedLookupPool = when {
+            store.searchCatalogGames.isNotEmpty() && store.allLibraryGames.isNotEmpty() -> store.allLibraryGames + store.searchCatalogGames
+            store.searchCatalogGames.isNotEmpty() -> store.games + store.searchCatalogGames
+            store.allLibraryGames.isNotEmpty() -> store.allLibraryGames
+            else -> store.games
+        }
         if (uiState.navigation.selectedGameSlug != null &&
             findGameByPracticeLookupKey(refreshedLookupPool, uiState.navigation.selectedGameSlug) == null
         ) {

@@ -6,6 +6,7 @@ struct PracticeHomeContext {
     let hasIFPAProfileAccess: Bool
     let resumeGame: PinballGame?
     let allGames: [PinballGame]
+    let searchGames: [PinballGame]
     let librarySources: [PinballLibrarySource]
     let selectedLibrarySourceID: String?
     let activeGroups: [CustomGameGroup]
@@ -15,6 +16,7 @@ struct PracticeHomeContext {
     let showingNamePrompt: Bool
     let firstNamePromptValue: Binding<String>
     let importLplStatsOnNameSave: Binding<Bool>
+    let onOpenSearch: () -> Void
     let onOpenSettings: () -> Void
     let onOpenIFPAProfile: () -> Void
     let onResume: (String) -> Void

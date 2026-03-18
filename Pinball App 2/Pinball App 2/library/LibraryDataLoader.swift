@@ -56,6 +56,23 @@ func loadFullLibraryExtraction() async throws -> LegacyCatalogExtraction {
     try await loadLibraryExtraction(filterBySourceState: false)
 }
 
+func loadPracticeCatalogGames() async throws -> [PinballGame] {
+    if let bundled = try loadBundledPinballData(path: hostedOPDBCatalogPath), !bundled.isEmpty {
+        return try decodePracticeCatalogGames(data: bundled)
+    }
+    let hosted = try await PinballDataCache.shared.loadText(
+        path: hostedOPDBCatalogPath,
+        allowMissing: true,
+        maxCacheAge: 24 * 60 * 60
+    )
+    if let text = hosted.text,
+       let data = text.data(using: String.Encoding.utf8),
+       !data.isEmpty {
+        return try decodePracticeCatalogGames(data: data)
+    }
+    return []
+}
+
 private func loadLibraryExtraction(filterBySourceState: Bool) async throws -> LegacyCatalogExtraction {
     do {
         let extraction = try await loadHostedLibraryExtraction(filterBySourceState: filterBySourceState)

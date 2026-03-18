@@ -15,6 +15,10 @@ internal data class GameRoomCatalogGame(
     val manufacturer: String?,
     val year: Int?,
     val primaryImageUrl: String?,
+    val opdbType: String?,
+    val opdbDisplay: String?,
+    val opdbShortname: String?,
+    val opdbCommonName: String?,
 )
 
 internal data class GameRoomCatalogManufacturerOption(
@@ -192,6 +196,10 @@ internal class GameRoomCatalogLoader(private val context: Context) {
                 manufacturer = manufacturer,
                 year = year,
                 primaryImageUrl = primaryImageUrl ?: primaryImageLargeUrl,
+                opdbType = obj.optString("opdb_type").ifBlank { null },
+                opdbDisplay = obj.optString("opdb_display").ifBlank { null },
+                opdbShortname = obj.optString("opdb_shortname").ifBlank { null },
+                opdbCommonName = obj.optString("opdb_common_name").ifBlank { null },
             )
             allGames += candidate
 
@@ -214,7 +222,7 @@ internal class GameRoomCatalogLoader(private val context: Context) {
         manufacturers = manufacturerBucket.toList().sortedBy { it.lowercase() }
         errorMessage = null
         variantOptionsByCatalogGameID = variantsByGroup.mapValues { (_, values) ->
-            values.sortedWith(
+            sanitizeVariantOptions(values.toList()).sortedWith(
                 compareBy<String> { gameRoomVariantPreferenceRank(it) }
                     .thenBy { it.lowercase() },
             )
@@ -243,6 +251,25 @@ internal class GameRoomCatalogLoader(private val context: Context) {
         return games.firstOrNull { it.catalogGameID.equals(normalizedID, ignoreCase = true) }
     }
 
+    fun games(catalogGameID: String): List<GameRoomCatalogGame> {
+        val normalizedID = catalogGameID.trim().takeIf { it.isNotEmpty() } ?: return emptyList()
+        gamesByCatalogGameID[normalizedID]?.let { return it.sortedWith(::compareSortedCatalogGames) }
+        gamesByNormalizedCatalogGameID[normalizedCatalogGameID(normalizedID)]?.let { return it.sortedWith(::compareSortedCatalogGames) }
+        return emptyList()
+    }
+
+    fun game(catalogGameID: String, variant: String?): GameRoomCatalogGame? {
+        if (normalizeVariantLabel(variant) != null) {
+            val matches = games(catalogGameID).filter {
+                variantMatchesSelection(it.displayVariant, variant)
+            }
+            if (matches.isNotEmpty()) {
+                return preferredCatalogGame(matches)
+            }
+        }
+        return game(catalogGameID)
+    }
+
     fun slugMatch(slug: String): GameRoomCatalogSlugMatch? {
         val normalizedSlug = slug.trim().lowercase()
         if (normalizedSlug.isBlank()) return null
@@ -255,13 +282,13 @@ internal class GameRoomCatalogLoader(private val context: Context) {
             ?: emptyList()
         if (grouped.isEmpty()) return emptyList()
 
-        val normalizedVariant = normalizeVariantLabel(machine.displayVariant)?.lowercase()
+        val normalizedVariant = normalizeVariantLabel(machine.displayVariant)
         val normalizedTitle = machine.displayTitle.trim().lowercase()
         val rawCandidates = mutableListOf<String>()
 
         if (normalizedVariant != null) {
             val variantMatches = grouped.filter {
-                normalizeVariantLabel(it.displayVariant)?.lowercase() == normalizedVariant
+                variantMatchesSelection(it.displayVariant, normalizedVariant)
             }
             rawCandidates.addAll(variantMatches.mapNotNull { it.primaryImageUrl })
         }
@@ -499,6 +526,27 @@ internal class GameRoomCatalogLoader(private val context: Context) {
                 }
             else -> trimmed
         }
+    }
+
+    private fun sanitizeVariantOptions(values: List<String>): List<String> {
+        val normalized = values.mapNotNull(::normalizeVariantLabel).toMutableSet()
+        if ("Premium/LE" !in normalized) {
+            return normalized.toList()
+        }
+        normalized.remove("Premium/LE")
+        normalized += "Premium"
+        normalized += "LE"
+        return normalized.toList()
+    }
+
+    private fun variantMatchesSelection(candidate: String?, selected: String?): Boolean {
+        val normalizedCandidate = normalizeVariantLabel(candidate)?.lowercase() ?: return false
+        val normalizedSelected = normalizeVariantLabel(selected)?.lowercase() ?: return false
+        if (normalizedCandidate == normalizedSelected) return true
+        if (normalizedCandidate == "premium/le") {
+            return normalizedSelected == "premium" || normalizedSelected == "le"
+        }
+        return false
     }
 
     private data class ParsedCatalogName(

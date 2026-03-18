@@ -642,9 +642,6 @@ struct GameRoomImportSettingsView: View {
 }
 
 struct GameRoomEditMachinesView: View {
-    private static let resultPageSize = 25
-    private static let maxRenderedResults = 75
-
     private struct MachineMenuGroup: Identifiable {
         var id: String { key }
         let key: String
@@ -652,21 +649,16 @@ struct GameRoomEditMachinesView: View {
         let machines: [OwnedMachine]
     }
 
-    private struct PendingScrollRestore: Equatable {
-        let targetID: String
-        let token: UUID
-    }
-
     @ObservedObject var store: GameRoomStore
     @ObservedObject var catalogLoader: GameRoomCatalogLoader
     let onShowSaveFeedback: (String) -> Void
     @State private var searchText = ""
-    @State private var selectedManufacturerID: String?
+    @State private var manufacturerQuery = ""
+    @State private var yearQuery = ""
+    @State private var selectedType: GameRoomAddMachineTypeFilter?
+    @State private var isAdvancedExpanded = false
     @State private var selectedMachineID: UUID?
     @State private var selectedAreaID: UUID?
-    @State private var resultWindowStart = 0
-    @State private var resultWindowEnd = 0
-    @State private var pendingScrollRestore: PendingScrollRestore?
     @State private var draftAreaID: UUID?
     @State private var draftGroup = ""
     @State private var draftPosition = ""
@@ -682,6 +674,11 @@ struct GameRoomEditMachinesView: View {
     @State private var isAddMachineExpanded = false
     @State private var isAreasExpanded = false
     @State private var isEditMachinesExpanded = false
+    @State private var pendingVariantPickerGameID: String?
+    @State private var pendingVariantPickerTitle = ""
+    @State private var pendingVariantPickerOptions: [String] = []
+    @State private var indexedCatalogSearchEntries: [GameRoomCatalogSearchEntry] = []
+    @State private var indexedManufacturers: [String] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -700,7 +697,6 @@ struct GameRoomEditMachinesView: View {
         }
         .onAppear {
             seedSelectionIfNeeded()
-            resetResultWindow()
         }
         .onChange(of: store.state.ownedMachines.map(\.id)) { _, _ in
             seedSelectionIfNeeded()
@@ -709,11 +705,14 @@ struct GameRoomEditMachinesView: View {
         .onChange(of: selectedMachineID) { _, _ in
             syncDraftFromSelection()
         }
-        .onChange(of: searchText) { _, _ in
-            resetResultWindow()
+        .onAppear {
+            rebuildCatalogSearchIndex()
         }
-        .onChange(of: selectedManufacturerID) { _, _ in
-            resetResultWindow()
+        .onChange(of: catalogLoader.games) { _, _ in
+            rebuildCatalogSearchIndex()
+        }
+        .onChange(of: catalogLoader.variantOptionsByCatalogGameID) { _, _ in
+            rebuildCatalogSearchIndex()
         }
     }
 
@@ -735,130 +734,163 @@ struct GameRoomEditMachinesView: View {
 
     private var addMachinePanel: some View {
         VStack(alignment: .leading, spacing: 10) {
-            TextField("Search by title", text: $searchText)
-                .textFieldStyle(.roundedBorder)
-
-            HStack {
-                Menu {
-                    Button("All Manufacturers") {
-                        selectedManufacturerID = nil
-                    }
-
-                    if !modernManufacturers.isEmpty {
-                        Section("Modern") {
-                            ForEach(modernManufacturers) { option in
-                                Button(option.name) {
-                                    selectedManufacturerID = option.id
-                                }
-                            }
-                        }
-                    }
-
-                    if !classicPopularManufacturers.isEmpty {
-                        Section("Classic Popular") {
-                            ForEach(classicPopularManufacturers) { option in
-                                Button(option.name) {
-                                    selectedManufacturerID = option.id
-                                }
-                            }
-                        }
-                    }
-
-                    if !otherManufacturers.isEmpty {
-                        Section("Other") {
-                            ForEach(otherManufacturers) { option in
-                                Button(option.name) {
-                                    selectedManufacturerID = option.id
-                                }
-                            }
-                        }
-                    }
-                } label: {
-                    AppCompactFilterLabel(text: selectedManufacturerLabel)
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
-
-                if catalogLoader.isLoading {
-                    AppInlineTaskStatus(text: "Loading catalog data…", showsProgress: true)
-                } else {
-                    AppInlineTaskStatus(text: "\(filteredCatalogGames.count) matches")
-                }
-            }
-
             if let errorMessage = catalogLoader.errorMessage {
                 AppInlineTaskStatus(text: errorMessage, isError: true)
             }
 
-            if filteredCatalogGames.isEmpty {
-                Text("No titles match the current search.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text(resultWindowLabel)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+            addMachineSearchTab
+        }
+    }
 
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: 8) {
-                            if hasPreviousFilteredResults {
-                                Button("Show Previous 25") {
-                                    loadPreviousResultPage()
-                                }
-                                .buttonStyle(AppSecondaryActionButtonStyle())
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .padding(.vertical, 4)
-                            }
+    private var addMachineSearchTab: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            TextField("Game name", text: $searchText)
+                .textFieldStyle(.roundedBorder)
 
-                            ForEach(displayedCatalogGames, id: \.id) { game in
-                                HStack(alignment: .center, spacing: 10) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(game.displayTitle)
-                                            .font(.subheadline.weight(.semibold))
-                                        Text(resultMetaLine(for: game))
-                                            .font(.footnote)
-                                            .foregroundStyle(.secondary)
+            DisclosureGroup(isExpanded: $isAdvancedExpanded) {
+                VStack(alignment: .leading, spacing: 10) {
+                    TextField("Manufacturer", text: $manufacturerQuery)
+                        .textFieldStyle(.roundedBorder)
+
+                    if !filteredManufacturerSuggestions.isEmpty &&
+                        !filteredManufacturerSuggestions.contains(where: {
+                            $0.caseInsensitiveCompare(manufacturerQuery.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame
+                        }) {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(filteredManufacturerSuggestions, id: \.self) { suggestion in
+                                    Button(suggestion) {
+                                        manufacturerQuery = suggestion
                                     }
-
-                                    Spacer()
-
-                                    Button {
-                                        store.addOwnedMachine(from: game)
-                                        selectedMachineID = store.state.ownedMachines.last?.id
-                                        syncDraftFromSelection()
-                                    } label: {
-                                        Image(systemName: "plus")
-                                    }
-                                    .buttonStyle(AppCompactIconActionButtonStyle())
+                                    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
                                 }
-                                .padding(10)
-                                .appControlStyle()
-                                .id(game.id)
                             }
-
-                            if hasNextFilteredResults {
-                                Button("Show Next 25") {
-                                    loadNextResultPage()
-                                }
-                                .buttonStyle(AppSecondaryActionButtonStyle())
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .padding(.vertical, 4)
-                            }
+                            .padding(.vertical, 2)
                         }
                     }
-                    .frame(maxHeight: 260)
-                    .onChange(of: pendingScrollRestore) { _, restore in
-                        guard let restore else { return }
-                        DispatchQueue.main.async {
-                            proxy.scrollTo(restore.targetID, anchor: .top)
-                            pendingScrollRestore = nil
+
+                    TextField("Year", text: $yearQuery)
+                        .textFieldStyle(.roundedBorder)
+                        .keyboardType(.numberPad)
+
+                    Menu {
+                        Button("Any type") {
+                            selectedType = nil
+                        }
+
+                            ForEach(GameRoomAddMachineTypeFilter.allCases) { option in
+                            Button(option.label) {
+                                selectedType = option
+                            }
+                        }
+                    } label: {
+                        AppCompactFilterLabel(text: selectedType?.label ?? "Any type")
+                    }
+                    .buttonStyle(.plain)
+
+                    if hasSearchFilters {
+                        Button("Clear filters") {
+                            searchText = ""
+                            manufacturerQuery = ""
+                            yearQuery = ""
+                            selectedType = nil
+                        }
+                        .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+                    }
+                }
+                .padding(.top, 8)
+            } label: {
+                Text("Advanced Filters")
+                    .font(.subheadline.weight(.semibold))
+            }
+
+            if catalogLoader.isLoading {
+                AppInlineTaskStatus(text: "Loading catalog data…", showsProgress: true)
+            } else if hasSearchFilters {
+                AppInlineTaskStatus(text: "\(filteredCatalogGames.count) matches")
+            } else {
+                AppPanelEmptyCard(text: "Search by game name, shortname, or common name. Open Advanced Filters for manufacturer, year, and game type.")
+            }
+
+            if hasSearchFilters {
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(filteredCatalogGames, id: \.id) { game in
+                            addMachineResultRow(for: game)
                         }
                     }
                 }
+                .frame(maxHeight: 260)
             }
         }
+    }
+
+    private func addMachineResultRow(for game: GameRoomCatalogGame) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(game.displayTitle)
+                    .font(.subheadline.weight(.semibold))
+                Text(resultMetaLine(for: game))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            ZStack {
+                Button {
+                    beginAddMachineSelection(for: game)
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .buttonStyle(AppCompactIconActionButtonStyle())
+                .gameRoomAdaptivePopover(
+                    isPresented: Binding(
+                        get: {
+                            pendingVariantPickerGameID == game.catalogGameID &&
+                                !pendingVariantPickerOptions.isEmpty
+                        },
+                        set: { presenting in
+                            if !presenting {
+                                clearPendingVariantPicker()
+                            }
+                        }
+                    ),
+                    preferredHeight: min(CGFloat(pendingVariantPickerOptions.count) * 44 + 68, 300)
+                ) { availableHeight in
+                    variantPickerPopoverContent(availableHeight: availableHeight)
+                }
+            }
+        }
+        .padding(10)
+        .appControlStyle()
+    }
+
+    private func variantPickerPopoverContent(availableHeight: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(pendingVariantPickerTitle)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+
+            Text("Choose the machine variant")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(pendingVariantPickerOptions, id: \.self) { option in
+                        Button(option) {
+                            completeAddMachineSelection(catalogGameID: pendingVariantPickerGameID, variant: option)
+                        }
+                        .buttonStyle(AppSecondaryActionButtonStyle())
+                    }
+                }
+            }
+            .frame(maxHeight: max(min(availableHeight - 44, 220), 0))
+        }
+        .padding(12)
+        .frame(width: 220, alignment: .leading)
+        .presentationCompactAdaptation(.popover)
     }
 
     private var venueNamePanel: some View {
@@ -1138,12 +1170,19 @@ struct GameRoomEditMachinesView: View {
         return allMachines.first(where: { $0.id == selectedMachineID })
     }
 
-    private var selectedManufacturerLabel: String {
-        guard let selectedManufacturerID,
-              let option = catalogLoader.manufacturerOptions.first(where: { $0.id == selectedManufacturerID }) else {
-            return "All Manufacturers"
-        }
-        return option.name
+    private var manufacturerOptions: [String] {
+        indexedManufacturers
+    }
+
+    private var filteredManufacturerSuggestions: [String] {
+        gameRoomManufacturerSuggestions(options: manufacturerOptions, query: manufacturerQuery)
+    }
+
+    private var hasSearchFilters: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            !manufacturerQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            !yearQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            selectedType != nil
     }
 
     private var selectedAreaLabel: String {
@@ -1159,59 +1198,18 @@ struct GameRoomEditMachinesView: View {
         return trimmed.isEmpty ? "None" : trimmed
     }
 
-    private var modernManufacturers: [PinballCatalogManufacturerOption] {
-        catalogLoader.manufacturerOptions.filter(\.isModern)
-    }
-
-    private var classicPopularManufacturers: [PinballCatalogManufacturerOption] {
-        catalogLoader.manufacturerOptions.filter { !$0.isModern && $0.featuredRank != nil }
-    }
-
-    private var otherManufacturers: [PinballCatalogManufacturerOption] {
-        catalogLoader.manufacturerOptions.filter { !$0.isModern && $0.featuredRank == nil }
-    }
-
     private var filteredCatalogGames: [GameRoomCatalogGame] {
-        let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        return catalogLoader.games.filter { game in
-            let manufacturerMatches = selectedManufacturerID == nil || game.manufacturerID == selectedManufacturerID
-            guard manufacturerMatches else { return false }
-            return gameRoomCatalogMatchesSearch(
-                game,
-                query: trimmedSearch,
-                variantAliases: catalogLoader.variantOptions(for: game.catalogGameID)
-            )
-        }
-    }
-
-    private var displayedCatalogGames: [GameRoomCatalogGame] {
-        guard !filteredCatalogGames.isEmpty else { return [] }
-        let safeStart = min(max(0, resultWindowStart), filteredCatalogGames.count)
-        let safeEnd = min(max(safeStart, resultWindowEnd), filteredCatalogGames.count)
-        return Array(filteredCatalogGames[safeStart..<safeEnd])
-    }
-
-    private var hasNextFilteredResults: Bool {
-        resultWindowEnd < filteredCatalogGames.count
-    }
-
-    private var hasPreviousFilteredResults: Bool {
-        resultWindowStart > 0
-    }
-
-    private var resultWindowLabel: String {
-        guard !filteredCatalogGames.isEmpty else { return "Showing 0 results" }
-        let start = min(resultWindowStart + 1, filteredCatalogGames.count)
-        let end = min(resultWindowEnd, filteredCatalogGames.count)
-        return "Showing \(start)-\(end) of \(filteredCatalogGames.count)"
+        filteredGameRoomCatalogGames(
+            entries: indexedCatalogSearchEntries,
+            nameQuery: searchText,
+            manufacturerQuery: manufacturerQuery,
+            yearQuery: yearQuery,
+            selectedType: selectedType
+        )
     }
 
     private func resultMetaLine(for game: GameRoomCatalogGame) -> String {
         var parts: [String] = []
-        if let variant = game.displayVariant {
-            parts.append(variant)
-        }
         if let manufacturer = game.manufacturer {
             parts.append(manufacturer)
         }
@@ -1246,8 +1244,8 @@ struct GameRoomEditMachinesView: View {
         return Int(trimmed)
     }
 
-    private func parsedOptionalString(_ raw: String) -> String? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func parsedOptionalString(_ raw: String?) -> String? {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
     }
 
@@ -1259,38 +1257,175 @@ struct GameRoomEditMachinesView: View {
         return variants
     }
 
-    private func resetResultWindow() {
-        resultWindowStart = 0
-        resultWindowEnd = min(Self.resultPageSize, filteredCatalogGames.count)
+    private func beginAddMachineSelection(for game: GameRoomCatalogGame) {
+        let variantOptions = catalogLoader.variantOptions(for: game.catalogGameID)
+        let distinctVariants = Array(NSOrderedSet(array: variantOptions)) as? [String] ?? variantOptions
+        if distinctVariants.count > 1 {
+            pendingVariantPickerGameID = game.catalogGameID
+            pendingVariantPickerTitle = game.displayTitle
+            pendingVariantPickerOptions = distinctVariants
+            return
+        }
+        completeAddMachineSelection(catalogGameID: game.catalogGameID, variant: distinctVariants.first)
     }
 
-    private func loadNextResultPage() {
-        guard hasNextFilteredResults else { return }
-        let currentTopID = displayedCatalogGames.first?.id
-        let nextEnd = min(resultWindowEnd + Self.resultPageSize, filteredCatalogGames.count)
-        var nextStart = resultWindowStart
-
-        if nextEnd - nextStart > Self.maxRenderedResults {
-            nextStart = min(nextStart + Self.resultPageSize, max(0, nextEnd - Self.maxRenderedResults))
+    private func completeAddMachineSelection(catalogGameID: String?, variant: String?) {
+        guard let catalogGameID,
+              let resolvedGame = catalogLoader.game(for: catalogGameID, variant: variant) else {
+            clearPendingVariantPicker()
+            return
+        }
+        let resolvedVariant = parsedOptionalString(variant) ?? resolvedGame.displayVariant
+        if let existing = store.existingOwnedMachine(catalogGameID: resolvedGame.catalogGameID, displayVariant: resolvedVariant) {
+            let label = existing.displayVariant.map { "\(existing.displayTitle) (\($0))" } ?? existing.displayTitle
+            onShowSaveFeedback("\(label) is already in GameRoom")
+            clearPendingVariantPicker()
+            return
         }
 
-        resultWindowStart = nextStart
-        resultWindowEnd = nextEnd
-
-        if let currentTopID, nextStart > 0 {
-            pendingScrollRestore = PendingScrollRestore(targetID: currentTopID, token: UUID())
-        }
+        store.addOwnedMachine(from: resolvedGame, displayVariant: resolvedVariant)
+        selectedMachineID = store.state.ownedMachines.last?.id
+        syncDraftFromSelection()
+        clearPendingVariantPicker()
     }
 
-    private func loadPreviousResultPage() {
-        guard hasPreviousFilteredResults else { return }
-        let currentTopID = displayedCatalogGames.first?.id
-        let previousStart = max(0, resultWindowStart - Self.resultPageSize)
-        resultWindowStart = previousStart
-        if let currentTopID {
-            pendingScrollRestore = PendingScrollRestore(targetID: currentTopID, token: UUID())
-        }
+    private func clearPendingVariantPicker() {
+        pendingVariantPickerGameID = nil
+        pendingVariantPickerTitle = ""
+        pendingVariantPickerOptions = []
     }
+
+    private func rebuildCatalogSearchIndex() {
+        indexedCatalogSearchEntries = buildGameRoomCatalogSearchEntries(
+            games: catalogLoader.games,
+            variantOptions: catalogLoader.variantOptions(for:)
+        )
+
+        indexedManufacturers = Array(
+            Set(indexedCatalogSearchEntries.compactMap { entry in
+                let trimmed = entry.game.manufacturer?.trimmingCharacters(in: .whitespacesAndNewlines)
+                return (trimmed?.isEmpty == false) ? trimmed : nil
+            })
+        )
+        .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+}
+
+private struct GameRoomAdaptivePopoverSourceFramePreferenceKey: PreferenceKey {
+    static let defaultValue: CGRect = .zero
+
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        let nextValue = nextValue()
+        guard nextValue != .zero else { return }
+        value = nextValue
+    }
+}
+
+private struct GameRoomAdaptivePopoverModifier<PopoverContent: View>: ViewModifier {
+    @Binding var isPresented: Bool
+    let preferredHeight: CGFloat
+    let popoverContent: (CGFloat) -> PopoverContent
+
+    @State private var sourceFrame: CGRect = .zero
+    @State private var arrowEdge: Edge = .top
+    @State private var availableHeight: CGFloat
+
+    init(
+        isPresented: Binding<Bool>,
+        preferredHeight: CGFloat,
+        @ViewBuilder popoverContent: @escaping (CGFloat) -> PopoverContent
+    ) {
+        _isPresented = isPresented
+        self.preferredHeight = preferredHeight
+        self.popoverContent = popoverContent
+        _availableHeight = State(initialValue: preferredHeight)
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: GameRoomAdaptivePopoverSourceFramePreferenceKey.self,
+                        value: proxy.frame(in: .global)
+                    )
+                }
+            )
+            .onPreferenceChange(GameRoomAdaptivePopoverSourceFramePreferenceKey.self) { frame in
+                guard frame != .zero else { return }
+                sourceFrame = frame
+                recalculatePlacement()
+            }
+            .popover(
+                isPresented: $isPresented,
+                attachmentAnchor: .rect(.bounds),
+                arrowEdge: arrowEdge
+            ) {
+                popoverContent(availableHeight)
+            }
+            .onAppear {
+                recalculatePlacement()
+            }
+            .onChange(of: isPresented) { _, _ in
+                recalculatePlacement()
+            }
+    }
+
+    private func recalculatePlacement() {
+        guard sourceFrame != .zero else {
+            arrowEdge = .top
+            availableHeight = preferredHeight
+            return
+        }
+
+        let viewport = gameRoomPopoverViewportRect()
+        let spacingBuffer: CGFloat = 16
+        let availableBelow = max(viewport.maxY - sourceFrame.maxY - spacingBuffer, 0)
+        let availableAbove = max(sourceFrame.minY - viewport.minY - spacingBuffer, 0)
+        let opensBelow = availableBelow >= preferredHeight || availableBelow >= availableAbove
+
+        arrowEdge = opensBelow ? .top : .bottom
+        availableHeight = max(opensBelow ? availableBelow : availableAbove, 0)
+    }
+}
+
+extension View {
+    fileprivate func gameRoomAdaptivePopover<PopoverContent: View>(
+        isPresented: Binding<Bool>,
+        preferredHeight: CGFloat,
+        @ViewBuilder content: @escaping (CGFloat) -> PopoverContent
+    ) -> some View {
+        modifier(
+            GameRoomAdaptivePopoverModifier(
+                isPresented: isPresented,
+                preferredHeight: preferredHeight,
+                popoverContent: content
+            )
+        )
+    }
+}
+
+private func gameRoomPopoverViewportRect() -> CGRect {
+    let windowScenes = UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+    let keyWindow = windowScenes
+        .flatMap(\.windows)
+        .first(where: \.isKeyWindow)
+
+    let fallbackRect = keyWindow?.windowScene?.screen.bounds
+        ?? windowScenes.first(where: { $0.activationState == .foregroundActive })?.screen.bounds
+        ?? windowScenes.first?.screen.bounds
+        ?? CGRect(x: 0, y: 0, width: 1024, height: 1366)
+    let baseRect = keyWindow?.bounds ?? fallbackRect
+    let safeAreaInsets = keyWindow?.safeAreaInsets ?? .zero
+    let safeAreaHeight = max(baseRect.height - safeAreaInsets.top - safeAreaInsets.bottom, 0)
+    let safeAreaRect = CGRect(
+        x: baseRect.minX,
+        y: baseRect.minY + safeAreaInsets.top,
+        width: baseRect.width,
+        height: safeAreaHeight
+    )
+    return safeAreaRect.insetBy(dx: 0, dy: 12)
 }
 
 struct GameRoomArchiveSettingsView: View {

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +30,7 @@ internal fun PracticeTopBar(
     editingGroupID: String?,
     gamePickerContext: PracticeTopBarGamePickerContext? = null,
     onBack: () -> Unit,
+    onOpenSearch: (() -> Unit)? = null,
     onOpenSettings: () -> Unit,
     onOpenIfpaProfile: () -> Unit,
     isJournalSelectionMode: Boolean = false,
@@ -40,6 +42,7 @@ internal fun PracticeTopBar(
             .fillMaxWidth()
             .padding(top = 8.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
     ) {
         if (route != PracticeRoute.Home) {
             AppBackButton(onClick = onBack)
@@ -85,11 +88,23 @@ internal fun PracticeTopBar(
                 )
             }
         } else if (route == PracticeRoute.Home) {
-            AppHeaderIconButton(
-                icon = Icons.Outlined.Settings,
-                contentDescription = "Settings",
-                onClick = onOpenSettings,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+            ) {
+                if (onOpenSearch != null) {
+                    AppHeaderIconButton(
+                        icon = Icons.Outlined.Search,
+                        contentDescription = "Search games",
+                        onClick = onOpenSearch,
+                    )
+                }
+                AppHeaderIconButton(
+                    icon = Icons.Outlined.Settings,
+                    contentDescription = "Settings",
+                    onClick = onOpenSettings,
+                )
+            }
         }
     }
 }
@@ -99,6 +114,7 @@ private fun practiceTopTitle(
     editingGroupID: String?,
 ): String {
     return when (route) {
+        PracticeRoute.Search -> "Find Game"
         PracticeRoute.IfpaProfile -> "IFPA Profile"
         PracticeRoute.GroupDashboard -> "Group Dashboard"
         PracticeRoute.GroupEditor -> if (editingGroupID == null) "Create Group" else "Edit Group"

@@ -106,6 +106,10 @@ class GameRoomCatalogMatchingTest {
             manufacturer = manufacturer,
             year = year,
             primaryImageUrl = imageUrl,
+            opdbType = null,
+            opdbDisplay = null,
+            opdbShortname = null,
+            opdbCommonName = null,
         )
     }
 }

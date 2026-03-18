@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from datetime import UTC, datetime, timedelta
@@ -24,6 +25,7 @@ EXTERNAL_RESOURCES_DEFAULT = PINBALL_SCRAPER_ROOT / "output" / "opdb_external_ru
 
 DEFAULT_IOS_OUTPUT = REPO_ROOT / "Pinball App 2" / "Pinball App 2" / "PinballStarter.bundle" / "pinball" / "data" / "opdb_catalog_v1.json"
 DEFAULT_ANDROID_OUTPUT = REPO_ROOT / "Pinball App Android" / "app" / "src" / "main" / "assets" / "starter-pack" / "pinball" / "data" / "opdb_catalog_v1.json"
+DEFAULT_RAW_SAVE_DIR = PINBALL_SCRAPER_ROOT / "output" / "opdb-raw"
 SUPPORTED_RULESHEET_PROVIDERS = {"tf", "pp", "bob", "papa"}
 
 MANUAL_RULESHEET_OVERRIDES: dict[str, list[tuple[str, str]]] = {
@@ -209,18 +211,172 @@ def load_recent_catalog(paths: list[Path], min_age: timedelta) -> tuple[Path, di
     return None
 
 
-def load_opdb_export() -> list[dict[str, Any]]:
+def iso_now() -> str:
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def load_opdb_env() -> dict[str, str]:
     sys.path.insert(0, str(LOCAL_SCRIPTS_DIR))
     sys.path.insert(0, str(PINBALL_SCRAPER_SCRIPTS))
     from pinball_api_auth import load_local_env  # type: ignore
-    from pinball_api_clients import OPDBClient  # type: ignore
 
     load_local_env(paths=(PINBALL_SCRAPER_ENV,), override=False)
-    client = OPDBClient(autoload_local_env=False)
-    payload = client.export_all()
+    return dict(os.environ)
+
+
+def opdb_token_candidates() -> list[tuple[str, str]]:
+    env = load_opdb_env()
+    out: list[tuple[str, str]] = []
+    for key in ("OPDB_API_TOKEN", "OPDB_API_TOKEN_BACKUP"):
+        value = env.get(key, "").strip()
+        if value:
+            out.append((key, value))
+    return out
+
+
+def fetch_json_url(url: str) -> Any:
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "PinballAppSnapshot/1.0",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=180) as response:
+        return json.load(response)
+
+
+def fetch_opdb_api_payload(base_url: str, *, label: str) -> tuple[Any, str]:
+    last_error: Exception | None = None
+    for env_key, token in opdb_token_candidates():
+        url = f"{base_url}?{urllib.parse.urlencode({'api_token': token})}"
+        try:
+            return fetch_json_url(url), env_key
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            print(f"warning: {label} failed with {env_key}: {exc}", file=sys.stderr)
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("Missing OPDB_API_TOKEN / OPDB_API_TOKEN_BACKUP")
+
+
+def save_raw_payload(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+
+
+def normalize_matchplay_manufacturer(manufacturer: Any) -> dict[str, Any]:
+    if not isinstance(manufacturer, dict):
+        return {}
+    return {
+        "manufacturer_id": manufacturer.get("manufacturerId"),
+        "name": manufacturer.get("name"),
+        "full_name": manufacturer.get("fullName"),
+        "created_at": manufacturer.get("createdAt"),
+        "updated_at": manufacturer.get("updatedAt"),
+    }
+
+
+def normalize_matchplay_machine_row(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "common_name": row.get("commonName"),
+        "created_at": row.get("createdAt"),
+        "description": row.get("description"),
+        "display": row.get("display"),
+        "features": row.get("features") if isinstance(row.get("features"), list) else [],
+        "images": row.get("images") if isinstance(row.get("images"), list) else [],
+        "ipdb_id": row.get("ipdbId"),
+        "is_machine": row.get("isMachine"),
+        "keywords": row.get("keywords") if isinstance(row.get("keywords"), list) else [],
+        "manufacture_date": row.get("manufactureDate"),
+        "manufacturer": normalize_matchplay_manufacturer(row.get("manufacturer")),
+        "name": row.get("name"),
+        "opdb_id": row.get("opdbId"),
+        "physical_machine": row.get("physicalMachine"),
+        "player_count": row.get("playerCount"),
+        "shortname": row.get("shortname"),
+        "type": row.get("type"),
+        "updated_at": row.get("updatedAt"),
+    }
+
+
+def normalize_matchplay_group_row(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "opdb_id": row.get("opdbId"),
+        "name": row.get("name"),
+        "shortname": row.get("shortname"),
+        "description": row.get("description"),
+        "created_at": row.get("createdAt"),
+        "updated_at": row.get("updatedAt"),
+    }
+
+
+def normalize_opdb_source_payload(payload: Any) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     if not isinstance(payload, list):
-        raise RuntimeError("Unexpected OPDB export payload shape")
-    return payload
+        if isinstance(payload, dict) and {"machineGroups", "machines", "aliases"}.issubset(payload.keys()):
+            machines = [
+                normalize_matchplay_machine_row(row)
+                for row in payload.get("machines", [])
+                if isinstance(row, dict)
+            ]
+            aliases = [
+                normalize_matchplay_machine_row(row)
+                for row in payload.get("aliases", [])
+                if isinstance(row, dict)
+            ]
+            groups = [
+                normalize_matchplay_group_row(row)
+                for row in payload.get("machineGroups", [])
+                if isinstance(row, dict)
+            ]
+            return machines + aliases, groups
+        raise RuntimeError(f"Unexpected OPDB payload shape: {type(payload).__name__}")
+    rows = [row for row in payload if isinstance(row, dict)]
+    return rows, []
+
+
+def load_opdb_dataset(
+    *,
+    raw_export_path: Path | None,
+    raw_groups_path: Path | None,
+    matchplay_snapshot_path: Path | None,
+    raw_save_dir: Path | None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str, str | None]:
+    if matchplay_snapshot_path is not None:
+        payload = load_json(matchplay_snapshot_path)
+        rows, groups = normalize_opdb_source_payload(payload)
+        exported_at = iso_now()
+        return rows, groups, exported_at, exported_at if groups else None
+
+    if raw_export_path is not None:
+        rows, inferred_groups = normalize_opdb_source_payload(load_json(raw_export_path))
+        groups = load_json(raw_groups_path) if raw_groups_path is not None else inferred_groups
+        if groups and not isinstance(groups, list):
+            raise RuntimeError("Unexpected OPDB groups payload shape")
+        exported_at = iso_now()
+        return rows, list(groups or []), exported_at, exported_at if groups else None
+
+    env = load_opdb_env()
+    export_url = env.get("OPDB_EXPORT_URL", "https://opdb.org/api/export").strip() or "https://opdb.org/api/export"
+    groups_url = "https://opdb.org/api/export/groups"
+    export_payload, export_token_key = fetch_opdb_api_payload(export_url, label="OPDB export")
+    rows, _ = normalize_opdb_source_payload(export_payload)
+    groups_payload, _groups_token_key = fetch_opdb_api_payload(groups_url, label="OPDB groups export")
+    groups = groups_payload if isinstance(groups_payload, list) else []
+    exported_at = iso_now()
+
+    if raw_save_dir is not None:
+        raw_save_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+        save_raw_payload(raw_save_dir / f"opdb-export-{stamp}.json", export_payload)
+        save_raw_payload(raw_save_dir / "latest-opdb-export.json", export_payload)
+        save_raw_payload(raw_save_dir / f"opdb-groups-{stamp}.json", groups)
+        save_raw_payload(raw_save_dir / "latest-opdb-groups.json", groups)
+        print(f"saved raw OPDB payloads using {export_token_key} to {raw_save_dir}", file=sys.stderr)
+
+    return rows, groups, exported_at, exported_at
 
 
 def build_manufacturers(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[int, str]]:
@@ -422,6 +578,9 @@ def build_catalog(
     opdb_rows: list[dict[str, Any]],
     matchplay_payload: dict[str, Any],
     external_payload: dict[str, Any],
+    opdb_groups: list[dict[str, Any]] | None = None,
+    opdb_exported_at: str | None = None,
+    opdb_groups_exported_at: str | None = None,
 ) -> dict[str, Any]:
     manufacturers, manufacturer_id_by_opdb = build_manufacturers(opdb_rows)
     matchplay_group_index, _videos_by_group = build_matchplay_indexes(matchplay_payload)
@@ -429,6 +588,12 @@ def build_catalog(
 
     machines: list[dict[str, Any]] = []
     group_ids: list[str] = []
+    group_rows = opdb_groups or []
+    groups_by_id = {
+        normalize_string(row.get("opdb_id")): row
+        for row in group_rows
+        if isinstance(row, dict) and normalize_string(row.get("opdb_id"))
+    }
 
     for row in sorted(opdb_rows, key=lambda item: (sort_name(item.get("name") or ""), item.get("manufacture_date") or "")):
         opdb_id = normalize_string(row.get("opdb_id"))
@@ -447,6 +612,7 @@ def build_catalog(
         if isinstance(manufacturer_id, int):
             manufacturer_catalog_id = manufacturer_id_by_opdb.get(manufacturer_id)
 
+        group_row = groups_by_id.get(group_id) or {}
         group_name = normalize_string(machine_group.get("name"))
         machine_name = normalize_string(row.get("name")) or normalize_string(entry.get("name")) or group_name or opdb_id
         canonical_name = group_name or machine_name
@@ -469,6 +635,20 @@ def build_catalog(
                 "primary_image": primary_image,
                 "playfield_image": playfield_image,
                 "updated_at": normalize_string(row.get("updated_at")) or datetime.now(UTC).isoformat(),
+                "opdb_name": normalize_string(row.get("name")),
+                "opdb_common_name": normalize_string(row.get("common_name")),
+                "opdb_shortname": normalize_string(row.get("shortname")),
+                "opdb_description": normalize_string(row.get("description")),
+                "opdb_type": normalize_string(row.get("type")),
+                "opdb_display": normalize_string(row.get("display")),
+                "opdb_player_count": row.get("player_count") if isinstance(row.get("player_count"), int) else None,
+                "opdb_manufacture_date": normalize_string(row.get("manufacture_date")),
+                "opdb_physical_machine": row.get("physical_machine"),
+                "opdb_ipdb_id": row.get("ipdb_id") if isinstance(row.get("ipdb_id"), int) else None,
+                "opdb_created_at": normalize_string(row.get("created_at")),
+                "opdb_updated_at": normalize_string(row.get("updated_at")),
+                "opdb_group_shortname": normalize_string(group_row.get("shortname")),
+                "opdb_group_description": normalize_string(group_row.get("description")),
             }
         )
     rulesheet_links = build_rulesheet_link_rows(group_ids, rulesheets_by_group)
@@ -477,6 +657,8 @@ def build_catalog(
     return {
         "schema_version": 1,
         "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "opdb_exported_at": opdb_exported_at or datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "opdb_groups_exported_at": opdb_groups_exported_at,
         "manufacturers": manufacturers,
         "machines": machines,
         "rulesheet_links": rulesheet_links,
@@ -518,6 +700,10 @@ def main() -> int:
     parser.add_argument("--external-resources", type=Path, default=EXTERNAL_RESOURCES_DEFAULT)
     parser.add_argument("--ios-output", type=Path, default=DEFAULT_IOS_OUTPUT)
     parser.add_argument("--android-output", type=Path, default=DEFAULT_ANDROID_OUTPUT)
+    parser.add_argument("--raw-export", type=Path)
+    parser.add_argument("--raw-groups-export", type=Path)
+    parser.add_argument("--matchplay-opdb-snapshot", type=Path)
+    parser.add_argument("--raw-save-dir", type=Path, default=DEFAULT_RAW_SAVE_DIR)
     parser.add_argument("--skip-android", action="store_true")
     parser.add_argument("--skip-bob-sitemap", action="store_true")
     parser.add_argument("--min-export-age-minutes", type=int, default=60)
@@ -546,10 +732,22 @@ def main() -> int:
             )
             return 0
 
-    opdb_rows = load_opdb_export()
+    opdb_rows, opdb_groups, opdb_exported_at, opdb_groups_exported_at = load_opdb_dataset(
+        raw_export_path=args.raw_export,
+        raw_groups_path=args.raw_groups_export,
+        matchplay_snapshot_path=args.matchplay_opdb_snapshot,
+        raw_save_dir=args.raw_save_dir,
+    )
     if args.skip_bob_sitemap:
         print("warning: --skip-bob-sitemap is deprecated; Bob rulesheets now come from external resources input", file=sys.stderr)
-    catalog = build_catalog(opdb_rows, matchplay_payload, external_payload)
+    catalog = build_catalog(
+        opdb_rows,
+        matchplay_payload,
+        external_payload,
+        opdb_groups=opdb_groups,
+        opdb_exported_at=opdb_exported_at,
+        opdb_groups_exported_at=opdb_groups_exported_at,
+    )
 
     write_json(args.ios_output, catalog)
     if not args.skip_android:

@@ -98,12 +98,12 @@ final class GameRoomStore: ObservableObject {
         )
     }
 
-    func addOwnedMachine(from game: GameRoomCatalogGame) {
+    func addOwnedMachine(from game: GameRoomCatalogGame, displayVariant: String? = nil) {
         let machine = OwnedMachine(
             catalogGameID: game.catalogGameID,
             canonicalPracticeIdentity: game.canonicalPracticeIdentity,
             displayTitle: game.displayTitle,
-            displayVariant: game.displayVariant,
+            displayVariant: normalizedOptionalString(displayVariant) ?? game.displayVariant,
             manufacturer: game.manufacturer,
             year: game.year
         )

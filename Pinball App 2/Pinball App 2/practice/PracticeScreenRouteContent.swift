@@ -5,6 +5,17 @@ extension PracticeScreen {
     @ViewBuilder
     func routeView(for route: PracticeRoute) -> some View {
         switch route {
+        case .search:
+            PracticeGameSearchSheet(
+                games: practiceHomeContext.searchGames,
+                isLoadingGames: store.isLoadingSearchCatalog,
+                onLoadGames: {
+                    await store.ensureSearchCatalogGamesLoaded()
+                },
+                onSelectGame: { gameID in
+                    goToGame(gameID)
+                }
+            )
         case .rulesheet:
             if let game = store.gameForAnyID(uiState.selectedGameID) {
                 if let externalURL = uiState.selectedExternalRulesheetURL {

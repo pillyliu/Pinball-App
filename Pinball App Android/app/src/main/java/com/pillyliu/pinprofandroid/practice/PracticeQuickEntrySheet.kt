@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.library.isAvenueLibrarySourceId
 import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.dismissKeyboardOnTapOutside
 import kotlin.math.roundToInt
@@ -128,9 +129,7 @@ internal fun QuickEntrySheet(
     }
     val showLibraryDropdown = !fromGameView && librarySources.size > 1
     fun avenueLibraryOptionId(): String? {
-        return librarySources.firstOrNull { it.id == "venue--pm-8760" }?.id
-            ?: librarySources.firstOrNull { it.id == "venue--the-avenue-cafe" }?.id
-            ?: librarySources.firstOrNull { it.id == "the-avenue" }?.id
+        return librarySources.firstOrNull { isAvenueLibrarySourceId(it.id) }?.id
             ?: librarySources.firstOrNull { it.name.contains("the avenue", ignoreCase = true) }?.id
     }
     fun canonicalExistingQuickGameKey(raw: String?): String {

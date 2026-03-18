@@ -83,6 +83,12 @@ internal fun matchesSearchQuery(query: String, fields: Iterable<String?>): Boole
     val haystackTokens = fields.flatMap { normalizedSearchTokens(it.orEmpty()) }
     if (haystackTokens.isEmpty()) return false
 
+    return matchesSearchTokens(queryTokens, haystackTokens)
+}
+
+internal fun matchesSearchTokens(queryTokens: List<String>, haystackTokens: List<String>): Boolean {
+    if (queryTokens.isEmpty()) return true
+    if (haystackTokens.isEmpty()) return false
     return queryTokens.all { queryToken ->
         haystackTokens.any { haystackToken -> haystackToken.contains(queryToken) }
     }
@@ -185,6 +191,7 @@ internal data class PinballGame(
     val practiceIdentity: String?,
     val opdbId: String? = null,
     val opdbGroupId: String? = null,
+    val opdbMachineId: String? = null,
     val variant: String?,
     val sourceId: String,
     val sourceName: String,
@@ -198,6 +205,17 @@ internal data class PinballGame(
     val manufacturer: String?,
     val year: Int?,
     val slug: String,
+    val opdbName: String? = null,
+    val opdbCommonName: String? = null,
+    val opdbShortname: String? = null,
+    val opdbDescription: String? = null,
+    val opdbType: String? = null,
+    val opdbDisplay: String? = null,
+    val opdbPlayerCount: Int? = null,
+    val opdbManufactureDate: String? = null,
+    val opdbIpdbId: Int? = null,
+    val opdbGroupShortname: String? = null,
+    val opdbGroupDescription: String? = null,
     val primaryImageUrl: String? = null,
     val primaryImageLargeUrl: String? = null,
     val playfieldImageUrl: String?,

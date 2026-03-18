@@ -176,31 +176,34 @@ fun AppHeaderIconButton(
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    size: Dp = 38.dp,
-    iconSize: Dp = 18.dp,
+    size: Dp = 40.dp,
+    iconSize: Dp = 21.dp,
 ) {
     val colors = PinballThemeTokens.colors
     val shapes = PinballThemeTokens.shapes
-    IconButton(
-        onClick = onClick,
-        modifier = modifier
-            .size(size)
-            .background(
-                colors.controlBackground.copy(alpha = 0.92f),
-                RoundedCornerShape(shapes.controlCorner),
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+        IconButton(
+            onClick = onClick,
+            modifier = modifier
+                .defaultMinSize(minWidth = 0.dp, minHeight = 0.dp)
+                .size(size)
+                .background(
+                    colors.controlBackground.copy(alpha = 0.92f),
+                    RoundedCornerShape(shapes.controlCorner),
+                )
+                .border(
+                    1.dp,
+                    colors.brandGold.copy(alpha = 0.32f),
+                    RoundedCornerShape(shapes.controlCorner),
+                ),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = colors.brandInk,
+                modifier = Modifier.size(iconSize),
             )
-            .border(
-                1.dp,
-                colors.brandGold.copy(alpha = 0.32f),
-                RoundedCornerShape(shapes.controlCorner),
-            ),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = colors.brandInk,
-            modifier = Modifier.size(iconSize),
-        )
+        }
     }
 }
 

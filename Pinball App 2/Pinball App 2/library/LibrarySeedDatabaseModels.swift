@@ -197,6 +197,17 @@ nonisolated func catalogMachineRecord(from row: SeedCatalogMachineRow) -> Catalo
         manufacturerID: row.manufacturerID,
         manufacturerName: row.manufacturerName,
         year: row.year,
+        opdbName: nil,
+        opdbCommonName: nil,
+        opdbShortname: nil,
+        opdbDescription: nil,
+        opdbType: nil,
+        opdbDisplay: nil,
+        opdbPlayerCount: nil,
+        opdbManufactureDate: nil,
+        opdbIpdbID: nil,
+        opdbGroupShortname: nil,
+        opdbGroupDescription: nil,
         primaryImage: CatalogMachineRecord.RemoteImageSet(mediumURL: row.primaryImageMediumURL, largeURL: row.primaryImageLargeURL),
         playfieldImage: CatalogMachineRecord.RemoteImageSet(mediumURL: row.playfieldImageMediumURL, largeURL: row.playfieldImageLargeURL)
     )

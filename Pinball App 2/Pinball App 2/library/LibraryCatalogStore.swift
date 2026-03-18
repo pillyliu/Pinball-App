@@ -1,33 +1,6 @@
 import Foundation
 
-private let pmAvenueSourceID = "venue--pm-8760"
-private let pmRLMSourceID = "venue--pm-16470"
 private let defaultImportedSourcesResource = "default_pm_venue_sources_v1"
-
-private let canonicalBuiltinSourceIDs = [
-    pmRLMSourceID,
-    pmAvenueSourceID,
-]
-
-private let legacySourceIDAliases: [String: String] = [
-    "the-avenue": pmAvenueSourceID,
-    "the-avenue-cafe": pmAvenueSourceID,
-    "venue--the-avenue-cafe": pmAvenueSourceID,
-    "rlm-amusements": pmRLMSourceID,
-    "venue--rlm-amusements": pmRLMSourceID,
-]
-
-private func isImportedPinballMapSourceID(_ rawID: String?) -> Bool {
-    guard let canonical = canonicalLibrarySourceID(rawID)?.lowercased() else { return false }
-    return canonical.hasPrefix("venue--pm-")
-}
-
-private func canonicalLibrarySourceID(_ rawID: String?) -> String? {
-    guard let trimmed = rawID?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
-        return nil
-    }
-    return legacySourceIDAliases[trimmed] ?? trimmed
-}
 
 struct PinballLibrarySourceState: Codable {
     var enabledSourceIDs: [String]
@@ -80,7 +53,7 @@ enum PinballLibrarySourceStateStore {
         var state = load()
         state.enabledSourceIDs = filteredKnownIDs(state.enabledSourceIDs, validIDs: validIDs)
         state.pinnedSourceIDs = Array(filteredKnownIDs(state.pinnedSourceIDs, validIDs: validIDs).prefix(maxPinnedSources))
-        for sourceID in canonicalBuiltinSourceIDs where validIDs.contains(sourceID) && !state.enabledSourceIDs.contains(sourceID) {
+        for sourceID in defaultBuiltinVenueSourceIDs where validIDs.contains(sourceID) && !state.enabledSourceIDs.contains(sourceID) {
             state.enabledSourceIDs.append(sourceID)
         }
 
@@ -439,6 +412,17 @@ struct CatalogMachineRecord: Decodable {
     let manufacturerID: String?
     let manufacturerName: String?
     let year: Int?
+    let opdbName: String?
+    let opdbCommonName: String?
+    let opdbShortname: String?
+    let opdbDescription: String?
+    let opdbType: String?
+    let opdbDisplay: String?
+    let opdbPlayerCount: Int?
+    let opdbManufactureDate: String?
+    let opdbIpdbID: Int?
+    let opdbGroupShortname: String?
+    let opdbGroupDescription: String?
     let primaryImage: RemoteImageSet?
     let playfieldImage: RemoteImageSet?
 
@@ -452,6 +436,17 @@ struct CatalogMachineRecord: Decodable {
         case manufacturerID = "manufacturer_id"
         case manufacturerName = "manufacturer_name"
         case year
+        case opdbName = "opdb_name"
+        case opdbCommonName = "opdb_common_name"
+        case opdbShortname = "opdb_shortname"
+        case opdbDescription = "opdb_description"
+        case opdbType = "opdb_type"
+        case opdbDisplay = "opdb_display"
+        case opdbPlayerCount = "opdb_player_count"
+        case opdbManufactureDate = "opdb_manufacture_date"
+        case opdbIpdbID = "opdb_ipdb_id"
+        case opdbGroupShortname = "opdb_group_shortname"
+        case opdbGroupDescription = "opdb_group_description"
         case primaryImage = "primary_image"
         case playfieldImage = "playfield_image"
     }
@@ -582,7 +577,19 @@ struct ResolvedCatalogRecord {
     let year: Int?
     let slug: String
     let opdbID: String?
+    let opdbMachineID: String?
     let practiceIdentity: String
+    let opdbName: String?
+    let opdbCommonName: String?
+    let opdbShortname: String?
+    let opdbDescription: String?
+    let opdbType: String?
+    let opdbDisplay: String?
+    let opdbPlayerCount: Int?
+    let opdbManufactureDate: String?
+    let opdbIpdbID: Int?
+    let opdbGroupShortname: String?
+    let opdbGroupDescription: String?
     let primaryImageURL: String?
     let primaryImageLargeURL: String?
     let playfieldImageURL: String?
@@ -594,6 +601,86 @@ struct ResolvedCatalogRecord {
     let rulesheetURL: String?
     let rulesheetLinks: [PinballGame.ReferenceLink]
     let videos: [PinballGame.Video]
+
+    init(
+        sourceID: String,
+        sourceName: String,
+        sourceType: PinballLibrarySourceType,
+        area: String?,
+        areaOrder: Int?,
+        groupNumber: Int?,
+        position: Int?,
+        bank: Int?,
+        name: String,
+        variant: String?,
+        manufacturer: String?,
+        year: Int?,
+        slug: String,
+        opdbID: String?,
+        opdbMachineID: String? = nil,
+        practiceIdentity: String,
+        opdbName: String? = nil,
+        opdbCommonName: String? = nil,
+        opdbShortname: String? = nil,
+        opdbDescription: String? = nil,
+        opdbType: String? = nil,
+        opdbDisplay: String? = nil,
+        opdbPlayerCount: Int? = nil,
+        opdbManufactureDate: String? = nil,
+        opdbIpdbID: Int? = nil,
+        opdbGroupShortname: String? = nil,
+        opdbGroupDescription: String? = nil,
+        primaryImageURL: String?,
+        primaryImageLargeURL: String?,
+        playfieldImageURL: String?,
+        alternatePlayfieldImageURL: String?,
+        playfieldLocalPath: String?,
+        playfieldSourceLabel: String?,
+        gameinfoLocalPath: String?,
+        rulesheetLocalPath: String?,
+        rulesheetURL: String?,
+        rulesheetLinks: [PinballGame.ReferenceLink],
+        videos: [PinballGame.Video]
+    ) {
+        self.sourceID = sourceID
+        self.sourceName = sourceName
+        self.sourceType = sourceType
+        self.area = area
+        self.areaOrder = areaOrder
+        self.groupNumber = groupNumber
+        self.position = position
+        self.bank = bank
+        self.name = name
+        self.variant = variant
+        self.manufacturer = manufacturer
+        self.year = year
+        self.slug = slug
+        self.opdbID = opdbID
+        self.opdbMachineID = opdbMachineID
+        self.practiceIdentity = practiceIdentity
+        self.opdbName = opdbName
+        self.opdbCommonName = opdbCommonName
+        self.opdbShortname = opdbShortname
+        self.opdbDescription = opdbDescription
+        self.opdbType = opdbType
+        self.opdbDisplay = opdbDisplay
+        self.opdbPlayerCount = opdbPlayerCount
+        self.opdbManufactureDate = opdbManufactureDate
+        self.opdbIpdbID = opdbIpdbID
+        self.opdbGroupShortname = opdbGroupShortname
+        self.opdbGroupDescription = opdbGroupDescription
+        self.primaryImageURL = primaryImageURL
+        self.primaryImageLargeURL = primaryImageLargeURL
+        self.playfieldImageURL = playfieldImageURL
+        self.alternatePlayfieldImageURL = alternatePlayfieldImageURL
+        self.playfieldLocalPath = playfieldLocalPath
+        self.playfieldSourceLabel = playfieldSourceLabel
+        self.gameinfoLocalPath = gameinfoLocalPath
+        self.rulesheetLocalPath = rulesheetLocalPath
+        self.rulesheetURL = rulesheetURL
+        self.rulesheetLinks = rulesheetLinks
+        self.videos = videos
+    }
 }
 
 enum CatalogRulesheetProvider: String {
@@ -864,7 +951,9 @@ private func catalogInferSources(from games: [PinballGame]) -> [PinballLibrarySo
         }
     }
     if seen.isEmpty {
-        seen.append(PinballLibrarySource(id: pmAvenueSourceID, name: "The Avenue Cafe", type: .venue))
+        if let avenueSource = builtinVenueSources().first(where: { $0.id == pmAvenueLibrarySourceID }) {
+            seen.append(avenueSource)
+        }
     }
     return seen
 }
@@ -960,6 +1049,17 @@ private func catalogResolvedMachines(_ machines: [CatalogMachineRecord]) -> [Cat
             manufacturerID: machine.manufacturerID,
             manufacturerName: machine.manufacturerName,
             year: machine.year,
+            opdbName: machine.opdbName,
+            opdbCommonName: machine.opdbCommonName,
+            opdbShortname: machine.opdbShortname,
+            opdbDescription: machine.opdbDescription,
+            opdbType: machine.opdbType,
+            opdbDisplay: machine.opdbDisplay,
+            opdbPlayerCount: machine.opdbPlayerCount,
+            opdbManufactureDate: machine.opdbManufactureDate,
+            opdbIpdbID: machine.opdbIpdbID,
+            opdbGroupShortname: machine.opdbGroupShortname,
+            opdbGroupDescription: machine.opdbGroupDescription,
             primaryImage: machine.primaryImage,
             playfieldImage: machine.playfieldImage
         )
@@ -1481,4 +1581,45 @@ private func resolveNormalizedCatalog(root: NormalizedLibraryRoot, machines: [Ca
     }
 
     return PinballLibraryPayload(games: resolvedGames, sources: sources)
+}
+
+func decodePracticeCatalogGames(data: Data) throws -> [PinballGame] {
+    let root = try JSONDecoder().decode(NormalizedLibraryRoot.self, from: data)
+    let machines = catalogResolvedMachines(root.machines ?? [])
+    guard !machines.isEmpty else { return [] }
+
+    let manufacturerByID = Dictionary(uniqueKeysWithValues: (root.manufacturers ?? []).map { ($0.id, $0) })
+    let rulesheetsByPracticeIdentity = Dictionary(grouping: root.rulesheetLinks ?? [], by: \.practiceIdentity)
+    let videosByPracticeIdentity = Dictionary(grouping: root.videoLinks ?? [], by: \.practiceIdentity)
+    let source = PinballImportedSourceRecord(
+        id: "catalog--opdb-practice",
+        name: "All OPDB Games",
+        type: .category,
+        provider: .opdb,
+        providerSourceID: "opdb-catalog",
+        machineIDs: [],
+        lastSyncedAt: nil,
+        searchQuery: nil,
+        distanceMiles: nil
+    )
+
+    return Dictionary(grouping: machines, by: { $0.opdbGroupID ?? $0.practiceIdentity })
+        .values
+        .compactMap { group -> PinballGame? in
+            guard let machine = group.min(by: catalogPreferredGroupDefaultMachine) else { return nil }
+            return resolveImportedGame(
+                machine: machine,
+                source: source,
+                manufacturerByID: manufacturerByID,
+                curatedOverride: nil,
+                opdbRulesheets: rulesheetsByPracticeIdentity[machine.practiceIdentity] ?? [],
+                opdbVideos: videosByPracticeIdentity[machine.practiceIdentity] ?? [],
+                venueMetadata: nil
+            )
+        }
+        .sorted {
+            let nameCompare = $0.name.localizedCaseInsensitiveCompare($1.name)
+            if nameCompare != .orderedSame { return nameCompare == .orderedAscending }
+            return $0.slug.localizedCaseInsensitiveCompare($1.slug) == .orderedAscending
+        }
 }

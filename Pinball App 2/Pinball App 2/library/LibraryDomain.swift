@@ -43,6 +43,12 @@ nonisolated func matchesSearchQuery(_ query: String, fields: [String?]) -> Bool 
     let haystackTokens = fields.flatMap { normalizedSearchTokens($0 ?? "") }
     guard !haystackTokens.isEmpty else { return false }
 
+    return matchesSearchTokens(queryTokens, haystackTokens: haystackTokens)
+}
+
+nonisolated func matchesSearchTokens(_ queryTokens: [String], haystackTokens: [String]) -> Bool {
+    guard !queryTokens.isEmpty else { return true }
+    guard !haystackTokens.isEmpty else { return false }
     return queryTokens.allSatisfy { queryToken in
         haystackTokens.contains { haystackToken in
             haystackToken.contains(queryToken)
@@ -429,8 +435,20 @@ struct PinballGame: Identifiable, Decodable {
         case year
         case slug
         case opdbId = "opdb_id"
+        case opdbMachineID = "opdb_machine_id"
         case libraryEntryId = "library_entry_id"
         case practiceIdentity = "practice_identity"
+        case opdbName = "opdb_name"
+        case opdbCommonName = "opdb_common_name"
+        case opdbShortname = "opdb_shortname"
+        case opdbDescription = "opdb_description"
+        case opdbType = "opdb_type"
+        case opdbDisplay = "opdb_display"
+        case opdbPlayerCount = "opdb_player_count"
+        case opdbManufactureDate = "opdb_manufacture_date"
+        case opdbIpdbID = "opdb_ipdb_id"
+        case opdbGroupShortname = "opdb_group_shortname"
+        case opdbGroupDescription = "opdb_group_description"
         case playfieldImageUrl
         case playfieldImageUrlV2 = "playfield_image_url"
         case alternatePlayfieldImageUrl = "alternate_playfield_image_url"
@@ -472,7 +490,19 @@ struct PinballGame: Identifiable, Decodable {
     let slug: String
     let libraryEntryID: String?
     let opdbID: String?
+    let opdbMachineID: String?
     let practiceIdentity: String?
+    let opdbName: String?
+    let opdbCommonName: String?
+    let opdbShortname: String?
+    let opdbDescription: String?
+    let opdbType: String?
+    let opdbDisplay: String?
+    let opdbPlayerCount: Int?
+    let opdbManufactureDate: String?
+    let opdbIpdbID: Int?
+    let opdbGroupShortname: String?
+    let opdbGroupDescription: String?
     let primaryImageUrl: String?
     let primaryImageLargeUrl: String?
     let playfieldImageUrl: String?
@@ -535,7 +565,19 @@ struct PinballGame: Identifiable, Decodable {
             ?? ""
         libraryEntryID = try container.decodeIfPresent(String.self, forKey: .libraryEntryId)
         opdbID = try container.decodeIfPresent(String.self, forKey: .opdbId)
+        opdbMachineID = try container.decodeIfPresent(String.self, forKey: .opdbMachineID)
         practiceIdentity = try container.decodeIfPresent(String.self, forKey: .practiceIdentity)
+        opdbName = try container.decodeIfPresent(String.self, forKey: .opdbName)
+        opdbCommonName = try container.decodeIfPresent(String.self, forKey: .opdbCommonName)
+        opdbShortname = try container.decodeIfPresent(String.self, forKey: .opdbShortname)
+        opdbDescription = try container.decodeIfPresent(String.self, forKey: .opdbDescription)
+        opdbType = try container.decodeIfPresent(String.self, forKey: .opdbType)
+        opdbDisplay = try container.decodeIfPresent(String.self, forKey: .opdbDisplay)
+        opdbPlayerCount = try container.decodeIfPresent(Int.self, forKey: .opdbPlayerCount)
+        opdbManufactureDate = try container.decodeIfPresent(String.self, forKey: .opdbManufactureDate)
+        opdbIpdbID = try container.decodeIfPresent(Int.self, forKey: .opdbIpdbID)
+        opdbGroupShortname = try container.decodeIfPresent(String.self, forKey: .opdbGroupShortname)
+        opdbGroupDescription = try container.decodeIfPresent(String.self, forKey: .opdbGroupDescription)
         primaryImageUrl = try container.decodeIfPresent(String.self, forKey: .primaryImageUrl)
         primaryImageLargeUrl = try container.decodeIfPresent(String.self, forKey: .primaryImageLargeUrl)
         let assets = try container.decodeIfPresent(Assets.self, forKey: .assets)
@@ -578,7 +620,19 @@ struct PinballGame: Identifiable, Decodable {
         slug = record.slug
         libraryEntryID = "\(record.sourceID)--\(record.opdbID ?? record.practiceIdentity)"
         opdbID = record.opdbID
+        opdbMachineID = record.opdbMachineID
         practiceIdentity = record.practiceIdentity
+        opdbName = record.opdbName
+        opdbCommonName = record.opdbCommonName
+        opdbShortname = record.opdbShortname
+        opdbDescription = record.opdbDescription
+        opdbType = record.opdbType
+        opdbDisplay = record.opdbDisplay
+        opdbPlayerCount = record.opdbPlayerCount
+        opdbManufactureDate = record.opdbManufactureDate
+        opdbIpdbID = record.opdbIpdbID
+        opdbGroupShortname = record.opdbGroupShortname
+        opdbGroupDescription = record.opdbGroupDescription
         primaryImageUrl = record.primaryImageURL
         primaryImageLargeUrl = record.primaryImageLargeURL
         playfieldImageUrl = record.playfieldImageURL

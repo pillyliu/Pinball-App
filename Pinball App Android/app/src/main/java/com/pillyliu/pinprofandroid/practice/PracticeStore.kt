@@ -9,6 +9,7 @@ import com.pillyliu.pinprofandroid.library.LibraryActivityLog
 import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.PinballGame
+import com.pillyliu.pinprofandroid.library.loadPracticeCatalogGames
 internal class PracticeStore(private val context: Context) {
     private companion object {
         val QUICK_GAME_PREF_KEYS = listOf(
@@ -28,10 +29,16 @@ internal class PracticeStore(private val context: Context) {
     var allLibraryGames by mutableStateOf<List<PinballGame>>(emptyList())
         private set
 
+    var searchCatalogGames by mutableStateOf<List<PinballGame>>(emptyList())
+        private set
+
     var librarySources by mutableStateOf<List<LibrarySource>>(emptyList())
         private set
 
     var defaultPracticeSourceId by mutableStateOf<String?>(null)
+        private set
+
+    var isLoadingSearchCatalog by mutableStateOf(false)
         private set
 
     var groups by mutableStateOf<List<PracticeGroup>>(emptyList())
@@ -107,7 +114,14 @@ internal class PracticeStore(private val context: Context) {
     }
 
     private fun practiceLookupGames(): List<PinballGame> =
-        if (allLibraryGames.isNotEmpty()) allLibraryGames else games
+        when {
+            searchCatalogGames.isNotEmpty() && allLibraryGames.isNotEmpty() -> allLibraryGames + searchCatalogGames
+            searchCatalogGames.isNotEmpty() -> games + searchCatalogGames
+            allLibraryGames.isNotEmpty() -> allLibraryGames
+            else -> games
+        }
+
+    internal fun practiceLookupGamesForDisplay(): List<PinballGame> = practiceLookupGames()
 
     private fun canonicalGameID(gameSlug: String): String =
         canonicalPracticeKey(gameSlug, practiceLookupGames())
@@ -441,6 +455,16 @@ internal class PracticeStore(private val context: Context) {
         defaultPracticeSourceId = libraryState.defaultSourceId
         defaultPracticeSourceId?.let { sourceId ->
             libraryIntegration.persistSelectedSource(sourceId)
+        }
+    }
+
+    suspend fun ensureSearchCatalogGamesLoaded() {
+        if (searchCatalogGames.isNotEmpty() || isLoadingSearchCatalog) return
+        isLoadingSearchCatalog = true
+        try {
+            searchCatalogGames = loadPracticeCatalogGames(context)
+        } finally {
+            isLoadingSearchCatalog = false
         }
     }
 

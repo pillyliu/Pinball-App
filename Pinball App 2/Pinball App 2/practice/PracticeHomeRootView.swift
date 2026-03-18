@@ -9,6 +9,7 @@ struct PracticeHomeRootView: View {
 
     let resumeGame: PinballGame?
     let allGames: [PinballGame]
+    let searchGames: [PinballGame]
     let librarySources: [PinballLibrarySource]
     let selectedLibrarySourceID: String?
     let activeGroups: [CustomGameGroup]
@@ -23,6 +24,7 @@ struct PracticeHomeRootView: View {
     let showingNamePrompt: Bool
     @Binding var firstNamePromptValue: String
     @Binding var importLplStatsOnNameSave: Bool
+    let onOpenSearch: () -> Void
     let onNotNow: () -> Void
     let onSaveName: (String, Bool) -> Void
 
@@ -41,6 +43,10 @@ struct PracticeHomeRootView: View {
                         HStack {
                             greetingHeader
                             Spacer()
+                            Button(action: onOpenSearch) {
+                                Image(systemName: "magnifyingglass")
+                            }
+                            .buttonStyle(AppCompactIconActionButtonStyle())
                             Button(action: onOpenSettings) {
                                 Image(systemName: "gearshape")
                             }

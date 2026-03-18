@@ -72,7 +72,7 @@ struct PracticeGameSection: View {
                 )
             }
         }
-        .navigationTitle(selectedGame?.name ?? "Game")
+        .navigationTitle(store.gameName(for: selectedGameID))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
         .appEdgeBackGesture(dismiss: dismiss)

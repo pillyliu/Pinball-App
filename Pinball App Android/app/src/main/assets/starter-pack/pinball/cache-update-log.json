@@ -2,7 +2,53 @@
   "schemaVersion": 1,
   "events": [
     {
-      "generatedAt": "2026-03-17T07:59:22.727Z",
+      "generatedAt": "2026-03-18T16:31:11.238Z",
+      "addedCount": 0,
+      "changedCount": 6,
+      "removedCount": 0,
+      "totalFiles": 367,
+      "added": [],
+      "changed": [
+        "/pinball/data/lpl_targets_resolved_v1.json",
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/opdb_curated_video_resources_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/venue_metadata_overlays_v1.json"
+      ],
+      "removed": []
+    },
+    {
+      "generatedAt": "2026-03-18T16:21:06.127Z",
+      "addedCount": 0,
+      "changedCount": 6,
+      "removedCount": 0,
+      "totalFiles": 367,
+      "added": [],
+      "changed": [
+        "/pinball/data/lpl_targets_resolved_v1.json",
+        "/pinball/data/opdb_catalog_v1.json",
+        "/pinball/data/opdb_curated_video_resources_v1.json",
+        "/pinball/data/pinball_library_seed_overrides_v1.json",
+        "/pinball/data/pinball_library_seed_v1.sqlite",
+        "/pinball/data/venue_metadata_overlays_v1.json"
+      ],
+      "removed": []
+    },
+    {
+      "generatedAt": "2026-03-18T16:18:17.555Z",
+      "addedCount": 0,
+      "changedCount": 1,
+      "removedCount": 0,
+      "totalFiles": 367,
+      "added": [],
+      "changed": [
+        "/pinball/data/opdb_catalog_v1.json"
+      ],
+      "removed": []
+    },
+    {
+      "generatedAt": "2026-03-18T16:04:32.600Z",
       "addedCount": 119,
       "changedCount": 22,
       "removedCount": 102,
@@ -762,10 +808,10 @@
     }
   ],
   "latest": {
-    "generatedAt": "2026-03-17T07:59:22.727Z",
-    "addedCount": 119,
-    "changedCount": 22,
-    "removedCount": 102,
+    "generatedAt": "2026-03-18T16:31:11.238Z",
+    "addedCount": 0,
+    "changedCount": 6,
+    "removedCount": 0,
     "totalFiles": 367
   }
 }

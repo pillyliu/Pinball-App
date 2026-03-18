@@ -3,6 +3,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,8 +21,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.draw.clip
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -32,7 +34,11 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -58,7 +64,6 @@ import com.pillyliu.pinprofandroid.ui.GroupedAnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 import kotlin.math.max
-import kotlin.math.min
 
 internal data class GameRoomEditSettingsContext(
     val store: GameRoomStore,
@@ -71,30 +76,8 @@ internal data class GameRoomEditSettingsContext(
     val onShowSaveFeedback: (String) -> Unit,
     val addMachineExpanded: Boolean,
     val onAddMachineExpandedChange: (Boolean) -> Unit,
-    val addQuery: String,
-    val onAddQueryChange: (String) -> Unit,
-    val selectedManufacturerText: String,
-    val modernManufacturers: List<GameRoomCatalogManufacturerOption>,
-    val classicPopularManufacturers: List<GameRoomCatalogManufacturerOption>,
-    val otherManufacturers: List<GameRoomCatalogManufacturerOption>,
-    val onSelectManufacturer: (String?) -> Unit,
     val catalogIsLoading: Boolean,
     val catalogErrorMessage: String?,
-    val resultWindowLabel: String,
-    val displayedCatalogGames: List<GameRoomCatalogGame>,
-    val filteredCatalogGamesSize: Int,
-    val hasPreviousFilteredResults: Boolean,
-    val hasNextFilteredResults: Boolean,
-    val safeResultWindowStart: Int,
-    val safeResultWindowEnd: Int,
-    val resultPageSize: Int,
-    val maxRenderedResults: Int,
-    val pendingResultRestoreTick: Int,
-    val pendingResultRestoreGameID: String?,
-    val onClearPendingResultRestoreGameID: () -> Unit,
-    val onShowPreviousResults: (String?) -> Unit,
-    val onShowNextResults: (String?) -> Unit,
-    val onAddMachine: (GameRoomCatalogGame) -> Unit,
     val areasExpanded: Boolean,
     val onAreasExpandedChange: (Boolean) -> Unit,
     val areaNameDraft: String,
@@ -353,133 +336,271 @@ internal fun GameRoomEditSettingsSection(
             onToggle = { context.onAddMachineExpandedChange(!context.addMachineExpanded) },
         )
         if (context.addMachineExpanded) {
+            var nameQuery by rememberSaveable { mutableStateOf("") }
+            var manufacturerQuery by rememberSaveable { mutableStateOf("") }
+            var yearQuery by rememberSaveable { mutableStateOf("") }
+            var selectedType by rememberSaveable { mutableStateOf<GameRoomAddMachineTypeFilter?>(null) }
+            var advancedExpanded by rememberSaveable { mutableStateOf(false) }
+            var pendingVariantCatalogGameID by rememberSaveable { mutableStateOf<String?>(null) }
+            var pendingVariantTitle by rememberSaveable { mutableStateOf("") }
+            var pendingVariantOptions by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
+
+            val manufacturerOptions = remember(context.catalogLoader.manufacturerOptions) {
+                context.catalogLoader.manufacturerOptions.map { it.name }
+            }
+            val manufacturerSuggestions = remember(manufacturerOptions, manufacturerQuery) {
+                gameRoomManufacturerSuggestions(manufacturerOptions, manufacturerQuery)
+            }
+            val hasSearchFilters = nameQuery.trim().isNotEmpty() ||
+                manufacturerQuery.trim().isNotEmpty() ||
+                yearQuery.trim().isNotEmpty() ||
+                selectedType != null
+            val catalogSearchEntries = remember(
+                context.catalogLoader.games,
+                context.catalogLoader.variantOptionsByCatalogGameID,
+            ) {
+                buildGameRoomCatalogSearchEntries(
+                    games = context.catalogLoader.games,
+                    variantOptions = context.catalogLoader::variantOptions,
+                )
+            }
+            val filteredCatalogGames = remember(
+                catalogSearchEntries,
+                nameQuery,
+                manufacturerQuery,
+                yearQuery,
+                selectedType,
+            ) {
+                filterGameRoomCatalogGames(
+                    entries = catalogSearchEntries,
+                    nameQuery = nameQuery,
+                    manufacturerQuery = manufacturerQuery,
+                    yearQuery = yearQuery,
+                    selectedType = selectedType,
+                )
+            }
+
+            fun clearPendingVariantPicker() {
+                pendingVariantCatalogGameID = null
+                pendingVariantTitle = ""
+                pendingVariantOptions = emptyList()
+            }
+
+            fun completeAddSelection(catalogGameID: String?, variant: String?) {
+                val resolvedGame = catalogGameID?.let { context.catalogLoader.game(it, variant) }
+                if (resolvedGame == null) {
+                    clearPendingVariantPicker()
+                    return
+                }
+                val resolvedVariant = variant?.trim()?.ifBlank { null } ?: resolvedGame.displayVariant
+                val existing = context.store.existingOwnedMachine(resolvedGame.catalogGameID, resolvedVariant)
+                if (existing != null) {
+                    val label = existing.displayVariant?.let { "${existing.displayTitle} ($it)" } ?: existing.displayTitle
+                    context.onShowSaveFeedback("$label is already in GameRoom")
+                    clearPendingVariantPicker()
+                    return
+                }
+
+                val machineID = context.store.addOwnedMachine(
+                    catalogGameID = resolvedGame.catalogGameID,
+                    canonicalPracticeIdentity = resolvedGame.canonicalPracticeIdentity,
+                    displayTitle = resolvedGame.displayTitle,
+                    displayVariant = resolvedVariant,
+                    manufacturer = resolvedGame.manufacturer,
+                    year = resolvedGame.year,
+                )
+                context.onSelectedEditMachineChange(machineID)
+                context.onShowSaveFeedback(
+                    resolvedVariant?.let { "Added ${resolvedGame.displayTitle} ($it)" } ?: "Added ${resolvedGame.displayTitle}",
+                )
+                clearPendingVariantPicker()
+            }
+
+            fun beginAddSelection(game: GameRoomCatalogGame) {
+                val variants = context.catalogLoader.variantOptions(game.catalogGameID).distinct()
+                if (variants.size > 1) {
+                    pendingVariantCatalogGameID = game.catalogGameID
+                    pendingVariantTitle = game.displayTitle
+                    pendingVariantOptions = variants
+                } else {
+                    completeAddSelection(game.catalogGameID, variants.firstOrNull())
+                }
+            }
+
             OutlinedTextField(
-                value = context.addQuery,
-                onValueChange = context.onAddQueryChange,
+                value = nameQuery,
+                onValueChange = { nameQuery = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                label = { Text("Search by title") },
+                label = { Text("Game name") },
             )
-            ManufacturerFilterDropdown(
-                selectedText = context.selectedManufacturerText,
-                modernOptions = context.modernManufacturers,
-                classicPopularOptions = context.classicPopularManufacturers,
-                otherOptions = context.otherManufacturers,
-                onSelect = context.onSelectManufacturer,
-            )
-            if (context.catalogIsLoading) {
-                AppInlineTaskStatus(text = "Loading catalog data…", showsProgress = true)
-            } else {
-                AppInlineTaskStatus(text = context.resultWindowLabel)
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { advancedExpanded = !advancedExpanded },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Advanced Filters",
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    imageVector = Icons.Outlined.ChevronRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
             }
+
+            if (advancedExpanded) {
+                OutlinedTextField(
+                    value = manufacturerQuery,
+                    onValueChange = { manufacturerQuery = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Manufacturer") },
+                )
+
+                if (manufacturerSuggestions.isNotEmpty() &&
+                    manufacturerSuggestions.none { it.equals(manufacturerQuery.trim(), ignoreCase = true) }) {
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        manufacturerSuggestions.forEach { suggestion ->
+                            AppSecondaryButton(onClick = { manufacturerQuery = suggestion }) {
+                                Text(suggestion, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = yearQuery,
+                    onValueChange = { updated -> yearQuery = updated.filter { it.isDigit() }.take(4) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Year") },
+                )
+
+                AnchoredDropdownFilter(
+                    selectedText = selectedType?.label ?: "Any type",
+                    options = listOf(DropdownOption(value = "", label = "Any type")) +
+                        GameRoomAddMachineTypeFilter.entries.map { DropdownOption(it.rawValue, it.label) },
+                    onSelect = { raw ->
+                        selectedType = GameRoomAddMachineTypeFilter.entries.firstOrNull { it.rawValue == raw }
+                    },
+                    label = "Game type",
+                )
+
+                if (hasSearchFilters) {
+                    AppSecondaryButton(
+                        onClick = {
+                            nameQuery = ""
+                            manufacturerQuery = ""
+                            yearQuery = ""
+                            selectedType = null
+                        },
+                    ) {
+                        Text("Clear filters")
+                    }
+                }
+            }
+
             context.catalogErrorMessage?.let { errorMessage ->
                 AppInlineTaskStatus(text = errorMessage, isError = true)
             }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 260.dp)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(10.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
-            ) {
-                val resultsListState = rememberLazyListState()
 
-                LaunchedEffect(
-                    context.pendingResultRestoreTick,
-                    context.pendingResultRestoreGameID,
-                    context.displayedCatalogGames.map { it.catalogGameID },
-                    context.hasPreviousFilteredResults,
-                ) {
-                    val targetGameID = context.pendingResultRestoreGameID ?: return@LaunchedEffect
-                    val gameIndex = context.displayedCatalogGames.indexOfFirst { it.catalogGameID == targetGameID }
-                    if (gameIndex >= 0) {
-                        val targetIndex = gameIndex + if (context.hasPreviousFilteredResults) 1 else 0
-                        resultsListState.scrollToItem(targetIndex)
-                    }
-                    context.onClearPendingResultRestoreGameID()
-                }
-
-                val resolveTopVisibleGameID: () -> String? = {
-                    if (context.displayedCatalogGames.isEmpty()) {
-                        null
-                    } else {
-                        val firstVisibleIndex = resultsListState.firstVisibleItemIndex
-                        val gameStartIndex = if (context.hasPreviousFilteredResults) 1 else 0
-                        val relativeGameIndex = firstVisibleIndex - gameStartIndex
-                        when {
-                            relativeGameIndex < 0 -> context.displayedCatalogGames.first().catalogGameID
-                            relativeGameIndex >= context.displayedCatalogGames.size -> context.displayedCatalogGames.last().catalogGameID
-                            else -> context.displayedCatalogGames[relativeGameIndex].catalogGameID
-                        }
-                    }
-                }
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    state = resultsListState,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    if (context.hasPreviousFilteredResults) {
-                        item(key = "show_previous_25") {
-                            AppSecondaryButton(
-                                onClick = { context.onShowPreviousResults(resolveTopVisibleGameID()) },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text("Show Previous 25")
-                            }
-                        }
-                    }
-
-                    items(
-                        items = context.displayedCatalogGames,
-                        key = { it.catalogGameID },
-                    ) { game ->
-                        AppControlCard {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = game.displayTitle,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    Text(
-                                        text = listOfNotNull(
-                                            game.manufacturer?.takeUnless { it.equals("null", ignoreCase = true) || it.isBlank() },
-                                            game.year?.toString(),
-                                        ).joinToString(" • "),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                                AppSecondaryButton(onClick = { context.onAddMachine(game) }) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Add,
-                                        contentDescription = "Add machine",
-                                    )
+            if (context.catalogIsLoading) {
+                AppInlineTaskStatus(text = "Loading catalog data…", showsProgress = true)
+            } else if (!hasSearchFilters) {
+                AppPanelEmptyCard(text = "Search by game name, shortname, or common name. Open Advanced Filters for manufacturer, year, and game type.")
+            } else {
+                AppInlineTaskStatus(text = "${filteredCatalogGames.size} matches")
+                if (filteredCatalogGames.isEmpty()) {
+                    AppPanelEmptyCard(
+                        text = "No titles match the current search.",
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 260.dp)
+                            .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(10.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            items(
+                                items = filteredCatalogGames,
+                                key = { it.catalogGameID },
+                            ) { game ->
+                                AppControlCard {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = game.displayTitle,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                fontWeight = FontWeight.Medium,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                            Text(
+                                                text = listOfNotNull(
+                                                    game.manufacturer?.takeUnless { it.equals("null", ignoreCase = true) || it.isBlank() },
+                                                    game.year?.toString(),
+                                                ).joinToString(" • "),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                        AppSecondaryButton(onClick = { beginAddSelection(game) }) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Add,
+                                                contentDescription = "Add machine",
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
+                }
+            }
 
-                    if (context.hasNextFilteredResults) {
-                        item(key = "show_next_25") {
-                            AppSecondaryButton(
-                                onClick = { context.onShowNextResults(resolveTopVisibleGameID()) },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text("Show Next 25")
+            if (pendingVariantCatalogGameID != null && pendingVariantOptions.isNotEmpty()) {
+                AlertDialog(
+                    onDismissRequest = { clearPendingVariantPicker() },
+                    title = { Text("Choose Variant") },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Choose the variant for $pendingVariantTitle.")
+                            pendingVariantOptions.forEach { option ->
+                                AppSecondaryButton(
+                                    onClick = { completeAddSelection(pendingVariantCatalogGameID, option) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(option)
+                                }
                             }
                         }
-                    }
-                }
+                    },
+                    confirmButton = {},
+                    dismissButton = {
+                        TextButton(onClick = { clearPendingVariantPicker() }) {
+                            Text("Cancel")
+                        }
+                    },
+                )
             }
         }
     }

@@ -1,11 +1,15 @@
 package com.pillyliu.pinprofandroid.practice
 
 import androidx.compose.runtime.Composable
+import com.pillyliu.pinprofandroid.library.PinballGame
 
 @Composable
 internal fun PracticeScreenRouteContent(
     route: PracticeRoute,
     gameContext: PracticeGameRouteContext,
+    searchGames: List<PinballGame>,
+    isLoadingSearchGames: Boolean,
+    onOpenSearchGame: (String) -> Unit,
     homeContext: PracticeHomeRouteContext,
     ifpaProfileContext: PracticeIfpaProfileContext,
     groupDashboardContext: PracticeGroupDashboardContext,
@@ -30,6 +34,14 @@ internal fun PracticeScreenRouteContent(
                 onOpenJournal = homeContext.onOpenJournal,
                 onOpenInsights = homeContext.onOpenInsights,
                 onOpenMechanics = homeContext.onOpenMechanics,
+            )
+        }
+
+        PracticeRoute.Search -> {
+            PracticeGameSearchSheet(
+                games = searchGames,
+                isLoadingGames = isLoadingSearchGames,
+                onOpenGame = onOpenSearchGame,
             )
         }
 

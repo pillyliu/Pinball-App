@@ -253,12 +253,6 @@ internal fun GameRoomScreen(
     var nameExpanded by rememberSaveable { mutableStateOf(false) }
     var areasExpanded by rememberSaveable { mutableStateOf(false) }
     var editMachinesExpanded by rememberSaveable { mutableStateOf(false) }
-    var addQuery by rememberSaveable { mutableStateOf("") }
-    var addManufacturerFilter by rememberSaveable { mutableStateOf<String?>(null) }
-    var resultWindowStart by rememberSaveable { mutableStateOf(0) }
-    var resultWindowEnd by rememberSaveable { mutableStateOf(25) }
-    var pendingResultRestoreGameID by rememberSaveable { mutableStateOf<String?>(null) }
-    var pendingResultRestoreTick by rememberSaveable { mutableIntStateOf(0) }
     var areaNameDraft by rememberSaveable { mutableStateOf("") }
     var areaOrderDraft by rememberSaveable { mutableStateOf("0") }
     var selectedAreaID by rememberSaveable { mutableStateOf<String?>(null) }
@@ -286,8 +280,6 @@ internal fun GameRoomScreen(
     val selectedMachine = activeMachines.firstOrNull { it.id == selectedMachineID } ?: activeMachines.firstOrNull()
     val allMachines = store.activeMachines + store.archivedMachines
     val selectedEditMachine = allMachines.firstOrNull { it.id == selectedEditMachineID }
-    val resultPageSize = 25
-    val maxRenderedResults = 75
 
     LaunchedEffect(Unit) {
         store.loadIfNeeded()
@@ -339,42 +331,9 @@ internal fun GameRoomScreen(
         }
     }
 
-    val selectedManufacturerOption = addManufacturerFilter?.let { selectedID ->
-        catalogLoader.manufacturerOptions.firstOrNull { option -> option.id == selectedID }
-    }
-    val modernManufacturers = catalogLoader.manufacturerOptions.filter { it.isModern }
-    val classicPopularManufacturers = catalogLoader.manufacturerOptions.filter { !it.isModern && it.featuredRank != null }
-    val otherManufacturers = catalogLoader.manufacturerOptions.filter { !it.isModern && it.featuredRank == null }
-
-    val filteredCatalogGames = catalogLoader.games.filter { game ->
-        val manufacturerMatches = addManufacturerFilter == null || game.manufacturerID == addManufacturerFilter
-        val queryMatches = gameRoomCatalogMatchesSearch(
-            game = game,
-            query = addQuery,
-            variantAliases = catalogLoader.variantOptions(game.catalogGameID),
-        )
-        manufacturerMatches && queryMatches
-    }
-    val safeResultWindowStart = resultWindowStart.coerceIn(0, filteredCatalogGames.size)
-    val safeResultWindowEnd = resultWindowEnd.coerceIn(safeResultWindowStart, filteredCatalogGames.size)
-    val displayedCatalogGames = filteredCatalogGames
-        .drop(safeResultWindowStart)
-        .take(safeResultWindowEnd - safeResultWindowStart)
-    val hasNextFilteredResults = safeResultWindowEnd < filteredCatalogGames.size
-    val hasPreviousFilteredResults = safeResultWindowStart > 0
-    val resultWindowLabel = if (filteredCatalogGames.isEmpty()) {
-        "Showing 0 of 0"
-    } else {
-        "Showing ${safeResultWindowStart + 1}-${safeResultWindowEnd} of ${filteredCatalogGames.size}"
-    }
     val allAttachments = store.state.attachments
     val mediaPreviewAttachment = mediaPreviewAttachmentID?.let { id -> allAttachments.firstOrNull { it.id == id } }
     val editingAttachment = editingAttachmentID?.let { id -> allAttachments.firstOrNull { it.id == id } }
-
-    LaunchedEffect(addQuery, addManufacturerFilter, filteredCatalogGames.size) {
-        resultWindowStart = 0
-        resultWindowEnd = min(resultPageSize, filteredCatalogGames.size)
-    }
 
     val addPhotoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         val machineID = pendingMediaMachineID
@@ -700,62 +659,8 @@ internal fun GameRoomScreen(
                                 },
                                 addMachineExpanded = addMachineExpanded,
                                 onAddMachineExpandedChange = { addMachineExpanded = it },
-                                addQuery = addQuery,
-                                onAddQueryChange = { addQuery = it },
-                                selectedManufacturerText = selectedManufacturerOption?.name ?: "All Manufacturers",
-                                modernManufacturers = modernManufacturers,
-                                classicPopularManufacturers = classicPopularManufacturers,
-                                otherManufacturers = otherManufacturers,
-                                onSelectManufacturer = { addManufacturerFilter = it },
                                 catalogIsLoading = catalogLoader.isLoading,
                                 catalogErrorMessage = catalogLoader.errorMessage,
-                                resultWindowLabel = resultWindowLabel,
-                                displayedCatalogGames = displayedCatalogGames,
-                                filteredCatalogGamesSize = filteredCatalogGames.size,
-                                hasPreviousFilteredResults = hasPreviousFilteredResults,
-                                hasNextFilteredResults = hasNextFilteredResults,
-                                safeResultWindowStart = safeResultWindowStart,
-                                safeResultWindowEnd = safeResultWindowEnd,
-                                resultPageSize = resultPageSize,
-                                maxRenderedResults = maxRenderedResults,
-                                pendingResultRestoreTick = pendingResultRestoreTick,
-                                pendingResultRestoreGameID = pendingResultRestoreGameID,
-                                onClearPendingResultRestoreGameID = { pendingResultRestoreGameID = null },
-                                onShowPreviousResults = { topVisibleGameID ->
-                                    val previousStart = (safeResultWindowStart - resultPageSize).coerceAtLeast(0)
-                                    resultWindowStart = previousStart
-                                    if (topVisibleGameID != null) {
-                                        pendingResultRestoreGameID = topVisibleGameID
-                                        pendingResultRestoreTick += 1
-                                    }
-                                },
-                                onShowNextResults = { topVisibleGameID ->
-                                    val nextEnd = min(safeResultWindowEnd + resultPageSize, filteredCatalogGames.size)
-                                    var nextStart = safeResultWindowStart
-                                    if (nextEnd - nextStart > maxRenderedResults) {
-                                        nextStart = min(
-                                            nextStart + resultPageSize,
-                                            max(0, nextEnd - maxRenderedResults),
-                                        )
-                                    }
-                                    resultWindowStart = nextStart
-                                    resultWindowEnd = nextEnd
-                                    if (topVisibleGameID != null) {
-                                        pendingResultRestoreGameID = topVisibleGameID
-                                        pendingResultRestoreTick += 1
-                                    }
-                                },
-                                onAddMachine = { game ->
-                                    val machineID = store.addOwnedMachine(
-                                        catalogGameID = game.catalogGameID,
-                                        canonicalPracticeIdentity = game.canonicalPracticeIdentity,
-                                        displayTitle = game.displayTitle,
-                                        displayVariant = game.displayVariant,
-                                        manufacturer = game.manufacturer,
-                                        year = game.year,
-                                    )
-                                    selectedEditMachineID = machineID
-                                },
                                 areasExpanded = areasExpanded,
                                 onAreasExpandedChange = { areasExpanded = it },
                                 areaNameDraft = areaNameDraft,

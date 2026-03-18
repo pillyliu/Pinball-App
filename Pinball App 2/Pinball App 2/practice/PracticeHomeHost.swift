@@ -14,6 +14,7 @@ extension PracticeScreen {
             },
             resumeGame: practiceHomeContext.resumeGame,
             allGames: practiceHomeContext.allGames,
+            searchGames: practiceHomeContext.searchGames,
             librarySources: practiceHomeContext.librarySources,
             selectedLibrarySourceID: practiceHomeContext.selectedLibrarySourceID,
             activeGroups: practiceHomeContext.activeGroups,
@@ -37,6 +38,9 @@ extension PracticeScreen {
             showingNamePrompt: practiceHomeContext.showingNamePrompt,
             firstNamePromptValue: practiceHomeContext.firstNamePromptValue,
             importLplStatsOnNameSave: practiceHomeContext.importLplStatsOnNameSave,
+            onOpenSearch: {
+                practiceHomeContext.onOpenSearch()
+            },
             onNotNow: {
                 practiceHomeContext.onNotNow()
             },

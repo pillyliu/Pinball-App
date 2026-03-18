@@ -9,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.collectAsState
@@ -30,6 +31,7 @@ import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 
 internal enum class PracticeRoute {
     Home,
+    Search,
     IfpaProfile,
     GroupDashboard,
     GroupEditor,
@@ -63,7 +65,12 @@ internal fun PracticeScreen(
     val uiState = rememberPracticeScreenState(prefs)
     val sourceVersion by LibrarySourceEvents.version.collectAsState()
 
-    val gameLookupPool = if (store.allLibraryGames.isNotEmpty()) store.allLibraryGames else store.games
+    val gameLookupPool = when {
+        store.searchCatalogGames.isNotEmpty() && store.allLibraryGames.isNotEmpty() -> store.allLibraryGames + store.searchCatalogGames
+        store.searchCatalogGames.isNotEmpty() -> store.games + store.searchCatalogGames
+        store.allLibraryGames.isNotEmpty() -> store.allLibraryGames
+        else -> store.games
+    }
     val selectedGame = findGameByPracticeLookupKey(gameLookupPool, uiState.navigation.selectedGameSlug)
     val actions = PracticeScreenActions(
         store = store,
@@ -81,6 +88,12 @@ internal fun PracticeScreen(
             onRefreshHeadToHead = actions::refreshHeadToHeadComparison,
         )
     )
+
+    LaunchedEffect(uiState.navigation.route) {
+        if (uiState.navigation.route == PracticeRoute.Search) {
+            store.ensureSearchCatalogGamesLoaded()
+        }
+    }
 
     when (uiState.navigation.route) {
         PracticeRoute.Rulesheet -> {
@@ -138,7 +151,7 @@ internal fun PracticeScreen(
         ),
     ) {
         val topBarGamePickerContext = PracticeTopBarGamePickerContext(
-            selectedGameName = selectedGame?.name,
+            selectedGameName = selectedGame?.let { practiceDisplayTitleForKey(it.practiceKey, store.practiceLookupGamesForDisplay()) ?: it.name },
             games = store.games,
             librarySources = store.librarySources,
             selectedLibrarySourceId = store.defaultPracticeSourceId,
@@ -149,7 +162,10 @@ internal fun PracticeScreen(
                 actions.selectPracticeGame(game.practiceKey)
             },
         )
-        val bodyModifier = if (uiState.navigation.route == PracticeRoute.Journal) {
+        val bodyModifier = if (
+            uiState.navigation.route == PracticeRoute.Journal ||
+            uiState.navigation.route == PracticeRoute.Search
+        ) {
             Modifier.fillMaxSize()
         } else {
             Modifier
@@ -166,6 +182,11 @@ internal fun PracticeScreen(
                 editingGroupID = uiState.navigation.editingGroupID,
                 gamePickerContext = topBarGamePickerContext,
                 onBack = uiState::goBack,
+                onOpenSearch = if (uiState.navigation.route == PracticeRoute.Home) {
+                    { actions.navigateTo(PracticeRoute.Search) }
+                } else {
+                    null
+                },
                 onOpenSettings = { actions.navigateTo(PracticeRoute.Settings) },
                 onOpenIfpaProfile = { actions.navigateTo(PracticeRoute.IfpaProfile) },
                 isJournalSelectionMode = uiState.journal.selectionMode,
@@ -263,6 +284,9 @@ internal fun PracticeScreen(
             PracticeScreenRouteContent(
                 route = uiState.navigation.route,
                 gameContext = gameRouteContext,
+                searchGames = store.searchCatalogGames,
+                isLoadingSearchGames = store.isLoadingSearchCatalog,
+                onOpenSearchGame = actions::openPracticeGame,
                 homeContext = homeRouteContext,
                 ifpaProfileContext = ifpaProfileContext,
                 groupDashboardContext = groupDashboardContext,

@@ -4,7 +4,7 @@ import android.content.Context
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.PinballGame
-import com.pillyliu.pinprofandroid.library.loadLibraryExtraction
+import com.pillyliu.pinprofandroid.library.loadFullLibraryExtraction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -17,7 +17,7 @@ internal data class PracticeLibraryLoadResult(
 
 internal suspend fun loadPracticeGamesFromLibrary(context: Context): PracticeLibraryLoadResult = withContext(Dispatchers.IO) {
     try {
-        val extraction = loadLibraryExtraction(context)
+        val extraction = loadFullLibraryExtraction(context)
         val parsed = extraction.payload
         val selectedSource = parsed.sources.firstOrNull { it.id == extraction.state.selectedSourceId }
             ?: parsed.sources.firstOrNull()

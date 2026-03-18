@@ -8,7 +8,7 @@ extension PracticeStore {
         defer { isLoadingGames = false }
 
         do {
-            let extraction = try await loadLibraryExtraction()
+            let extraction = try await loadFullLibraryExtraction()
             let payload = extraction.payload
             let savedSourceID = UserDefaults.standard.string(forKey: Self.preferredLibrarySourceDefaultsKey)
             let preferredCandidates = [extraction.state.selectedSourceID, savedSourceID]
@@ -36,6 +36,23 @@ extension PracticeStore {
             librarySources = []
             defaultPracticeSourceID = nil
             lastErrorMessage = "Failed to load library for practice upgrade: \(error.localizedDescription)"
+        }
+    }
+
+    func ensureSearchCatalogGamesLoaded() async {
+        if !searchCatalogGames.isEmpty || isLoadingSearchCatalog {
+            return
+        }
+
+        isLoadingSearchCatalog = true
+        defer { isLoadingSearchCatalog = false }
+
+        do {
+            searchCatalogGames = try await loadPracticeCatalogGames()
+        } catch {
+            if searchCatalogGames.isEmpty {
+                lastErrorMessage = "Failed to load practice search catalog: \(error.localizedDescription)"
+            }
         }
     }
 

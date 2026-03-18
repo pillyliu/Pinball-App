@@ -43,7 +43,9 @@ nonisolated func libraryInferSources(from games: [PinballGame]) -> [PinballLibra
         seen.append(PinballLibrarySource(id: game.sourceId, name: game.sourceName, type: game.sourceType))
     }
     if seen.isEmpty {
-        seen.append(PinballLibrarySource(id: "venue--pm-8760", name: "The Avenue Cafe", type: .venue))
+        if let avenueSource = builtinVenueSources().first(where: { $0.id == pmAvenueLibrarySourceID }) {
+            seen.append(avenueSource)
+        }
     }
     return seen
 }
@@ -63,30 +65,18 @@ nonisolated func libraryParseSourceType(_ raw: String?) -> PinballLibrarySourceT
 }
 
 nonisolated func libraryCanonicalSourceID(_ raw: String?) -> String? {
-    guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
-        return nil
-    }
-    switch trimmed {
-    case "the-avenue", "the-avenue-cafe", "venue--the-avenue-cafe":
-        return "venue--pm-8760"
-    case "rlm-amusements", "venue--rlm-amusements":
-        return "venue--pm-16470"
-    default:
-        return trimmed
-    }
+    canonicalLibrarySourceID(raw)
 }
 
 nonisolated func librarySlugifySourceID(_ value: String) -> String {
     let lower = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    if lower.isEmpty { return "venue--pm-8760" }
+    if lower.isEmpty { return pmAvenueLibrarySourceID }
     let mapped = lower
         .replacingOccurrences(of: "&", with: "and")
         .replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
         .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-    if mapped.isEmpty { return "venue--pm-8760" }
-    if mapped == "the-avenue" || mapped == "the-avenue-cafe" { return "venue--pm-8760" }
-    if mapped == "rlm-amusements" { return "venue--pm-16470" }
-    return mapped
+    if mapped.isEmpty { return pmAvenueLibrarySourceID }
+    return canonicalLibrarySourceID(mapped) ?? mapped
 }
 
 nonisolated func libraryNormalizedOptionalString(_ value: String?) -> String? {

@@ -93,5 +93,6 @@ internal class PracticeDerivedQueryIntegration {
     fun gameName(
         lookupGames: List<PinballGame>,
         canonicalGameID: String,
-    ): String = gameNameForSlug(lookupGames, canonicalGameID)
+    ): String = practiceDisplayTitleForKey(canonicalGameID, lookupGames)
+        ?: gameNameForSlug(lookupGames, canonicalGameID)
 }

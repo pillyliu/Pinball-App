@@ -15,6 +15,7 @@ import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.LibrarySourceEvents
 import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.LibrarySourceType
+import com.pillyliu.pinprofandroid.library.builtinVenueSources
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import kotlinx.coroutines.launch
 
@@ -31,10 +32,7 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
     val scope = rememberCoroutineScope()
     val state = rememberSettingsScreenState(context)
     val builtinSources = remember {
-        listOf(
-            LibrarySource(id = "venue--pm-16470", name = "RLM Amusements", type = LibrarySourceType.VENUE),
-            LibrarySource(id = "venue--pm-8760", name = "The Avenue Cafe", type = LibrarySourceType.VENUE),
-        )
+        builtinVenueSources()
     }
     val sourceVersion by LibrarySourceEvents.version.collectAsState()
 
