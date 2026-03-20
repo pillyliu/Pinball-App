@@ -311,8 +311,12 @@ private fun RulesheetContentWebView(
     val bodyColorHex = MaterialTheme.colorScheme.onSurface.toCssHex()
     val mutedColorHex = MaterialTheme.colorScheme.onSurfaceVariant.toCssHex()
     val linkColorHex = MaterialTheme.colorScheme.primary.toCssHex()
+    val linkSoftHex = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f).toCssHex()
     val codeBgHex = MaterialTheme.colorScheme.surfaceContainerLowest.toCssHex()
+    val panelHex = MaterialTheme.colorScheme.surfaceContainerHigh.toCssHex()
+    val panelStrongHex = MaterialTheme.colorScheme.surfaceContainerHighest.toCssHex()
     val tableBorderHex = MaterialTheme.colorScheme.outlineVariant.toCssHex()
+    val blockquoteBarHex = MaterialTheme.colorScheme.primary.copy(alpha = 0.42f).toCssHex()
     val webViewState = rememberSaveable(stateKey, saver = bundleParcelSaver) { Bundle() }
     var savedScrollRatio by rememberSaveable(stateKey) { mutableFloatStateOf(0f) }
     var loadedHash by remember(stateKey) { mutableStateOf<Int?>(null) }
@@ -397,40 +401,18 @@ private fun RulesheetContentWebView(
                     RulesheetRenderKind.MARKDOWN -> renderMarkdownHtml(content.body)
                     RulesheetRenderKind.HTML -> content.body
                 }
-                val html = """
-                    <!doctype html>
-                    <html>
-                    <head>
-                        <meta charset=\"utf-8\" />
-                        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
-                        <style>
-                            html, body { margin:0; padding:0; background:transparent !important; color:$bodyColorHex !important; overflow-x:hidden !important; width:100%; }
-                            body { padding:14px 16px; line-height:1.45; font-size:16px; box-sizing:border-box; }
-                            *, *:before, *:after { box-sizing:border-box; }
-                            * { color:$bodyColorHex !important; background: transparent !important; }
-                            #content { max-width:100%; overflow-x:hidden !important; overflow-wrap:anywhere !important; word-break:break-word !important; word-wrap:break-word !important; }
-                            p, li, dd, dt, small, div, span { color:$bodyColorHex !important; max-width:100% !important; overflow-wrap:anywhere !important; word-wrap:break-word !important; word-break:break-word !important; white-space:normal !important; }
-                            blockquote { color:$mutedColorHex !important; border-left:3px solid $tableBorderHex !important; padding-left:10px; }
-                            a { color:$linkColorHex !important; text-decoration:underline !important; text-underline-offset:2px; font-weight:600; max-width:100% !important; white-space:normal !important; overflow-wrap:anywhere !important; word-wrap:break-word !important; word-break:break-all !important; }
-                            code, pre { background:$codeBgHex !important; border-radius:6px !important; color:$bodyColorHex !important; }
-                            code { overflow-wrap:anywhere; word-break:break-all; white-space:pre-wrap; }
-                            pre { padding:10px; max-width:100%; overflow-x:hidden; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-all; }
-                            pre code { white-space:pre-wrap !important; overflow-wrap:anywhere !important; word-break:break-all !important; }
-                            .legacy-rulesheet .bodyTitle { display:block; font-size:1.1rem; font-weight:700; margin:1rem 0 0.4rem; }
-                            .legacy-rulesheet .bodySmall { display:block; font-size:0.92rem; opacity:0.88; }
-                            .legacy-rulesheet pre.rulesheet-preformatted { white-space:pre-wrap; font-size:0.92rem; line-height:1.4; background:transparent !important; padding:0; border-radius:0 !important; }
-                            table { border-collapse:collapse; width:100%; max-width:100%; table-layout:fixed; }
-                            th, td { border:1px solid $tableBorderHex; padding:6px 8px; word-break:break-word; overflow-wrap:anywhere; }
-                            img { max-width:100%; height:auto; display:block; }
-                            .rulesheet-attribution { display:block; font-size:0.78rem; line-height:1.35; opacity:0.78; margin-bottom:0.8rem; }
-                            .rulesheet-attribution, .rulesheet-attribution * { overflow-wrap:anywhere; word-break:break-word; }
-                        </style>
-                    </head>
-                    <body>
-                        <article id=\"content\">$renderedBody</article>
-                    </body>
-                    </html>
-                """.trimIndent()
+                val html = buildRulesheetHtml(
+                    renderedBody = renderedBody,
+                    bodyColorHex = bodyColorHex,
+                    mutedColorHex = mutedColorHex,
+                    linkColorHex = linkColorHex,
+                    linkSoftHex = linkSoftHex,
+                    codeBgHex = codeBgHex,
+                    panelHex = panelHex,
+                    panelStrongHex = panelStrongHex,
+                    tableBorderHex = tableBorderHex,
+                    blockquoteBarHex = blockquoteBarHex,
+                )
                 webView.loadDataWithBaseURL(content.baseUrl, html, "text/html", "utf-8", null)
                 loadedHash = newHash
                 webView.post {
@@ -468,6 +450,282 @@ private fun RulesheetContentWebView(
             }
         },
     )
+}
+
+private fun buildRulesheetHtml(
+    renderedBody: String,
+    bodyColorHex: String,
+    mutedColorHex: String,
+    linkColorHex: String,
+    linkSoftHex: String,
+    codeBgHex: String,
+    panelHex: String,
+    panelStrongHex: String,
+    tableBorderHex: String,
+    blockquoteBarHex: String,
+): String {
+    return """
+        <!doctype html>
+        <html>
+        <head>
+            <meta charset=\"utf-8\" />
+            <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+            <style>
+                :root {
+                    --text: $bodyColorHex;
+                    --text-muted: $mutedColorHex;
+                    --link: $linkColorHex;
+                    --link-soft: $linkSoftHex;
+                    --panel: $panelHex;
+                    --panel-strong: $panelStrongHex;
+                    --code-bg: $codeBgHex;
+                    --code-text: $bodyColorHex;
+                    --rule: $tableBorderHex;
+                    --table-border: $tableBorderHex;
+                    --blockquote-bar: $blockquoteBarHex;
+                }
+                html, body {
+                    margin: 0;
+                    padding: 0;
+                    background: transparent;
+                }
+                body {
+                    padding: 76px 16px 28px;
+                    font-family: sans-serif;
+                    -webkit-text-size-adjust: 100%;
+                    text-size-adjust: 100%;
+                    color: var(--text);
+                    line-height: 1.5;
+                    font-size: 16px;
+                    box-sizing: border-box;
+                }
+                *, *:before, *:after {
+                    box-sizing: border-box;
+                }
+                #content {
+                    margin: 0 auto;
+                    max-width: 44rem;
+                    overflow-x: hidden;
+                    overflow-wrap: anywhere;
+                    word-break: normal;
+                }
+                #content > :first-child { margin-top: 0 !important; }
+                #content > :last-child { margin-bottom: 0 !important; }
+                p, ul, ol, blockquote, pre, table, hr {
+                    margin: 0 0 0.95rem;
+                }
+                p, li, dd, dt, small, div, span {
+                    max-width: 100%;
+                    overflow-wrap: anywhere;
+                    word-wrap: break-word;
+                    word-break: break-word;
+                    white-space: normal;
+                }
+                a {
+                    color: var(--link);
+                    text-decoration: underline;
+                    text-decoration-thickness: 0.08em;
+                    text-underline-offset: 0.14em;
+                    overflow-wrap: anywhere;
+                    word-break: break-word;
+                }
+                a:hover {
+                    background: var(--link-soft);
+                }
+                h1, h2, h3, h4, h5, h6 {
+                    color: var(--text);
+                    line-height: 1.2;
+                    margin: 1.35rem 0 0.55rem;
+                }
+                h1 { font-size: 1.8rem; letter-spacing: -0.02em; }
+                h2 {
+                    font-size: 1.35rem;
+                    letter-spacing: -0.015em;
+                    padding-bottom: 0.2rem;
+                    border-bottom: 1px solid var(--rule);
+                }
+                h3 { font-size: 1.08rem; }
+                h4, h5, h6 { font-size: 0.98rem; }
+                strong { color: var(--text); }
+                small, .bodySmall, .rulesheet-attribution {
+                    color: var(--text-muted);
+                }
+                ul, ol {
+                    padding-left: 1.35rem;
+                }
+                li {
+                    margin: 0.18rem 0;
+                }
+                li > ul, li > ol {
+                    margin-top: 0.28rem;
+                    margin-bottom: 0.28rem;
+                }
+                blockquote {
+                    margin-left: 0;
+                    padding: 0.15rem 0 0.15rem 0.95rem;
+                    border-left: 3px solid var(--blockquote-bar);
+                    color: var(--text-muted);
+                    background: transparent;
+                }
+                code, pre {
+                    background: var(--code-bg);
+                    border-radius: 10px;
+                    color: var(--code-text);
+                }
+                code {
+                    padding: 0.12rem 0.34rem;
+                    overflow-wrap: anywhere;
+                    word-break: break-word;
+                }
+                pre {
+                    padding: 12px 14px;
+                    overflow-x: auto;
+                    border: 1px solid var(--rule);
+                }
+                pre code {
+                    padding: 0;
+                    background: transparent;
+                    border-radius: 0;
+                }
+                .table-scroll {
+                    overflow-x: auto;
+                    overflow-y: visible;
+                    -webkit-overflow-scrolling: touch;
+                    margin: 0 0 1rem;
+                    padding-bottom: 0.1rem;
+                    border: 1px solid var(--table-border);
+                    border-radius: 12px;
+                    background: var(--panel);
+                }
+                table {
+                    border-collapse: separate;
+                    border-spacing: 0;
+                    width: 100%;
+                    table-layout: auto;
+                    margin-bottom: 0;
+                }
+                th, td {
+                    border-right: 1px solid var(--table-border);
+                    border-bottom: 1px solid var(--table-border);
+                    padding: 8px 10px;
+                    vertical-align: top;
+                    word-break: normal;
+                    overflow-wrap: normal;
+                    white-space: normal;
+                }
+                tr > :last-child {
+                    border-right: none;
+                }
+                tbody tr:last-child td,
+                table tr:last-child td {
+                    border-bottom: none;
+                }
+                th {
+                    background: var(--panel-strong);
+                    text-align: left;
+                }
+                thead tr:first-child th:first-child,
+                table tr:first-child > *:first-child {
+                    border-top-left-radius: 12px;
+                }
+                thead tr:first-child th:last-child,
+                table tr:first-child > *:last-child {
+                    border-top-right-radius: 12px;
+                }
+                tbody tr:last-child td:first-child,
+                table tr:last-child td:first-child {
+                    border-bottom-left-radius: 12px;
+                }
+                tbody tr:last-child td:last-child,
+                table tr:last-child td:last-child {
+                    border-bottom-right-radius: 12px;
+                }
+                .primer-rulesheet table td:first-child,
+                .primer-rulesheet table th:first-child {
+                    width: 34%;
+                    min-width: 7.5rem;
+                }
+                .primer-rulesheet table td:last-child,
+                .primer-rulesheet table th:last-child {
+                    width: 66%;
+                }
+                img {
+                    display: block;
+                    max-width: 100%;
+                    height: auto;
+                    margin: 0.5rem auto;
+                    border-radius: 10px;
+                }
+                table img,
+                .table-scroll img {
+                    width: auto;
+                    max-height: min(42vh, 24rem);
+                    object-fit: contain;
+                }
+                hr {
+                    border: none;
+                    border-top: 1px solid var(--rule);
+                }
+                .pinball-rulesheet, .remote-rulesheet {
+                    display: block;
+                }
+                .legacy-rulesheet .bodyTitle {
+                    display: block;
+                    font-size: 1.08rem;
+                    font-weight: 700;
+                    margin: 1rem 0 0.4rem;
+                }
+                .legacy-rulesheet .bodySmall {
+                    display: block;
+                    font-size: 0.92rem;
+                    opacity: 0.88;
+                }
+                .legacy-rulesheet pre.rulesheet-preformatted {
+                    white-space: pre-wrap;
+                    font: inherit;
+                    background: transparent;
+                    padding: 0;
+                    border-radius: 0;
+                    border: none;
+                }
+                .rulesheet-attribution {
+                    display: block;
+                    font-size: 0.78rem;
+                    line-height: 1.35;
+                    opacity: 0.92;
+                    margin-bottom: 0.8rem;
+                }
+                .rulesheet-attribution, .rulesheet-attribution * {
+                    overflow-wrap: anywhere;
+                    word-break: break-word;
+                }
+                @media (orientation: landscape) {
+                    body {
+                        padding-top: 19px;
+                    }
+                }
+                @media (min-width: 820px) {
+                    body {
+                        padding-left: 24px;
+                        padding-right: 24px;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <article id=\"content\">$renderedBody</article>
+            <script>
+                document.querySelectorAll('table').forEach((table) => {
+                    if (table.parentElement && table.parentElement.classList.contains('table-scroll')) return;
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'table-scroll';
+                    table.parentNode.insertBefore(wrapper, table);
+                    wrapper.appendChild(table);
+                });
+            </script>
+        </body>
+        </html>
+    """.trimIndent()
 }
 
 private fun Color.toCssHex(): String {
