@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-03-18T16:04:25.287729Z",
+  "generated_at": "2026-03-20T12:27:40.810980Z",
   "records": [
     {
       "id": "venue--pm-8760",
@@ -8,6 +8,9 @@
       "type": "venue",
       "provider": "pinball_map",
       "providerSourceId": "8760",
+      "city": null,
+      "state": null,
+      "updatedAt": null,
       "machineIds": [
         "G43W4-MdEjy",
         "G4do5-MW9z8",
@@ -60,6 +63,9 @@
       "type": "venue",
       "provider": "pinball_map",
       "providerSourceId": "16470",
+      "city": null,
+      "state": null,
+      "updatedAt": null,
       "machineIds": [
         "G4PBO-MyNeb-A9E6x",
         "G4yen-MD12Y",

@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "generated_at": "2026-03-18T16:04:31.844Z",
+  "generated_at": "2026-03-20T12:28:50.337Z",
   "source_files": [
     "Avenue Pinball - Current.csv",
     "RLM Amusements - Current.csv"
@@ -94,7 +94,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/Gj66P-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/Gj66P-MXr0E-ARkqN-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "avengers-infinity-quest",
@@ -258,7 +258,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/G4dOQ-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/G4dOQ-MW970-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "iron-maiden-legacy-of-the-beast",
@@ -346,7 +346,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/Gryw4-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/Gryw4-MwNwZ-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "star-trek",
@@ -503,7 +503,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/G5vLR-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/G5vLR-ME049-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "star-wars",
@@ -673,7 +673,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/GBLLP-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/GBLLP-MW900-A1KoQ-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "the-mandalorian",
@@ -843,7 +843,7 @@
       "assets": {
         "rulesheet_local_practice": "/pinball/rulesheets/Gr3EW-rulesheet.md",
         "gameinfo_local_practice": "/pinball/gameinfo/Gr3EW-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/Gr3EW-M1r9Y-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "monster-bash",
@@ -1007,7 +1007,7 @@
       "assets": {
         "rulesheet_local_practice": "/pinball/rulesheets/G4835-rulesheet.md",
         "gameinfo_local_practice": "/pinball/gameinfo/G4835-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/G4835-M2YPK-A9ylv-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "cactus-canyon-lyman-upgrade",
@@ -1623,7 +1623,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/GweeP-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/GweeP-Ml9pZ-A9vXB-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "godzilla",
@@ -1705,7 +1705,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/G6lnq-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/G6lnq-M6153-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "deadpool",
@@ -2440,7 +2440,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/GZVOd-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/GZVOd-MwNxZ-AO25N-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "elviras-house-of-horrors",
@@ -2867,7 +2867,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/GK17D-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/GK17D-MKNKd-AOyKv-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "jurassic-park",
@@ -3037,7 +3037,7 @@
       "assets": {
         "rulesheet_local_practice": "/pinball/rulesheets/G4do5-rulesheet.md",
         "gameinfo_local_practice": "/pinball/gameinfo/G4do5-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/G4do5-MDlN7-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "attack-from-mars-remake-le",
@@ -3634,7 +3634,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/GEL0V-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/GEL0V-MyN8E-ARq7n-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "king-kong-myth-of-terror-island",
@@ -3709,7 +3709,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/Gxv81-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/Gxv81-Mo1rp-A9Qew-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "star-wars-fall-of-the-empire",
@@ -3784,7 +3784,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": null,
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/GV8wB-MRjKd-ARz2r-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "pok-mon",
@@ -3872,7 +3872,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/GLWll-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/GLWll-M1r8O-A1kx7-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "jaws",
@@ -3954,7 +3954,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/G6lnq-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/G6lnq-M6153-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "deadpool",
@@ -4500,7 +4500,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/GO0q3-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/GO0q3-MOEy8-ARrPz-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "metallica-remastered",
@@ -4670,7 +4670,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/GoEkx-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/GoEkx-MdEzN-AR50E-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "pulp-fiction",
@@ -5004,7 +5004,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/GQKyP-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/GQKyP-MP3OK-A1KoX-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "james-bond-007",
@@ -5079,7 +5079,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/G7ZEz-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/G7ZEz-MyN3K-ARl3o-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "the-uncanny-x-men",
@@ -5569,7 +5569,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/GweeP-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/GweeP-Ml9pZ-A9vXB-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "godzilla",
@@ -5827,7 +5827,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/GD7Ld-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/GD7Ld-MBRP4-A1e4P-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "black-knight-sword-of-rage",
@@ -5915,7 +5915,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/GK17D-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/GK17D-MKNKd-AOyKv-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "jurassic-park",
@@ -6161,7 +6161,7 @@
       "assets": {
         "rulesheet_local_practice": null,
         "gameinfo_local_practice": "/pinball/gameinfo/G4dOQ-gameinfo.md",
-        "playfield_local_practice": null
+        "playfield_local_practice": "/pinball/images/playfields/G4dOQ-MW970-playfield.webp"
       },
       "sort_keys": {
         "alphabetical": "iron-maiden-legacy-of-the-beast",

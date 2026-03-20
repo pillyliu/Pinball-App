@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-03-18T16:04:25Z",
+  "generated_at": "2026-03-20T12:27:41Z",
   "catalog_path": "/Users/pillyliu/Documents/Codex/PinProf Admin/workspace/data/published/opdb_catalog_v1.json",
   "providers": [
     "bob",
@@ -3372,7 +3372,6 @@
     {
       "normalized_url": "https://rules.silverballmania.com/rules/G4yen-MD12Y",
       "provider": "bob",
-      "inventory_signature": "19a3f662abff8bb86dbab388013b6f5675de85a3ecfaeeafd869329971fdb9e1",
       "raw_urls": [
         "https://rules.silverballmania.com/rules/G4yen-MD12Y"
       ],
@@ -3383,14 +3382,15 @@
         {
           "practice_identity": "G4yen",
           "label": "Rulesheet (Bob)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "57425148cdd4abcc520e27b04a66b08b3e64df71af1bdb3a7ae4bdeeba12a9fb",
       "first_seen_at": "2026-03-02T16:16:51Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": "blocked",
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -3512,7 +3512,6 @@
     {
       "normalized_url": "https://rules.silverballmania.com/rules/G5728-MDbjD",
       "provider": "bob",
-      "inventory_signature": "a40d435cdfa4dbda9bcedcdbd7ad00fb540c8cd6fddd571eaebea07f2587b383",
       "raw_urls": [
         "https://rules.silverballmania.com/rules/G5728-MDbjD"
       ],
@@ -3523,14 +3522,15 @@
         {
           "practice_identity": "G5728",
           "label": "Rulesheet (Bob)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "bd6593d85779386991c9a225c03ac1f7a7636d7614b3e5d21cd4735268cb05a5",
       "first_seen_at": "2026-03-02T16:16:51Z",
-      "last_checked_at": "2026-03-08T09:57:35Z",
-      "last_ok_at": "2026-03-08T09:57:35Z",
-      "previous_status": "blocked",
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -4947,7 +4947,6 @@
     {
       "normalized_url": "https://rules.silverballmania.com/rules/G5YDN-MJKYo",
       "provider": "bob",
-      "inventory_signature": "111e572ad479db21ccc47c5ae9ae316b4ecf282c9ed75efd54d69a376a5f8267",
       "raw_urls": [
         "https://rules.silverballmania.com/rules/G5YDN-MJKYo"
       ],
@@ -4958,14 +4957,15 @@
         {
           "practice_identity": "G5YDN",
           "label": "Rulesheet (Bob)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "4d020a7e5db19f4732f61192d464f4602a1e5546f61b166b409e1ea4a12a728d",
       "first_seen_at": "2026-03-02T16:16:51Z",
-      "last_checked_at": "2026-03-08T10:25:23Z",
-      "last_ok_at": "2026-03-08T10:25:23Z",
-      "previous_status": "blocked",
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -7677,7 +7677,6 @@
     {
       "normalized_url": "https://rules.silverballmania.com/rules/GRKx7-MJ49e",
       "provider": "bob",
-      "inventory_signature": "bfcf7d0c67be84fc3f6d42be641f5c68a33ef0f333d8741718cded3e86ad5012",
       "raw_urls": [
         "https://rules.silverballmania.com/rules/GRKx7-MJ49e"
       ],
@@ -7688,14 +7687,15 @@
         {
           "practice_identity": "GRKx7",
           "label": "Rulesheet (Bob)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "46c7c02fe3eca769d751094a2f1f2a950b7512dc7b42762b7bb1381d43054880",
       "first_seen_at": "2026-03-02T16:16:51Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": "blocked",
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -8552,7 +8552,6 @@
     {
       "normalized_url": "https://rules.silverballmania.com/rules/GRVoX-MDWEq",
       "provider": "bob",
-      "inventory_signature": "49f56272cbf2c7f79e8ae3061f1630437d4424ace1773db84c367ba7f9996af2",
       "raw_urls": [
         "https://rules.silverballmania.com/rules/GRVoX-MDWEq"
       ],
@@ -8563,14 +8562,15 @@
         {
           "practice_identity": "GRVoX",
           "label": "Rulesheet (Bob)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "a06b563f6221062bee145ee1ca4b43596e59bb8ccea82ea3ff5e57119f447788",
       "first_seen_at": "2026-03-02T16:16:51Z",
-      "last_checked_at": "2026-03-08T09:57:35Z",
-      "last_ok_at": "2026-03-08T09:57:35Z",
-      "previous_status": "blocked",
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -8587,7 +8587,6 @@
     {
       "normalized_url": "https://rules.silverballmania.com/rules/GRVoX-MLE7l",
       "provider": "bob",
-      "inventory_signature": "39680b76a48e1bdfc964c03e8b180af065300552d24c44713f6f131b36f1f812",
       "raw_urls": [
         "https://rules.silverballmania.com/rules/GRVoX-MLE7l"
       ],
@@ -8598,14 +8597,15 @@
         {
           "practice_identity": "GRVoX",
           "label": "Rulesheet (Bob)",
-          "priority": 1
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "26fafcf38274a11d8631296eaba4664dc18396c7340931cfc7ff6fce99644014",
       "first_seen_at": "2026-03-02T16:16:51Z",
-      "last_checked_at": "2026-03-08T09:57:35Z",
-      "last_ok_at": "2026-03-08T09:57:35Z",
-      "previous_status": "blocked",
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -12192,7 +12192,6 @@
     {
       "normalized_url": "https://rules.silverballmania.com/rules/GrP6q-M5Rp1",
       "provider": "bob",
-      "inventory_signature": "2957385e4cff987ae550d1e6291346e67ceb2c900424878c18ba21f9f3393a14",
       "raw_urls": [
         "https://rules.silverballmania.com/rules/GrP6q-M5Rp1"
       ],
@@ -12203,13 +12202,14 @@
         {
           "practice_identity": "GrP6q",
           "label": "Rulesheet (Bob)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "370f494bda8c2cae491430f60a50720d693bc40ad46ed3fbd3147993f5b78c3c",
       "first_seen_at": "2026-03-02T16:16:51Z",
-      "last_checked_at": "2026-03-08T09:24:54Z",
-      "last_ok_at": "2026-03-08T09:24:54Z",
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -12297,7 +12297,6 @@
     {
       "normalized_url": "https://rules.silverballmania.com/rules/GrPbb-MJZX6",
       "provider": "bob",
-      "inventory_signature": "e054fe8e6c5345367a8c6fa3ea50ea9cea879aa8d9a1c3485687d804a634a38b",
       "raw_urls": [
         "https://rules.silverballmania.com/rules/GrPbb-MJZX6"
       ],
@@ -12308,13 +12307,14 @@
         {
           "practice_identity": "GrPbb",
           "label": "Rulesheet (Bob)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "69fa1c7d05625f45f40dbe50087e2bf53949190d951f7cc485f060f58ade6494",
       "first_seen_at": "2026-03-02T16:16:51Z",
-      "last_checked_at": "2026-03-08T09:24:54Z",
-      "last_ok_at": "2026-03-08T09:24:54Z",
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -12927,7 +12927,6 @@
     {
       "normalized_url": "https://rules.silverballmania.com/rules/GrXy3-ML0Ey",
       "provider": "bob",
-      "inventory_signature": "dc7aa6f2fd586f8e52ee1519c86f28118934d2965bcb7c35fd799d167398e3f8",
       "raw_urls": [
         "https://rules.silverballmania.com/rules/GrXy3-ML0Ey"
       ],
@@ -12938,14 +12937,15 @@
         {
           "practice_identity": "GrXy3",
           "label": "Rulesheet (Bob)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "174506b878d69ff192aebeb66a8388ce528d89eb8a220f3c6359483d1244d4ee",
       "first_seen_at": "2026-03-02T16:16:51Z",
-      "last_checked_at": "2026-03-08T09:57:35Z",
-      "last_ok_at": "2026-03-08T09:57:35Z",
-      "previous_status": "blocked",
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -14817,7 +14817,6 @@
     {
       "normalized_url": "https://pinball.org/rules/addamsfamily.html",
       "provider": "papa",
-      "inventory_signature": "4cf0295577ff93714646d7425e6e01d4d8567c0f508c8093998b57d863312d79",
       "raw_urls": [
         "https://pinball.org/rules/addamsfamily.html"
       ],
@@ -14828,14 +14827,15 @@
         {
           "practice_identity": "G4ODR",
           "label": "Rulesheet (PAPA)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "02aeeac55c996ddf5cc320bc65aaeb97bae325de7de96f983a2349cef2a46c0e",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -14852,7 +14852,6 @@
     {
       "normalized_url": "https://pinball.org/rules/addamsfamilygold.html",
       "provider": "papa",
-      "inventory_signature": "ef41b50df519474d6227d977017719da619e41f439b94fd785573b2b11e7bd07",
       "raw_urls": [
         "https://pinball.org/rules/addamsfamilygold.html"
       ],
@@ -14863,14 +14862,15 @@
         {
           "practice_identity": "G4ODR",
           "label": "Rulesheet (PAPA)",
-          "priority": 1
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "0095e1808f90e126238bc5f01f20ac1cf66388f57901859f675861f93e67fc71",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -14922,7 +14922,6 @@
     {
       "normalized_url": "https://pinball.org/rules/attackfrommars.html",
       "provider": "papa",
-      "inventory_signature": "57462069eaa20f67c1dde9479c42be581d60211b5ab2fecf14bc05ddf2e61dbd",
       "raw_urls": [
         "https://pinball.org/rules/attackfrommars.html"
       ],
@@ -14933,14 +14932,15 @@
         {
           "practice_identity": "G4do5",
           "label": "Rulesheet (PAPA)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "c465ca32e30221f26249c41fb7ae6f720f93985e449e1dab91a2402a68964994",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -14957,7 +14957,6 @@
     {
       "normalized_url": "https://pinball.org/rules/attackfrommars2.html",
       "provider": "papa",
-      "inventory_signature": "152d06e2d7e56099ed480193c574fd6fb190b14735d5279d9e40548ea33f9117",
       "raw_urls": [
         "https://pinball.org/rules/attackfrommars2.html"
       ],
@@ -14968,14 +14967,15 @@
         {
           "practice_identity": "G4do5",
           "label": "Rulesheet (PAPA)",
-          "priority": 1
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "c3e6cdbe3dffd4aac6ae2e8bd8b08201e5f780b0262696270cb476e462d4c59a",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -14992,7 +14992,6 @@
     {
       "normalized_url": "https://pinball.org/rules/attackfrommars3.html",
       "provider": "papa",
-      "inventory_signature": "48e42ec56c42b16857621b52e1ba1d69dfc1327ff94aba4a83cd53e92b84896d",
       "raw_urls": [
         "https://pinball.org/rules/attackfrommars3.html"
       ],
@@ -15003,14 +15002,15 @@
         {
           "practice_identity": "G4do5",
           "label": "Rulesheet (PAPA)",
-          "priority": 2
+          "priority": 3
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "258ba3b7c71b05464db8261ca85aceb8ab014f2d156c30d166f9efe6314fa343",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -15727,7 +15727,6 @@
     {
       "normalized_url": "https://pinball.org/rules/cactuscanyon.txt",
       "provider": "papa",
-      "inventory_signature": "0186b3e0570ea92422ad787803d21c818f5db043a78fe016291bc43fa153111b",
       "raw_urls": [
         "https://pinball.org/rules/cactuscanyon.txt"
       ],
@@ -15738,14 +15737,15 @@
         {
           "practice_identity": "G4835",
           "label": "Rulesheet (PAPA)",
-          "priority": 0
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "da52fd099d700db6fff722a7af1b8ebebbf8dddfa59eccebb9a573972dc6999e",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -17162,7 +17162,6 @@
     {
       "normalized_url": "https://pinball.org/rules/getaway.html",
       "provider": "papa",
-      "inventory_signature": "287a15285dae5aa07b6083226b47c9ff8a9fd84a5a6c671fbddae6a5e1830ef8",
       "raw_urls": [
         "https://pinball.org/rules/getaway.html"
       ],
@@ -17173,14 +17172,15 @@
         {
           "practice_identity": "Grx8Y",
           "label": "Rulesheet (PAPA)",
-          "priority": 0
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "f1dec056c50ad75e3e026bca39e682df4be9a16b2d0362e94b879c100e0fac3a",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -17512,7 +17512,6 @@
     {
       "normalized_url": "https://pinball.org/rules/indianapolis500.html",
       "provider": "papa",
-      "inventory_signature": "65e8ddb19840c141128e7ce15c52388bf4d66fd607d6998daa59a407036b161f",
       "raw_urls": [
         "https://pinball.org/rules/indianapolis500.html"
       ],
@@ -17523,14 +17522,15 @@
         {
           "practice_identity": "Gr8l3",
           "label": "Rulesheet (PAPA)",
-          "priority": 0
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "9a69223cb0d4fcf8b5cb2bd5b5f840449d33f22b15923b772d755adf6ee3bd05",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -18142,7 +18142,6 @@
     {
       "normalized_url": "https://pinball.org/rules/medievalmadness-notes.txt",
       "provider": "papa",
-      "inventory_signature": "29d36c7ee9e2941e465f23d9872dba9ffa712a1f854cf0dd91c5aff5e6ada1c6",
       "raw_urls": [
         "https://pinball.org/rules/medievalmadness-notes.txt"
       ],
@@ -18153,14 +18152,15 @@
         {
           "practice_identity": "G5pe4",
           "label": "Rulesheet (PAPA)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "5262809895567e8f4e1fa2122fa3fafafe46f7af1ea37e0d8fcd6e372ecfc86d",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -18177,7 +18177,6 @@
     {
       "normalized_url": "https://pinball.org/rules/medievalmadness-notes2.html",
       "provider": "papa",
-      "inventory_signature": "bfa6bfa4508d866229f2f14e79bdb36e09d2c9eeee476a10c696419594c5901a",
       "raw_urls": [
         "https://pinball.org/rules/medievalmadness-notes2.html"
       ],
@@ -18188,14 +18187,15 @@
         {
           "practice_identity": "G5pe4",
           "label": "Rulesheet (PAPA)",
-          "priority": 1
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "ca6f6ff783eb62635eb88a9e6005e07e134683398da87a16a1fa1ebe69433491",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -18212,7 +18212,6 @@
     {
       "normalized_url": "https://pinball.org/rules/medievalmadness.html",
       "provider": "papa",
-      "inventory_signature": "774b47f9061d220c1ec8ac8fe9ef01fff74744a2a7df524c5e9f515d6e70be5d",
       "raw_urls": [
         "https://pinball.org/rules/medievalmadness.html"
       ],
@@ -18223,14 +18222,15 @@
         {
           "practice_identity": "G5pe4",
           "label": "Rulesheet (PAPA)",
-          "priority": 2
+          "priority": 3
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "bf9b08c182228f7fa583f1ede0c823f77927ee278e3154c83b3610f232f40599",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -18282,7 +18282,6 @@
     {
       "normalized_url": "https://pinball.org/rules/monsterbash.txt",
       "provider": "papa",
-      "inventory_signature": "da626711a28d0c9c2733073b9481214c3c69123e716b7b20e104e9bcb91db085",
       "raw_urls": [
         "https://pinball.org/rules/monsterbash.txt"
       ],
@@ -18293,14 +18292,15 @@
         {
           "practice_identity": "Gr3EW",
           "label": "Rulesheet (PAPA)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "dbc50924cdb5a41b0b820a9a34b1332393f0ff63ed7d60d5d022a04b172213ed",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -19157,7 +19157,6 @@
     {
       "normalized_url": "https://pinball.org/rules/scaredstiff.html",
       "provider": "papa",
-      "inventory_signature": "7f90a0700cf4877dcbdeeb5ee5653e00e84ff3c1e1920477edbec3af8de0a197",
       "raw_urls": [
         "https://pinball.org/rules/scaredstiff.html"
       ],
@@ -19168,14 +19167,15 @@
         {
           "practice_identity": "G4xbP",
           "label": "Rulesheet (PAPA)",
-          "priority": 0
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "f3cb85f67db47628c99ad019b6906e515a75fff3ffbdb1874a9eb8d05831f21b",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -19192,7 +19192,6 @@
     {
       "normalized_url": "https://pinball.org/rules/scaredstiff2.html",
       "provider": "papa",
-      "inventory_signature": "6afd1f8a0d18d92a47b7ff2f1c123f34dcb11755f5d852abc1e7a05289487ab2",
       "raw_urls": [
         "https://pinball.org/rules/scaredstiff2.html"
       ],
@@ -19203,14 +19202,15 @@
         {
           "practice_identity": "G4xbP",
           "label": "Rulesheet (PAPA)",
-          "priority": 1
+          "priority": 3
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "20302870e0d1511115ec782162048cd5b4535ff9e4fdf62497e0ae4c009934bd",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -19227,7 +19227,6 @@
     {
       "normalized_url": "https://pinball.org/rules/shadow.html",
       "provider": "papa",
-      "inventory_signature": "38d3530493ec752ff5cf33c2d812a94749beda057e338bead18c93a3d4bac9a2",
       "raw_urls": [
         "https://pinball.org/rules/shadow.html"
       ],
@@ -19238,14 +19237,15 @@
         {
           "practice_identity": "G4jPX",
           "label": "Rulesheet (PAPA)",
-          "priority": 0
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "753c33d845c2c7834b8e12f2c6cebf1d6db39020ba2e256b2c5b6003307603a1",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -19367,7 +19367,6 @@
     {
       "normalized_url": "https://pinball.org/rules/simpsonspinballparty.txt",
       "provider": "papa",
-      "inventory_signature": "af9b4792a6522fb629dcd14c5a845a4ce4325b10832d8bf4a58e92680227c641",
       "raw_urls": [
         "https://pinball.org/rules/simpsonspinballparty.txt"
       ],
@@ -19378,14 +19377,15 @@
         {
           "practice_identity": "GRvBL",
           "label": "Rulesheet (PAPA)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "70ed3f7fb3cbe9509bc6ca777eeef2d36f028a1f18857d19a94b245b110c5fc4",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -20207,7 +20207,6 @@
     {
       "normalized_url": "https://pinball.org/rules/talesfromthecrypt.html",
       "provider": "papa",
-      "inventory_signature": "a62e891cf5cfcf0c9c9d0ba61aacb30c7d4cb29e5ba1b7e76b752f698aa6a7fc",
       "raw_urls": [
         "https://pinball.org/rules/talesfromthecrypt.html"
       ],
@@ -20218,14 +20217,15 @@
         {
           "practice_identity": "GR6wO",
           "label": "Rulesheet (PAPA)",
-          "priority": 0
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "ee0f544bdedef9a3a9fa654381f4829307e28de77fc9641de6761466722910c2",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -20242,7 +20242,6 @@
     {
       "normalized_url": "https://pinball.org/rules/talesofthearabiannights.html",
       "provider": "papa",
-      "inventory_signature": "0ab086a724ffa45f3ff4fe01242653f854f26876482074b0b9e4fa18e6df48df",
       "raw_urls": [
         "https://pinball.org/rules/talesofthearabiannights.html"
       ],
@@ -20253,14 +20252,15 @@
         {
           "practice_identity": "G4llj",
           "label": "Rulesheet (PAPA)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "36b7cc72b3fb9f7b0e086d349f82704756509560e21c47ea3cb86642f5b97c40",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -20347,7 +20347,6 @@
     {
       "normalized_url": "https://pinball.org/rules/teenagemutantninjaturtles.html",
       "provider": "papa",
-      "inventory_signature": "e49038203223edc888eac1b69c1dc01ddace65c5caefad56ce51fa35ba987016",
       "raw_urls": [
         "https://pinball.org/rules/teenagemutantninjaturtles.html"
       ],
@@ -20362,10 +20361,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "e49038203223edc888eac1b69c1dc01ddace65c5caefad56ce51fa35ba987016",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -21572,7 +21572,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/addams_G4ODR.html",
       "provider": "pp",
-      "inventory_signature": "ab8062fdbba18cca9f833692761c15091a78038395dc5fb76eaec8ce13d0d092",
       "raw_urls": [
         "https://pinballprimer.github.io/addams_G4ODR.html"
       ],
@@ -21583,14 +21582,15 @@
         {
           "practice_identity": "G4ODR",
           "label": "Rulesheet (PP)",
-          "priority": 2
+          "priority": 3
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "928ac711b613be2cdb680571754de0e0d19d5ae725d5fc4b1b43d5ee6117280a",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -21642,7 +21642,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/afm_G4do5.html",
       "provider": "pp",
-      "inventory_signature": "836d99c2a0cab64847182a52154eb51ec6a3573bd04fea14425766470792fc92",
       "raw_urls": [
         "https://pinballprimer.github.io/afm_G4do5.html"
       ],
@@ -21653,14 +21652,15 @@
         {
           "practice_identity": "G4do5",
           "label": "Rulesheet (PP)",
-          "priority": 3
+          "priority": 4
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "bc228f6f9b6351c4389246da3c3e6c4bfbcaa6d09ecd600fdd41ab01565a04ec",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -21922,7 +21922,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/alienpoker_G4yen.html",
       "provider": "pp",
-      "inventory_signature": "1fe3fc9fe90202f6141356f0cebd6c9e40a16166f0a154e8876d206e84f1a62d",
       "raw_urls": [
         "https://pinballprimer.github.io/alienpoker_G4yen.html"
       ],
@@ -21933,14 +21932,15 @@
         {
           "practice_identity": "G4yen",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "0f4f825125cef747d1d8cd56d0bf37b74b7515d355fe4bd13814e442c94cfb82",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -24442,7 +24442,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/buckrogers_GRKx7.html",
       "provider": "pp",
-      "inventory_signature": "d7d225b9e94479d7d02d2158f9b9d4ab0b8225ce14ef5900e6d26739f3c18f5e",
       "raw_urls": [
         "https://pinballprimer.github.io/buckrogers_GRKx7.html"
       ],
@@ -24453,14 +24452,15 @@
         {
           "practice_identity": "GRKx7",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "f134fc8f0cc862f25a44ae18cff96f6cfba48f4761d719b3e92c6eea386adb90",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -24582,7 +24582,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/cactuscanyon_G4835.html",
       "provider": "pp",
-      "inventory_signature": "9d8c6d21d4c3c7ee4179bf6f2b171cf40c1b853b6cc3ba497bf4e3ba7adbed31",
       "raw_urls": [
         "https://pinballprimer.github.io/cactuscanyon_G4835.html"
       ],
@@ -24593,14 +24592,15 @@
         {
           "practice_identity": "G4835",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 4
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "65fb6f395a3731e68792e21f742638664ec6f8158b235dd6f157d821f707f591",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -27662,7 +27662,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/excalibur_GrPbb.html",
       "provider": "pp",
-      "inventory_signature": "a092a3a013c563fb1dc515ed8a16c16ba41931eed422274b595f66cfae7ad2c7",
       "raw_urls": [
         "https://pinballprimer.github.io/excalibur_GrPbb.html"
       ],
@@ -27673,14 +27672,15 @@
         {
           "practice_identity": "GrPbb",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "42ebb09ec3f79b6c5f0cd40025055c8b75b936fe3a29fe7955f6ed640a9d4ea4",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -27977,7 +27977,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/fastdraw_GRVoX.html",
       "provider": "pp",
-      "inventory_signature": "5d356d5a5f14f19178c68a6d5c1fd16f00bd9f96468ee6ec477cd574a20f44d9",
       "raw_urls": [
         "https://pinballprimer.github.io/fastdraw_GRVoX.html"
       ],
@@ -27988,14 +27987,15 @@
         {
           "practice_identity": "GRVoX",
           "label": "Rulesheet (PP)",
-          "priority": 2
+          "priority": 3
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "66bc4be4ba01c74ae1cffed385b120eff7cdb8411d49a773d0189f011a8f5338",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -28362,7 +28362,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/flashgordon_G5728.html",
       "provider": "pp",
-      "inventory_signature": "c582c6937dec6b7d2a7c45c9a0c2215d249c801f7bf577474b86fb37c1055ff7",
       "raw_urls": [
         "https://pinballprimer.github.io/flashgordon_G5728.html"
       ],
@@ -28373,14 +28372,15 @@
         {
           "practice_identity": "G5728",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "0a1ce5632f0936bdde3a1fc48b06a4accbff65466ee49d6e70430143c827cf50",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -29307,7 +29307,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/genesis_Gr2wz.html",
       "provider": "pp",
-      "inventory_signature": "4f99141d79cb26bb22f4d6cbb6343fd730900275ca4e68eb8302972059a7fe1d",
       "raw_urls": [
         "https://pinballprimer.github.io/genesis_Gr2wz.html"
       ],
@@ -29318,14 +29317,15 @@
         {
           "practice_identity": "Gr2wz",
           "label": "Rulesheet (PP)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "dbcf2640d45b6c3b1dfb0f86b383ec7616b34328ffcb51521be1abe876caeea9",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -29377,7 +29377,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/getaway_Grx8Y.html",
       "provider": "pp",
-      "inventory_signature": "849fee6bc2720c48a9a15bb3429ce72f973b70a829189126c95c762b90b65b3e",
       "raw_urls": [
         "https://pinballprimer.github.io/getaway_Grx8Y.html"
       ],
@@ -29388,14 +29387,15 @@
         {
           "practice_identity": "Grx8Y",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 4
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "0cb34b67097678df8bfe973d16ebd322675793dc0275aade4ff4697fc20ce12c",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -31197,7 +31197,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/indianajones_G4xZy.html",
       "provider": "pp",
-      "inventory_signature": "d01757847043a49020467541aadb40b09e7668c77707ce7a7dc66763c66c9e1e",
       "raw_urls": [
         "https://pinballprimer.github.io/indianajones_G4xZy.html"
       ],
@@ -31208,14 +31207,15 @@
         {
           "practice_identity": "G4xZy",
           "label": "Rulesheet (PP)",
-          "priority": 0
+          "priority": 3
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "fee73d283d5a6f928da7c48fd05c94a6582a52b35b46616abdae22c772d94ee4",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -31232,7 +31232,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/indy500_Gr8l3.html",
       "provider": "pp",
-      "inventory_signature": "ef092261150865737e86c57e611dd9affa0744d3cc03697aa323d8f56e5e9a65",
       "raw_urls": [
         "https://pinballprimer.github.io/indy500_Gr8l3.html"
       ],
@@ -31243,14 +31242,15 @@
         {
           "practice_identity": "Gr8l3",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 4
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "0bf2345865ed96c72ed0d69f777683258f2a03f74f630f1794b87bc38b9ece1e",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -33367,7 +33367,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/medieval_G5pe4.html",
       "provider": "pp",
-      "inventory_signature": "124f1ccdaf677a8a0c5533010e7333426caf1505826a5862759a6a6e384ddfcb",
       "raw_urls": [
         "https://pinballprimer.github.io/medieval_G5pe4.html"
       ],
@@ -33378,14 +33377,15 @@
         {
           "practice_identity": "G5pe4",
           "label": "Rulesheet (PP)",
-          "priority": 3
+          "priority": 4
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "61c168b87842e0e15903bf14387c5f19ce0728402f0f401540e4cc5cfbc5ffd6",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -33472,7 +33472,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/metallica_GRBE4.html",
       "provider": "pp",
-      "inventory_signature": "53b905af91ae0cc531a25c3e5194d3f67298365e51adfcf62ba5688ede6c0fe5",
       "raw_urls": [
         "https://pinballprimer.github.io/metallica_GRBE4.html"
       ],
@@ -33487,10 +33486,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "53b905af91ae0cc531a25c3e5194d3f67298365e51adfcf62ba5688ede6c0fe5",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -33682,7 +33682,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/monsterbash_Gr3EW.html",
       "provider": "pp",
-      "inventory_signature": "407c584a6942cb440b4426e1a796d604f762e865cff2b63c0d40e721641c3c04",
       "raw_urls": [
         "https://pinballprimer.github.io/monsterbash_Gr3EW.html"
       ],
@@ -33693,14 +33692,15 @@
         {
           "practice_identity": "Gr3EW",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "922292ac98e88b79d20e446471c7d9856ac7958e0accbf6a7a9bd1ba214db394",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -34207,7 +34207,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/nitro_GrP6q.html",
       "provider": "pp",
-      "inventory_signature": "068b74b76d7efc2fd3641bc2e18dac9c02331c1b2b15a2ad36ddcec79307baa1",
       "raw_urls": [
         "https://pinballprimer.github.io/nitro_GrP6q.html"
       ],
@@ -34218,14 +34217,15 @@
         {
           "practice_identity": "GrP6q",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "7ec2d92fe0ffa2cdda75025c63d1bc5d138bb6e6158f8502d044ce6ec9cae18d",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -34907,7 +34907,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/paragon_GrXy3.html",
       "provider": "pp",
-      "inventory_signature": "911a8a0362e214ef03e2edbd7ea060ab3cbdeb77388ed3191773656e7915f89a",
       "raw_urls": [
         "https://pinballprimer.github.io/paragon_GrXy3.html"
       ],
@@ -34918,14 +34917,15 @@
         {
           "practice_identity": "GrXy3",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "9ee35d46f584f0356ee3769b0b4b7131b3b7b78e62fcfd304becff0dfea2580b",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -36412,7 +36412,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/robowar_GryK3.html",
       "provider": "pp",
-      "inventory_signature": "001440ed50c9f98e3d6ec6394a4531b2b09b98faf6735366208546fdc5ec43ee",
       "raw_urls": [
         "https://pinballprimer.github.io/robowar_GryK3.html"
       ],
@@ -36423,14 +36422,15 @@
         {
           "practice_identity": "GryK3",
           "label": "Rulesheet (PP)",
-          "priority": 0
+          "priority": 1
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "980713de98660d77755e665b51e5833a0edd5a105048ac4576a1b0becc5f3325",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -37007,7 +37007,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/scaredstiff_G4xbP.html",
       "provider": "pp",
-      "inventory_signature": "7e874fea640a2dc82cb01a282a20a08aad4836210c842c63d680da97e1ff9280",
       "raw_urls": [
         "https://pinballprimer.github.io/scaredstiff_G4xbP.html"
       ],
@@ -37018,14 +37017,15 @@
         {
           "practice_identity": "G4xbP",
           "label": "Rulesheet (PP)",
-          "priority": 2
+          "priority": 5
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "825c8fab8be6c16d2cf699fc25091058e7d05cf92d25c97af4256662daecf371",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -37287,7 +37287,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/shadow_G4jPX.html",
       "provider": "pp",
-      "inventory_signature": "0b2dd3c008ce42cdf79cfd19c75115ec5e18fe7a530a6d01ed5d841c5be60ef9",
       "raw_urls": [
         "https://pinballprimer.github.io/shadow_G4jPX.html"
       ],
@@ -37298,14 +37297,15 @@
         {
           "practice_identity": "G4jPX",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 4
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "954cdcf14e77e6fe16ee1a73b1f5bf0b502a0b19099bb91e637a0e6e5838ea30",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -40507,7 +40507,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/talesfromthecrypt_GR6wO.html",
       "provider": "pp",
-      "inventory_signature": "dc668ada2049d4ac8daf0d92ff86f66d5aabab0ac1bd0832b2d86578d93df28c",
       "raw_urls": [
         "https://pinballprimer.github.io/talesfromthecrypt_GR6wO.html"
       ],
@@ -40518,14 +40517,15 @@
         {
           "practice_identity": "GR6wO",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 4
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "3425d9f72c08be973346e65f8e009b298c7a6b9162ed961a8db36218637c72ca",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -41137,7 +41137,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/tna_GRD79.html",
       "provider": "pp",
-      "inventory_signature": "2957a73178c3770ada366aa5505d7b4f447b5342b544c7dc5a24c0fc0d5246d7",
       "raw_urls": [
         "https://pinballprimer.github.io/tna_GRD79.html"
       ],
@@ -41152,10 +41151,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "2957a73178c3770ada366aa5505d7b4f447b5342b544c7dc5a24c0fc0d5246d7",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -41347,7 +41347,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/totan_G4llj.html",
       "provider": "pp",
-      "inventory_signature": "35e02b5b17a9e5a38063ad4d8a40b5a3be6648bff1ad5e2ff3c13ffb4e4c7809",
       "raw_urls": [
         "https://pinballprimer.github.io/totan_G4llj.html"
       ],
@@ -41358,14 +41357,15 @@
         {
           "practice_identity": "G4llj",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "7992d257168374fb7310588156e7487d62b56f28dceba08c8963f8c8e4a6c5bd",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -41382,7 +41382,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/totem_G5YDN.html",
       "provider": "pp",
-      "inventory_signature": "a5be6b23216f77e2cfc691c11f9cb7ff1f7b0060b0cc43428b8a7e5a2638a31f",
       "raw_urls": [
         "https://pinballprimer.github.io/totem_G5YDN.html"
       ],
@@ -41393,14 +41392,15 @@
         {
           "practice_identity": "G5YDN",
           "label": "Rulesheet (PP)",
-          "priority": 1
+          "priority": 2
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "89f4fc25ddbad2d7f3c92d45e76f5d5298c605abba2383d5c56e9960759e68c9",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -41767,7 +41767,6 @@
     {
       "normalized_url": "https://pinballprimer.github.io/tron_GrkL5.html",
       "provider": "pp",
-      "inventory_signature": "db0e99e21e51c65cc6ac194e9742d1c195f2b134fe5207de61bdb2060b956d92",
       "raw_urls": [
         "https://pinballprimer.github.io/tron_GrkL5.html"
       ],
@@ -41778,14 +41777,15 @@
         {
           "practice_identity": "GrkL5",
           "label": "Rulesheet (PP)",
-          "priority": 0
+          "priority": 3
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "1bdf4171954f8bf47e1fd98ac1ddac8c545c3d10f765cfe8b7768c4682a55cb6",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-19T11:45:31Z",
+      "last_ok_at": "2026-03-19T11:45:31Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -43412,7 +43412,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/avengers-infinity-quest-rulesheet/6740",
       "provider": "tf",
-      "inventory_signature": "9df636ac0a6d2bc77cee8a70175fb186ff494964b2e517b45553a70847dac5ea",
       "raw_urls": [
         "https://tiltforums.com/t/avengers-infinity-quest-rulesheet/6740"
       ],
@@ -43427,10 +43426,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "9df636ac0a6d2bc77cee8a70175fb186ff494964b2e517b45553a70847dac5ea",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -43552,7 +43552,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/black-knight-sword-of-rage-rulesheet/5210",
       "provider": "tf",
-      "inventory_signature": "3eb810530215431cb46bb4b5e0dd9d68241637dcc435f0a31eaade23fd2a113f",
       "raw_urls": [
         "https://tiltforums.com/t/black-knight-sword-of-rage-rulesheet/5210"
       ],
@@ -43567,10 +43566,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "3eb810530215431cb46bb4b5e0dd9d68241637dcc435f0a31eaade23fd2a113f",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -43622,7 +43622,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/deadpool-rulesheet/4311",
       "provider": "tf",
-      "inventory_signature": "27737f6035420db61aaa96b64a6a5b146549168b650a5f84518b56d247af9a99",
       "raw_urls": [
         "https://tiltforums.com/t/deadpool-rulesheet/4311"
       ],
@@ -43637,10 +43636,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "27737f6035420db61aaa96b64a6a5b146549168b650a5f84518b56d247af9a99",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -43743,8 +43743,8 @@
       "seen_count": 1,
       "inventory_signature": "157866b77a2d7a7f4686727a4af6c555e5968ce48bb6edd63d6f86fa5d386079",
       "first_seen_at": "2026-03-15T22:49:38Z",
-      "last_checked_at": "2026-03-17T07:04:19Z",
-      "last_ok_at": "2026-03-17T07:04:19Z",
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -43762,7 +43762,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/dungeons-dragons-the-tyrants-eye-rulesheet/9267",
       "provider": "tf",
-      "inventory_signature": "d51eb4c3ce6152a18cc4d4bb9301a0f0b3faf269df0f50018b810b9160fcf268",
       "raw_urls": [
         "https://tiltforums.com/t/dungeons-dragons-the-tyrants-eye-rulesheet/9267"
       ],
@@ -43777,10 +43776,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "d51eb4c3ce6152a18cc4d4bb9301a0f0b3faf269df0f50018b810b9160fcf268",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -43832,7 +43832,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/elvira-s-house-of-horrors-rulesheet-wip/5815",
       "provider": "tf",
-      "inventory_signature": "771a6c0b76bae071b98c029cdaa195d0bf9096eae3e99368b4ec7f956d6a7cb4",
       "raw_urls": [
         "https://tiltforums.com/t/elvira-s-house-of-horrors-rulesheet-wip/5815"
       ],
@@ -43847,49 +43846,15 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "771a6c0b76bae071b98c029cdaa195d0bf9096eae3e99368b4ec7f956d6a7cb4",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
       "fetch_url": "https://tiltforums.com/t/elvira-s-house-of-horrors-rulesheet-wip/5815.json",
-      "final_url": "https://tiltforums.com/t/elvira-s-house-of-horrors-rulesheet/5815.json",
-      "http_status": 200,
-      "mime_type": "application/json",
-      "parse_kind": "tiltforums_json",
-      "content_mode": "html",
-      "content_text_length": 26565,
-      "last_error": null,
-      "reused_unchanged": true
-    },
-    {
-      "normalized_url": "https://tiltforums.com/t/elvira-s-house-of-horrors-rulesheet/5815",
-      "provider": "tf",
-      "raw_urls": [
-        "https://tiltforums.com/t/elvira-s-house-of-horrors-rulesheet/5815"
-      ],
-      "practice_identities": [
-        "GZVOd"
-      ],
-      "references": [
-        {
-          "practice_identity": "GZVOd",
-          "label": "Rulesheet (TF)",
-          "priority": 1
-        }
-      ],
-      "seen_count": 1,
-      "inventory_signature": "56285840022336c69e527ed51a4eeb56b3e548c8ed3d3b4b0bf6b115a9a156d4",
-      "first_seen_at": "2026-03-15T22:49:38Z",
-      "last_checked_at": "2026-03-15T22:49:38Z",
-      "last_ok_at": "2026-03-15T22:49:38Z",
-      "previous_status": null,
-      "current_status": "ok",
-      "broken": false,
-      "failure_count": 0,
-      "fetch_url": "https://tiltforums.com/t/elvira-s-house-of-horrors-rulesheet/5815.json",
       "final_url": "https://tiltforums.com/t/elvira-s-house-of-horrors-rulesheet/5815.json",
       "http_status": 200,
       "mime_type": "application/json",
@@ -43918,8 +43883,8 @@
       "seen_count": 1,
       "inventory_signature": "a989243353eda94a8b546e8b3549030166865c2fae18aacec29b4be1f1e07664",
       "first_seen_at": "2026-03-15T22:49:38Z",
-      "last_checked_at": "2026-03-17T07:04:19Z",
-      "last_ok_at": "2026-03-17T07:04:19Z",
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -44007,7 +43972,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/foo-fighters-rulesheet/8162",
       "provider": "tf",
-      "inventory_signature": "1864cd612c131b39ad976d7aaf3e718e1d9728e68b9243e4377c45be2eeba69a",
       "raw_urls": [
         "https://tiltforums.com/t/foo-fighters-rulesheet/8162"
       ],
@@ -44022,10 +43986,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "1864cd612c131b39ad976d7aaf3e718e1d9728e68b9243e4377c45be2eeba69a",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -44093,8 +44058,8 @@
       "seen_count": 1,
       "inventory_signature": "55421527477247b27d88e00b2c19b964fba1a515d4739478e207c20fca254be8",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-15T23:19:21Z",
-      "last_ok_at": "2026-03-15T23:19:21Z",
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -44112,7 +44077,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/ghostbusters-pinball-rulesheet/1358",
       "provider": "tf",
-      "inventory_signature": "a7a8703a9774ef7b00cec0bc58a25af93d88f03761d615504148c07caa966d0f",
       "raw_urls": [
         "https://tiltforums.com/t/ghostbusters-pinball-rulesheet/1358"
       ],
@@ -44127,10 +44091,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "a7a8703a9774ef7b00cec0bc58a25af93d88f03761d615504148c07caa966d0f",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -44303,8 +44268,8 @@
       "seen_count": 1,
       "inventory_signature": "5ea5218c26e80c25ecc12e6467e719d19c03071a84acb8d5c245bc76b4c48517",
       "first_seen_at": "2026-03-15T22:49:38Z",
-      "last_checked_at": "2026-03-17T07:04:19Z",
-      "last_ok_at": "2026-03-17T07:04:19Z",
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -44315,7 +44280,7 @@
       "mime_type": "application/json",
       "parse_kind": "tiltforums_json",
       "content_mode": "html",
-      "content_text_length": 12121,
+      "content_text_length": 15099,
       "last_error": null,
       "reused_unchanged": true
     },
@@ -44484,8 +44449,8 @@
       "seen_count": 2,
       "inventory_signature": "f35c08bfb9cdcffce95032e9b0d0b88f8d8de3239532ab6645a5e4342221799e",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-17T07:34:05Z",
-      "last_ok_at": "2026-03-17T07:34:05Z",
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -44519,8 +44484,8 @@
       "seen_count": 1,
       "inventory_signature": "d4082572bf80738cb784773c61c9f0e502381f8282ce4d63b8e88483c7af3ec0",
       "first_seen_at": "2026-03-15T22:49:38Z",
-      "last_checked_at": "2026-03-17T07:04:19Z",
-      "last_ok_at": "2026-03-17T07:04:19Z",
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -44538,7 +44503,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/jaws-rulesheet/8781",
       "provider": "tf",
-      "inventory_signature": "3b91170afe7e9619ba437b6260a6574247b3eaf0dfbfda711b4acfe924ee623c",
       "raw_urls": [
         "https://tiltforums.com/t/jaws-rulesheet/8781"
       ],
@@ -44553,10 +44517,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "3b91170afe7e9619ba437b6260a6574247b3eaf0dfbfda711b4acfe924ee623c",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -44573,7 +44538,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/john-wick-rulesheet/8956",
       "provider": "tf",
-      "inventory_signature": "7c91571337f5295c17770f722e2e1eeac5def5b17c47371b5172205efa65b70f",
       "raw_urls": [
         "https://tiltforums.com/t/john-wick-rulesheet/8956"
       ],
@@ -44588,10 +44552,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "7c91571337f5295c17770f722e2e1eeac5def5b17c47371b5172205efa65b70f",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -44601,7 +44566,7 @@
       "mime_type": "application/json",
       "parse_kind": "tiltforums_json",
       "content_mode": "html",
-      "content_text_length": 24991,
+      "content_text_length": 26366,
       "last_error": null,
       "reused_unchanged": true
     },
@@ -44643,7 +44608,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/king-kong-myth-of-terror-island-rulesheet/9514",
       "provider": "tf",
-      "inventory_signature": "1c9da7f8c90cc0fbf8a03e011210b4bb806582ccb39e981b8c2f5b214767819e",
       "raw_urls": [
         "https://tiltforums.com/t/king-kong-myth-of-terror-island-rulesheet/9514"
       ],
@@ -44658,10 +44622,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "1c9da7f8c90cc0fbf8a03e011210b4bb806582ccb39e981b8c2f5b214767819e",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -44678,7 +44643,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/kiss-wiki-rulesheet/732",
       "provider": "tf",
-      "inventory_signature": "83a0e81397712c823ed4b0fc8ffae114e0757f4a775e8e32970b838bb355a05f",
       "raw_urls": [
         "https://tiltforums.com/t/kiss-wiki-rulesheet/732"
       ],
@@ -44693,10 +44657,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "83a0e81397712c823ed4b0fc8ffae114e0757f4a775e8e32970b838bb355a05f",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -44729,8 +44694,8 @@
       "seen_count": 1,
       "inventory_signature": "1ed6fec8be15ae389e72ac15a1ee909527fa193974b8d417f0bd522f3aaf73b5",
       "first_seen_at": "2026-03-15T23:17:44Z",
-      "last_checked_at": "2026-03-17T07:04:19Z",
-      "last_ok_at": "2026-03-17T07:04:19Z",
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -44888,7 +44853,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/metallica-remastered-rulesheet/9298",
       "provider": "tf",
-      "inventory_signature": "c167a533e9d1b1685dcd617d4e59a6ddf9b525f6ac91eb48282e5cfd3b704d0b",
       "raw_urls": [
         "https://tiltforums.com/t/metallica-remastered-rulesheet/9298"
       ],
@@ -44903,10 +44867,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "c167a533e9d1b1685dcd617d4e59a6ddf9b525f6ac91eb48282e5cfd3b704d0b",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -44945,8 +44910,8 @@
       "seen_count": 2,
       "inventory_signature": "dc2c79b4cc1d0077cd24b20ef074002c4ef5693a8a1f33ac9008b1b54a70ce86",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-17T07:34:05Z",
-      "last_ok_at": "2026-03-17T07:34:05Z",
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -45050,8 +45015,8 @@
       "seen_count": 1,
       "inventory_signature": "24a312c718f973a658b6749ef1147fced2b22ddc8d1c7f9ef8dec02c930141fe",
       "first_seen_at": "2026-03-15T23:17:44Z",
-      "last_checked_at": "2026-03-17T07:04:19Z",
-      "last_ok_at": "2026-03-17T07:04:19Z",
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -45174,7 +45139,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/pulp-fiction-rulesheet/8471",
       "provider": "tf",
-      "inventory_signature": "338d6b8c1f06d9432b5b913feb24ad14682d7d8b663ad55d74a039a6faf7d9a2",
       "raw_urls": [
         "https://tiltforums.com/t/pulp-fiction-rulesheet/8471"
       ],
@@ -45189,10 +45153,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "338d6b8c1f06d9432b5b913feb24ad14682d7d8b663ad55d74a039a6faf7d9a2",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -45435,8 +45400,8 @@
       "seen_count": 1,
       "inventory_signature": "e93dc5d4c86f8fddaae74b49cf9a2a1ae519d7e39cde2d3a8bdf067619943539",
       "first_seen_at": "2026-03-15T23:17:44Z",
-      "last_checked_at": "2026-03-17T07:04:19Z",
-      "last_ok_at": "2026-03-17T07:04:19Z",
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -45454,7 +45419,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/star-wars-fall-of-the-empire-rulesheet/9872",
       "provider": "tf",
-      "inventory_signature": "9680dc35466955e6d93ed3d864d24b23277f20b3a40aa03de69e1b93b5023ac8",
       "raw_urls": [
         "https://tiltforums.com/t/star-wars-fall-of-the-empire-rulesheet/9872"
       ],
@@ -45469,10 +45433,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "9680dc35466955e6d93ed3d864d24b23277f20b3a40aa03de69e1b93b5023ac8",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -45482,7 +45447,7 @@
       "mime_type": "application/json",
       "parse_kind": "tiltforums_json",
       "content_mode": "html",
-      "content_text_length": 29232,
+      "content_text_length": 31385,
       "last_error": null,
       "reused_unchanged": true
     },
@@ -45511,8 +45476,8 @@
       "seen_count": 2,
       "inventory_signature": "f3deda2497d5e1ee58a95968e8cae1542294d373fa425c45256b7d61ceb929f4",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-17T07:34:05Z",
-      "last_ok_at": "2026-03-17T07:34:05Z",
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -45530,7 +45495,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/stern-godzilla-rulesheet/7210",
       "provider": "tf",
-      "inventory_signature": "0f5450bca6add12fad00d76a0ff8242583ce6244bc32f9c6c53e54b8bb534f31",
       "raw_urls": [
         "https://tiltforums.com/t/stern-godzilla-rulesheet/7210"
       ],
@@ -45545,10 +45509,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "0f5450bca6add12fad00d76a0ff8242583ce6244bc32f9c6c53e54b8bb534f31",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -45559,41 +45524,6 @@
       "parse_kind": "tiltforums_json",
       "content_mode": "html",
       "content_text_length": 51256,
-      "last_error": null,
-      "reused_unchanged": true
-    },
-    {
-      "normalized_url": "https://tiltforums.com/t/stern-jurassic-park-rulesheet/5644",
-      "provider": "tf",
-      "raw_urls": [
-        "https://tiltforums.com/t/stern-jurassic-park-rulesheet/5644"
-      ],
-      "practice_identities": [
-        "GxvvB"
-      ],
-      "references": [
-        {
-          "practice_identity": "GxvvB",
-          "label": "Rulesheet (TF)",
-          "priority": 4
-        }
-      ],
-      "seen_count": 1,
-      "inventory_signature": "e3eacb1ba8253f3c10894f3a6f6a0428669569c98d85172a09a62f365debe2c5",
-      "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-15T23:17:44Z",
-      "last_ok_at": "2026-03-15T23:17:44Z",
-      "previous_status": "ok",
-      "current_status": "ok",
-      "broken": false,
-      "failure_count": 0,
-      "fetch_url": "https://tiltforums.com/t/stern-jurassic-park-rulesheet/5644.json",
-      "final_url": "https://tiltforums.com/t/stern-jurassic-park-rulesheet/5644.json",
-      "http_status": 200,
-      "mime_type": "application/json",
-      "parse_kind": "tiltforums_json",
-      "content_mode": "html",
-      "content_text_length": 48267,
       "last_error": null,
       "reused_unchanged": true
     },
@@ -45616,8 +45546,8 @@
       "seen_count": 1,
       "inventory_signature": "09bbb2b3f1ce6b09c5d2960f1ee512f175afbb8b9fadd15affa113811e8c80a2",
       "first_seen_at": "2026-03-15T22:49:38Z",
-      "last_checked_at": "2026-03-17T07:04:19Z",
-      "last_ok_at": "2026-03-17T07:04:19Z",
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -45686,8 +45616,8 @@
       "seen_count": 1,
       "inventory_signature": "dd1a8e1e310744630eb26ccca5a04337d021bfcbc17afad92f7828ed5b71cc8c",
       "first_seen_at": "2026-03-15T23:17:44Z",
-      "last_checked_at": "2026-03-17T07:04:19Z",
-      "last_ok_at": "2026-03-17T07:04:19Z",
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
       "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
@@ -45705,7 +45635,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/stranger-things-rulesheet-wip/6093",
       "provider": "tf",
-      "inventory_signature": "25bff108edb12c8be01cd9518f2754e6e8c1170049d862cdd20b9f446209723f",
       "raw_urls": [
         "https://tiltforums.com/t/stranger-things-rulesheet-wip/6093"
       ],
@@ -45720,10 +45649,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "25bff108edb12c8be01cd9518f2754e6e8c1170049d862cdd20b9f446209723f",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -45756,9 +45686,9 @@
       "seen_count": 1,
       "inventory_signature": "cba40be87af8f1b96ed8c26da7b18b0b4ae93496b1afa1502720041c47700e6b",
       "first_seen_at": "2026-03-15T22:49:38Z",
-      "last_checked_at": "2026-03-15T22:49:38Z",
-      "last_ok_at": "2026-03-15T22:49:38Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -45810,7 +45740,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/the-mandalorian-rulesheet/7056",
       "provider": "tf",
-      "inventory_signature": "2e348486450714202a573a514426bdfbb3e56a04d5fd8b8e067c40e84b22d004",
       "raw_urls": [
         "https://tiltforums.com/t/the-mandalorian-rulesheet/7056"
       ],
@@ -45825,10 +45754,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "2e348486450714202a573a514426bdfbb3e56a04d5fd8b8e067c40e84b22d004",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -45845,7 +45775,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/the-munsters-rulesheet/4781",
       "provider": "tf",
-      "inventory_signature": "6bd5731be494c647a79c15bdbd93d44ebe97a1ab306c4712b88098bc95d9a4a8",
       "raw_urls": [
         "https://tiltforums.com/t/the-munsters-rulesheet/4781"
       ],
@@ -45860,10 +45789,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "6bd5731be494c647a79c15bdbd93d44ebe97a1ab306c4712b88098bc95d9a4a8",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -45915,7 +45845,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/the-uncanny-x-men-rulesheet/9100",
       "provider": "tf",
-      "inventory_signature": "6259af8ea766d1f25386c0c6616e82f001d4b775c698c8a36e6764c1f1e7a86e",
       "raw_urls": [
         "https://tiltforums.com/t/the-uncanny-x-men-rulesheet/9100"
       ],
@@ -45930,10 +45859,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "6259af8ea766d1f25386c0c6616e82f001d4b775c698c8a36e6764c1f1e7a86e",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -45985,7 +45915,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/total-nuclear-annihilation-rulesheet/3209",
       "provider": "tf",
-      "inventory_signature": "0a1bbb2d700597d78957f5aa4422e6261015e372baeb9c785a1989cae0cb0d39",
       "raw_urls": [
         "https://tiltforums.com/t/total-nuclear-annihilation-rulesheet/3209"
       ],
@@ -46000,10 +45929,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "0a1bbb2d700597d78957f5aa4422e6261015e372baeb9c785a1989cae0cb0d39",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -46090,7 +46020,6 @@
     {
       "normalized_url": "https://tiltforums.com/t/venom-rulesheet/8503",
       "provider": "tf",
-      "inventory_signature": "6a929b074905fe476e640ef82a0d2d261a0d56f60e692a457328da99943f4285",
       "raw_urls": [
         "https://tiltforums.com/t/venom-rulesheet/8503"
       ],
@@ -46105,10 +46034,11 @@
         }
       ],
       "seen_count": 1,
+      "inventory_signature": "6a929b074905fe476e640ef82a0d2d261a0d56f60e692a457328da99943f4285",
       "first_seen_at": "2026-03-08T10:13:31Z",
-      "last_checked_at": "2026-03-08T10:13:31Z",
-      "last_ok_at": "2026-03-08T10:13:31Z",
-      "previous_status": null,
+      "last_checked_at": "2026-03-20T03:45:30Z",
+      "last_ok_at": "2026-03-20T03:45:30Z",
+      "previous_status": "ok",
       "current_status": "ok",
       "broken": false,
       "failure_count": 0,
@@ -46224,6 +46154,41 @@
       "parse_kind": "tiltforums_json",
       "content_mode": "html",
       "content_text_length": 17982,
+      "last_error": null,
+      "reused_unchanged": true
+    },
+    {
+      "normalized_url": "https://tiltforums.com/t/winchester-mystery-house-rulesheet/10143",
+      "provider": "tf",
+      "raw_urls": [
+        "https://tiltforums.com/t/winchester-mystery-house-rulesheet/10143"
+      ],
+      "practice_identities": [
+        "GvBzO"
+      ],
+      "references": [
+        {
+          "practice_identity": "GvBzO",
+          "label": "Rulesheet (TF)",
+          "priority": 0
+        }
+      ],
+      "seen_count": 1,
+      "inventory_signature": "08e82eba7e9097505d70a3824967ac976fa75fb86311ccfcee21405ba9caed0a",
+      "first_seen_at": "2026-03-20T03:27:31Z",
+      "last_checked_at": "2026-03-20T03:27:31Z",
+      "last_ok_at": "2026-03-20T03:27:31Z",
+      "previous_status": null,
+      "current_status": "ok",
+      "broken": false,
+      "failure_count": 0,
+      "fetch_url": "https://tiltforums.com/t/winchester-mystery-house-rulesheet/10143.json",
+      "final_url": "https://tiltforums.com/t/winchester-mystery-house-rulesheet/10143.json",
+      "http_status": 200,
+      "mime_type": "application/json",
+      "parse_kind": "tiltforums_json",
+      "content_mode": "html",
+      "content_text_length": 20725,
       "last_error": null,
       "reused_unchanged": true
     },
