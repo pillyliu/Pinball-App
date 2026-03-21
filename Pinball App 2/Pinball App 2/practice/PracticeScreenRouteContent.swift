@@ -163,14 +163,8 @@ extension PracticeScreen {
                     context.store.updateGroup(id: groupID, replaceEndDate: true, endDate: date)
                 }
             },
-            dashboardScoreForGroup: { group in
-                context.store.groupDashboardScore(for: group)
-            },
-            recommendedGameForGroup: { group in
-                context.store.recommendedGame(in: group)
-            },
-            groupProgressForGroup: { group in
-                context.store.groupProgress(for: group)
+            loadDashboardDetailForGroup: { group in
+                context.store.groupDashboardDetail(for: group)
             },
             onOpenGame: { gameID in
                 context.onOpenGame(gameID, nil)
@@ -184,7 +178,7 @@ extension PracticeScreen {
     func journalScreen(context: PracticeJournalContext) -> some View {
         PracticeJournalSectionView(
             journalFilter: context.journalFilter,
-            items: context.items,
+            sections: context.sections,
             isEditingEntries: context.isEditingEntries,
             selectedItemIDs: context.selectedItemIDs,
             gameTransition: context.gameTransition,

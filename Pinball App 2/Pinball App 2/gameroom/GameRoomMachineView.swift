@@ -47,7 +47,6 @@ struct GameRoomMachineView: View {
     @State private var editingEvent: MachineEvent?
     @State private var pendingDeleteEvent: MachineEvent?
     @State private var activeInputSheet: MachineInputSheet?
-    @State private var revealedLogEntryID: String?
     @State private var selectedLogEventID: UUID?
     @State private var previewAttachment: MachineAttachment?
     @State private var editingAttachment: MachineAttachment?
@@ -665,25 +664,16 @@ struct GameRoomMachineView: View {
                     GameRoomLogDetailCard(event: selected)
                 }
 
-                ScrollView(.vertical, showsIndicators: true) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(Array(events.prefix(40))) { event in
-                            gameRoomLogRow(event)
-                            if event.id != events.prefix(40).last?.id {
-                                Divider().overlay(.white.opacity(0.14))
-                            }
-                        }
+                List {
+                    ForEach(Array(events.prefix(40))) { event in
+                        gameRoomLogRow(event)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
                     }
                 }
-                .frame(maxHeight: 280)
-                .scrollBounceBehavior(.basedOnSize)
-                .simultaneousGesture(
-                    TapGesture().onEnded {
-                        if revealedLogEntryID != nil {
-                            revealedLogEntryID = nil
-                        }
-                    }
-                )
+                .frame(height: embeddedLogListHeight(for: min(events.count, 40)))
+                .appEmbeddedListStyle()
             }
         }
         .onAppear {
@@ -705,6 +695,13 @@ struct GameRoomMachineView: View {
         .appPanelStyle()
     }
 
+    private func embeddedLogListHeight(for count: Int) -> CGFloat {
+        let visibleCount = max(count, 1)
+        let estimatedRowHeight: CGFloat = 58
+        let contentPadding: CGFloat = 4
+        return min(280, max(60, CGFloat(visibleCount) * estimatedRowHeight + contentPadding))
+    }
+
     @ViewBuilder
     private func gameRoomLogRow(_ event: MachineEvent) -> some View {
         let content = VStack(alignment: .leading, spacing: 2) {
@@ -718,16 +715,7 @@ struct GameRoomMachineView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
 
-        JournalSwipeRevealRow(
-            id: event.id.uuidString,
-            revealedID: $revealedLogEntryID,
-            onEdit: {
-                editingEvent = event
-            },
-            onDelete: {
-                pendingDeleteEvent = event
-            }
-        ) {
+        JournalStaticEditableRow {
             content
                 .padding(.horizontal, 4)
                 .padding(.vertical, 2)
@@ -740,6 +728,21 @@ struct GameRoomMachineView: View {
                         selectedLogEventID = event.id
                     }
                 }
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button {
+                pendingDeleteEvent = event
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .tint(.red)
+
+            Button {
+                editingEvent = event
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .tint(AppTheme.statsMeanMedian)
         }
     }
 

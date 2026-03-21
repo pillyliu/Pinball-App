@@ -19,16 +19,31 @@ struct PracticeJournalItem: Identifiable {
     }
 }
 
+struct PracticeJournalDaySection: Identifiable {
+    let day: Date
+    let items: [PracticeJournalItem]
+
+    var id: Date { day }
+}
+
+func groupedPracticeJournalSections(_ items: [PracticeJournalItem], calendar: Calendar = .current) -> [PracticeJournalDaySection] {
+    let grouped = Dictionary(grouping: items) { calendar.startOfDay(for: $0.timestamp) }
+    return grouped.keys
+        .sorted(by: >)
+        .map { day in
+            PracticeJournalDaySection(day: day, items: grouped[day] ?? [])
+        }
+}
+
 struct PracticeJournalSectionView: View {
     @Binding var journalFilter: JournalFilter
-    let items: [PracticeJournalItem]
+    let sections: [PracticeJournalDaySection]
     @Binding var isEditingEntries: Bool
     @Binding var selectedItemIDs: Set<String>
     let gameTransition: Namespace.ID
     let onTapItem: (String, String) -> Void
     let onEditJournalEntry: (JournalEntry) -> Void
     let onDeleteJournalEntries: ([JournalEntry]) -> Void
-    @State private var revealedSwipeItemID: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -58,19 +73,16 @@ struct PracticeJournalSectionView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                if items.isEmpty {
+                if sections.isEmpty {
                     Text("No matching journal events.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 0)
                 } else {
-                    let grouped = Dictionary(grouping: items) { Calendar.current.startOfDay(for: $0.timestamp) }
-                    let days = grouped.keys.sorted(by: >)
-
                     List {
-                        ForEach(days, id: \.self) { day in
+                        ForEach(sections) { section in
                             Section {
-                                ForEach(grouped[day] ?? []) { entry in
+                                ForEach(section.items) { entry in
                                     journalRow(entry)
                                         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                                         .listRowSeparator(.hidden)
@@ -78,7 +90,7 @@ struct PracticeJournalSectionView: View {
                                 }
                             } header: {
                                 HStack {
-                                    Text(day.formatted(date: .abbreviated, time: .omitted))
+                                    Text(section.day.formatted(date: .abbreviated, time: .omitted))
                                         .font(.footnote.weight(.semibold))
                                         .foregroundStyle(Color.cyan.opacity(0.95))
                                         .textCase(nil)
@@ -119,15 +131,19 @@ struct PracticeJournalSectionView: View {
     }
 
     private var selectedJournalEntries: [JournalEntry] {
-        items
+        allItems
             .filter { selectedItemIDs.contains($0.id) }
             .compactMap(\.journalEntry)
     }
 
     private var selectedEditableJournalEntries: [JournalEntry] {
-        items
+        allItems
             .filter { selectedItemIDs.contains($0.id) && $0.isEditablePracticeEntry }
             .compactMap(\.journalEntry)
+    }
+
+    private var allItems: [PracticeJournalItem] {
+        sections.flatMap(\.items)
     }
 
     @ViewBuilder
@@ -135,13 +151,23 @@ struct PracticeJournalSectionView: View {
         let rowContent = journalRowContent(entry)
 
         if !isEditingEntries, entry.isEditablePracticeEntry, let journal = entry.journalEntry {
-            JournalSwipeRevealRow(
-                id: entry.id,
-                revealedID: $revealedSwipeItemID,
-                onEdit: { onEditJournalEntry(journal) },
-                onDelete: { onDeleteJournalEntries([journal]) }
-            ) {
+            JournalStaticEditableRow {
                 rowContent
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button {
+                    onDeleteJournalEntries([journal])
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .tint(.red)
+
+                Button {
+                    onEditJournalEntry(journal)
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+                .tint(AppTheme.statsMeanMedian)
             }
         } else if entry.isEditablePracticeEntry {
             JournalStaticEditableRow {
@@ -187,10 +213,6 @@ struct PracticeJournalSectionView: View {
         .padding(.vertical, 2)
         .contentShape(Rectangle())
         .onTapGesture {
-            if revealedSwipeItemID != nil {
-                revealedSwipeItemID = nil
-                return
-            }
             if isEditingEntries {
                 guard entry.isEditablePracticeEntry else { return }
                 if selectedItemIDs.contains(entry.id) { selectedItemIDs.remove(entry.id) }
@@ -201,137 +223,6 @@ struct PracticeJournalSectionView: View {
             onTapItem(entry.gameID, sourceID)
         }
         .matchedTransitionSource(id: "\(entry.gameID)-\(entry.id)", in: gameTransition)
-    }
-}
-
-struct JournalSwipeRevealRow<Content: View>: View {
-    let id: String
-    @Binding var revealedID: String?
-    let onEdit: () -> Void
-    let onDelete: () -> Void
-    let content: Content
-
-    @State private var offsetX: CGFloat = 0
-    @State private var dragStartX: CGFloat = 0
-    @State private var isDragging = false
-    @State private var draggingHorizontally = false
-    @State private var dragRejectedAsVertical = false
-
-    private let actionWidth: CGFloat = 116
-    private let minRowHeight: CGFloat = 34
-
-    init(
-        id: String,
-        revealedID: Binding<String?>,
-        onEdit: @escaping () -> Void,
-        onDelete: @escaping () -> Void,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.id = id
-        _revealedID = revealedID
-        self.onEdit = onEdit
-        self.onDelete = onDelete
-        self.content = content()
-    }
-
-    var body: some View {
-        ZStack(alignment: .trailing) {
-            HStack(spacing: 0) {
-                Button(action: {
-                    onEdit()
-                    revealedID = nil
-                    withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
-                }) {
-                    AppSwipeRevealActionButton(
-                        systemName: "pencil",
-                        foreground: AppTheme.statsMeanMedian
-                    )
-                }
-                .buttonStyle(.plain)
-
-                Button(action: {
-                    onDelete()
-                    revealedID = nil
-                    withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
-                }) {
-                    AppSwipeRevealActionButton(
-                        systemName: "trash",
-                        foreground: .red
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-            .frame(width: actionWidth)
-            .frame(maxHeight: .infinity)
-            .frame(minHeight: minRowHeight)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .opacity(max(0, min(1, Double((-offsetX / actionWidth)))))
-
-            content
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: minRowHeight)
-                .background(AppTheme.panel, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(AppTheme.border.opacity(0.6), lineWidth: 1)
-                )
-                .offset(x: offsetX)
-        }
-        .contentShape(Rectangle())
-        .highPriorityGesture(
-            DragGesture(minimumDistance: offsetX != 0 ? 4 : 22, coordinateSpace: .local)
-                .onChanged { value in
-                    if dragRejectedAsVertical {
-                        return
-                    }
-                    if !isDragging {
-                        let dx = value.translation.width
-                        let dy = value.translation.height
-                        if offsetX != 0, abs(dx) > abs(dy), abs(dx) > 2 {
-                            dragStartX = offsetX
-                            isDragging = true
-                            draggingHorizontally = true
-                        } else {
-                            // Let list scrolling win unless the user shows clear horizontal intent.
-                            if abs(dy) >= abs(dx) || abs(dx) < 14 {
-                                if abs(dy) > 10 {
-                                    dragRejectedAsVertical = true
-                                }
-                                return
-                            }
-                            dragStartX = offsetX
-                            isDragging = true
-                            draggingHorizontally = true
-                        }
-                    }
-                    let proposed = dragStartX + value.translation.width
-                    offsetX = min(0, max(-actionWidth, proposed))
-                }
-                .onEnded { _ in
-                    if dragRejectedAsVertical {
-                        dragRejectedAsVertical = false
-                        isDragging = false
-                        draggingHorizontally = false
-                        return
-                    }
-                    guard draggingHorizontally else { return }
-                    isDragging = false
-                    draggingHorizontally = false
-                    withAnimation(.easeOut(duration: 0.18)) {
-                        let shouldReveal = offsetX < (-actionWidth * 0.4)
-                        offsetX = shouldReveal ? -actionWidth : 0
-                        revealedID = shouldReveal ? id : nil
-                    }
-                }
-        )
-        .padding(.vertical, 1)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .onChange(of: revealedID) { _, newValue in
-            guard newValue != id, offsetX != 0 else { return }
-            withAnimation(.easeOut(duration: 0.18)) {
-                offsetX = 0
-            }
-        }
     }
 }
 

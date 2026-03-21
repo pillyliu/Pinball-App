@@ -3,7 +3,6 @@ import SwiftUI
 struct PracticeGameLogPanel: View {
     @ObservedObject var store: PracticeStore
     let gameID: String
-    @Binding var revealedLogEntryID: String?
     let onEditEntry: (JournalEntry) -> Void
     let onDeleteEntry: (JournalEntry) -> Void
 
@@ -13,27 +12,22 @@ struct PracticeGameLogPanel: View {
             if logs.isEmpty {
                 AppPanelEmptyCard(text: "No actions logged yet.")
             } else {
-                ScrollView(.vertical, showsIndicators: true) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(logs) { entry in
-                            gameLogRow(entry)
-                            if entry.id != logs.last?.id {
-                                Divider().overlay(.white.opacity(0.14))
-                            }
-                        }
+                List {
+                    ForEach(logs) { entry in
+                        gameLogRow(entry)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
                     }
                 }
-                .frame(maxHeight: 280)
-                .scrollBounceBehavior(.basedOnSize)
-                .simultaneousGesture(
-                    TapGesture().onEnded {
-                        if revealedLogEntryID != nil {
-                            revealedLogEntryID = nil
-                        }
-                    }
-                )
+                .frame(height: embeddedLogListHeight(for: logs.count))
+                .appEmbeddedListStyle()
             }
         }
+    }
+
+    private func embeddedLogListHeight(for count: Int) -> CGFloat {
+        min(280, max(72, CGFloat(count) * 72))
     }
 
     @ViewBuilder
@@ -50,19 +44,25 @@ struct PracticeGameLogPanel: View {
         .frame(maxWidth: .infinity, alignment: .leading)
 
         if store.canEditJournalEntry(entry) {
-            JournalSwipeRevealRow(
-                id: entry.id.uuidString,
-                revealedID: $revealedLogEntryID,
-                onEdit: {
-                    onEditEntry(entry)
-                },
-                onDelete: {
-                    onDeleteEntry(entry)
-                }
-            ) {
+            JournalStaticEditableRow {
                 content
                     .padding(.horizontal, 4)
                     .padding(.vertical, 2)
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button {
+                    onDeleteEntry(entry)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .tint(.red)
+
+                Button {
+                    onEditEntry(entry)
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+                .tint(AppTheme.statsMeanMedian)
             }
         } else {
             content

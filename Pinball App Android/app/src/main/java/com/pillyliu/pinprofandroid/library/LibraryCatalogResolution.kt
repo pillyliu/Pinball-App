@@ -14,10 +14,14 @@ internal fun resolveImportedGame(
         ?: machine.manufacturerId?.let { manufacturerById[it]?.name }
     val resolvedCatalogRulesheet = resolveRulesheetLinks(opdbRulesheets)
     val resolvedRulesheet = if (!curatedOverride?.rulesheetLocalPath.isNullOrBlank()) {
-        normalizedOptionalString(curatedOverride?.rulesheetLocalPath) to mergeRulesheetLinks(
-            curatedOverride?.rulesheetLinks.orEmpty(),
+        val primaryLinks = curatedOverride?.rulesheetLinks.orEmpty()
+            .filterNot(::shouldSuppressLocalMarkdownRulesheetLink)
+        val mergedLinks = mergeRulesheetLinks(
+            primaryLinks,
             resolvedCatalogRulesheet.links,
         )
+        normalizedOptionalString(curatedOverride?.rulesheetLocalPath)
+            ?.takeUnless { shouldSuppressLocalRulesheetPath(mergedLinks) } to mergedLinks
     } else if (!curatedOverride?.rulesheetLinks.isNullOrEmpty()) {
         null to mergeRulesheetLinks(curatedOverride!!.rulesheetLinks, resolvedCatalogRulesheet.links)
     } else {
@@ -266,10 +270,23 @@ internal fun resolveRulesheetLinks(rulesheetLinks: List<CatalogRulesheetLinkReco
         val url = normalizedOptionalString(link.url) ?: return@mapNotNull null
         ReferenceLink(label = catalogRulesheetLabel(link.provider, link.label, url), url = url)
     }
+    val localPath = normalizedOptionalString(sortedLinks.firstOrNull()?.localPath)
+        ?.takeUnless { shouldSuppressLocalRulesheetPath(links) }
     return ResolvedRulesheetLinks(
-        localPath = normalizedOptionalString(sortedLinks.firstOrNull()?.localPath),
+        localPath = localPath,
         links = links,
     )
+}
+
+internal fun shouldSuppressLocalRulesheetPath(links: List<ReferenceLink>): Boolean =
+    links.any { it.rulesheetSourceKind == RulesheetSourceKind.TF }
+
+internal fun shouldSuppressLocalMarkdownRulesheetLink(link: ReferenceLink): Boolean {
+    val destination = resolveLibraryUrl(link.destinationUrl)
+    return link.rulesheetSourceKind == RulesheetSourceKind.PROF ||
+        link.rulesheetSourceKind == RulesheetSourceKind.LOCAL ||
+        isPinProfRulesheetUrl(destination) ||
+        isLikelyPinProfMarkdownRulesheetUrl(destination)
 }
 
 internal fun mergeRulesheetLinks(primary: List<ReferenceLink>, secondary: List<ReferenceLink>): List<ReferenceLink> {
@@ -390,7 +407,7 @@ internal fun catalogRulesheetLabel(providerRawValue: String, fallback: String, u
         "papa" -> "Rulesheet (PAPA)"
         "prof" -> "Rulesheet (PinProf)"
         "opdb" -> "Rulesheet (OPDB)"
-        "local" -> "Rulesheet (Local)"
+        "local" -> "Rulesheet (PinProf)"
         else -> when (ReferenceLink(label = fallback, url = url).rulesheetSourceKind) {
             RulesheetSourceKind.PROF -> "Rulesheet (PinProf)"
             RulesheetSourceKind.BOB -> "Rulesheet (Bob)"
@@ -398,7 +415,7 @@ internal fun catalogRulesheetLabel(providerRawValue: String, fallback: String, u
             RulesheetSourceKind.PP -> "Rulesheet (PP)"
             RulesheetSourceKind.TF -> "Rulesheet (TF)"
             RulesheetSourceKind.OPDB -> "Rulesheet (OPDB)"
-            RulesheetSourceKind.LOCAL -> "Rulesheet (Local)"
+            RulesheetSourceKind.LOCAL -> "Rulesheet (PinProf)"
             RulesheetSourceKind.OTHER -> fallback
         }
     }
@@ -410,4 +427,10 @@ internal data class ResolvedRulesheetLinks(
 )
 
 internal fun normalizedOptionalString(value: String?): String? =
-    value?.trim()?.takeIf { it.isNotEmpty() }
+    value
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?.takeUnless {
+            val lowered = it.lowercase()
+            lowered == "null" || lowered == "none"
+        }

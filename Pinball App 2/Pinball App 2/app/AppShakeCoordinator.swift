@@ -41,7 +41,7 @@ enum AppShakeWarningLevel: Int {
         }
     }
 
-    var bundledArtPath: String? {
+    var pinballArtPath: String? {
         switch self {
         case .danger:
             return "/pinball/images/ui/shake-warnings/professor-danger_1024.webp"
@@ -434,6 +434,13 @@ struct AppShakeWarningOverlay: View {
 private struct AppShakeProfessorArt: View {
     let level: AppShakeWarningLevel
     let boxSide: CGFloat
+    @State private var image: UIImage?
+
+    init(level: AppShakeWarningLevel, boxSide: CGFloat) {
+        self.level = level
+        self.boxSide = boxSide
+        _image = State(initialValue: AppShakeProfessorArtProvider.localImage(for: level))
+    }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -443,7 +450,7 @@ private struct AppShakeProfessorArt: View {
                 .fill(AppTheme.atmosphereBottom.opacity(0.96))
 
             Group {
-                if let image = AppShakeProfessorArtProvider.image(for: level) {
+                if let image {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
@@ -461,6 +468,19 @@ private struct AppShakeProfessorArt: View {
                 .stroke(level.glow.opacity(0.72), lineWidth: 1.2)
         )
         .shadow(color: level.tint.opacity(0.24), radius: 18, y: 8)
+        .task(id: level.rawValue) {
+            if let local = AppShakeProfessorArtProvider.localImage(for: level) {
+                image = local
+                return
+            }
+
+            if let remote = await AppShakeProfessorArtProvider.remoteImage(for: level) {
+                image = remote
+                return
+            }
+
+            image = AppShakeProfessorArtProvider.bundledFallbackImage
+        }
     }
 }
 
@@ -468,18 +488,38 @@ private enum AppShakeProfessorArtProvider {
     private static let fallbackPath = libraryMissingArtworkPath
 
     static let bundledFallbackImage: UIImage? = {
-        guard let data = try? loadBundledPinballData(path: fallbackPath) else { return nil }
+        guard let data = try? loadCachedPinballData(path: fallbackPath) else { return nil }
         return UIImage(data: data)
     }()
 
-    static func image(for level: AppShakeWarningLevel) -> UIImage? {
-        if let bundledPath = level.bundledArtPath,
-           let data = try? loadBundledPinballData(path: bundledPath),
+    static func localImage(for level: AppShakeWarningLevel) -> UIImage? {
+        if let bundledPath = level.pinballArtPath,
+           let data = try? loadCachedPinballData(path: bundledPath),
            let image = UIImage(data: data) {
             return image
         }
 
-        return UIImage(named: level.artAssetName) ?? bundledFallbackImage
+        return UIImage(named: level.artAssetName)
+    }
+
+    static func remoteImage(for level: AppShakeWarningLevel) async -> UIImage? {
+        guard let path = level.pinballArtPath,
+              let url = libraryResolveURL(pathOrURL: path) else {
+            return nil
+        }
+
+        if let cachedImage = RemoteUIImageMemoryCache.shared.image(for: url) {
+            return cachedImage
+        }
+
+        do {
+            let data = try await PinballDataCache.shared.loadData(url: url)
+            guard let image = UIImage(data: data) else { return nil }
+            RemoteUIImageMemoryCache.shared.insert(image, for: url)
+            return image
+        } catch {
+            return nil
+        }
     }
 }
 

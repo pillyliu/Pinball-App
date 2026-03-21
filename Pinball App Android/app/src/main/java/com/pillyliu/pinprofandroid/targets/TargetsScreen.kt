@@ -8,11 +8,10 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -157,39 +156,46 @@ fun TargetsScreen(
 
             error?.let { AppInlineStatusMessage(text = it, isError = true) }
 
-            CardContainer(modifier = Modifier.fillMaxWidth()) {
-                BoxWithConstraints {
-                    val baseWidth = 660f
-                    val scale = (maxWidth.value / baseWidth).coerceIn(1f, 1.9f)
-                    val gameWidth = (210 * scale).toInt()
-                    val bankWidth = (44 * scale).toInt()
-                    val scoreWidth = (136 * scale).toInt()
-                    val visibleRows = filteredRows.size.coerceAtMost(if (isLandscape) 10 else 8)
-                    val tableBodyMaxHeight = (visibleRows * 35).dp
+            Column(
+                modifier = Modifier.weight(1f, fill = true),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
+                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                        val baseWidth = 660f
+                        val scale = (maxWidth.value / baseWidth).coerceIn(1f, 1.9f)
+                        val gameWidth = (210 * scale).toInt()
+                        val bankWidth = (44 * scale).toInt()
+                        val scoreWidth = (136 * scale).toInt()
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = if (isLandscape) Arrangement.Center else Arrangement.Start,
-                    ) {
-                        Column {
-                            Header(gameWidth, bankWidth, scoreWidth)
-                            Column(modifier = Modifier.heightIn(max = tableBodyMaxHeight).verticalScroll(rememberScrollState())) {
-                                filteredRows.forEachIndexed { index, row ->
-                                    TargetRowView(index, row, gameWidth, bankWidth, scoreWidth)
+                        Row(
+                            modifier = Modifier.fillMaxSize().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = if (isLandscape) Arrangement.Center else Arrangement.Start,
+                        ) {
+                            Column(modifier = Modifier.fillMaxHeight()) {
+                                Header(gameWidth, bankWidth, scoreWidth)
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f, fill = true)
+                                        .verticalScroll(rememberScrollState()),
+                                ) {
+                                    filteredRows.forEachIndexed { index, row ->
+                                        TargetRowView(index, row, gameWidth, bankWidth, scoreWidth)
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            Text(
-                "Benchmarks are based on historical LPL league results across all seasons where each game appeared. For each game, scores are derived from per-bank results using 2nd / 4th / 8th highest averages with sample-size adjustments. These values are then averaged across all bank appearances for that game.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 12.sp,
-                lineHeight = 16.sp,
-                modifier = Modifier.padding(top = 1.dp, start = 4.dp, end = 4.dp),
-            )
+                Text(
+                    "Benchmarks are based on historical LPL league results across all seasons where each game appeared. For each game, scores are derived from per-bank results using 2nd / 4th / 8th highest averages with sample-size adjustments. These values are then averaged across all bank appearances for that game.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    modifier = Modifier.padding(top = 1.dp, start = 4.dp, end = 4.dp),
+                )
+            }
         }
     }
 

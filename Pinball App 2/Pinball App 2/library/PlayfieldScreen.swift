@@ -26,6 +26,10 @@ final class RemoteUIImageMemoryCache {
         cache.setObject(image, forKey: url.absoluteString as NSString, cost: imageCost(image))
     }
 
+    func removeAll() {
+        cache.removeAllObjects()
+    }
+
     private func imageCost(_ image: UIImage) -> Int {
         if let cgImage = image.cgImage {
             return cgImage.bytesPerRow * cgImage.height

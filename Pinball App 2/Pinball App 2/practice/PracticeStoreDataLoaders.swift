@@ -5,10 +5,20 @@ extension PracticeStore {
 
     func loadGames() async {
         isLoadingGames = true
-        defer { isLoadingGames = false }
+        isLoadingSearchCatalog = true
+        defer {
+            isLoadingGames = false
+            isLoadingSearchCatalog = false
+        }
 
         do {
-            let extraction = try await loadFullLibraryExtraction()
+            async let extractionTask = loadFullLibraryExtraction()
+            async let bankTemplatesTask = loadPracticeAvenueBankTemplateGames()
+            async let searchCatalogTask = loadPracticeCatalogGames()
+
+            let extraction = try await extractionTask
+            let bankTemplates = try await bankTemplatesTask
+            let loadedSearchCatalogGames = (try? await searchCatalogTask) ?? searchCatalogGames
             let payload = extraction.payload
             let savedSourceID = UserDefaults.standard.string(forKey: Self.preferredLibrarySourceDefaultsKey)
             let preferredCandidates = [extraction.state.selectedSourceID, savedSourceID]
@@ -25,6 +35,8 @@ extension PracticeStore {
                 state.selectedSourceID = selectedSource.id
                 PinballLibrarySourceStateStore.save(state)
             }
+            bankTemplateGames = bankTemplates
+            searchCatalogGames = loadedSearchCatalogGames
             if let selectedSource {
                 games = payload.games.filter { $0.sourceId == selectedSource.id }
             } else {
@@ -34,6 +46,7 @@ extension PracticeStore {
             games = []
             allLibraryGames = []
             librarySources = []
+            bankTemplateGames = []
             defaultPracticeSourceID = nil
             lastErrorMessage = "Failed to load library for practice upgrade: \(error.localizedDescription)"
         }
@@ -136,5 +149,118 @@ extension PracticeStore {
             state.selectedSourceID = nil
             PinballLibrarySourceStateStore.save(state)
         }
+    }
+}
+
+private struct PracticeVenueLayoutAssetsRoot: Decodable {
+    let records: [PracticeVenueLayoutAssetRecord]
+}
+
+private struct PracticeVenueLayoutAssetRecord: Decodable {
+    let sourceId: String
+    let practiceIdentity: String?
+    let opdbId: String
+    let area: String?
+    let areaOrder: Int?
+    let groupNumber: Int?
+    let position: Int?
+    let bank: Int?
+}
+
+private func loadPracticeAvenueBankTemplateGames() async throws -> [PinballGame] {
+    guard let opdbExportData = try await loadHostedOrCachedPinballJSONData(
+        path: hostedOPDBExportPath,
+        allowMissing: true
+    ),
+    let venueLayoutData = try await loadHostedOrCachedPinballJSONData(
+        path: hostedVenueLayoutAssetsPath,
+        allowMissing: true
+    ),
+    !opdbExportData.isEmpty,
+    !venueLayoutData.isEmpty else {
+        return []
+    }
+
+    let machines = try decodeOPDBExportCatalogMachines(data: opdbExportData)
+    let layoutRoot = try JSONDecoder().decode(PracticeVenueLayoutAssetsRoot.self, from: venueLayoutData)
+
+    let avenueRecords = layoutRoot.records
+        .filter { canonicalLibrarySourceID($0.sourceId) == pmAvenueLibrarySourceID }
+        .filter { ($0.bank ?? 0) > 0 }
+
+    let machinesByOPDBID = Dictionary(uniqueKeysWithValues: machines.compactMap { machine -> (String, CatalogMachineRecord)? in
+        guard let opdbID = machine.opdbMachineID?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !opdbID.isEmpty else {
+            return nil
+        }
+        return (opdbID, machine)
+    })
+    let machinesByPracticeIdentity = Dictionary(grouping: machines, by: \.practiceIdentity)
+
+    var seen = Set<String>()
+    let sortedRecords = avenueRecords.sorted { lhs, rhs in
+        let lhsBank = lhs.bank ?? Int.max
+        let rhsBank = rhs.bank ?? Int.max
+        if lhsBank != rhsBank { return lhsBank < rhsBank }
+        let lhsGroup = lhs.groupNumber ?? Int.max
+        let rhsGroup = rhs.groupNumber ?? Int.max
+        if lhsGroup != rhsGroup { return lhsGroup < rhsGroup }
+        let lhsPosition = lhs.position ?? Int.max
+        let rhsPosition = rhs.position ?? Int.max
+        if lhsPosition != rhsPosition { return lhsPosition < rhsPosition }
+        return lhs.opdbId.localizedCaseInsensitiveCompare(rhs.opdbId) == .orderedAscending
+    }
+
+    return sortedRecords.compactMap { record in
+        guard seen.insert(record.opdbId).inserted else { return nil }
+        let machine =
+            machinesByOPDBID[record.opdbId] ??
+            record.practiceIdentity.flatMap { machinesByPracticeIdentity[$0]?.first }
+        guard let machine else { return nil }
+
+        let opdbPlayfieldImageURL = catalogNormalizedOptionalString(
+            machine.playfieldImage?.largeURL ?? machine.playfieldImage?.mediumURL
+        )
+        let resolved = ResolvedCatalogRecord(
+            sourceID: pmAvenueLibrarySourceID,
+            sourceName: "The Avenue Cafe",
+            sourceType: .venue,
+            area: catalogNormalizedOptionalString(record.area),
+            areaOrder: record.areaOrder,
+            groupNumber: record.groupNumber,
+            position: record.position,
+            bank: record.bank,
+            name: machine.name,
+            variant: catalogNormalizedOptionalString(machine.variant),
+            manufacturer: catalogNormalizedOptionalString(machine.manufacturerName),
+            year: machine.year,
+            slug: catalogNormalizedOptionalString(machine.slug) ?? machine.practiceIdentity,
+            opdbID: catalogNormalizedOptionalString(machine.opdbMachineID) ?? record.opdbId,
+            opdbMachineID: catalogNormalizedOptionalString(machine.opdbMachineID) ?? record.opdbId,
+            practiceIdentity: record.practiceIdentity ?? machine.practiceIdentity,
+            opdbName: machine.opdbName,
+            opdbCommonName: machine.opdbCommonName,
+            opdbShortname: machine.opdbShortname,
+            opdbDescription: machine.opdbDescription,
+            opdbType: machine.opdbType,
+            opdbDisplay: machine.opdbDisplay,
+            opdbPlayerCount: machine.opdbPlayerCount,
+            opdbManufactureDate: machine.opdbManufactureDate,
+            opdbIpdbID: machine.opdbIpdbID,
+            opdbGroupShortname: machine.opdbGroupShortname,
+            opdbGroupDescription: machine.opdbGroupDescription,
+            primaryImageURL: catalogNormalizedOptionalString(machine.primaryImage?.mediumURL),
+            primaryImageLargeURL: catalogNormalizedOptionalString(machine.primaryImage?.largeURL),
+            playfieldImageURL: opdbPlayfieldImageURL,
+            alternatePlayfieldImageURL: nil,
+            playfieldLocalPath: nil,
+            playfieldSourceLabel: machine.playfieldImage != nil ? "Playfield (OPDB)" : nil,
+            gameinfoLocalPath: nil,
+            rulesheetLocalPath: nil,
+            rulesheetURL: nil,
+            rulesheetLinks: [],
+            videos: []
+        )
+        return PinballGame(record: resolved)
     }
 }

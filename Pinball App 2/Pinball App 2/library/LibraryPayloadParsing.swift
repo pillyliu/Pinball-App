@@ -30,10 +30,6 @@ private struct PinballLibrarySourcePayload: Decodable {
     }
 }
 
-func decodeLibraryPayload(data: Data) throws -> PinballLibraryPayload {
-    try decodeLibraryPayloadWithState(data: data).payload
-}
-
 nonisolated func libraryInferSources(from games: [PinballGame]) -> [PinballLibrarySource] {
     var seen: [PinballLibrarySource] = []
     var ids = Set<String>()
@@ -41,11 +37,6 @@ nonisolated func libraryInferSources(from games: [PinballGame]) -> [PinballLibra
         if ids.contains(game.sourceId) { continue }
         ids.insert(game.sourceId)
         seen.append(PinballLibrarySource(id: game.sourceId, name: game.sourceName, type: game.sourceType))
-    }
-    if seen.isEmpty {
-        if let avenueSource = builtinVenueSources().first(where: { $0.id == pmAvenueLibrarySourceID }) {
-            seen.append(avenueSource)
-        }
     }
     return seen
 }
@@ -70,12 +61,12 @@ nonisolated func libraryCanonicalSourceID(_ raw: String?) -> String? {
 
 nonisolated func librarySlugifySourceID(_ value: String) -> String {
     let lower = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    if lower.isEmpty { return pmAvenueLibrarySourceID }
+    if lower.isEmpty { return "source" }
     let mapped = lower
         .replacingOccurrences(of: "&", with: "and")
         .replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
         .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-    if mapped.isEmpty { return pmAvenueLibrarySourceID }
+    if mapped.isEmpty { return "source" }
     return canonicalLibrarySourceID(mapped) ?? mapped
 }
 

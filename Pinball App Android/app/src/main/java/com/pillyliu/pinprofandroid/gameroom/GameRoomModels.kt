@@ -140,6 +140,7 @@ internal data class GameRoomArea(
 internal data class OwnedMachine(
     val id: String = UUID.randomUUID().toString(),
     val catalogGameID: String,
+    val opdbID: String? = null,
     val canonicalPracticeIdentity: String,
     val displayTitle: String,
     val displayVariant: String? = null,
@@ -273,9 +274,8 @@ internal data class GameRoomPersistedState(
     val importRecords: List<MachineImportRecord> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_SCHEMA_VERSION: Int = 1
+        const val CURRENT_SCHEMA_VERSION: Int = 2
         const val DEFAULT_VENUE_NAME: String = "GameRoom"
         val empty = GameRoomPersistedState()
     }
 }
-

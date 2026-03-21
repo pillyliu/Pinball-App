@@ -1,8 +1,6 @@
 import Foundation
 
-private let defaultImportedSourcesResource = "default_pm_venue_sources_v1"
-
-struct PinballLibrarySourceState: Codable {
+struct PinballLibrarySourceState: Codable, Equatable {
     var enabledSourceIDs: [String]
     var pinnedSourceIDs: [String]
     var selectedSourceID: String?
@@ -27,12 +25,16 @@ enum PinballLibrarySourceStateStore {
             return .empty
         }
         if let state = try? JSONDecoder().decode(PinballLibrarySourceState.self, from: data) {
-            return normalized(state)
+            let migrated = normalized(state)
+            if migrated != state {
+                save(migrated)
+            }
+            return migrated
         }
         guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
             return .empty
         }
-        return normalized(
+        let migrated = normalized(
             PinballLibrarySourceState(
                 enabledSourceIDs: (root["enabledSourceIDs"] as? [Any])?.compactMap { canonicalLibrarySourceID(String(describing: $0)) } ?? [],
                 pinnedSourceIDs: (root["pinnedSourceIDs"] as? [Any])?.compactMap { canonicalLibrarySourceID(String(describing: $0)) } ?? [],
@@ -41,6 +43,8 @@ enum PinballLibrarySourceStateStore {
                 selectedBankBySource: normalizeIntMap(root["selectedBankBySource"] as? [String: Any])
             )
         )
+        save(migrated)
+        return migrated
     }
 
     static func save(_ state: PinballLibrarySourceState) {
@@ -57,14 +61,6 @@ enum PinballLibrarySourceStateStore {
             state.enabledSourceIDs.append(sourceID)
         }
 
-        if state.enabledSourceIDs.isEmpty {
-            state.enabledSourceIDs = payloadSources.map(\.id)
-        }
-
-        if state.pinnedSourceIDs.isEmpty {
-            state.pinnedSourceIDs = Array(payloadSources.prefix(maxPinnedSources).map(\.id))
-        }
-
         if let selectedSourceID = canonicalLibrarySourceID(state.selectedSourceID), validIDs.contains(selectedSourceID) {
             state.selectedSourceID = selectedSourceID
         } else {
@@ -72,16 +68,16 @@ enum PinballLibrarySourceStateStore {
         }
 
         state.selectedSortBySource = Dictionary(
-            uniqueKeysWithValues: state.selectedSortBySource.compactMap { key, value in
+            uniqueKeysWithValues: dedupedPairs(state.selectedSortBySource.compactMap { key, value in
                 guard let canonicalKey = canonicalLibrarySourceID(key), validIDs.contains(canonicalKey) else { return nil }
                 return (canonicalKey, value)
-            }
+            })
         )
         state.selectedBankBySource = Dictionary(
-            uniqueKeysWithValues: state.selectedBankBySource.compactMap { key, value in
+            uniqueKeysWithValues: dedupedPairs(state.selectedBankBySource.compactMap { key, value in
                 guard let canonicalKey = canonicalLibrarySourceID(key), validIDs.contains(canonicalKey) else { return nil }
                 return (canonicalKey, value)
-            }
+            })
         )
         save(state)
         return state
@@ -149,12 +145,16 @@ enum PinballLibrarySourceStateStore {
             enabledSourceIDs: Array(NSOrderedSet(array: state.enabledSourceIDs.compactMap(canonicalLibrarySourceID))) as? [String] ?? [],
             pinnedSourceIDs: Array(NSOrderedSet(array: state.pinnedSourceIDs.compactMap(canonicalLibrarySourceID))) as? [String] ?? [],
             selectedSourceID: canonicalLibrarySourceID(state.selectedSourceID),
-            selectedSortBySource: Dictionary(uniqueKeysWithValues: state.selectedSortBySource.compactMap { key, value in
-                canonicalLibrarySourceID(key).map { ($0, value) }
-            }),
-            selectedBankBySource: Dictionary(uniqueKeysWithValues: state.selectedBankBySource.compactMap { key, value in
-                canonicalLibrarySourceID(key).map { ($0, value) }
-            })
+            selectedSortBySource: dictionaryPreservingLastValue(
+                state.selectedSortBySource.compactMap { key, value in
+                    canonicalLibrarySourceID(key).map { ($0, value) }
+                }
+            ),
+            selectedBankBySource: dictionaryPreservingLastValue(
+                state.selectedBankBySource.compactMap { key, value in
+                    canonicalLibrarySourceID(key).map { ($0, value) }
+                }
+            )
         )
     }
 }
@@ -194,7 +194,11 @@ enum PinballImportedSourcesStore {
             return bundledDefaults
         }
         if let records = try? JSONDecoder().decode([PinballImportedSourceRecord].self, from: data) {
-            return mergedDefaults(bundledDefaults, with: records)
+            let migrated = normalizedImportedRecords(records)
+            if migrated != records {
+                save(migrated)
+            }
+            return mergedDefaults(bundledDefaults, with: migrated)
         }
         guard let array = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]] else {
             return bundledDefaults
@@ -228,29 +232,22 @@ enum PinballImportedSourcesStore {
                 distanceMiles: item["distanceMiles"] as? Int
             )
         }
-        return mergedDefaults(bundledDefaults, with: records)
+        let migrated = normalizedImportedRecords(records)
+        save(migrated)
+        return mergedDefaults(bundledDefaults, with: migrated)
     }
 
     static func save(_ records: [PinballImportedSourceRecord]) {
-        guard let data = try? JSONEncoder().encode(records) else { return }
+        let normalized = normalizedImportedRecords(records)
+        guard let data = try? JSONEncoder().encode(normalized) else { return }
         UserDefaults.standard.set(data, forKey: defaultsKey)
     }
 
     static func upsert(_ record: PinballImportedSourceRecord) {
         var records = load()
-        let canonicalRecord = PinballImportedSourceRecord(
-            id: canonicalLibrarySourceID(record.id) ?? record.id,
-            name: record.name,
-            type: record.type,
-            provider: record.provider,
-            providerSourceID: record.providerSourceID,
-            machineIDs: record.machineIDs,
-            lastSyncedAt: record.lastSyncedAt,
-            searchQuery: record.searchQuery,
-            distanceMiles: record.distanceMiles
-        )
+        guard let canonicalRecord = normalizedImportedRecord(record) else { return }
         if let index = records.firstIndex(where: { $0.id == canonicalRecord.id }) {
-            records[index] = canonicalRecord
+            records[index] = mergedImportedSourceRecord(records[index], canonicalRecord)
         } else {
             records.append(canonicalRecord)
         }
@@ -285,37 +282,125 @@ enum PinballImportedSourcesStore {
     }
 
     private static func loadBundledDefaults() -> [PinballImportedSourceRecord] {
-        guard
-            let url = Bundle.main.url(
-                forResource: defaultImportedSourcesResource,
-                withExtension: "json",
-                subdirectory: "pinball/data"
-            ),
-            let data = try? Data(contentsOf: url)
-        else {
-            return []
-        }
-        struct Root: Decodable {
-            let records: [PinballImportedSourceRecord]
-        }
-        return (try? JSONDecoder().decode(Root.self, from: data).records) ?? []
+        []
     }
 }
 
 private func normalizeStringMap(_ raw: [String: Any]?) -> [String: String] {
-    Dictionary(uniqueKeysWithValues: (raw ?? [:]).compactMap { key, value in
+    dictionaryPreservingLastValue((raw ?? [:]).compactMap { key, value in
         guard let canonicalKey = canonicalLibrarySourceID(key), let stringValue = value as? String else { return nil }
         return (canonicalKey, stringValue)
     })
 }
 
 private func normalizeIntMap(_ raw: [String: Any]?) -> [String: Int] {
-    Dictionary(uniqueKeysWithValues: (raw ?? [:]).compactMap { key, value in
+    dictionaryPreservingLastValue((raw ?? [:]).compactMap { key, value in
         guard let canonicalKey = canonicalLibrarySourceID(key) else { return nil }
         if let intValue = value as? Int { return (canonicalKey, intValue) }
         if let numberValue = value as? NSNumber { return (canonicalKey, numberValue.intValue) }
         return nil
     })
+}
+
+private func dedupedPairs<Key: Hashable, Value>(_ pairs: [(Key, Value)]) -> [(Key, Value)] {
+    Array(dictionaryPreservingLastValue(pairs))
+}
+
+private func dictionaryPreservingLastValue<Key: Hashable, Value>(_ pairs: [(Key, Value)]) -> [Key: Value] {
+    var out: [Key: Value] = [:]
+    for (key, value) in pairs {
+        out[key] = value
+    }
+    return out
+}
+
+private func normalizedImportedVenueProviderSourceID(
+    rawProviderSourceID: String,
+    canonicalID: String
+) -> String {
+    if canonicalID.hasPrefix("venue--pm-") {
+        return canonicalID.replacingOccurrences(of: "venue--pm-", with: "")
+    }
+    return rawProviderSourceID
+}
+
+private func normalizedImportedRecord(_ record: PinballImportedSourceRecord) -> PinballImportedSourceRecord? {
+    let canonicalID = canonicalLibrarySourceID(record.id) ?? record.id.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !canonicalID.isEmpty else { return nil }
+
+    let trimmedName = record.name.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedName.isEmpty else { return nil }
+
+    let inferredProvider = inferredImportedSourceProvider(type: record.type, id: canonicalID)
+    let provider = record.provider == .opdb && canonicalID.hasPrefix("venue--pm-")
+        ? .pinballMap
+        : record.provider
+
+    let rawProviderSourceID = record.providerSourceID.trimmingCharacters(in: .whitespacesAndNewlines)
+    let providerSourceID = normalizedImportedVenueProviderSourceID(
+        rawProviderSourceID: rawProviderSourceID,
+        canonicalID: canonicalID
+    )
+    let normalizedProvider = provider == .opdb && canonicalID.hasPrefix("venue--pm-") ? inferredProvider : provider
+    let machineIDs = Array(NSOrderedSet(array: record.machineIDs.compactMap(catalogNormalizedOptionalString))) as? [String] ?? []
+
+    return PinballImportedSourceRecord(
+        id: canonicalID,
+        name: trimmedName,
+        type: record.type,
+        provider: normalizedProvider,
+        providerSourceID: providerSourceID,
+        machineIDs: machineIDs,
+        lastSyncedAt: record.lastSyncedAt,
+        searchQuery: catalogNormalizedOptionalString(record.searchQuery),
+        distanceMiles: record.distanceMiles
+    )
+}
+
+private func mergedImportedSourceRecord(
+    _ lhs: PinballImportedSourceRecord,
+    _ rhs: PinballImportedSourceRecord
+) -> PinballImportedSourceRecord {
+    let machineIDs = Array(NSOrderedSet(array: lhs.machineIDs + rhs.machineIDs)) as? [String] ?? []
+    let latestSyncedAt: Date? = {
+        switch (lhs.lastSyncedAt, rhs.lastSyncedAt) {
+        case let (left?, right?):
+            return max(left, right)
+        case let (left?, nil):
+            return left
+        case let (nil, right?):
+            return right
+        case (nil, nil):
+            return nil
+        }
+    }()
+
+    return PinballImportedSourceRecord(
+        id: rhs.id,
+        name: rhs.name.isEmpty ? lhs.name : rhs.name,
+        type: rhs.type,
+        provider: rhs.provider,
+        providerSourceID: rhs.providerSourceID.isEmpty ? lhs.providerSourceID : rhs.providerSourceID,
+        machineIDs: machineIDs,
+        lastSyncedAt: latestSyncedAt,
+        searchQuery: rhs.searchQuery ?? lhs.searchQuery,
+        distanceMiles: rhs.distanceMiles ?? lhs.distanceMiles
+    )
+}
+
+private func normalizedImportedRecords(_ records: [PinballImportedSourceRecord]) -> [PinballImportedSourceRecord] {
+    var byID: [String: PinballImportedSourceRecord] = [:]
+    for record in records {
+        guard let normalized = normalizedImportedRecord(record) else { continue }
+        if let existing = byID[normalized.id] {
+            byID[normalized.id] = mergedImportedSourceRecord(existing, normalized)
+        } else {
+            byID[normalized.id] = normalized
+        }
+    }
+    return byID.values.sorted {
+        ($0.type.rawValue, $0.name.lowercased(), $0.id) < ($1.type.rawValue, $1.name.lowercased(), $1.id)
+    }
 }
 
 private func inferredImportedSourceProvider(type: PinballLibrarySourceType, id: String) -> PinballImportedSourceProvider {
@@ -339,6 +424,20 @@ struct PinballCatalogManufacturerOption: Identifiable, Hashable {
     let featuredRank: Int?
     let sortBucket: Int
 }
+
+private let curatedModernManufacturerNames = [
+    "stern",
+    "stern pinball",
+    "jersey jack pinball",
+    "chicago gaming",
+    "american pinball",
+    "spooky pinball",
+    "multimorphic",
+    "barrels of fun",
+    "dutch pinball",
+    "pinball brothers",
+    "turner pinball",
+]
 
 struct PinballLibraryVenueSearchResult: Identifiable, Hashable {
     let id: String
@@ -373,6 +472,59 @@ private struct NormalizedLibraryRoot: Decodable {
         case overrides
         case rulesheetLinks = "rulesheet_links"
         case videoLinks = "video_links"
+    }
+}
+
+private struct RawOPDBExportMachineRecord: Decodable {
+    struct ManufacturerRecord: Decodable {
+        let manufacturerID: Int?
+        let name: String?
+
+        enum CodingKeys: String, CodingKey {
+            case manufacturerID = "manufacturer_id"
+            case name
+        }
+    }
+
+    struct ImageRecord: Decodable {
+        struct URLs: Decodable {
+            let medium: String?
+            let large: String?
+        }
+
+        let primary: Bool?
+        let type: String?
+        let urls: URLs?
+    }
+
+    let opdbID: String
+    let isMachine: Bool?
+    let name: String
+    let commonName: String?
+    let shortname: String?
+    let manufactureDate: String?
+    let manufacturer: ManufacturerRecord?
+    let type: String?
+    let display: String?
+    let playerCount: Int?
+    let description: String?
+    let ipdbID: Int?
+    let images: [ImageRecord]?
+
+    enum CodingKeys: String, CodingKey {
+        case opdbID = "opdb_id"
+        case isMachine = "is_machine"
+        case name
+        case commonName = "common_name"
+        case shortname
+        case manufactureDate = "manufacture_date"
+        case manufacturer
+        case type
+        case display
+        case playerCount = "player_count"
+        case description
+        case ipdbID = "ipdb_id"
+        case images
     }
 }
 
@@ -449,6 +601,129 @@ struct CatalogMachineRecord: Decodable {
         case opdbGroupDescription = "opdb_group_description"
         case primaryImage = "primary_image"
         case playfieldImage = "playfield_image"
+    }
+}
+
+nonisolated func opdbGroupID(from opdbID: String?) -> String? {
+    guard let trimmed = catalogNormalizedOptionalString(opdbID),
+          trimmed.hasPrefix("G") else {
+        return nil
+    }
+    guard let dashIndex = trimmed.firstIndex(of: "-") else {
+        return trimmed
+    }
+    let group = String(trimmed[..<dashIndex])
+    return group.isEmpty ? nil : group
+}
+
+private func rawOPDBYear(from manufactureDate: String?) -> Int? {
+    guard let prefix = manufactureDate?.prefix(4), prefix.count == 4 else { return nil }
+    return Int(prefix)
+}
+
+private func rawOPDBImageSet(
+    from images: [RawOPDBExportMachineRecord.ImageRecord]?,
+    preferredType: String
+) -> CatalogMachineRecord.RemoteImageSet? {
+    let normalizedPreferredType = preferredType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    let typedMatches = (images ?? []).filter { image in
+        image.type?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedPreferredType
+    }
+    let selected = typedMatches.first(where: { $0.primary == true && ($0.urls?.medium != nil || $0.urls?.large != nil) })
+        ?? typedMatches.first(where: { $0.urls?.medium != nil || $0.urls?.large != nil })
+    guard let selected else { return nil }
+    return CatalogMachineRecord.RemoteImageSet(
+        mediumURL: catalogNormalizedOptionalString(selected.urls?.medium),
+        largeURL: catalogNormalizedOptionalString(selected.urls?.large)
+    )
+}
+
+private func rawOPDBFallbackSlug(title: String, shortname: String?, fallback: String) -> String {
+    if let shortname = catalogNormalizedOptionalString(shortname) {
+        let normalized = shortname
+            .lowercased()
+            .replacingOccurrences(of: #"[^a-z0-9]+"#, with: "-", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        if !normalized.isEmpty {
+            return normalized
+        }
+    }
+
+    let titleSlug = title
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .lowercased()
+        .replacingOccurrences(of: "&", with: "and")
+        .replacingOccurrences(of: #"[^a-z0-9]+"#, with: "-", options: .regularExpression)
+        .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+    return titleSlug.isEmpty ? fallback : titleSlug
+}
+
+private func rawOPDBCatalogMachineRecord(from machine: RawOPDBExportMachineRecord) -> CatalogMachineRecord? {
+    if machine.isMachine == false {
+        return nil
+    }
+
+    let practiceIdentity = opdbGroupID(from: machine.opdbID) ?? machine.opdbID
+    return CatalogMachineRecord(
+        practiceIdentity: practiceIdentity,
+        opdbMachineID: catalogNormalizedOptionalString(machine.opdbID),
+        opdbGroupID: catalogNormalizedOptionalString(practiceIdentity),
+        slug: rawOPDBFallbackSlug(title: machine.name, shortname: machine.shortname, fallback: practiceIdentity),
+        name: machine.name,
+        variant: nil,
+        manufacturerID: machine.manufacturer?.manufacturerID.map { "manufacturer-\($0)" },
+        manufacturerName: catalogNormalizedOptionalString(machine.manufacturer?.name),
+        year: rawOPDBYear(from: machine.manufactureDate),
+        opdbName: catalogNormalizedOptionalString(machine.name),
+        opdbCommonName: catalogNormalizedOptionalString(machine.commonName),
+        opdbShortname: catalogNormalizedOptionalString(machine.shortname),
+        opdbDescription: catalogNormalizedOptionalString(machine.description),
+        opdbType: catalogNormalizedOptionalString(machine.type),
+        opdbDisplay: catalogNormalizedOptionalString(machine.display),
+        opdbPlayerCount: machine.playerCount,
+        opdbManufactureDate: catalogNormalizedOptionalString(machine.manufactureDate),
+        opdbIpdbID: machine.ipdbID,
+        opdbGroupShortname: nil,
+        opdbGroupDescription: nil,
+        primaryImage: rawOPDBImageSet(from: machine.images, preferredType: "backglass"),
+        playfieldImage: rawOPDBImageSet(from: machine.images, preferredType: "playfield")
+    )
+}
+
+func decodeOPDBExportCatalogMachines(data: Data) throws -> [CatalogMachineRecord] {
+    let machines = try JSONDecoder().decode([RawOPDBExportMachineRecord].self, from: data)
+    return catalogResolvedMachines(machines.compactMap(rawOPDBCatalogMachineRecord))
+}
+
+func decodeCatalogManufacturerOptionsFromOPDBExport(data: Data) throws -> [PinballCatalogManufacturerOption] {
+    let machines = try decodeOPDBExportCatalogMachines(data: data)
+    let modernLookup = Dictionary(uniqueKeysWithValues: curatedModernManufacturerNames.enumerated().map { ($1, $0 + 1) })
+    let groupedMachines = Dictionary(grouping: machines.compactMap { machine -> (manufacturerID: String, manufacturerName: String, machine: CatalogMachineRecord)? in
+        guard let manufacturerID = catalogNormalizedOptionalString(machine.manufacturerID),
+              let manufacturerName = catalogNormalizedOptionalString(machine.manufacturerName) else {
+            return nil
+        }
+        return (manufacturerID, manufacturerName, machine)
+    }, by: \.manufacturerID)
+
+    return groupedMachines.compactMap { manufacturerID, entries -> PinballCatalogManufacturerOption? in
+        guard let manufacturerName = entries.first?.manufacturerName else { return nil }
+        let gameCount = Set(entries.map { $0.machine.opdbGroupID ?? $0.machine.practiceIdentity }).count
+        let normalizedName = manufacturerName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let modernRank = modernLookup[normalizedName]
+        let isModern = modernRank != nil
+        return PinballCatalogManufacturerOption(
+            id: manufacturerID,
+            name: manufacturerName,
+            gameCount: gameCount,
+            isModern: isModern,
+            featuredRank: modernRank,
+            sortBucket: isModern ? 0 : 1
+        )
+    }
+    .sorted {
+        ($0.sortBucket, $0.featuredRank ?? Int.max, $0.name.lowercased())
+            < ($1.sortBucket, $1.featuredRank ?? Int.max, $1.name.lowercased())
     }
 }
 
@@ -560,6 +835,60 @@ struct CatalogVideoLinkRecord: Decodable {
         case url
         case priority
     }
+}
+
+private struct CAFRecordsRoot<Record: Decodable>: Decodable {
+    let records: [Record]
+}
+
+private struct CAFRulesheetAssetRecord: Decodable {
+    let opdbId: String
+    let provider: String
+    let label: String
+    let url: String?
+    let localPath: String?
+    let priority: Int?
+    let isHidden: Bool
+    let isActive: Bool
+}
+
+private struct CAFVideoAssetRecord: Decodable {
+    let opdbId: String
+    let provider: String
+    let kind: String
+    let label: String
+    let url: String
+    let priority: Int?
+    let isHidden: Bool
+    let isActive: Bool
+}
+
+private struct CAFPlayfieldAssetRecord: Decodable {
+    let practiceIdentity: String
+    let sourceOpdbMachineId: String?
+    let coveredAliasIds: [String]?
+    let playfieldLocalPath: String?
+    let playfieldSourceUrl: String?
+}
+
+private struct CAFGameinfoAssetRecord: Decodable {
+    let opdbId: String
+    let localPath: String?
+    let isHidden: Bool
+    let isActive: Bool
+}
+
+private struct CAFVenueLayoutAssetRecord: Decodable {
+    let sourceId: String
+    let sourceName: String?
+    let sourceType: String?
+    let practiceIdentity: String?
+    let opdbId: String
+    let area: String?
+    let areaOrder: Int?
+    let groupNumber: Int?
+    let position: Int?
+    let bank: Int?
 }
 
 nonisolated struct ResolvedCatalogRecord {
@@ -797,9 +1126,11 @@ struct ResolvedImportedVenueMetadata {
 private func catalogCuratedOverride(
     practiceIdentity: String?,
     opdbGroupID: String?,
+    opdbID: String? = nil,
     overridesByKey: [String: LegacyCuratedOverride]
 ) -> LegacyCuratedOverride? {
     let candidateKeys = [
+        catalogNormalizedOptionalString(opdbID),
         catalogNormalizedOptionalString(practiceIdentity),
         catalogNormalizedOptionalString(opdbGroupID)
     ].compactMap { $0 }
@@ -835,14 +1166,35 @@ private func parseVenueMetadataOverlays(data: Data?) -> VenueMetadataOverlayInde
         return emptyVenueMetadataOverlayIndex()
     }
 
-    let areaOrderByKey = Dictionary(uniqueKeysWithValues: root.layoutAreas.map {
-        (venueOverlayAreaKey(sourceID: $0.sourceID, area: $0.area), $0.areaOrder)
+    let areaOrderByKey = dictionaryPreservingLastValue(root.layoutAreas.compactMap { record -> (String, Int)? in
+        guard let sourceID = canonicalLibrarySourceID(record.sourceID) ?? catalogNormalizedOptionalString(record.sourceID) else {
+            return nil
+        }
+        return (venueOverlayAreaKey(sourceID: sourceID, area: record.area), record.areaOrder)
     })
-    let machineLayoutByKey = Dictionary(uniqueKeysWithValues: root.machineLayout.map {
-        (venueOverlayMachineKey(sourceID: $0.sourceID, opdbID: $0.opdbID), $0)
+    let machineLayoutByKey = dictionaryPreservingLastValue(root.machineLayout.compactMap { record -> (String, VenueMachineLayoutOverlayRecord)? in
+        guard let sourceID = canonicalLibrarySourceID(record.sourceID) ?? catalogNormalizedOptionalString(record.sourceID) else {
+            return nil
+        }
+        let normalized = VenueMachineLayoutOverlayRecord(
+            sourceID: sourceID,
+            opdbID: record.opdbID,
+            area: record.area,
+            groupNumber: record.groupNumber,
+            position: record.position
+        )
+        return (venueOverlayMachineKey(sourceID: sourceID, opdbID: record.opdbID), normalized)
     })
-    let machineBankByKey = Dictionary(uniqueKeysWithValues: root.machineBank.map {
-        (venueOverlayMachineKey(sourceID: $0.sourceID, opdbID: $0.opdbID), $0)
+    let machineBankByKey = dictionaryPreservingLastValue(root.machineBank.compactMap { record -> (String, VenueMachineBankOverlayRecord)? in
+        guard let sourceID = canonicalLibrarySourceID(record.sourceID) ?? catalogNormalizedOptionalString(record.sourceID) else {
+            return nil
+        }
+        let normalized = VenueMachineBankOverlayRecord(
+            sourceID: sourceID,
+            opdbID: record.opdbID,
+            bank: record.bank
+        )
+        return (venueOverlayMachineKey(sourceID: sourceID, opdbID: record.opdbID), normalized)
     })
     return VenueMetadataOverlayIndex(
         areaOrderByKey: areaOrderByKey,
@@ -1622,4 +1974,356 @@ func decodePracticeCatalogGames(data: Data) throws -> [PinballGame] {
             if nameCompare != .orderedSame { return nameCompare == .orderedAscending }
             return $0.slug.localizedCaseInsensitiveCompare($1.slug) == .orderedAscending
         }
+}
+
+func decodePracticeCatalogGamesFromOPDBExport(data: Data) throws -> [PinballGame] {
+    let machines = try decodeOPDBExportCatalogMachines(data: data)
+    guard !machines.isEmpty else { return [] }
+
+    let source = PinballImportedSourceRecord(
+        id: "catalog--opdb-practice",
+        name: "All OPDB Games",
+        type: .category,
+        provider: .opdb,
+        providerSourceID: "opdb-catalog",
+        machineIDs: [],
+        lastSyncedAt: nil,
+        searchQuery: nil,
+        distanceMiles: nil
+    )
+
+    return Dictionary(grouping: machines, by: { $0.opdbGroupID ?? $0.practiceIdentity })
+        .values
+        .compactMap { group -> PinballGame? in
+            guard let machine = group.min(by: catalogPreferredGroupDefaultMachine) else { return nil }
+            let opdbPlayfieldImageURL = catalogNormalizedOptionalString(
+                machine.playfieldImage?.largeURL ?? machine.playfieldImage?.mediumURL
+            )
+            let record = ResolvedCatalogRecord(
+                sourceID: source.id,
+                sourceName: source.name,
+                sourceType: source.type,
+                area: nil,
+                areaOrder: nil,
+                groupNumber: nil,
+                position: nil,
+                bank: nil,
+                name: machine.name,
+                variant: catalogNormalizedOptionalString(machine.variant),
+                manufacturer: catalogNormalizedOptionalString(machine.manufacturerName),
+                year: machine.year,
+                slug: catalogNormalizedOptionalString(machine.slug) ?? machine.practiceIdentity,
+                opdbID: catalogNormalizedOptionalString(machine.opdbMachineID),
+                opdbMachineID: catalogNormalizedOptionalString(machine.opdbMachineID),
+                practiceIdentity: machine.practiceIdentity,
+                opdbName: machine.opdbName,
+                opdbCommonName: machine.opdbCommonName,
+                opdbShortname: machine.opdbShortname,
+                opdbDescription: machine.opdbDescription,
+                opdbType: machine.opdbType,
+                opdbDisplay: machine.opdbDisplay,
+                opdbPlayerCount: machine.opdbPlayerCount,
+                opdbManufactureDate: machine.opdbManufactureDate,
+                opdbIpdbID: machine.opdbIpdbID,
+                opdbGroupShortname: machine.opdbGroupShortname,
+                opdbGroupDescription: machine.opdbGroupDescription,
+                primaryImageURL: catalogNormalizedOptionalString(machine.primaryImage?.mediumURL),
+                primaryImageLargeURL: catalogNormalizedOptionalString(machine.primaryImage?.largeURL),
+                playfieldImageURL: opdbPlayfieldImageURL,
+                alternatePlayfieldImageURL: nil,
+                playfieldLocalPath: nil,
+                playfieldSourceLabel: machine.playfieldImage != nil ? "Playfield (OPDB)" : nil,
+                gameinfoLocalPath: nil,
+                rulesheetLocalPath: nil,
+                rulesheetURL: nil,
+                rulesheetLinks: [],
+                videos: []
+            )
+            return PinballGame(record: record)
+        }
+        .sorted {
+            let nameCompare = $0.name.localizedCaseInsensitiveCompare($1.name)
+            if nameCompare != .orderedSame { return nameCompare == .orderedAscending }
+            return $0.slug.localizedCaseInsensitiveCompare($1.slug) == .orderedAscending
+        }
+}
+
+private func decodeCAFRecords<Record: Decodable>(_ type: Record.Type, data: Data?) -> [Record] {
+    guard let data,
+          !data.isEmpty,
+          let root = try? JSONDecoder().decode(CAFRecordsRoot<Record>.self, from: data) else {
+        return []
+    }
+    return root.records
+}
+
+private func buildCAFOverrides(
+    playfieldData: Data?,
+    gameinfoData: Data?
+) -> [String: LegacyCuratedOverride] {
+    var overrides: [String: LegacyCuratedOverride] = [:]
+
+    func upsertOverride(for key: String, mutate: (inout LegacyCuratedOverride) -> Void) {
+        let normalizedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedKey.isEmpty else { return }
+        var current = overrides[normalizedKey] ?? LegacyCuratedOverride(
+            practiceIdentity: normalizedKey,
+            nameOverride: nil,
+            variantOverride: nil,
+            manufacturerOverride: nil,
+            yearOverride: nil,
+            playfieldLocalPath: nil,
+            playfieldSourceURL: nil,
+            gameinfoLocalPath: nil,
+            rulesheetLocalPath: nil,
+            rulesheetLinks: [],
+            videos: []
+        )
+        mutate(&current)
+        overrides[normalizedKey] = current
+    }
+
+    for asset in decodeCAFRecords(CAFPlayfieldAssetRecord.self, data: playfieldData) {
+        let playfieldLocalPath = catalogNormalizedOptionalString(asset.playfieldLocalPath)
+        let playfieldSourceURL = catalogNormalizedOptionalString(asset.playfieldSourceUrl)
+        guard playfieldLocalPath != nil || playfieldSourceURL != nil else { continue }
+
+        let keys = Array(
+            Set(
+                [
+                    catalogNormalizedOptionalString(asset.practiceIdentity),
+                    catalogNormalizedOptionalString(asset.sourceOpdbMachineId),
+                    opdbGroupID(from: asset.sourceOpdbMachineId)
+                ]
+                .compactMap { $0 } + (asset.coveredAliasIds ?? []).flatMap { aliasID in
+                    [catalogNormalizedOptionalString(aliasID), opdbGroupID(from: aliasID)].compactMap { $0 }
+                }
+            )
+        )
+
+        for key in keys {
+            upsertOverride(for: key) { current in
+                current.playfieldLocalPath = current.playfieldLocalPath ?? playfieldLocalPath
+                current.playfieldSourceURL = current.playfieldSourceURL ?? playfieldSourceURL
+            }
+        }
+    }
+
+    for asset in decodeCAFRecords(CAFGameinfoAssetRecord.self, data: gameinfoData) where asset.isActive && !asset.isHidden {
+        guard let localPath = catalogNormalizedOptionalString(asset.localPath) else { continue }
+        let keys = [catalogNormalizedOptionalString(asset.opdbId), opdbGroupID(from: asset.opdbId)].compactMap { $0 }
+        for key in keys {
+            upsertOverride(for: key) { current in
+                current.gameinfoLocalPath = current.gameinfoLocalPath ?? localPath
+            }
+        }
+    }
+
+    return overrides
+}
+
+private func buildCAFGroupedRulesheetLinks(data: Data?) -> [String: [CatalogRulesheetLinkRecord]] {
+    let records = decodeCAFRecords(CAFRulesheetAssetRecord.self, data: data)
+        .filter { $0.isActive && !$0.isHidden }
+        .compactMap { asset -> CatalogRulesheetLinkRecord? in
+            let practiceIdentity = opdbGroupID(from: asset.opdbId) ?? catalogNormalizedOptionalString(asset.opdbId)
+            guard let practiceIdentity else { return nil }
+            return CatalogRulesheetLinkRecord(
+                practiceIdentity: practiceIdentity,
+                provider: asset.provider,
+                label: asset.label,
+                localPath: catalogNormalizedOptionalString(asset.localPath),
+                url: catalogNormalizedOptionalString(asset.url),
+                priority: asset.priority
+            )
+        }
+    return Dictionary(grouping: records, by: \.practiceIdentity)
+}
+
+private func buildCAFGroupedVideoLinks(data: Data?) -> [String: [CatalogVideoLinkRecord]] {
+    let records = decodeCAFRecords(CAFVideoAssetRecord.self, data: data)
+        .filter { $0.isActive && !$0.isHidden }
+        .compactMap { asset -> CatalogVideoLinkRecord? in
+            let practiceIdentity = opdbGroupID(from: asset.opdbId) ?? catalogNormalizedOptionalString(asset.opdbId)
+            guard let practiceIdentity else { return nil }
+            return CatalogVideoLinkRecord(
+                practiceIdentity: practiceIdentity,
+                provider: asset.provider,
+                kind: asset.kind,
+                label: asset.label,
+                url: asset.url,
+                priority: asset.priority
+            )
+        }
+    return Dictionary(grouping: records, by: \.practiceIdentity)
+}
+
+private func parseCAFVenueLayoutAssets(data: Data?) -> VenueMetadataOverlayIndex {
+    let records = decodeCAFRecords(CAFVenueLayoutAssetRecord.self, data: data)
+    let areaOrderByKey = dictionaryPreservingLastValue(records.compactMap { record -> (String, Int)? in
+        guard let sourceID = canonicalLibrarySourceID(record.sourceId) ?? catalogNormalizedOptionalString(record.sourceId),
+              let area = catalogNormalizedOptionalString(record.area),
+              let areaOrder = record.areaOrder else {
+            return nil
+        }
+        return (venueOverlayAreaKey(sourceID: sourceID, area: area), areaOrder)
+    })
+    let machineLayoutByKey = dictionaryPreservingLastValue(records.compactMap { record -> (String, VenueMachineLayoutOverlayRecord)? in
+        guard let sourceID = canonicalLibrarySourceID(record.sourceId) ?? catalogNormalizedOptionalString(record.sourceId),
+              record.groupNumber != nil || record.position != nil || catalogNormalizedOptionalString(record.area) != nil else {
+            return nil
+        }
+        let layout = VenueMachineLayoutOverlayRecord(
+            sourceID: sourceID,
+            opdbID: record.opdbId,
+            area: record.area,
+            groupNumber: record.groupNumber,
+            position: record.position
+        )
+        return (venueOverlayMachineKey(sourceID: sourceID, opdbID: record.opdbId), layout)
+    })
+    let machineBankByKey = dictionaryPreservingLastValue(records.compactMap { record -> (String, VenueMachineBankOverlayRecord)? in
+        guard let sourceID = canonicalLibrarySourceID(record.sourceId) ?? catalogNormalizedOptionalString(record.sourceId),
+              let bank = record.bank else { return nil }
+        let bankRecord = VenueMachineBankOverlayRecord(
+            sourceID: sourceID,
+            opdbID: record.opdbId,
+            bank: bank
+        )
+        return (venueOverlayMachineKey(sourceID: sourceID, opdbID: record.opdbId), bankRecord)
+    })
+    return VenueMetadataOverlayIndex(
+        areaOrderByKey: areaOrderByKey,
+        machineLayoutByKey: machineLayoutByKey,
+        machineBankByKey: machineBankByKey
+    )
+}
+
+private func buildCAFLibraryPayload(
+    machines: [CatalogMachineRecord],
+    importedSources: [PinballImportedSourceRecord],
+    rulesheetLinksByPracticeIdentity: [String: [CatalogRulesheetLinkRecord]],
+    videoLinksByPracticeIdentity: [String: [CatalogVideoLinkRecord]],
+    curatedOverridesByKey: [String: LegacyCuratedOverride],
+    venueMetadataOverlays: VenueMetadataOverlayIndex
+) -> PinballLibraryPayload {
+    guard !importedSources.isEmpty else {
+        return PinballLibraryPayload(games: [], sources: [])
+    }
+
+    let machineByPracticeIdentity = Dictionary(grouping: machines, by: \.practiceIdentity)
+    let machineByOPDBID = Dictionary(uniqueKeysWithValues: machines.compactMap { machine in
+        catalogNormalizedOptionalString(machine.opdbMachineID).map { ($0, machine) }
+    })
+
+    var resolvedSources: [PinballLibrarySource] = []
+    var resolvedGames: [PinballGame] = []
+
+    for importedSource in importedSources {
+        resolvedSources.append(
+            PinballLibrarySource(id: importedSource.id, name: importedSource.name, type: importedSource.type)
+        )
+
+        switch importedSource.type {
+        case .manufacturer:
+            let groupedMachines = Dictionary(
+                grouping: machines.filter { $0.manufacturerID == importedSource.providerSourceID },
+                by: { $0.opdbGroupID ?? $0.practiceIdentity }
+            )
+            let sourceMachines = groupedMachines.values.compactMap { group in
+                group.min(by: catalogPreferredManufacturerMachine)
+            }
+            .sorted { lhs, rhs in
+                let leftYear = lhs.year ?? Int.max
+                let rightYear = rhs.year ?? Int.max
+                if leftYear != rightYear { return leftYear < rightYear }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+
+            resolvedGames.append(contentsOf: sourceMachines.map { machine in
+                resolveImportedGame(
+                    machine: machine,
+                    source: importedSource,
+                    manufacturerByID: [:],
+                    curatedOverride: catalogCuratedOverride(
+                        practiceIdentity: machine.practiceIdentity,
+                        opdbGroupID: machine.opdbGroupID,
+                        opdbID: machine.opdbMachineID,
+                        overridesByKey: curatedOverridesByKey
+                    ),
+                    opdbRulesheets: rulesheetLinksByPracticeIdentity[machine.practiceIdentity] ?? [],
+                    opdbVideos: videoLinksByPracticeIdentity[machine.practiceIdentity] ?? [],
+                    venueMetadata: nil
+                )
+            })
+        case .venue, .tournament:
+            let sourceMachines = importedSource.machineIDs.compactMap { requestedMachineID -> (String, CatalogMachineRecord)? in
+                guard let machine = catalogPreferredMachineForSourceLookup(
+                    requestedMachineID: requestedMachineID,
+                    machineByOPDBID: machineByOPDBID,
+                    machineByPracticeIdentity: machineByPracticeIdentity
+                ) else {
+                    return nil
+                }
+                return (requestedMachineID, machine)
+            }
+
+            resolvedGames.append(contentsOf: sourceMachines.map { requestedOpdbID, machine in
+                resolveImportedGame(
+                    machine: machine,
+                    source: importedSource,
+                    manufacturerByID: [:],
+                    curatedOverride: catalogCuratedOverride(
+                        practiceIdentity: machine.practiceIdentity,
+                        opdbGroupID: machine.opdbGroupID,
+                        opdbID: requestedOpdbID,
+                        overridesByKey: curatedOverridesByKey
+                    ),
+                    opdbRulesheets: rulesheetLinksByPracticeIdentity[machine.practiceIdentity] ?? [],
+                    opdbVideos: videoLinksByPracticeIdentity[machine.practiceIdentity] ?? [],
+                    venueMetadata: importedSource.type == .venue
+                        ? resolvedImportedVenueMetadata(
+                            sourceID: importedSource.id,
+                            requestedOpdbID: requestedOpdbID,
+                            machine: machine,
+                            overlays: venueMetadataOverlays
+                        )
+                        : nil
+                )
+            })
+        case .category:
+            continue
+        }
+    }
+
+    return PinballLibraryPayload(
+        games: resolvedGames,
+        sources: catalogDedupedSources(resolvedSources)
+    )
+}
+
+func buildCAFLibraryExtraction(
+    opdbExportData: Data,
+    rulesheetAssetsData: Data?,
+    videoAssetsData: Data?,
+    playfieldAssetsData: Data?,
+    gameinfoAssetsData: Data?,
+    venueLayoutAssetsData: Data?,
+    importedSources: [PinballImportedSourceRecord],
+    filterBySourceState: Bool
+) throws -> LegacyCatalogExtraction {
+    let machines = try decodeOPDBExportCatalogMachines(data: opdbExportData)
+    let payload = buildCAFLibraryPayload(
+        machines: machines,
+        importedSources: importedSources,
+        rulesheetLinksByPracticeIdentity: buildCAFGroupedRulesheetLinks(data: rulesheetAssetsData),
+        videoLinksByPracticeIdentity: buildCAFGroupedVideoLinks(data: videoAssetsData),
+        curatedOverridesByKey: buildCAFOverrides(
+            playfieldData: playfieldAssetsData,
+            gameinfoData: gameinfoAssetsData
+        ),
+        venueMetadataOverlays: parseCAFVenueLayoutAssets(data: venueLayoutAssetsData)
+    )
+    let state = PinballLibrarySourceStateStore.synchronize(with: payload.sources)
+    return legacyCatalogExtraction(payload: payload, state: state, filterBySourceState: filterBySourceState)
 }

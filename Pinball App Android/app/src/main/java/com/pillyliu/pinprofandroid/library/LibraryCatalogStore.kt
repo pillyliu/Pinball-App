@@ -7,14 +7,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
 
-private const val DEFAULT_IMPORTED_SOURCES_ASSET_PATH = "starter-pack/pinball/data/default_pm_venue_sources_v1.json"
-
-private val canonicalBuiltinSourceIds = setOf(
-    PM_RLM_LIBRARY_SOURCE_ID,
-    PM_AVENUE_LIBRARY_SOURCE_ID,
-    BUILTIN_GAME_ROOM_LIBRARY_SOURCE_ID,
-)
-
 internal data class LibrarySourceState(
     val enabledSourceIds: List<String> = emptyList(),
     val pinnedSourceIds: List<String> = emptyList(),
@@ -55,15 +47,18 @@ internal object LibrarySourceStateStore {
         val raw = prefs.getString(STATE_KEY, null) ?: return LibrarySourceState()
         return runCatching {
             val root = JSONObject(raw)
-            normalize(
-                LibrarySourceState(
-                    enabledSourceIds = root.optJSONArray("enabledSourceIds").toStringList().mapNotNull(::canonicalLibrarySourceId),
-                    pinnedSourceIds = root.optJSONArray("pinnedSourceIds").toStringList().mapNotNull(::canonicalLibrarySourceId),
-                    selectedSourceId = canonicalLibrarySourceId(root.optString("selectedSourceId").trim().ifBlank { null }),
-                    selectedSortBySource = root.optJSONObject("selectedSortBySource").toStringMap().mapNotNullKeys(::canonicalLibrarySourceId),
-                    selectedBankBySource = root.optJSONObject("selectedBankBySource").toIntMap().mapNotNullKeys(::canonicalLibrarySourceId),
-                ),
+            val decoded = LibrarySourceState(
+                enabledSourceIds = root.optJSONArray("enabledSourceIds").toStringList(),
+                pinnedSourceIds = root.optJSONArray("pinnedSourceIds").toStringList(),
+                selectedSourceId = root.optString("selectedSourceId").trim().ifBlank { null },
+                selectedSortBySource = root.optJSONObject("selectedSortBySource").toStringMap(),
+                selectedBankBySource = root.optJSONObject("selectedBankBySource").toIntMap(),
             )
+            val normalized = normalize(decoded)
+            if (normalized != decoded) {
+                save(context, normalized)
+            }
+            normalized
         }.getOrDefault(LibrarySourceState())
     }
 
@@ -96,17 +91,9 @@ internal object LibrarySourceStateStore {
     fun synchronize(context: Context, payloadSources: List<LibrarySource>): LibrarySourceState {
         val validIds = payloadSources.map { it.id }.toSet()
         var state = load(context)
-        val enabledIds = filteredKnownIds(state.enabledSourceIds, validIds).toMutableList()
-        canonicalBuiltinSourceIds.filter { it in validIds }.forEach { builtinId ->
-            if (builtinId !in enabledIds) enabledIds += builtinId
-        }
         state = state.copy(
-            enabledSourceIds = enabledIds.ifEmpty {
-                payloadSources.map { it.id }
-            },
-            pinnedSourceIds = filteredKnownIds(state.pinnedSourceIds, validIds).take(MAX_PINNED_SOURCES).ifEmpty {
-                payloadSources.take(MAX_PINNED_SOURCES).map { it.id }
-            },
+            enabledSourceIds = filteredKnownIds(state.enabledSourceIds, validIds),
+            pinnedSourceIds = filteredKnownIds(state.pinnedSourceIds, validIds).take(MAX_PINNED_SOURCES),
             selectedSourceId = canonicalLibrarySourceId(state.selectedSourceId)?.takeIf { validIds.contains(it) },
             selectedSortBySource = state.selectedSortBySource.mapNotNullKeys(::canonicalLibrarySourceId).filterKeys { validIds.contains(it) },
             selectedBankBySource = state.selectedBankBySource.mapNotNullKeys(::canonicalLibrarySourceId).filterKeys { validIds.contains(it) },
@@ -198,12 +185,11 @@ internal object ImportedSourcesStore {
     private const val SOURCES_KEY = "pinball-imported-sources-v1"
 
     fun load(context: Context): List<ImportedSourceRecord> {
-        val bundledDefaults = loadBundledDefaults(context)
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val raw = prefs.getString(SOURCES_KEY, null) ?: return bundledDefaults
+        val raw = prefs.getString(SOURCES_KEY, null) ?: return emptyList()
         return runCatching {
             val array = JSONArray(raw)
-            val stored = buildList {
+            buildList {
                 for (i in 0 until array.length()) {
                     val obj = array.optJSONObject(i) ?: continue
                     val id = canonicalLibrarySourceId(obj.optString("id").trim())
@@ -228,8 +214,7 @@ internal object ImportedSourcesStore {
                     )
                 }
             }
-            mergeDefaults(bundledDefaults, stored)
-        }.getOrDefault(bundledDefaults)
+        }.getOrDefault(emptyList())
     }
 
     fun save(context: Context, records: List<ImportedSourceRecord>) {
@@ -283,48 +268,6 @@ internal object ImportedSourcesStore {
         )
     }
 
-    private fun mergeDefaults(
-        defaults: List<ImportedSourceRecord>,
-        stored: List<ImportedSourceRecord>,
-    ): List<ImportedSourceRecord> {
-        val merged = linkedMapOf<String, ImportedSourceRecord>()
-        defaults.forEach { merged[it.id] = it }
-        stored.forEach { merged[it.id] = it }
-        return merged.values.sortedWith(compareBy<ImportedSourceRecord> { it.type.rawValue }.thenBy { it.name.lowercase() })
-    }
-
-    private fun loadBundledDefaults(context: Context): List<ImportedSourceRecord> {
-        val text = runCatching {
-            context.assets.open(DEFAULT_IMPORTED_SOURCES_ASSET_PATH).bufferedReader().use { it.readText() }
-        }.getOrNull() ?: return emptyList()
-        val root = runCatching { JSONObject(text) }.getOrNull() ?: return emptyList()
-        val array = root.optJSONArray("records") ?: return emptyList()
-        return buildList {
-            for (index in 0 until array.length()) {
-                val obj = array.optJSONObject(index) ?: continue
-                val id = canonicalLibrarySourceId(obj.optString("id").trim()) ?: continue
-                val name = obj.optString("name").trim()
-                val type = LibrarySourceType.fromRaw(obj.optString("type")) ?: continue
-                val provider = ImportedSourceProvider.fromRaw(obj.optString("provider"))
-                    ?: inferredImportedSourceProvider(type, id)
-                val providerSourceId = obj.optString("providerSourceId").trim()
-                if (name.isBlank() || providerSourceId.isBlank()) continue
-                add(
-                    ImportedSourceRecord(
-                        id = id,
-                        name = name,
-                        type = type,
-                        provider = provider,
-                        providerSourceId = providerSourceId,
-                        machineIds = obj.optJSONArray("machineIds").toStringList(),
-                        lastSyncedAtMs = obj.optLong("lastSyncedAtMs").takeIf { it > 0L },
-                        searchQuery = obj.optString("searchQuery").trim().ifBlank { null },
-                        distanceMiles = obj.optInt("distanceMiles").takeIf { it > 0 },
-                    ),
-                )
-            }
-        }
-    }
 }
 
 internal object LibrarySourceEvents {

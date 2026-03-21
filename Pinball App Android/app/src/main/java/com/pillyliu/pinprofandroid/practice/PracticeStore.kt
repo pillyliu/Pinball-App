@@ -10,6 +10,8 @@ import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.loadPracticeCatalogGames
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 internal class PracticeStore(private val context: Context) {
     private companion object {
         val QUICK_GAME_PREF_KEYS = listOf(
@@ -27,6 +29,9 @@ internal class PracticeStore(private val context: Context) {
         private set
 
     var allLibraryGames by mutableStateOf<List<PinballGame>>(emptyList())
+        private set
+
+    var bankTemplateGames by mutableStateOf<List<PinballGame>>(emptyList())
         private set
 
     var searchCatalogGames by mutableStateOf<List<PinballGame>>(emptyList())
@@ -113,7 +118,7 @@ internal class PracticeStore(private val context: Context) {
         saveState()
     }
 
-    private fun practiceLookupGames(): List<PinballGame> =
+    private fun primaryPracticeLookupGames(): List<PinballGame> =
         when {
             searchCatalogGames.isNotEmpty() && allLibraryGames.isNotEmpty() -> allLibraryGames + searchCatalogGames
             searchCatalogGames.isNotEmpty() -> games + searchCatalogGames
@@ -121,10 +126,24 @@ internal class PracticeStore(private val context: Context) {
             else -> games
         }
 
-    internal fun practiceLookupGamesForDisplay(): List<PinballGame> = practiceLookupGames()
+    private fun practiceLookupGames(): List<PinballGame> = primaryPracticeLookupGames() + bankTemplateGames
+
+    internal fun practiceLookupGamesForDisplay(): List<PinballGame> = primaryPracticeLookupGames()
 
     private fun canonicalGameID(gameSlug: String): String =
-        canonicalPracticeKey(gameSlug, practiceLookupGames())
+        canonicalPracticeKey(
+            gameSlug,
+            if (parseSourceScopedPracticeGameID(gameSlug).sourceID != null) practiceLookupGames() else primaryPracticeLookupGames(),
+        )
+
+    internal fun gameForAnyID(id: String): PinballGame? {
+        val lookupGames = if (parseSourceScopedPracticeGameID(id).sourceID != null) {
+            practiceLookupGames()
+        } else {
+            primaryPracticeLookupGames()
+        }
+        return findGameByPracticeLookupKey(lookupGames, id)
+    }
 
     private fun applyPersistedState(payload: ParsedPracticeStatePayload) {
         canonicalPersistedState = payload.canonical
@@ -196,11 +215,12 @@ internal class PracticeStore(private val context: Context) {
         isArchived: Boolean = false,
         insertAt: Int? = null,
     ): String? {
+        val normalizedGameSlugs = uniqueGroupSelectionIDsPreservingOrder(gameSlugs, practiceLookupGames())
         val result = createGroupInList(
             existing = groups,
             selectedGroupID = selectedGroupID,
             name = name,
-            gameSlugs = gameSlugs,
+            gameSlugs = normalizedGameSlugs,
             isActive = isActive,
             isPriority = isPriority,
             type = type,
@@ -217,12 +237,24 @@ internal class PracticeStore(private val context: Context) {
     }
 
     fun updateGroup(updated: PracticeGroup) {
-        groups = updateGroupInList(groups, updated)
+        val normalized = updated.copy(
+            gameSlugs = uniqueGroupSelectionIDsPreservingOrder(updated.gameSlugs, practiceLookupGames()),
+        )
+        groups = updateGroupInList(groups, normalized)
         saveState()
     }
 
     fun removeGameFromGroup(groupID: String, gameSlug: String) {
-        val next = removeGameFromGroupInList(groups, groupID, gameSlug)
+        val canonicalGameSlug = canonicalGameID(gameSlug)
+        val next = groups.map { group ->
+            if (group.id != groupID) {
+                group
+            } else {
+                group.copy(
+                    gameSlugs = group.gameSlugs.filterNot { canonicalPracticeKey(it, practiceLookupGames()) == canonicalGameSlug },
+                )
+            }
+        }
         if (next == groups) return
         groups = next
         saveState()
@@ -322,10 +354,10 @@ internal class PracticeStore(private val context: Context) {
         derivedQueryIntegration.scoreSummary(scores, canonicalGameID(gameSlug))
 
     fun groupDashboardScore(group: PracticeGroup): GroupDashboardScore =
-        derivedQueryIntegration.groupDashboardScore(group, games, scores, journal, rulesheetProgress)
+        derivedQueryIntegration.groupDashboardScore(group, practiceLookupGames(), scores, journal, rulesheetProgress)
 
     fun recommendedGame(group: PracticeGroup): PinballGame? =
-        derivedQueryIntegration.recommendedGame(group, games, scores, journal, rulesheetProgress)
+        derivedQueryIntegration.recommendedGame(group, practiceLookupGames(), scores, journal, rulesheetProgress)
 
     fun taskProgressForGame(gameSlug: String, group: PracticeGroup? = null): Map<String, Int> =
         derivedQueryIntegration.taskProgress(journal, rulesheetProgress, canonicalGameID(gameSlug), group)
@@ -347,11 +379,22 @@ internal class PracticeStore(private val context: Context) {
     fun activeGroups(): List<PracticeGroup> = derivedQueryIntegration.activeGroups(groups)
 
     fun activeGroupForGame(gameSlug: String): PracticeGroup? {
-        return derivedQueryIntegration.activeGroupForGame(groups, canonicalGameID(gameSlug))
+        return derivedQueryIntegration.activeGroupForGame(groups, canonicalGameID(gameSlug), practiceLookupGames())
     }
 
     fun groupGames(group: PracticeGroup): List<PinballGame> {
         return derivedQueryIntegration.groupGames(group, games, practiceLookupGames())
+    }
+
+    fun groupProgress(group: PracticeGroup): List<GroupProgressSnapshot> {
+        return group.gameSlugs.mapNotNull { selectionGameSlug ->
+            val game = gameForAnyID(selectionGameSlug) ?: return@mapNotNull null
+            GroupProgressSnapshot(
+                selectionGameSlug = selectionGameSlug,
+                game = game,
+                taskProgress = taskProgressForGame(selectionGameSlug, group),
+            )
+        }
     }
 
     fun gameName(slug: String): String =
@@ -425,7 +468,7 @@ internal class PracticeStore(private val context: Context) {
 
     fun markPracticeViewedGame(slug: String) {
         val exactSlug = slug.trim().takeIf { raw ->
-            raw.isNotEmpty() && practiceLookupGames().any { it.slug == raw }
+            raw.isNotEmpty() && primaryPracticeLookupGames().any { it.slug == raw }
         }
         val persistedKey = exactSlug ?: canonicalGameID(slug)
         if (persistedKey.isBlank()) return
@@ -447,14 +490,30 @@ internal class PracticeStore(private val context: Context) {
         libraryIntegration.persistSelectedSource(selection.selectedSourceId)
     }
 
-    suspend fun loadGames() {
-        val libraryState = libraryIntegration.loadLibraryState()
-        games = libraryState.visibleGames
-        allLibraryGames = libraryState.allGames
-        librarySources = libraryState.sources
-        defaultPracticeSourceId = libraryState.defaultSourceId
-        defaultPracticeSourceId?.let { sourceId ->
-            libraryIntegration.persistSelectedSource(sourceId)
+    suspend fun loadGames() = coroutineScope {
+        isLoadingSearchCatalog = true
+        try {
+            val libraryStateDeferred = async { libraryIntegration.loadLibraryState() }
+            val bankTemplateGamesDeferred = async { loadPracticeAvenueBankTemplateGames() }
+            val searchCatalogGamesDeferred = async {
+                runCatching { loadPracticeCatalogGames(context) }.getOrElse { searchCatalogGames }
+            }
+
+            val libraryState = libraryStateDeferred.await()
+            val bankTemplates = bankTemplateGamesDeferred.await()
+            val loadedSearchCatalogGames = searchCatalogGamesDeferred.await()
+
+            games = libraryState.visibleGames
+            allLibraryGames = libraryState.allGames
+            librarySources = libraryState.sources
+            bankTemplateGames = bankTemplates
+            searchCatalogGames = loadedSearchCatalogGames
+            defaultPracticeSourceId = libraryState.defaultSourceId
+            defaultPracticeSourceId?.let { sourceId ->
+                libraryIntegration.persistSelectedSource(sourceId)
+            }
+        } finally {
+            isLoadingSearchCatalog = false
         }
     }
 

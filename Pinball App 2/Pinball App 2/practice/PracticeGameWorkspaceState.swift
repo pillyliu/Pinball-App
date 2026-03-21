@@ -7,7 +7,6 @@ struct PracticeGameWorkspaceState {
     var saveBanner: String?
     var activeVideoID: String?
     var gameSummaryDraft: String = ""
-    var revealedLogEntryID: String?
     var editingLogEntry: JournalEntry?
     var pendingDeleteLogEntry: JournalEntry?
 }

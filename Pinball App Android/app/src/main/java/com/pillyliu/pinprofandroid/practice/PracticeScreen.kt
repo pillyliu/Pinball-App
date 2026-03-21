@@ -22,6 +22,7 @@ import com.pillyliu.pinprofandroid.library.RulesheetScreen
 import com.pillyliu.pinprofandroid.library.LibrarySourceEvents
 import com.pillyliu.pinprofandroid.library.RulesheetRemoteSource
 import com.pillyliu.pinprofandroid.library.ExternalRulesheetWebScreen
+import com.pillyliu.pinprofandroid.library.hasLocalRulesheetResource
 import com.pillyliu.pinprofandroid.library.hasRulesheetResource
 import com.pillyliu.pinprofandroid.library.resolve
 import com.pillyliu.pinprofandroid.library.rulesheetPathCandidates
@@ -65,13 +66,7 @@ internal fun PracticeScreen(
     val uiState = rememberPracticeScreenState(prefs)
     val sourceVersion by LibrarySourceEvents.version.collectAsState()
 
-    val gameLookupPool = when {
-        store.searchCatalogGames.isNotEmpty() && store.allLibraryGames.isNotEmpty() -> store.allLibraryGames + store.searchCatalogGames
-        store.searchCatalogGames.isNotEmpty() -> store.games + store.searchCatalogGames
-        store.allLibraryGames.isNotEmpty() -> store.allLibraryGames
-        else -> store.games
-    }
-    val selectedGame = findGameByPracticeLookupKey(gameLookupPool, uiState.navigation.selectedGameSlug)
+    val selectedGame = uiState.navigation.selectedGameSlug?.let(store::gameForAnyID)
     val actions = PracticeScreenActions(
         store = store,
         uiState = uiState,
@@ -158,8 +153,8 @@ internal fun PracticeScreen(
             expanded = uiState.game.pickerExpanded,
             onExpandedChange = { expanded -> uiState.game.pickerExpanded = expanded },
             onLibrarySourceSelected = actions::selectLibrarySource,
-            onGameSelected = { game ->
-                actions.selectPracticeGame(game.practiceKey)
+            onGameSelected = { selectionKey ->
+                actions.selectPracticeGame(selectionKey)
             },
         )
         val bodyModifier = if (

@@ -136,9 +136,12 @@ internal fun autoArchiveExpiredGroups(
 internal fun activeGroupForGame(
     groups: List<PracticeGroup>,
     gameSlug: String,
+    lookupGames: List<com.pillyliu.pinprofandroid.library.PinballGame>,
 ): PracticeGroup? {
     val matches = groups.withIndex().filter { (_, group) ->
-        !group.isArchived && group.isActive && group.gameSlugs.contains(gameSlug)
+        !group.isArchived &&
+            group.isActive &&
+            group.gameSlugs.any { canonicalPracticeKey(it, lookupGames) == gameSlug }
     }
     if (matches.isEmpty()) return null
     return matches.firstOrNull { it.value.isPriority }?.value ?: matches.first().value

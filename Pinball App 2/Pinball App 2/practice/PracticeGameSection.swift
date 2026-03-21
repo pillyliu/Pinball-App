@@ -87,7 +87,6 @@ struct PracticeGameSection: View {
         PracticeGameLogPanel(
             store: store,
             gameID: selectedGameID,
-            revealedLogEntryID: $uiState.revealedLogEntryID,
             onEditEntry: { entry in
                 uiState.editingLogEntry = entry
             },

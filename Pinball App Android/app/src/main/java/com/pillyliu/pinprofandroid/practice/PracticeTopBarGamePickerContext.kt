@@ -11,5 +11,5 @@ internal data class PracticeTopBarGamePickerContext(
     val expanded: Boolean,
     val onExpandedChange: (Boolean) -> Unit,
     val onLibrarySourceSelected: (String) -> Unit,
-    val onGameSelected: (PinballGame) -> Unit,
+    val onGameSelected: (String) -> Unit,
 )

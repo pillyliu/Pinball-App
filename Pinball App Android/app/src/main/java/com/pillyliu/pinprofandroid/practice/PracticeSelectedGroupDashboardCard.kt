@@ -77,16 +77,15 @@ internal fun SelectedGroupDashboardCard(
                 modifier = Modifier.weight(1f),
             )
         }
-        val games = store.groupGames(selected)
-        if (games.isEmpty()) {
+        val snapshots = store.groupProgress(selected)
+        if (snapshots.isEmpty()) {
             AppPanelEmptyCard(text = "No games in this group yet.")
         } else {
-            games.forEach { game ->
-                val progress = store.taskProgressForGame(game.practiceKey, selected)
+            snapshots.forEach { snapshot ->
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         AppSecondaryButton(
-                            onClick = { onOpenGame(game.practiceKey) },
+                            onClick = { onOpenGame(snapshot.selectionGameSlug) },
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
                         ) {
@@ -95,13 +94,13 @@ internal fun SelectedGroupDashboardCard(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                GroupProgressWheel(taskProgress = progress, modifier = Modifier.width(46.dp).height(46.dp))
+                                GroupProgressWheel(taskProgress = snapshot.taskProgress, modifier = Modifier.width(46.dp).height(46.dp))
                                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     AppCardSubheading(
-                                        text = game.name,
+                                        text = snapshot.game.name,
                                         modifier = Modifier.fillMaxWidth(),
                                     )
-                                    Text(progressSummary(progress), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(progressSummary(snapshot.taskProgress), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }

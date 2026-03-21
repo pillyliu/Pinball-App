@@ -91,7 +91,7 @@ internal fun GroupEditorTemplateCard(
             selected = templateSource,
             formatOptionLabel = {
                 when (it) {
-                    "bank" -> "Bank Template"
+                    "bank" -> "LPL Bank Template"
                     "duplicate" -> "Duplicate Group"
                     else -> "None"
                 }
@@ -101,7 +101,7 @@ internal fun GroupEditorTemplateCard(
         when (templateSource) {
             "bank" -> {
                 if (availableBanks.isEmpty()) {
-                    AppPanelEmptyCard(text = "No bank data found in library.")
+                    AppPanelEmptyCard(text = "No LPL bank template data found.")
                 } else {
                     SimpleMenuDropdown(
                         title = "Bank",
@@ -110,7 +110,7 @@ internal fun GroupEditorTemplateCard(
                         formatOptionLabel = { "Bank $it" },
                         onSelect = { onSelectedTemplateBankChange(it.toIntOrNull() ?: selectedTemplateBank) },
                     )
-                    AppSecondaryButton(onClick = onApplyBankTemplate) { Text("Apply Bank Template") }
+                    AppSecondaryButton(onClick = onApplyBankTemplate) { Text("Apply LPL Bank Template") }
                 }
             }
 

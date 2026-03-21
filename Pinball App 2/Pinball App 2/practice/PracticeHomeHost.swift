@@ -12,6 +12,9 @@ extension PracticeScreen {
             onOpenIFPAProfile: {
                 practiceHomeContext.onOpenIFPAProfile()
             },
+            onOpenHubRoute: { route in
+                practiceHomeContext.onOpenHubRoute(route)
+            },
             resumeGame: practiceHomeContext.resumeGame,
             allGames: practiceHomeContext.allGames,
             searchGames: practiceHomeContext.searchGames,

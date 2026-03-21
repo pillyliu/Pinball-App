@@ -6,6 +6,7 @@ struct PracticeHomeRootView: View {
     let hasIFPAProfileAccess: Bool
     let onOpenSettings: () -> Void
     let onOpenIFPAProfile: () -> Void
+    let onOpenHubRoute: (PracticeRoute) -> Void
 
     let resumeGame: PinballGame?
     let allGames: [PinballGame]
@@ -33,7 +34,7 @@ struct PracticeHomeRootView: View {
             AppBackground()
 
             if isLoadingGames {
-                AppPanelStatusCard(
+                AppFullscreenStatusOverlay(
                     text: "Loading practice data…",
                     showsProgress: true
                 )
@@ -71,7 +72,9 @@ struct PracticeHomeRootView: View {
 
                         LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                             ForEach(PracticeHubDestination.allCases) { destination in
-                                NavigationLink(value: destination.route) {
+                                Button {
+                                    onOpenHubRoute(destination.route)
+                                } label: {
                                     PracticeHubMiniCard(destination: destination)
                                 }
                                 .buttonStyle(.plain)

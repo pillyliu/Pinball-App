@@ -31,17 +31,22 @@ struct PracticeDashboardAlert: Identifiable {
 }
 
 struct GroupProgressSnapshot: Identifiable {
+    let selectionGameID: String
     let game: PinballGame
     let taskProgress: [StudyTaskKind: Int]
 
-    var id: String { game.id }
+    var id: String { selectionGameID }
 }
 
 struct GroupDashboardScore {
     let completionAverage: Int
     let staleGameCount: Int
     let weakerGameCount: Int
-    let recommendedFirst: PinballGame?
+}
+
+struct GroupDashboardDetail {
+    let score: GroupDashboardScore
+    let snapshots: [GroupProgressSnapshot]
 }
 
 struct HeadToHeadGameStats: Identifiable {
@@ -110,14 +115,25 @@ struct LeagueTargetScores {
 
 @MainActor
 final class PracticeStore: ObservableObject {
-    @Published var games: [PinballGame] = []
-    @Published var allLibraryGames: [PinballGame] = []
-    @Published var searchCatalogGames: [PinballGame] = []
+    @Published var games: [PinballGame] = [] {
+        didSet { invalidatePracticeLookupCaches() }
+    }
+    @Published var allLibraryGames: [PinballGame] = [] {
+        didSet { invalidatePracticeLookupCaches() }
+    }
+    @Published var searchCatalogGames: [PinballGame] = [] {
+        didSet { invalidatePracticeLookupCaches() }
+    }
+    @Published var bankTemplateGames: [PinballGame] = [] {
+        didSet { invalidatePracticeLookupCaches() }
+    }
     @Published var librarySources: [PinballLibrarySource] = []
     @Published var defaultPracticeSourceID: String?
     @Published var isLoadingGames = false
     @Published var isLoadingSearchCatalog = false
-    @Published var state = PracticePersistedState.empty
+    @Published var state = PracticePersistedState.empty {
+        didSet { invalidateDerivedCaches() }
+    }
     @Published var lastErrorMessage: String?
 
     static let leagueStatsPath = "/pinball/data/LPL_Stats.csv"
@@ -129,6 +145,9 @@ final class PracticeStore: ObservableObject {
     var didLoad = false
     var leagueTargetsByPracticeIdentity: [String: LeagueTargetScores] = [:]
     var leagueTargetsByNormalizedMachine: [String: LeagueTargetScores] = [:]
+    var cachedPracticeGameNames: [String: String] = [:]
+    var cachedJournalPayloads: [JournalFilter: CachedPracticeJournalPayload] = [:]
+    var cachedGroupDashboardDetails: [UUID: GroupDashboardDetail] = [:]
 
     func loadIfNeeded() async {
         guard !didLoad else { return }
@@ -152,7 +171,14 @@ final class PracticeStore: ObservableObject {
     func gameName(for id: String) -> String {
         let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return "None" }
+        if let cached = cachedPracticeGameNames[trimmed] {
+            return cached
+        }
         let canonical = canonicalPracticeGameID(trimmed)
+        if let cached = cachedPracticeGameNames[canonical] {
+            cachedPracticeGameNames[trimmed] = cached
+            return cached
+        }
         let lookupGames: [PinballGame]
         if !searchCatalogGames.isEmpty && !allLibraryGames.isEmpty {
             lookupGames = allLibraryGames + searchCatalogGames
@@ -163,9 +189,12 @@ final class PracticeStore: ObservableObject {
         } else {
             lookupGames = games
         }
-        return practiceDisplayTitle(for: canonical, in: lookupGames)
+        let resolved = practiceDisplayTitle(for: canonical, in: lookupGames)
             ?? gameForAnyID(trimmed)?.name
             ?? trimmed
+        cachedPracticeGameNames[trimmed] = resolved
+        cachedPracticeGameNames[canonical] = resolved
+        return resolved
     }
 
     func actionType(for task: StudyTaskKind) -> JournalActionType {
@@ -181,5 +210,19 @@ final class PracticeStore: ObservableObject {
         case .practice:
             return .practiceSession
         }
+    }
+
+    func invalidatePracticeLookupCaches() {
+        cachedPracticeGameNames.removeAll()
+        invalidateDerivedCaches()
+    }
+
+    func invalidateDerivedCaches() {
+        cachedJournalPayloads.removeAll()
+        cachedGroupDashboardDetails.removeAll()
+    }
+
+    func invalidateJournalCaches() {
+        invalidateDerivedCaches()
     }
 }

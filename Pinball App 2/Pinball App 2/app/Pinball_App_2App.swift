@@ -21,14 +21,15 @@ struct Pinball_App_2App: App {
             ContentView()
                 .preferredColorScheme(displayMode.preferredColorScheme)
                 .task {
+                    await migrateLegacyPinnedVenueImportsIfNeeded()
                     await refreshRedactedPlayersFromCSV()
-                    await warmHostedLibraryOverrides()
                 }
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             Task {
                 await PinballDataCache.shared.refreshMetadataFromForeground()
+                await migrateLegacyPinnedVenueImportsIfNeeded()
                 await refreshRedactedPlayersFromCSV()
             }
         }

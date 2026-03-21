@@ -15,8 +15,6 @@ import java.nio.charset.StandardCharsets
 import java.text.Normalizer
 import java.util.concurrent.ConcurrentHashMap
 
-internal const val LIBRARY_URL = "https://pillyliu.com/pinball/data/pinball_library_v3.json"
-internal const val OPDB_CATALOG_URL = "https://pillyliu.com/pinball/data/opdb_catalog_v1.json"
 internal val LIBRARY_CONTENT_BOTTOM_FILLER = 60.dp
 
 internal enum class LibrarySourceType(val rawValue: String) {
@@ -55,6 +53,20 @@ internal data class LibrarySource(
 internal data class ParsedLibraryData(
     val games: List<PinballGame>,
     val sources: List<LibrarySource>,
+)
+
+internal data class LegacyCatalogExtraction(
+    val payload: ParsedLibraryData,
+    val state: LibrarySourceState,
+)
+
+internal data class CatalogManufacturerOption(
+    val id: String,
+    val name: String,
+    val gameCount: Int,
+    val isModern: Boolean,
+    val featuredRank: Int?,
+    val sortBucket: Int,
 )
 
 internal data class LibraryVenueSearchResult(
@@ -124,14 +136,14 @@ internal data class ReferenceLink(
 }
 
 internal enum class RulesheetSourceKind(val rank: Int, val shortLabel: String) {
-    LOCAL(0, "Local"),
+    LOCAL(0, "PinProf"),
     TF(1, "TF"),
     PROF(2, "PinProf"),
     BOB(3, "Bob"),
     PAPA(4, "PAPA"),
     PP(5, "PP"),
     OPDB(6, "OPDB"),
-    OTHER(7, "Local"),
+    OTHER(7, "PinProf"),
 }
 
 internal val ReferenceLink.rulesheetSourceKind: RulesheetSourceKind

@@ -4,154 +4,100 @@ import android.content.Context
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 
 internal const val HOSTED_LIBRARY_REFRESH_INTERVAL_MS = 24L * 60L * 60L * 1000L
-internal const val hostedLibraryPath = "/pinball/data/pinball_library_v3.json"
-internal const val hostedOPDBCatalogPath = "/pinball/data/opdb_catalog_v1.json"
-internal const val hostedLibraryOverridesPath = "/pinball/data/pinball_library_seed_overrides_v1.json"
-internal const val hostedVenueMetadataOverlaysPath = "/pinball/data/venue_metadata_overlays_v1.json"
+internal const val hostedOPDBExportPath = "/pinball/data/opdb_export.json"
+internal const val hostedRulesheetAssetsPath = "/pinball/data/rulesheet_assets.json"
+internal const val hostedVideoAssetsPath = "/pinball/data/video_assets.json"
+internal const val hostedPlayfieldAssetsPath = "/pinball/data/playfield_assets.json"
+internal const val hostedGameinfoAssetsPath = "/pinball/data/gameinfo_assets.json"
+internal const val hostedBackglassAssetsPath = "/pinball/data/backglass_assets.json"
+internal const val hostedVenueLayoutAssetsPath = "/pinball/data/venue_layout_assets.json"
+internal const val hostedRedactedPlayersCsvPath = "/pinball/data/redacted_players.csv"
+internal const val hostedPinsideGroupMapPath = "/pinball/data/pinside_group_map.json"
+internal const val hostedLeagueStandingsPath = "/pinball/data/LPL_Standings.csv"
+internal const val hostedLeagueStatsPath = "/pinball/data/LPL_Stats.csv"
+internal const val hostedLeagueTargetsPath = "/pinball/data/LPL_Targets.csv"
+internal const val hostedResolvedLeagueTargetsPath = "/pinball/data/lpl_targets_resolved_v1.json"
 internal val HOSTED_LIBRARY_PATHS = listOf(
-    hostedLibraryPath,
-    hostedOPDBCatalogPath,
-    hostedLibraryOverridesPath,
-    hostedVenueMetadataOverlaysPath,
+    hostedOPDBExportPath,
+    hostedRulesheetAssetsPath,
+    hostedVideoAssetsPath,
+    hostedPlayfieldAssetsPath,
+    hostedGameinfoAssetsPath,
+    hostedBackglassAssetsPath,
+    hostedVenueLayoutAssetsPath,
+)
+internal data class HostedPinballRefreshTarget(
+    val path: String,
+    val allowMissing: Boolean,
+)
+
+internal val HOSTED_PINBALL_REFRESH_TARGETS = listOf(
+    HostedPinballRefreshTarget(path = hostedOPDBExportPath, allowMissing = false),
+    HostedPinballRefreshTarget(path = hostedRulesheetAssetsPath, allowMissing = true),
+    HostedPinballRefreshTarget(path = hostedVideoAssetsPath, allowMissing = true),
+    HostedPinballRefreshTarget(path = hostedPlayfieldAssetsPath, allowMissing = true),
+    HostedPinballRefreshTarget(path = hostedGameinfoAssetsPath, allowMissing = true),
+    HostedPinballRefreshTarget(path = hostedBackglassAssetsPath, allowMissing = true),
+    HostedPinballRefreshTarget(path = hostedVenueLayoutAssetsPath, allowMissing = true),
+    HostedPinballRefreshTarget(path = hostedLeagueStandingsPath, allowMissing = true),
+    HostedPinballRefreshTarget(path = hostedLeagueStatsPath, allowMissing = true),
+    HostedPinballRefreshTarget(path = hostedLeagueTargetsPath, allowMissing = true),
+    HostedPinballRefreshTarget(path = hostedResolvedLeagueTargetsPath, allowMissing = true),
+    HostedPinballRefreshTarget(path = hostedRedactedPlayersCsvPath, allowMissing = true),
+    HostedPinballRefreshTarget(path = hostedPinsideGroupMapPath, allowMissing = true),
 )
 
 internal suspend fun loadHostedLibraryExtraction(
     context: Context,
     filterBySourceState: Boolean = true,
 ): LegacyCatalogExtraction {
-    val libraryCached = PinballDataCache.loadText(
-        url = LIBRARY_URL,
-        allowMissing = false,
-        maxCacheAgeMs = HOSTED_LIBRARY_REFRESH_INTERVAL_MS,
+    val opdbExportText = loadHostedOrCachedPinballText(hostedOPDBExportPath, allowMissing = false)
+        ?: error("Missing OPDB export")
+    val rulesheetAssetsText = loadHostedOrCachedPinballText(hostedRulesheetAssetsPath, allowMissing = true)
+    val videoAssetsText = loadHostedOrCachedPinballText(hostedVideoAssetsPath, allowMissing = true)
+    val playfieldAssetsText = loadHostedOrCachedPinballText(hostedPlayfieldAssetsPath, allowMissing = true)
+    val gameinfoAssetsText = loadHostedOrCachedPinballText(hostedGameinfoAssetsPath, allowMissing = true)
+    val venueLayoutAssetsText = loadHostedOrCachedPinballText(hostedVenueLayoutAssetsPath, allowMissing = true)
+
+    return buildCAFLibraryExtraction(
+        context = context,
+        opdbExportRaw = opdbExportText,
+        rulesheetAssetsRaw = rulesheetAssetsText,
+        videoAssetsRaw = videoAssetsText,
+        playfieldAssetsRaw = playfieldAssetsText,
+        gameinfoAssetsRaw = gameinfoAssetsText,
+        venueLayoutAssetsRaw = venueLayoutAssetsText,
+        filterBySourceState = filterBySourceState,
     )
-    val opdbCached = PinballDataCache.loadText(
-        url = OPDB_CATALOG_URL,
-        allowMissing = true,
-        maxCacheAgeMs = HOSTED_LIBRARY_REFRESH_INTERVAL_MS,
-    )
-    val libraryText = libraryCached.text ?: error("Missing library payload")
-    val opdbText = opdbCached.text?.takeIf { it.isNotBlank() }
-    val overridesText = loadHostedLibraryOverridesText()
-    val venueMetadataText = loadHostedVenueMetadataText()
-    return if (opdbText != null) {
-        decodeMergedLibraryPayloadWithState(
-            context = context,
-            libraryRaw = libraryText,
-            opdbCatalogRaw = opdbText,
-            publicOverridesRaw = overridesText,
-            venueMetadataRaw = venueMetadataText,
-            filterBySourceState = filterBySourceState,
+}
+
+internal suspend fun warmHostedCAFData() {
+    HOSTED_LIBRARY_PATHS.forEach { path ->
+        loadHostedOrCachedPinballText(
+            path = path,
+            allowMissing = path != hostedOPDBExportPath,
         )
-    } else {
-        val bundledOpdbText = loadBundledPinballText(context, "/pinball/data/opdb_catalog_v1.json")
-        if (!bundledOpdbText.isNullOrBlank()) {
-            decodeMergedLibraryPayloadWithState(
-                context = context,
-                libraryRaw = libraryText,
-                opdbCatalogRaw = bundledOpdbText,
-                publicOverridesRaw = overridesText ?: loadBundledPinballText(context, hostedLibraryOverridesPath),
-                venueMetadataRaw = venueMetadataText ?: loadBundledPinballText(context, hostedVenueMetadataOverlaysPath),
-                filterBySourceState = filterBySourceState,
-            )
-        } else {
-            LibrarySeedDatabase.loadExtraction(context, filterBySourceState)
-        }
     }
 }
 
-internal suspend fun warmHostedLibraryOverrides() {
-    loadHostedLibraryOverridesText()
+private suspend fun loadHostedOrCachedPinballText(
+    path: String,
+    allowMissing: Boolean,
+    maxCacheAgeMs: Long = HOSTED_LIBRARY_REFRESH_INTERVAL_MS,
+): String? {
+    val cached = PinballDataCache.loadText(
+        url = path,
+        allowMissing = allowMissing,
+        maxCacheAgeMs = maxCacheAgeMs,
+    )
+    return cached.text?.takeIf { it.isNotBlank() }
 }
 
-private suspend fun loadHostedLibraryOverridesText(): String? {
-    return runCatching {
-        if (PinballDataCache.hasRemoteUpdate(hostedLibraryOverridesPath)) {
-            PinballDataCache.forceRefreshText(
-                url = hostedLibraryOverridesPath,
-                allowMissing = true,
-            ).text
-        } else {
-            PinballDataCache.loadText(
-                url = hostedLibraryOverridesPath,
-                allowMissing = true,
-            ).text
-        }
-    }.recoverCatching {
-        PinballDataCache.loadText(
-            url = hostedLibraryOverridesPath,
-            allowMissing = true,
-        ).text
-    }.getOrNull()?.takeIf { it.isNotBlank() }
-}
-
-private suspend fun loadHostedVenueMetadataText(): String? {
-    return runCatching {
-        if (PinballDataCache.hasRemoteUpdate(hostedVenueMetadataOverlaysPath)) {
-            PinballDataCache.forceRefreshText(
-                url = hostedVenueMetadataOverlaysPath,
-                allowMissing = true,
-            ).text
-        } else {
-            PinballDataCache.loadText(
-                url = hostedVenueMetadataOverlaysPath,
-                allowMissing = true,
-            ).text
-        }
-    }.recoverCatching {
-        PinballDataCache.loadText(
-            url = hostedVenueMetadataOverlaysPath,
-            allowMissing = true,
-        ).text
-    }.getOrNull()?.takeIf { it.isNotBlank() }
-}
-
-internal fun loadBundledLibraryExtraction(
-    context: Context,
-    filterBySourceState: Boolean = true,
-): LegacyCatalogExtraction? {
-    val libraryText = loadBundledPinballText(context, hostedLibraryPath) ?: return null
-    val opdbText = loadBundledPinballText(context, hostedOPDBCatalogPath)
-    val overridesText = loadBundledPinballText(context, hostedLibraryOverridesPath)
-    return if (!opdbText.isNullOrBlank()) {
-        decodeMergedLibraryPayloadWithState(
-            context = context,
-            libraryRaw = libraryText,
-            opdbCatalogRaw = opdbText,
-            publicOverridesRaw = overridesText,
-            venueMetadataRaw = loadBundledPinballText(context, hostedVenueMetadataOverlaysPath),
-            filterBySourceState = filterBySourceState,
-        )
-    } else {
-        decodeLibraryPayloadWithState(context, libraryText, filterBySourceState)
-    }
-}
-
-internal fun loadBundledPinballText(context: Context, path: String): String? {
-    val normalizedPath = if (path.startsWith("/")) path else "/$path"
-    if (!normalizedPath.startsWith("/pinball/")) return null
-    val assetPath = "starter-pack$normalizedPath"
-    return runCatching {
-        context.assets.open(assetPath).bufferedReader().use { it.readText() }
-    }.getOrNull()
-}
-
+@Suppress("UNUSED_PARAMETER")
 internal suspend fun loadHostedCatalogManufacturerOptions(context: Context): List<CatalogManufacturerOption> {
-    val hostedOpdb = runCatching {
-        PinballDataCache.loadText(url = OPDB_CATALOG_URL, allowMissing = true)
-    }.getOrNull()
-    val hostedText = hostedOpdb?.text?.takeIf { it.isNotBlank() }
-    if (hostedText != null) {
-        return decodeCatalogManufacturerOptions(hostedText)
-    }
-
-    return runCatching { LibrarySeedDatabase.loadManufacturerOptions(context) }
-        .recoverCatching {
-            val bundledText = loadBundledPinballText(context, hostedOPDBCatalogPath)
-            if (!bundledText.isNullOrBlank()) {
-                decodeCatalogManufacturerOptions(bundledText)
-            } else {
-                emptyList()
-            }
-        }
-        .getOrElse { emptyList() }
+    val hostedText = loadHostedOrCachedPinballText(
+        path = hostedOPDBExportPath,
+        allowMissing = true,
+    ) ?: return emptyList()
+    return decodeCatalogManufacturerOptionsFromOPDBExport(hostedText)
 }

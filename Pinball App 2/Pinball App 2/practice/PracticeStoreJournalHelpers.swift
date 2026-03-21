@@ -1,6 +1,20 @@
 import Foundation
 
+struct CachedPracticeJournalPayload {
+    let libraryActivityRevision: UInt
+    let items: [PracticeJournalItem]
+    let sections: [PracticeJournalDaySection]
+}
+
 extension PracticeStore {
+    func journalItems(filter: JournalFilter) -> [PracticeJournalItem] {
+        cachedJournalPayload(for: filter).items
+    }
+
+    func journalSections(filter: JournalFilter) -> [PracticeJournalDaySection] {
+        cachedJournalPayload(for: filter).sections
+    }
+
     func scoreSummary(for gameID: String) -> ScoreSummary? {
         let gameID = canonicalPracticeGameID(gameID)
         let values = state.scoreEntries
@@ -170,6 +184,120 @@ extension PracticeStore {
         formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = 0
         return formatter.string(from: NSNumber(value: score)) ?? String(Int(score))
+    }
+
+    private func cachedJournalPayload(for filter: JournalFilter) -> CachedPracticeJournalPayload {
+        let libraryActivityRevision = LibraryActivityLog.cacheRevision
+        if let cached = cachedJournalPayloads[filter],
+           cached.libraryActivityRevision == libraryActivityRevision {
+            return cached
+        }
+
+        let journalEntries = state.journalEntries.sorted { $0.timestamp > $1.timestamp }
+        let filteredJournalEntries = filterJournalEntries(journalEntries, filter: filter)
+        let filteredLibraryEvents = filterLibraryActivities(LibraryActivityLog.events(), filter: filter)
+
+        let appItems = filteredJournalEntries.map { entry in
+            PracticeJournalItem(
+                id: "app-\(entry.id.uuidString)",
+                gameID: entry.gameID,
+                summary: journalSummary(for: entry),
+                icon: practiceJournalActionIcon(entry.action),
+                timestamp: entry.timestamp,
+                journalEntry: entry
+            )
+        }
+        let libraryItems = filteredLibraryEvents.map { event in
+            PracticeJournalItem(
+                id: "library-\(event.id.uuidString)",
+                gameID: event.gameID,
+                summary: practiceLibraryActivitySummary(event),
+                icon: practiceLibraryActivityIcon(event.kind),
+                timestamp: event.timestamp,
+                journalEntry: nil
+            )
+        }
+        let items = (appItems + libraryItems).sorted(by: { $0.timestamp > $1.timestamp })
+        let sections = groupedPracticeJournalSections(items)
+        let payload = CachedPracticeJournalPayload(
+            libraryActivityRevision: libraryActivityRevision,
+            items: items,
+            sections: sections
+        )
+        cachedJournalPayloads[filter] = payload
+        return payload
+    }
+}
+
+private func filterJournalEntries(_ entries: [JournalEntry], filter: JournalFilter) -> [JournalEntry] {
+    switch filter {
+    case .all:
+        return entries
+    case .study:
+        return entries.filter { [.rulesheetRead, .tutorialWatch, .gameplayWatch, .playfieldViewed].contains($0.action) }
+    case .practice:
+        return entries.filter { $0.action == .practiceSession }
+    case .score:
+        return entries.filter { $0.action == .scoreLogged }
+    case .notes:
+        return entries.filter { $0.action == .noteAdded }
+    case .league:
+        return entries.filter { entry in
+            entry.action == .scoreLogged && (entry.scoreContext == .league || (entry.note ?? "").localizedCaseInsensitiveContains("league import"))
+        }
+    }
+}
+
+private func filterLibraryActivities(_ events: [LibraryActivityEvent], filter: JournalFilter) -> [LibraryActivityEvent] {
+    switch filter {
+    case .all:
+        return events
+    case .study:
+        return events.filter { [.openRulesheet, .openPlayfield, .tapVideo].contains($0.kind) }
+    case .practice, .score, .notes, .league:
+        return []
+    }
+}
+
+private func practiceJournalActionIcon(_ action: JournalActionType) -> String {
+    switch action {
+    case .rulesheetRead: return "book"
+    case .tutorialWatch: return "play.rectangle"
+    case .gameplayWatch: return "video"
+    case .playfieldViewed: return "photo"
+    case .gameBrowse: return "gamecontroller"
+    case .practiceSession: return "figure.run"
+    case .scoreLogged: return "number.circle"
+    case .noteAdded: return "note.text"
+    }
+}
+
+private func practiceLibraryActivityIcon(_ kind: LibraryActivityKind) -> String {
+    switch kind {
+    case .browseGame:
+        return "rectangle.grid.2x2"
+    case .openRulesheet:
+        return "book"
+    case .openPlayfield:
+        return "photo"
+    case .tapVideo:
+        return "play.rectangle"
+    }
+}
+
+private func practiceLibraryActivitySummary(_ event: LibraryActivityEvent) -> String {
+    switch event.kind {
+    case .browseGame:
+        return "Browsed \(event.gameName) in Library"
+    case .openRulesheet:
+        return "Opened \(event.gameName) rulesheet from Library"
+    case .openPlayfield:
+        return "Opened \(event.gameName) playfield image from Library"
+    case .tapVideo:
+        if let detail = event.detail, !detail.isEmpty {
+            return "Opened \(detail) video for \(event.gameName) in Library"
+        }
+        return "Opened video for \(event.gameName) in Library"
     }
 }
 

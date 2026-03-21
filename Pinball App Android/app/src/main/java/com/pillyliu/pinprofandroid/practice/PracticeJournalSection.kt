@@ -1,6 +1,5 @@
 package com.pillyliu.pinprofandroid.practice
 
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,12 +25,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.LibraryActivityKind
@@ -61,10 +58,10 @@ internal fun PracticeJournalSection(
     modifier: Modifier = Modifier,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val libraryActivityVersion = LibraryActivityLog.changeToken
     var editingDraft by remember { mutableStateOf<PracticeJournalEditDraft?>(null) }
     var pendingDeleteRows by remember { mutableStateOf<List<JournalEntry>>(emptyList()) }
     var editValidation by remember { mutableStateOf<String?>(null) }
-    var revealedRowId by rememberSaveable { mutableStateOf<String?>(null) }
 
     val filterWeights = remember {
         mapOf(
@@ -91,52 +88,60 @@ internal fun PracticeJournalSection(
         }
     }
 
-    CardContainer(
-        modifier = modifier
-            .fillMaxWidth()
-            .pointerInput(revealedRowId) {
-                detectTapGestures(
-                    onTap = {
-                        if (revealedRowId != null) {
-                            revealedRowId = null
-                        }
-                    }
+    CardContainer(modifier = modifier.fillMaxWidth()) {
+        val appRows = remember(store.journal, journalFilter) {
+            store.journalItems(journalFilter).map { row ->
+                JournalTimelineRow(
+                    id = "app-${row.id}",
+                    gameSlug = row.gameSlug,
+                    summary = row.summary,
+                    timestampMs = row.timestampMs,
+                    journalEntry = row,
+                    isEditable = store.canEditJournalEntry(row),
                 )
             }
-    ) {
-        val appRows = store.journalItems(journalFilter).map { row ->
-            JournalTimelineRow(
-                id = "app-${row.id}",
-                gameSlug = row.gameSlug,
-                summary = row.summary,
-                timestampMs = row.timestampMs,
-                journalEntry = row,
-                isEditable = store.canEditJournalEntry(row),
-            )
         }
-        val libraryRows = when (journalFilter) {
-            JournalFilter.All -> LibraryActivityLog.events(context)
-            JournalFilter.Study -> LibraryActivityLog.events(context).filter {
-                it.kind == LibraryActivityKind.OpenRulesheet ||
-                    it.kind == LibraryActivityKind.OpenPlayfield ||
-                    it.kind == LibraryActivityKind.TapVideo
+        val libraryEvents = remember(context, journalFilter, libraryActivityVersion) {
+            when (journalFilter) {
+                JournalFilter.All -> LibraryActivityLog.events(context)
+                JournalFilter.Study -> LibraryActivityLog.events(context).filter {
+                    it.kind == LibraryActivityKind.OpenRulesheet ||
+                        it.kind == LibraryActivityKind.OpenPlayfield ||
+                        it.kind == LibraryActivityKind.TapVideo
+                }
+                JournalFilter.Practice, JournalFilter.Scores, JournalFilter.Notes, JournalFilter.League -> emptyList()
             }
-            JournalFilter.Practice, JournalFilter.Scores, JournalFilter.Notes, JournalFilter.League -> emptyList()
-        }.map { event ->
-            JournalTimelineRow(
-                id = "library-${event.id}",
-                gameSlug = event.gameSlug,
-                summary = libraryActivitySummary(event),
-                timestampMs = event.timestampMs,
-                journalEntry = null,
-                isEditable = false,
-            )
         }
-
-        val rows = (appRows + libraryRows).sortedByDescending { it.timestampMs }
-        val selectedEditableEntries = rows
-            .filter { it.id in selectedRowIds && it.isEditable }
-            .mapNotNull { it.journalEntry }
+        val libraryRows = remember(libraryEvents) {
+            libraryEvents.map { event ->
+                JournalTimelineRow(
+                    id = "library-${event.id}",
+                    gameSlug = event.gameSlug,
+                    summary = libraryActivitySummary(event),
+                    timestampMs = event.timestampMs,
+                    journalEntry = null,
+                    isEditable = false,
+                )
+            }
+        }
+        val rows = remember(appRows, libraryRows) {
+            (appRows + libraryRows).sortedByDescending { it.timestampMs }
+        }
+        val selectedEditableEntries = remember(rows, selectedRowIds) {
+            rows
+                .filter { it.id in selectedRowIds && it.isEditable }
+                .mapNotNull { it.journalEntry }
+        }
+        val groupedRows = remember(rows) {
+            rows.groupBy {
+                Instant.ofEpochMilli(it.timestampMs)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+            }
+        }
+        val days = remember(groupedRows) {
+            groupedRows.keys.sortedDescending()
+        }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (isSelectionMode) {
@@ -171,12 +176,6 @@ internal fun PracticeJournalSection(
             if (rows.isEmpty()) {
                 AppPanelEmptyCard(text = "No matching journal events.")
             } else {
-                val grouped = rows.groupBy {
-                    Instant.ofEpochMilli(it.timestampMs)
-                        .atZone(ZoneId.systemDefault())
-                        .toLocalDate()
-                }
-                val days = grouped.keys.sortedDescending()
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -189,11 +188,9 @@ internal fun PracticeJournalSection(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        items(grouped[day].orEmpty(), key = { it.id }) { row ->
+                        items(groupedRows[day].orEmpty(), key = { it.id }) { row ->
                             JournalRow(
                                 row = row,
-                                revealedRowId = revealedRowId,
-                                onRevealedRowIdChange = { revealedRowId = it },
                                 isSelectionMode = isSelectionMode,
                                 isSelected = row.id in selectedRowIds,
                                 onToggleSelected = {
@@ -204,12 +201,10 @@ internal fun PracticeJournalSection(
                                 },
                                 onOpenGame = onOpenGame,
                                 onEdit = { entry ->
-                                    revealedRowId = null
                                     editingDraft = store.journalEditDraft(entry)
                                     editValidation = null
                                 },
                                 onDelete = { entry ->
-                                    revealedRowId = null
                                     pendingDeleteRows = listOf(entry)
                                 },
                             )

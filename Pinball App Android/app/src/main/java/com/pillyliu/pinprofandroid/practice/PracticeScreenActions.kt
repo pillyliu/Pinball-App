@@ -35,7 +35,9 @@ internal class PracticeScreenActions(
         if (uiState.navigation.selectedGameSlug != null &&
             findGameByPracticeLookupKey(lookupPool, uiState.navigation.selectedGameSlug) == null
         ) {
-            uiState.navigation.selectedGameSlug = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey
+            uiState.navigation.selectedGameSlug = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true)
+                .firstOrNull()
+                ?.let { preferredPracticeSelectionKey(it, store.defaultPracticeSourceId, store.librarySources) }
         }
     }
 

@@ -1819,6 +1819,10 @@ enum RemoteRulesheetLoader {
         }
     }
 
+    static func clearCache() async throws {
+        try await cache.clear()
+    }
+
     private static func loadTiltForums(from source: RulesheetRemoteSource) async throws -> RulesheetRenderContent {
         let apiURL = tiltForumsAPIURL(from: source.url)
         let fetched = try await fetchCached(url: apiURL)
@@ -2150,6 +2154,12 @@ actor RemoteRulesheetCache {
         try data.write(to: targetURL, options: .atomic)
     }
 
+    fileprivate func clear() throws {
+        let cacheDirectoryURL = try self.cacheDirectoryURL()
+        guard fileManager.fileExists(atPath: cacheDirectoryURL.path) else { return }
+        try fileManager.removeItem(at: cacheDirectoryURL)
+    }
+
     private func loadRaw(url: URL) throws -> RemoteCachedDocument? {
         let targetURL = try cacheFileURL(for: url)
         guard fileManager.fileExists(atPath: targetURL.path) else { return nil }
@@ -2163,16 +2173,19 @@ actor RemoteRulesheetCache {
     }
 
     private func cacheFileURL(for url: URL) throws -> URL {
-        let base = try fileManager.url(
+        let key = Insecure.SHA1.hash(data: Data(url.absoluteString.utf8)).map { String(format: "%02x", $0) }.joined()
+        return try cacheDirectoryURL()
+            .appendingPathComponent("\(key).json")
+    }
+
+    private func cacheDirectoryURL() throws -> URL {
+        try fileManager.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,
             appropriateFor: nil,
             create: true
         )
-        let key = Insecure.SHA1.hash(data: Data(url.absoluteString.utf8)).map { String(format: "%02x", $0) }.joined()
-        return base
-            .appendingPathComponent("remote-rulesheet-cache-v1", isDirectory: true)
-            .appendingPathComponent("\(key).json")
+        .appendingPathComponent("remote-rulesheet-cache-v1", isDirectory: true)
     }
 
     private func serialize(_ cached: RemoteCachedDocument) throws -> Data {

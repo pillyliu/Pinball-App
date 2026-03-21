@@ -37,6 +37,13 @@ extension PracticeScreen {
                     }
                     .sheet(item: presentationContext.presentedSheet) { sheet in
                         practiceSheetContent(for: sheet, context: presentationContext)
+                    }
+                    .overlay {
+                        if uiState.isNavigationInteractionShieldActive {
+                            Rectangle()
+                                .fill(Color.black.opacity(0.001))
+                                .ignoresSafeArea()
+                        }
                     },
                 context: presentationContext
             )

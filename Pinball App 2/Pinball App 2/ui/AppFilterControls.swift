@@ -722,19 +722,6 @@ struct AppSuccessBanner: View {
     }
 }
 
-struct AppSwipeRevealActionButton: View {
-    let systemName: String
-    let foreground: Color
-
-    var body: some View {
-        Image(systemName: systemName)
-            .font(.system(size: 15, weight: .semibold))
-            .foregroundStyle(foreground)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(foreground.opacity(0.16))
-    }
-}
-
 extension View {
     func appSegmentedControlStyle() -> some View {
         self

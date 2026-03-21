@@ -101,6 +101,7 @@ final class GameRoomStore: ObservableObject {
     func addOwnedMachine(from game: GameRoomCatalogGame, displayVariant: String? = nil) {
         let machine = OwnedMachine(
             catalogGameID: game.catalogGameID,
+            opdbID: game.opdbID,
             canonicalPracticeIdentity: game.canonicalPracticeIdentity,
             displayTitle: game.displayTitle,
             displayVariant: normalizedOptionalString(displayVariant) ?? game.displayVariant,
@@ -117,7 +118,12 @@ final class GameRoomStore: ObservableObject {
         groupNumber: Int?,
         position: Int?,
         status: OwnedMachineStatus,
+        opdbID: String?,
+        canonicalPracticeIdentity: String? = nil,
+        displayTitle: String? = nil,
         displayVariant: String?,
+        manufacturer: String? = nil,
+        year: Int? = nil,
         purchaseSource: String?,
         serialNumber: String?,
         ownershipNotes: String?
@@ -128,7 +134,20 @@ final class GameRoomStore: ObservableObject {
         state.ownedMachines[index].groupNumber = groupNumber
         state.ownedMachines[index].position = position
         state.ownedMachines[index].status = status
+        state.ownedMachines[index].opdbID = normalizedOptionalString(opdbID)
+        if let canonicalPracticeIdentity = normalizedOptionalString(canonicalPracticeIdentity) {
+            state.ownedMachines[index].canonicalPracticeIdentity = canonicalPracticeIdentity
+        }
+        if let displayTitle = normalizedOptionalString(displayTitle) {
+            state.ownedMachines[index].displayTitle = displayTitle
+        }
         state.ownedMachines[index].displayVariant = normalizedOptionalString(displayVariant)
+        if let manufacturer = normalizedOptionalString(manufacturer) {
+            state.ownedMachines[index].manufacturer = manufacturer
+        }
+        if let year {
+            state.ownedMachines[index].year = year
+        }
         state.ownedMachines[index].purchaseSource = normalizedOptionalString(purchaseSource)
         state.ownedMachines[index].serialNumber = normalizedOptionalString(serialNumber)
         state.ownedMachines[index].ownershipNotes = normalizedOptionalString(ownershipNotes)
@@ -372,6 +391,7 @@ final class GameRoomStore: ObservableObject {
         let now = Date()
         let machine = OwnedMachine(
             catalogGameID: game.catalogGameID,
+            opdbID: game.opdbID,
             canonicalPracticeIdentity: game.canonicalPracticeIdentity,
             displayTitle: game.displayTitle,
             displayVariant: normalizedOptionalString(rawVariant) ?? game.displayVariant,
@@ -402,6 +422,36 @@ final class GameRoomStore: ObservableObject {
         state.importRecords.append(importRecord)
         saveAndRecompute()
         return machine.id
+    }
+
+    func migrateOwnedMachineOPDBIDs(using catalogLoader: GameRoomCatalogLoader) {
+        var didChange = false
+        for index in state.ownedMachines.indices {
+            guard let normalizedGame = catalogLoader.normalizedCatalogGame(for: state.ownedMachines[index]) else {
+                continue
+            }
+            let normalizedOPDBID = normalizedGame.opdbID.trimmingCharacters(in: .whitespacesAndNewlines)
+            let currentOPDBID = state.ownedMachines[index].opdbID?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let currentTitle = state.ownedMachines[index].displayTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            let currentVariant = state.ownedMachines[index].displayVariant?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let normalizedTitle = normalizedGame.displayTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            let normalizedVariant = normalizedOptionalString(normalizedGame.displayVariant)
+
+            guard currentOPDBID != normalizedOPDBID ||
+                    currentTitle != normalizedTitle ||
+                    currentVariant != normalizedVariant else {
+                continue
+            }
+
+            state.ownedMachines[index].opdbID = normalizedOPDBID
+            state.ownedMachines[index].displayTitle = normalizedTitle
+            state.ownedMachines[index].displayVariant = normalizedVariant
+            state.ownedMachines[index].updatedAt = Date()
+            didChange = true
+        }
+        if didChange {
+            saveAndRecompute()
+        }
     }
 
     private func sortMachines(lhs: OwnedMachine, rhs: OwnedMachine) -> Bool {

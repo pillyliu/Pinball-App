@@ -78,6 +78,9 @@ internal fun SettingsHomeContent(
     refreshingHostedData: Boolean,
     hostedDataStatusMessage: String?,
     hostedDataStatusIsError: Boolean,
+    clearingCache: Boolean,
+    cacheStatusMessage: String?,
+    cacheStatusIsError: Boolean,
     onOpenAddManufacturer: () -> Unit,
     onOpenAddVenue: () -> Unit,
     onOpenAddTournament: () -> Unit,
@@ -86,6 +89,7 @@ internal fun SettingsHomeContent(
     onRefreshSource: (ImportedSourceRecord) -> Unit,
     onDeleteSource: (String) -> Unit,
     onRefreshHostedData: () -> Unit,
+    onClearCache: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -126,7 +130,11 @@ internal fun SettingsHomeContent(
                 refreshingHostedData = refreshingHostedData,
                 hostedDataStatusMessage = hostedDataStatusMessage,
                 hostedDataStatusIsError = hostedDataStatusIsError,
+                clearingCache = clearingCache,
+                cacheStatusMessage = cacheStatusMessage,
+                cacheStatusIsError = cacheStatusIsError,
                 onRefreshHostedData = onRefreshHostedData,
+                onClearCache = onClearCache,
             )
         }
 
@@ -260,19 +268,23 @@ private fun SettingsHostedRefreshSection(
     refreshingHostedData: Boolean,
     hostedDataStatusMessage: String?,
     hostedDataStatusIsError: Boolean,
+    clearingCache: Boolean,
+    cacheStatusMessage: String?,
+    cacheStatusIsError: Boolean,
     onRefreshHostedData: () -> Unit,
+    onClearCache: () -> Unit,
 ) {
     CardContainer {
         SectionTitle("Pinball Data")
         Text(
-            "Force-refresh the hosted Library and OPDB catalog from pillyliu.com.",
+            "Force-refresh the hosted OPDB export, CAF asset indexes, league files, redacted players list, and GameRoom group map from pillyliu.com.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         AppPrimaryButton(
             onClick = onRefreshHostedData,
             modifier = Modifier.fillMaxWidth(),
-            enabled = !refreshingHostedData,
+            enabled = !refreshingHostedData && !clearingCache,
         ) {
             Text(if (refreshingHostedData) "Refreshing Pinball Data..." else "Refresh Pinball Data")
         }
@@ -288,6 +300,35 @@ private fun SettingsHostedRefreshSection(
             refreshingHostedData -> {
                 AppInlineTaskStatus(
                     text = "Refreshing hosted pinball data…",
+                    showsProgress = true,
+                )
+            }
+        }
+
+        Text(
+            "Clear Cache removes downloaded pinball data, cached images, and cached web rulesheet data. It does not remove settings, practice history, or GameRoom data.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        AppSecondaryButton(
+            onClick = onClearCache,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !refreshingHostedData && !clearingCache,
+        ) {
+            Text(if (clearingCache) "Clearing Cache..." else "Clear Cache")
+        }
+        when {
+            cacheStatusMessage != null -> {
+                AppInlineTaskStatus(
+                    text = cacheStatusMessage,
+                    showsProgress = clearingCache,
+                    isError = cacheStatusIsError,
+                )
+            }
+
+            clearingCache -> {
+                AppInlineTaskStatus(
+                    text = "Clearing cached data…",
                     showsProgress = true,
                 )
             }

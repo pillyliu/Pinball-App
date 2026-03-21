@@ -14,15 +14,13 @@ struct PracticeGroupDashboardSectionView: View {
     let onDeleteGroup: (UUID) -> Void
     let onUpdateGroupDate: (UUID, GroupEditorDateField, Date?) -> Void
 
-    let dashboardScoreForGroup: (CustomGameGroup) -> GroupDashboardScore
-    let recommendedGameForGroup: (CustomGameGroup) -> PinballGame?
-    let groupProgressForGroup: (CustomGameGroup) -> [GroupProgressSnapshot]
+    let loadDashboardDetailForGroup: (CustomGameGroup) -> GroupDashboardDetail
     let onOpenGame: (String) -> Void
     let onRemoveGameFromGroup: (String, UUID) -> Void
     @State private var inlineDateEditorGroupID: UUID?
     @State private var inlineDateEditorField: GroupEditorDateField?
     @State private var showArchivedGroups = false
-    @State private var revealedGroupID: UUID?
+    @State private var loadedDashboardDetail: GroupDashboardDetail?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -46,49 +44,55 @@ struct PracticeGroupDashboardSectionView: View {
                         }
                     }
 
-                    let score = dashboardScoreForGroup(group)
-                    HStack(spacing: 8) {
-                        AppMetricPill(label: "Completion", value: "\(score.completionAverage)%")
-                        AppMetricPill(label: "Stale", value: "\(score.staleGameCount)")
-                        AppMetricPill(label: "Variance Risk", value: "\(score.weakerGameCount)")
-                    }
+                    if let detail = loadedDashboardDetail {
+                        let score = detail.score
+                        HStack(spacing: 8) {
+                            AppMetricPill(label: "Completion", value: "\(score.completionAverage)%")
+                            AppMetricPill(label: "Stale", value: "\(score.staleGameCount)")
+                            AppMetricPill(label: "Variance Risk", value: "\(score.weakerGameCount)")
+                        }
 
-                    let snapshots = groupProgressForGroup(group)
-                    if snapshots.isEmpty {
-                        AppPanelEmptyCard(text: "No games in this group yet.")
-                    } else {
-                        ForEach(snapshots) { snapshot in
-                            Button {
-                                onOpenGame(snapshot.game.canonicalPracticeKey)
-                            } label: {
-                                HStack(spacing: 10) {
-                                    GroupProgressWheel(taskProgress: snapshot.taskProgress)
-                                        .frame(width: 46, height: 46)
+                        if detail.snapshots.isEmpty {
+                            AppPanelEmptyCard(text: "No games in this group yet.")
+                        } else {
+                            ForEach(detail.snapshots) { snapshot in
+                                Button {
+                                    onOpenGame(snapshot.selectionGameID)
+                                } label: {
+                                    HStack(spacing: 10) {
+                                        GroupProgressWheel(taskProgress: snapshot.taskProgress)
+                                            .frame(width: 46, height: 46)
 
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(snapshot.game.name)
-                                            .font(.footnote.weight(.semibold))
-                                        Text(progressSummary(taskProgress: snapshot.taskProgress))
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(snapshot.game.name)
+                                                .font(.footnote.weight(.semibold))
+                                            Text(progressSummary(taskProgress: snapshot.taskProgress))
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
-
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    .matchedTransitionSource(id: snapshot.selectionGameID, in: gameTransition)
                                 }
-                                .matchedTransitionSource(id: snapshot.game.canonicalPracticeKey, in: gameTransition)
-                            }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    onRemoveGameFromGroup(snapshot.game.canonicalPracticeKey, group.id)
-                                } label: {
-                                    Label("Delete Game", systemImage: "trash")
+                                .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        onRemoveGameFromGroup(snapshot.selectionGameID, group.id)
+                                    } label: {
+                                        Label("Delete Game", systemImage: "trash")
+                                    }
                                 }
                             }
                         }
+                    } else {
+                        AppPanelStatusCard(
+                            text: "Loading group dashboard…",
+                            showsProgress: true
+                        )
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -98,15 +102,14 @@ struct PracticeGroupDashboardSectionView: View {
                 AppPanelEmptyCard(text: "Create or select a group to populate the dashboard.")
             }
         }
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                revealedGroupID = nil
-            }
-        )
+        .task(id: selectedGroupDashboardTaskKey) {
+            await loadSelectedGroupDashboardDetail()
+        }
     }
 
     private var groupListCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let filtered = filteredGroups()
+        return VStack(alignment: .leading, spacing: 10) {
             HStack {
                 AppSectionTitle(text: "Groups")
                 Picker("Group Filter", selection: $showArchivedGroups) {
@@ -125,15 +128,14 @@ struct PracticeGroupDashboardSectionView: View {
                     Image(systemName: "pencil")
                 }
                 .buttonStyle(AppCompactIconActionButtonStyle())
-                .disabled(selectedGroupID == nil || !filteredGroups().contains(where: { $0.id == selectedGroupID }))
+                .disabled(selectedGroupID == nil || !filtered.contains(where: { $0.id == selectedGroupID }))
             }
 
-            if filteredGroups().isEmpty {
+            if filtered.isEmpty {
                 Text(showArchivedGroups ? "No archived groups." : "No current groups.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                let filtered = filteredGroups()
                 VStack(spacing: 0) {
                     HStack {
                         Text("Name").frame(maxWidth: .infinity, alignment: .leading)
@@ -146,60 +148,63 @@ struct PracticeGroupDashboardSectionView: View {
                     .padding(.horizontal, 8)
                     .padding(.bottom, 4)
 
-                    ForEach(filtered) { group in
-                        SwipeableGroupListRow(
-                            group: group,
-                            selectedGroupID: selectedGroupID,
-                            revealedGroupID: $revealedGroupID,
-                            isStartDatePopoverPresented: Binding(
-                                get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .start },
-                                set: { isPresented in
-                                    if !isPresented {
-                                        inlineDateEditorGroupID = nil
-                                        inlineDateEditorField = nil
+                    List {
+                        ForEach(filtered) { group in
+                            SwipeableGroupListRow(
+                                group: group,
+                                selectedGroupID: selectedGroupID,
+                                isStartDatePopoverPresented: Binding(
+                                    get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .start },
+                                    set: { isPresented in
+                                        if !isPresented {
+                                            inlineDateEditorGroupID = nil
+                                            inlineDateEditorField = nil
+                                        }
                                     }
-                                }
-                            ),
-                            isEndDatePopoverPresented: Binding(
-                                get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .end },
-                                set: { isPresented in
-                                    if !isPresented {
-                                        inlineDateEditorGroupID = nil
-                                        inlineDateEditorField = nil
+                                ),
+                                isEndDatePopoverPresented: Binding(
+                                    get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .end },
+                                    set: { isPresented in
+                                        if !isPresented {
+                                            inlineDateEditorGroupID = nil
+                                            inlineDateEditorField = nil
+                                        }
                                     }
+                                ),
+                                onSelectGroup: onSelectGroup,
+                                onTogglePriority: onTogglePriority,
+                                onStartDateTap: {
+                                    inlineDateEditorGroupID = group.id
+                                    inlineDateEditorField = .start
+                                },
+                                onEndDateTap: {
+                                    inlineDateEditorGroupID = group.id
+                                    inlineDateEditorField = .end
+                                },
+                                onArchiveToggle: {
+                                    onSetGroupArchived(group.id, !group.isArchived)
+                                },
+                                onDelete: {
+                                    onDeleteGroup(group.id)
+                                },
+                                formattedDashboardDate: formattedDashboardDate,
+                                startDatePopoverContent: { availableHeight in
+                                    AnyView(popoverCalendar(for: group, field: .start, availableHeight: availableHeight))
+                                },
+                                endDatePopoverContent: { availableHeight in
+                                    AnyView(popoverCalendar(for: group, field: .end, availableHeight: availableHeight))
                                 }
-                            ),
-                            onSelectGroup: onSelectGroup,
-                            onTogglePriority: onTogglePriority,
-                            onStartDateTap: {
-                                inlineDateEditorGroupID = group.id
-                                inlineDateEditorField = .start
-                            },
-                            onEndDateTap: {
-                                inlineDateEditorGroupID = group.id
-                                inlineDateEditorField = .end
-                            },
-                            onArchiveToggle: {
-                                onSetGroupArchived(group.id, !group.isArchived)
-                            },
-                            onDelete: {
-                                onDeleteGroup(group.id)
-                            },
-                            formattedDashboardDate: formattedDashboardDate,
-                            startDatePopoverContent: { availableHeight in
-                                AnyView(popoverCalendar(for: group, field: .start, availableHeight: availableHeight))
-                            },
-                            endDatePopoverContent: { availableHeight in
-                                AnyView(popoverCalendar(for: group, field: .end, availableHeight: availableHeight))
-                            }
-                        )
+                            )
+                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                        }
                     }
+                    .frame(height: groupListHeight(for: filtered.count))
+                    .scrollDisabled(true)
+                    .appEmbeddedListStyle()
                 }
             }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            revealedGroupID = nil
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
@@ -262,6 +267,34 @@ struct PracticeGroupDashboardSectionView: View {
         allGroups.filter { showArchivedGroups ? $0.isArchived : !$0.isArchived }
     }
 
+    private var selectedGroupDashboardTaskKey: String {
+        guard let group = selectedGroup else { return "none" }
+        let gameIDs = group.gameIDs.joined(separator: "|")
+        let start = group.startDate?.timeIntervalSince1970 ?? -1
+        let end = group.endDate?.timeIntervalSince1970 ?? -1
+        return "\(group.id.uuidString)|\(gameIDs)|\(start)|\(end)"
+    }
+
+    @MainActor
+    private func loadSelectedGroupDashboardDetail() async {
+        guard let group = selectedGroup else {
+            loadedDashboardDetail = nil
+            return
+        }
+
+        loadedDashboardDetail = nil
+        let groupID = group.id
+        await Task.yield()
+        guard !Task.isCancelled else { return }
+        let detail = loadDashboardDetailForGroup(group)
+        guard !Task.isCancelled, selectedGroup?.id == groupID else { return }
+        loadedDashboardDetail = detail
+    }
+
+    private func groupListHeight(for count: Int) -> CGFloat {
+        CGFloat(count) * 36
+    }
+
     private static let shortDashboardDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -311,7 +344,6 @@ struct PracticeGroupDashboardSectionView: View {
 private struct SwipeableGroupListRow: View {
     let group: CustomGameGroup
     let selectedGroupID: UUID?
-    @Binding var revealedGroupID: UUID?
     let isStartDatePopoverPresented: Binding<Bool>
     let isEndDatePopoverPresented: Binding<Bool>
     let onSelectGroup: (UUID) -> Void
@@ -324,138 +356,92 @@ private struct SwipeableGroupListRow: View {
     let startDatePopoverContent: (CGFloat) -> AnyView
     let endDatePopoverContent: (CGFloat) -> AnyView
 
-    @State private var offsetX: CGFloat = 0
-    @State private var dragStartX: CGFloat = 0
-    @State private var isDragging = false
-    private let actionWidth: CGFloat = 116
-
     var body: some View {
-        ZStack(alignment: .trailing) {
-            HStack(spacing: 0) {
-                Button(action: {
-                    onArchiveToggle()
-                    revealedGroupID = nil
-                    withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
-                }) {
-                    AppSwipeRevealActionButton(
-                        systemName: group.isArchived ? "arrow.uturn.left.circle" : "archivebox",
-                        foreground: AppTheme.brandGold
+        HStack {
+            Button {
+                onSelectGroup(group.id)
+            } label: {
+                Text(group.name)
+                    .font(.footnote)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(
+                        selectedGroupID == group.id ? Color.white.opacity(0.18) : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                     )
-                }
-                .buttonStyle(.plain)
-
-                Button(action: {
-                    onDelete()
-                    revealedGroupID = nil
-                    withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
-                }) {
-                    AppSwipeRevealActionButton(
-                        systemName: "trash",
-                        foreground: .red
-                    )
-                }
-                .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(width: actionWidth, height: 34)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .opacity(max(0, min(1, Double((-offsetX / actionWidth)))))
+            .buttonStyle(.plain)
 
-            HStack {
-                Button {
-                    onSelectGroup(group.id)
-                    revealedGroupID = nil
-                    withAnimation(.easeOut(duration: 0.18)) { offsetX = 0 }
-                } label: {
-                    Text(group.name)
-                        .font(.footnote)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
-                        .background(
-                            selectedGroupID == group.id ? Color.white.opacity(0.18) : Color.clear,
-                            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        )
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    onTogglePriority(group.id, !group.isPriority)
-                } label: {
-                    Image(systemName: group.isPriority ? "checkmark.square.fill" : "square")
-                        .foregroundStyle(group.isPriority ? .orange : .secondary)
-                }
-                .buttonStyle(.plain)
-                .frame(width: 54, alignment: .center)
-
-                Button(action: onStartDateTap) {
-                    Text(formattedDashboardDate(group.startDate))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.plain)
-                .frame(width: 78, alignment: .center)
-                .contentShape(Rectangle())
-                .practiceAdaptivePopover(
-                    isPresented: isStartDatePopoverPresented,
-                    preferredHeight: 420
-                ) { availableHeight in
-                    startDatePopoverContent(availableHeight)
-                }
-
-                Button(action: onEndDateTap) {
-                    Text(formattedDashboardDate(group.endDate))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.plain)
-                .frame(width: 78, alignment: .center)
-                .contentShape(Rectangle())
-                .practiceAdaptivePopover(
-                    isPresented: isEndDatePopoverPresented,
-                    preferredHeight: 420
-                ) { availableHeight in
-                    endDatePopoverContent(availableHeight)
-                }
+            Button {
+                onTogglePriority(group.id, !group.isPriority)
+            } label: {
+                Image(systemName: group.isPriority ? "checkmark.square.fill" : "square")
+                    .foregroundStyle(group.isPriority ? .orange : .secondary)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 8)
-            .frame(height: 34)
-            .background(AppTheme.panel, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(AppTheme.border.opacity(0.6), lineWidth: 1)
-            )
-            .offset(x: offsetX)
-            .highPriorityGesture(
-                DragGesture(minimumDistance: 12, coordinateSpace: .local)
-                    .onChanged { value in
-                        if !isDragging {
-                            dragStartX = offsetX
-                            isDragging = true
-                        }
-                        let proposed = dragStartX + value.translation.width
-                        offsetX = min(0, max(-actionWidth, proposed))
-                    }
-                    .onEnded { _ in
-                        isDragging = false
-                        withAnimation(.easeOut(duration: 0.18)) {
-                            let shouldReveal = offsetX < (-actionWidth * 0.4)
-                            offsetX = shouldReveal ? -actionWidth : 0
-                            revealedGroupID = shouldReveal ? group.id : nil
-                        }
-                    }
-            )
+            .buttonStyle(.plain)
+            .frame(width: 54, alignment: .center)
+
+            Button(action: onStartDateTap) {
+                Text(formattedDashboardDate(group.startDate))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+            .frame(width: 78, alignment: .center)
+            .contentShape(Rectangle())
+            .practiceAdaptivePopover(
+                isPresented: isStartDatePopoverPresented,
+                preferredHeight: 420
+            ) { availableHeight in
+                startDatePopoverContent(availableHeight)
+            }
+
+            Button(action: onEndDateTap) {
+                Text(formattedDashboardDate(group.endDate))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+            .frame(width: 78, alignment: .center)
+            .contentShape(Rectangle())
+            .practiceAdaptivePopover(
+                isPresented: isEndDatePopoverPresented,
+                preferredHeight: 420
+            ) { availableHeight in
+                endDatePopoverContent(availableHeight)
+            }
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .onChange(of: revealedGroupID) { _, newValue in
-            guard newValue != group.id, offsetX != 0 else { return }
-            withAnimation(.easeOut(duration: 0.18)) {
-                offsetX = 0
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 8)
+        .frame(height: 34)
+        .background(AppTheme.panel, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(AppTheme.border.opacity(0.6), lineWidth: 1)
+        )
+        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button {
+                onDelete()
+            } label: {
+                Label("Delete", systemImage: "trash")
             }
+            .tint(.red)
+
+            Button {
+                onArchiveToggle()
+            } label: {
+                Label(group.isArchived ? "Restore" : "Archive", systemImage: group.isArchived ? "arrow.uturn.left.circle" : "archivebox")
+            }
+            .tint(AppTheme.brandGold)
         }
     }
 }

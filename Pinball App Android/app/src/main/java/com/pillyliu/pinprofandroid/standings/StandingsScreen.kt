@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -175,7 +176,7 @@ fun StandingsScreen(
             }
 
             CardContainer(modifier = Modifier.fillMaxWidth().weight(1f, fill = true)) {
-                BoxWithConstraints {
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                     val baseTableWidth = 646f
                     val scaled = (maxWidth.value / baseTableWidth).coerceIn(1f, 1.9f)
                     val widths = StandingsWidths(
@@ -188,18 +189,32 @@ fun StandingsScreen(
                     )
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        modifier = Modifier.fillMaxSize().horizontalScroll(rememberScrollState()),
                         horizontalArrangement = if (isLandscape) Arrangement.Center else Arrangement.Start,
                     ) {
-                        Column {
+                        Column(modifier = Modifier.fillMaxHeight()) {
                             HeaderRow(widths)
                             if (!initialLoadComplete && isRefreshing) {
-                                EmptyLabel("Loading data…")
+                                Column(
+                                    modifier = Modifier.weight(1f, fill = true),
+                                    verticalArrangement = Arrangement.Center,
+                                ) {
+                                    EmptyLabel("Loading data…")
+                                }
                             } else if (standingRows.isEmpty()) {
-                                EmptyLabel("No rows. Check data source or season selection.")
+                                Column(
+                                    modifier = Modifier.weight(1f, fill = true),
+                                    verticalArrangement = Arrangement.Center,
+                                ) {
+                                    EmptyLabel("No rows. Check data source or season selection.")
+                                }
                             } else {
-                                Column(modifier = Modifier.verticalScroll(rememberScrollState()).fillMaxSize()) {
-                                standingRows.forEachIndexed { index, standing ->
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f, fill = true)
+                                        .verticalScroll(rememberScrollState()),
+                                ) {
+                                    standingRows.forEachIndexed { index, standing ->
                                         StandingRow(rank = index + 1, standing = standing, widths = widths, showFullLplLastName = showFullLplLastName)
                                     }
                                 }

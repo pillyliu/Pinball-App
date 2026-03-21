@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Photo
@@ -30,6 +32,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -53,9 +61,9 @@ internal fun AppResourceRow(
     content: @Composable () -> Unit,
 ) {
     val colors = PinballThemeTokens.colors
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Text(
             label,
@@ -65,7 +73,7 @@ internal fun AppResourceRow(
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             content()
         }
@@ -193,6 +201,77 @@ internal fun AppOverlayTitle(
                 blurRadius = 4f,
             ),
         ),
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun AppOverlayTitleWithVariant(
+    text: String,
+    variant: String?,
+    modifier: Modifier = Modifier,
+) {
+    val resolvedVariant = variant?.trim()?.takeIf { it.isNotEmpty() }
+    if (resolvedVariant == null) {
+        AppOverlayTitle(text = text, modifier = modifier)
+        return
+    }
+
+    val shadow = Shadow(
+        color = Color.Black.copy(alpha = 1f),
+        blurRadius = 4f,
+    )
+    val titleStyle = MaterialTheme.typography.titleSmall.copy(
+        fontSize = 16.sp,
+        lineHeight = 17.sp,
+        shadow = shadow,
+    )
+    val pillTextStyle = MaterialTheme.typography.labelSmall
+    val density = LocalDensity.current
+    val textMeasurer = rememberTextMeasurer()
+    val measuredVariant = textMeasurer.measure(
+        text = AnnotatedString(resolvedVariant),
+        style = pillTextStyle,
+        maxLines = 1,
+    )
+    val horizontalPadding = 16.dp
+    val verticalPadding = 6.dp
+    val placeholderWidth = with(density) {
+        ((measuredVariant.size.width / this.density / this.fontScale) +
+            (horizontalPadding.value / this.fontScale)).sp
+    }
+    val placeholderHeight = with(density) {
+        ((measuredVariant.size.height / this.density / this.fontScale) +
+            (verticalPadding.value / this.fontScale)).sp
+    }
+    val inlineId = "variant-pill"
+
+    Text(
+        text = buildAnnotatedString {
+            append(text)
+            append(" ")
+            appendInlineContent(inlineId, resolvedVariant)
+        },
+        inlineContent = mapOf(
+            inlineId to InlineTextContent(
+                Placeholder(
+                    width = placeholderWidth,
+                    height = placeholderHeight,
+                    placeholderVerticalAlign = PlaceholderVerticalAlign.TextTop,
+                ),
+            ) {
+                AppVariantPill(
+                    label = resolvedVariant,
+                    style = AppVariantPillStyle.Standard,
+                )
+            },
+        ),
+        fontSize = 16.sp,
+        lineHeight = 17.sp,
+        color = Color.White,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        style = titleStyle,
         modifier = modifier,
     )
 }

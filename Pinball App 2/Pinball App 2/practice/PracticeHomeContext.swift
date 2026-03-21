@@ -19,6 +19,7 @@ struct PracticeHomeContext {
     let onOpenSearch: () -> Void
     let onOpenSettings: () -> Void
     let onOpenIFPAProfile: () -> Void
+    let onOpenHubRoute: (PracticeRoute) -> Void
     let onResume: (String) -> Void
     let onSelectLibrarySource: (String) -> Void
     let onPickGame: (String, String?) -> Void

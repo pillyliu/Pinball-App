@@ -51,6 +51,7 @@ import com.halilibo.richtext.ui.string.RichTextStringStyle
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.AppCardTitle
+import com.pillyliu.pinprofandroid.ui.AppCardTitleWithVariant
 import com.pillyliu.pinprofandroid.ui.AppOverlaySubtitle
 import com.pillyliu.pinprofandroid.ui.AppOverlayTitle
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
@@ -58,10 +59,10 @@ import com.pillyliu.pinprofandroid.ui.AppResourceChip
 import com.pillyliu.pinprofandroid.ui.AppResourceRow
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import com.pillyliu.pinprofandroid.ui.AppUnavailableResourceChip
-import com.pillyliu.pinprofandroid.ui.AppVariantBadge
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import com.pillyliu.pinprofandroid.ui.appShortRulesheetTitle
+import com.pillyliu.pinprofandroid.library.displayedRulesheetLinks
 import com.pillyliu.pinprofandroid.library.hasLocalRulesheetResource
 
 @Composable
@@ -86,21 +87,19 @@ internal fun LibraryDetailSummaryCard(
     val playfieldOptions = remember(game, livePlayfieldStatus) {
         game.resolvedPlayfieldOptions(livePlayfieldStatus)
     }
+    val displayedRulesheetLinks = game.displayedRulesheetLinks
     CardContainer {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            AppCardTitle(
+            AppCardTitleWithVariant(
                 text = game.name,
+                variant = game.normalizedVariant,
                 maxLines = 2,
-                modifier = Modifier.weight(1f, fill = false),
+                modifier = Modifier.weight(1f),
             )
-            game.normalizedVariant?.let { variant ->
-                AppVariantBadge(variant)
-            }
-            Spacer(modifier = Modifier.weight(1f))
         }
         AppCardSubheading(game.metaLine())
         Column(
@@ -108,14 +107,14 @@ internal fun LibraryDetailSummaryCard(
         ) {
             AppResourceRow(label = "Rulesheet:") {
                 if (game.hasLocalRulesheetResource) {
-                    AppResourceChip(label = "Local") { onOpenRulesheet(null, "Local") }
+                    AppResourceChip(label = "PinProf") { onOpenRulesheet(null, "PinProf") }
                 }
-                if (game.rulesheetLinks.isEmpty()) {
+                if (displayedRulesheetLinks.isEmpty()) {
                     if (!game.hasLocalRulesheetResource) {
                         AppUnavailableResourceChip()
                     }
                 } else {
-                    game.orderedRulesheetLinks.forEach { link ->
+                    displayedRulesheetLinks.forEach { link ->
                         val destination = link.destinationUrl
                         val embedded = link.embeddedRulesheetSource
                         AppResourceChip(label = appShortRulesheetTitle(link)) {

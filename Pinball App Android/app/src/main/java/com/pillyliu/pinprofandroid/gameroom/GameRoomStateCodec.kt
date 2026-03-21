@@ -27,6 +27,7 @@ internal object GameRoomStateCodec {
                     JSONObject().apply {
                         put("id", machine.id)
                         put("catalogGameID", machine.catalogGameID)
+                        putIfNotBlank("opdb_id", machine.opdbID)
                         put("canonicalPracticeIdentity", machine.canonicalPracticeIdentity)
                         put("displayTitle", machine.displayTitle)
                         putIfNotBlank("displayVariant", machine.displayVariant)
@@ -175,6 +176,7 @@ internal object GameRoomStateCodec {
                     OwnedMachine(
                         id = obj.optString("id").ifBlank { java.util.UUID.randomUUID().toString() },
                         catalogGameID = obj.optString("catalogGameID"),
+                        opdbID = obj.optString("opdb_id").ifBlank { null },
                         canonicalPracticeIdentity = obj.optString("canonicalPracticeIdentity"),
                         displayTitle = obj.optString("displayTitle").ifBlank { "Machine" },
                         displayVariant = obj.optString("displayVariant").ifBlank { null },

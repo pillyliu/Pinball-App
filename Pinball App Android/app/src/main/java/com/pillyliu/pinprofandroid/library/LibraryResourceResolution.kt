@@ -4,8 +4,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
+import java.net.URL
 
 internal const val libraryMissingArtworkPath = "/pinball/images/playfields/fallback-image-not-available_2048.webp"
 private val supportedPlayfieldOriginalExtensions = listOf("webp", "jpg", "jpeg", "png")
@@ -67,9 +67,9 @@ internal suspend fun loadLivePlayfieldStatus(practiceIdentity: String?): LivePla
 }
 
 internal fun resolveLibraryUrl(pathOrUrl: String?): String? {
-    pathOrUrl ?: return null
-    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) return pathOrUrl
-    return if (pathOrUrl.startsWith("/")) "https://pillyliu.com$pathOrUrl" else "https://pillyliu.com/$pathOrUrl"
+    val normalized = normalizedOptionalString(pathOrUrl) ?: return null
+    if (normalized.startsWith("http://") || normalized.startsWith("https://")) return normalized
+    return if (normalized.startsWith("/")) "https://pillyliu.com$normalized" else "https://pillyliu.com/$normalized"
 }
 
 internal fun isPinProfHost(host: String?): Boolean =
@@ -91,8 +91,42 @@ internal fun isPinProfRulesheetUrl(url: String?): Boolean {
     }.getOrDefault(false)
 }
 
+private fun normalizedRulesheetMarkdownPath(pathOrUrl: String?): String? {
+    val resolved = resolveLibraryUrl(pathOrUrl) ?: return null
+    return runCatching { URL(resolved).path.lowercase() }
+        .getOrNull()
+        ?.takeIf { it.isNotBlank() }
+}
+
+internal fun isLikelyPinProfMarkdownRulesheetUrl(url: String?): Boolean {
+    val raw = url?.trim()?.takeIf { it.isNotEmpty() } ?: return false
+    val normalizedRaw = raw.lowercase()
+    if (
+        normalizedRaw.endsWith("-rulesheet.md") ||
+        normalizedRaw.contains("/pinball/rulesheets/") ||
+        normalizedRaw.contains("/rules/") && normalizedRaw.contains("source=local")
+    ) {
+        return true
+    }
+    val resolvedPath = normalizedRulesheetMarkdownPath(raw) ?: return false
+    return resolvedPath.startsWith("/pinball/rulesheets/") ||
+        resolvedPath.endsWith("-rulesheet.md") ||
+        (resolvedPath.startsWith("/rules/") && normalizedRaw.contains("source=local"))
+}
+
 internal fun PinballGame.resolve(pathOrUrl: String?): String? =
     resolveLibraryUrl(pathOrUrl)
+
+internal fun hostedRenderedRulesheetPageUrl(slug: String, source: String? = null): String {
+    val encodedSlug = URLEncoder.encode(slug, Charsets.UTF_8.name())
+    val encodedSource = source?.trim()?.takeIf { it.isNotEmpty() }
+        ?.let { URLEncoder.encode(it, Charsets.UTF_8.name()) }
+    return if (encodedSource != null) {
+        "https://pillyliu.com/rules/$encodedSlug?source=$encodedSource"
+    } else {
+        "https://pillyliu.com/rules/$encodedSlug"
+    }
+}
 
 internal val PinballGame.primaryArtworkCandidates: List<String>
     get() = listOfNotNull(
@@ -101,7 +135,7 @@ internal val PinballGame.primaryArtworkCandidates: List<String>
     ).distinct()
 
 internal fun normalizeLibraryPlayfieldLocalPath(path: String?): String? {
-    val raw = path?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    val raw = normalizedOptionalString(path) ?: return null
     val target = when {
         raw.endsWith("_700.webp", ignoreCase = true) -> raw
         raw.endsWith("_1400.webp", ignoreCase = true) -> raw.replace(Regex("_1400\\.webp$", RegexOption.IGNORE_CASE), "_700.webp")
@@ -112,7 +146,7 @@ internal fun normalizeLibraryPlayfieldLocalPath(path: String?): String? {
 }
 
 internal fun normalizeLibraryCachePath(path: String?): String? {
-    val raw = path?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    val raw = normalizedOptionalString(path) ?: return null
     fun normalizePlayfieldPublishedPath(value: String): String =
         value.replace(Regex("(/pinball/images/playfields/.+?)(?:_(700|1400))?\\.[A-Za-z0-9]+$", RegexOption.IGNORE_CASE), "$1.webp")
     if (raw.startsWith("/")) {
@@ -399,6 +433,33 @@ internal val PinballGame.rulesheetPathCandidates: List<String>
 
 internal val PinballGame.hasLocalRulesheetResource: Boolean
     get() = rulesheetPathCandidates.isNotEmpty()
+
+internal val PinballGame.displayedRulesheetLinks: List<ReferenceLink>
+    get() {
+        val localRulesheetBasenames = rulesheetPathCandidates.mapNotNull { candidate ->
+            normalizedRulesheetMarkdownPath(candidate)
+                ?.substringAfterLast('/')
+                ?.takeIf { it.isNotBlank() }
+        }.toSet()
+
+        return orderedRulesheetLinks
+            .filterNot { link ->
+                val destination = resolveLibraryUrl(link.destinationUrl)
+                val destinationBasename = normalizedRulesheetMarkdownPath(destination)
+                    ?.substringAfterLast('/')
+                    ?.takeIf { it.isNotBlank() }
+                hasLocalRulesheetResource && (
+                    link.rulesheetSourceKind == RulesheetSourceKind.PROF ||
+                        link.rulesheetSourceKind == RulesheetSourceKind.LOCAL ||
+                        isPinProfRulesheetUrl(destination) ||
+                        isLikelyPinProfMarkdownRulesheetUrl(destination) ||
+                        (destinationBasename != null && destinationBasename in localRulesheetBasenames)
+                    )
+            }
+        .filter { link ->
+            link.destinationUrl != null || link.embeddedRulesheetSource != null
+        }
+    }
 
 internal val PinballGame.gameinfoPathCandidates: List<String>
     get() = listOfNotNull(

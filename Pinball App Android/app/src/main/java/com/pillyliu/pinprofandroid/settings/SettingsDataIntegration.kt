@@ -1,6 +1,10 @@
 package com.pillyliu.pinprofandroid.settings
 
 import android.content.Context
+import android.webkit.CookieManager
+import android.webkit.WebStorage
+import android.webkit.WebView
+import coil.imageLoader
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.library.CatalogManufacturerOption
 import com.pillyliu.pinprofandroid.library.ImportedSourceProvider
@@ -41,6 +45,27 @@ internal suspend fun forceRefreshHostedSettingsData(context: Context): SettingsD
     }
     LibrarySourceEvents.notifyChanged()
     return loadSettingsDataSnapshot(context)
+}
+
+internal suspend fun clearAppRuntimeCaches(context: Context) {
+    withContext(Dispatchers.IO) {
+        PinballDataCache.clearAllCachedData()
+        context.cacheDir.resolve("pinprof-image-cache").takeIf { it.exists() }?.deleteRecursively()
+        context.cacheDir.resolve("WebView").takeIf { it.exists() }?.deleteRecursively()
+    }
+    withContext(Dispatchers.Main) {
+        context.imageLoader.memoryCache?.clear()
+        runCatching {
+            WebStorage.getInstance().deleteAllData()
+            CookieManager.getInstance().removeAllCookies(null)
+            CookieManager.getInstance().flush()
+            WebView(context).apply {
+                clearCache(true)
+                clearHistory()
+                destroy()
+            }
+        }
+    }
 }
 
 internal fun addManufacturerSource(

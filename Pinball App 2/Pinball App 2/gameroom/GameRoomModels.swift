@@ -195,6 +195,7 @@ struct GameRoomArea: Identifiable, Codable {
 struct OwnedMachine: Identifiable, Codable {
     let id: UUID
     var catalogGameID: String
+    var opdbID: String?
     var canonicalPracticeIdentity: String
     var displayTitle: String
     var displayVariant: String?
@@ -219,6 +220,7 @@ struct OwnedMachine: Identifiable, Codable {
     init(
         id: UUID = UUID(),
         catalogGameID: String,
+        opdbID: String? = nil,
         canonicalPracticeIdentity: String,
         displayTitle: String,
         displayVariant: String? = nil,
@@ -242,6 +244,7 @@ struct OwnedMachine: Identifiable, Codable {
     ) {
         self.id = id
         self.catalogGameID = catalogGameID
+        self.opdbID = opdbID
         self.canonicalPracticeIdentity = canonicalPracticeIdentity
         self.displayTitle = displayTitle
         self.displayVariant = displayVariant
@@ -267,6 +270,7 @@ struct OwnedMachine: Identifiable, Codable {
     private enum CodingKeys: String, CodingKey {
         case id
         case catalogGameID
+        case opdbID = "opdb_id"
         case canonicalPracticeIdentity
         case displayTitle
         case displayVariant
@@ -293,6 +297,7 @@ struct OwnedMachine: Identifiable, Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         catalogGameID = try container.decodeIfPresent(String.self, forKey: .catalogGameID) ?? ""
+        opdbID = try container.decodeIfPresent(String.self, forKey: .opdbID)
         canonicalPracticeIdentity = try container.decodeIfPresent(String.self, forKey: .canonicalPracticeIdentity) ?? ""
         displayTitle = try container.decodeIfPresent(String.self, forKey: .displayTitle) ?? "Machine"
         displayVariant = try container.decodeIfPresent(String.self, forKey: .displayVariant)
@@ -560,7 +565,7 @@ struct MachineImportRecord: Identifiable, Codable {
 }
 
 struct GameRoomPersistedState: Codable {
-    static let currentSchemaVersion = 1
+    static let currentSchemaVersion = 2
     static let defaultVenueName = "GameRoom"
 
     var schemaVersion: Int

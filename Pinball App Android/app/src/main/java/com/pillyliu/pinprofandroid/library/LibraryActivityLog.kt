@@ -1,6 +1,9 @@
 package com.pillyliu.pinprofandroid.library
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.content.edit
 import com.pillyliu.pinprofandroid.practice.practiceSharedPreferences
 import org.json.JSONArray
@@ -30,9 +33,15 @@ internal data class LibraryActivityEvent(
 )
 
 internal object LibraryActivityLog {
+    private var cachedEvents: List<LibraryActivityEvent>? = null
+    private var revision by mutableIntStateOf(0)
+
+    val changeToken: Int
+        get() = revision
+
     fun log(context: Context, gameSlug: String, gameName: String, kind: LibraryActivityKind, detail: String? = null) {
         val prefs = practiceSharedPreferences(context)
-        val current = events(context).toMutableList()
+        val current = (cachedEvents ?: events(context)).toMutableList()
         val now = System.currentTimeMillis()
         val trimmedDetail = detail?.trim()?.takeIf { it.isNotBlank() }
 
@@ -72,12 +81,14 @@ internal object LibraryActivityLog {
             }
         }
         prefs.edit { putString(LIBRARY_ACTIVITY_KEY, encoded.toString()) }
+        updateCache(trimmed)
     }
 
     fun events(context: Context): List<LibraryActivityEvent> {
+        cachedEvents?.let { return it }
         val prefs = practiceSharedPreferences(context)
         val raw = prefs.getString(LIBRARY_ACTIVITY_KEY, null) ?: return emptyList()
-        return runCatching {
+        val loaded = runCatching {
             val arr = JSONArray(raw)
             (0 until arr.length()).mapNotNull { idx ->
                 val obj = arr.optJSONObject(idx) ?: return@mapNotNull null
@@ -95,10 +106,18 @@ internal object LibraryActivityLog {
                 )
             }.sortedByDescending { it.timestampMs }
         }.getOrDefault(emptyList())
+        cachedEvents = loaded
+        return loaded
     }
 
     fun clear(context: Context) {
         val prefs = practiceSharedPreferences(context)
         prefs.edit { remove(LIBRARY_ACTIVITY_KEY) }
+        updateCache(emptyList())
+    }
+
+    private fun updateCache(events: List<LibraryActivityEvent>) {
+        cachedEvents = events
+        revision += 1
     }
 }

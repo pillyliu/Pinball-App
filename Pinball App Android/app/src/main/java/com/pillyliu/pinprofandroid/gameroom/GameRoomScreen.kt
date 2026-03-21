@@ -215,7 +215,6 @@ internal fun GameRoomScreen(
     var archiveFilter by rememberSaveable { mutableStateOf(GameRoomArchiveFilter.All) }
     var machineSubview by rememberSaveable { mutableStateOf(GameRoomMachineSubview.Summary) }
     var selectedLogEventID by rememberSaveable { mutableStateOf<String?>(null) }
-    var revealedMachineLogRowID by rememberSaveable { mutableStateOf<String?>(null) }
     var editingEventID by rememberSaveable { mutableStateOf<String?>(null) }
     var editEventDateDraft by rememberSaveable { mutableStateOf(todayIsoDate()) }
     var editEventSummaryDraft by rememberSaveable { mutableStateOf("") }
@@ -284,17 +283,12 @@ internal fun GameRoomScreen(
     LaunchedEffect(Unit) {
         store.loadIfNeeded()
         catalogLoader.loadIfNeeded()
+        store.migrateOwnedMachineOpdbIds(catalogLoader)
     }
 
     LaunchedEffect(activeMachines.map { it.id }) {
         if (selectedMachineID == null || activeMachines.none { it.id == selectedMachineID }) {
             selectedMachineID = activeMachines.firstOrNull()?.id
-        }
-    }
-
-    LaunchedEffect(route, machineSubview, selectedMachineID) {
-        if (route != GameRoomRoute.MachineView || machineSubview != GameRoomMachineSubview.Log) {
-            revealedMachineLogRowID = null
         }
     }
 
@@ -715,13 +709,20 @@ internal fun GameRoomScreen(
                                 onDraftOwnershipNotesChange = { draftOwnershipNotes = it },
                                 onSaveMachine = {
                                     selectedEditMachine?.let { machine ->
+                                        val editedVariant = draftVariant.takeUnless { it == "None" }
+                                        val resolvedGame = catalogLoader.game(machine.catalogGameID, editedVariant)
                                         store.updateMachine(
                                             id = machine.id,
                                             areaID = draftAreaID,
                                             groupNumber = draftGroup.toIntOrNull(),
                                             position = draftPosition.toIntOrNull(),
                                             status = runCatching { OwnedMachineStatus.valueOf(draftStatus) }.getOrDefault(OwnedMachineStatus.active),
-                                            displayVariant = draftVariant.takeUnless { it == "None" },
+                                            opdbID = resolvedGame?.opdbID ?: machine.opdbID,
+                                            canonicalPracticeIdentity = resolvedGame?.canonicalPracticeIdentity,
+                                            displayTitle = resolvedGame?.displayTitle,
+                                            displayVariant = editedVariant ?: resolvedGame?.displayVariant,
+                                            manufacturer = resolvedGame?.manufacturer,
+                                            year = resolvedGame?.year,
                                             purchaseSource = draftPurchaseSource,
                                             serialNumber = draftSerialNumber,
                                             ownershipNotes = draftOwnershipNotes,
@@ -735,13 +736,20 @@ internal fun GameRoomScreen(
                                     ?.takeIf { it.status != OwnedMachineStatus.archived }
                                     ?.let {
                                         {
+                                            val editedVariant = draftVariant.takeUnless { it == "None" }
+                                            val resolvedGame = catalogLoader.game(it.catalogGameID, editedVariant)
                                             store.updateMachine(
                                                 id = it.id,
                                                 areaID = draftAreaID,
                                                 groupNumber = draftGroup.toIntOrNull(),
                                                 position = draftPosition.toIntOrNull(),
                                                 status = OwnedMachineStatus.archived,
-                                                displayVariant = draftVariant.takeUnless { it == "None" },
+                                                opdbID = resolvedGame?.opdbID ?: it.opdbID,
+                                                canonicalPracticeIdentity = resolvedGame?.canonicalPracticeIdentity,
+                                                displayTitle = resolvedGame?.displayTitle,
+                                                displayVariant = editedVariant ?: resolvedGame?.displayVariant,
+                                                manufacturer = resolvedGame?.manufacturer,
+                                                year = resolvedGame?.year,
                                                 purchaseSource = draftPurchaseSource,
                                                 serialNumber = draftSerialNumber,
                                                 ownershipNotes = draftOwnershipNotes,
@@ -774,8 +782,6 @@ internal fun GameRoomScreen(
                     onMachineSubviewChange = { machineSubview = it },
                     selectedLogEventID = selectedLogEventID,
                     onSelectedLogEventIDChange = { selectedLogEventID = it },
-                    revealedLogRowID = revealedMachineLogRowID,
-                    onRevealedLogRowIDChange = { revealedMachineLogRowID = it },
                     onBack = { route = GameRoomRoute.Home },
                     onOpenInputSheet = { activeInputSheet = it },
                     onResolveIssueRequest = {

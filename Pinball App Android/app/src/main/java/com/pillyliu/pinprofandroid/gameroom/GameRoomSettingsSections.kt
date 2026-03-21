@@ -403,6 +403,7 @@ internal fun GameRoomEditSettingsSection(
 
                 val machineID = context.store.addOwnedMachine(
                     catalogGameID = resolvedGame.catalogGameID,
+                    opdbID = resolvedGame.opdbID,
                     canonicalPracticeIdentity = resolvedGame.canonicalPracticeIdentity,
                     displayTitle = resolvedGame.displayTitle,
                     displayVariant = resolvedVariant,

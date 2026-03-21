@@ -4,6 +4,7 @@ import Combine
 struct GameRoomCatalogGame: Identifiable, Hashable {
     let id: String
     let catalogGameID: String
+    let opdbID: String
     let canonicalPracticeIdentity: String
     let displayTitle: String
     let displayVariant: String?
@@ -40,69 +41,6 @@ nonisolated func gameRoomCatalogMatchesSearch(
     return matchesSearchQuery(query, fields: fields)
 }
 
-private struct GameRoomCatalogRoot: Decodable {
-    let manufacturers: [CatalogManufacturer]
-    let machines: [CatalogMachine]
-
-    struct CatalogManufacturer: Decodable {
-        let id: String
-        let name: String
-        let isModern: Bool?
-        let featuredRank: Int?
-
-        enum CodingKeys: String, CodingKey {
-            case id
-            case name
-            case isModern = "is_modern"
-            case featuredRank = "featured_rank"
-        }
-    }
-
-    struct CatalogMachine: Decodable {
-        struct RemoteImageSet: Decodable {
-            let mediumURL: String?
-            let largeURL: String?
-
-            enum CodingKeys: String, CodingKey {
-                case mediumURL = "medium_url"
-                case largeURL = "large_url"
-            }
-        }
-
-        let practiceIdentity: String
-        let opdbMachineID: String?
-        let opdbGroupID: String?
-        let slug: String
-        let name: String
-        let variant: String?
-        let manufacturerID: String?
-        let manufacturerName: String?
-        let year: Int?
-        let primaryImage: RemoteImageSet?
-        let opdbType: String?
-        let opdbDisplay: String?
-        let opdbShortname: String?
-        let opdbCommonName: String?
-
-        enum CodingKeys: String, CodingKey {
-            case practiceIdentity = "practice_identity"
-            case opdbMachineID = "opdb_machine_id"
-            case opdbGroupID = "opdb_group_id"
-            case slug
-            case name
-            case variant
-            case manufacturerID = "manufacturer_id"
-            case manufacturerName = "manufacturer_name"
-            case year
-            case primaryImage = "primary_image"
-            case opdbType = "opdb_type"
-            case opdbDisplay = "opdb_display"
-            case opdbShortname = "opdb_shortname"
-            case opdbCommonName = "opdb_common_name"
-        }
-    }
-}
-
 @MainActor
 final class GameRoomCatalogLoader: ObservableObject {
     @Published private(set) var games: [GameRoomCatalogGame] = []
@@ -112,7 +50,6 @@ final class GameRoomCatalogLoader: ObservableObject {
     @Published private(set) var errorMessage: String?
 
     private var didLoad = false
-    private let opdbCatalogPath = "/pinball/data/opdb_catalog_v1.json"
     private var allCatalogGames: [GameRoomCatalogGame] = []
     private var gamesByCatalogGameID: [String: [GameRoomCatalogGame]] = [:]
     private var gamesByNormalizedCatalogGameID: [String: [GameRoomCatalogGame]] = [:]
@@ -143,17 +80,24 @@ final class GameRoomCatalogLoader: ObservableObject {
     }
 
     private func loadCatalogGames() async throws -> [GameRoomCatalogGame] {
-        let data = try await loadCatalogData()
-        let root = try JSONDecoder().decode(GameRoomCatalogRoot.self, from: data)
-        let mappedGames = root.machines.map(Self.makeGame)
+        guard let rawData = try await loadHostedOrCachedPinballJSONData(
+            path: hostedOPDBExportPath,
+            allowMissing: true
+        ),
+        let rawMachines = try? decodeOPDBExportCatalogMachines(data: rawData),
+        !rawMachines.isEmpty else {
+            throw URLError(.resourceUnavailable)
+        }
+
+        let mappedGames = rawMachines.map(Self.makeGame)
         allCatalogGames = mappedGames
         gamesByCatalogGameID = Dictionary(grouping: mappedGames, by: \.catalogGameID)
         gamesByNormalizedCatalogGameID = Dictionary(grouping: mappedGames, by: { Self.normalizedCatalogGameID($0.catalogGameID) })
-        variantOptionsByCatalogGameID = Self.variantOptionsMap(from: root.machines)
+        variantOptionsByCatalogGameID = Self.variantOptionsMap(from: rawMachines)
         variantOptionsByNormalizedCatalogGameID = variantOptionsByCatalogGameID.reduce(into: [:]) { partialResult, entry in
             partialResult[Self.normalizedCatalogGameID(entry.key)] = entry.value
         }
-        slugMatchesByKey = Self.slugMatches(from: root.machines)
+        slugMatchesByKey = Self.slugMatches(from: rawMachines)
         return Self.dedupedGames(from: mappedGames)
     }
 
@@ -199,12 +143,81 @@ final class GameRoomCatalogLoader: ObservableObject {
         Self.buildSlugKeys(from: slug).first { slugMatchesByKey[$0] != nil }.flatMap { slugMatchesByKey[$0] }
     }
 
+    func resolvedOPDBID(for machine: OwnedMachine) -> String? {
+        if let existing = machine.opdbID?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !existing.isEmpty,
+           catalogGame(forExactOPDBID: existing) != nil {
+            return existing
+        }
+
+        let resolvedTitle = catalogResolvedDisplayTitle(title: machine.displayTitle, explicitVariant: machine.displayVariant)
+        let resolvedVariant = catalogResolvedVariantLabel(title: machine.displayTitle, explicitVariant: machine.displayVariant)
+        let normalizedTitle = Self.normalizedCatalogIdentifier(resolvedTitle)
+        let normalizedVariant = Self.normalizedVariant(resolvedVariant)
+        let grouped = games(for: machine.catalogGameID)
+
+        if let normalizedTitle, let normalizedVariant,
+           let exact = grouped.first(where: {
+               Self.normalizedCatalogIdentifier($0.displayTitle) == normalizedTitle &&
+               Self.normalizedVariant($0.displayVariant) == normalizedVariant
+           }) {
+            return exact.opdbID
+        }
+
+        if let normalizedVariant,
+           let variantMatch = grouped.first(where: {
+               Self.variantMatchesSelection(candidate: $0.displayVariant, selected: normalizedVariant)
+           }) {
+            return variantMatch.opdbID
+        }
+
+        if let normalizedTitle,
+           let titleMatch = grouped.first(where: {
+               Self.normalizedCatalogIdentifier($0.displayTitle) == normalizedTitle
+           }) {
+            return titleMatch.opdbID
+        }
+
+        if let identityMatch = allCatalogGames.first(where: { $0.canonicalPracticeIdentity == machine.canonicalPracticeIdentity }) {
+            return identityMatch.opdbID
+        }
+
+        return grouped.first?.opdbID
+    }
+
+    func normalizedCatalogGame(for machine: OwnedMachine) -> GameRoomCatalogGame? {
+        if let exact = resolvedOPDBID(for: machine) {
+            return catalogGame(forExactOPDBID: exact)
+        }
+        return nil
+    }
+
     func imageCandidates(for machine: OwnedMachine) -> [URL] {
         var rawCandidates: [String] = []
-        let normalizedVariant = Self.normalizedVariant(machine.displayVariant)
+        let resolvedTitle = catalogResolvedDisplayTitle(title: machine.displayTitle, explicitVariant: machine.displayVariant)
+        let resolvedVariant = catalogResolvedVariantLabel(title: machine.displayTitle, explicitVariant: machine.displayVariant)
+        let normalizedTitle = Self.normalizedCatalogIdentifier(resolvedTitle)
+        let normalizedVariant = Self.normalizedVariant(resolvedVariant)
+
+        let normalizedExactOPDBID = Self.normalizedCatalogGameID(resolvedOPDBID(for: machine) ?? "")
+        if !normalizedExactOPDBID.isEmpty {
+            let exactMachineMatches = allCatalogGames.filter {
+                Self.normalizedCatalogGameID($0.opdbID) == normalizedExactOPDBID
+            }
+            rawCandidates.append(contentsOf: exactMachineMatches.compactMap(\.primaryImageURL))
+        }
+
         let grouped = gamesByCatalogGameID[machine.catalogGameID] ??
             gamesByNormalizedCatalogGameID[Self.normalizedCatalogGameID(machine.catalogGameID)] ??
             []
+
+        if let normalizedTitle, let normalizedVariant {
+            let exactVariantMatches = allCatalogGames.filter {
+                Self.normalizedCatalogIdentifier($0.displayTitle) == normalizedTitle &&
+                Self.normalizedVariant($0.displayVariant) == normalizedVariant
+            }
+            rawCandidates.append(contentsOf: exactVariantMatches.compactMap(\.primaryImageURL))
+        }
 
         if let normalizedVariant {
             let variantMatches = grouped.filter {
@@ -234,31 +247,16 @@ final class GameRoomCatalogLoader: ObservableObject {
     }
 
     private func loadManufacturers() async throws -> [PinballCatalogManufacturerOption] {
-        do {
-            return try await LibrarySeedDatabase.shared.loadManufacturerOptions()
-        } catch {
-            let data = try await loadCatalogData()
-            return try decodeCatalogManufacturerOptions(data: data)
-        }
+        try await loadHostedCatalogManufacturerOptions()
     }
 
-    private func loadCatalogData() async throws -> Data {
-        if let bundled = try loadBundledPinballData(path: opdbCatalogPath), !bundled.isEmpty {
-            return bundled
-        }
-
-        let cached = try await PinballDataCache.shared.loadText(path: opdbCatalogPath, allowMissing: false)
-        guard let text = cached.text, let data = text.data(using: .utf8), !data.isEmpty else {
-            throw URLError(.cannotDecodeRawData)
-        }
-        return data
-    }
-
-    private static func makeGame(_ machine: GameRoomCatalogRoot.CatalogMachine) -> GameRoomCatalogGame {
+    private static func makeGame(_ machine: CatalogMachineRecord) -> GameRoomCatalogGame {
         let parsedName = parsedCatalogName(title: machine.name, explicitVariant: machine.variant)
+        let opdbID = machine.opdbMachineID ?? machine.opdbGroupID ?? machine.practiceIdentity
         return GameRoomCatalogGame(
-            id: machine.opdbGroupID ?? machine.practiceIdentity,
+            id: opdbID,
             catalogGameID: machine.opdbGroupID ?? machine.opdbMachineID ?? machine.practiceIdentity,
+            opdbID: opdbID,
             canonicalPracticeIdentity: machine.practiceIdentity,
             displayTitle: parsedName.title,
             displayVariant: parsedName.variant,
@@ -280,7 +278,7 @@ final class GameRoomCatalogLoader: ObservableObject {
             .sorted(by: sortGames)
     }
 
-    private static func variantOptionsMap(from machines: [GameRoomCatalogRoot.CatalogMachine]) -> [String: [String]] {
+    private static func variantOptionsMap(from machines: [CatalogMachineRecord]) -> [String: [String]] {
         var buckets: [String: Set<String>] = [:]
 
         for machine in machines {
@@ -301,7 +299,7 @@ final class GameRoomCatalogLoader: ObservableObject {
         return map
     }
 
-    private static func slugMatches(from machines: [GameRoomCatalogRoot.CatalogMachine]) -> [String: GameRoomCatalogSlugMatch] {
+    private static func slugMatches(from machines: [CatalogMachineRecord]) -> [String: GameRoomCatalogSlugMatch] {
         var matches: [String: GameRoomCatalogSlugMatch] = [:]
 
         for machine in machines {
@@ -336,6 +334,12 @@ final class GameRoomCatalogLoader: ObservableObject {
 
             return lhs.id < rhs.id
         }
+    }
+
+    private func catalogGame(forExactOPDBID opdbID: String) -> GameRoomCatalogGame? {
+        let normalized = Self.normalizedCatalogGameID(opdbID)
+        guard !normalized.isEmpty else { return nil }
+        return allCatalogGames.first { Self.normalizedCatalogGameID($0.opdbID) == normalized }
     }
 
     private static func variantPreferenceRank(_ value: String?) -> Int {
@@ -475,6 +479,14 @@ final class GameRoomCatalogLoader: ObservableObject {
 
     private static func normalizedCatalogGameID(_ value: String) -> String {
         value.trimmingCharacters(in: .whitespacesAndNewlines).localizedLowercase
+    }
+
+    private static func normalizedCatalogIdentifier(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed.localizedLowercase
     }
 
     private static func buildSlugKeys(from slug: String) -> [String] {

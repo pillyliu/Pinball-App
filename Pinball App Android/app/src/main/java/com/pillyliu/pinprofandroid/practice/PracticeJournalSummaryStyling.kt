@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.AnnotatedString
@@ -24,24 +25,29 @@ internal fun StyledPracticeJournalSummaryText(
 ) {
     val colors = MaterialTheme.colorScheme
     val isDark = isSystemInDarkTheme()
-    val annotated = buildAnnotatedString {
-        journalSummaryTokens(summary).forEach { token ->
-            withStyle(
-                SpanStyle(
-                    color = when (token.color) {
-                        JournalTokenColor.Primary -> colors.onSurface
-                        JournalTokenColor.Game -> if (isDark) androidx.compose.ui.graphics.Color(0xFF6EE7F9) else androidx.compose.ui.graphics.Color(0xFF065F46)
-                        JournalTokenColor.Screen -> if (isDark) androidx.compose.ui.graphics.Color(0xFFBFDBFE) else androidx.compose.ui.graphics.Color(0xFF1E40AF)
-                        JournalTokenColor.Score -> if (isDark) androidx.compose.ui.graphics.Color(0xFFFCD34D) else androidx.compose.ui.graphics.Color(0xFF9A3412)
-                        JournalTokenColor.Note -> if (isDark) androidx.compose.ui.graphics.Color(0xFFE6EDF9) else androidx.compose.ui.graphics.Color(0xFF374151)
-                    },
-                    fontWeight = when (token.color) {
-                        JournalTokenColor.Primary, JournalTokenColor.Note -> null
-                        else -> FontWeight.SemiBold
-                    },
-                )
-            ) {
-                append(token.text)
+    val tokens = remember(summary) {
+        journalSummaryTokens(summary)
+    }
+    val annotated = remember(summary, isDark, colors.onSurface) {
+        buildAnnotatedString {
+            tokens.forEach { token ->
+                withStyle(
+                    SpanStyle(
+                        color = when (token.color) {
+                            JournalTokenColor.Primary -> colors.onSurface
+                            JournalTokenColor.Game -> if (isDark) androidx.compose.ui.graphics.Color(0xFF6EE7F9) else androidx.compose.ui.graphics.Color(0xFF065F46)
+                            JournalTokenColor.Screen -> if (isDark) androidx.compose.ui.graphics.Color(0xFFBFDBFE) else androidx.compose.ui.graphics.Color(0xFF1E40AF)
+                            JournalTokenColor.Score -> if (isDark) androidx.compose.ui.graphics.Color(0xFFFCD34D) else androidx.compose.ui.graphics.Color(0xFF9A3412)
+                            JournalTokenColor.Note -> if (isDark) androidx.compose.ui.graphics.Color(0xFFE6EDF9) else androidx.compose.ui.graphics.Color(0xFF374151)
+                        },
+                        fontWeight = when (token.color) {
+                            JournalTokenColor.Primary, JournalTokenColor.Note -> null
+                            else -> FontWeight.SemiBold
+                        },
+                    )
+                ) {
+                    append(token.text)
+                }
             }
         }
     }

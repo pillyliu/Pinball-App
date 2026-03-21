@@ -42,6 +42,7 @@ private struct GameRoomOPDBMediaRecord {
     let practiceIdentity: String
     let opdbMachineID: String?
     let opdbGroupID: String?
+    let title: String
     let variant: String?
     let year: Int?
     let primaryMediumURL: String?
@@ -57,33 +58,60 @@ func loadFullLibraryExtraction() async throws -> LegacyCatalogExtraction {
 }
 
 func loadPracticeCatalogGames() async throws -> [PinballGame] {
-    if let bundled = try loadBundledPinballData(path: hostedOPDBCatalogPath), !bundled.isEmpty {
-        return try decodePracticeCatalogGames(data: bundled)
-    }
-    let hosted = try await PinballDataCache.shared.loadText(
-        path: hostedOPDBCatalogPath,
-        allowMissing: true,
-        maxCacheAge: 24 * 60 * 60
-    )
-    if let text = hosted.text,
-       let data = text.data(using: String.Encoding.utf8),
-       !data.isEmpty {
-        return try decodePracticeCatalogGames(data: data)
+    if let hostedExport = try await loadHostedOrCachedPinballJSONData(
+        path: hostedOPDBExportPath,
+        allowMissing: true
+    ) {
+        return try decodePracticeCatalogGamesFromOPDBExport(data: hostedExport)
     }
     return []
 }
 
 private func loadLibraryExtraction(filterBySourceState: Bool) async throws -> LegacyCatalogExtraction {
-    do {
-        let extraction = try await loadHostedLibraryExtraction(filterBySourceState: filterBySourceState)
-        return augmentExtractionWithGameRoom(extraction)
-    } catch {
-        if let bundled = try loadBundledLibraryExtraction(filterBySourceState: filterBySourceState) {
-            return augmentExtractionWithGameRoom(bundled)
-        }
-        let seedExtraction = try await LibrarySeedDatabase.shared.loadExtraction(filterBySourceState: filterBySourceState)
-        return augmentExtractionWithGameRoom(seedExtraction)
+    let cafExtraction = try await loadCAFLibraryExtraction(filterBySourceState: filterBySourceState)
+    return augmentExtractionWithGameRoom(cafExtraction)
+}
+
+private func loadCAFLibraryExtraction(filterBySourceState: Bool) async throws -> LegacyCatalogExtraction {
+    guard let opdbExportData = try await loadHostedOrCachedPinballJSONData(
+        path: hostedOPDBExportPath,
+        allowMissing: true
+    ),
+    !opdbExportData.isEmpty else {
+        throw URLError(.resourceUnavailable)
     }
+
+    async let rulesheetAssetsTask = loadHostedOrCachedPinballJSONData(
+        path: hostedRulesheetAssetsPath,
+        allowMissing: true
+    )
+    async let videoAssetsTask = loadHostedOrCachedPinballJSONData(
+        path: hostedVideoAssetsPath,
+        allowMissing: true
+    )
+    async let playfieldAssetsTask = loadHostedOrCachedPinballJSONData(
+        path: hostedPlayfieldAssetsPath,
+        allowMissing: true
+    )
+    async let gameinfoAssetsTask = loadHostedOrCachedPinballJSONData(
+        path: hostedGameinfoAssetsPath,
+        allowMissing: true
+    )
+    async let venueLayoutAssetsTask = loadHostedOrCachedPinballJSONData(
+        path: hostedVenueLayoutAssetsPath,
+        allowMissing: true
+    )
+
+    return try buildCAFLibraryExtraction(
+        opdbExportData: opdbExportData,
+        rulesheetAssetsData: try await rulesheetAssetsTask,
+        videoAssetsData: try await videoAssetsTask,
+        playfieldAssetsData: try await playfieldAssetsTask,
+        gameinfoAssetsData: try await gameinfoAssetsTask,
+        venueLayoutAssetsData: try await venueLayoutAssetsTask,
+        importedSources: PinballImportedSourcesStore.load(),
+        filterBySourceState: filterBySourceState
+    )
 }
 
 private func augmentExtractionWithGameRoom(_ extraction: LegacyCatalogExtraction) -> LegacyCatalogExtraction {
@@ -175,9 +203,17 @@ private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueNa
             }
             return canonicalPracticeIdentity.isEmpty ? machine.catalogGameID : canonicalPracticeIdentity
         }()
-        let resolvedName = machine.displayTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let rawResolvedName = machine.displayTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? (template?.name ?? machine.catalogGameID)
             : machine.displayTitle
+        let resolvedName = catalogResolvedDisplayTitle(
+            title: rawResolvedName,
+            explicitVariant: machine.displayVariant
+        )
+        let resolvedVariant = catalogResolvedVariantLabel(
+            title: rawResolvedName,
+            explicitVariant: machine.displayVariant
+        )
         let normalizedSlug = slugForLibraryGame(
             title: resolvedName,
             fallback: normalizedPracticeIdentity.isEmpty ? machine.id.uuidString : normalizedPracticeIdentity
@@ -205,7 +241,7 @@ private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueNa
         if let position = machine.position {
             row["position"] = position
         }
-        if let variant = machine.displayVariant, !variant.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if let variant = resolvedVariant, !variant.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             row["variant"] = variant
         }
         if let manufacturer = machine.manufacturer, !manufacturer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -214,7 +250,10 @@ private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueNa
         if let year = machine.year {
             row["year"] = year
         }
-        if !machine.catalogGameID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if let exactOPDBID = machine.opdbID?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !exactOPDBID.isEmpty {
+            row["opdb_id"] = exactOPDBID
+        } else if !machine.catalogGameID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             row["opdb_id"] = machine.catalogGameID
         }
         if let primaryImageURL = opdbMedia?.primaryMediumURL ?? template?.primaryImageUrl {
@@ -289,44 +328,49 @@ private func normalizedGameRoomVenueName(_ raw: String) -> String {
 }
 
 private func loadGameRoomOPDBMediaIndex() -> [String: [GameRoomOPDBMediaRecord]] {
-    guard let data = try? loadBundledPinballData(path: hostedOPDBCatalogPath),
-          !data.isEmpty,
-          let root = try? JSONDecoder().decode(GameRoomOPDBCatalogRoot.self, from: data) else {
-        return [:]
+    if let rawData = try? loadCachedPinballData(path: hostedOPDBExportPath),
+       !rawData.isEmpty,
+       let machines = try? decodeOPDBExportCatalogMachines(data: rawData),
+       !machines.isEmpty {
+        var index: [String: [GameRoomOPDBMediaRecord]] = [:]
+        for machine in machines {
+            let record = GameRoomOPDBMediaRecord(
+                practiceIdentity: machine.practiceIdentity,
+                opdbMachineID: machine.opdbMachineID,
+                opdbGroupID: machine.opdbGroupID,
+                title: catalogResolvedDisplayTitle(title: machine.name, explicitVariant: machine.variant),
+                variant: catalogResolvedVariantLabel(title: machine.name, explicitVariant: machine.variant),
+                year: machine.year,
+                primaryMediumURL: machine.primaryImage?.mediumURL,
+                primaryLargeURL: machine.primaryImage?.largeURL
+            )
+            let keys = Set(
+                [
+                    normalizedGameRoomID(machine.opdbGroupID),
+                    normalizedGameRoomID(machine.opdbMachineID),
+                    normalizedGameRoomID(machine.practiceIdentity)
+                ]
+                .compactMap { $0 }
+            )
+            for key in keys {
+                index[key, default: []].append(record)
+            }
+        }
+        return index
     }
 
-    var index: [String: [GameRoomOPDBMediaRecord]] = [:]
-    for machine in root.machines {
-        let record = GameRoomOPDBMediaRecord(
-            practiceIdentity: machine.practiceIdentity,
-            opdbMachineID: machine.opdbMachineID,
-            opdbGroupID: machine.opdbGroupID,
-            variant: catalogResolvedVariantLabel(title: machine.name, explicitVariant: machine.variant),
-            year: machine.year,
-            primaryMediumURL: machine.primaryImage?.mediumURL,
-            primaryLargeURL: machine.primaryImage?.largeURL
-        )
-        let keys = Set(
-            [
-                normalizedGameRoomID(machine.opdbGroupID),
-                normalizedGameRoomID(machine.opdbMachineID),
-                normalizedGameRoomID(machine.practiceIdentity)
-            ]
-            .compactMap { $0 }
-        )
-        for key in keys {
-            index[key, default: []].append(record)
-        }
-    }
-    return index
+    return [:]
 }
 
 private func bestOPDBMediaRecord(
     for machine: OwnedMachine,
     from mediaIndex: [String: [GameRoomOPDBMediaRecord]]
 ) -> GameRoomOPDBMediaRecord? {
+    let resolvedMachineTitle = catalogResolvedDisplayTitle(title: machine.displayTitle, explicitVariant: machine.displayVariant)
+    let resolvedMachineVariant = catalogResolvedVariantLabel(title: machine.displayTitle, explicitVariant: machine.displayVariant)
     let keys = Set(
         [
+            normalizedGameRoomID(machine.opdbID),
             normalizedGameRoomID(machine.catalogGameID),
             normalizedGroupFromOpdbID(machine.catalogGameID),
             normalizedGameRoomID(machine.canonicalPracticeIdentity)
@@ -336,21 +380,28 @@ private func bestOPDBMediaRecord(
     let candidates = keys.flatMap { mediaIndex[$0] ?? [] }
     guard !candidates.isEmpty else { return nil }
 
-    let normalizedMachineVariant = normalizedGameRoomVariant(machine.displayVariant)
+    let normalizedMachineTitle = normalizedGameRoomID(resolvedMachineTitle)
+    let normalizedMachineVariant = normalizedGameRoomVariant(resolvedMachineVariant)
+    if let normalizedMachineTitle, let normalizedMachineVariant {
+        let exactTitleVariantMatches = candidates
+            .filter {
+                normalizedGameRoomID($0.title) == normalizedMachineTitle &&
+                normalizedGameRoomVariant($0.variant) == normalizedMachineVariant
+            }
+            .sorted(by: preferredOPDBMediaOrdering)
+        if let exact = exactTitleVariantMatches.first(where: opdbRecordHasPrimaryImage) ?? exactTitleVariantMatches.first {
+            return exact
+        }
+    }
+
     if let normalizedMachineVariant {
         let variantMatches = candidates
             .filter { opdbVariantMatchScore(recordVariant: $0.variant, requestedVariant: normalizedMachineVariant) > 0 }
             .sorted { lhs, rhs in
-                let lhsScore = opdbVariantMatchScore(recordVariant: lhs.variant, requestedVariant: normalizedMachineVariant)
-                let rhsScore = opdbVariantMatchScore(recordVariant: rhs.variant, requestedVariant: normalizedMachineVariant)
+                let lhsScore = exactMediaVariantScore(record: lhs, requestedTitle: normalizedMachineTitle, requestedVariant: normalizedMachineVariant)
+                let rhsScore = exactMediaVariantScore(record: rhs, requestedTitle: normalizedMachineTitle, requestedVariant: normalizedMachineVariant)
                 if lhsScore != rhsScore { return lhsScore > rhsScore }
-                let lhsHasPrimary = opdbRecordHasPrimaryImage(lhs)
-                let rhsHasPrimary = opdbRecordHasPrimaryImage(rhs)
-                if lhsHasPrimary != rhsHasPrimary { return lhsHasPrimary }
-                let lhsYear = lhs.year ?? Int.max
-                let rhsYear = rhs.year ?? Int.max
-                if lhsYear != rhsYear { return lhsYear < rhsYear }
-                return lhs.practiceIdentity < rhs.practiceIdentity
+                return preferredOPDBMediaOrdering(lhs, rhs)
             }
         if let withVariantArt = variantMatches.first(where: opdbRecordHasPrimaryImage) {
             return withVariantArt
@@ -381,6 +432,31 @@ private func bestOPDBMediaRecord(
         if lhsYear != rhsYear { return lhsYear > rhsYear }
         return lhs.practiceIdentity > rhs.practiceIdentity
     }
+}
+
+private func preferredOPDBMediaOrdering(_ lhs: GameRoomOPDBMediaRecord, _ rhs: GameRoomOPDBMediaRecord) -> Bool {
+    let lhsHasPrimary = opdbRecordHasPrimaryImage(lhs)
+    let rhsHasPrimary = opdbRecordHasPrimaryImage(rhs)
+    if lhsHasPrimary != rhsHasPrimary { return lhsHasPrimary }
+    let lhsYear = lhs.year ?? Int.max
+    let rhsYear = rhs.year ?? Int.max
+    if lhsYear != rhsYear { return lhsYear < rhsYear }
+    return lhs.practiceIdentity < rhs.practiceIdentity
+}
+
+private func exactMediaVariantScore(
+    record: GameRoomOPDBMediaRecord,
+    requestedTitle: String?,
+    requestedVariant: String
+) -> Int {
+    var score = opdbVariantMatchScore(recordVariant: record.variant, requestedVariant: requestedVariant)
+    if let requestedTitle, normalizedGameRoomID(record.title) == requestedTitle {
+        score += 300
+    }
+    if normalizedGameRoomVariant(record.variant) == requestedVariant {
+        score += 200
+    }
+    return score
 }
 
 private func opdbMediaScore(_ record: GameRoomOPDBMediaRecord, machineVariant: String?) -> Int {
@@ -466,6 +542,7 @@ private func resolvedPlayfieldSourceLabel(for game: PinballGame) -> String? {
 }
 
 private func bestTemplateGame(for machine: OwnedMachine, from games: [PinballGame]) -> PinballGame? {
+    let normalizedExactOPDBID = normalizedGameRoomID(machine.opdbID)
     let normalizedCatalogID = normalizedGameRoomID(machine.catalogGameID)
     let normalizedCatalogGroup = normalizedGroupFromOpdbID(machine.catalogGameID)
     let normalizedPracticeIdentity = normalizedGameRoomID(machine.canonicalPracticeIdentity)
@@ -479,6 +556,7 @@ private func bestTemplateGame(for machine: OwnedMachine, from games: [PinballGam
 
         let gameMatchScore = templateMatchScore(
             game,
+            exactOPDBID: normalizedExactOPDBID,
             catalogID: normalizedCatalogID,
             catalogGroupID: normalizedCatalogGroup,
             canonicalPracticeIdentity: normalizedPracticeIdentity,
@@ -515,6 +593,7 @@ private func templateScore(_ game: PinballGame, machineVariant: String?) -> Int 
 
 private func templateMatchScore(
     _ game: PinballGame,
+    exactOPDBID: String?,
     catalogID: String?,
     catalogGroupID: String?,
     canonicalPracticeIdentity: String?,
@@ -526,6 +605,10 @@ private func templateMatchScore(
     let gameTitle = normalizedGameRoomID(game.name)
 
     var score = 0
+
+    if let exactOPDBID, gameOPDBID == exactOPDBID {
+        score = max(score, 1300)
+    }
 
     if let catalogID {
         if gameOPDBID == catalogID { score = max(score, 1200) }

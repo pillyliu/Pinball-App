@@ -4,10 +4,15 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import org.json.JSONObject
+import com.pillyliu.pinprofandroid.data.PinballDataCache
+import com.pillyliu.pinprofandroid.library.decodeCatalogManufacturerOptionsFromOPDBExport
+import com.pillyliu.pinprofandroid.library.decodeOPDBExportCatalogMachines
+import com.pillyliu.pinprofandroid.library.hostedOPDBExportPath
+import kotlinx.coroutines.runBlocking
 
 internal data class GameRoomCatalogGame(
     val catalogGameID: String,
+    val opdbID: String,
     val canonicalPracticeIdentity: String,
     val displayTitle: String,
     val displayVariant: String?,
@@ -43,6 +48,7 @@ internal data class GameRoomCatalogSlugMatch(
 
 private data class GameRoomCatalogMachineRecord(
     val groupID: String,
+    val opdbID: String,
     val practiceIdentity: String,
     val slug: String,
     val machineName: String,
@@ -108,32 +114,27 @@ internal class GameRoomCatalogLoader(private val context: Context) {
     }
 
     private fun loadCatalog() {
-        val raw = context.assets
-            .open("starter-pack/pinball/data/opdb_catalog_v1.json")
-            .bufferedReader()
-            .use { it.readText() }
-        val root = JSONObject(raw)
-        val machines = root.optJSONArray("machines")
-            ?: throw IllegalStateException("Catalog data is missing machines.")
+        val raw = runBlocking {
+            PinballDataCache.loadText(
+                url = hostedOPDBExportPath,
+                allowMissing = false,
+            ).text
+        } ?: throw IllegalStateException("Catalog data is missing.")
+        val machines = decodeOPDBExportCatalogMachines(raw)
+        if (machines.isEmpty()) {
+            throw IllegalStateException("Catalog data is missing machines.")
+        }
 
-        val manufacturersArray = root.optJSONArray("manufacturers")
-        manufacturerOptions = buildList {
-            if (manufacturersArray != null) {
-                for (index in 0 until manufacturersArray.length()) {
-                    val obj = manufacturersArray.optJSONObject(index) ?: continue
-                    val id = obj.optString("id").ifBlank { continue }
-                    val name = obj.optString("name").ifBlank { continue }
-                    add(
-                        GameRoomCatalogManufacturerOption(
-                            id = id,
-                            name = name,
-                            isModern = obj.optBoolean("is_modern", false),
-                            featuredRank = obj.optInt("featured_rank").takeIf { it > 0 },
-                        ),
-                    )
-                }
+        manufacturerOptions = decodeCatalogManufacturerOptionsFromOPDBExport(raw)
+            .map { option ->
+                GameRoomCatalogManufacturerOption(
+                    id = option.id,
+                    name = option.name,
+                    isModern = option.isModern,
+                    featuredRank = option.featuredRank,
+                )
             }
-        }.sortedWith(
+            .sortedWith(
             compareBy<GameRoomCatalogManufacturerOption> { !it.isModern }
                 .thenBy { it.featuredRank ?: Int.MAX_VALUE }
                 .thenBy { it.name.lowercase() },
@@ -145,28 +146,26 @@ internal class GameRoomCatalogLoader(private val context: Context) {
         val slugMatches = LinkedHashMap<String, GameRoomCatalogSlugMatch>()
         val manufacturerBucket = linkedSetOf<String>()
 
-        for (index in 0 until machines.length()) {
-            val obj = machines.optJSONObject(index) ?: continue
-            val groupID = obj.optString("opdb_group_id").ifBlank { obj.optString("practice_identity") }
-            if (groupID.isBlank()) continue
-            val rawTitle = obj.optString("name").ifBlank { "Machine" }
-            val canonicalPracticeIdentity = obj.optString("practice_identity").ifBlank { groupID }
-            val manufacturerID = obj.optString("manufacturer_id").ifBlank { null }
-            val manufacturer = obj.optString("manufacturer_name").ifBlank { null }
-            val year = obj.optInt("year").takeIf { it > 0 }
+        machines.forEach { machine ->
+            val groupID = machine.opdbGroupId ?: machine.practiceIdentity
+            if (groupID.isBlank()) return@forEach
+            val opdbID = machine.opdbMachineId ?: groupID
+            val rawTitle = machine.name.ifBlank { "Machine" }
+            val canonicalPracticeIdentity = machine.practiceIdentity.ifBlank { groupID }
+            val manufacturerID = machine.manufacturerId
+            val manufacturer = machine.manufacturerName
+            val year = machine.year
             val parsedTitle = parseCatalogName(
                 title = rawTitle,
-                explicitVariant = obj.optString("variant").ifBlank { null },
+                explicitVariant = machine.variant,
             )
             val title = parsedTitle.displayTitle
             val variant = parsedTitle.displayVariant
-            val slug = obj.optString("slug").ifBlank { canonicalPracticeIdentity }.lowercase()
-            val primaryImage = obj.optJSONObject("primary_image")
-            val playfieldImage = obj.optJSONObject("playfield_image")
-            val primaryImageUrl = primaryImage?.optString("medium_url").orEmpty().ifBlank { null }
-            val primaryImageLargeUrl = primaryImage?.optString("large_url").orEmpty().ifBlank { null }
-            val playfieldImageUrl = playfieldImage?.optString("medium_url").orEmpty().ifBlank { null }
-            val playfieldImageLargeUrl = playfieldImage?.optString("large_url").orEmpty().ifBlank { null }
+            val slug = machine.slug.ifBlank { canonicalPracticeIdentity }.lowercase()
+            val primaryImageUrl = machine.primaryImageMediumUrl
+            val primaryImageLargeUrl = machine.primaryImageLargeUrl
+            val playfieldImageUrl = machine.playfieldImageMediumUrl
+            val playfieldImageLargeUrl = machine.playfieldImageLargeUrl
             if (!manufacturer.isNullOrBlank()) manufacturerBucket += manufacturer
             if (!variant.isNullOrBlank()) {
                 variantsByGroup.getOrPut(groupID) { linkedSetOf() }.add(variant)
@@ -174,6 +173,7 @@ internal class GameRoomCatalogLoader(private val context: Context) {
             recordsByGroup.getOrPut(groupID) { mutableListOf() }.add(
                 GameRoomCatalogMachineRecord(
                     groupID = groupID,
+                    opdbID = opdbID,
                     practiceIdentity = canonicalPracticeIdentity,
                     slug = slug,
                     machineName = title,
@@ -189,6 +189,7 @@ internal class GameRoomCatalogLoader(private val context: Context) {
 
             val candidate = GameRoomCatalogGame(
                 catalogGameID = groupID,
+                opdbID = opdbID,
                 canonicalPracticeIdentity = canonicalPracticeIdentity,
                 displayTitle = title,
                 displayVariant = variant,
@@ -196,10 +197,10 @@ internal class GameRoomCatalogLoader(private val context: Context) {
                 manufacturer = manufacturer,
                 year = year,
                 primaryImageUrl = primaryImageUrl ?: primaryImageLargeUrl,
-                opdbType = obj.optString("opdb_type").ifBlank { null },
-                opdbDisplay = obj.optString("opdb_display").ifBlank { null },
-                opdbShortname = obj.optString("opdb_shortname").ifBlank { null },
-                opdbCommonName = obj.optString("opdb_common_name").ifBlank { null },
+                opdbType = machine.opdbType,
+                opdbDisplay = machine.opdbDisplay,
+                opdbShortname = machine.opdbShortname,
+                opdbCommonName = machine.opdbCommonName,
             )
             allGames += candidate
 
@@ -276,15 +277,70 @@ internal class GameRoomCatalogLoader(private val context: Context) {
         return buildSlugKeys(normalizedSlug).firstNotNullOfOrNull { key -> slugMatchesBySlug[key] }
     }
 
+    fun resolvedOpdbId(machine: OwnedMachine): String? {
+        machine.opdbID?.trim()?.takeIf { it.isNotBlank() }?.let { existing ->
+            if (catalogGameForExactOpdbId(existing) != null) {
+                return existing
+            }
+        }
+
+        val parsedName = parseCatalogName(
+            title = machine.displayTitle,
+            explicitVariant = machine.displayVariant,
+        )
+        val normalizedTitle = parsedName.displayTitle.trim().lowercase()
+        val normalizedVariant = normalizeVariantLabel(parsedName.displayVariant)
+        val grouped = games(machine.catalogGameID)
+
+        if (normalizedVariant != null) {
+            grouped.firstOrNull {
+                it.displayTitle.trim().lowercase() == normalizedTitle &&
+                    normalizeVariantLabel(it.displayVariant) == normalizedVariant
+            }?.let { return it.opdbID }
+        }
+
+        if (normalizedVariant != null) {
+            grouped.firstOrNull {
+                variantMatchesSelection(it.displayVariant, normalizedVariant)
+            }?.let { return it.opdbID }
+        }
+
+        grouped.firstOrNull {
+            it.displayTitle.trim().lowercase() == normalizedTitle
+        }?.let { return it.opdbID }
+
+        allCatalogGames.firstOrNull {
+            it.canonicalPracticeIdentity == machine.canonicalPracticeIdentity
+        }?.let { return it.opdbID }
+
+        return grouped.firstOrNull()?.opdbID
+    }
+
+    fun normalizedCatalogGame(machine: OwnedMachine): GameRoomCatalogGame? {
+        val exact = resolvedOpdbId(machine) ?: return null
+        return catalogGameForExactOpdbId(exact)
+    }
+
     fun imageCandidates(machine: OwnedMachine): List<String> {
+        val normalizedExactOPDBID = normalizedCatalogGameID(resolvedOpdbId(machine).orEmpty())
         val grouped = gamesByCatalogGameID[machine.catalogGameID]
             ?: gamesByNormalizedCatalogGameID[normalizedCatalogGameID(machine.catalogGameID)]
             ?: emptyList()
-        if (grouped.isEmpty()) return emptyList()
-
-        val normalizedVariant = normalizeVariantLabel(machine.displayVariant)
-        val normalizedTitle = machine.displayTitle.trim().lowercase()
         val rawCandidates = mutableListOf<String>()
+        val normalizedVariant = normalizeVariantLabel(machine.displayVariant)
+        val normalizedTitle = parseCatalogName(
+            title = machine.displayTitle,
+            explicitVariant = machine.displayVariant,
+        ).displayTitle.trim().lowercase()
+
+        if (normalizedExactOPDBID.isNotBlank()) {
+            val exactMachineMatches = allCatalogGames.filter {
+                normalizedCatalogGameID(it.opdbID) == normalizedExactOPDBID
+            }
+            rawCandidates.addAll(exactMachineMatches.mapNotNull { it.primaryImageUrl })
+        }
+
+        if (grouped.isEmpty() && rawCandidates.isEmpty()) return emptyList()
 
         if (normalizedVariant != null) {
             val variantMatches = grouped.filter {
@@ -316,6 +372,12 @@ internal class GameRoomCatalogLoader(private val context: Context) {
         val strippedVariant = stripVariantSuffix(normalizeSlugForMatching(lowered))
         if (strippedVariant.isNotBlank()) keys += strippedVariant
         return keys.toList()
+    }
+
+    private fun catalogGameForExactOpdbId(opdbID: String): GameRoomCatalogGame? {
+        val normalized = normalizedCatalogGameID(opdbID)
+        if (normalized.isBlank()) return null
+        return allCatalogGames.firstOrNull { normalizedCatalogGameID(it.opdbID) == normalized }
     }
 
     private fun normalizeSlugForMatching(slug: String): String {
@@ -366,17 +428,30 @@ internal class GameRoomCatalogLoader(private val context: Context) {
 
     fun resolvedArt(
         catalogGameID: String,
+        opdbID: String? = null,
         selectedVariant: String?,
         selectedTitle: String? = null,
         selectedYear: Int? = null,
     ): GameRoomCatalogArt? {
+        val normalizedExactOPDBID = opdbID?.trim().orEmpty()
+        val exactRecords = if (normalizedExactOPDBID.isBlank()) {
+            emptyList()
+        } else {
+            machineRecordsByCatalogGameID.values
+                .flatten()
+                .filter { it.opdbID.equals(normalizedExactOPDBID, ignoreCase = true) }
+        }
         val normalizedID = catalogGameID.trim()
-        if (normalizedID.isBlank()) return null
-        val records = machineRecordsByCatalogGameID[normalizedID]
+        if (normalizedID.isBlank() && exactRecords.isEmpty()) return null
+        val records = if (exactRecords.isNotEmpty()) {
+            exactRecords
+        } else {
+            machineRecordsByCatalogGameID[normalizedID]
             ?: machineRecordsByCatalogGameID.entries.firstOrNull { (key, _) ->
                 key.equals(normalizedID, ignoreCase = true)
             }?.value
             ?: emptyList()
+        }
         if (records.isEmpty()) return null
         val variantRanked = records.sortedWith { lhs, rhs ->
             val lhsScore = machineContextScore(lhs, selectedVariant, selectedTitle, selectedYear)

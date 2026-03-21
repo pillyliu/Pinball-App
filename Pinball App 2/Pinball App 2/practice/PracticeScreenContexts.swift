@@ -29,6 +29,9 @@ extension PracticeScreen {
             onOpenIFPAProfile: {
                 openRoute(.ifpaProfile)
             },
+            onOpenHubRoute: { route in
+                openRoute(route)
+            },
             onResume: { sourceID in
                 resumeToPracticeGame(zoomSourceID: sourceID)
             },
@@ -98,7 +101,7 @@ extension PracticeScreen {
                 get: { journalFilter },
                 set: { journalFilterRaw = $0.rawValue }
             ),
-            items: journalSectionItems,
+            sections: journalSections,
             isEditingEntries: $uiState.isEditingJournalEntries,
             selectedItemIDs: $uiState.selectedJournalItemIDs,
             gameTransition: gameTransition,

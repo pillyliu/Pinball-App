@@ -71,7 +71,7 @@ internal fun PracticeHomeSection(
         val resumeSlug = store.resumeSlugFromLibraryOrPractice()
         val resumeGame = findGameByPracticeLookupKey(resumeLookupGames, resumeSlug) ?: orderedGames.firstOrNull()
         val resumeOpenKey = resumeSlug?.takeIf { findGameByPracticeLookupKey(resumeLookupGames, it) != null }
-            ?: resumeGame?.practiceKey
+            ?: resumeGame?.let { preferredPracticeSelectionKey(it, selectedLibrarySourceId, librarySources) }
         val selectedLibraryLabel = librarySources.firstOrNull { it.id == selectedLibrarySourceId }?.name ?: "All games"
         if (resumeGame != null) {
             Row(
@@ -158,11 +158,17 @@ internal fun PracticeHomeSection(
                             onDismissRequest = { onResumeOtherExpandedChange(false) },
                         ) {
                             orderedGames.forEach { listGame ->
+                                val selectedSource = librarySources.firstOrNull { it.id == selectedLibrarySourceId }
+                                val selectionKey = if (selectedSource?.type == com.pillyliu.pinprofandroid.library.LibrarySourceType.VENUE) {
+                                    sourceScopedPracticeGameID(selectedSource.id, listGame.practiceKey)
+                                } else {
+                                    listGame.practiceKey
+                                }
                                 DropdownMenuItem(
                                     text = { Text(listGame.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                     onClick = {
                                         onResumeOtherExpandedChange(false)
-                                        onOpenGame(listGame.practiceKey)
+                                        onOpenGame(selectionKey)
                                     },
                                 )
                             }
@@ -203,19 +209,21 @@ internal fun PracticeHomeSection(
                         AppPassiveStatusChip(text = "Selected")
                     }
                 }
-                val games = store.groupGames(group)
-                if (games.isEmpty()) {
+                val groupSelections = group.gameSlugs.mapNotNull { selectionKey ->
+                    findGameByPracticeLookupKey(store.practiceLookupGamesForDisplay(), selectionKey)?.let { selectionKey to it }
+                }
+                if (groupSelections.isEmpty()) {
                     AppPanelEmptyCard(text = "No games in this group.")
                 } else {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                     ) {
-                        games.forEach { game ->
+                        groupSelections.forEach { (selectionKey, game) ->
                             Box(
                                 modifier = Modifier
                                     .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
-                                    .clickable { onOpenGame(game.practiceKey) },
+                                    .clickable { onOpenGame(selectionKey) },
                             ) {
                                 SelectedGameMiniCard(game = game, bottomPadding = 6.dp)
                             }

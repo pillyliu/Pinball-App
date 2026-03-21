@@ -416,7 +416,7 @@ nonisolated func compareVideoLinks(_ lhs: CatalogVideoLinkRecord, _ rhs: Catalog
 
 nonisolated private func videoProviderOrder(_ provider: String) -> Int {
     switch provider.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-    case "local":
+    case "local", "pinprof":
         return 0
     case "matchplay":
         return 1
@@ -515,6 +515,12 @@ nonisolated func compareCatalogRulesheetLinks(_ lhs: CatalogRulesheetLinkRecord,
 }
 
 nonisolated func catalogRulesheetSortRank(providerRawValue: String, label: String, url: String?) -> Int {
+    switch providerRawValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+    case "pinprof":
+        return LibraryRulesheetSourceKind.prof.rawValue
+    default:
+        break
+    }
     switch CatalogRulesheetProvider(rawValue: providerRawValue.lowercased()) {
     case .local:
         return LibraryRulesheetSourceKind.local.rawValue
@@ -537,6 +543,12 @@ nonisolated func catalogRulesheetSortRank(providerRawValue: String, label: Strin
 }
 
 nonisolated func catalogRulesheetLabel(providerRawValue: String, fallback: String, url: String? = nil) -> String {
+    switch providerRawValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+    case "pinprof":
+        return "Rulesheet (PinProf)"
+    default:
+        break
+    }
     switch CatalogRulesheetProvider(rawValue: providerRawValue.lowercased()) {
     case .tf:
         return "Rulesheet (TF)"

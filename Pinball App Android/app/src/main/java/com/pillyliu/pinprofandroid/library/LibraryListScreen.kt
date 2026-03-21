@@ -47,9 +47,7 @@ import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.AppOverlaySubtitle
-import com.pillyliu.pinprofandroid.ui.AppOverlayTitle
-import com.pillyliu.pinprofandroid.ui.AppVariantPill
-import com.pillyliu.pinprofandroid.ui.AppVariantPillStyle
+import com.pillyliu.pinprofandroid.ui.AppOverlayTitleWithVariant
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppSearchFilterBar
@@ -328,40 +326,23 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(42.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.Top,
+                contentAlignment = Alignment.TopStart,
             ) {
-                AppOverlayTitle(
+                AppOverlayTitleWithVariant(
                     text = game.name,
-                    modifier = Modifier.weight(1f),
+                    variant = game.normalizedVariant,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val variantText = game.normalizedVariant
-                val variantMaxWidth = 84.dp
-                val makerMaxWidth = if (variantText != null) (maxWidth - variantMaxWidth - 4.dp) else maxWidth
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AppOverlaySubtitle(
-                        text = game.manufacturerYearCardLine(),
-                        modifier = Modifier.widthIn(max = if (makerMaxWidth > 48.dp) makerMaxWidth else 48.dp),
-                        alpha = 0.95f,
-                    )
-                    variantText?.let { variant ->
-                        AppVariantPill(
-                            label = variant,
-                            style = AppVariantPillStyle.Standard,
-                            modifier = Modifier.widthIn(max = variantMaxWidth),
-                        )
-                    }
-                }
-            }
+            AppOverlaySubtitle(
+                text = game.manufacturerYearCardLine(),
+                modifier = Modifier.fillMaxWidth(),
+                alpha = 0.95f,
+            )
             AppOverlaySubtitle(
                 text = game.locationBankLine().ifBlank { " " },
                 alpha = 0.88f,

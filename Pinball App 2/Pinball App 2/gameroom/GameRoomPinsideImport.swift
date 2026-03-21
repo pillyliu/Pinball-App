@@ -1,5 +1,65 @@
 import Foundation
 
+nonisolated func canonicalPinsideDisplayedTitle(_ title: String, fallbackVariant: String?) -> (title: String, variant: String?) {
+    let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedTitle.hasSuffix(")"),
+          let openParenIndex = trimmedTitle.lastIndex(of: "(") else {
+        return (trimmedTitle, fallbackVariant)
+    }
+
+    let baseTitle = String(trimmedTitle[..<openParenIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
+    let rawVariant = String(trimmedTitle[trimmedTitle.index(after: openParenIndex)..<trimmedTitle.index(before: trimmedTitle.endIndex)])
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !baseTitle.isEmpty else {
+        return (trimmedTitle, fallbackVariant)
+    }
+
+    let normalizedVariant = normalizedPinsideVariantLabel(rawVariant)
+    let resolvedVariant = preferredPinsideVariantLabel(
+        parsedVariant: normalizedVariant,
+        fallbackVariant: fallbackVariant
+    )
+    guard let resolvedVariant else {
+        return (trimmedTitle, fallbackVariant)
+    }
+    return (baseTitle, resolvedVariant)
+}
+
+nonisolated private func preferredPinsideVariantLabel(parsedVariant: String?, fallbackVariant: String?) -> String? {
+    let parsedTrimmed = parsedVariant?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    let normalizedParsed = parsedTrimmed.isEmpty ? nil : parsedTrimmed
+    let fallbackTrimmed = fallbackVariant?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    let normalizedFallback = fallbackTrimmed.isEmpty ? nil : fallbackTrimmed
+    guard let normalizedParsed else { return normalizedFallback }
+    guard let normalizedFallback else { return normalizedParsed }
+
+    let parsedLower = normalizedParsed.lowercased()
+    let fallbackLower = normalizedFallback.lowercased()
+    let bothAnniversary = parsedLower.contains("anniversary") && fallbackLower.contains("anniversary")
+    if bothAnniversary {
+        if parsedLower == fallbackLower {
+            return normalizedFallback
+        }
+        if parsedLower.hasPrefix("\(fallbackLower) ") {
+            return normalizedFallback
+        }
+    }
+    return normalizedParsed
+}
+
+nonisolated private func normalizedPinsideVariantLabel(_ value: String) -> String? {
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    let lowered = trimmed.lowercased()
+    guard !lowered.isEmpty else { return nil }
+    if lowered == "premium" || lowered == "premium edition" { return "Premium" }
+    if lowered == "pro" || lowered == "pro edition" { return "Pro" }
+    if lowered == "le" || lowered == "limited edition" { return "LE" }
+    if lowered == "ce" || lowered.contains("collector") { return "CE" }
+    if lowered == "se" || lowered.contains("special edition") { return "SE" }
+    if lowered.contains("anniversary") { return trimmed }
+    return nil
+}
+
 struct PinsideImportedMachine: Identifiable, Hashable {
     let id: String
     let slug: String
@@ -305,8 +365,8 @@ actor GameRoomPinsideImportService {
         }
 
         let data: Data
-        if let bundled = try loadBundledPinballData(path: groupMapPath), !bundled.isEmpty {
-            data = bundled
+        if let cached = try loadCachedPinballData(path: groupMapPath), !cached.isEmpty {
+            data = cached
         } else {
             let cached = try await PinballDataCache.shared.loadText(path: groupMapPath, allowMissing: false)
             guard let text = cached.text, let encoded = text.data(using: .utf8), !encoded.isEmpty else {
@@ -415,31 +475,7 @@ actor GameRoomPinsideImportService {
     }
 
     private static func parsedDisplayedTitle(_ title: String, fallbackVariant: String?) -> (title: String, variant: String?) {
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmedTitle.hasSuffix(")"),
-              let openParenIndex = trimmedTitle.lastIndex(of: "(") else {
-            return (trimmedTitle, fallbackVariant)
-        }
-
-        let baseTitle = String(trimmedTitle[..<openParenIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
-        let rawVariant = String(trimmedTitle[trimmedTitle.index(after: openParenIndex)..<trimmedTitle.index(before: trimmedTitle.endIndex)])
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !baseTitle.isEmpty, let derivedVariant = normalizedVariantLabel(rawVariant) else {
-            return (trimmedTitle, fallbackVariant)
-        }
-        return (baseTitle, derivedVariant)
-    }
-
-    private static func normalizedVariantLabel(_ value: String) -> String? {
-        let lowered = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !lowered.isEmpty else { return nil }
-        if lowered == "premium" || lowered == "premium edition" { return "Premium" }
-        if lowered == "pro" || lowered == "pro edition" { return "Pro" }
-        if lowered == "le" || lowered == "limited edition" { return "LE" }
-        if lowered == "ce" || lowered.contains("collector") { return "CE" }
-        if lowered == "se" || lowered.contains("special edition") { return "SE" }
-        if lowered.contains("anniversary") { return value }
-        return nil
+        canonicalPinsideDisplayedTitle(title, fallbackVariant: fallbackVariant)
     }
 
     private func normalizedFirstOfMonth(from raw: String?) -> Date? {

@@ -28,7 +28,9 @@ internal fun PracticeLifecycleHost(
         uiState.insights.opponentName = store.comparisonPlayerName
         if (uiState.navigation.selectedGameSlug == null) {
             uiState.navigation.selectedGameSlug = store.resumeSlugFromLibraryOrPractice()
-                ?: orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey
+                ?: orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true)
+                    .firstOrNull()
+                    ?.let { preferredPracticeSelectionKey(it, store.defaultPracticeSourceId, store.librarySources) }
         }
     }
 
@@ -70,7 +72,9 @@ internal fun PracticeLifecycleHost(
         if (uiState.navigation.selectedGameSlug != null &&
             findGameByPracticeLookupKey(refreshedLookupPool, uiState.navigation.selectedGameSlug) == null
         ) {
-            uiState.navigation.selectedGameSlug = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true).firstOrNull()?.practiceKey
+            uiState.navigation.selectedGameSlug = orderedGamesForDropdown(store.games, collapseByPracticeIdentity = true)
+                .firstOrNull()
+                ?.let { preferredPracticeSelectionKey(it, store.defaultPracticeSourceId, store.librarySources) }
         }
     }
 

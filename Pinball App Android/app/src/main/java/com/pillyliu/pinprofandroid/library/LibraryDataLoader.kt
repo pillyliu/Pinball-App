@@ -25,9 +25,226 @@ private suspend fun loadLibraryExtraction(
     return runCatching {
         loadHostedLibraryExtraction(context, filterBySourceState)
     }.getOrElse {
-        loadBundledLibraryExtraction(context, filterBySourceState)
-            ?: LibrarySeedDatabase.loadExtraction(context, filterBySourceState)
+        LegacyCatalogExtraction(
+            payload = ParsedLibraryData(games = emptyList(), sources = emptyList()),
+            state = LibrarySourceStateStore.load(context),
+        )
     }
+}
+
+private val curatedModernManufacturerNames = listOf(
+    "stern",
+    "stern pinball",
+    "jersey jack pinball",
+    "chicago gaming",
+    "american pinball",
+    "spooky pinball",
+    "multimorphic",
+    "barrels of fun",
+    "dutch pinball",
+    "pinball brothers",
+    "turner pinball",
+)
+
+private val curatedModernManufacturerRanks = curatedModernManufacturerNames
+    .mapIndexed { index, name -> name to (index + 1) }
+    .toMap()
+
+private fun opdbGroupIdFromOpdbId(opdbId: String?): String? {
+    val trimmed = normalizedOptionalString(opdbId) ?: return null
+    if (!trimmed.startsWith("G")) return null
+    val dashIndex = trimmed.indexOf('-')
+    return if (dashIndex < 0) trimmed else trimmed.substring(0, dashIndex).ifBlank { null }
+}
+
+private fun rawOpdbYear(manufactureDate: String?): Int? {
+    val prefix = manufactureDate?.take(4) ?: return null
+    return if (prefix.length == 4) prefix.toIntOrNull() else null
+}
+
+private fun rawOpdbImageSet(images: JSONArray?, preferredType: String): Pair<String?, String?>? {
+    if (images == null) return null
+    val normalizedPreferredType = preferredType.trim().lowercase()
+    val typedMatches = buildList<JSONObject> {
+        for (index in 0 until images.length()) {
+            val image = images.optJSONObject(index) ?: continue
+            val type = image.optString("type").trim().lowercase()
+            if (type == normalizedPreferredType) add(image)
+        }
+    }
+    val selected = typedMatches.firstOrNull { image ->
+        val urls = image.optJSONObject("urls")
+        image.optBoolean("primary") && (
+            !urls?.optString("medium").isNullOrBlank() ||
+                !urls?.optString("large").isNullOrBlank()
+            )
+    } ?: typedMatches.firstOrNull { image ->
+        val urls = image.optJSONObject("urls")
+        !urls?.optString("medium").isNullOrBlank() ||
+            !urls?.optString("large").isNullOrBlank()
+    } ?: return null
+    val urls = selected.optJSONObject("urls")
+    return normalizedOptionalString(urls?.optString("medium")) to
+        normalizedOptionalString(urls?.optString("large"))
+}
+
+private fun rawOpdbFallbackSlug(title: String, shortname: String?, fallback: String): String {
+    val normalizedShortname = normalizedOptionalString(shortname)
+        ?.lowercase()
+        ?.replace(Regex("[^a-z0-9]+"), "-")
+        ?.trim('-')
+    if (!normalizedShortname.isNullOrBlank()) return normalizedShortname
+
+    val titleSlug = title.trim()
+        .lowercase()
+        .replace("&", "and")
+        .replace(Regex("[^a-z0-9]+"), "-")
+        .trim('-')
+    return if (titleSlug.isBlank()) fallback else titleSlug
+}
+
+private fun rawOpdbCatalogMachineRecord(obj: JSONObject): CatalogMachineRecord? {
+    if (obj.has("is_machine") && !obj.isNull("is_machine") && !obj.optBoolean("is_machine", true)) {
+        return null
+    }
+    val opdbId = obj.optStringOrNullLocal("opdb_id") ?: return null
+    val practiceIdentity = opdbGroupIdFromOpdbId(opdbId) ?: opdbId
+    val name = obj.optStringOrNullLocal("name") ?: return null
+    val manufacturer = obj.optJSONObject("manufacturer")
+    val manufacturerRawId = if (manufacturer?.has("manufacturer_id") == true && !manufacturer.isNull("manufacturer_id")) {
+        manufacturer.optInt("manufacturer_id").takeIf { it > 0 }
+    } else {
+        null
+    }
+    val (primaryMediumUrl, primaryLargeUrl) = rawOpdbImageSet(obj.optJSONArray("images"), "backglass") ?: (null to null)
+    val (playfieldMediumUrl, playfieldLargeUrl) = rawOpdbImageSet(obj.optJSONArray("images"), "playfield") ?: (null to null)
+
+    return CatalogMachineRecord(
+        practiceIdentity = practiceIdentity,
+        opdbMachineId = opdbId,
+        opdbGroupId = practiceIdentity,
+        slug = rawOpdbFallbackSlug(
+            title = name,
+            shortname = obj.optStringOrNullLocal("shortname"),
+            fallback = practiceIdentity,
+        ),
+        name = name,
+        variant = null,
+        manufacturerId = manufacturerRawId?.let { "manufacturer-$it" },
+        manufacturerName = manufacturer?.optStringOrNullLocal("name"),
+        year = rawOpdbYear(obj.optStringOrNullLocal("manufacture_date")),
+        opdbName = normalizedOptionalString(name),
+        opdbCommonName = obj.optStringOrNullLocal("common_name"),
+        opdbShortname = obj.optStringOrNullLocal("shortname"),
+        opdbDescription = obj.optStringOrNullLocal("description"),
+        opdbType = obj.optStringOrNullLocal("type"),
+        opdbDisplay = obj.optStringOrNullLocal("display"),
+        opdbPlayerCount = obj.optIntOrNullLocal("player_count"),
+        opdbManufactureDate = obj.optStringOrNullLocal("manufacture_date"),
+        opdbIpdbId = obj.optIntOrNullLocal("ipdb_id"),
+        opdbGroupShortname = null,
+        opdbGroupDescription = null,
+        primaryImageMediumUrl = primaryMediumUrl,
+        primaryImageLargeUrl = primaryLargeUrl,
+        playfieldImageMediumUrl = playfieldMediumUrl,
+        playfieldImageLargeUrl = playfieldLargeUrl,
+    )
+}
+
+private fun catalogResolvedMachines(machines: List<CatalogMachineRecord>): List<CatalogMachineRecord> =
+    machines.map { machine ->
+        machine.copy(
+            variant = resolvedCatalogVariantLabel(
+                title = machine.name,
+                explicitVariant = machine.variant,
+            ),
+        )
+    }
+
+internal fun decodeOPDBExportCatalogMachines(raw: String): List<CatalogMachineRecord> {
+    val array = runCatching { JSONArray(raw.trim()) }.getOrNull() ?: return emptyList()
+    return catalogResolvedMachines(
+        buildList {
+            for (index in 0 until array.length()) {
+                val obj = array.optJSONObject(index) ?: continue
+                rawOpdbCatalogMachineRecord(obj)?.let(::add)
+            }
+        },
+    )
+}
+
+private fun buildCatalogManufacturerRecordsFromMachines(
+    machines: List<CatalogMachineRecord>,
+): List<CatalogManufacturerRecord> {
+    val grouped = machines
+        .mapNotNull { machine ->
+            val manufacturerId = normalizedOptionalString(machine.manufacturerId)
+            val manufacturerName = normalizedOptionalString(machine.manufacturerName)
+            if (manufacturerId == null || manufacturerName == null) null
+            else Triple(manufacturerId, manufacturerName, machine)
+        }
+        .groupBy { it.first }
+
+    return grouped.mapNotNull { (manufacturerId, entries) ->
+        val manufacturerName = entries.firstOrNull()?.second ?: return@mapNotNull null
+        val modernRank = curatedModernManufacturerRanks[manufacturerName.trim().lowercase()]
+        CatalogManufacturerRecord(
+            id = manufacturerId,
+            name = manufacturerName,
+            isModern = modernRank != null,
+            featuredRank = modernRank,
+            gameCount = entries.map { (_, _, machine) -> machine.opdbGroupId ?: machine.practiceIdentity }.toSet().size,
+        )
+    }.sortedWith(
+        compareBy<CatalogManufacturerRecord> { if (it.isModern == true) 0 else 1 }
+            .thenBy { it.featuredRank ?: Int.MAX_VALUE }
+            .thenBy { it.name.lowercase() },
+    )
+}
+
+internal fun decodeCatalogManufacturerOptionsFromOPDBExport(raw: String): List<CatalogManufacturerOption> {
+    val manufacturers = buildCatalogManufacturerRecordsFromMachines(decodeOPDBExportCatalogMachines(raw))
+    return manufacturers.map { manufacturer ->
+        CatalogManufacturerOption(
+            id = manufacturer.id,
+            name = manufacturer.name,
+            gameCount = manufacturer.gameCount ?: 0,
+            isModern = manufacturer.isModern == true,
+            featuredRank = manufacturer.featuredRank,
+            sortBucket = if (manufacturer.isModern == true) 0 else 1,
+        )
+    }
+}
+
+internal fun decodePracticeCatalogGamesFromOPDBExport(raw: String): List<PinballGame> {
+    val machines = decodeOPDBExportCatalogMachines(raw)
+    if (machines.isEmpty()) return emptyList()
+
+    val source = ImportedSourceRecord(
+        id = "catalog--opdb-practice",
+        name = "All OPDB Games",
+        type = LibrarySourceType.CATEGORY,
+        provider = ImportedSourceProvider.OPDB,
+        providerSourceId = "opdb-catalog",
+        machineIds = emptyList(),
+    )
+
+    return machines
+        .groupBy { it.opdbGroupId ?: it.practiceIdentity }
+        .values
+        .mapNotNull { group ->
+            val machine = group.minWithOrNull(::compareGroupDefaultMachine) ?: return@mapNotNull null
+            resolveImportedGame(
+                machine = machine,
+                source = source,
+                manufacturerById = emptyMap(),
+                curatedOverride = null,
+                opdbRulesheets = emptyList(),
+                opdbVideos = emptyList(),
+                venueMetadata = null,
+            )
+        }
+        .sortedWith(compareBy<PinballGame> { it.name.lowercase() }.thenBy { it.slug.lowercase() })
 }
 
 internal fun decodeCatalogManufacturerOptions(raw: String): List<CatalogManufacturerOption> {
@@ -58,66 +275,16 @@ internal fun decodeCatalogManufacturerOptions(raw: String): List<CatalogManufact
         )
 }
 
-internal fun decodeLibraryPayloadWithState(
-    context: Context,
-    raw: String,
-    filterBySourceState: Boolean = true,
-): LegacyCatalogExtraction {
-    val payload = parseLibraryPayload(raw)
-    val state = LibrarySourceStateStore.synchronize(context, payload.sources)
-    return legacyCatalogExtraction(payload = payload, state = state, filterBySourceState = filterBySourceState)
-}
-
-internal fun decodeMergedLibraryPayloadWithState(
-    context: Context,
-    libraryRaw: String,
-    opdbCatalogRaw: String,
-    publicOverridesRaw: String? = null,
-    venueMetadataRaw: String? = null,
-    filterBySourceState: Boolean = true,
-): LegacyCatalogExtraction {
-    val legacyPayload = parseLibraryPayload(libraryRaw)
-    val root = parseNormalizedRoot(opdbCatalogRaw)
-    if (root.machines.isEmpty()) {
-        val state = LibrarySourceStateStore.synchronize(context, legacyPayload.sources)
-        return legacyCatalogExtraction(payload = legacyPayload, state = state, filterBySourceState = filterBySourceState)
-    }
-
-    val payload = resolveMergedCatalog(
-        context = context,
-        legacyPayload = legacyPayload,
-        root = root,
-        publicOverrides = parsePublicLibraryOverrides(publicOverridesRaw),
-        venueMetadataOverlays = parseVenueMetadataOverlays(venueMetadataRaw),
-    )
-    val state = LibrarySourceStateStore.synchronize(context, payload.sources)
-    return legacyCatalogExtraction(payload = payload, state = state, filterBySourceState = filterBySourceState)
-}
-
 internal suspend fun loadPracticeCatalogGames(context: Context): List<PinballGame> {
-    val bundledText = loadBundledPinballText(context, hostedOPDBCatalogPath)
-    if (!bundledText.isNullOrBlank()) {
-        val root = parseNormalizedRoot(bundledText)
-        if (root.machines.isNotEmpty()) {
-            return decodePracticeCatalogGames(root)
-        }
-    }
-
-    val hostedResult = runCatching {
+    val raw = runCatching {
         PinballDataCache.loadText(
-            url = OPDB_CATALOG_URL,
+            url = hostedOPDBExportPath,
             allowMissing = true,
             maxCacheAgeMs = HOSTED_LIBRARY_REFRESH_INTERVAL_MS,
         ).text
-    }.getOrNull()
-    val hostedText = hostedResult?.takeIf { it.isNotBlank() }
-    val raw = hostedText
-    if (raw.isNullOrBlank()) return emptyList()
+    }.getOrNull()?.takeIf { it.isNotBlank() } ?: return emptyList()
 
-    val root = parseNormalizedRoot(raw)
-    if (root.machines.isEmpty()) return emptyList()
-
-    return decodePracticeCatalogGames(root)
+    return decodePracticeCatalogGamesFromOPDBExport(raw)
 }
 
 private fun decodePracticeCatalogGames(root: NormalizedRoot): List<PinballGame> {
@@ -151,6 +318,314 @@ private fun decodePracticeCatalogGames(root: NormalizedRoot): List<PinballGame> 
             )
         }
         .sortedWith(compareBy<PinballGame> { it.name.lowercase() }.thenBy { it.slug.lowercase() })
+}
+
+private fun buildCAFOverrides(
+    playfieldRaw: String?,
+    gameinfoRaw: String?,
+): Map<String, LegacyCuratedOverride> {
+    val overrides = linkedMapOf<String, LegacyCuratedOverride>()
+
+    fun upsertOverride(key: String, mutate: (LegacyCuratedOverride) -> Unit) {
+        val normalizedKey = normalizedOptionalString(key) ?: return
+        val current = overrides[normalizedKey] ?: LegacyCuratedOverride(practiceIdentity = normalizedKey)
+        mutate(current)
+        overrides[normalizedKey] = current
+    }
+
+    val playfieldRecords = runCatching { JSONObject(playfieldRaw ?: "").optJSONArray("records") }.getOrNull()
+    if (playfieldRecords != null) {
+        for (index in 0 until playfieldRecords.length()) {
+            val obj = playfieldRecords.optJSONObject(index) ?: continue
+            val playfieldLocalPath = normalizedOptionalString(obj.optString("playfieldLocalPath"))
+            val playfieldSourceUrl = normalizedOptionalString(obj.optString("playfieldSourceUrl"))
+            if (playfieldLocalPath == null && playfieldSourceUrl == null) continue
+
+            val keys = linkedSetOf<String>()
+            normalizedOptionalString(obj.optString("practiceIdentity"))?.let(keys::add)
+            normalizedOptionalString(obj.optString("sourceOpdbMachineId"))?.let { opdbId ->
+                keys += opdbId
+                opdbGroupIdFromOpdbId(opdbId)?.let(keys::add)
+            }
+            val aliases = obj.optJSONArray("coveredAliasIds")
+            if (aliases != null) {
+                for (aliasIndex in 0 until aliases.length()) {
+                    normalizedOptionalString(aliases.optString(aliasIndex))?.let { aliasId ->
+                        keys += aliasId
+                        opdbGroupIdFromOpdbId(aliasId)?.let(keys::add)
+                    }
+                }
+            }
+
+            keys.forEach { key ->
+                upsertOverride(key) { current ->
+                    if (current.playfieldLocalPath == null) current.playfieldLocalPath = playfieldLocalPath
+                    if (current.playfieldSourceUrl == null) current.playfieldSourceUrl = playfieldSourceUrl
+                }
+            }
+        }
+    }
+
+    val gameinfoRecords = runCatching { JSONObject(gameinfoRaw ?: "").optJSONArray("records") }.getOrNull()
+    if (gameinfoRecords != null) {
+        for (index in 0 until gameinfoRecords.length()) {
+            val obj = gameinfoRecords.optJSONObject(index) ?: continue
+            if (obj.optBoolean("isHidden")) continue
+            if (obj.has("isActive") && !obj.optBoolean("isActive", true)) continue
+            val localPath = normalizedOptionalString(obj.optString("localPath")) ?: continue
+            val opdbId = normalizedOptionalString(obj.optString("opdbId")) ?: continue
+            listOfNotNull(opdbId, opdbGroupIdFromOpdbId(opdbId)).forEach { key ->
+                upsertOverride(key) { current ->
+                    if (current.gameinfoLocalPath == null) current.gameinfoLocalPath = localPath
+                }
+            }
+        }
+    }
+
+    return overrides
+}
+
+private fun buildCAFGroupedRulesheetLinks(raw: String?): Map<String, List<CatalogRulesheetLinkRecord>> {
+    val records = mutableListOf<CatalogRulesheetLinkRecord>()
+    val array = runCatching { JSONObject(raw ?: "").optJSONArray("records") }.getOrNull() ?: return emptyMap()
+    for (index in 0 until array.length()) {
+        val obj = array.optJSONObject(index) ?: continue
+        if (obj.optBoolean("isHidden")) continue
+        if (obj.has("isActive") && !obj.optBoolean("isActive", true)) continue
+        val opdbId = normalizedOptionalString(obj.optString("opdbId")) ?: continue
+        val practiceIdentity = opdbGroupIdFromOpdbId(opdbId) ?: opdbId
+        records += CatalogRulesheetLinkRecord(
+            practiceIdentity = practiceIdentity,
+            provider = normalizedOptionalString(obj.optString("provider")) ?: "",
+            label = normalizedOptionalString(obj.optString("label")) ?: "Rulesheet",
+            url = normalizedOptionalString(obj.optString("url")),
+            localPath = normalizedOptionalString(obj.optString("localPath")),
+            priority = if (obj.has("priority") && !obj.isNull("priority")) obj.optInt("priority") else null,
+        )
+    }
+    return records.groupBy { it.practiceIdentity }
+}
+
+private fun buildCAFGroupedVideoLinks(raw: String?): Map<String, List<CatalogVideoLinkRecord>> {
+    val records = mutableListOf<CatalogVideoLinkRecord>()
+    val array = runCatching { JSONObject(raw ?: "").optJSONArray("records") }.getOrNull() ?: return emptyMap()
+    for (index in 0 until array.length()) {
+        val obj = array.optJSONObject(index) ?: continue
+        if (obj.optBoolean("isHidden")) continue
+        if (obj.has("isActive") && !obj.optBoolean("isActive", true)) continue
+        val opdbId = normalizedOptionalString(obj.optString("opdbId")) ?: continue
+        val practiceIdentity = opdbGroupIdFromOpdbId(opdbId) ?: opdbId
+        val url = normalizedOptionalString(obj.optString("url")) ?: continue
+        records += CatalogVideoLinkRecord(
+            practiceIdentity = practiceIdentity,
+            provider = normalizedOptionalString(obj.optString("provider")) ?: "",
+            kind = normalizedOptionalString(obj.optString("kind")),
+            label = normalizedOptionalString(obj.optString("label")) ?: "Video",
+            url = url,
+            priority = if (obj.has("priority") && !obj.isNull("priority")) obj.optInt("priority") else null,
+        )
+    }
+    return records.groupBy { it.practiceIdentity }
+}
+
+private fun parseCAFVenueLayoutAssets(raw: String?): VenueMetadataOverlayIndex {
+    val areaOrderByKey = linkedMapOf<String, Int>()
+    val machineLayoutByKey = linkedMapOf<String, VenueMachineLayoutOverlayRecord>()
+    val machineBankByKey = linkedMapOf<String, VenueMachineBankOverlayRecord>()
+    val array = runCatching { JSONObject(raw ?: "").optJSONArray("records") }.getOrNull() ?: return VenueMetadataOverlayIndex()
+
+    for (index in 0 until array.length()) {
+        val obj = array.optJSONObject(index) ?: continue
+        val sourceId = canonicalLibrarySourceId(obj.optString("sourceId"))
+            ?: normalizedOptionalString(obj.optString("sourceId"))
+            ?: continue
+        val opdbId = normalizedOptionalString(obj.optString("opdbId")) ?: continue
+        val area = normalizedOptionalString(obj.optString("area"))
+        val areaOrder = if (obj.has("areaOrder") && !obj.isNull("areaOrder")) obj.optInt("areaOrder") else null
+        val groupNumber = if (obj.has("groupNumber") && !obj.isNull("groupNumber")) obj.optInt("groupNumber") else null
+        val position = if (obj.has("position") && !obj.isNull("position")) obj.optInt("position") else null
+        val bank = if (obj.has("bank") && !obj.isNull("bank")) obj.optInt("bank") else null
+
+        if (area != null && areaOrder != null) {
+            areaOrderByKey[venueOverlayAreaKey(sourceId, area)] = areaOrder
+        }
+        if (area != null || groupNumber != null || position != null) {
+            machineLayoutByKey[venueOverlayMachineKey(sourceId, opdbId)] = VenueMachineLayoutOverlayRecord(
+                sourceId = sourceId,
+                opdbId = opdbId,
+                area = area,
+                groupNumber = groupNumber,
+                position = position,
+            )
+        }
+        if (bank != null) {
+            machineBankByKey[venueOverlayMachineKey(sourceId, opdbId)] = VenueMachineBankOverlayRecord(
+                sourceId = sourceId,
+                opdbId = opdbId,
+                bank = bank,
+            )
+        }
+    }
+
+    return VenueMetadataOverlayIndex(
+        areaOrderByKey = areaOrderByKey,
+        machineLayoutByKey = machineLayoutByKey,
+        machineBankByKey = machineBankByKey,
+    )
+}
+
+private fun catalogCuratedOverride(
+    practiceIdentity: String?,
+    opdbGroupId: String?,
+    opdbId: String? = null,
+    overridesByKey: Map<String, LegacyCuratedOverride>,
+): LegacyCuratedOverride? {
+    val candidateKeys = listOf(
+        normalizedOptionalString(opdbId),
+        normalizedOptionalString(practiceIdentity),
+        normalizedOptionalString(opdbGroupId),
+    ).filterNotNull()
+    return candidateKeys.firstNotNullOfOrNull { overridesByKey[it] }
+}
+
+private fun buildCAFLibraryPayload(
+    machines: List<CatalogMachineRecord>,
+    importedSources: List<ImportedSourceRecord>,
+    rulesheetLinksByPracticeIdentity: Map<String, List<CatalogRulesheetLinkRecord>>,
+    videoLinksByPracticeIdentity: Map<String, List<CatalogVideoLinkRecord>>,
+    curatedOverridesByKey: Map<String, LegacyCuratedOverride>,
+    venueMetadataOverlays: VenueMetadataOverlayIndex,
+): ParsedLibraryData {
+    if (importedSources.isEmpty()) {
+        return ParsedLibraryData(games = emptyList(), sources = emptyList())
+    }
+
+    val machineByPracticeIdentity = machines.groupBy { it.practiceIdentity }
+    val machineByOpdbId = machines.mapNotNull { machine ->
+        normalizedOptionalString(machine.opdbMachineId)?.let { it to machine }
+    }.toMap()
+    val manufacturerById = buildCatalogManufacturerRecordsFromMachines(machines).associateBy { it.id }
+
+    val resolvedSources = mutableListOf<LibrarySource>()
+    val resolvedGames = mutableListOf<PinballGame>()
+
+    importedSources.forEach { importedSource ->
+        resolvedSources += LibrarySource(id = importedSource.id, name = importedSource.name, type = importedSource.type)
+        when (importedSource.type) {
+            LibrarySourceType.MANUFACTURER -> {
+                val groupedMachines = machines
+                    .filter { it.manufacturerId == importedSource.providerSourceId }
+                    .groupBy { it.opdbGroupId ?: it.practiceIdentity }
+                groupedMachines.values
+                    .mapNotNull { group -> group.minWithOrNull(::comparePreferredMachine) }
+                    .sortedWith(compareBy<CatalogMachineRecord> { it.year ?: Int.MAX_VALUE }.thenBy { it.name.lowercase() })
+                    .forEach { machine ->
+                        resolvedGames += resolveImportedGame(
+                            machine = machine,
+                            source = importedSource,
+                            manufacturerById = manufacturerById,
+                            curatedOverride = catalogCuratedOverride(
+                                practiceIdentity = machine.practiceIdentity,
+                                opdbGroupId = machine.opdbGroupId,
+                                opdbId = machine.opdbMachineId,
+                                overridesByKey = curatedOverridesByKey,
+                            ),
+                            opdbRulesheets = rulesheetLinksByPracticeIdentity[machine.practiceIdentity].orEmpty(),
+                            opdbVideos = videoLinksByPracticeIdentity[machine.practiceIdentity].orEmpty(),
+                            venueMetadata = null,
+                        )
+                    }
+            }
+
+            LibrarySourceType.VENUE,
+            LibrarySourceType.TOURNAMENT -> {
+                importedSource.machineIds.forEach { machineId ->
+                    val machine = preferredMachineForSourceLookup(
+                        requestedMachineId = machineId,
+                        machineByOpdbId = machineByOpdbId,
+                        machineByPracticeIdentity = machineByPracticeIdentity,
+                    ) ?: return@forEach
+
+                    resolvedGames += resolveImportedGame(
+                        machine = machine,
+                        source = importedSource,
+                        manufacturerById = manufacturerById,
+                        curatedOverride = catalogCuratedOverride(
+                            practiceIdentity = machine.practiceIdentity,
+                            opdbGroupId = machine.opdbGroupId,
+                            opdbId = machineId,
+                            overridesByKey = curatedOverridesByKey,
+                        ),
+                        opdbRulesheets = rulesheetLinksByPracticeIdentity[machine.practiceIdentity].orEmpty(),
+                        opdbVideos = videoLinksByPracticeIdentity[machine.practiceIdentity].orEmpty(),
+                        venueMetadata = if (importedSource.type == LibrarySourceType.VENUE) {
+                            resolveImportedVenueMetadata(
+                                sourceId = importedSource.id,
+                                requestedOpdbId = machineId,
+                                machine = machine,
+                                overlays = venueMetadataOverlays,
+                            )
+                        } else {
+                            null
+                        },
+                    )
+                }
+            }
+
+            LibrarySourceType.CATEGORY -> Unit
+        }
+    }
+
+    return ParsedLibraryData(
+        games = resolvedGames,
+        sources = dedupeSources(resolvedSources),
+    )
+}
+
+internal fun buildCAFLibraryExtraction(
+    context: Context,
+    opdbExportRaw: String,
+    rulesheetAssetsRaw: String?,
+    videoAssetsRaw: String?,
+    playfieldAssetsRaw: String?,
+    gameinfoAssetsRaw: String?,
+    venueLayoutAssetsRaw: String?,
+    filterBySourceState: Boolean,
+): LegacyCatalogExtraction {
+    val machines = decodeOPDBExportCatalogMachines(opdbExportRaw)
+    val manufacturers = buildCatalogManufacturerRecordsFromMachines(machines)
+    val rulesheetLinks = buildCAFGroupedRulesheetLinks(rulesheetAssetsRaw)
+    val videoLinks = buildCAFGroupedVideoLinks(videoAssetsRaw)
+
+    val payload = buildCAFLibraryPayload(
+        machines = machines,
+        importedSources = ImportedSourcesStore.load(context),
+        rulesheetLinksByPracticeIdentity = rulesheetLinks,
+        videoLinksByPracticeIdentity = videoLinks,
+        curatedOverridesByKey = buildCAFOverrides(
+            playfieldRaw = playfieldAssetsRaw,
+            gameinfoRaw = gameinfoAssetsRaw,
+        ),
+        venueMetadataOverlays = parseCAFVenueLayoutAssets(venueLayoutAssetsRaw),
+    )
+
+    val gameRoomOverlay = buildGameRoomOverlay(
+        context = context,
+        baseGames = payload.games,
+        root = NormalizedRoot(
+            manufacturers = manufacturers,
+            machines = machines,
+            rulesheetLinks = rulesheetLinks.values.flatten(),
+            videoLinks = videoLinks.values.flatten(),
+        ),
+    )
+
+    val payloadWithGameRoom = ParsedLibraryData(
+        games = payload.games + gameRoomOverlay.games,
+        sources = dedupeSources(payload.sources + listOfNotNull(gameRoomOverlay.source)),
+    )
+    val state = LibrarySourceStateStore.synchronize(context, payloadWithGameRoom.sources)
+    return legacyCatalogExtraction(payload = payloadWithGameRoom, state = state, filterBySourceState = filterBySourceState)
 }
 
 private fun legacyCatalogExtraction(
@@ -324,8 +799,14 @@ private fun resolveMergedCatalog(
 ): ParsedLibraryData {
     val importedSources = ImportedSourcesStore.load(context)
     val importedSourceIds = importedSources.map { it.id }.toSet()
-    val filteredLegacyGames = legacyPayload.games.filter { it.sourceId !in importedSourceIds }
-    val filteredLegacySources = legacyPayload.sources.filter { it.id !in importedSourceIds }
+    val suppressedLegacySourceIds = buildSet {
+        addAll(importedSourceIds)
+        add(PM_AVENUE_LIBRARY_SOURCE_ID)
+        add(PM_RLM_LIBRARY_SOURCE_ID)
+        add(BUILTIN_GAME_ROOM_LIBRARY_SOURCE_ID)
+    }
+    val filteredLegacyGames = legacyPayload.games.filter { it.sourceId !in suppressedLegacySourceIds }
+    val filteredLegacySources = legacyPayload.sources.filter { it.id !in suppressedLegacySourceIds }
     val machineByPracticeIdentity = root.machines.groupBy { it.practiceIdentity }
     val machineByOpdbId = root.machines.mapNotNull { machine ->
         normalizedOptionalString(machine.opdbMachineId)?.let { it to machine }
@@ -492,17 +973,23 @@ private fun buildGameRoomOverlay(
         val playfieldLocalRaw = normalizedOptionalString(template?.playfieldLocalOriginal ?: template?.playfieldLocal)
         val playfieldImageUrl = normalizedOptionalString(template?.playfieldImageUrl)
         val playfieldSourceLabel = template?.let(::resolvedPlayfieldSourceLabel)
-        val resolvedName = ownedMachine.displayTitle.trim().ifBlank { template?.name ?: ownedMachine.catalogGameID }
+        val rawResolvedName = ownedMachine.displayTitle.trim().ifBlank { template?.name ?: ownedMachine.catalogGameID }
+        val parsedResolvedName = parseOwnedMachineLibraryName(
+            title = rawResolvedName,
+            explicitVariant = ownedMachine.displayVariant,
+        )
+        val resolvedName = parsedResolvedName.displayTitle
         val slugFallback = canonicalPracticeIdentity.ifBlank {
             normalizedOptionalString(ownedMachine.catalogGameID) ?: ownedMachine.id
         }
+        val exactOPDBID = normalizedOptionalString(ownedMachine.opdbID)
 
         PinballGame(
             libraryEntryId = "gameroom:${ownedMachine.id}",
             practiceIdentity = practiceIdentity,
-            opdbId = normalizedOptionalString(ownedMachine.catalogGameID),
+            opdbId = exactOPDBID ?: normalizedOptionalString(ownedMachine.catalogGameID),
             opdbGroupId = normalizedOptionalString(ownedMachine.catalogGameID),
-            variant = normalizedOptionalString(ownedMachine.displayVariant),
+            variant = parsedResolvedName.displayVariant,
             sourceId = BUILTIN_GAME_ROOM_LIBRARY_SOURCE_ID,
             sourceName = venueName,
             sourceType = LibrarySourceType.VENUE,
@@ -606,6 +1093,7 @@ private fun decodeGameRoomOverlayStateFromRaw(raw: String): DecodedGameRoomOverl
                     OwnedMachine(
                         id = id,
                         catalogGameID = catalogGameID,
+                        opdbID = obj.optString("opdb_id").ifBlank { null },
                         canonicalPracticeIdentity = canonicalPracticeIdentity,
                         displayTitle = displayTitle,
                         displayVariant = obj.optString("displayVariant").ifBlank { null },
@@ -627,6 +1115,92 @@ private fun decodeGameRoomOverlayStateFromRaw(raw: String): DecodedGameRoomOverl
             ownedMachines = ownedMachines,
         )
     }.getOrNull()
+}
+
+private data class ParsedOwnedMachineLibraryName(
+    val displayTitle: String,
+    val displayVariant: String?,
+)
+
+private fun parseOwnedMachineLibraryName(title: String, explicitVariant: String?): ParsedOwnedMachineLibraryName {
+    val trimmedTitle = title.trim()
+    val normalizedExplicitVariant = normalizeOwnedMachineVariantLabel(explicitVariant)
+    if (!normalizedExplicitVariant.isNullOrBlank()) {
+        val strippedTitle = stripOwnedMachineVariantSuffix(trimmedTitle, normalizedExplicitVariant)
+        return ParsedOwnedMachineLibraryName(
+            displayTitle = strippedTitle.ifBlank { trimmedTitle },
+            displayVariant = normalizedExplicitVariant,
+        )
+    }
+    if (!trimmedTitle.endsWith(")")) {
+        return ParsedOwnedMachineLibraryName(displayTitle = trimmedTitle, displayVariant = null)
+    }
+    val openParenIndex = trimmedTitle.lastIndexOf('(')
+    if (openParenIndex <= 0) {
+        return ParsedOwnedMachineLibraryName(displayTitle = trimmedTitle, displayVariant = null)
+    }
+    val baseTitle = trimmedTitle.substring(0, openParenIndex).trim()
+    val rawSuffix = trimmedTitle.substring(openParenIndex + 1, trimmedTitle.length - 1).trim()
+    val derivedVariant = normalizeOwnedMachineVariantLabel(rawSuffix)
+    return if (baseTitle.isNotBlank() && !derivedVariant.isNullOrBlank() && looksLikeOwnedMachineVariant(rawSuffix)) {
+        ParsedOwnedMachineLibraryName(displayTitle = baseTitle, displayVariant = derivedVariant)
+    } else {
+        ParsedOwnedMachineLibraryName(displayTitle = trimmedTitle, displayVariant = null)
+    }
+}
+
+private fun stripOwnedMachineVariantSuffix(title: String, normalizedVariant: String): String {
+    if (!title.endsWith(")")) return title
+    val openParenIndex = title.lastIndexOf('(')
+    if (openParenIndex <= 0) return title
+    val rawSuffix = title.substring(openParenIndex + 1, title.length - 1).trim()
+    val normalizedSuffix = normalizeOwnedMachineVariantLabel(rawSuffix)
+    if (normalizedSuffix == null || normalizedSuffix != normalizedVariant || !looksLikeOwnedMachineVariant(rawSuffix)) {
+        return title
+    }
+    return title.substring(0, openParenIndex).trim().ifBlank { title }
+}
+
+private fun looksLikeOwnedMachineVariant(value: String): Boolean {
+    val lowered = value.trim().lowercase()
+    if (lowered.isBlank()) return false
+    return lowered == "premium" ||
+        lowered == "pro" ||
+        lowered == "le" ||
+        lowered == "ce" ||
+        lowered == "se" ||
+        lowered == "home" ||
+        lowered.contains("anniversary") ||
+        lowered.contains("limited edition") ||
+        lowered.contains("special edition") ||
+        lowered.contains("collector") ||
+        lowered == "premium/le" ||
+        lowered == "premium le" ||
+        lowered == "premium-le"
+}
+
+private fun normalizeOwnedMachineVariantLabel(value: String?): String? {
+    val trimmed = value?.trim().orEmpty()
+    if (trimmed.isBlank()) return null
+    val lowered = trimmed.lowercase()
+    return when {
+        lowered == "null" || lowered == "none" -> null
+        lowered == "premium" -> "Premium"
+        lowered == "pro" -> "Pro"
+        lowered == "le" || lowered.contains("limited edition") -> "LE"
+        lowered == "ce" || lowered.contains("collector") -> "CE"
+        lowered == "se" || lowered.contains("special edition") -> "SE"
+        lowered == "premium/le" || lowered == "premium le" || lowered == "premium-le" -> "Premium/LE"
+        lowered.contains("anniversary") -> trimmed.split(" ")
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { token ->
+                when (token.lowercase()) {
+                    "le", "ce", "se" -> token.uppercase()
+                    else -> token.replaceFirstChar { ch -> if (ch.isLowerCase()) ch.titlecase() else ch.toString() }
+                }
+            }
+        else -> trimmed
+    }
 }
 
 private fun compareGameRoomOwnedMachinesForLibrary(
@@ -663,6 +1237,7 @@ private fun bestTemplateForOwnedMachine(
     ownedMachine: OwnedMachine,
     baseGames: List<PinballGame>,
 ): PinballGame? {
+    val normalizedExactOPDBID = normalizedGameRoomID(ownedMachine.opdbID)
     val normalizedCatalogID = normalizedGameRoomID(ownedMachine.catalogGameID)
     val normalizedCatalogGroup = normalizedGroupFromOpdbID(ownedMachine.catalogGameID)
     val normalizedPracticeIdentity = normalizedGameRoomID(ownedMachine.canonicalPracticeIdentity)
@@ -675,6 +1250,7 @@ private fun bestTemplateForOwnedMachine(
         } else {
             val gameMatchScore = templateMatchScore(
                 game = game,
+                exactOPDBID = normalizedExactOPDBID,
                 catalogID = normalizedCatalogID,
                 catalogGroupID = normalizedCatalogGroup,
                 canonicalPracticeIdentity = normalizedPracticeIdentity,
@@ -693,6 +1269,7 @@ private fun bestTemplateForOwnedMachine(
 
 private fun templateMatchScore(
     game: PinballGame,
+    exactOPDBID: String?,
     catalogID: String?,
     catalogGroupID: String?,
     canonicalPracticeIdentity: String?,
@@ -704,6 +1281,10 @@ private fun templateMatchScore(
     val gameTitle = normalizedGameRoomID(game.name)
 
     var score = 0
+
+    if (exactOPDBID != null && gameOPDBID == exactOPDBID) {
+        score = maxOf(score, 1300)
+    }
 
     if (catalogID != null) {
         if (gameOPDBID == catalogID) score = maxOf(score, 1200)
@@ -753,6 +1334,7 @@ private fun bestOPDBMediaRecord(
     mediaIndex: Map<String, List<CatalogMachineRecord>>,
 ): CatalogMachineRecord? {
     val keys = listOfNotNull(
+        normalizedGameRoomID(ownedMachine.opdbID),
         normalizedGameRoomID(ownedMachine.catalogGameID),
         normalizedGroupFromOpdbID(ownedMachine.catalogGameID),
         normalizedGameRoomID(ownedMachine.canonicalPracticeIdentity),
@@ -866,7 +1448,7 @@ private fun variantPreferenceScore(normalizedVariant: String?): Int {
 
 internal fun resolvedPlayfieldSourceLabel(game: PinballGame): String? {
     if (isPinProfPlayfieldUrl(game.playfieldImageUrl) || isPinProfPlayfieldUrl(game.playfieldLocalOriginalURL)) {
-        return "PinProf"
+        return "Prof"
     }
     if (!game.playfieldLocal.isNullOrBlank()) {
         return "Local"
@@ -878,7 +1460,7 @@ internal fun resolvedPlayfieldSourceLabel(game: PinballGame): String? {
     val sourceUrl = resolveLibraryUrl(game.playfieldImageUrl) ?: return null
     return when {
         sourceUrl.contains("img.opdb.org", ignoreCase = true) -> "Playfield (OPDB)"
-        isPinProfPlayfieldUrl(sourceUrl) -> "PinProf"
+        isPinProfPlayfieldUrl(sourceUrl) -> "Prof"
         else -> null
     }
 }
@@ -911,7 +1493,7 @@ private fun slugForLibraryGame(title: String, fallback: String): String {
         .trim('-')
 }
 
-private fun resolveLegacyGame(
+internal fun resolveLegacyGame(
     legacyGame: PinballGame,
     curatedOverridesByPracticeIdentity: Map<String, LegacyCuratedOverride>,
     machineByPracticeIdentity: Map<String, List<CatalogMachineRecord>>,
@@ -948,12 +1530,15 @@ private fun resolveLegacyGame(
 
     val resolvedCatalogRulesheets = resolveRulesheetLinks(opdbRulesheetsByPracticeIdentity[practiceIdentity].orEmpty())
     val resolvedRulesheets = if (hasCuratedRulesheet) {
+        val primaryLinks = when {
+            legacyGame.rulesheetLinks.isNotEmpty() -> legacyGame.rulesheetLinks
+            !legacyGame.rulesheetUrl.isNullOrBlank() -> listOf(ReferenceLink(label = "Rulesheet", url = legacyGame.rulesheetUrl))
+            else -> emptyList()
+        }.filterNot { link ->
+            !legacyGame.rulesheetLocal.isNullOrBlank() && shouldSuppressLocalMarkdownRulesheetLink(link)
+        }
         mergeRulesheetLinks(
-            when {
-                legacyGame.rulesheetLinks.isNotEmpty() -> legacyGame.rulesheetLinks
-                !legacyGame.rulesheetUrl.isNullOrBlank() -> listOf(ReferenceLink(label = "Rulesheet", url = legacyGame.rulesheetUrl))
-                else -> emptyList()
-            },
+            primaryLinks,
             resolvedCatalogRulesheets.links,
         )
     } else {
@@ -961,6 +1546,7 @@ private fun resolveLegacyGame(
     }
     val rulesheetLocalPath = if (hasCuratedRulesheet) {
         normalizedOptionalString(legacyGame.rulesheetLocal)
+            ?.takeUnless { shouldSuppressLocalRulesheetPath(resolvedRulesheets) }
     } else {
         resolvedCatalogRulesheets.localPath
     }
@@ -1013,10 +1599,15 @@ private fun buildLegacyCuratedOverrides(games: List<PinballGame>): Map<String, L
         current.gameinfoLocalPath = current.gameinfoLocalPath ?: normalizedOptionalString(game.gameinfoLocal)
         current.rulesheetLocalPath = current.rulesheetLocalPath ?: normalizedOptionalString(game.rulesheetLocal)
         if (current.rulesheetLinks.isEmpty()) {
+            val hasLocalRulesheetPath = !game.rulesheetLocal.isNullOrBlank()
             current.rulesheetLinks = when {
                 isImportedPinballMapSourceId(game.sourceId) -> emptyList()
-                game.rulesheetLinks.isNotEmpty() -> game.rulesheetLinks
-                !game.rulesheetUrl.isNullOrBlank() -> listOf(ReferenceLink(label = "Rulesheet", url = game.rulesheetUrl))
+                game.rulesheetLinks.isNotEmpty() -> game.rulesheetLinks.filterNot { link ->
+                    hasLocalRulesheetPath && shouldSuppressLocalMarkdownRulesheetLink(link)
+                }
+                !game.rulesheetUrl.isNullOrBlank() -> listOf(ReferenceLink(label = "Rulesheet", url = game.rulesheetUrl)).filterNot { link ->
+                    hasLocalRulesheetPath && shouldSuppressLocalMarkdownRulesheetLink(link)
+                }
                 else -> emptyList()
             }
         }

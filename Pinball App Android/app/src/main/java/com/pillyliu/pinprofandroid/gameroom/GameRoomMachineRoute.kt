@@ -1,6 +1,5 @@
 package com.pillyliu.pinprofandroid.gameroom
 
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,9 +16,12 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,6 +32,7 @@ import com.pillyliu.pinprofandroid.ui.AppCardTitle
 import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.AppMetricGrid
 import com.pillyliu.pinprofandroid.ui.AppMetricItem
+import com.pillyliu.pinprofandroid.ui.AppConfirmDialog
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
@@ -44,8 +47,6 @@ internal fun GameRoomMachineRoute(
     onMachineSubviewChange: (GameRoomMachineSubview) -> Unit,
     selectedLogEventID: String?,
     onSelectedLogEventIDChange: (String?) -> Unit,
-    revealedLogRowID: String?,
-    onRevealedLogRowIDChange: (String?) -> Unit,
     onBack: () -> Unit,
     onOpenInputSheet: (GameRoomInputSheet) -> Unit,
     onResolveIssueRequest: (String) -> Unit,
@@ -154,8 +155,6 @@ internal fun GameRoomMachineRoute(
                 selectedLogEvent = selectedLogEvent,
                 selectedLogEventID = selectedLogEventID,
                 onSelectedLogEventIDChange = onSelectedLogEventIDChange,
-                revealedLogRowID = revealedLogRowID,
-                onRevealedLogRowIDChange = onRevealedLogRowIDChange,
                 onPreviewAttachment = onPreviewAttachment,
                 onEditEvent = onEditEvent,
                 onDeleteEvent = onDeleteEvent,
@@ -265,12 +264,11 @@ private fun GameRoomMachineLogPanel(
     selectedLogEvent: MachineEvent?,
     selectedLogEventID: String?,
     onSelectedLogEventIDChange: (String?) -> Unit,
-    revealedLogRowID: String?,
-    onRevealedLogRowIDChange: (String?) -> Unit,
     onPreviewAttachment: (MachineAttachment) -> Unit,
     onEditEvent: (MachineEvent) -> Unit,
     onDeleteEvent: (MachineEvent) -> Unit,
 ) {
+    var pendingDeleteEvent by remember(machineEvents) { mutableStateOf<MachineEvent?>(null) }
     CardContainer {
         if (selectedLogEvent != null) {
             val eventAttachments = store.attachmentsForEvent(selectedLogEvent.id)
@@ -324,17 +322,7 @@ private fun GameRoomMachineLogPanel(
             AppPanelEmptyCard(text = "No log entries yet.")
         } else {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .pointerInput(revealedLogRowID) {
-                        detectTapGestures(
-                            onTap = {
-                                if (revealedLogRowID != null) {
-                                    onRevealedLogRowIDChange(null)
-                                }
-                            },
-                        )
-                    },
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
                 machineEvents.forEachIndexed { index, event ->
@@ -343,10 +331,7 @@ private fun GameRoomMachineLogPanel(
                         event = event,
                         mediaCount = mediaCount,
                         selected = selectedLogEventID == event.id,
-                        revealedRowID = revealedLogRowID,
-                        onRevealedRowIDChange = onRevealedLogRowIDChange,
                         onSelect = {
-                            onRevealedLogRowIDChange(null)
                             val mediaAttachment = if (
                                 event.type == MachineEventType.photoAdded ||
                                     event.type == MachineEventType.videoAdded
@@ -361,14 +346,8 @@ private fun GameRoomMachineLogPanel(
                                 onSelectedLogEventIDChange(event.id)
                             }
                         },
-                        onEdit = {
-                            onRevealedLogRowIDChange(null)
-                            onEditEvent(event)
-                        },
-                        onDelete = {
-                            onRevealedLogRowIDChange(null)
-                            onDeleteEvent(event)
-                        },
+                        onEdit = { onEditEvent(event) },
+                        onDelete = { pendingDeleteEvent = event },
                     )
                     if (index != machineEvents.lastIndex) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -376,5 +355,18 @@ private fun GameRoomMachineLogPanel(
                 }
             }
         }
+    }
+
+    pendingDeleteEvent?.let { event ->
+        AppConfirmDialog(
+            title = "Delete entry?",
+            message = "This will remove the selected game room log entry.",
+            confirmLabel = "Delete",
+            onConfirm = {
+                onDeleteEvent(event)
+                pendingDeleteEvent = null
+            },
+            onDismiss = { pendingDeleteEvent = null },
+        )
     }
 }

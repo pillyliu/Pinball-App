@@ -2,7 +2,7 @@ import SwiftUI
 
 struct PracticeJournalContext {
     let journalFilter: Binding<JournalFilter>
-    let items: [PracticeJournalItem]
+    let sections: [PracticeJournalDaySection]
     let isEditingEntries: Binding<Bool>
     let selectedItemIDs: Binding<Set<String>>
     let gameTransition: Namespace.ID

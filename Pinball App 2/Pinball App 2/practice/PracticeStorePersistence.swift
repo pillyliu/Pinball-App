@@ -17,16 +17,19 @@ extension PracticeStore {
         let defaults = UserDefaults.standard
         guard let loaded = Self.loadPersistedStateFromDefaults(defaults) else {
             state = .empty
+            invalidateJournalCaches()
             return
         }
 
         state = loaded
+        invalidateJournalCaches()
         if defaults.data(forKey: Self.storageKey) == nil || defaults.data(forKey: Self.legacyStorageKey) != nil {
             saveState()
         }
     }
 
     func saveState() {
+        invalidateJournalCaches()
         do {
             state.schemaVersion = PracticePersistedState.currentSchemaVersion
             let data = try PracticeStateCodec.canonicalEncoder().encode(state)

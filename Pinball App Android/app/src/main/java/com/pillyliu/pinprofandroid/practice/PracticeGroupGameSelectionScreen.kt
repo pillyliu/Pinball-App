@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.LibrarySource
+import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.library.matchesSearchQuery
 import com.pillyliu.pinprofandroid.library.normalizedVariant
 import com.pillyliu.pinprofandroid.ui.AppCheckbox
@@ -74,6 +75,9 @@ internal fun GroupGameSelectionScreen(
     LaunchedEffect(selectedLibraryOption) {
         if (selectedLibraryOption.isBlank()) return@LaunchedEffect
         prefs.edit { putString(GROUP_PICKER_LIBRARY_KEY, selectedLibraryOption) }
+    }
+    val selectedSource = remember(sourceOptions, selectedLibraryOption) {
+        sourceOptions.firstOrNull { it.id == selectedLibraryOption }
     }
     val selectablePool = remember(games, allGames, selectedLibraryOption) {
         val pool = if (allGames.isNotEmpty()) allGames else games
@@ -143,20 +147,58 @@ internal fun GroupGameSelectionScreen(
                         Text(letter, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     items(gamesInSection, key = { it.practiceKey }) { game ->
-                        val checked = selectedSlugs.contains(game.practiceKey)
+                        val checked = isSelectedPracticeGroupGame(
+                            selectedSlugs = selectedSlugs,
+                            game = game,
+                            allGames = allGames,
+                            selectedSource = selectedSource,
+                        )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(game.name, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             AppCheckbox(
                                 checked = checked,
                                 onCheckedChange = { enabled ->
-                                    if (enabled && !selectedSlugs.contains(game.practiceKey)) selectedSlugs.add(game.practiceKey)
-                                    if (!enabled) selectedSlugs.remove(game.practiceKey)
+                                    val pool = if (allGames.isNotEmpty()) allGames else games
+                                    val selectionKey = selectionKeyForPracticeGroupGame(game, selectedSource)
+                                    if (enabled) {
+                                        selectedSlugs.removeAll { canonicalPracticeKey(it, pool) == game.practiceKey }
+                                        selectedSlugs.add(selectionKey)
+                                    } else {
+                                        selectedSlugs.removeAll { canonicalPracticeKey(it, pool) == game.practiceKey }
+                                    }
                                 },
                             )
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+private fun selectionKeyForPracticeGroupGame(game: PinballGame, selectedSource: LibrarySource?): String {
+    return if (selectedSource?.type == LibrarySourceType.VENUE) {
+        sourceScopedPracticeGameID(selectedSource.id, game.practiceKey)
+    } else {
+        game.practiceKey
+    }
+}
+
+private fun isSelectedPracticeGroupGame(
+    selectedSlugs: List<String>,
+    game: PinballGame,
+    allGames: List<PinballGame>,
+    selectedSource: LibrarySource?,
+): Boolean {
+    val desiredSourceId = if (selectedSource?.type == LibrarySourceType.VENUE) selectedSource.id else null
+    return selectedSlugs.any { raw ->
+        val canonical = canonicalPracticeKey(raw, allGames)
+        if (canonical != game.practiceKey) {
+            false
+        } else if (desiredSourceId == null) {
+            true
+        } else {
+            parseSourceScopedPracticeGameID(raw).sourceID == desiredSourceId
         }
     }
 }

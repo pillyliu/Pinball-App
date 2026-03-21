@@ -111,7 +111,7 @@ internal fun computeRecommendedGame(
     journal: List<JournalEntry>,
     rulesheetProgress: Map<String, Float>,
 ): PinballGame? {
-    val groupSet = group.gameSlugs.toSet()
+    val groupSet = group.gameSlugs.map { canonicalPracticeKey(it, games) }.toSet()
     return distinctGamesByPracticeIdentity(games).filter { groupSet.contains(it.practiceKey) }
         .maxByOrNull { game ->
             focusPriorityForGame(game.practiceKey, scores, journal, rulesheetProgress)

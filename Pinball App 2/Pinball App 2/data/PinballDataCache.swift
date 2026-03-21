@@ -1,26 +1,86 @@
 import Foundation
 import CryptoKit
 
-nonisolated func loadBundledPinballData(path: String) throws -> Data? {
-    let normalizedPath = path.hasPrefix("/") ? path : "/" + path
-    guard normalizedPath.hasPrefix("/pinball/"),
-          let starterBundleURL = Bundle.main.url(forResource: "PinballStarter", withExtension: "bundle") else {
-        return nil
-    }
-
-    let relativePath = String(normalizedPath.dropFirst("/pinball/".count))
-    let fileURL = starterBundleURL
-        .appendingPathComponent("pinball", isDirectory: true)
-        .appendingPathComponent(relativePath)
-    guard FileManager.default.fileExists(atPath: fileURL.path) else {
-        return nil
-    }
-    return try Data(contentsOf: fileURL)
+nonisolated private func normalizedPinballCachePath(_ path: String) -> String {
+    if path.hasPrefix("/") { return path }
+    return "/" + path
 }
 
-nonisolated func loadBundledPinballText(path: String) throws -> String? {
-    guard let data = try loadBundledPinballData(path: path) else { return nil }
-    return String(data: data, encoding: .utf8) ?? String(data: data, encoding: .unicode)
+nonisolated private func pinballCacheRootURL(fileManager: FileManager = .default) -> URL {
+    let base = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
+    return base.appendingPathComponent("pinball-data-cache", isDirectory: true)
+}
+
+nonisolated private func pinballCachedFileURL(path: String, fileManager: FileManager = .default) -> URL {
+    let normalizedPath = normalizedPinballCachePath(path)
+    let ext = URL(fileURLWithPath: normalizedPath).pathExtension
+    let digest = SHA256.hash(data: Data(normalizedPath.utf8)).compactMap { String(format: "%02x", $0) }.joined()
+    let fileName = ext.isEmpty ? digest : "\(digest).\(ext)"
+    return pinballCacheRootURL(fileManager: fileManager)
+        .appendingPathComponent("resources", isDirectory: true)
+        .appendingPathComponent(fileName)
+}
+
+nonisolated private func bundledPinballResourceURL(path: String) -> URL? {
+    let normalizedPath = normalizedPinballCachePath(path).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    guard !normalizedPath.isEmpty else { return nil }
+
+    let candidateRoots = [Bundle.main] + Bundle.allBundles + Bundle.allFrameworks
+    for candidate in candidateRoots {
+        let directBundle: Bundle?
+        if candidate.bundleURL.lastPathComponent == "PinballStarter.bundle" {
+            directBundle = candidate
+        } else if let nestedURL = candidate.resourceURL?.appendingPathComponent("PinballStarter.bundle"),
+                  let nestedBundle = Bundle(url: nestedURL) {
+            directBundle = nestedBundle
+        } else {
+            directBundle = nil
+        }
+
+        guard let bundle = directBundle else { continue }
+        let resourceURL = bundle.bundleURL.appendingPathComponent(normalizedPath)
+        if FileManager.default.fileExists(atPath: resourceURL.path) {
+            return resourceURL
+        }
+    }
+
+    return nil
+}
+
+nonisolated private func bundledPinballResourceExists(path: String) -> Bool {
+    bundledPinballResourceURL(path: path) != nil
+}
+
+nonisolated private func bundledPinballData(path: String) throws -> Data? {
+    guard let resourceURL = bundledPinballResourceURL(path: path) else { return nil }
+    return try Data(contentsOf: resourceURL)
+}
+
+nonisolated func cachedPinballDataURL(path: String) -> URL? {
+    let fileURL = pinballCachedFileURL(path: path)
+    guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
+    return fileURL
+}
+
+nonisolated func loadCachedPinballData(path: String) throws -> Data? {
+    if let fileURL = cachedPinballDataURL(path: path) {
+        return try Data(contentsOf: fileURL)
+    }
+
+    guard let bundled = try bundledPinballData(path: path) else { return nil }
+    try? cachePinballData(path: path, data: bundled)
+    return bundled
+}
+
+nonisolated func cachePinballData(path: String, data: Data) throws {
+    let fileManager = FileManager.default
+    let fileURL = pinballCachedFileURL(path: path, fileManager: fileManager)
+    try fileManager.createDirectory(
+        at: fileURL.deletingLastPathComponent(),
+        withIntermediateDirectories: true,
+        attributes: nil
+    )
+    try data.write(to: fileURL, options: .atomic)
 }
 
 struct CachedTextResult {
@@ -115,20 +175,7 @@ actor PinballDataCache {
     private let backgroundRevalidateInterval: TimeInterval = 180
     private let remoteImageDiskRevalidateInterval: TimeInterval = 6 * 60 * 60
     private let remoteImageDiskCacheSizeLimit: Int64 = 512 * 1024 * 1024
-    private let starterPackBundleName = "PinballStarter"
-    private let starterPackBundleExt = "bundle"
-    private let starterPackBundlePath = "pinball"
-    private let starterSeedMarkerName = "starter-pack-seeded-v3-only"
     private let legacyCacheResetMarkerName = "legacy-cache-reset-v3-assets-v1"
-    private let starterPriorityPaths = [
-        "/pinball/data/pinball_library_v3.json",
-        "/pinball/data/lpl_targets_resolved_v1.json",
-        "/pinball/data/LPL_Targets.csv",
-        "/pinball/data/LPL_Stats.csv",
-        "/pinball/data/LPL_Standings.csv",
-        "/pinball/data/redacted_players.csv",
-        "/pinball/data/lpl_stats.csv",
-    ]
 
     private var isLoaded = false
     private var index = CacheIndex()
@@ -164,9 +211,40 @@ actor PinballDataCache {
     func forceRefreshHostedLibraryData() async throws {
         try await ensureLoaded()
         try await refreshMetadataIfNeeded(force: true)
-        for path in hostedLibraryCatalogPaths {
-            _ = try await fetchBinaryFromNetwork(path: path, allowMissing: path == hostedOPDBCatalogPath, allowStaleOnFailure: false)
+        for target in hostedPinballRefreshTargets {
+            _ = try await fetchBinaryFromNetwork(
+                path: target.path,
+                allowMissing: target.allowMissing,
+                allowStaleOnFailure: false
+            )
         }
+    }
+
+    func clearAllCachedData() async throws {
+        try await ensureLoaded()
+
+        let root = cacheRootURL()
+        let resourcesURL = root.appendingPathComponent("resources", isDirectory: true)
+        let remoteImagesURL = root.appendingPathComponent("remote-images", isDirectory: true)
+        let indexURL = root.appendingPathComponent("cache-index.json")
+
+        if fileManager.fileExists(atPath: resourcesURL.path) {
+            try? fileManager.removeItem(at: resourcesURL)
+        }
+        if fileManager.fileExists(atPath: remoteImagesURL.path) {
+            try? fileManager.removeItem(at: remoteImagesURL)
+        }
+        if fileManager.fileExists(atPath: indexURL.path) {
+            try? fileManager.removeItem(at: indexURL)
+        }
+
+        index = CacheIndex()
+        manifest = nil
+        inFlightRevalidations.removeAll()
+        inFlightRemoteImageRevalidations.removeAll()
+
+        try fileManager.createDirectory(at: root, withIntermediateDirectories: true, attributes: nil)
+        try persistIndex()
     }
 
     func loadText(path: String, allowMissing: Bool = false, maxCacheAge: TimeInterval) async throws -> CachedTextResult {
@@ -175,7 +253,8 @@ actor PinballDataCache {
 
         if let resource = index.resources[normalizedPath],
            resource.missing,
-           Date().timeIntervalSince1970 - resource.lastValidatedAt < maxCacheAge {
+           Date().timeIntervalSince1970 - resource.lastValidatedAt < maxCacheAge,
+           !bundledPinballResourceExists(path: normalizedPath) {
             return CachedTextResult(text: nil, isMissing: true, updatedAt: nil)
         }
 
@@ -395,7 +474,6 @@ actor PinballDataCache {
     private func cachedData(for path: String) throws -> Data? {
         if index.resources[path]?.missing == true {
             try? fileManager.removeItem(at: fileURL(for: path))
-            return nil
         }
 
         let url = fileURL(for: path)
@@ -403,8 +481,15 @@ actor PinballDataCache {
             return try Data(contentsOf: url)
         }
 
-        guard let bundled = try bundledStarterData(for: path) else { return nil }
+        guard let bundled = try bundledPinballData(path: path) else { return nil }
         try write(data: bundled, for: path)
+        index.resources[path] = CacheIndex.Resource(
+            path: path,
+            hash: index.resources[path]?.hash,
+            lastValidatedAt: Date().timeIntervalSince1970,
+            missing: false
+        )
+        try persistIndex()
         return bundled
     }
 
@@ -487,17 +572,7 @@ actor PinballDataCache {
             index = saved
         }
 
-        do {
-            try preloadStarterPriorityFilesIfNeeded()
-        } catch {
-            // Priority preload is best effort.
-        }
-
         isLoaded = true
-
-        Task.detached(priority: .utility) {
-            await PinballDataCache.shared.seedStarterPackBestEffort()
-        }
 
         Task.detached(priority: .utility) {
             await PinballDataCache.shared.refreshMetadataBestEffort(force: true)
@@ -510,7 +585,6 @@ actor PinballDataCache {
 
         let resourcesURL = root.appendingPathComponent("resources", isDirectory: true)
         let indexURL = root.appendingPathComponent("cache-index.json")
-        let starterSeedMarkerURL = root.appendingPathComponent(starterSeedMarkerName)
 
         if fileManager.fileExists(atPath: resourcesURL.path) {
             try? fileManager.removeItem(at: resourcesURL)
@@ -518,88 +592,12 @@ actor PinballDataCache {
         if fileManager.fileExists(atPath: indexURL.path) {
             try? fileManager.removeItem(at: indexURL)
         }
-        if fileManager.fileExists(atPath: starterSeedMarkerURL.path) {
-            try? fileManager.removeItem(at: starterSeedMarkerURL)
-        }
 
         index = CacheIndex()
         manifest = nil
         inFlightRevalidations.removeAll()
 
         try Data("ok".utf8).write(to: markerURL, options: .atomic)
-    }
-
-    private func preloadStarterPriorityFilesIfNeeded() throws {
-        for path in starterPriorityPaths {
-            _ = try cachedData(for: path)
-        }
-    }
-
-    private func seedStarterPackBestEffort() async {
-        do {
-            try seedBundledStarterPackIfNeeded()
-        } catch {
-            // Starter pack seeding is best effort; runtime cache/network flow remains fallback.
-        }
-    }
-
-    private func seedBundledStarterPackIfNeeded() throws {
-        let markerURL = cacheRootURL().appendingPathComponent(starterSeedMarkerName)
-        if fileManager.fileExists(atPath: markerURL.path) {
-            return
-        }
-
-        guard let starterBundleURL = Bundle.main.url(
-            forResource: starterPackBundleName,
-            withExtension: starterPackBundleExt
-        ) else {
-            return
-        }
-
-        let starterRoot = starterBundleURL.appendingPathComponent(starterPackBundlePath, isDirectory: true)
-        guard
-              fileManager.fileExists(atPath: starterRoot.path) else {
-            return
-        }
-
-        let enumerator = fileManager.enumerator(
-            at: starterRoot,
-            includingPropertiesForKeys: [.isRegularFileKey],
-            options: [.skipsHiddenFiles]
-        )
-
-        while let fileURL = enumerator?.nextObject() as? URL {
-            let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey])
-            guard values.isRegularFile == true else { continue }
-
-            let relativePath = fileURL.path.replacingOccurrences(of: starterRoot.path + "/", with: "")
-            let cachePath = "/pinball/\(relativePath)"
-            if try cachedData(for: cachePath) != nil {
-                continue
-            }
-
-            let data = try Data(contentsOf: fileURL)
-            try write(data: data, for: cachePath)
-        }
-
-        try Data("ok".utf8).write(to: markerURL, options: .atomic)
-    }
-
-    private func bundledStarterData(for path: String) throws -> Data? {
-        guard path.hasPrefix("/pinball/"),
-              let starterBundleURL = Bundle.main.url(
-                forResource: starterPackBundleName,
-                withExtension: starterPackBundleExt
-              ) else {
-            return nil
-        }
-
-        let relativePath = String(path.dropFirst("/pinball/".count))
-        let fileURL = starterBundleURL
-            .appendingPathComponent(starterPackBundlePath, isDirectory: true)
-            .appendingPathComponent(relativePath)
-        guard fileManager.fileExists(atPath: fileURL.path) else { return nil }
-        return try Data(contentsOf: fileURL)
     }
 
     private func refreshMetadataBestEffort(force: Bool) async {
@@ -620,8 +618,7 @@ actor PinballDataCache {
     }
 
     private func cacheRootURL() -> URL {
-        let base = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
-        return base.appendingPathComponent("pinball-data-cache", isDirectory: true)
+        pinballCacheRootURL(fileManager: fileManager)
     }
 
     private func remoteImagesRootURL() -> URL {
@@ -629,10 +626,7 @@ actor PinballDataCache {
     }
 
     private func fileURL(for path: String) -> URL {
-        let ext = URL(fileURLWithPath: path).pathExtension
-        let digest = SHA256.hash(data: Data(path.utf8)).compactMap { String(format: "%02x", $0) }.joined()
-        let fileName = ext.isEmpty ? digest : "\(digest).\(ext)"
-        return cacheRootURL().appendingPathComponent("resources", isDirectory: true).appendingPathComponent(fileName)
+        pinballCachedFileURL(path: path, fileManager: fileManager)
     }
 
     private func remoteImageFileURL(for url: URL) -> URL {
@@ -703,8 +697,7 @@ actor PinballDataCache {
     }
 
     private func normalize(_ path: String) -> String {
-        if path.hasPrefix("/") { return path }
-        return "/" + path
+        normalizedPinballCachePath(path)
     }
 
     private func shouldUseManifestCache(for url: URL) -> Bool {

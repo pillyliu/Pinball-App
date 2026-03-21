@@ -176,7 +176,7 @@ internal fun LibraryDetailScreen(
                     .padding(top = 8.dp),
             ) {
                 AppScreenHeader(
-                    title = if (game.normalizedVariant != null) "${game.name} • ${game.normalizedVariant}" else game.name,
+                    title = game.name,
                     onBack = onBack,
                     modifier = Modifier.align(Alignment.Center),
                     titleColor = MaterialTheme.colorScheme.onSurface,

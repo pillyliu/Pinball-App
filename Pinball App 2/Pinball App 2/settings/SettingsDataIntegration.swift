@@ -24,6 +24,13 @@ func forceRefreshHostedSettingsData() async throws -> SettingsDataSnapshot {
     return try await loadSettingsDataSnapshot()
 }
 
+func clearAppRuntimeCaches() async throws {
+    try await PinballDataCache.shared.clearAllCachedData()
+    try await RemoteRulesheetLoader.clearCache()
+    RemoteUIImageMemoryCache.shared.removeAll()
+    URLCache.shared.removeAllCachedResponses()
+}
+
 func addManufacturerSource(_ manufacturer: PinballCatalogManufacturerOption) -> SettingsSourceSnapshot {
     let sourceID = "manufacturer--\(manufacturer.id)"
     let record = PinballImportedSourceRecord(

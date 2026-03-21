@@ -91,22 +91,22 @@ struct PracticeGameSearchSheet: View {
     private var searchTabContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 8) {
-                TextField("Game name", text: $nameQuery)
-                    .textInputAutocapitalization(.words)
-                    .autocorrectionDisabled()
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .appControlStyle()
+                AppNativeClearTextField(
+                    placeholder: "Game name",
+                    text: $nameQuery,
+                    autocapitalization: .words,
+                    autocorrectionDisabled: true
+                )
 
                 DisclosureGroup(isExpanded: $isAdvancedExpanded) {
                     VStack(alignment: .leading, spacing: 10) {
                         VStack(alignment: .leading, spacing: 8) {
-                            TextField("Manufacturer", text: $manufacturerQuery)
-                                .textInputAutocapitalization(.words)
-                                .autocorrectionDisabled()
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 8)
-                                .appControlStyle()
+                            AppNativeClearTextField(
+                                placeholder: "Manufacturer",
+                                text: $manufacturerQuery,
+                                autocapitalization: .words,
+                                autocorrectionDisabled: true
+                            )
 
                             if !filteredManufacturerSuggestions.isEmpty &&
                                 !filteredManufacturerSuggestions.contains(where: {
@@ -126,11 +126,11 @@ struct PracticeGameSearchSheet: View {
                             }
                         }
 
-                        TextField("Year", text: $yearQuery)
-                            .keyboardType(.numberPad)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .appControlStyle()
+                        AppNativeClearTextField(
+                            placeholder: "Year",
+                            text: $yearQuery,
+                            keyboardType: .numberPad
+                        )
 
                         Menu {
                             Button("Any type") {

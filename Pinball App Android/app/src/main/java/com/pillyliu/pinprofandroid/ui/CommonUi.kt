@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -31,6 +33,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -39,15 +42,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -56,10 +63,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -457,6 +470,71 @@ fun AppCardTitle(
     )
 }
 
+@Composable
+fun AppCardTitleWithVariant(
+    text: String,
+    variant: String?,
+    modifier: Modifier = Modifier,
+    maxLines: Int = 2,
+) {
+    val resolvedVariant = variant?.trim()?.takeIf { it.isNotEmpty() }
+    if (resolvedVariant == null) {
+        AppCardTitle(text = text, modifier = modifier, maxLines = maxLines)
+        return
+    }
+
+    val titleStyle = MaterialTheme.typography.titleMedium.copy(
+        fontWeight = FontWeight.SemiBold,
+    )
+    val pillTextStyle = MaterialTheme.typography.labelMedium
+    val density = LocalDensity.current
+    val textMeasurer = rememberTextMeasurer()
+    val measuredVariant = textMeasurer.measure(
+        text = AnnotatedString(resolvedVariant),
+        style = pillTextStyle,
+        maxLines = 1,
+    )
+    val horizontalPadding = 16.dp
+    val verticalPadding = 6.dp
+    val placeholderWidth = with(density) {
+        ((measuredVariant.size.width / this.density / this.fontScale) +
+            (horizontalPadding.value / this.fontScale)).sp
+    }
+    val placeholderHeight = with(density) {
+        ((measuredVariant.size.height / this.density / this.fontScale) +
+            (verticalPadding.value / this.fontScale)).sp
+    }
+    val inlineId = "variant-pill"
+
+    Text(
+        text = buildAnnotatedString {
+            append(text)
+            append(" ")
+            appendInlineContent(inlineId, resolvedVariant)
+        },
+        inlineContent = mapOf(
+            inlineId to InlineTextContent(
+                Placeholder(
+                    width = placeholderWidth,
+                    height = placeholderHeight,
+                    placeholderVerticalAlign = PlaceholderVerticalAlign.TextTop,
+                ),
+            ) {
+                AppVariantPill(
+                    label = resolvedVariant,
+                    style = AppVariantPillStyle.MachineTitle,
+                )
+            },
+        ),
+        color = PinballThemeTokens.colors.brandInk,
+        style = titleStyle,
+        fontWeight = FontWeight.SemiBold,
+        maxLines = maxLines,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier,
+    )
+}
+
 data class AppMetricItem(
     val label: String,
     val value: String,
@@ -618,20 +696,107 @@ fun AppSuccessBanner(
     }
 }
 
+data class AppSwipeActionSpec(
+    val tint: Color,
+    val icon: ImageVector,
+    val contentDescription: String,
+    val onTrigger: () -> Unit,
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RowScope.AppSwipeRevealActionButton(
+fun AppSwipeActionRow(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(8.dp),
+    startAction: AppSwipeActionSpec? = null,
+    endAction: AppSwipeActionSpec? = null,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+    borderColor: Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.72f),
+    content: @Composable () -> Unit,
+) {
+    val currentStartAction = rememberUpdatedState(startAction)
+    val currentEndAction = rememberUpdatedState(endAction)
+    val swipeState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { targetValue ->
+            when (targetValue) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    currentStartAction.value?.onTrigger?.invoke()
+                    false
+                }
+
+                SwipeToDismissBoxValue.EndToStart -> {
+                    currentEndAction.value?.onTrigger?.invoke()
+                    false
+                }
+
+                SwipeToDismissBoxValue.Settled -> true
+            }
+        },
+    )
+
+    SwipeToDismissBox(
+        state = swipeState,
+        enableDismissFromStartToEnd = startAction != null,
+        enableDismissFromEndToStart = endAction != null,
+        modifier = modifier
+            .clip(shape)
+            .background(containerColor, shape)
+            .border(1.dp, borderColor, shape),
+        backgroundContent = {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 1.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                startAction?.let { action ->
+                    SwipeActionBackgroundButton(
+                        modifier = Modifier
+                            .width(76.dp)
+                            .fillMaxHeight(),
+                        tint = action.tint,
+                        icon = action.icon,
+                        contentDescription = action.contentDescription,
+                    )
+                } ?: Spacer(modifier = Modifier.width(0.dp))
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                endAction?.let { action ->
+                    SwipeActionBackgroundButton(
+                        modifier = Modifier
+                            .width(76.dp)
+                            .fillMaxHeight(),
+                        tint = action.tint,
+                        icon = action.icon,
+                        contentDescription = action.contentDescription,
+                    )
+                } ?: Spacer(modifier = Modifier.width(0.dp))
+            }
+        },
+        content = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape)
+                    .background(containerColor, shape),
+            ) {
+                content()
+            }
+        },
+    )
+}
+
+@Composable
+private fun SwipeActionBackgroundButton(
     modifier: Modifier,
     tint: Color,
     icon: ImageVector,
     contentDescription: String,
-    onClick: () -> Unit,
 ) {
     Box(
-        modifier = modifier
-            .padding(horizontal = 1.dp)
-            .fillMaxHeight()
-            .background(tint, shape = RoundedCornerShape(6.dp))
-            .clickable(onClick = onClick),
+        modifier = modifier.background(tint, shape = RoundedCornerShape(6.dp)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = contentDescription, tint = Color.White)
@@ -648,23 +813,22 @@ fun AppPanelStatusCard(
     val colors = PinballThemeTokens.colors
     val shapes = PinballThemeTokens.shapes
     CardContainer(modifier = modifier) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
                     Color.Transparent,
                     RoundedCornerShape(shapes.panelCorner),
-                ),
+                )
+                .border(
+                    width = 1.dp,
+                    color = colors.border.copy(alpha = 0.18f),
+                    shape = RoundedCornerShape(shapes.panelCorner),
+                )
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .border(
-                        width = 1.dp,
-                        color = colors.border.copy(alpha = 0.18f),
-                        shape = RoundedCornerShape(shapes.panelCorner),
-                    ),
-            )
             Box(
                 modifier = Modifier
                     .width(5.dp)
@@ -683,7 +847,7 @@ fun AppPanelStatusCard(
                 text = text,
                 showsProgress = showsProgress,
                 isError = isError,
-                modifier = Modifier.padding(start = 12.dp),
+                modifier = Modifier.weight(1f),
             )
         }
     }

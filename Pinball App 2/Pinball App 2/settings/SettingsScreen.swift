@@ -16,6 +16,9 @@ final class SettingsViewModel: ObservableObject {
     @Published private(set) var isRefreshingHostedData = false
     @Published private(set) var hostedDataStatusMessage: String?
     @Published private(set) var hostedDataStatusIsError = false
+    @Published private(set) var isClearingCache = false
+    @Published private(set) var cacheStatusMessage: String?
+    @Published private(set) var cacheStatusIsError = false
     @Published var errorMessage: String?
 
     private var didLoad = false
@@ -65,6 +68,23 @@ final class SettingsViewModel: ObservableObject {
         } catch {
             hostedDataStatusMessage = "Hosted data refresh failed: \(error.localizedDescription)"
             hostedDataStatusIsError = true
+        }
+    }
+
+    func clearCachedData() async {
+        guard !isClearingCache else { return }
+        isClearingCache = true
+        cacheStatusMessage = nil
+        cacheStatusIsError = false
+        defer { isClearingCache = false }
+
+        do {
+            try await clearAppRuntimeCaches()
+            cacheStatusMessage = "Cached data cleared. Hosted data will refetch as screens reload."
+            cacheStatusIsError = false
+        } catch {
+            cacheStatusMessage = "Cache clear failed: \(error.localizedDescription)"
+            cacheStatusIsError = true
         }
     }
 

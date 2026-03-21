@@ -116,7 +116,7 @@ struct SettingsHomeContent: View {
         VStack(alignment: .leading, spacing: 8) {
             AppSectionTitle(text: "Pinball Data")
 
-            Text("Force-refresh the hosted Library and OPDB catalog from pillyliu.com.")
+            Text("Refresh Pinball Data force-fetches the hosted OPDB export, CAF asset indexes, league files, redacted players list, and GameRoom group map from pillyliu.com.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -126,7 +126,7 @@ struct SettingsHomeContent: View {
                 Text(viewModel.isRefreshingHostedData ? "Refreshing Pinball Data…" : "Refresh Pinball Data")
             }
             .buttonStyle(AppPrimaryActionButtonStyle())
-            .disabled(viewModel.isRefreshingHostedData)
+            .disabled(viewModel.isRefreshingHostedData || viewModel.isClearingCache)
 
             if let statusMessage = viewModel.hostedDataStatusMessage {
                 AppInlineTaskStatus(
@@ -137,6 +137,33 @@ struct SettingsHomeContent: View {
             } else if viewModel.isRefreshingHostedData {
                 AppInlineTaskStatus(
                     text: "Refreshing hosted pinball data…",
+                    showsProgress: true
+                )
+            }
+
+            AppTableRowDivider()
+
+            Text("Clear Cache removes downloaded pinball data, cached images, and cached remote rulesheets. It does not remove settings, practice history, or GameRoom data.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Button(role: .destructive) {
+                Task { await viewModel.clearCachedData() }
+            } label: {
+                Text(viewModel.isClearingCache ? "Clearing Cache…" : "Clear Cache")
+            }
+            .buttonStyle(AppSecondaryActionButtonStyle())
+            .disabled(viewModel.isRefreshingHostedData || viewModel.isClearingCache)
+
+            if let statusMessage = viewModel.cacheStatusMessage {
+                AppInlineTaskStatus(
+                    text: statusMessage,
+                    showsProgress: viewModel.isClearingCache,
+                    isError: viewModel.cacheStatusIsError
+                )
+            } else if viewModel.isClearingCache {
+                AppInlineTaskStatus(
+                    text: "Clearing cached data…",
                     showsProgress: true
                 )
             }

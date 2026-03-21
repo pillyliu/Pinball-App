@@ -34,11 +34,19 @@ internal fun groupEditorValidationMessage(
 }
 
 internal fun bankTemplateSlugs(games: List<PinballGame>, selectedTemplateBank: Int): List<String> {
+    val seen = linkedSetOf<String>()
     return games
         .filter { it.bank == selectedTemplateBank }
         .sortedBy { it.name.lowercase(Locale.US) }
-        .map { it.practiceKey }
-        .distinct()
+        .mapNotNull { game ->
+            val selectionKey = sourceScopedPracticeGameID(game.sourceId, game.practiceKey)
+            val canonical = canonicalPracticeKey(selectionKey, games)
+            if (canonical.isBlank() || !seen.add(canonical)) {
+                null
+            } else {
+                selectionKey
+            }
+        }
 }
 
 internal fun applyDuplicateGroupTemplate(

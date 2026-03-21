@@ -39,7 +39,8 @@ extension PracticeStore {
     }
 
     func applyBankTemplate(bank: Int, into groupName: String) {
-        let gameIDs = games.filter { $0.bank == bank }.map(\.canonicalPracticeKey)
+        let templateGames = bankTemplateGames.isEmpty ? games : bankTemplateGames
+        let gameIDs = templateGames.filter { $0.bank == bank }.map(\.canonicalPracticeKey)
         createGroup(
             name: groupName.isEmpty ? "Bank \(bank) Focus" : groupName,
             gameIDs: gameIDs,
@@ -191,12 +192,12 @@ extension PracticeStore {
     }
 
     func groupGames(for group: CustomGameGroup) -> [PinballGame] {
-        let byPractice = Dictionary(uniqueKeysWithValues: practiceGamesDeduped().map { ($0.canonicalPracticeKey, $0) })
-        return group.gameIDs.compactMap { byPractice[canonicalPracticeGameID($0)] }
+        group.gameIDs.compactMap { gameForAnyID($0) }
     }
 
     func groupProgress(for group: CustomGameGroup) -> [GroupProgressSnapshot] {
-        groupGames(for: group).map { game in
+        group.gameIDs.compactMap { selectionGameID -> GroupProgressSnapshot? in
+            guard let game = gameForAnyID(selectionGameID) else { return nil }
             let progress = Dictionary(
                 uniqueKeysWithValues: StudyTaskKind.allCases.map { task in
                     (
@@ -210,8 +211,21 @@ extension PracticeStore {
                     )
                 }
             )
-            return GroupProgressSnapshot(game: game, taskProgress: progress)
+            return GroupProgressSnapshot(selectionGameID: selectionGameID, game: game, taskProgress: progress)
         }
+    }
+
+    func groupDashboardDetail(for group: CustomGameGroup) -> GroupDashboardDetail {
+        if let cached = cachedGroupDashboardDetails[group.id] {
+            return cached
+        }
+
+        let detail = GroupDashboardDetail(
+            score: groupDashboardScore(for: group),
+            snapshots: groupProgress(for: group)
+        )
+        cachedGroupDashboardDetails[group.id] = detail
+        return detail
     }
 
     func recommendedGame(in group: CustomGameGroup) -> PinballGame? {
@@ -231,8 +245,7 @@ extension PracticeStore {
             return GroupDashboardScore(
                 completionAverage: 0,
                 staleGameCount: 0,
-                weakerGameCount: 0,
-                recommendedFirst: nil
+                weakerGameCount: 0
             )
         }
 
@@ -261,8 +274,7 @@ extension PracticeStore {
         return GroupDashboardScore(
             completionAverage: completionAverage,
             staleGameCount: staleGameCount,
-            weakerGameCount: weakerGameCount,
-            recommendedFirst: recommendedGame(in: group)
+            weakerGameCount: weakerGameCount
         )
     }
 

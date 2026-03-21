@@ -78,7 +78,8 @@ internal class PracticeDerivedQueryIntegration {
     fun activeGroupForGame(
         groups: List<PracticeGroup>,
         canonicalGameID: String,
-    ): PracticeGroup? = com.pillyliu.pinprofandroid.practice.activeGroupForGame(groups, canonicalGameID)
+        lookupGames: List<PinballGame>,
+    ): PracticeGroup? = com.pillyliu.pinprofandroid.practice.activeGroupForGame(groups, canonicalGameID, lookupGames)
 
     fun groupGames(
         group: PracticeGroup,

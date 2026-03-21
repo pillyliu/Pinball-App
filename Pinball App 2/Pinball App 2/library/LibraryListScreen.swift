@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 extension LibraryScreen {
     var sourceMenuSection: some View {
@@ -169,28 +170,16 @@ extension LibraryScreen {
 
     private func libraryCardOverlay(for game: PinballGame) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(alignment: .top, spacing: 6) {
-                AppOverlayTitle(game.name)
-                    .lineSpacing(-1)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, minHeight: 40, alignment: .topLeading)
-            }
-            .frame(height: 40, alignment: .top)
-            .clipped()
+            LibraryCardInlineTitleLabel(
+                title: game.name,
+                variant: game.normalizedVariant
+            )
+            .frame(maxWidth: .infinity, minHeight: 40, alignment: .topLeading)
 
-            HStack(spacing: 4) {
-                AppOverlaySubtitle(game.manufacturerYearCardLine)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .layoutPriority(1)
-
-                if let variant = game.normalizedVariant {
-                    PinballOverlayMetadataBadge(variant)
-                        .frame(maxWidth: 84, alignment: .leading)
-                        .layoutPriority(0)
-                }
-            }
+            AppOverlaySubtitle(game.manufacturerYearCardLine)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .layoutPriority(1)
 
             AppOverlaySubtitle(game.locationBankLine.isEmpty ? " " : game.locationBankLine, emphasis: 0.9)
                 .lineLimit(1)
@@ -218,5 +207,127 @@ extension LibraryScreen {
         guard viewModel.games.contains(where: { $0.id == gameID }) else { return }
         navigationPath = [gameID]
         appNavigation.libraryGameIDToOpen = nil
+    }
+}
+
+private struct LibraryCardInlineTitleLabel: UIViewRepresentable {
+    let title: String
+    let variant: String?
+
+    func makeUIView(context: Context) -> UILabel {
+        let label = UILabel()
+        label.numberOfLines = 2
+        label.lineBreakMode = .byTruncatingTail
+        label.backgroundColor = .clear
+        return label
+    }
+
+    func updateUIView(_ uiView: UILabel, context: Context) {
+        let resolvedVariant = variant?.trimmingCharacters(in: .whitespacesAndNewlines)
+        uiView.attributedText = makeAttributedTitle(
+            title: title,
+            variant: resolvedVariant,
+            traits: uiView.traitCollection
+        )
+        uiView.accessibilityLabel = resolvedVariant.map { "\(title), \($0)" } ?? title
+        uiView.preferredMaxLayoutWidth = uiView.bounds.width
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UILabel, context: Context) -> CGSize? {
+        guard let width = proposal.width else { return nil }
+        uiView.preferredMaxLayoutWidth = width
+        let fitted = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        return CGSize(width: width, height: ceil(fitted.height))
+    }
+}
+
+private func makeAttributedTitle(title: String, variant: String?, traits: UITraitCollection) -> NSAttributedString {
+    let titleFont = UIFont.systemFont(ofSize: 16, weight: .semibold)
+    let paragraphStyle = NSMutableParagraphStyle()
+    paragraphStyle.lineSpacing = -1
+    paragraphStyle.lineBreakMode = .byTruncatingTail
+
+    let shadow = NSShadow()
+    shadow.shadowColor = UIColor.black.withAlphaComponent(1.0)
+    shadow.shadowOffset = CGSize(width: 0, height: 3)
+    shadow.shadowBlurRadius = 4
+
+    let titleAttributes: [NSAttributedString.Key: Any] = [
+        .font: titleFont,
+        .foregroundColor: UIColor.white,
+        .paragraphStyle: paragraphStyle,
+        .shadow: shadow
+    ]
+
+    let attributed = NSMutableAttributedString(string: title, attributes: titleAttributes)
+
+    if let variant, !variant.isEmpty {
+        attributed.append(NSAttributedString(string: " ", attributes: titleAttributes))
+
+        let attachment = NSTextAttachment()
+        attachment.image = makeLibraryVariantBadgeImage(text: variant, traits: traits)
+        if let image = attachment.image {
+            let verticalOffset = titleFont.descender.rounded(.toNearestOrAwayFromZero)
+            attachment.bounds = CGRect(
+                x: 0,
+                y: verticalOffset,
+                width: image.size.width,
+                height: image.size.height
+            )
+        }
+
+        let attachmentString = NSMutableAttributedString(attachment: attachment)
+        attachmentString.addAttribute(.paragraphStyle, value: paragraphStyle, range: NSRange(location: 0, length: attachmentString.length))
+        attributed.append(attachmentString)
+    }
+
+    return attributed
+}
+
+private func makeLibraryVariantBadgeImage(text: String, traits: UITraitCollection) -> UIImage {
+    let font = UIFont.systemFont(ofSize: 9, weight: .semibold)
+    let paragraphStyle = NSMutableParagraphStyle()
+    paragraphStyle.alignment = .center
+
+    let textAttributes: [NSAttributedString.Key: Any] = [
+        .font: font,
+        .foregroundColor: UIColor.white,
+        .paragraphStyle: paragraphStyle
+    ]
+
+    let rawTextSize = (text as NSString).boundingRect(
+        with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude),
+        options: [.usesLineFragmentOrigin, .usesFontLeading],
+        attributes: textAttributes,
+        context: nil
+    ).integral.size
+
+    let size = CGSize(
+        width: max(18, ceil(rawTextSize.width) + 12),
+        height: max(14, ceil(rawTextSize.height) + 5)
+    )
+
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = max(traits.displayScale, 1)
+    format.opaque = false
+
+    let gold = UIColor(AppTheme.brandGold).resolvedColor(with: traits)
+    let renderer = UIGraphicsImageRenderer(size: size, format: format)
+    return renderer.image { context in
+        let rect = CGRect(origin: .zero, size: size).insetBy(dx: 0.4, dy: 0.4)
+        let path = UIBezierPath(roundedRect: rect, cornerRadius: rect.height / 2)
+        gold.withAlphaComponent(0.20).setFill()
+        path.fill()
+        gold.withAlphaComponent(0.42).setStroke()
+        path.lineWidth = 0.8
+        path.stroke()
+
+        let textRect = CGRect(
+            x: 6,
+            y: floor((size.height - rawTextSize.height) / 2),
+            width: size.width - 12,
+            height: rawTextSize.height
+        )
+        (text as NSString).draw(in: textRect, withAttributes: textAttributes)
     }
 }

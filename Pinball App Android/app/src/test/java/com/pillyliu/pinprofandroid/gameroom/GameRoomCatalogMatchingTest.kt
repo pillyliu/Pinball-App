@@ -99,6 +99,7 @@ class GameRoomCatalogMatchingTest {
     ): GameRoomCatalogGame {
         return GameRoomCatalogGame(
             catalogGameID = catalogGameID,
+            opdbID = "$catalogGameID-machine",
             canonicalPracticeIdentity = practiceIdentity,
             displayTitle = title,
             displayVariant = variant,

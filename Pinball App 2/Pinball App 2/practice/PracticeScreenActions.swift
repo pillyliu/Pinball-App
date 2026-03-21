@@ -1,6 +1,19 @@
 import SwiftUI
 
 extension PracticeScreen {
+    func beginNavigationInteractionShield(durationNanoseconds: UInt64 = 450_000_000) {
+        let token = UUID()
+        uiState.navigationInteractionShieldToken = token
+        uiState.isNavigationInteractionShieldActive = true
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: durationNanoseconds)
+            guard uiState.navigationInteractionShieldToken == token else { return }
+            uiState.isNavigationInteractionShieldActive = false
+            uiState.navigationInteractionShieldToken = nil
+        }
+    }
+
     func applyDefaultsAfterLoad() {
         if uiState.selectedGameID.isEmpty, let fallback = defaultPracticeGame {
             uiState.selectedGameID = fallback.canonicalPracticeKey
@@ -24,6 +37,7 @@ extension PracticeScreen {
     func goToGame(_ gameID: String, zoomSourceID: String? = nil) {
         guard !gameID.isEmpty else { return }
         let canonical = store.canonicalPracticeGameID(gameID)
+        beginNavigationInteractionShield()
         uiState.gameTransitionSourceID = zoomSourceID
         uiState.selectedGameID = canonical
         markPracticeGameViewed(canonical)
@@ -34,6 +48,7 @@ extension PracticeScreen {
     }
 
     func openRoute(_ route: PracticeRoute) {
+        beginNavigationInteractionShield()
         if uiState.gameNavigationPath.last != route {
             uiState.gameNavigationPath.append(route)
         }

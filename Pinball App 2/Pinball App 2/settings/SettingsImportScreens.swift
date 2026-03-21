@@ -176,15 +176,15 @@ struct AddVenueScreen: View {
                         SettingsProviderCaption(prefix: "Search powered by ", linkText: "Pinball Map", urlString: "https://www.pinballmap.com")
 
                         HStack(alignment: .center, spacing: 8) {
-                            TextField("City or ZIP code", text: $query)
-                                .submitLabel(.search)
-                                .onSubmit {
+                            AppNativeClearTextField(
+                                placeholder: "City or ZIP code",
+                                text: $query,
+                                submitLabel: .search,
+                                onSubmit: {
                                     Task { await runSearch() }
                                 }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 8)
-                                .appControlStyle()
-                                .frame(maxWidth: .infinity)
+                            )
+                            .frame(maxWidth: .infinity)
 
                             Button {
                                 Task { await runCurrentLocationSearch() }

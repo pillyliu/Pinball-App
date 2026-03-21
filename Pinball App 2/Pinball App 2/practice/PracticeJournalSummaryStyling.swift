@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 private enum PracticeJournalSummaryTokenColor {
@@ -11,6 +12,22 @@ private enum PracticeJournalSummaryTokenColor {
 private struct PracticeJournalSummaryToken {
     let text: String
     let color: PracticeJournalSummaryTokenColor
+}
+
+private final class PracticeJournalSummaryTokenBox: NSObject {
+    let tokens: [PracticeJournalSummaryToken]
+
+    init(tokens: [PracticeJournalSummaryToken]) {
+        self.tokens = tokens
+    }
+}
+
+private enum PracticeJournalSummaryTokenCache {
+    static let cache: NSCache<NSString, PracticeJournalSummaryTokenBox> = {
+        let cache = NSCache<NSString, PracticeJournalSummaryTokenBox>()
+        cache.countLimit = 512
+        return cache
+    }()
 }
 
 private extension Array where Element == PracticeJournalSummaryToken {
@@ -27,7 +44,7 @@ private extension Array where Element == PracticeJournalSummaryToken {
 }
 
 func styledPracticeJournalSummary(_ summary: String) -> Text {
-    let tokens = practiceJournalSummaryTokens(summary)
+    let tokens = cachedPracticeJournalSummaryTokens(summary)
     return tokens.reduce(Text("")) { partial, token in
         let segment = Text(token.text)
             .foregroundStyle(colorForPracticeJournalToken(token.color))
@@ -40,6 +57,16 @@ func styledPracticeJournalSummary(_ summary: String) -> Text {
             return Text("\(partial)\(segment)")
         }
     }
+}
+
+private func cachedPracticeJournalSummaryTokens(_ summary: String) -> [PracticeJournalSummaryToken] {
+    let key = summary as NSString
+    if let cached = PracticeJournalSummaryTokenCache.cache.object(forKey: key) {
+        return cached.tokens
+    }
+    let tokens = practiceJournalSummaryTokens(summary)
+    PracticeJournalSummaryTokenCache.cache.setObject(PracticeJournalSummaryTokenBox(tokens: tokens), forKey: key)
+    return tokens
 }
 
 private func colorForPracticeJournalToken(_ token: PracticeJournalSummaryTokenColor) -> Color {

@@ -36,4 +36,6 @@ struct PracticeScreenState {
     var headToHead: HeadToHeadComparison?
     var isLoadingHeadToHead = false
     var viewportHeight: CGFloat = 0
+    var isNavigationInteractionShieldActive = false
+    var navigationInteractionShieldToken: UUID?
 }

@@ -70,7 +70,7 @@ enum GroupCreationTemplateSource: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .none: return "None"
-        case .bank: return "Bank Template"
+        case .bank: return "LPL Bank Template"
         case .duplicate: return "Duplicate Group"
         }
     }
@@ -118,7 +118,8 @@ struct GroupEditorScreen: View {
     }
 
     private var availableBanks: [Int] {
-        Array(Set(store.games.compactMap(\.bank))).sorted()
+        let templateGames = store.bankTemplateGames.isEmpty ? store.games : store.bankTemplateGames
+        return Array(Set(templateGames.compactMap(\.bank))).sorted()
     }
 
     private var duplicateCandidates: [CustomGameGroup] {
@@ -232,7 +233,7 @@ struct GroupEditorScreen: View {
                     .foregroundStyle(.secondary)
             case .bank:
                 if availableBanks.isEmpty {
-                    AppPanelEmptyCard(text: "No bank data found in library.")
+                    AppPanelEmptyCard(text: "No LPL bank template data found.")
                 } else {
                     Picker("Bank", selection: $selectedTemplateBank) {
                         ForEach(availableBanks, id: \.self) { bank in
@@ -241,7 +242,7 @@ struct GroupEditorScreen: View {
                     }
                     .pickerStyle(.menu)
 
-                    Button("Apply Bank Template") {
+                    Button("Apply LPL Bank Template") {
                         applyBankTemplate(bank: selectedTemplateBank)
                     }
                     .buttonStyle(AppPrimaryActionButtonStyle())
@@ -616,7 +617,8 @@ struct GroupEditorScreen: View {
     }
 
     private func applyBankTemplate(bank: Int) {
-        let games = store.games
+        let templateGames = store.bankTemplateGames.isEmpty ? store.games : store.bankTemplateGames
+        let games = templateGames
             .filter { $0.bank == bank }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         selectedGameIDs = games.map(\.canonicalPracticeKey).reduce(into: [String]()) { result, id in
@@ -801,13 +803,13 @@ struct GroupGameSelectionScreen: View {
                 Section(section.letter) {
                     ForEach(section.games) { game in
                         Button {
-                            toggle(game.canonicalPracticeKey)
+                            toggle(selectionID(for: game))
                         } label: {
                             HStack {
                                 Text(game.name)
                                 Spacer()
-                                Image(systemName: isSelected(game.canonicalPracticeKey) ? "checkmark.square.fill" : "square")
-                                    .foregroundStyle(isSelected(game.canonicalPracticeKey) ? .orange : .secondary)
+                                Image(systemName: isSelected(selectionID(for: game)) ? "checkmark.square.fill" : "square")
+                                    .foregroundStyle(isSelected(selectionID(for: game)) ? .orange : .secondary)
                             }
                         }
                         .buttonStyle(.plain)
@@ -844,6 +846,17 @@ struct GroupGameSelectionScreen: View {
 
     private func isSelected(_ gameID: String) -> Bool {
         selectedGameIDs.contains(gameID)
+    }
+
+    private func selectionID(for game: PinballGame) -> String {
+        let selectedSourceID = canonicalLibrarySourceID(selectedLibraryFilterID)
+        if let selectedSourceID,
+           selectedSourceID != quickEntryAllGamesLibraryID,
+           game.sourceType == .venue,
+           canonicalLibrarySourceID(game.sourceId) == selectedSourceID {
+            return sourceScopedPracticeGameID(sourceID: selectedSourceID, gameID: game.canonicalPracticeKey)
+        }
+        return game.canonicalPracticeKey
     }
 }
 

@@ -101,6 +101,7 @@ internal class GameRoomStore(private val context: Context) {
 
     fun addOwnedMachine(
         catalogGameID: String,
+        opdbID: String?,
         canonicalPracticeIdentity: String,
         displayTitle: String,
         displayVariant: String?,
@@ -110,6 +111,7 @@ internal class GameRoomStore(private val context: Context) {
         val now = System.currentTimeMillis()
         val machine = OwnedMachine(
             catalogGameID = catalogGameID.trim(),
+            opdbID = opdbID?.trim()?.ifBlank { null },
             canonicalPracticeIdentity = canonicalPracticeIdentity.trim(),
             displayTitle = displayTitle.trim().ifBlank { "Machine" },
             displayVariant = displayVariant?.trim()?.ifBlank { null },
@@ -129,7 +131,12 @@ internal class GameRoomStore(private val context: Context) {
         groupNumber: Int?,
         position: Int?,
         status: OwnedMachineStatus,
+        opdbID: String?,
+        canonicalPracticeIdentity: String? = null,
+        displayTitle: String? = null,
         displayVariant: String?,
+        manufacturer: String? = null,
+        year: Int? = null,
         purchaseSource: String? = null,
         serialNumber: String? = null,
         ownershipNotes: String? = null,
@@ -143,7 +150,12 @@ internal class GameRoomStore(private val context: Context) {
                     groupNumber = groupNumber,
                     position = position,
                     status = status,
+                    opdbID = normalizeOptionalString(opdbID),
+                    canonicalPracticeIdentity = normalizeOptionalString(canonicalPracticeIdentity) ?: machine.canonicalPracticeIdentity,
+                    displayTitle = normalizeOptionalString(displayTitle) ?: machine.displayTitle,
                     displayVariant = displayVariant?.trim()?.ifBlank { null },
+                    manufacturer = normalizeOptionalString(manufacturer) ?: machine.manufacturer,
+                    year = year ?: machine.year,
                     purchaseSource = normalizeOptionalString(purchaseSource),
                     serialNumber = normalizeOptionalString(serialNumber),
                     ownershipNotes = normalizeOptionalString(ownershipNotes),
@@ -202,6 +214,7 @@ internal class GameRoomStore(private val context: Context) {
         val now = System.currentTimeMillis()
         val machine = OwnedMachine(
             catalogGameID = game.catalogGameID,
+            opdbID = game.opdbID,
             canonicalPracticeIdentity = game.canonicalPracticeIdentity,
             displayTitle = game.displayTitle,
             displayVariant = rawVariant?.trim()?.ifBlank { null },
@@ -234,6 +247,40 @@ internal class GameRoomStore(private val context: Context) {
         )
         saveAndRecompute()
         return machine.id
+    }
+
+    fun migrateOwnedMachineOpdbIds(catalogLoader: GameRoomCatalogLoader) {
+        var didChange = false
+        val migratedMachines = state.ownedMachines.map { machine ->
+            val normalizedGame = catalogLoader.normalizedCatalogGame(machine)
+            if (normalizedGame == null) {
+                machine
+            } else {
+                val normalizedOPDBID = normalizedGame.opdbID.trim().ifBlank { null }
+                val normalizedTitle = normalizedGame.displayTitle.trim().ifBlank { "Machine" }
+                val normalizedVariant = normalizedGame.displayVariant?.trim()?.ifBlank { null }
+                val currentOPDBID = machine.opdbID?.trim()?.ifBlank { null }
+                val currentTitle = machine.displayTitle.trim()
+                val currentVariant = machine.displayVariant?.trim()?.ifBlank { null }
+                if (normalizedOPDBID == currentOPDBID &&
+                    normalizedTitle == currentTitle &&
+                    normalizedVariant == currentVariant) {
+                    machine
+                } else {
+                    didChange = true
+                    machine.copy(
+                        opdbID = normalizedOPDBID,
+                        displayTitle = normalizedTitle,
+                        displayVariant = normalizedVariant,
+                        updatedAtMs = System.currentTimeMillis(),
+                    )
+                }
+            }
+        }
+        if (didChange) {
+            state = state.copy(ownedMachines = migratedMachines)
+            saveAndRecompute()
+        }
     }
 
     fun upsertArea(id: String? = null, name: String, areaOrder: Int) {

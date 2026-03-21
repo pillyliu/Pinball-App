@@ -1,11 +1,10 @@
 package com.pillyliu.pinprofandroid.data
 
 import android.content.Context
-import android.content.res.AssetManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import com.pillyliu.pinprofandroid.library.HOSTED_LIBRARY_PATHS
-import com.pillyliu.pinprofandroid.library.hostedOPDBCatalogPath
+import com.pillyliu.pinprofandroid.library.HOSTED_PINBALL_REFRESH_TARGETS
+import com.pillyliu.pinprofandroid.library.hostedOPDBExportPath
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,18 +25,8 @@ private const val BASE_URL = "https://pillyliu.com"
 private const val MANIFEST_URL = "https://pillyliu.com/pinball/cache-manifest.json"
 private const val UPDATE_LOG_URL = "https://pillyliu.com/pinball/cache-update-log.json"
 private const val META_REFRESH_INTERVAL_MS = 5 * 60 * 1000L
-private const val STARTER_ASSET_ROOT = "starter-pack/pinball"
-private const val STARTER_SEED_MARKER = "starter-pack-seeded-v3-only"
-private const val LEGACY_CACHE_RESET_MARKER = "legacy-cache-reset-v3-assets-v1"
-private val STARTER_PRIORITY_PATHS = listOf(
-    "/pinball/data/pinball_library_v3.json",
-    "/pinball/data/lpl_targets_resolved_v1.json",
-    "/pinball/data/LPL_Targets.csv",
-    "/pinball/data/LPL_Stats.csv",
-    "/pinball/data/LPL_Standings.csv",
-    "/pinball/data/redacted_players.csv",
-    "/pinball/data/lpl_stats.csv",
-)
+private const val LEGACY_CACHE_RESET_MARKER = "legacy-cache-reset-v4-rulesheets-v1"
+private const val STARTER_PACK_ROOT = "starter-pack"
 data class CachedTextResult(
     val text: String?,
     val isMissing: Boolean,
@@ -68,26 +57,6 @@ object PinballDataCache {
 
     fun initialize(context: Context) {
         appContext = context.applicationContext
-    }
-
-    fun loadBundledStarterText(path: String): String? {
-        val context = appContext ?: return null
-        val normalizedPath = if (path.startsWith("/")) path else "/$path"
-        if (!normalizedPath.startsWith("/pinball/")) return null
-        val assetPath = "starter-pack$normalizedPath"
-        return runCatching {
-            context.assets.open(assetPath).bufferedReader().use { it.readText() }
-        }.getOrNull()
-    }
-
-    fun loadBundledStarterBytes(path: String): ByteArray? {
-        val context = appContext ?: return null
-        val normalizedPath = if (path.startsWith("/")) path else "/$path"
-        if (!normalizedPath.startsWith("/pinball/")) return null
-        val assetPath = "starter-pack$normalizedPath"
-        return runCatching {
-            context.assets.open(assetPath).use { it.readBytes() }
-        }.getOrNull()
     }
 
     suspend fun loadText(url: String, allowMissing: Boolean = false): CachedTextResult = withContext(Dispatchers.IO) {
@@ -132,20 +101,44 @@ object PinballDataCache {
     suspend fun forceRefreshHostedLibraryData() = withContext(Dispatchers.IO) {
         ensureLoaded()
         refreshMetadataIfNeeded(force = true)
-        HOSTED_LIBRARY_PATHS.forEach { path ->
+        HOSTED_PINBALL_REFRESH_TARGETS.forEach { target ->
             fetchBytes(
-                path = path,
-                allowMissing = path == hostedOPDBCatalogPath,
+                path = target.path,
+                allowMissing = target.allowMissing,
                 allowStaleOnFailure = false,
             )
         }
+    }
+
+    suspend fun clearAllCachedData() = withContext(Dispatchers.IO) {
+        ensureLoaded()
+        val context = appContext ?: error("PinballDataCache.initialize(context) was not called")
+        val root = cacheRoot(context)
+        val resources = resourcesDir(context)
+        val index = indexFile(context)
+
+        if (resources.exists()) {
+            resources.deleteRecursively()
+        }
+        if (index.exists()) {
+            index.delete()
+        }
+
+        manifestFiles.clear()
+        lastMetaFetchAt = 0L
+        lastUpdateScanAt = null
+
+        if (!root.exists()) {
+            root.mkdirs()
+        }
+        writeIndexRoot(context, JSONObject().put("resources", JSONObject()))
     }
 
     suspend fun loadText(url: String, allowMissing: Boolean = false, maxCacheAgeMs: Long): CachedTextResult = withContext(Dispatchers.IO) {
         val path = normalizePath(url)
         ensureLoaded()
 
-        if (isMissingAndFresh(path, maxCacheAgeMs)) {
+        if (isMissingAndFresh(path, maxCacheAgeMs) && !starterPackAssetExists(path)) {
             return@withContext CachedTextResult(text = null, isMissing = true, updatedAtMs = null)
         }
 
@@ -325,16 +318,7 @@ object PinballDataCache {
             if (!dir.exists()) dir.mkdirs()
             purgeLegacyCachedPinballAssetsIfNeeded(context)
             readIndexState()
-            preloadPriorityStarterFiles(context)
             loaded = true
-            // Do not block first read on full starter-pack copy; reads already lazy-load from assets on miss.
-            refreshScope.launch {
-                try {
-                    seedStarterPackIfNeeded(context)
-                } catch (_: Throwable) {
-                    // Best effort background seed.
-                }
-            }
             requestMetadataRefresh(force = true)
         }
     }
@@ -348,7 +332,6 @@ object PinballDataCache {
         runCatching {
             resourcesDir(context).takeIf { it.exists() }?.deleteRecursively()
             indexFile(context).takeIf { it.exists() }?.delete()
-            File(root, STARTER_SEED_MARKER).takeIf { it.exists() }?.delete()
         }
 
         manifestFiles.clear()
@@ -356,19 +339,6 @@ object PinballDataCache {
         lastUpdateScanAt = null
 
         runCatching { marker.writeText("ok") }
-    }
-
-    private fun preloadPriorityStarterFiles(context: Context) {
-        STARTER_PRIORITY_PATHS.forEach { path ->
-            if (readCached(path) != null) return@forEach
-            val assetPath = "starter-pack${path}"
-            try {
-                val bytes = context.assets.open(assetPath).use { it.readBytes() }
-                writeCached(path, bytes)
-            } catch (_: Throwable) {
-                // Best effort preload.
-            }
-        }
     }
 
     private fun httpText(url: String): String {
@@ -458,6 +428,32 @@ object PinballDataCache {
         return File(dir, fileName)
     }
 
+    private fun starterPackAssetPath(path: String): String = "$STARTER_PACK_ROOT${normalizePath(path)}"
+
+    private fun starterPackAssetExists(path: String): Boolean {
+        val context = appContext ?: return false
+        val assetPath = starterPackAssetPath(path)
+        return runCatching {
+            context.assets.open(assetPath).use { }
+            true
+        }.getOrDefault(false)
+    }
+
+    private fun readStarterPackBytes(path: String): ByteArray? {
+        val context = appContext ?: return null
+        val assetPath = starterPackAssetPath(path)
+        return runCatching {
+            context.assets.open(assetPath).use { it.readBytes() }
+        }.getOrNull()
+    }
+
+    private fun seedFromStarterPack(path: String): ByteArray? {
+        val bytes = readStarterPackBytes(path) ?: return null
+        writeCached(path, bytes)
+        upsertIndex(path = path, hash = manifestFiles[path], missing = false)
+        return bytes
+    }
+
     private fun writeCached(path: String, bytes: ByteArray) {
         val file = resourceFile(path)
         file.writeBytes(bytes)
@@ -465,35 +461,11 @@ object PinballDataCache {
 
     private fun readCached(path: String): ByteArray? {
         if (isMarkedMissingInIndex(path)) {
-            val context = appContext
-            if (context != null && path.startsWith("/pinball/")) {
-                val assetPath = "starter-pack${path}"
-                try {
-                    val bytes = context.assets.open(assetPath).use { it.readBytes() }
-                    writeCached(path, bytes)
-                    upsertIndex(path = path, hash = manifestFiles[path], missing = false)
-                    return bytes
-                } catch (_: Throwable) {
-                    // Fall through to keep missing marker behavior for non-seeded assets.
-                }
-            }
             deleteCached(path)
-            return null
         }
         val file = resourceFile(path)
         if (!file.exists()) {
-            val context = appContext
-            if (context != null && path.startsWith("/pinball/")) {
-                val assetPath = "starter-pack${path}"
-                try {
-                    val bytes = context.assets.open(assetPath).use { it.readBytes() }
-                    writeCached(path, bytes)
-                    return bytes
-                } catch (_: Throwable) {
-                    return null
-                }
-            }
-            return null
+            return seedFromStarterPack(path)
         }
         return file.readBytes()
     }
@@ -623,39 +595,6 @@ object PinballDataCache {
             } catch (_: Throwable) {
                 // Keep existing cache if metadata refresh fails.
             }
-        }
-    }
-
-    private fun seedStarterPackIfNeeded(context: Context) {
-        val marker = File(cacheRoot(context), STARTER_SEED_MARKER)
-        if (marker.exists()) return
-
-        try {
-            val roots = context.assets.list(STARTER_ASSET_ROOT) ?: return
-            if (roots.isEmpty()) return
-            copyStarterAssetTree(context.assets, STARTER_ASSET_ROOT, "/pinball")
-            marker.writeText("ok")
-        } catch (_: Throwable) {
-            // Starter pack seeding is best effort.
-        }
-    }
-
-    private fun copyStarterAssetTree(assets: AssetManager, assetPath: String, cachePath: String) {
-        val children = assets.list(assetPath) ?: return
-        if (children.isEmpty()) {
-            if (readCached(cachePath) == null) {
-                val bytes = assets.open(assetPath).use { it.readBytes() }
-                writeCached(cachePath, bytes)
-            }
-            return
-        }
-
-        children.forEach { child ->
-            copyStarterAssetTree(
-                assets = assets,
-                assetPath = "$assetPath/$child",
-                cachePath = "$cachePath/$child",
-            )
         }
     }
 }

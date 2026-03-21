@@ -27,6 +27,9 @@ internal class SettingsScreenState(
     var refreshingHostedData by mutableStateOf(false)
     var hostedDataStatusMessage by mutableStateOf<String?>(null)
     var hostedDataStatusIsError by mutableStateOf(false)
+    var clearingCache by mutableStateOf(false)
+    var cacheStatusMessage by mutableStateOf<String?>(null)
+    var cacheStatusIsError by mutableStateOf(false)
 
     fun applySnapshot(snapshot: SettingsDataSnapshot) {
         manufacturers = snapshot.manufacturers
@@ -73,6 +76,23 @@ internal class SettingsScreenState(
                 hostedDataStatusIsError = true
             }
         refreshingHostedData = false
+    }
+
+    suspend fun clearCachedData() {
+        if (clearingCache) return
+        clearingCache = true
+        cacheStatusMessage = null
+        cacheStatusIsError = false
+        runCatching {
+            clearAppRuntimeCaches(context)
+        }.onSuccess {
+            cacheStatusMessage = "Cached data cleared. Hosted data will refetch as screens reload."
+            cacheStatusIsError = false
+        }.onFailure {
+            cacheStatusMessage = "Cache clear failed: ${it.message ?: "Unknown error"}"
+            cacheStatusIsError = true
+        }
+        clearingCache = false
     }
 }
 

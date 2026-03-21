@@ -2,7 +2,6 @@ package com.pillyliu.pinprofandroid.practice
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -46,8 +44,6 @@ internal fun PracticeGameWorkspaceCard(
     game: PinballGame,
     gameSubview: PracticeGameSubview,
     onGameSubviewChange: (PracticeGameSubview) -> Unit,
-    revealedLogRowId: String?,
-    onRevealedLogRowIdChange: (String?) -> Unit,
     onOpenQuickEntry: (QuickActivity, QuickEntryOrigin) -> Unit,
     onEditLogEntry: (JournalEntry) -> Unit,
     onDeleteLogEntry: (JournalEntry) -> Unit,
@@ -57,17 +53,7 @@ internal fun PracticeGameWorkspaceCard(
     onOpenExternalRulesheet: (String) -> Unit,
     onOpenPlayfield: (List<String>) -> Unit,
 ) {
-    CardContainer(
-        modifier = Modifier.pointerInput(revealedLogRowId) {
-            detectTapGestures(
-                onTap = {
-                    if (revealedLogRowId != null) {
-                        onRevealedLogRowIdChange(null)
-                    }
-                }
-            )
-        }
-    ) {
+    CardContainer {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -115,8 +101,6 @@ internal fun PracticeGameWorkspaceCard(
             PracticeGameSubview.Log -> PracticeGameLogPanel(
                 store = store,
                 gameKey = game.practiceKey,
-                revealedLogRowId = revealedLogRowId,
-                onRevealedLogRowIdChange = onRevealedLogRowIdChange,
                 onEditLogEntry = onEditLogEntry,
                 onDeleteLogEntry = onDeleteLogEntry,
             )
@@ -233,8 +217,6 @@ private fun PracticeGameInputPanel(
 private fun PracticeGameLogPanel(
     store: PracticeStore,
     gameKey: String,
-    revealedLogRowId: String?,
-    onRevealedLogRowIdChange: (String?) -> Unit,
     onEditLogEntry: (JournalEntry) -> Unit,
     onDeleteLogEntry: (JournalEntry) -> Unit,
 ) {
@@ -258,8 +240,6 @@ private fun PracticeGameLogPanel(
             items(logRows, key = { it.id }) { row ->
                 JournalRow(
                     row = row,
-                    revealedRowId = revealedLogRowId,
-                    onRevealedRowIdChange = onRevealedLogRowIdChange,
                     isSelectionMode = false,
                     isSelected = false,
                     onToggleSelected = {},

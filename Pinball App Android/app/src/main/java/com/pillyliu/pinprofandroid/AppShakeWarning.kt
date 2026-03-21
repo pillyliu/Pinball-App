@@ -674,15 +674,15 @@ private fun rememberAppShakeProfessorArt(level: AppShakeWarningLevel): ImageBitm
     val context = LocalContext.current.applicationContext
     val image by produceState<ImageBitmap?>(initialValue = null, key1 = context, key2 = level) {
         value = withContext(Dispatchers.IO) {
-            decodeStarterPackImage(context, level.bundledArtPath)
-                ?: decodeStarterPackImage(context, libraryMissingArtworkPath)
+            decodeCachedPinballImage(level.bundledArtPath)
+                ?: decodeCachedPinballImage(libraryMissingArtworkPath)
         }
     }
     return image
 }
 
-private fun decodeStarterPackImage(context: Context, path: String): ImageBitmap? {
-    val bytes = PinballDataCache.loadBundledStarterBytes(path) ?: return null
+private suspend fun decodeCachedPinballImage(path: String): ImageBitmap? {
+    val bytes = PinballDataCache.loadBytes(path, allowMissing = true).bytes ?: return null
     val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
     return bitmap.asImageBitmap()
 }

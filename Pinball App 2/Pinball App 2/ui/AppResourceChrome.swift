@@ -120,16 +120,98 @@ enum AppVariantPillStyle {
 
 @ViewBuilder
 func PinballResourceRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-    HStack(alignment: .center, spacing: 8) {
-        Text("\(title):")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(AppTheme.brandChalk)
-            .fixedSize(horizontal: true, vertical: false)
-        PinballChipWrapLayout(spacing: 8, rowSpacing: 8) {
-            content()
+    PinballResourceRowView(title: title, content: content())
+}
+
+private struct PinballResourceRowView<Content: View>: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    let title: String
+    let content: Content
+
+    var body: some View {
+        if horizontalSizeClass == .compact {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("\(title):")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.brandChalk)
+                    .lineLimit(1)
+
+                PinballChipWrapLayout(spacing: 8, rowSpacing: 8) {
+                    content
+                }
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .layoutPriority(1)
+        } else {
+            PinballResourceRowLayout(labelColumnWidth: 68, columnSpacing: 6) {
+                Text("\(title):")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.brandChalk)
+                    .lineLimit(1)
+
+                PinballChipWrapLayout(spacing: 8, rowSpacing: 8) {
+                    content
+                }
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .layoutPriority(1)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .layoutPriority(1)
+    }
+}
+
+private struct PinballResourceRowLayout: Layout {
+    let labelColumnWidth: CGFloat
+    let columnSpacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard subviews.count == 2 else { return .zero }
+
+        let resolvedRowWidth = proposal.width ?? fallbackRowWidth
+
+        let labelProposal = ProposedViewSize(width: labelColumnWidth, height: proposal.height)
+        let labelSize = subviews[0].sizeThatFits(labelProposal)
+
+        let contentProposal = ProposedViewSize(
+            width: max(resolvedRowWidth - labelColumnWidth - columnSpacing, 0),
+            height: proposal.height
+        )
+        let contentSize = subviews[1].sizeThatFits(contentProposal)
+
+        let width = proposal.width ?? resolvedRowWidth
+        let height = max(labelSize.height, contentSize.height)
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard subviews.count == 2 else { return }
+
+        let labelProposal = ProposedViewSize(width: labelColumnWidth, height: bounds.height)
+        let labelSize = subviews[0].sizeThatFits(labelProposal)
+
+        let contentWidth = max(bounds.width - labelColumnWidth - columnSpacing, 0)
+        let contentProposal = ProposedViewSize(width: contentWidth, height: bounds.height)
+        let contentSize = subviews[1].sizeThatFits(contentProposal)
+
+        subviews[0].place(
+            at: CGPoint(x: bounds.minX, y: bounds.minY + (bounds.height - labelSize.height) / 2),
+            anchor: .topLeading,
+            proposal: labelProposal
+        )
+
+        subviews[1].place(
+            at: CGPoint(x: bounds.minX + labelColumnWidth + columnSpacing, y: bounds.minY + (bounds.height - contentSize.height) / 2),
+            anchor: .topLeading,
+            proposal: contentProposal
+        )
+    }
+
+    private var fallbackRowWidth: CGFloat {
+        max(680, labelColumnWidth + columnSpacing)
     }
 }
 

@@ -59,6 +59,7 @@ struct GameRoomScreen: View {
         .task {
             store.loadIfNeeded()
             await catalogLoader.loadIfNeeded()
+            store.migrateOwnedMachineOPDBIDs(using: catalogLoader)
         }
     }
 }

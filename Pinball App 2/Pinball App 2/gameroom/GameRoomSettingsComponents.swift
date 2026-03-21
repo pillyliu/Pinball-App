@@ -744,13 +744,19 @@ struct GameRoomEditMachinesView: View {
 
     private var addMachineSearchTab: some View {
         VStack(alignment: .leading, spacing: 10) {
-            TextField("Game name", text: $searchText)
-                .textFieldStyle(.roundedBorder)
+            AppNativeClearTextField(
+                placeholder: "Game name",
+                text: $searchText,
+                style: .roundedBorder
+            )
 
             DisclosureGroup(isExpanded: $isAdvancedExpanded) {
                 VStack(alignment: .leading, spacing: 10) {
-                    TextField("Manufacturer", text: $manufacturerQuery)
-                        .textFieldStyle(.roundedBorder)
+                    AppNativeClearTextField(
+                        placeholder: "Manufacturer",
+                        text: $manufacturerQuery,
+                        style: .roundedBorder
+                    )
 
                     if !filteredManufacturerSuggestions.isEmpty &&
                         !filteredManufacturerSuggestions.contains(where: {
@@ -769,9 +775,12 @@ struct GameRoomEditMachinesView: View {
                         }
                     }
 
-                    TextField("Year", text: $yearQuery)
-                        .textFieldStyle(.roundedBorder)
-                        .keyboardType(.numberPad)
+                    AppNativeClearTextField(
+                        placeholder: "Year",
+                        text: $yearQuery,
+                        style: .roundedBorder,
+                        keyboardType: .numberPad
+                    )
 
                     Menu {
                         Button("Any type") {
@@ -1062,13 +1071,19 @@ struct GameRoomEditMachinesView: View {
 
                         HStack {
                             Button("Save") {
+                                let resolvedGame = resolvedEditedMachine(for: selectedMachine)
                                 store.updateMachine(
                                     id: selectedMachine.id,
                                     areaID: draftAreaID,
                                     groupNumber: parsedOptionalInt(draftGroup),
                                     position: parsedOptionalInt(draftPosition),
                                     status: draftStatus,
-                                    displayVariant: parsedOptionalString(draftDisplayVariant),
+                                    opdbID: resolvedGame?.opdbID ?? selectedMachine.opdbID,
+                                    canonicalPracticeIdentity: resolvedGame?.canonicalPracticeIdentity,
+                                    displayTitle: resolvedGame?.displayTitle,
+                                    displayVariant: parsedOptionalString(draftDisplayVariant) ?? resolvedGame?.displayVariant,
+                                    manufacturer: resolvedGame?.manufacturer,
+                                    year: resolvedGame?.year,
                                     purchaseSource: draftPurchaseSource,
                                     serialNumber: draftSerialNumber,
                                     ownershipNotes: draftOwnershipNotes
@@ -1091,13 +1106,19 @@ struct GameRoomEditMachinesView: View {
 
                             if selectedMachine.status != .archived {
                                 Button("Archive") {
+                                    let resolvedGame = resolvedEditedMachine(for: selectedMachine)
                                     store.updateMachine(
                                         id: selectedMachine.id,
                                         areaID: draftAreaID,
                                         groupNumber: parsedOptionalInt(draftGroup),
                                         position: parsedOptionalInt(draftPosition),
                                         status: .archived,
-                                        displayVariant: parsedOptionalString(draftDisplayVariant),
+                                        opdbID: resolvedGame?.opdbID ?? selectedMachine.opdbID,
+                                        canonicalPracticeIdentity: resolvedGame?.canonicalPracticeIdentity,
+                                        displayTitle: resolvedGame?.displayTitle,
+                                        displayVariant: parsedOptionalString(draftDisplayVariant) ?? resolvedGame?.displayVariant,
+                                        manufacturer: resolvedGame?.manufacturer,
+                                        year: resolvedGame?.year,
                                         purchaseSource: draftPurchaseSource,
                                         serialNumber: draftSerialNumber,
                                         ownershipNotes: draftOwnershipNotes
@@ -1287,6 +1308,11 @@ struct GameRoomEditMachinesView: View {
         selectedMachineID = store.state.ownedMachines.last?.id
         syncDraftFromSelection()
         clearPendingVariantPicker()
+    }
+
+    private func resolvedEditedMachine(for machine: OwnedMachine) -> GameRoomCatalogGame? {
+        let editedVariant = parsedOptionalString(draftDisplayVariant)
+        return catalogLoader.game(for: machine.catalogGameID, variant: editedVariant)
     }
 
     private func clearPendingVariantPicker() {

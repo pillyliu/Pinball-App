@@ -76,6 +76,12 @@ internal data class GroupDashboardScore(
     val recommendedSlug: String?,
 )
 
+internal data class GroupProgressSnapshot(
+    val selectionGameSlug: String,
+    val game: com.pillyliu.pinprofandroid.library.PinballGame,
+    val taskProgress: Map<String, Int>,
+)
+
 internal data class MechanicsSkillSummary(
     val totalLogs: Int,
     val latestComfort: Int?,

@@ -121,8 +121,6 @@ final class PinballLibraryViewModel: ObservableObject {
     private let initialVisibleGameCount = 48
     private let visibleGamePageSize = 36
     @Published private(set) var visibleGameLimit = 48
-    private static let libraryPath = "/pinball/data/pinball_library_v3.json"
-    private static let opdbCatalogPath = "/pinball/data/opdb_catalog_v1.json"
     private static let preferredSourceDefaultsKey = "preferred-library-source-id"
     private var browsingState: PinballLibraryBrowsingState {
         PinballLibraryBrowsingState(

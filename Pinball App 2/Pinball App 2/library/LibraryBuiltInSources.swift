@@ -18,9 +18,25 @@ nonisolated private let builtinVenueSourceNames: [String: String] = [
     gameRoomLibrarySourceID: "GameRoom"
 ]
 
-nonisolated let defaultBuiltinVenueSourceIDs = [
-    pmRLMLibrarySourceID,
-    pmAvenueLibrarySourceID
+nonisolated let defaultBuiltinVenueSourceIDs: [String] = []
+
+private struct LegacyPinballMapVenueMigrationTarget {
+    let id: String
+    let name: String
+    let providerSourceID: String
+}
+
+nonisolated private let legacyPinballMapVenueMigrationTargets: [LegacyPinballMapVenueMigrationTarget] = [
+    LegacyPinballMapVenueMigrationTarget(
+        id: pmAvenueLibrarySourceID,
+        name: "The Avenue Cafe",
+        providerSourceID: "8760"
+    ),
+    LegacyPinballMapVenueMigrationTarget(
+        id: pmRLMLibrarySourceID,
+        name: "RLM Amusements",
+        providerSourceID: "16470"
+    )
 ]
 
 nonisolated func canonicalBuiltinVenueLibrarySourceID(_ rawID: String?) -> String? {
@@ -59,4 +75,54 @@ nonisolated func isAvenueLibrarySourceID(_ rawID: String?) -> Bool {
 
 nonisolated func isImportedPinballMapSourceID(_ rawID: String?) -> Bool {
     canonicalLibrarySourceID(rawID)?.lowercased().hasPrefix("venue--pm-") == true
+}
+
+nonisolated func pinballMapLocationID(for rawID: String?) -> String? {
+    guard let canonicalID = canonicalLibrarySourceID(rawID),
+          canonicalID.hasPrefix("venue--pm-") else {
+        return nil
+    }
+    return canonicalID.replacingOccurrences(of: "venue--pm-", with: "")
+}
+
+func migrateLegacyPinnedVenueImportsIfNeeded() async {
+    let sourceState = PinballLibrarySourceStateStore.load()
+    let importedSources = PinballImportedSourcesStore.load()
+    let importedIDs = Set(importedSources.map(\.id))
+    let referencedSourceIDs = Set(
+        sourceState.enabledSourceIDs +
+        sourceState.pinnedSourceIDs +
+        [sourceState.selectedSourceID].compactMap { $0 }
+    )
+
+    let targets = legacyPinballMapVenueMigrationTargets.filter { target in
+        referencedSourceIDs.contains(target.id) && !importedIDs.contains(target.id)
+    }
+    guard !targets.isEmpty else { return }
+
+    var didChange = false
+    for target in targets {
+        do {
+            let machineIDs = try await PinballMapClient.fetchVenueMachineIDs(locationID: target.providerSourceID)
+            let record = PinballImportedSourceRecord(
+                id: target.id,
+                name: target.name,
+                type: .venue,
+                provider: .pinballMap,
+                providerSourceID: target.providerSourceID,
+                machineIDs: machineIDs,
+                lastSyncedAt: Date(),
+                searchQuery: nil,
+                distanceMiles: nil
+            )
+            PinballImportedSourcesStore.upsert(record)
+            didChange = true
+        } catch {
+            continue
+        }
+    }
+
+    if didChange {
+        postPinballLibrarySourcesDidChange()
+    }
 }

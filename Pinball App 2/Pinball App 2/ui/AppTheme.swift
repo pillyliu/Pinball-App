@@ -276,6 +276,17 @@ extension View {
             .clipShape(RoundedRectangle(cornerRadius: AppRadii.panel, style: .continuous))
     }
 
+    func appEmbeddedListStyle() -> some View {
+        self
+            .listStyle(.plain)
+            .listSectionSpacing(0)
+            .contentMargins(.top, 0, for: .scrollContent)
+            .contentMargins(.top, 0, for: .scrollIndicators)
+            .scrollContentBackground(.hidden)
+            .environment(\.defaultMinListRowHeight, 1)
+            .environment(\.defaultMinListHeaderHeight, 1)
+    }
+
     func appControlStyle() -> some View {
         self
             .background(

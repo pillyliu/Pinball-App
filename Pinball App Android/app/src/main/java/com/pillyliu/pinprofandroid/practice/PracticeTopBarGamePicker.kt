@@ -8,6 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.ui.AppTopBarDropdownTrigger
 
 @Composable
@@ -59,6 +60,12 @@ internal fun PracticeTopBarGamePicker(
                 HorizontalDivider()
             }
             orderedGames.forEach { game ->
+                val selectedSource = context.librarySources.firstOrNull { it.id == context.selectedLibrarySourceId }
+                val selectionKey = if (selectedSource?.type == LibrarySourceType.VENUE) {
+                    sourceScopedPracticeGameID(selectedSource.id, game.practiceKey)
+                } else {
+                    game.practiceKey
+                }
                 DropdownMenuItem(
                     text = {
                         Text(
@@ -69,7 +76,7 @@ internal fun PracticeTopBarGamePicker(
                     },
                     onClick = {
                         context.onExpandedChange(false)
-                        context.onGameSelected(game)
+                        context.onGameSelected(selectionKey)
                     },
                 )
             }

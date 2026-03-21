@@ -24,12 +24,12 @@ import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.PinballVideoLaunchPanel
 import com.pillyliu.pinprofandroid.library.PlayableVideo
 import com.pillyliu.pinprofandroid.library.RulesheetRemoteSource
+import com.pillyliu.pinprofandroid.library.displayedRulesheetLinks
 import com.pillyliu.pinprofandroid.library.LivePlayfieldStatus
 import com.pillyliu.pinprofandroid.library.hasLocalRulesheetResource
 import com.pillyliu.pinprofandroid.library.loadLivePlayfieldStatus
 import com.pillyliu.pinprofandroid.library.metaLine
 import com.pillyliu.pinprofandroid.library.openYoutubeInApp
-import com.pillyliu.pinprofandroid.library.orderedRulesheetLinks
 import com.pillyliu.pinprofandroid.library.resolvedPlayfieldButtonLabel
 import com.pillyliu.pinprofandroid.library.resolvedPlayfieldCandidates
 import com.pillyliu.pinprofandroid.library.resolvedPlayfieldOptions
@@ -87,6 +87,7 @@ internal fun PracticeGameResourcesCard(
         value = loadLivePlayfieldStatus(game.practiceIdentity)
     }
     val playfieldOptions = game.resolvedPlayfieldOptions(livePlayfieldStatus)
+    val displayedRulesheetLinks = game.displayedRulesheetLinks
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         AppCardSubheading("Study Resources")
@@ -96,14 +97,14 @@ internal fun PracticeGameResourcesCard(
         ) {
             AppResourceRow(label = "Rulesheet:") {
                 if (game.hasLocalRulesheetResource) {
-                    AppResourceChip(label = "Local") { onOpenRulesheet(null) }
+                    AppResourceChip(label = "PinProf") { onOpenRulesheet(null) }
                 }
-                if (game.rulesheetLinks.isEmpty()) {
+                if (displayedRulesheetLinks.isEmpty()) {
                     if (!game.hasLocalRulesheetResource) {
                         AppUnavailableResourceChip()
                     }
                 } else {
-                    game.orderedRulesheetLinks.forEach { link ->
+                    displayedRulesheetLinks.forEach { link ->
                         val destination = link.destinationUrl
                         val embedded = link.embeddedRulesheetSource
                         AppResourceChip(label = appShortRulesheetTitle(link)) {

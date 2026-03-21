@@ -68,8 +68,6 @@ internal fun PracticeGameSection(
                 game = game,
                 gameSubview = gameSubview,
                 onGameSubviewChange = onGameSubviewChange,
-                revealedLogRowId = uiState.revealedLogRowId,
-                onRevealedLogRowIdChange = { uiState.revealedLogRowId = it },
                 onOpenQuickEntry = onOpenQuickEntry,
                 onEditLogEntry = { entry -> uiState.beginEditing(store, entry) },
                 onDeleteLogEntry = { entry -> uiState.confirmDelete(entry) },

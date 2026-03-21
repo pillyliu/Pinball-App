@@ -97,6 +97,9 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
             refreshingHostedData = state.refreshingHostedData,
             hostedDataStatusMessage = state.hostedDataStatusMessage,
             hostedDataStatusIsError = state.hostedDataStatusIsError,
+            clearingCache = state.clearingCache,
+            cacheStatusMessage = state.cacheStatusMessage,
+            cacheStatusIsError = state.cacheStatusIsError,
             onOpenAddManufacturer = { state.route = SettingsRoute.AddManufacturer },
             onOpenAddVenue = { state.route = SettingsRoute.AddVenue },
             onOpenAddTournament = { state.route = SettingsRoute.AddTournament },
@@ -139,6 +142,9 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
             },
             onRefreshHostedData = {
                 scope.launch { state.refreshHostedLibraryData() }
+            },
+            onClearCache = {
+                scope.launch { state.clearCachedData() }
             },
         )
     }
