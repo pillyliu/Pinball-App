@@ -19,16 +19,19 @@ final class AppShakeCoordinatorTests: XCTestCase {
         XCTAssertEqual(AppShakeWarningLevel.danger.hapticStartDelayNanoseconds, 50_000_000)
         XCTAssertEqual(AppShakeWarningLevel.doubleDanger.hapticStartDelayNanoseconds, 200_000_000)
         XCTAssertEqual(AppShakeWarningLevel.tilt.hapticStartDelayNanoseconds, 200_000_000)
+        XCTAssertEqual(AppShakeWarningLevel.danger.artAssetName, "ProfessorShakeDanger")
+        XCTAssertEqual(AppShakeWarningLevel.doubleDanger.artAssetName, "ProfessorShakeDoubleDanger")
+        XCTAssertEqual(AppShakeWarningLevel.tilt.artAssetName, "ProfessorShakeTilt")
         XCTAssertEqual(
-            AppShakeWarningLevel.danger.bundledArtPath,
+            AppShakeWarningLevel.danger.pinballArtPath,
             "/pinball/images/ui/shake-warnings/professor-danger_1024.webp"
         )
         XCTAssertEqual(
-            AppShakeWarningLevel.doubleDanger.bundledArtPath,
+            AppShakeWarningLevel.doubleDanger.pinballArtPath,
             "/pinball/images/ui/shake-warnings/professor-danger-danger_1024.webp"
         )
         XCTAssertEqual(
-            AppShakeWarningLevel.tilt.bundledArtPath,
+            AppShakeWarningLevel.tilt.pinballArtPath,
             "/pinball/images/ui/shake-warnings/professor-tilt_1024.webp"
         )
     }
