@@ -441,7 +441,7 @@ private struct StandingsCSVRow {
 }
 
 private enum StandingsCSVLoader {
-    static let defaultPath = "/pinball/data/LPL_Standings.csv"
+    static let defaultPath = hostedLeagueStandingsPath
 
     static func parse(text: String) throws -> [StandingsCSVRow] {
         let table = parseCSVRows(text)

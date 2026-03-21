@@ -2,6 +2,7 @@ package com.pillyliu.pinprofandroid.gameroom
 
 import android.content.Context
 import com.pillyliu.pinprofandroid.data.PinballDataCache
+import com.pillyliu.pinprofandroid.library.hostedPinsideGroupMapPath
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -416,7 +417,7 @@ internal class GameRoomPinsideImportService(private val context: Context) {
         cachedGroupMap?.let { return it }
         val raw = runCatching {
             PinballDataCache.loadText(
-                url = "/pinball/data/pinside_group_map.json",
+                url = hostedPinsideGroupMapPath,
                 allowMissing = true,
             ).text
         }.getOrNull().orEmpty()

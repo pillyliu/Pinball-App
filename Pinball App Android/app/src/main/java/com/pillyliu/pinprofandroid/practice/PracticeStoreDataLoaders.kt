@@ -7,6 +7,8 @@ import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.PM_AVENUE_LIBRARY_SOURCE_ID
 import com.pillyliu.pinprofandroid.library.canonicalLibrarySourceId
+import com.pillyliu.pinprofandroid.library.hostedOPDBExportPath
+import com.pillyliu.pinprofandroid.library.hostedVenueLayoutAssetsPath
 import com.pillyliu.pinprofandroid.library.loadFullLibraryExtraction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -70,13 +72,10 @@ internal suspend fun loadResolvedLeagueTargets(path: String): List<ResolvedLeagu
     }
 }
 
-private const val HOSTED_OPDB_EXPORT_PATH = "/pinball/data/opdb_export.json"
-private const val HOSTED_VENUE_LAYOUT_ASSETS_PATH = "/pinball/data/venue_layout_assets.json"
-
 internal suspend fun loadPracticeAvenueBankTemplateGames(): List<PinballGame> = withContext(Dispatchers.IO) {
     try {
-        val opdbResult = PinballDataCache.loadText(HOSTED_OPDB_EXPORT_PATH, allowMissing = true)
-        val venueLayoutResult = PinballDataCache.loadText(HOSTED_VENUE_LAYOUT_ASSETS_PATH, allowMissing = true)
+        val opdbResult = PinballDataCache.loadText(hostedOPDBExportPath, allowMissing = true)
+        val venueLayoutResult = PinballDataCache.loadText(hostedVenueLayoutAssetsPath, allowMissing = true)
         val opdbText = opdbResult.text?.takeIf { it.isNotBlank() } ?: return@withContext emptyList()
         val venueLayoutText = venueLayoutResult.text?.takeIf { it.isNotBlank() } ?: return@withContext emptyList()
 

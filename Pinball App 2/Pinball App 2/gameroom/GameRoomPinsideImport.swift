@@ -105,7 +105,7 @@ enum GameRoomPinsideImportError: LocalizedError {
 }
 
 actor GameRoomPinsideImportService {
-    private let groupMapPath = "/pinball/data/pinside_group_map.json"
+    private let groupMapPath = hostedPinsideGroupMapPath
     private var cachedGroupMap: [String: String]?
 
     func fetchCollectionMachines(sourceInput: String) async throws -> (sourceURL: String, machines: [PinsideImportedMachine]) {

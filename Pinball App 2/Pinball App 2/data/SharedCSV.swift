@@ -2,7 +2,7 @@ import Foundation
 import CryptoKit
 
 private let redactionTokenSalt = "pinball-app-redaction-v1"
-private let redactedPlayersCSVPath = "/pinball/data/redacted_players.csv"
+private let redactedPlayersCSVPath = hostedRedactedPlayersCSVPath
 
 enum LPLNamePrivacySettings {
     static let fullNameAccessUnlockedDefaultsKey = "lpl-name-privacy.full-access-unlocked"

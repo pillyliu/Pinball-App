@@ -365,9 +365,14 @@ object PinballDataCache {
         }
     }
 
-    private fun shouldCacheByManifest(url: String): Boolean {
+    private fun shouldCacheByManifest(urlOrPath: String): Boolean {
+        val isAbsoluteUrl = urlOrPath.startsWith("http://") || urlOrPath.startsWith("https://")
+        val normalizedPath = runCatching { normalizePath(urlOrPath) }.getOrDefault(urlOrPath)
+        if (!isAbsoluteUrl && normalizedPath.startsWith("/pinball/")) {
+            return true
+        }
         return try {
-            val parsed = URL(url)
+            val parsed = URL(urlOrPath)
             parsed.host.equals("pillyliu.com", ignoreCase = true) && parsed.path.startsWith("/pinball/")
         } catch (_: Throwable) {
             false

@@ -953,7 +953,7 @@ private final class CSVScoreLoader {
         let updatedAt: Date?
     }
 
-    static let defaultPath = "/pinball/data/LPL_Stats.csv"
+    static let defaultPath = hostedLeagueStatsPath
 
     func loadRows() async throws -> LoadResult {
         let cached = try await PinballDataCache.shared.loadText(path: Self.defaultPath)

@@ -1,10 +1,10 @@
 package com.pillyliu.pinprofandroid.data
 
+import com.pillyliu.pinprofandroid.library.hostedRedactedPlayersCsvPath
 import java.text.Normalizer
 import java.util.Locale
 
 private const val REDACTION_TOKEN_SALT = "pinball-app-redaction-v1"
-private const val REDACTED_PLAYERS_CSV_PATH = "/pinball/data/redacted_players.csv"
 @Volatile private var redactedPlayersNormalized: Set<String> = emptySet()
 
 fun parseCsv(text: String): List<List<String>> {
@@ -62,7 +62,7 @@ fun redactPlayerNameForDisplay(raw: String): String {
 
 suspend fun refreshRedactedPlayersFromCsv() {
     try {
-        val result = PinballDataCache.loadText(REDACTED_PLAYERS_CSV_PATH, allowMissing = true)
+        val result = PinballDataCache.loadText(hostedRedactedPlayersCsvPath, allowMissing = true)
         redactedPlayersNormalized = parseRedactedPlayersCsv(result.text)
     } catch (_: Throwable) {
         // Keep prior values if CSV cannot be refreshed.

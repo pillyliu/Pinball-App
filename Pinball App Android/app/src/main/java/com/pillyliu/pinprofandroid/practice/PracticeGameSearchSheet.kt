@@ -66,31 +66,23 @@ internal fun PracticeGameSearchSheet(
     var advancedExpanded by rememberSaveable { mutableStateOf(false) }
     var recentGameIds by rememberSaveable { mutableStateOf(loadPracticeSearchRecents(prefs)) }
 
-    val results = remember(games) { buildPracticeSearchResults(games) }
-    val manufacturerOptions = remember(results) {
-        results.mapNotNull { it.manufacturer }
-            .distinctBy { it.lowercase() }
-            .sortedBy { it.lowercase() }
-    }
-    val manufacturerSuggestions = remember(manufacturerOptions, manufacturerQuery) {
-        practiceManufacturerSuggestions(manufacturerOptions, manufacturerQuery)
-    }
-    val hasFilters = nameQuery.trim().isNotEmpty() ||
-        manufacturerQuery.trim().isNotEmpty() ||
-        yearQuery.trim().isNotEmpty() ||
-        selectedType != null
-    val filteredResults = remember(results, nameQuery, manufacturerQuery, yearQuery, selectedType) {
-        filterPracticeSearchResults(
-            results = results,
+    val searchIndex = remember(games) { buildPracticeSearchIndex(games) }
+    val filters = remember(nameQuery, manufacturerQuery, yearQuery, selectedType) {
+        PracticeSearchFilters(
             nameQuery = nameQuery,
             manufacturerQuery = manufacturerQuery,
             yearQuery = yearQuery,
             selectedType = selectedType,
         )
     }
-    val recentResults = remember(results, recentGameIds) {
-        val lookup = results.associateBy { it.canonicalGameId }
-        recentGameIds.mapNotNull { lookup[it] }
+    val manufacturerSuggestions = remember(searchIndex, manufacturerQuery) {
+        searchIndex.manufacturerSuggestions(manufacturerQuery)
+    }
+    val filteredResults = remember(searchIndex, filters) {
+        searchIndex.filteredResults(filters)
+    }
+    val recentResults = remember(searchIndex, recentGameIds) {
+        searchIndex.recentResults(recentGameIds)
     }
 
     Column(
@@ -179,7 +171,7 @@ internal fun PracticeGameSearchSheet(
                         onTypeSelected = { selectedType = it },
                     )
 
-                    if (hasFilters) {
+                    if (filters.hasFilters) {
                         AppSecondaryButton(
                             onClick = {
                                 nameQuery = ""
@@ -198,11 +190,11 @@ internal fun PracticeGameSearchSheet(
         Box(modifier = Modifier.fillMaxSize()) {
             when (selectedTab) {
                 PracticeSearchTab.Search -> {
-                    if (isLoadingGames && results.isEmpty()) {
+                    if (isLoadingGames && searchIndex.results.isEmpty()) {
                         AppPanelEmptyCard(
                             text = "Loading all OPDB games…",
                         )
-                    } else if (!hasFilters) {
+                    } else if (!filters.hasFilters) {
                         AppPanelEmptyCard(
                             text = "Search by name or abbreviation. Open Advanced Filters for manufacturer, year, and game type.",
                         )
@@ -214,9 +206,9 @@ internal fun PracticeGameSearchSheet(
                             items(filteredResults, key = { it.canonicalGameId }) { result ->
                                 PracticeSearchResultCard(
                                     result = result,
+                                    metaLine = searchIndex.metaLine(result),
                                     onClick = {
-                                        rememberPracticeSearchRecent(prefs, result.canonicalGameId)
-                                        recentGameIds = loadPracticeSearchRecents(prefs)
+                                        recentGameIds = rememberPracticeSearchRecent(prefs, result.canonicalGameId)
                                         onOpenGame(result.canonicalGameId)
                                     },
                                 )
@@ -236,9 +228,9 @@ internal fun PracticeGameSearchSheet(
                             items(recentResults, key = { it.canonicalGameId }) { result ->
                                 PracticeSearchResultCard(
                                     result = result,
+                                    metaLine = searchIndex.metaLine(result),
                                     onClick = {
-                                        rememberPracticeSearchRecent(prefs, result.canonicalGameId)
-                                        recentGameIds = loadPracticeSearchRecents(prefs)
+                                        recentGameIds = rememberPracticeSearchRecent(prefs, result.canonicalGameId)
                                         onOpenGame(result.canonicalGameId)
                                     },
                                 )
@@ -273,6 +265,7 @@ private fun PracticeSearchTypeDropdown(
 @Composable
 private fun PracticeSearchResultCard(
     result: PracticeSearchResult,
+    metaLine: String,
     onClick: () -> Unit,
 ) {
     CardContainer(
@@ -284,7 +277,7 @@ private fun PracticeSearchResultCard(
             color = PinballThemeTokens.colors.brandInk,
         )
         Text(
-            text = buildPracticeSearchMetaLine(result),
+            text = metaLine,
             color = PinballThemeTokens.colors.brandChalk,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

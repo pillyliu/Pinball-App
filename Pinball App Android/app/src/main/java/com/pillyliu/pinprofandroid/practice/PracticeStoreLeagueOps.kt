@@ -5,15 +5,14 @@ import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.data.parseCsv
 import com.pillyliu.pinprofandroid.library.LibraryGameLookup
 import com.pillyliu.pinprofandroid.library.PinballGame
+import com.pillyliu.pinprofandroid.library.hostedLeagueStatsPath
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
-private const val LEAGUE_STATS_PATH = "/pinball/data/LPL_Stats.csv"
-
 internal suspend fun availableLeaguePlayersFromCsv(): List<String> = withContext(Dispatchers.IO) {
     try {
-        val result = PinballDataCache.loadText(LEAGUE_STATS_PATH, allowMissing = false)
+        val result = PinballDataCache.loadText(hostedLeagueStatsPath, allowMissing = false)
         val text = result.text ?: return@withContext emptyList()
         val rows = parseCsv(text)
         if (rows.isEmpty()) return@withContext emptyList()
@@ -38,7 +37,7 @@ internal suspend fun importLeagueScoresFromCsvData(
         return@withContext "Select league player first."
     }
     try {
-        val result = PinballDataCache.loadText(LEAGUE_STATS_PATH, allowMissing = false)
+        val result = PinballDataCache.loadText(hostedLeagueStatsPath, allowMissing = false)
         val text = result.text ?: return@withContext "LPL CSV missing."
         val rows = parseCsv(text)
         if (rows.isEmpty()) return@withContext "No league rows found."
@@ -91,7 +90,7 @@ internal suspend fun comparePlayersFromCsv(
     if (yourNormalized.isEmpty() || opponentNormalized.isEmpty()) return@withContext null
 
     try {
-        val result = PinballDataCache.loadText(LEAGUE_STATS_PATH, allowMissing = false)
+        val result = PinballDataCache.loadText(hostedLeagueStatsPath, allowMissing = false)
         val text = result.text ?: return@withContext null
         val rows = parseLeagueRows(text)
         val yourRows = rows.filter { normalizeHumanName(it.player) == yourNormalized }

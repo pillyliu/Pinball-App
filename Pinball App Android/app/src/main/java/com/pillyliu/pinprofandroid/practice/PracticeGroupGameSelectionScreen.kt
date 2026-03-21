@@ -32,8 +32,6 @@ import com.pillyliu.pinprofandroid.library.normalizedVariant
 import com.pillyliu.pinprofandroid.ui.AppCheckbox
 import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.CardContainer
-import java.util.Locale
-
 private const val GROUP_ALL_GAMES_LIBRARY_OPTION = "__all_games__"
 private const val GROUP_PICKER_LIBRARY_KEY = "practice-group-picker-library-source-id"
 
@@ -81,15 +79,14 @@ internal fun GroupGameSelectionScreen(
     }
     val selectablePool = remember(games, allGames, selectedLibraryOption) {
         val pool = if (allGames.isNotEmpty()) allGames else games
-        val filtered = if (selectedLibraryOption == GROUP_ALL_GAMES_LIBRARY_OPTION) {
+        if (selectedLibraryOption == GROUP_ALL_GAMES_LIBRARY_OPTION) {
             pool
         } else {
             pool.filter { it.sourceId == selectedLibraryOption }
         }
-        distinctGamesByPracticeIdentity(filtered)
     }
     val filteredGames = remember(selectablePool, searchText) {
-        selectablePool
+        orderedGamesForDropdown(selectablePool, collapseByPracticeIdentity = true)
             .filter { game ->
                 matchesSearchQuery(
                     query = searchText,
@@ -101,7 +98,6 @@ internal fun GroupGameSelectionScreen(
                     ),
                 )
             }
-            .sortedBy { it.name.lowercase(Locale.US) }
     }
     val groupedGames = remember(filteredGames) {
         filteredGames.groupBy { game ->

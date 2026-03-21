@@ -87,7 +87,7 @@ func loadLeaguePreviewSnapshot() async -> LeaguePreviewSnapshot {
 }
 
 private enum LeaguePreviewPaths {
-    static let targetsPath = "/pinball/data/lpl_targets_resolved_v1.json"
-    static let standingsPath = "/pinball/data/LPL_Standings.csv"
-    static let statsPath = "/pinball/data/LPL_Stats.csv"
+    static let targetsPath = hostedResolvedLeagueTargetsPath
+    static let standingsPath = hostedLeagueStandingsPath
+    static let statsPath = hostedLeagueStatsPath
 }

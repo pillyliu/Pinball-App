@@ -136,9 +136,9 @@ final class PracticeStore: ObservableObject {
     }
     @Published var lastErrorMessage: String?
 
-    static let leagueStatsPath = "/pinball/data/LPL_Stats.csv"
-    static let leagueTargetsPath = "/pinball/data/LPL_Targets.csv"
-    static let resolvedLeagueTargetsPath = "/pinball/data/lpl_targets_resolved_v1.json"
+    static let leagueStatsPath = hostedLeagueStatsPath
+    static let leagueTargetsPath = hostedLeagueTargetsPath
+    static let resolvedLeagueTargetsPath = hostedResolvedLeagueTargetsPath
     static let storageKey = "practice-state-json"
     static let legacyStorageKey = "practice-upgrade-state-v1"
 

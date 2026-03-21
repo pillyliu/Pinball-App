@@ -14,43 +14,41 @@ struct PracticeGameSearchSheet: View {
     let onSelectGame: (String) -> Void
 
     @State private var selectedTab: PracticeGameSearchTab = .search
-    @State private var nameQuery: String = ""
-    @State private var manufacturerQuery: String = ""
-    @State private var yearQuery: String = ""
-    @State private var selectedType: PracticeGameTypeFilter?
+    @State private var filters = PracticeGameSearchFilters()
     @State private var isAdvancedExpanded = false
     @State private var recentGameIDs: [String] = PracticeGameSearchRecentStore.load()
-    @State private var indexedResults: [PracticeGameSearchResult] = []
-    @State private var indexedManufacturers: [String] = []
+    @State private var searchIndex = PracticeGameSearchIndex.empty
 
-    private var manufacturerOptions: [String] {
-        indexedManufacturers
+    private var searchIndexRevision: String {
+        games.map { game in
+            [
+                game.canonicalPracticeKey,
+                game.sourceId,
+                game.name,
+                game.manufacturer ?? "",
+                game.year.map(String.init) ?? "",
+                game.opdbID ?? "",
+                game.opdbMachineID ?? ""
+            ]
+            .joined(separator: "|")
+        }
+        .joined(separator: "\n")
     }
 
     private var filteredManufacturerSuggestions: [String] {
-        practiceSearchManufacturerSuggestions(options: manufacturerOptions, query: manufacturerQuery)
+        searchIndex.manufacturerSuggestions(for: filters.manufacturerQuery)
     }
 
     private var hasSearchFilters: Bool {
-        !nameQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-            !manufacturerQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-            !yearQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-            selectedType != nil
+        filters.hasFilters
     }
 
     private var filteredResults: [PracticeGameSearchResult] {
-        filteredPracticeSearchResults(
-            results: indexedResults,
-            nameQuery: nameQuery,
-            manufacturerQuery: manufacturerQuery,
-            yearQuery: yearQuery,
-            selectedType: selectedType
-        )
+        searchIndex.filteredResults(using: filters)
     }
 
     private var recentResults: [PracticeGameSearchResult] {
-        let lookup = Dictionary(uniqueKeysWithValues: indexedResults.map { ($0.canonicalGameID, $0) })
-        return recentGameIDs.compactMap { lookup[$0] }
+        searchIndex.recentResults(for: recentGameIDs)
     }
 
     var body: some View {
@@ -83,7 +81,7 @@ struct PracticeGameSearchSheet: View {
         .task {
             await onLoadGames()
         }
-        .task(id: games.count) {
+        .task(id: searchIndexRevision) {
             rebuildSearchIndex()
         }
     }
@@ -93,7 +91,7 @@ struct PracticeGameSearchSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 AppNativeClearTextField(
                     placeholder: "Game name",
-                    text: $nameQuery,
+                    text: $filters.nameQuery,
                     autocapitalization: .words,
                     autocorrectionDisabled: true
                 )
@@ -103,20 +101,20 @@ struct PracticeGameSearchSheet: View {
                         VStack(alignment: .leading, spacing: 8) {
                             AppNativeClearTextField(
                                 placeholder: "Manufacturer",
-                                text: $manufacturerQuery,
+                                text: $filters.manufacturerQuery,
                                 autocapitalization: .words,
                                 autocorrectionDisabled: true
                             )
 
                             if !filteredManufacturerSuggestions.isEmpty &&
                                 !filteredManufacturerSuggestions.contains(where: {
-                                    $0.caseInsensitiveCompare(manufacturerQuery.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame
+                                    $0.caseInsensitiveCompare(filters.manufacturerQuery.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame
                                 }) {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 8) {
                                         ForEach(filteredManufacturerSuggestions, id: \.self) { suggestion in
                                             Button(suggestion) {
-                                                manufacturerQuery = suggestion
+                                                filters.manufacturerQuery = suggestion
                                             }
                                             .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
                                         }
@@ -128,31 +126,28 @@ struct PracticeGameSearchSheet: View {
 
                         AppNativeClearTextField(
                             placeholder: "Year",
-                            text: $yearQuery,
+                            text: $filters.yearQuery,
                             keyboardType: .numberPad
                         )
 
                         Menu {
                             Button("Any type") {
-                                selectedType = nil
+                                filters.selectedType = nil
                             }
 
                             ForEach(PracticeGameTypeFilter.allCases) { option in
                                 Button(option.label) {
-                                    selectedType = option
+                                    filters.selectedType = option
                                 }
                             }
                         } label: {
-                            AppCompactFilterLabel(text: selectedType?.label ?? "Any type")
+                            AppCompactFilterLabel(text: filters.selectedType?.label ?? "Any type")
                         }
                         .buttonStyle(.plain)
 
                         if hasSearchFilters {
                             Button("Clear filters") {
-                                nameQuery = ""
-                                manufacturerQuery = ""
-                                yearQuery = ""
-                                selectedType = nil
+                                filters = PracticeGameSearchFilters()
                             }
                             .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
                         }
@@ -166,7 +161,7 @@ struct PracticeGameSearchSheet: View {
             .padding(12)
             .appPanelStyle()
 
-            if isLoadingGames && indexedResults.isEmpty {
+            if isLoadingGames && searchIndex.results.isEmpty {
                 AppPanelStatusCard(
                     text: "Loading all OPDB games…",
                     showsProgress: true
@@ -215,19 +210,16 @@ struct PracticeGameSearchSheet: View {
         .appPanelStyle()
         .contentShape(RoundedRectangle(cornerRadius: AppRadii.panel, style: .continuous))
         .onTapGesture {
-            PracticeGameSearchRecentStore.remember(result.canonicalGameID)
-            recentGameIDs = PracticeGameSearchRecentStore.load()
+            recentGameIDs = PracticeGameSearchRecentStore.remember(result.canonicalGameID)
             onSelectGame(result.canonicalGameID)
         }
     }
 
     private func resultMetaLine(for result: PracticeGameSearchResult) -> String {
-        practiceSearchMetaLine(for: result)
+        searchIndex.metaLine(for: result)
     }
 
     private func rebuildSearchIndex() {
-        indexedResults = buildPracticeSearchResults(games)
-        indexedManufacturers = Array(Set(indexedResults.compactMap(\.manufacturer)))
-            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        searchIndex = PracticeGameSearchIndex(games: games)
     }
 }

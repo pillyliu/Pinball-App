@@ -761,8 +761,7 @@ struct GroupGameSelectionScreen: View {
     }
 
     private var filteredGames: [PinballGame] {
-        let ordered = orderedGamesForDropdown(baseGamesForSelection, collapseByPracticeIdentity: true)
-        return ordered
+        orderedGamesForDropdown(baseGamesForSelection, collapseByPracticeIdentity: true)
             .filter { game in
                 matchesSearchQuery(
                     searchText,
@@ -774,7 +773,6 @@ struct GroupGameSelectionScreen: View {
                     ]
                 )
             }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
     private var grouped: [(letter: String, games: [PinballGame])] {

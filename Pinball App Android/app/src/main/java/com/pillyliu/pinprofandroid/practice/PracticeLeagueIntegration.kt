@@ -1,5 +1,8 @@
 package com.pillyliu.pinprofandroid.practice
 
+import com.pillyliu.pinprofandroid.library.hostedLeagueTargetsPath
+import com.pillyliu.pinprofandroid.library.hostedResolvedLeagueTargetsPath
+
 internal class PracticeLeagueIntegration(
     private val gameNameForSlug: (String) -> String,
 ) {
@@ -7,14 +10,14 @@ internal class PracticeLeagueIntegration(
     private var targetsByNormalizedMachine: Map<String, LeagueTargetScores> = emptyMap()
 
     suspend fun loadTargets() {
-        val resolved = loadResolvedLeagueTargets("/pinball/data/lpl_targets_resolved_v1.json")
+        val resolved = loadResolvedLeagueTargets(hostedResolvedLeagueTargetsPath)
         if (resolved.isNotEmpty()) {
             targetsByPracticeIdentity = resolvedLeagueTargetScoresByPracticeIdentity(resolved)
             targetsByNormalizedMachine = emptyMap()
             return
         }
         targetsByPracticeIdentity = emptyMap()
-        targetsByNormalizedMachine = loadLeagueTargetsMap("/pinball/data/LPL_Targets.csv")
+        targetsByNormalizedMachine = loadLeagueTargetsMap(hostedLeagueTargetsPath)
     }
 
     suspend fun availablePlayers(): List<String> = availableLeaguePlayersFromCsv()

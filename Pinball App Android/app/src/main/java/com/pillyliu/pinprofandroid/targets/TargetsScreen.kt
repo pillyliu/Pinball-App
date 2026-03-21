@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.pillyliu.pinprofandroid.data.PinballDataCache
+import com.pillyliu.pinprofandroid.library.hostedResolvedLeagueTargetsPath
 import com.pillyliu.pinprofandroid.practice.parseResolvedLeagueTargets
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
@@ -63,8 +64,6 @@ private enum class TargetSortOption(val label: String) {
     BANK("Bank"),
     ALPHABETICAL("A-Z"),
 }
-
-private const val RESOLVED_TARGETS_PATH = "/pinball/data/lpl_targets_resolved_v1.json"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,7 +95,7 @@ fun TargetsScreen(
 
     LaunchedEffect(Unit) {
         try {
-            val cached = PinballDataCache.loadText(RESOLVED_TARGETS_PATH, allowMissing = true)
+            val cached = PinballDataCache.loadText(hostedResolvedLeagueTargetsPath, allowMissing = true)
             val text = cached.text
             val resolved = if (text.isNullOrBlank()) emptyList() else parseResolvedLeagueTargets(text)
 

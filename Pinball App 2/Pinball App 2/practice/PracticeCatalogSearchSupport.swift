@@ -32,6 +32,94 @@ struct PracticeGameSearchResult: Identifiable {
     var id: String { canonicalGameID }
 }
 
+struct PracticeGameSearchFilters {
+    var nameQuery: String = ""
+    var manufacturerQuery: String = ""
+    var yearQuery: String = ""
+    var selectedType: PracticeGameTypeFilter?
+
+    var hasFilters: Bool {
+        !nameQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            !manufacturerQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            !yearQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            selectedType != nil
+    }
+}
+
+struct PracticeGameSearchIndex {
+    static let empty = PracticeGameSearchIndex(
+        results: [],
+        resultByID: [:],
+        manufacturerOptions: []
+    )
+
+    let results: [PracticeGameSearchResult]
+    let resultByID: [String: PracticeGameSearchResult]
+    let manufacturerOptions: [String]
+
+    init(games: [PinballGame]) {
+        let results = buildPracticeSearchResults(games)
+        self.init(
+            results: results,
+            resultByID: Dictionary(uniqueKeysWithValues: results.map { ($0.canonicalGameID, $0) }),
+            manufacturerOptions: Array(Set(results.compactMap(\.manufacturer)))
+                .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        )
+    }
+
+    func manufacturerSuggestions(for query: String) -> [String] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+        let queryTokens = normalizedSearchTokens(trimmed)
+        return manufacturerOptions.filter { option in
+            matchesSearchTokens(queryTokens, haystackTokens: normalizedSearchTokens(option))
+        }
+        .prefix(8)
+        .map { $0 }
+    }
+
+    func filteredResults(using filters: PracticeGameSearchFilters) -> [PracticeGameSearchResult] {
+        let targetYear = Int(filters.yearQuery.trimmingCharacters(in: .whitespacesAndNewlines))
+        let nameTokens = normalizedSearchTokens(filters.nameQuery)
+        let manufacturerTokens = normalizedSearchTokens(
+            filters.manufacturerQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+
+        return results.filter { result in
+            let matchesName = nameTokens.isEmpty ||
+                matchesSearchTokens(nameTokens, haystackTokens: result.searchTokens)
+            let matchesManufacturer = manufacturerTokens.isEmpty ||
+                matchesSearchTokens(manufacturerTokens, haystackTokens: result.manufacturerTokens)
+            let matchesYear = targetYear == nil || result.yearFields.contains(targetYear ?? 0)
+            let matchesType = filters.selectedType == nil ||
+                result.categoryFields.contains(filters.selectedType?.rawValue ?? "")
+            return matchesName && matchesManufacturer && matchesYear && matchesType
+        }
+    }
+
+    func recentResults(for recentGameIDs: [String]) -> [PracticeGameSearchResult] {
+        recentGameIDs.compactMap { resultByID[$0] }
+    }
+
+    func metaLine(for result: PracticeGameSearchResult) -> String {
+        var parts: [String] = [result.manufacturer ?? "-"]
+        if let year = result.year {
+            parts.append(String(year))
+        }
+        return parts.joined(separator: " • ")
+    }
+
+    private init(
+        results: [PracticeGameSearchResult],
+        resultByID: [String: PracticeGameSearchResult],
+        manufacturerOptions: [String]
+    ) {
+        self.results = results
+        self.resultByID = resultByID
+        self.manufacturerOptions = manufacturerOptions
+    }
+}
+
 enum PracticeGameSearchRecentStore {
     private static let defaultsKey = "practice-game-search-recents-v1"
     private static let maxCount = 20
@@ -41,45 +129,15 @@ enum PracticeGameSearchRecentStore {
         return values.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
 
-    static func remember(_ canonicalGameID: String) {
+    @discardableResult
+    static func remember(_ canonicalGameID: String) -> [String] {
         let trimmed = canonicalGameID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty else { return load() }
         var values = load().filter { $0 != trimmed }
         values.insert(trimmed, at: 0)
-        UserDefaults.standard.set(Array(values.prefix(maxCount)), forKey: defaultsKey)
-    }
-}
-
-func practiceSearchManufacturerSuggestions(options: [String], query: String) -> [String] {
-    let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmed.isEmpty else { return [] }
-    let queryTokens = normalizedSearchTokens(trimmed)
-    return options.filter { option in
-        matchesSearchTokens(queryTokens, haystackTokens: normalizedSearchTokens(option))
-    }
-    .prefix(8)
-    .map { $0 }
-}
-
-func filteredPracticeSearchResults(
-    results: [PracticeGameSearchResult],
-    nameQuery: String,
-    manufacturerQuery: String,
-    yearQuery: String,
-    selectedType: PracticeGameTypeFilter?
-) -> [PracticeGameSearchResult] {
-    let targetYear = Int(yearQuery.trimmingCharacters(in: .whitespacesAndNewlines))
-    let nameTokens = normalizedSearchTokens(nameQuery)
-    let manufacturerTokens = normalizedSearchTokens(manufacturerQuery.trimmingCharacters(in: .whitespacesAndNewlines))
-
-    return results.filter { result in
-        let matchesName = nameTokens.isEmpty ||
-            matchesSearchTokens(nameTokens, haystackTokens: result.searchTokens)
-        let matchesManufacturer = manufacturerTokens.isEmpty ||
-            matchesSearchTokens(manufacturerTokens, haystackTokens: result.manufacturerTokens)
-        let matchesYear = targetYear == nil || result.yearFields.contains(targetYear ?? 0)
-        let matchesType = selectedType == nil || result.categoryFields.contains(selectedType?.rawValue ?? "")
-        return matchesName && matchesManufacturer && matchesYear && matchesType
+        let updated = Array(values.prefix(maxCount))
+        UserDefaults.standard.set(updated, forKey: defaultsKey)
+        return updated
     }
 }
 
@@ -127,14 +185,6 @@ func buildPracticeSearchResults(_ games: [PinballGame]) -> [PracticeGameSearchRe
             }
             return lhs.canonicalGameID.localizedCaseInsensitiveCompare(rhs.canonicalGameID) == .orderedAscending
         }
-}
-
-func practiceSearchMetaLine(for result: PracticeGameSearchResult) -> String {
-    var parts: [String] = [result.manufacturer ?? "-"]
-    if let year = result.year {
-        parts.append(String(year))
-    }
-    return parts.joined(separator: " • ")
 }
 
 private func practiceSearchManufacturer(for games: [PinballGame]) -> String? {

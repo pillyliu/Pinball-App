@@ -26,39 +26,69 @@ internal data class PracticeSearchResult(
     val yearFields: List<Int>,
 )
 
-internal fun practiceManufacturerSuggestions(
-    options: List<String>,
-    query: String,
-): List<String> {
-    val trimmed = query.trim()
-    if (trimmed.isBlank()) return emptyList()
-    val queryTokens = normalizedSearchTokens(trimmed)
-    return options.filter { option ->
-        matchesSearchTokens(queryTokens, normalizedSearchTokens(option))
-    }.take(8)
+internal data class PracticeSearchFilters(
+    val nameQuery: String = "",
+    val manufacturerQuery: String = "",
+    val yearQuery: String = "",
+    val selectedType: PracticeSearchTypeFilter? = null,
+) {
+    val hasFilters: Boolean
+        get() = nameQuery.trim().isNotEmpty() ||
+            manufacturerQuery.trim().isNotEmpty() ||
+            yearQuery.trim().isNotEmpty() ||
+            selectedType != null
 }
 
-internal fun filterPracticeSearchResults(
-    results: List<PracticeSearchResult>,
-    nameQuery: String,
-    manufacturerQuery: String,
-    yearQuery: String,
-    selectedType: PracticeSearchTypeFilter?,
-): List<PracticeSearchResult> {
-    val targetYear = yearQuery.trim().toIntOrNull()
-    val nameTokens = normalizedSearchTokens(nameQuery)
-    val manufacturerTokens = normalizedSearchTokens(manufacturerQuery.trim())
-    return results.filter { result ->
-        val matchesName = nameTokens.isEmpty() || matchesSearchTokens(nameTokens, result.searchTokens)
-        val matchesManufacturer = manufacturerTokens.isEmpty() || matchesSearchTokens(manufacturerTokens, result.manufacturerTokens)
-        val matchesYear = targetYear == null || result.yearFields.contains(targetYear)
-        val matchesType = selectedType == null || result.categoryFields.any { it == selectedType.rawValue }
-        matchesName && matchesManufacturer && matchesYear && matchesType
+internal data class PracticeSearchIndex(
+    val results: List<PracticeSearchResult>,
+    val resultById: Map<String, PracticeSearchResult>,
+    val manufacturerOptions: List<String>,
+) {
+    fun manufacturerSuggestions(query: String): List<String> {
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) return emptyList()
+        val queryTokens = normalizedSearchTokens(trimmed)
+        return manufacturerOptions.filter { option ->
+            matchesSearchTokens(queryTokens, normalizedSearchTokens(option))
+        }.take(8)
+    }
+
+    fun filteredResults(filters: PracticeSearchFilters): List<PracticeSearchResult> {
+        val targetYear = filters.yearQuery.trim().toIntOrNull()
+        val nameTokens = normalizedSearchTokens(filters.nameQuery)
+        val manufacturerTokens = normalizedSearchTokens(filters.manufacturerQuery.trim())
+        return results.filter { result ->
+            val matchesName = nameTokens.isEmpty() || matchesSearchTokens(nameTokens, result.searchTokens)
+            val matchesManufacturer = manufacturerTokens.isEmpty() ||
+                matchesSearchTokens(manufacturerTokens, result.manufacturerTokens)
+            val matchesYear = targetYear == null || result.yearFields.contains(targetYear)
+            val matchesType = filters.selectedType == null ||
+                result.categoryFields.any { it == filters.selectedType.rawValue }
+            matchesName && matchesManufacturer && matchesYear && matchesType
+        }
+    }
+
+    fun recentResults(recentGameIds: List<String>): List<PracticeSearchResult> {
+        return recentGameIds.mapNotNull { resultById[it] }
+    }
+
+    fun metaLine(result: PracticeSearchResult): String {
+        val parts = mutableListOf(result.manufacturer ?: "-")
+        result.year?.let { parts += it.toString() }
+        return parts.joinToString(" • ")
+    }
+
+    companion object {
+        val EMPTY = PracticeSearchIndex(
+            results = emptyList(),
+            resultById = emptyMap(),
+            manufacturerOptions = emptyList(),
+        )
     }
 }
 
-internal fun buildPracticeSearchResults(games: List<PinballGame>): List<PracticeSearchResult> {
-    return games
+internal fun buildPracticeSearchIndex(games: List<PinballGame>): PracticeSearchIndex {
+    val results = games
         .groupBy { it.practiceKey }
         .mapNotNull { (canonicalGameId, groupedGames) ->
             if (canonicalGameId.isBlank()) return@mapNotNull null
@@ -90,12 +120,13 @@ internal fun buildPracticeSearchResults(games: List<PinballGame>): List<Practice
             )
         }
         .sortedWith(compareBy<PracticeSearchResult> { it.displayName.lowercase(Locale.US) }.thenBy { it.canonicalGameId.lowercase(Locale.US) })
-}
-
-internal fun buildPracticeSearchMetaLine(result: PracticeSearchResult): String {
-    val parts = mutableListOf(result.manufacturer ?: "-")
-    result.year?.let { parts += it.toString() }
-    return parts.joinToString(" • ")
+    return PracticeSearchIndex(
+        results = results,
+        resultById = results.associateBy { it.canonicalGameId },
+        manufacturerOptions = results.mapNotNull { it.manufacturer }
+            .distinctBy { it.lowercase(Locale.US) }
+            .sortedBy { it.lowercase(Locale.US) },
+    )
 }
 
 internal fun loadPracticeSearchRecents(prefs: SharedPreferences): List<String> {
@@ -109,9 +140,9 @@ internal fun loadPracticeSearchRecents(prefs: SharedPreferences): List<String> {
 internal fun rememberPracticeSearchRecent(
     prefs: SharedPreferences,
     canonicalGameId: String,
-) {
+): List<String> {
     val trimmed = canonicalGameId.trim()
-    if (trimmed.isBlank()) return
+    if (trimmed.isBlank()) return loadPracticeSearchRecents(prefs)
     val updated = buildList {
         add(trimmed)
         loadPracticeSearchRecents(prefs).forEach { existing ->
@@ -121,6 +152,7 @@ internal fun rememberPracticeSearchRecent(
         }
     }.take(PRACTICE_SEARCH_MAX_RECENTS)
     prefs.edit().putString(KEY_PRACTICE_SEARCH_RECENTS, updated.joinToString("\n")).apply()
+    return updated
 }
 
 private fun practiceSearchManufacturer(games: List<PinballGame>): String? {
