@@ -10,6 +10,7 @@ import com.pillyliu.pinprofandroid.library.canonicalLibrarySourceId
 import com.pillyliu.pinprofandroid.library.hostedOPDBExportPath
 import com.pillyliu.pinprofandroid.library.hostedVenueLayoutAssetsPath
 import com.pillyliu.pinprofandroid.library.loadFullLibraryExtraction
+import com.pillyliu.pinprofandroid.library.loadLibraryExtraction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -19,11 +20,19 @@ internal data class PracticeLibraryLoadResult(
     val allGames: List<PinballGame>,
     val sources: List<LibrarySource>,
     val defaultSourceId: String?,
+    val isFullLibraryScope: Boolean,
 )
 
-internal suspend fun loadPracticeGamesFromLibrary(context: Context): PracticeLibraryLoadResult = withContext(Dispatchers.IO) {
+internal suspend fun loadPracticeGamesFromLibrary(
+    context: Context,
+    fullLibraryScope: Boolean,
+): PracticeLibraryLoadResult = withContext(Dispatchers.IO) {
     try {
-        val extraction = loadFullLibraryExtraction(context)
+        val extraction = if (fullLibraryScope) {
+            loadFullLibraryExtraction(context)
+        } else {
+            loadLibraryExtraction(context)
+        }
         val parsed = extraction.payload
         val selectedSource = parsed.sources.firstOrNull { it.id == extraction.state.selectedSourceId }
             ?: parsed.sources.firstOrNull()
@@ -33,6 +42,7 @@ internal suspend fun loadPracticeGamesFromLibrary(context: Context): PracticeLib
                 allGames = parsed.games,
                 sources = parsed.sources,
                 defaultSourceId = null,
+                isFullLibraryScope = fullLibraryScope,
             )
         } else {
             PracticeLibraryLoadResult(
@@ -40,6 +50,7 @@ internal suspend fun loadPracticeGamesFromLibrary(context: Context): PracticeLib
                 allGames = parsed.games,
                 sources = parsed.sources,
                 defaultSourceId = selectedSource.id,
+                isFullLibraryScope = fullLibraryScope,
             )
         }
     } catch (_: Throwable) {
@@ -48,6 +59,7 @@ internal suspend fun loadPracticeGamesFromLibrary(context: Context): PracticeLib
             allGames = emptyList(),
             sources = emptyList(),
             defaultSourceId = null,
+            isFullLibraryScope = fullLibraryScope,
         )
     }
 }

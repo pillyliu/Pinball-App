@@ -1,9 +1,13 @@
 package com.pillyliu.pinprofandroid.practice
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -13,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -27,6 +32,7 @@ import com.pillyliu.pinprofandroid.library.hasRulesheetResource
 import com.pillyliu.pinprofandroid.library.resolve
 import com.pillyliu.pinprofandroid.library.rulesheetPathCandidates
 import com.pillyliu.pinprofandroid.library.fullscreenPlayfieldCandidates
+import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 
@@ -136,6 +142,12 @@ internal fun PracticeScreen(
         else -> Unit
     }
 
+    val showsFullscreenBootstrapOverlay = store.isBootstrapping &&
+        (!store.hasRestoredHomeBootstrapSnapshot || uiState.navigation.route != PracticeRoute.Home)
+    val showsHomeBootstrapShield = store.isBootstrapping &&
+        store.hasRestoredHomeBootstrapSnapshot &&
+        uiState.navigation.route == PracticeRoute.Home
+
     AppScreen(
         contentPadding = contentPadding,
         modifier = Modifier.iosEdgeSwipeBack(
@@ -145,152 +157,166 @@ internal fun PracticeScreen(
             onBack = uiState::goBack,
         ),
     ) {
-        val topBarGamePickerContext = PracticeTopBarGamePickerContext(
-            selectedGameName = selectedGame?.let { practiceDisplayTitleForKey(it.practiceKey, store.practiceLookupGamesForDisplay()) ?: it.name },
-            games = store.games,
-            librarySources = store.librarySources,
-            selectedLibrarySourceId = store.defaultPracticeSourceId,
-            expanded = uiState.game.pickerExpanded,
-            onExpandedChange = { expanded -> uiState.game.pickerExpanded = expanded },
-            onLibrarySourceSelected = actions::selectLibrarySource,
-            onGameSelected = { selectionKey ->
-                actions.selectPracticeGame(selectionKey)
-            },
-        )
-        val bodyModifier = if (
-            uiState.navigation.route == PracticeRoute.Journal ||
-            uiState.navigation.route == PracticeRoute.Search
-        ) {
-            Modifier.fillMaxSize()
+        if (showsFullscreenBootstrapOverlay) {
+            AppFullscreenStatusOverlay(
+                text = "Loading practice data…",
+                showsProgress = true,
+            )
         } else {
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-        }
-        Column(
-            modifier = bodyModifier,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            PracticeTopBar(
-                route = uiState.navigation.route,
-                playerName = store.playerName,
-                editingGroupID = uiState.navigation.editingGroupID,
-                gamePickerContext = topBarGamePickerContext,
-                onBack = uiState::goBack,
-                onOpenSearch = if (uiState.navigation.route == PracticeRoute.Home) {
-                    { actions.navigateTo(PracticeRoute.Search) }
+            Box(modifier = Modifier.fillMaxSize()) {
+                val topBarGamePickerContext = PracticeTopBarGamePickerContext(
+                    selectedGameName = selectedGame?.let { practiceDisplayTitleForKey(it.practiceKey, store.practiceLookupGamesForDisplay()) ?: it.name },
+                    games = store.games,
+                    librarySources = store.librarySources,
+                    selectedLibrarySourceId = store.defaultPracticeSourceId,
+                    expanded = uiState.game.pickerExpanded,
+                    onExpandedChange = { expanded -> uiState.game.pickerExpanded = expanded },
+                    onLibrarySourceSelected = actions::selectLibrarySource,
+                    onGameSelected = { selectionKey ->
+                        actions.selectPracticeGame(selectionKey)
+                    },
+                )
+                val bodyModifier = if (
+                    uiState.navigation.route == PracticeRoute.Journal ||
+                    uiState.navigation.route == PracticeRoute.Search
+                ) {
+                    Modifier.fillMaxSize()
                 } else {
-                    null
-                },
-                onOpenSettings = { actions.navigateTo(PracticeRoute.Settings) },
-                onOpenIfpaProfile = { actions.navigateTo(PracticeRoute.IfpaProfile) },
-                isJournalSelectionMode = uiState.journal.selectionMode,
-                onToggleJournalSelectionMode = if (uiState.navigation.route == PracticeRoute.Journal) {
-                    actions::toggleJournalSelectionMode
-                } else null,
-            )
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                }
+                Column(
+                    modifier = bodyModifier,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    PracticeTopBar(
+                        route = uiState.navigation.route,
+                        playerName = store.playerName,
+                        showsGenericGreeting = showsHomeBootstrapShield,
+                        editingGroupID = uiState.navigation.editingGroupID,
+                        gamePickerContext = topBarGamePickerContext,
+                        onBack = uiState::goBack,
+                        onOpenSearch = if (uiState.navigation.route == PracticeRoute.Home) {
+                            { actions.navigateTo(PracticeRoute.Search) }
+                        } else {
+                            null
+                        },
+                        onOpenSettings = { actions.navigateTo(PracticeRoute.Settings) },
+                        onOpenIfpaProfile = { actions.navigateTo(PracticeRoute.IfpaProfile) },
+                        isJournalSelectionMode = uiState.journal.selectionMode,
+                        onToggleJournalSelectionMode = if (uiState.navigation.route == PracticeRoute.Journal) {
+                            actions::toggleJournalSelectionMode
+                        } else null,
+                    )
 
-            val homeRouteContext = PracticeHomeRouteContext(
-                store = store,
-                resumeOtherExpanded = uiState.game.resumeOtherExpanded,
-                onResumeOtherExpandedChange = { expanded -> uiState.game.resumeOtherExpanded = expanded },
-                librarySources = store.librarySources,
-                selectedLibrarySourceId = store.defaultPracticeSourceId,
-                onSelectLibrarySourceId = actions::selectLibrarySource,
-                onOpenGame = actions::openPracticeGame,
-                onOpenQuickEntry = { activity, origin ->
-                    actions.openQuickEntry(activity, origin, false)
-                },
-                onOpenGroupDashboard = { actions.navigateTo(PracticeRoute.GroupDashboard) },
-                onOpenJournal = { actions.navigateTo(PracticeRoute.Journal) },
-                onOpenInsights = { actions.navigateTo(PracticeRoute.Insights) },
-                onOpenMechanics = { actions.navigateTo(PracticeRoute.Mechanics) },
-            )
-            val ifpaProfileContext = PracticeIfpaProfileContext(
-                playerName = store.playerName,
-                ifpaPlayerID = store.ifpaPlayerID,
-            )
-            val groupDashboardContext = PracticeGroupDashboardContext(
-                store = store,
-                onCreateGroup = actions::createGroup,
-                onEditSelectedGroup = actions::editGroup,
-                onOpenGroupDatePicker = actions::openGroupDatePicker,
-                onOpenGame = actions::openPracticeGame,
-            )
-            val groupEditorRouteContext = PracticeGroupEditorRouteContext(
-                store = store,
-                editingGroupID = uiState.navigation.editingGroupID,
-                onBack = uiState::goBack,
-            )
-            val insightsRouteContext = PracticeInsightsRouteContext(
-                store = store,
-                selectedGameSlug = uiState.navigation.selectedGameSlug,
-                onSelectGameSlug = { uiState.navigation.selectedGameSlug = it },
-                insightsOpponentName = uiState.insights.opponentName,
-                insightsOpponentOptions = uiState.insights.opponentOptions,
-                onInsightsOpponentNameChange = actions::selectInsightsOpponent,
-                headToHead = uiState.insights.headToHead,
-                isLoadingHeadToHead = uiState.insights.isLoadingHeadToHead,
-                onRefreshHeadToHead = actions::refreshHeadToHead,
-            )
-            val mechanicsRouteContext = PracticeMechanicsRouteContext(
-                store = store,
-                mechanicsSelectedSkill = uiState.mechanics.selectedSkill,
-                onMechanicsSelectedSkillChange = { uiState.mechanics.selectedSkill = it },
-                mechanicsCompetency = uiState.mechanics.competency,
-                onMechanicsCompetencyChange = { uiState.mechanics.competency = it },
-                mechanicsNote = uiState.mechanics.note,
-                onMechanicsNoteChange = { uiState.mechanics.note = it },
-                onOpenDeadFlipTutorials = actions::openDeadFlipTutorials,
-            )
-            val settingsRouteContext = PracticeSettingsRouteContext(
-                store = store,
-                importStatus = uiState.presentation.importStatus,
-                onImportLplCsv = actions::importLplCsv,
-                onOpenResetDialog = actions::openResetDialog,
-            )
-            val journalRouteContext = PracticeJournalRouteContext(
-                store = store,
-                journalFilter = uiState.journal.filter,
-                onJournalFilterChange = { uiState.journal.filter = it },
-                journalSelectionMode = uiState.journal.selectionMode,
-                selectedJournalRowIds = uiState.journal.selectedRowIds,
-                onJournalSelectionModeChange = { uiState.journal.selectionMode = it },
-                onSelectedJournalRowIdsChange = { uiState.journal.selectedRowIds = it },
-                onOpenGame = actions::openPracticeGame,
-                timelineModifier = Modifier.fillMaxSize(),
-            )
-            val gameRouteContext = PracticeGameRouteContext(
-                store = store,
-                selectedGame = selectedGame,
-                gameSubview = uiState.game.subview,
-                onGameSubviewChange = { updated -> uiState.game.subview = updated },
-                gameSummaryDraft = uiState.game.summaryDraft,
-                onGameSummaryDraftChange = { updated -> uiState.game.summaryDraft = updated },
-                activeGameVideoId = uiState.game.activeVideoId,
-                onActiveGameVideoIdChange = { updated -> uiState.game.activeVideoId = updated },
-                onOpenQuickEntry = { activity, origin ->
-                    actions.openQuickEntry(activity, origin, true)
-                },
-                onOpenRulesheet = actions::openRulesheet,
-                onOpenExternalRulesheet = actions::openExternalRulesheet,
-                onOpenPlayfield = actions::openPlayfield,
-            )
-            PracticeScreenRouteContent(
-                route = uiState.navigation.route,
-                gameContext = gameRouteContext,
-                searchGames = store.searchCatalogGames,
-                isLoadingSearchGames = store.isLoadingSearchCatalog,
-                onOpenSearchGame = actions::openPracticeGame,
-                homeContext = homeRouteContext,
-                ifpaProfileContext = ifpaProfileContext,
-                groupDashboardContext = groupDashboardContext,
-                groupEditorContext = groupEditorRouteContext,
-                journalContext = journalRouteContext,
-                insightsContext = insightsRouteContext,
-                mechanicsContext = mechanicsRouteContext,
-                settingsContext = settingsRouteContext,
-            )
+                    val homeRouteContext = PracticeHomeRouteContext(
+                        store = store,
+                        resumeOtherExpanded = uiState.game.resumeOtherExpanded,
+                        onResumeOtherExpandedChange = { expanded -> uiState.game.resumeOtherExpanded = expanded },
+                        librarySources = store.librarySources,
+                        selectedLibrarySourceId = store.defaultPracticeSourceId,
+                        onSelectLibrarySourceId = actions::selectLibrarySource,
+                        onOpenGame = actions::openPracticeGame,
+                        onOpenQuickEntry = { activity, origin ->
+                            actions.openQuickEntry(activity, origin, false)
+                        },
+                        onOpenGroupDashboard = { actions.navigateTo(PracticeRoute.GroupDashboard) },
+                        onOpenJournal = { actions.navigateTo(PracticeRoute.Journal) },
+                        onOpenInsights = { actions.navigateTo(PracticeRoute.Insights) },
+                        onOpenMechanics = { actions.navigateTo(PracticeRoute.Mechanics) },
+                    )
+                    val ifpaProfileContext = PracticeIfpaProfileContext(
+                        playerName = store.playerName,
+                        ifpaPlayerID = store.ifpaPlayerID,
+                    )
+                    val groupDashboardContext = PracticeGroupDashboardContext(
+                        store = store,
+                        onCreateGroup = actions::createGroup,
+                        onEditSelectedGroup = actions::editGroup,
+                        onOpenGroupDatePicker = actions::openGroupDatePicker,
+                        onOpenGame = actions::openPracticeGame,
+                    )
+                    val groupEditorRouteContext = PracticeGroupEditorRouteContext(
+                        store = store,
+                        editingGroupID = uiState.navigation.editingGroupID,
+                        onBack = uiState::goBack,
+                    )
+                    val insightsRouteContext = PracticeInsightsRouteContext(
+                        store = store,
+                        selectedGameSlug = uiState.navigation.selectedGameSlug,
+                        onSelectGameSlug = { uiState.navigation.selectedGameSlug = it },
+                        insightsOpponentName = uiState.insights.opponentName,
+                        insightsOpponentOptions = uiState.insights.opponentOptions,
+                        onInsightsOpponentNameChange = actions::selectInsightsOpponent,
+                        headToHead = uiState.insights.headToHead,
+                        isLoadingHeadToHead = uiState.insights.isLoadingHeadToHead,
+                        onRefreshHeadToHead = actions::refreshHeadToHead,
+                    )
+                    val mechanicsRouteContext = PracticeMechanicsRouteContext(
+                        store = store,
+                        mechanicsSelectedSkill = uiState.mechanics.selectedSkill,
+                        onMechanicsSelectedSkillChange = { uiState.mechanics.selectedSkill = it },
+                        mechanicsCompetency = uiState.mechanics.competency,
+                        onMechanicsCompetencyChange = { uiState.mechanics.competency = it },
+                        mechanicsNote = uiState.mechanics.note,
+                        onMechanicsNoteChange = { uiState.mechanics.note = it },
+                        onOpenDeadFlipTutorials = actions::openDeadFlipTutorials,
+                    )
+                    val settingsRouteContext = PracticeSettingsRouteContext(
+                        store = store,
+                        importStatus = uiState.presentation.importStatus,
+                        onImportLplCsv = actions::importLplCsv,
+                        onOpenResetDialog = actions::openResetDialog,
+                    )
+                    val journalRouteContext = PracticeJournalRouteContext(
+                        store = store,
+                        journalFilter = uiState.journal.filter,
+                        onJournalFilterChange = { uiState.journal.filter = it },
+                        journalSelectionMode = uiState.journal.selectionMode,
+                        selectedJournalRowIds = uiState.journal.selectedRowIds,
+                        onJournalSelectionModeChange = { uiState.journal.selectionMode = it },
+                        onSelectedJournalRowIdsChange = { uiState.journal.selectedRowIds = it },
+                        onOpenGame = actions::openPracticeGame,
+                        timelineModifier = Modifier.fillMaxSize(),
+                    )
+                    val gameRouteContext = PracticeGameRouteContext(
+                        store = store,
+                        selectedGame = selectedGame,
+                        gameSubview = uiState.game.subview,
+                        onGameSubviewChange = { updated -> uiState.game.subview = updated },
+                        gameSummaryDraft = uiState.game.summaryDraft,
+                        onGameSummaryDraftChange = { updated -> uiState.game.summaryDraft = updated },
+                        activeGameVideoId = uiState.game.activeVideoId,
+                        onActiveGameVideoIdChange = { updated -> uiState.game.activeVideoId = updated },
+                        onOpenQuickEntry = { activity, origin ->
+                            actions.openQuickEntry(activity, origin, true)
+                        },
+                        onOpenRulesheet = actions::openRulesheet,
+                        onOpenExternalRulesheet = actions::openExternalRulesheet,
+                        onOpenPlayfield = actions::openPlayfield,
+                    )
+                    PracticeScreenRouteContent(
+                        route = uiState.navigation.route,
+                        gameContext = gameRouteContext,
+                        searchGames = store.searchCatalogGames,
+                        isLoadingSearchGames = store.isLoadingSearchCatalog,
+                        onOpenSearchGame = actions::openPracticeGame,
+                        homeContext = homeRouteContext,
+                        ifpaProfileContext = ifpaProfileContext,
+                        groupDashboardContext = groupDashboardContext,
+                        groupEditorContext = groupEditorRouteContext,
+                        journalContext = journalRouteContext,
+                        insightsContext = insightsRouteContext,
+                        mechanicsContext = mechanicsRouteContext,
+                        settingsContext = settingsRouteContext,
+                    )
+                }
+
+                if (showsHomeBootstrapShield) {
+                    PracticeBootstrapInteractionShield()
+                }
+            }
         }
     }
 
@@ -316,4 +342,23 @@ internal fun PracticeScreen(
             onOpenResetDialogChange = { open -> uiState.presentation.openResetDialog = open },
         ),
     )
+}
+
+@Composable
+private fun PracticeBootstrapInteractionShield() {
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {},
+            ),
+    ) {
+        AppFullscreenStatusOverlay(
+            text = "Refreshing practice data…",
+            showsProgress = true,
+        )
+    }
 }

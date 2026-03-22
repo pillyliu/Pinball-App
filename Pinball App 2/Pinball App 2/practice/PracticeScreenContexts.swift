@@ -249,8 +249,6 @@ extension PracticeScreen {
                 hasRunInitialPracticeLoad = true
                 await store.loadIfNeeded()
                 applyDefaultsAfterLoad()
-                await refreshLeaguePlayerOptions()
-                await refreshHeadToHead()
                 let trimmedName = uiState.playerName.trimmingCharacters(in: .whitespacesAndNewlines)
                 if trimmedName.isEmpty {
                     uiState.firstNamePromptValue = ""
@@ -273,6 +271,7 @@ extension PracticeScreen {
             },
             onLibrarySourcesChanged: {
                 await store.loadGames()
+                await store.ensureSearchCatalogGamesLoadedForStoredReferencesIfNeeded()
                 applyDefaultsAfterLoad()
             }
         )

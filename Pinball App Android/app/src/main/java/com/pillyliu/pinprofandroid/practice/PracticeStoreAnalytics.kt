@@ -4,6 +4,58 @@ import com.pillyliu.pinprofandroid.library.PinballGame
 import java.util.Calendar
 import kotlin.math.roundToInt
 
+internal fun computeDashboardAlertsForGame(
+    journalEntries: List<JournalEntry>,
+    scoreSummary: ScoreSummary?,
+    nowMs: Long = System.currentTimeMillis(),
+): List<PracticeDashboardAlert> {
+    val dayMs = 24L * 60L * 60L * 1000L
+    val rulesheetLast = journalEntries
+        .firstOrNull { it.action == "rulesheetRead" }
+        ?.timestampMs
+    val practiceLast = journalEntries
+        .firstOrNull { it.action == "practiceSession" }
+        ?.timestampMs
+
+    val alerts = buildList {
+        if (rulesheetLast == null) {
+            add(PracticeDashboardAlert("No rulesheet reading logged yet.", PracticeDashboardAlert.Severity.INFO))
+        } else {
+            val days = ((nowMs - rulesheetLast) / dayMs).toInt()
+            if (days >= 90) {
+                add(PracticeDashboardAlert("Rulesheet last read $days days ago.", PracticeDashboardAlert.Severity.WARNING))
+            }
+        }
+
+        if (practiceLast == null) {
+            add(PracticeDashboardAlert("No practice sessions logged yet.", PracticeDashboardAlert.Severity.INFO))
+        } else {
+            val days = ((nowMs - practiceLast) / dayMs).toInt()
+            if (days >= 14) {
+                add(PracticeDashboardAlert("No practice logged in the last $days days.", PracticeDashboardAlert.Severity.WARNING))
+            }
+        }
+
+        if (scoreSummary != null && scoreSummary.median > 0.0) {
+            val spreadRatio = (scoreSummary.targetHigh - scoreSummary.targetFloor) / scoreSummary.median
+            if (spreadRatio >= 0.6) {
+                add(
+                    PracticeDashboardAlert(
+                        "Score variance is high (wide floor-to-upper spread).",
+                        PracticeDashboardAlert.Severity.CAUTION,
+                    ),
+                )
+            }
+        }
+
+        if (isEmpty()) {
+            add(PracticeDashboardAlert("No immediate alerts for this game.", PracticeDashboardAlert.Severity.INFO))
+        }
+    }
+
+    return alerts
+}
+
 internal fun scoreValuesForGame(scores: List<ScoreEntry>, gameSlug: String): List<Double> =
     scores.filter { it.gameSlug == gameSlug }.sortedByDescending { it.timestampMs }.map { it.score }
 

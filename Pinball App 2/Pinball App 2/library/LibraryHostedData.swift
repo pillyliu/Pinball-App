@@ -51,6 +51,19 @@ func loadHostedCatalogManufacturerOptions() async throws -> [PinballCatalogManuf
     return []
 }
 
+func warmHostedCAFData() async {
+    await PinballPerformanceTrace.measure("HostedCAFWarmup", detail: "count=\(hostedCAFDataPaths.count)") {
+        for path in hostedCAFDataPaths {
+            _ = try? await PinballPerformanceTrace.measure("HostedCAFAssetLoad", detail: path) {
+                try await loadHostedOrCachedPinballJSONData(
+                    path: path,
+                    allowMissing: path != hostedOPDBExportPath
+                )
+            }
+        }
+    }
+}
+
 func loadHostedOrCachedPinballJSONData(
     path: String,
     allowMissing: Bool = false,

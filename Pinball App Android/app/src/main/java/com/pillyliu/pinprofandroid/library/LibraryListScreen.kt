@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
+import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.AppOverlaySubtitle
 import com.pillyliu.pinprofandroid.ui.AppOverlayTitleWithVariant
@@ -74,7 +75,6 @@ internal fun LibraryList(
     val selectedSource = browseState.selectedSource
     val sortOptions = browseState.sortOptions
     val fallbackSort = browseState.fallbackSort
-    val sortOption = browseState.sortOption
     var visibleCount by remember(
         browseState.selectedSourceId,
         browseState.query,
@@ -88,23 +88,47 @@ internal fun LibraryList(
     val hasMoreGames = remember(browseState, visibleCount) { browseState.hasMoreGames(visibleCount) }
     val showGroupedView = browseState.showGroupedView
     val groupedSections = remember(browseState, visibleCount) { browseState.groupedSections(visibleCount) }
+    val showsLoadingOverlay = isLoading && browseState.games.isEmpty()
+    val showsListChrome = browseState.games.isNotEmpty()
 
     AppScreen(contentPadding) {
         val controlsTopOffset = 2.dp
         val controlsTopInset = if (isLandscape) 64.dp else 64.dp
         Box(modifier = Modifier.fillMaxSize()) {
-            if (browseState.games.isNotEmpty()) {
-                Column(
-                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = controlsTopInset),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    if (showGroupedView) {
-                        groupedSections.forEachIndexed { idx, section ->
-                            if (idx > 0) {
-                                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), thickness = 1.dp)
+            when {
+                showsLoadingOverlay -> {
+                    AppFullscreenStatusOverlay(
+                        text = "Loading library…",
+                        showsProgress = true,
+                    )
+                }
+
+                browseState.games.isNotEmpty() -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(top = controlsTopInset),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        if (showGroupedView) {
+                            groupedSections.forEachIndexed { idx, section ->
+                                if (idx > 0) {
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), thickness = 1.dp)
+                                }
+                                LibrarySectionGrid(
+                                    games = section.games,
+                                    onOpenGame = onOpenGame,
+                                    onGameAppear = { game ->
+                                        if (hasMoreGames && visibleGames.lastOrNull()?.slug == game.slug) {
+                                            visibleCount += 36
+                                        }
+                                    },
+                                )
                             }
+                        } else {
                             LibrarySectionGrid(
-                                games = section.games,
+                                games = visibleGames,
                                 onOpenGame = onOpenGame,
                                 onGameAppear = { game ->
                                     if (hasMoreGames && visibleGames.lastOrNull()?.slug == game.slug) {
@@ -113,60 +137,48 @@ internal fun LibraryList(
                                 },
                             )
                         }
-                    } else {
-                        LibrarySectionGrid(
-                            games = visibleGames,
-                            onOpenGame = onOpenGame,
-                            onGameAppear = { game ->
-                                if (hasMoreGames && visibleGames.lastOrNull()?.slug == game.slug) {
-                                    visibleCount += 36
-                                }
-                            },
-                        )
+                        Spacer(Modifier.height(LIBRARY_CONTENT_BOTTOM_FILLER))
                     }
-                    Spacer(Modifier.height(LIBRARY_CONTENT_BOTTOM_FILLER))
                 }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = controlsTopInset),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    when {
-                        isLoading -> AppPanelStatusCard(
-                            text = "Loading library…",
-                            showsProgress = true,
-                        )
-                        !errorMessage.isNullOrBlank() -> AppPanelStatusCard(
-                            text = errorMessage,
-                            isError = true,
-                        )
-                        else -> AppPanelEmptyCard(text = "No data loaded.")
+
+                else -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        when {
+                            !errorMessage.isNullOrBlank() -> AppPanelStatusCard(
+                                text = errorMessage,
+                                isError = true,
+                            )
+                            else -> AppPanelEmptyCard(text = "No data loaded.")
+                        }
                     }
                 }
             }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = controlsTopOffset),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                AppSearchFilterBar(
-                    query = browseState.query,
-                    onQueryChange = onQueryChange,
-                    placeholder = "Search games...",
-                    onFilterClick = { showFilterSheet = true },
-                    minHeight = searchControlMinHeight,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = searchFontSize),
-                    placeholderTextStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = searchFontSize),
-                )
+            if (showsListChrome) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = controlsTopOffset),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    AppSearchFilterBar(
+                        query = browseState.query,
+                        onQueryChange = onQueryChange,
+                        placeholder = "Search games...",
+                        onFilterClick = { showFilterSheet = true },
+                        minHeight = searchControlMinHeight,
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = searchFontSize),
+                        placeholderTextStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = searchFontSize),
+                    )
+                }
             }
         }
     }
 
-    if (showFilterSheet) {
+    if (showFilterSheet && showsListChrome) {
         AppFilterSheet(
             title = "Library filters",
             onDismissRequest = { showFilterSheet = false },

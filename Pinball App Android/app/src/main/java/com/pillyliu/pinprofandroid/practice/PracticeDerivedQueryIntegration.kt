@@ -3,21 +3,47 @@ package com.pillyliu.pinprofandroid.practice
 import com.pillyliu.pinprofandroid.library.PinballGame
 
 internal class PracticeDerivedQueryIntegration {
+    private var cachedScoresRef: List<ScoreEntry>? = null
+    private var cachedJournalRef: List<JournalEntry>? = null
+    private var cachedScoreEntriesByGame: Map<String, List<ScoreEntry>> = emptyMap()
+    private var cachedJournalEntriesByGame: Map<String, List<JournalEntry>> = emptyMap()
+    private val cachedScoreSummariesByGame = mutableMapOf<String, ScoreSummary?>()
+
     fun scoreValues(
         scores: List<ScoreEntry>,
         canonicalGameID: String,
-    ): List<Double> = scoreValuesForGame(scores, canonicalGameID)
+    ): List<Double> = cachedScoreEntries(scores, canonicalGameID).map { it.score }
 
     fun scoreTrendValues(
         scores: List<ScoreEntry>,
         canonicalGameID: String,
         limit: Int,
-    ): List<Double> = scoreTrendValuesForGame(scores, canonicalGameID, limit)
+    ): List<Double> = cachedScoreEntries(scores, canonicalGameID)
+        .sortedBy { it.timestampMs }
+        .takeLast(limit)
+        .map { it.score }
 
     fun scoreSummary(
         scores: List<ScoreEntry>,
         canonicalGameID: String,
-    ): ScoreSummary? = computeScoreSummaryForGame(scores, canonicalGameID)
+    ): ScoreSummary? {
+        ensureScoreCaches(scores)
+        if (cachedScoreSummariesByGame.containsKey(canonicalGameID)) {
+            return cachedScoreSummariesByGame[canonicalGameID]
+        }
+
+        val summary = computeScoreSummaryForGame(cachedScoreEntries(scores, canonicalGameID), canonicalGameID)
+        cachedScoreSummariesByGame[canonicalGameID] = summary
+        return summary
+    }
+
+    fun journalEntriesForGame(
+        journal: List<JournalEntry>,
+        canonicalGameID: String,
+    ): List<JournalEntry> {
+        ensureJournalCaches(journal)
+        return cachedJournalEntriesByGame[canonicalGameID].orEmpty()
+    }
 
     fun groupDashboardScore(
         group: PracticeGroup,
@@ -96,4 +122,29 @@ internal class PracticeDerivedQueryIntegration {
         canonicalGameID: String,
     ): String = practiceDisplayTitleForKey(canonicalGameID, lookupGames)
         ?: gameNameForSlug(lookupGames, canonicalGameID)
+
+    private fun ensureScoreCaches(scores: List<ScoreEntry>) {
+        if (cachedScoresRef === scores) return
+        cachedScoresRef = scores
+        cachedScoreEntriesByGame = scores
+            .groupBy { it.gameSlug }
+            .mapValues { (_, entries) -> entries.sortedByDescending { it.timestampMs } }
+        cachedScoreSummariesByGame.clear()
+    }
+
+    private fun ensureJournalCaches(journal: List<JournalEntry>) {
+        if (cachedJournalRef === journal) return
+        cachedJournalRef = journal
+        cachedJournalEntriesByGame = journal
+            .groupBy { it.gameSlug }
+            .mapValues { (_, entries) -> entries.sortedByDescending { it.timestampMs } }
+    }
+
+    private fun cachedScoreEntries(
+        scores: List<ScoreEntry>,
+        canonicalGameID: String,
+    ): List<ScoreEntry> {
+        ensureScoreCaches(scores)
+        return cachedScoreEntriesByGame[canonicalGameID].orEmpty()
+    }
 }

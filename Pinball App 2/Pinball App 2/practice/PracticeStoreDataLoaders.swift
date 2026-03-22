@@ -1,54 +1,58 @@
 import Foundation
 
+struct PracticeLibraryLoadResult {
+    let games: [PinballGame]
+    let allGames: [PinballGame]
+    let sources: [PinballLibrarySource]
+    let defaultSourceID: String?
+    let isFullLibraryScope: Bool
+}
+
 extension PracticeStore {
     private static let preferredLibrarySourceDefaultsKey = "preferred-library-source-id"
 
     func loadGames() async {
+        let initialLibraryState = await loadInitialLibraryState()
+        applyLibraryState(initialLibraryState)
+        saveHomeBootstrapSnapshotIfNeeded()
+    }
+
+    func loadInitialLibraryState() async -> PracticeLibraryLoadResult {
         isLoadingGames = true
-        isLoadingSearchCatalog = true
         defer {
             isLoadingGames = false
-            isLoadingSearchCatalog = false
         }
 
-        do {
-            async let extractionTask = loadFullLibraryExtraction()
-            async let bankTemplatesTask = loadPracticeAvenueBankTemplateGames()
-            async let searchCatalogTask = loadPracticeCatalogGames()
+        return await PinballPerformanceTrace.measure("PracticeInitialLibraryLoad") {
+            do {
+                return try await loadPracticeLibraryState(fullLibraryScope: false)
+            } catch {
+                lastErrorMessage = "Failed to load library for practice upgrade: \(error.localizedDescription)"
+                return PracticeLibraryLoadResult(
+                    games: [],
+                    allGames: [],
+                    sources: [],
+                    defaultSourceID: nil,
+                    isFullLibraryScope: false
+                )
+            }
+        }
+    }
 
-            let extraction = try await extractionTask
-            let bankTemplates = try await bankTemplatesTask
-            let loadedSearchCatalogGames = (try? await searchCatalogTask) ?? searchCatalogGames
-            let payload = extraction.payload
-            let savedSourceID = UserDefaults.standard.string(forKey: Self.preferredLibrarySourceDefaultsKey)
-            let preferredCandidates = [extraction.state.selectedSourceID, savedSourceID]
-            let selectedSource =
-                preferredCandidates.compactMap { $0 }.first(where: { id in payload.sources.contains(where: { $0.id == id }) })
-                    .flatMap { id in payload.sources.first(where: { $0.id == id }) }
-                ?? payload.sources.first
-            allLibraryGames = payload.games
-            librarySources = payload.sources
-            defaultPracticeSourceID = selectedSource?.id
-            if let selectedSource {
-                UserDefaults.standard.set(selectedSource.id, forKey: Self.preferredLibrarySourceDefaultsKey)
-                var state = extraction.state
-                state.selectedSourceID = selectedSource.id
-                PinballLibrarySourceStateStore.save(state)
+    func ensureAllLibraryGamesLoaded() async {
+        guard !didLoadAllLibraryGames, !isLoadingAllLibraryGames else { return }
+
+        isLoadingAllLibraryGames = true
+        defer { isLoadingAllLibraryGames = false }
+
+        await PinballPerformanceTrace.measure("PracticeFullLibraryHydration") {
+            do {
+                let fullState = try await loadPracticeLibraryState(fullLibraryScope: true)
+                applyLibraryState(fullState)
+                saveHomeBootstrapSnapshotIfNeeded()
+            } catch {
+                lastErrorMessage = "Failed to load full practice library: \(error.localizedDescription)"
             }
-            bankTemplateGames = bankTemplates
-            searchCatalogGames = loadedSearchCatalogGames
-            if let selectedSource {
-                games = payload.games.filter { $0.sourceId == selectedSource.id }
-            } else {
-                games = payload.games
-            }
-        } catch {
-            games = []
-            allLibraryGames = []
-            librarySources = []
-            bankTemplateGames = []
-            defaultPracticeSourceID = nil
-            lastErrorMessage = "Failed to load library for practice upgrade: \(error.localizedDescription)"
         }
     }
 
@@ -60,38 +64,85 @@ extension PracticeStore {
         isLoadingSearchCatalog = true
         defer { isLoadingSearchCatalog = false }
 
-        do {
-            searchCatalogGames = try await loadPracticeCatalogGames()
-        } catch {
-            if searchCatalogGames.isEmpty {
-                lastErrorMessage = "Failed to load practice search catalog: \(error.localizedDescription)"
+        await PinballPerformanceTrace.measure("PracticeSearchCatalogLoad") {
+            do {
+                searchCatalogGames = try await loadPracticeCatalogGames()
+                saveHomeBootstrapSnapshotIfNeeded()
+            } catch {
+                if searchCatalogGames.isEmpty {
+                    lastErrorMessage = "Failed to load practice search catalog: \(error.localizedDescription)"
+                }
             }
         }
     }
 
+    func ensureSearchCatalogGamesLoadedForStoredReferencesIfNeeded() async {
+        guard shouldLoadSearchCatalogForStoredReferences else { return }
+        await ensureSearchCatalogGamesLoaded()
+    }
+
+    func ensureBankTemplateGamesLoadedForStoredReferencesIfNeeded() async {
+        guard shouldLoadBankTemplateGamesForStoredReferences else { return }
+        await ensureBankTemplateGamesLoaded()
+    }
+
+    func ensureAllLibraryGamesLoadedForStoredReferencesIfNeeded() async {
+        guard shouldLoadAllLibraryGamesForStoredReferences else { return }
+        await ensureAllLibraryGamesLoaded()
+    }
+
+    func ensureBankTemplateGamesLoaded() async {
+        guard bankTemplateGames.isEmpty, !isLoadingBankTemplateGames else { return }
+
+        isLoadingBankTemplateGames = true
+        defer { isLoadingBankTemplateGames = false }
+
+        await PinballPerformanceTrace.measure("PracticeBankTemplateLoad") {
+            do {
+                bankTemplateGames = try await loadPracticeAvenueBankTemplateGames()
+                saveHomeBootstrapSnapshotIfNeeded()
+            } catch {
+                bankTemplateGames = []
+                lastErrorMessage = "Failed to load practice bank templates: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    func ensureLeagueTargetsLoaded() async {
+        guard !didLoadLeagueTargets, !isLoadingLeagueTargets else { return }
+
+        isLoadingLeagueTargets = true
+        defer { isLoadingLeagueTargets = false }
+
+        await loadLeagueTargets()
+        didLoadLeagueTargets = true
+    }
+
     func loadLeagueTargets() async {
-        do {
-            let resolvedCached = try await PinballDataCache.shared.loadText(path: Self.resolvedLeagueTargetsPath, allowMissing: true)
-            if let resolvedText = resolvedCached.text, !resolvedText.isEmpty {
-                let resolvedRecords = parseResolvedLeagueTargets(text: resolvedText)
-                if !resolvedRecords.isEmpty {
-                    leagueTargetsByPracticeIdentity = resolvedLeagueTargetScoresByPracticeIdentity(records: resolvedRecords)
+        await PinballPerformanceTrace.measure("PracticeLeagueTargetsLoad") {
+            do {
+                let resolvedCached = try await PinballDataCache.shared.loadText(path: Self.resolvedLeagueTargetsPath, allowMissing: true)
+                if let resolvedText = resolvedCached.text, !resolvedText.isEmpty {
+                    let resolvedRecords = parseResolvedLeagueTargets(text: resolvedText)
+                    if !resolvedRecords.isEmpty {
+                        leagueTargetsByPracticeIdentity = resolvedLeagueTargetScoresByPracticeIdentity(records: resolvedRecords)
+                        leagueTargetsByNormalizedMachine = [:]
+                        return
+                    }
+                }
+
+                let cached = try await PinballDataCache.shared.loadText(path: Self.leagueTargetsPath, allowMissing: true)
+                guard let text = cached.text, !text.isEmpty else {
+                    leagueTargetsByPracticeIdentity = [:]
                     leagueTargetsByNormalizedMachine = [:]
                     return
                 }
-            }
-
-            let cached = try await PinballDataCache.shared.loadText(path: Self.leagueTargetsPath, allowMissing: true)
-            guard let text = cached.text, !text.isEmpty else {
+                leagueTargetsByPracticeIdentity = [:]
+                leagueTargetsByNormalizedMachine = parseLeagueTargets(text: text)
+            } catch {
                 leagueTargetsByPracticeIdentity = [:]
                 leagueTargetsByNormalizedMachine = [:]
-                return
             }
-            leagueTargetsByPracticeIdentity = [:]
-            leagueTargetsByNormalizedMachine = parseLeagueTargets(text: text)
-        } catch {
-            leagueTargetsByPracticeIdentity = [:]
-            leagueTargetsByNormalizedMachine = [:]
         }
     }
 
@@ -149,6 +200,95 @@ extension PracticeStore {
             state.selectedSourceID = nil
             PinballLibrarySourceStateStore.save(state)
         }
+        saveHomeBootstrapSnapshotIfNeeded()
+    }
+
+    func applyLibraryState(_ state: PracticeLibraryLoadResult) {
+        games = state.games
+        allLibraryGames = state.allGames
+        librarySources = state.sources
+        defaultPracticeSourceID = state.defaultSourceID
+        didLoadAllLibraryGames = state.isFullLibraryScope
+        if let selectedSourceID = state.defaultSourceID {
+            UserDefaults.standard.set(selectedSourceID, forKey: Self.preferredLibrarySourceDefaultsKey)
+            var sourceState = PinballLibrarySourceStateStore.load()
+            sourceState.selectedSourceID = selectedSourceID
+            PinballLibrarySourceStateStore.save(sourceState)
+        }
+    }
+
+    private func loadPracticeLibraryState(fullLibraryScope: Bool) async throws -> PracticeLibraryLoadResult {
+        let extraction = try await (fullLibraryScope ? loadFullLibraryExtraction() : loadLibraryExtraction())
+        let payload = extraction.payload
+        let savedSourceID = UserDefaults.standard.string(forKey: Self.preferredLibrarySourceDefaultsKey)
+        let preferredCandidates = [savedSourceID, extraction.state.selectedSourceID]
+        let selectedSource =
+            preferredCandidates.compactMap { $0 }.first(where: { id in payload.sources.contains(where: { $0.id == id }) })
+                .flatMap { id in payload.sources.first(where: { $0.id == id }) }
+            ?? payload.sources.first
+
+        return PracticeLibraryLoadResult(
+            games: selectedSource.map { source in
+                payload.games.filter { $0.sourceId == source.id }
+            } ?? payload.games,
+            allGames: payload.games,
+            sources: payload.sources,
+            defaultSourceID: selectedSource?.id,
+            isFullLibraryScope: fullLibraryScope
+        )
+    }
+
+    private var shouldLoadAllLibraryGamesForStoredReferences: Bool {
+        guard !didLoadAllLibraryGames else { return false }
+        return storedPracticeReferenceIDs.contains(where: needsAllLibraryGamesForStoredReference)
+    }
+
+    private var shouldLoadBankTemplateGamesForStoredReferences: Bool {
+        guard bankTemplateGames.isEmpty else { return false }
+        return storedPracticeReferenceIDs.contains(where: needsBankTemplateGamesForStoredReference)
+    }
+
+    private var shouldLoadSearchCatalogForStoredReferences: Bool {
+        guard searchCatalogGames.isEmpty else { return false }
+        return storedPracticeReferenceIDs.contains(where: needsSearchCatalogForStoredReference)
+    }
+
+    private var storedPracticeReferenceIDs: [String] {
+        let defaults = UserDefaults.standard
+        var ids: [String] = []
+        ids += state.studyEvents.map(\.gameID)
+        ids += state.videoProgressEntries.map(\.gameID)
+        ids += state.scoreEntries.map(\.gameID)
+        ids += state.noteEntries.map(\.gameID)
+        ids += state.journalEntries.map(\.gameID)
+        ids += state.customGroups.flatMap(\.gameIDs)
+        ids += Array(state.rulesheetResumeOffsets.keys)
+        ids += Array(state.videoResumeHints.keys)
+        ids += Array(state.gameSummaryNotes.keys)
+        ids += Self.practicePreferenceGameIDKeys.compactMap { defaults.string(forKey: $0) }
+        return ids
+    }
+
+    private func needsSearchCatalogForStoredReference(_ raw: String) -> Bool {
+        let parsed = parseSourceScopedPracticeGameID(raw)
+        let trimmed = parsed.gameID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, parsed.sourceID == nil else { return false }
+        if gameForAnyID(trimmed) != nil { return false }
+        return legacyPracticeKeyMatch(for: trimmed) == nil
+    }
+
+    private func needsBankTemplateGamesForStoredReference(_ raw: String) -> Bool {
+        let parsed = parseSourceScopedPracticeGameID(raw)
+        let sourceID = canonicalLibrarySourceID(parsed.sourceID)
+        guard sourceID == pmAvenueLibrarySourceID else { return false }
+        return gameForAnyID(raw) == nil
+    }
+
+    private func needsAllLibraryGamesForStoredReference(_ raw: String) -> Bool {
+        let parsed = parseSourceScopedPracticeGameID(raw)
+        let sourceID = canonicalLibrarySourceID(parsed.sourceID)
+        guard let sourceID, sourceID != pmAvenueLibrarySourceID else { return false }
+        return gameForAnyID(raw) == nil
     }
 }
 

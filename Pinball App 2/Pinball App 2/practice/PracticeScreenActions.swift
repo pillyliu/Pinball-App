@@ -152,6 +152,7 @@ extension PracticeScreen {
         guard !canonical.isEmpty else { return }
         practiceLastViewedGameID = canonical
         practiceLastViewedGameTS = Date().timeIntervalSince1970
+        store.saveHomeBootstrapSnapshotIfNeeded()
     }
 
     func openGroupEditorForSelection() {

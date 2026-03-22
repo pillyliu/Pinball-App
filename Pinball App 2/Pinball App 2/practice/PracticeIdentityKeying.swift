@@ -65,7 +65,7 @@ private func practiceRepresentativeScore(_ game: PinballGame) -> Int {
 
 extension PracticeStore {
     private static let practiceIdentityAliases: [String: String] = [:]
-    private static let practicePreferenceGameIDKeys: [String] = [
+    static let practicePreferenceGameIDKeys: [String] = [
         "practice-quick-game-score",
         "practice-quick-game-study",
         "practice-quick-game-practice",
@@ -136,12 +136,17 @@ extension PracticeStore {
             }
     }
 
-    func migratePracticeStateKeysToCanonicalIfNeeded() {
-        guard !practiceLookupGamesPool.isEmpty else { return }
-        let migrated = migratedStateKeysToCanonical(state)
-        state = migrated
-        saveState()
+    @discardableResult
+    func migratePracticeStateKeysToCanonicalIfNeeded() -> Bool {
+        guard !practiceLookupGamesPool.isEmpty else { return false }
+        var didMigrateState = false
+        if stateNeedsCanonicalMigration(state) {
+            state = migratedStateKeysToCanonical(state)
+            saveState()
+            didMigrateState = true
+        }
         migratePracticePreferenceGameIDsToCanonicalIfNeeded()
+        return didMigrateState
     }
 
     private func migratedStateKeysToCanonical(_ current: PracticePersistedState) -> PracticePersistedState {
@@ -193,7 +198,7 @@ extension PracticeStore {
         }
     }
 
-    private func legacyPracticeKeyMatch(for raw: String) -> PinballGame? {
+    func legacyPracticeKeyMatch(for raw: String) -> PinballGame? {
         let pool = primaryPracticeLookupGamesPool
         if let opdbGroup = extractLikelyOPDBGroupID(from: raw) {
             if let byGroup = pool.first(where: { $0.canonicalPracticeKey.caseInsensitiveCompare(opdbGroup) == .orderedSame }) {
@@ -211,6 +216,25 @@ extension PracticeStore {
             return preferredPracticeRepresentative(canonicalMatches, preferredSourceID: defaultPracticeSourceID)
         }
         return nil
+    }
+
+    private func stateNeedsCanonicalMigration(_ current: PracticePersistedState) -> Bool {
+        func mapsDiffer(_ value: String) -> Bool {
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return false }
+            return canonicalPracticeGameID(trimmed) != trimmed
+        }
+
+        if current.studyEvents.contains(where: { mapsDiffer($0.gameID) }) { return true }
+        if current.videoProgressEntries.contains(where: { mapsDiffer($0.gameID) }) { return true }
+        if current.scoreEntries.contains(where: { mapsDiffer($0.gameID) }) { return true }
+        if current.noteEntries.contains(where: { mapsDiffer($0.gameID) }) { return true }
+        if current.journalEntries.contains(where: { mapsDiffer($0.gameID) }) { return true }
+        if current.customGroups.contains(where: { uniqueGameIDsPreservingOrder($0.gameIDs.map(canonicalPracticeGameID)) != $0.gameIDs }) { return true }
+        if current.rulesheetResumeOffsets.keys.contains(where: mapsDiffer) { return true }
+        if current.videoResumeHints.keys.contains(where: mapsDiffer) { return true }
+        if current.gameSummaryNotes.keys.contains(where: mapsDiffer) { return true }
+        return false
     }
 
     private func extractLikelyOPDBGroupID(from raw: String) -> String? {

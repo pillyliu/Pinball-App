@@ -14,12 +14,7 @@ extension PracticeStore {
         }
 
         do {
-            let cached = try await PinballDataCache.shared.loadText(path: Self.leagueStatsPath)
-            guard let text = cached.text else {
-                throw URLError(.cannotDecodeRawData)
-            }
-
-            let rows = parseLeagueRows(text: text)
+            let rows = try await loadLeagueStatsSnapshot().rows
             let normalizedSelectedPlayer = normalizeHumanName(playerName)
             let matchedRows = rows.filter { normalizeHumanName($0.player) == normalizedSelectedPlayer }
 

@@ -131,6 +131,10 @@ final class PracticeStore: ObservableObject {
     @Published var defaultPracticeSourceID: String?
     @Published var isLoadingGames = false
     @Published var isLoadingSearchCatalog = false
+    @Published var isLoadingAllLibraryGames = false
+    @Published var isLoadingLeagueTargets = false
+    @Published var didLoadLeagueTargets = false
+    @Published var isBootstrapping = true
     @Published var state = PracticePersistedState.empty {
         didSet { invalidateDerivedCaches() }
     }
@@ -143,20 +147,52 @@ final class PracticeStore: ObservableObject {
     static let legacyStorageKey = "practice-upgrade-state-v1"
 
     var didLoad = false
+    var didLoadAllLibraryGames = false
     var leagueTargetsByPracticeIdentity: [String: LeagueTargetScores] = [:]
     var leagueTargetsByNormalizedMachine: [String: LeagueTargetScores] = [:]
+    var cachedLeagueStatsUpdatedAt: Date?
+    var cachedLeagueStatsRows: [LeagueCSVRow] = []
+    var cachedLeaguePlayers: [String] = []
+    var cachedScoreEntriesByGameID: [String: [ScoreLogEntry]] = [:]
+    var cachedScoreSummariesByGameID: [String: ScoreSummary] = [:]
+    var cachedGameJournalEntriesByGameID: [String: [JournalEntry]] = [:]
+    var cachedGameTaskSummaryRowsByGameID: [String: [GameTaskSummaryRow]] = [:]
     var cachedPracticeGameNames: [String: String] = [:]
     var cachedJournalPayloads: [JournalFilter: CachedPracticeJournalPayload] = [:]
     var cachedGroupDashboardDetails: [UUID: GroupDashboardDetail] = [:]
+    var isLoadingBankTemplateGames = false
+    var hasRestoredHomeBootstrapSnapshot = false
+
+    init() {
+        restoreHomeBootstrapSnapshotIfAvailable()
+    }
 
     func loadIfNeeded() async {
-        guard !didLoad else { return }
+        guard !didLoad else {
+            isBootstrapping = false
+            return
+        }
         didLoad = true
+        defer { isBootstrapping = false }
 
-        loadState()
-        await loadGames()
-        migratePracticeStateKeysToCanonicalIfNeeded()
-        await loadLeagueTargets()
+        await PinballPerformanceTrace.measure("PracticeBootstrap") {
+            async let loadedStateTask = Self.loadPersistedStateResult()
+            async let initialLibraryStateTask = loadInitialLibraryState()
+
+            let loadedState = await loadedStateTask
+            let initialLibraryState = await initialLibraryStateTask
+            applyLoadedState(loadedState)
+            applyLibraryState(initialLibraryState)
+            await ensureBankTemplateGamesLoadedForStoredReferencesIfNeeded()
+            await ensureAllLibraryGamesLoadedForStoredReferencesIfNeeded()
+            await ensureSearchCatalogGamesLoadedForStoredReferencesIfNeeded()
+            let migratedState = migratePracticeStateKeysToCanonicalIfNeeded()
+            if let loadedState,
+               loadedState.requiresCanonicalSave && !migratedState {
+                saveState()
+            }
+            saveHomeBootstrapSnapshotIfNeeded()
+        }
     }
 
     func leagueTargetScores(for gameID: String) -> LeagueTargetScores? {
@@ -218,6 +254,10 @@ final class PracticeStore: ObservableObject {
     }
 
     func invalidateDerivedCaches() {
+        cachedScoreEntriesByGameID.removeAll()
+        cachedScoreSummariesByGameID.removeAll()
+        cachedGameJournalEntriesByGameID.removeAll()
+        cachedGameTaskSummaryRowsByGameID.removeAll()
         cachedJournalPayloads.removeAll()
         cachedGroupDashboardDetails.removeAll()
     }

@@ -6,7 +6,7 @@ import androidx.core.content.edit
 
 internal data class LoadedPracticeStatePayload(
     val payload: ParsedPracticeStatePayload,
-    val usedLegacyKey: Boolean,
+    val requiresCanonicalSave: Boolean,
 )
 
 internal fun practiceSharedPreferences(context: Context): SharedPreferences {
@@ -25,7 +25,7 @@ internal fun loadPracticeStatePayload(
     val payload = parsePracticeStatePayloadJson(raw, gameNameForKey) ?: return null
     return LoadedPracticeStatePayload(
         payload = payload,
-        usedLegacyKey = current.isNullOrBlank(),
+        requiresCanonicalSave = current.isNullOrBlank(),
     )
 }
 

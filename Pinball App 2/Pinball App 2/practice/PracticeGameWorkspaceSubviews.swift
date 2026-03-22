@@ -207,12 +207,17 @@ struct PracticeGameSummaryPanel: View {
                         statRow("2nd", formatScore(targets.great), color: AppTheme.targetGreat)
                         statRow("4th", formatScore(targets.main), color: AppTheme.targetMain)
                         statRow("8th", formatScore(targets.floor), color: AppTheme.targetFloor)
+                    } else if store.isLoadingLeagueTargets && !store.didLoadLeagueTargets {
+                        AppPanelEmptyCard(text: "Loading target data...")
                     } else {
                         AppPanelEmptyCard(text: "No target data yet.")
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+        }
+        .task(id: gameID) {
+            await store.ensureLeagueTargetsLoaded()
         }
     }
 

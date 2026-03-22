@@ -44,6 +44,17 @@ internal data class LeagueTargetScores(
     val floor: Double,
 )
 
+internal data class PracticeDashboardAlert(
+    val message: String,
+    val severity: Severity,
+) {
+    internal enum class Severity {
+        INFO,
+        WARNING,
+        CAUTION,
+    }
+}
+
 internal data class HeadToHeadGameStats(
     val gameSlug: String,
     val gameName: String,

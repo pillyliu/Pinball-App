@@ -24,6 +24,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -114,6 +115,9 @@ private fun PracticeGameSummaryPanel(
     game: PinballGame,
 ) {
     val gameKey = game.practiceKey
+    LaunchedEffect(gameKey) {
+        store.ensureLeagueTargetsLoaded()
+    }
     val summary = store.scoreSummaryFor(gameKey)
     val activeGroup = store.activeGroupForGame(gameKey)
     if (activeGroup != null) {
@@ -158,7 +162,12 @@ private fun PracticeGameSummaryPanel(
             AppCardSubheading("Target Scores")
             val targets = store.leagueTargetScoresFor(gameKey)
             if (targets == null) {
-                AppPanelEmptyCard(text = "No target data yet.")
+                val emptyStateText = if (store.isLoadingLeagueTargets && !store.didLoadLeagueTargets) {
+                    "Loading target data..."
+                } else {
+                    "No target data yet."
+                }
+                AppPanelEmptyCard(text = emptyStateText)
             } else {
                 StatRow("2nd", formatScore(targets.great), tint = MaterialTheme.colorScheme.tertiary)
                 StatRow("4th", formatScore(targets.main), tint = MaterialTheme.colorScheme.primary)
@@ -221,8 +230,7 @@ private fun PracticeGameLogPanel(
     onDeleteLogEntry: (JournalEntry) -> Unit,
 ) {
     AppCardSubheading("Log")
-    val logRows = store.journalItems(JournalFilter.All)
-        .filter { it.gameSlug == gameKey }
+    val logRows = store.gameJournalEntriesFor(gameKey)
         .map { row ->
             JournalTimelineRow(
                 id = "app-${row.id}",

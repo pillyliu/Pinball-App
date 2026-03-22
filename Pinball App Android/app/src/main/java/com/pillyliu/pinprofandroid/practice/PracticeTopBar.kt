@@ -27,6 +27,7 @@ import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 internal fun PracticeTopBar(
     route: PracticeRoute,
     playerName: String,
+    showsGenericGreeting: Boolean = false,
     editingGroupID: String?,
     gamePickerContext: PracticeTopBarGamePickerContext? = null,
     onBack: () -> Unit,
@@ -58,6 +59,7 @@ internal fun PracticeTopBar(
             if (route == PracticeRoute.Home) {
                 PracticeWelcomeTitle(
                     playerName = playerName,
+                    showsGenericGreeting = showsGenericGreeting,
                     onOpenIfpaProfile = onOpenIfpaProfile,
                     modifier = Modifier
                         .weight(1f)
@@ -129,12 +131,13 @@ private fun practiceTopTitle(
 @Composable
 private fun PracticeWelcomeTitle(
     playerName: String,
+    showsGenericGreeting: Boolean,
     onOpenIfpaProfile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = PinballThemeTokens.colors
     val trimmed = playerName.trim()
-    if (trimmed.isBlank()) {
+    if (showsGenericGreeting || trimmed.isBlank()) {
         Text(
             text = "Welcome back",
             color = colors.brandInk,

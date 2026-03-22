@@ -2,7 +2,10 @@ package com.pillyliu.pinprofandroid.practice
 
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.pillyliu.pinprofandroid.PinballPerformanceTrace
 import com.pillyliu.pinprofandroid.library.PinballGame
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal data class PracticePersistenceMigrationResult(
     val runtimeState: PracticePersistedState,
@@ -14,8 +17,10 @@ internal class PracticePersistenceIntegration(
     private val gameNameForSlug: (String) -> String,
     private val quickGamePrefKeys: List<String>,
 ) {
-    fun loadState(): LoadedPracticeStatePayload? {
-        return loadPracticeStatePayload(prefs, gameNameForSlug)
+    suspend fun loadState(): LoadedPracticeStatePayload? = PinballPerformanceTrace.measureSuspend("PracticeStateDecode") {
+        withContext(Dispatchers.IO) {
+            loadPracticeStatePayload(prefs, gameNameForSlug)
+        }
     }
 
     fun saveState(

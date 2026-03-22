@@ -78,21 +78,23 @@ struct LibraryScreen: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    if isCompactWidth {
-                        Button {
-                            isSearchPresented = true
+                    if !viewModel.games.isEmpty {
+                        if isCompactWidth {
+                            Button {
+                                isSearchPresented = true
+                            } label: {
+                                AppToolbarSearchTriggerLabel()
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Menu {
+                            filterMenuSections
                         } label: {
-                            AppToolbarSearchTriggerLabel()
+                            AppToolbarFilterTriggerLabel()
                         }
                         .buttonStyle(.plain)
                     }
-
-                    Menu {
-                        filterMenuSections
-                    } label: {
-                        AppToolbarFilterTriggerLabel()
-                    }
-                    .buttonStyle(.plain)
                 }
             }
             .task {

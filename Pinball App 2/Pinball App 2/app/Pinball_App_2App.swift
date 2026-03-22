@@ -23,6 +23,7 @@ struct Pinball_App_2App: App {
                 .task {
                     await migrateLegacyPinnedVenueImportsIfNeeded()
                     await refreshRedactedPlayersFromCSV()
+                    await warmHostedCAFData()
                 }
         }
         .onChange(of: scenePhase) { _, phase in

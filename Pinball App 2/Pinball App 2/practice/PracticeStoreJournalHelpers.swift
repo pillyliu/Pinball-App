@@ -17,9 +17,11 @@ extension PracticeStore {
 
     func scoreSummary(for gameID: String) -> ScoreSummary? {
         let gameID = canonicalPracticeGameID(gameID)
-        let values = state.scoreEntries
-            .filter { $0.gameID == gameID }
-            .map(\.score)
+        if let cached = cachedScoreSummariesByGameID[gameID] {
+            return cached
+        }
+
+        let values = cachedScoreEntries(for: gameID).map(\.score)
 
         guard !values.isEmpty else { return nil }
 
@@ -33,13 +35,15 @@ extension PracticeStore {
             median = sorted[sorted.count / 2]
         }
 
-        return ScoreSummary(
+        let summary = ScoreSummary(
             average: average,
             median: median,
             floor: sorted.first ?? average,
             p25: values.pinballPercentile(0.25) ?? average,
             p75: values.pinballPercentile(0.75) ?? average
         )
+        cachedScoreSummariesByGameID[gameID] = summary
+        return summary
     }
 
     func recentJournalEntries(limit: Int = 60) -> [JournalEntry] {
@@ -57,18 +61,26 @@ extension PracticeStore {
 
     func gameJournalEntries(for gameID: String) -> [JournalEntry] {
         let gameID = canonicalPracticeGameID(gameID)
-        return state.journalEntries
+        if let cached = cachedGameJournalEntriesByGameID[gameID] {
+            return cached
+        }
+        let entries = state.journalEntries
             .filter { $0.gameID == gameID }
             .sorted { $0.timestamp > $1.timestamp }
+        cachedGameJournalEntriesByGameID[gameID] = entries
+        return entries
     }
 
     func gameTaskSummary(for gameID: String) -> [GameTaskSummaryRow] {
         let gameID = canonicalPracticeGameID(gameID)
-        return StudyTaskKind.allCases.map { task in
+        if let cached = cachedGameTaskSummaryRowsByGameID[gameID] {
+            return cached
+        }
+
+        let journalEntries = gameJournalEntries(for: gameID)
+        let summaryRows = StudyTaskKind.allCases.map { task in
             let action = actionType(for: task)
-            let taskLogs = state.journalEntries
-                .filter { $0.gameID == gameID && $0.action == action }
-                .sorted { $0.timestamp > $1.timestamp }
+            let taskLogs = journalEntries.filter { $0.action == action }
             let latestProgress = state.studyEvents
                 .filter { $0.gameID == gameID && $0.task == task }
                 .sorted { $0.timestamp > $1.timestamp }
@@ -82,6 +94,8 @@ extension PracticeStore {
                 latestProgress: latestProgress
             )
         }
+        cachedGameTaskSummaryRowsByGameID[gameID] = summaryRows
+        return summaryRows
     }
 
     func journalSummary(for entry: JournalEntry) -> String {
@@ -161,12 +175,7 @@ extension PracticeStore {
 
     func recentScores(for gameID: String, limit: Int = 10) -> [ScoreLogEntry] {
         let gameID = canonicalPracticeGameID(gameID)
-        return Array(
-            state.scoreEntries
-                .filter { $0.gameID == gameID }
-                .sorted { $0.timestamp > $1.timestamp }
-                .prefix(limit)
-        )
+        return Array(cachedScoreEntries(for: gameID).prefix(limit))
     }
 
     func recentNotes(for gameID: String, limit: Int = 15) -> [PracticeNoteEntry] {
@@ -226,6 +235,18 @@ extension PracticeStore {
         )
         cachedJournalPayloads[filter] = payload
         return payload
+    }
+
+    private func cachedScoreEntries(for gameID: String) -> [ScoreLogEntry] {
+        if let cached = cachedScoreEntriesByGameID[gameID] {
+            return cached
+        }
+
+        let entries = state.scoreEntries
+            .filter { $0.gameID == gameID }
+            .sorted { $0.timestamp > $1.timestamp }
+        cachedScoreEntriesByGameID[gameID] = entries
+        return entries
     }
 }
 

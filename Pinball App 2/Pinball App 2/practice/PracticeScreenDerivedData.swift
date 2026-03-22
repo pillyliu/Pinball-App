@@ -26,7 +26,10 @@ extension PracticeScreen {
     }
 
     var greetingName: String? {
-        let trimmed = uiState.playerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let uiName = uiState.playerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = uiName.isEmpty
+            ? store.state.practiceSettings.playerName.trimmingCharacters(in: .whitespacesAndNewlines)
+            : uiName
         guard !trimmed.isEmpty else { return nil }
         let redacted = redactPlayerNameForDisplay(trimmed)
         if redacted != trimmed {

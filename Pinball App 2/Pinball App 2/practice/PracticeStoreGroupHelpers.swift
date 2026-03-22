@@ -35,6 +35,7 @@ extension PracticeStore {
             state.practiceSettings.selectedGroupID = group.id
         }
         saveState()
+        saveHomeBootstrapSnapshotIfNeeded()
         return group.id
     }
 
@@ -49,8 +50,10 @@ extension PracticeStore {
     }
 
     func setSelectedGroup(id: UUID?) {
+        guard state.practiceSettings.selectedGroupID != id else { return }
         state.practiceSettings.selectedGroupID = id
         saveState()
+        saveHomeBootstrapSnapshotIfNeeded()
     }
 
     func selectedGroup() -> CustomGameGroup? {
@@ -122,6 +125,7 @@ extension PracticeStore {
             state.customGroups[index].endDate = endDate
         }
         saveState()
+        saveHomeBootstrapSnapshotIfNeeded()
     }
 
     func deleteGroup(id: UUID) {
@@ -130,6 +134,7 @@ extension PracticeStore {
             state.practiceSettings.selectedGroupID = state.customGroups.first?.id
         }
         saveState()
+        saveHomeBootstrapSnapshotIfNeeded()
     }
 
     @discardableResult
@@ -151,6 +156,7 @@ extension PracticeStore {
         }
         if changed {
             saveState()
+            saveHomeBootstrapSnapshotIfNeeded()
         }
         return changed
     }
@@ -182,6 +188,7 @@ extension PracticeStore {
         reordered.insert(contentsOf: moving, at: destination)
         state.customGroups = reordered
         saveState()
+        saveHomeBootstrapSnapshotIfNeeded()
     }
 
     func removeGame(_ gameID: String, fromGroup groupID: UUID) {
@@ -189,6 +196,7 @@ extension PracticeStore {
         let canonical = canonicalPracticeGameID(gameID)
         state.customGroups[index].gameIDs.removeAll { canonicalPracticeGameID($0) == canonical }
         saveState()
+        saveHomeBootstrapSnapshotIfNeeded()
     }
 
     func groupGames(for group: CustomGameGroup) -> [PinballGame] {

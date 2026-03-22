@@ -76,24 +76,17 @@ internal fun NextActionBlock(store: PracticeStore, gameSlug: String) {
 
 @Composable
 internal fun AlertsBlock(store: PracticeStore, gameSlug: String) {
-    val rows = store.journalItems(JournalFilter.All).filter { it.gameSlug == gameSlug }
-    val latestStudy = rows.firstOrNull { it.action == "study" }?.timestampMs
-    val latestPractice = rows.firstOrNull { it.action == "practice" }?.timestampMs
-    val now = System.currentTimeMillis()
-    val dayMs = 24L * 60L * 60L * 1000L
-    val alerts = buildList {
-        if (latestStudy == null) add("No rulesheet/study activity logged yet.")
-        else {
-            val days = ((now - latestStudy) / dayMs).toInt()
-            if (days >= 7) add("Rulesheet/study activity is stale ($days days).")
-        }
-        if (latestPractice == null) add("No practice sessions logged yet.")
-    }
+    val alerts = store.dashboardAlertsFor(gameSlug)
     if (alerts.isEmpty()) return
     androidx.compose.foundation.layout.Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         AppCardSubheading("Alerts")
-        alerts.forEach { line ->
-            Text("• $line", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+        alerts.forEach { alert ->
+            val color = when (alert.severity) {
+                PracticeDashboardAlert.Severity.INFO -> MaterialTheme.colorScheme.onSurfaceVariant
+                PracticeDashboardAlert.Severity.WARNING -> MaterialTheme.colorScheme.tertiary
+                PracticeDashboardAlert.Severity.CAUTION -> MaterialTheme.colorScheme.error
+            }
+            Text("• ${alert.message}", style = MaterialTheme.typography.bodySmall, color = color)
         }
     }
 }

@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -66,6 +67,12 @@ internal fun GroupEditorScreen(
     var openScheduleDateDialog by remember(editingGroupID) { mutableStateOf(false) }
     var scheduleDateDialogField by remember(editingGroupID) { mutableStateOf(GroupEditorDateField.Start) }
     var scheduleDatePickerInitialMs by remember(editingGroupID) { mutableLongStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(editingGroupID) {
+        if (editingGroupID == null) {
+            store.ensureBankTemplateGamesLoaded()
+        }
+    }
 
     val availableBanks = remember(bankTemplatePool) { bankTemplatePool.mapNotNull { it.bank }.distinct().sorted() }
     val duplicateCandidates = remember(store.groups) { store.groups.sortedBy { it.name.lowercase(Locale.US) } }

@@ -11,6 +11,7 @@ internal data class LeagueCsvRow(
     val player: String,
     val machine: String,
     val rawScore: Double,
+    val eventDateMs: Long?,
 )
 
 internal fun normalizeMachine(value: String): String = LibraryGameLookup.normalizeMachineName(value)
@@ -34,6 +35,7 @@ internal fun parseLeagueRows(text: String): List<LeagueCsvRow> {
     val playerIdx = headers.indexOf("player")
     val machineIdx = headers.indexOf("machine").takeIf { it >= 0 } ?: headers.indexOf("game")
     val scoreIdx = headers.indexOf("rawscore").takeIf { it >= 0 } ?: headers.indexOf("score")
+    val dateIdx = headers.indexOf("eventdate").takeIf { it >= 0 } ?: headers.indexOf("date")
     if (playerIdx < 0 || machineIdx < 0 || scoreIdx < 0) return emptyList()
 
     return table.drop(1).mapNotNull { row ->
@@ -41,7 +43,11 @@ internal fun parseLeagueRows(text: String): List<LeagueCsvRow> {
         val machine = row.getOrNull(machineIdx)?.trim().orEmpty()
         val rawScore = row.getOrNull(scoreIdx)?.replace(",", "")?.trim()?.toDoubleOrNull() ?: return@mapNotNull null
         if (player.isBlank() || machine.isBlank() || rawScore <= 0) return@mapNotNull null
-        LeagueCsvRow(player = player, machine = machine, rawScore = rawScore)
+        val eventDateMs = row.getOrNull(dateIdx)
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?.let(::parseEventDateMillis)
+        LeagueCsvRow(player = player, machine = machine, rawScore = rawScore, eventDateMs = eventDateMs)
     }
 }
 

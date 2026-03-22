@@ -2,6 +2,7 @@ package com.pillyliu.pinprofandroid.practice
 
 import android.content.Context
 import androidx.core.content.edit
+import com.pillyliu.pinprofandroid.PinballPerformanceTrace
 import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.PinballGame
@@ -11,6 +12,7 @@ internal data class PracticeLibraryStoreState(
     val allGames: List<PinballGame>,
     val sources: List<LibrarySource>,
     val defaultSourceId: String?,
+    val isFullLibraryScope: Boolean,
 )
 
 internal class PracticeLibraryIntegration(
@@ -35,8 +37,20 @@ internal class PracticeLibraryIntegration(
         LibrarySourceStateStore.setSelectedSource(context, sourceId)
     }
 
-    suspend fun loadLibraryState(): PracticeLibraryStoreState {
-        val loaded = loadPracticeGamesFromLibrary(context)
+    suspend fun loadInitialLibraryState(): PracticeLibraryStoreState {
+        return PinballPerformanceTrace.measureSuspend("PracticeInitialLibraryLoad") {
+            loadLibraryState(fullLibraryScope = false)
+        }
+    }
+
+    suspend fun loadFullLibraryState(): PracticeLibraryStoreState {
+        return PinballPerformanceTrace.measureSuspend("PracticeFullLibraryHydration") {
+            loadLibraryState(fullLibraryScope = true)
+        }
+    }
+
+    private suspend fun loadLibraryState(fullLibraryScope: Boolean): PracticeLibraryStoreState {
+        val loaded = loadPracticeGamesFromLibrary(context, fullLibraryScope = fullLibraryScope)
         val preferredSource = resolvePreferredPracticeSource(loaded, preferredSourceId())
         val selection = applyPracticeLibrarySourceSelection(
             sourceId = preferredSource?.id,
@@ -48,6 +62,7 @@ internal class PracticeLibraryIntegration(
             allGames = loaded.allGames,
             sources = loaded.sources,
             defaultSourceId = selection.selectedSourceId ?: loaded.defaultSourceId,
+            isFullLibraryScope = loaded.isFullLibraryScope,
         )
     }
 }

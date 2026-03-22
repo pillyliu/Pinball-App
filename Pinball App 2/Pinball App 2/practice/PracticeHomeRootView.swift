@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct PracticeHomeRootView: View {
-    let isLoadingGames: Bool
+    let showsLoadingOverlay: Bool
+    let showsInteractionShield: Bool
+    let showsGenericGreeting: Bool
     let greetingName: String?
     let hasIFPAProfileAccess: Bool
     let onOpenSettings: () -> Void
@@ -33,7 +35,7 @@ struct PracticeHomeRootView: View {
         ZStack {
             AppBackground()
 
-            if isLoadingGames {
+            if showsLoadingOverlay {
                 AppFullscreenStatusOverlay(
                     text: "Loading practice data…",
                     showsProgress: true
@@ -87,6 +89,16 @@ struct PracticeHomeRootView: View {
                 }
             }
 
+            if showsInteractionShield {
+                Color.black.opacity(0.001)
+                    .ignoresSafeArea()
+
+                AppFullscreenStatusOverlay(
+                    text: "Refreshing practice data…",
+                    showsProgress: true
+                )
+            }
+
             if showingNamePrompt {
                 Color.black.opacity(0.30)
                     .ignoresSafeArea()
@@ -106,7 +118,11 @@ struct PracticeHomeRootView: View {
 
     @ViewBuilder
     private var greetingHeader: some View {
-        if let greetingName {
+        if showsGenericGreeting {
+            Text("Welcome back")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(AppTheme.brandInk)
+        } else if let greetingName {
             HStack(spacing: 0) {
                 Text("Welcome back, ")
                 AppInlineLinkAction(text: greetingName, action: onOpenIFPAProfile)

@@ -90,6 +90,9 @@ extension PracticeScreen {
         case .settings:
             practiceScreen("Practice Settings") {
                 settingsScreen(context: practiceSettingsContext)
+                    .task {
+                        await refreshLeaguePlayerOptions()
+                    }
             }
         case .ifpaProfile:
             practiceScreen("IFPA Profile") {

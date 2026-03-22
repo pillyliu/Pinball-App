@@ -34,7 +34,8 @@ internal fun PracticeLifecycleHost(
         }
     }
 
-    LaunchedEffect(store.playerName) {
+    LaunchedEffect(store.playerName, uiState.navigation.route) {
+        if (uiState.navigation.route != PracticeRoute.Insights) return@LaunchedEffect
         val names = store.availableLeaguePlayers()
         val normalizedSelf = store.playerName.trim().lowercase(Locale.US)
         uiState.insights.opponentOptions = names.filter { it.lowercase(Locale.US) != normalizedSelf }

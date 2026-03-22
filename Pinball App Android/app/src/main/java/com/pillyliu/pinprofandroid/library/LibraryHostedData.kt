@@ -1,6 +1,7 @@
 package com.pillyliu.pinprofandroid.library
 
 import android.content.Context
+import com.pillyliu.pinprofandroid.PinballPerformanceTrace
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 
 internal const val HOSTED_LIBRARY_REFRESH_INTERVAL_MS = 24L * 60L * 60L * 1000L
@@ -72,11 +73,21 @@ internal suspend fun loadHostedLibraryExtraction(
 }
 
 internal suspend fun warmHostedCAFData() {
-    HOSTED_LIBRARY_PATHS.forEach { path ->
-        loadHostedOrCachedPinballText(
-            path = path,
-            allowMissing = path != hostedOPDBExportPath,
-        )
+    PinballPerformanceTrace.measureSuspend(
+        name = "HostedCAFWarmup",
+        detail = "count=${HOSTED_LIBRARY_PATHS.size}",
+    ) {
+        HOSTED_LIBRARY_PATHS.forEach { path ->
+            PinballPerformanceTrace.measureSuspend(
+                name = "HostedCAFAssetLoad",
+                detail = path,
+            ) {
+                loadHostedOrCachedPinballText(
+                    path = path,
+                    allowMissing = path != hostedOPDBExportPath,
+                )
+            }
+        }
     }
 }
 

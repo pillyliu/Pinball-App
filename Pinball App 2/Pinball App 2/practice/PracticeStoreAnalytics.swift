@@ -135,6 +135,9 @@ extension PracticeStore {
 
     func taskLastTimestamp(gameID: String, task: StudyTaskKind, startDate: Date? = nil, endDate: Date? = nil) -> Date? {
         let gameID = canonicalPracticeGameID(gameID)
+        if startDate == nil, endDate == nil {
+            return gameTaskSummary(for: gameID).first(where: { $0.task == task })?.lastTimestamp
+        }
         let action = actionType(for: task)
         return state.journalEntries
             .filter {

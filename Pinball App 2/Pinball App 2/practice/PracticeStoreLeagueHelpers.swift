@@ -8,6 +8,11 @@ extension PracticeStore {
         let eventDate: Date?
     }
 
+    struct LeagueStatsSnapshot {
+        let rows: [LeagueCSVRow]
+        let players: [String]
+    }
+
     static let eventDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -22,9 +27,7 @@ extension PracticeStore {
         guard !yourNormalized.isEmpty, !opponentNormalized.isEmpty else { return nil }
 
         do {
-            let cached = try await PinballDataCache.shared.loadText(path: Self.leagueStatsPath)
-            guard let text = cached.text else { return nil }
-            let rows = parseLeagueRows(text: text)
+            let rows = try await loadLeagueStatsSnapshot().rows
 
             let yourRows = rows.filter { normalizeHumanName($0.player) == yourNormalized }
             let opponentRows = rows.filter { normalizeHumanName($0.player) == opponentNormalized }
@@ -89,22 +92,7 @@ extension PracticeStore {
 
     func availableLeaguePlayers() async -> [String] {
         do {
-            let cached = try await PinballDataCache.shared.loadText(path: Self.leagueStatsPath)
-            guard let text = cached.text else { return [] }
-            let rows = parseLeagueRows(text: text)
-
-            var dedupedByNormalized: [String: String] = [:]
-            for row in rows {
-                let normalized = normalizeHumanName(row.player)
-                guard !normalized.isEmpty else { continue }
-                if dedupedByNormalized[normalized] == nil {
-                    dedupedByNormalized[normalized] = row.player.trimmingCharacters(in: .whitespacesAndNewlines)
-                }
-            }
-
-            return dedupedByNormalized.values
-                .filter { !$0.isEmpty }
-                .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+            return try await loadLeagueStatsSnapshot().players
         } catch {
             lastErrorMessage = "Could not load player list: \(error.localizedDescription)"
             return []
@@ -199,6 +187,49 @@ extension PracticeStore {
 
             return LeagueCSVRow(player: player, machine: machine, rawScore: rawScore, eventDate: eventDate)
         }
+    }
+
+    func loadLeagueStatsSnapshot() async throws -> LeagueStatsSnapshot {
+        let cached = try await PinballDataCache.shared.loadText(path: Self.leagueStatsPath)
+        guard let text = cached.text else {
+            cachedLeagueStatsUpdatedAt = cached.updatedAt
+            cachedLeagueStatsRows = []
+            cachedLeaguePlayers = []
+            return LeagueStatsSnapshot(rows: [], players: [])
+        }
+
+        if cachedLeagueStatsRows.isEmpty || cachedLeagueStatsUpdatedAt != cached.updatedAt {
+            let snapshot = PinballPerformanceTrace.measure("PracticeLeagueStatsLoad") {
+                let rows = parseLeagueRows(text: text)
+                return LeagueStatsSnapshot(
+                    rows: rows,
+                    players: leaguePlayers(from: rows)
+                )
+            }
+            cachedLeagueStatsRows = snapshot.rows
+            cachedLeaguePlayers = snapshot.players
+            cachedLeagueStatsUpdatedAt = cached.updatedAt
+        }
+
+        return LeagueStatsSnapshot(
+            rows: cachedLeagueStatsRows,
+            players: cachedLeaguePlayers
+        )
+    }
+
+    func leaguePlayers(from rows: [LeagueCSVRow]) -> [String] {
+        var dedupedByNormalized: [String: String] = [:]
+        for row in rows {
+            let normalized = normalizeHumanName(row.player)
+            guard !normalized.isEmpty else { continue }
+            if dedupedByNormalized[normalized] == nil {
+                dedupedByNormalized[normalized] = row.player.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+
+        return dedupedByNormalized.values
+            .filter { !$0.isEmpty }
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
     func matchGameID(fromMachine machine: String) -> String? {

@@ -3,7 +3,9 @@ import SwiftUI
 extension PracticeScreen {
     var practiceHomeContent: some View {
         PracticeHomeRootView(
-            isLoadingGames: practiceHomeContext.store.isLoadingGames,
+            showsLoadingOverlay: practiceHomeContext.store.isBootstrapping && !practiceHomeContext.store.hasRestoredHomeBootstrapSnapshot,
+            showsInteractionShield: practiceHomeContext.store.isBootstrapping && practiceHomeContext.store.hasRestoredHomeBootstrapSnapshot,
+            showsGenericGreeting: practiceHomeContext.store.isBootstrapping && practiceHomeContext.store.hasRestoredHomeBootstrapSnapshot,
             greetingName: practiceHomeContext.greetingName,
             hasIFPAProfileAccess: practiceHomeContext.hasIFPAProfileAccess,
             onOpenSettings: {

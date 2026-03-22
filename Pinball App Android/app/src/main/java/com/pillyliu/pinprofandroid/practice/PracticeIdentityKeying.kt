@@ -196,7 +196,7 @@ internal fun migrateCanonicalPracticeStateKeys(
     )
 }
 
-private fun legacyPracticeKeyMatch(games: List<PinballGame>, raw: String): PinballGame? {
+internal fun legacyPracticeKeyMatch(games: List<PinballGame>, raw: String): PinballGame? {
     extractLikelyOpdbGroup(raw)?.let { token ->
         games.firstOrNull { it.practiceKey.equals(token, ignoreCase = true) }?.let { return it }
     }

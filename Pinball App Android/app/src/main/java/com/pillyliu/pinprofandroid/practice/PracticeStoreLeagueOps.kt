@@ -10,26 +10,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
-internal suspend fun availableLeaguePlayersFromCsv(): List<String> = withContext(Dispatchers.IO) {
-    try {
-        val result = PinballDataCache.loadText(hostedLeagueStatsPath, allowMissing = false)
-        val text = result.text ?: return@withContext emptyList()
-        val rows = parseCsv(text)
-        if (rows.isEmpty()) return@withContext emptyList()
-        val headers = rows.first().map { normalizeHeader(it) }
-        val idx = headers.indexOf("player")
-        if (idx < 0) return@withContext emptyList()
-        rows.drop(1)
-            .mapNotNull { row -> row.getOrNull(idx)?.trim()?.takeIf { it.isNotEmpty() } }
-            .distinct()
-            .sortedBy { it.lowercase(Locale.US) }
-    } catch (_: Throwable) {
-        emptyList()
-    }
+internal fun availableLeaguePlayersFromRows(rows: List<LeagueCsvRow>): List<String> {
+    return rows
+        .mapNotNull { row -> row.player.trim().takeIf { it.isNotEmpty() } }
+        .distinctBy { normalizeHumanName(it) }
+        .sortedBy { it.lowercase(Locale.US) }
 }
 
-internal suspend fun importLeagueScoresFromCsvData(
+internal suspend fun importLeagueScoresFromRows(
     selectedPlayer: String,
+    rows: List<LeagueCsvRow>,
     games: List<PinballGame>,
     onAddScore: (slug: String, score: Double, timestampMs: Long) -> Unit,
 ): String = withContext(Dispatchers.IO) {
@@ -37,40 +27,23 @@ internal suspend fun importLeagueScoresFromCsvData(
         return@withContext "Select league player first."
     }
     try {
-        val result = PinballDataCache.loadText(hostedLeagueStatsPath, allowMissing = false)
-        val text = result.text ?: return@withContext "LPL CSV missing."
-        val rows = parseCsv(text)
         if (rows.isEmpty()) return@withContext "No league rows found."
-
-        val headers = rows.first().map { normalizeHeader(it) }
-        val playerIdx = headers.indexOf("player")
-        val machineIdx = headers.indexOf("machine").takeIf { it >= 0 } ?: headers.indexOf("game")
-        val scoreIdx = headers.indexOf("rawscore").takeIf { it >= 0 } ?: headers.indexOf("score")
-        val dateIdx = headers.indexOf("eventdate").takeIf { it >= 0 } ?: headers.indexOf("date")
-        if (playerIdx < 0 || machineIdx < 0 || scoreIdx < 0) {
-            return@withContext "CSV header mismatch."
-        }
 
         var imported = 0
         var unmatched = 0
 
-        rows.drop(1).forEach { row ->
-            val player = row.getOrNull(playerIdx)?.trim().orEmpty()
-            if (!player.equals(selectedPlayer, ignoreCase = true)) return@forEach
-            val machine = row.getOrNull(machineIdx)?.trim().orEmpty()
-            val score = row.getOrNull(scoreIdx)?.trim()?.toDoubleOrNull() ?: return@forEach
-            if (machine.isBlank() || score <= 0) return@forEach
-            val slug = matchGameSlug(machine, games)
+        rows.forEach { row ->
+            if (!row.player.equals(selectedPlayer, ignoreCase = true)) return@forEach
+            val slug = matchGameSlug(row.machine, games)
             if (slug == null) {
                 unmatched++
                 return@forEach
             }
-            val timestamp = row.getOrNull(dateIdx)
-                ?.trim()
-                ?.takeIf { it.isNotBlank() }
-                ?.let { parseEventDateMillis(it) }
-                ?: System.currentTimeMillis()
-            onAddScore(slug, score, timestamp)
+            onAddScore(
+                slug,
+                row.rawScore,
+                row.eventDateMs ?: System.currentTimeMillis(),
+            )
             imported++
         }
         "League import for ${formatLplPlayerNameForDisplay(selectedPlayer, false)}: $imported imported, $unmatched unmatched."
@@ -79,9 +52,10 @@ internal suspend fun importLeagueScoresFromCsvData(
     }
 }
 
-internal suspend fun comparePlayersFromCsv(
+internal suspend fun comparePlayersFromRows(
     yourName: String,
     opponentName: String,
+    rows: List<LeagueCsvRow>,
     games: List<PinballGame>,
     gameNameForSlug: (String) -> String,
 ): HeadToHeadComparison? = withContext(Dispatchers.IO) {
@@ -90,9 +64,6 @@ internal suspend fun comparePlayersFromCsv(
     if (yourNormalized.isEmpty() || opponentNormalized.isEmpty()) return@withContext null
 
     try {
-        val result = PinballDataCache.loadText(hostedLeagueStatsPath, allowMissing = false)
-        val text = result.text ?: return@withContext null
-        val rows = parseLeagueRows(text)
         val yourRows = rows.filter { normalizeHumanName(it.player) == yourNormalized }
         val opponentRows = rows.filter { normalizeHumanName(it.player) == opponentNormalized }
         if (yourRows.isEmpty() || opponentRows.isEmpty()) return@withContext null

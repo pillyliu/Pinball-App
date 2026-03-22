@@ -63,22 +63,24 @@ extension LibraryScreen {
     @ViewBuilder
     var content: some View {
         if viewModel.games.isEmpty {
-            Group {
-                if viewModel.isLoading {
-                    AppPanelStatusCard(
-                        text: "Loading library…",
-                        showsProgress: true
-                    )
-                } else if let errorMessage = viewModel.errorMessage, !errorMessage.isEmpty {
-                    AppPanelStatusCard(
-                        text: errorMessage,
-                        isError: true
-                    )
-                } else {
-                    AppPanelEmptyCard(text: "No data loaded.")
+            if viewModel.isLoading {
+                AppFullscreenStatusOverlay(
+                    text: "Loading library…",
+                    showsProgress: true
+                )
+            } else {
+                Group {
+                    if let errorMessage = viewModel.errorMessage, !errorMessage.isEmpty {
+                        AppPanelStatusCard(
+                            text: errorMessage,
+                            isError: true
+                        )
+                    } else {
+                        AppPanelEmptyCard(text: "No data loaded.")
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         } else {
             scrollableContent
         }

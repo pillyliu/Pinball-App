@@ -173,6 +173,7 @@ extension PracticeStore {
             state.practiceSettings.ifpaPlayerID = ifpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         saveState()
+        saveHomeBootstrapSnapshotIfNeeded()
     }
 
     @discardableResult
@@ -205,6 +206,7 @@ extension PracticeStore {
         state = .empty
         UserDefaults.standard.removeObject(forKey: Self.storageKey)
         saveState()
+        saveHomeBootstrapSnapshotIfNeeded()
     }
 
     func canEditJournalEntry(_ entry: JournalEntry) -> Bool {

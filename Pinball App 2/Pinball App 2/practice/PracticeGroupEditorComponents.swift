@@ -161,6 +161,10 @@ struct GroupEditorScreen: View {
             }
         }
         .onAppear { populateFromEditingGroupIfNeeded() }
+        .task {
+            guard editingGroup == nil else { return }
+            await store.ensureBankTemplateGamesLoaded()
+        }
         .sheet(isPresented: $showingTitleSelector) {
             NavigationStack {
                 GroupGameSelectionScreen(store: store, selectedGameIDs: $selectedGameIDs)
