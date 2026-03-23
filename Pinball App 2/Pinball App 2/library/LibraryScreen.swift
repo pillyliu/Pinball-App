@@ -46,9 +46,7 @@ struct LibraryScreen: View {
     }
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            ZStack {
-                AppBackground()
-
+            AppScreen(dismissesKeyboardOnTap: false) {
                 content
                     .appReadableWidth(maxWidth: readableContentWidth)
                     .padding(.horizontal, contentHorizontalPadding)
@@ -115,14 +113,8 @@ struct LibraryScreen: View {
             }
             .navigationDestination(for: String.self) { gameID in
                 if let game = viewModel.games.first(where: { $0.id == gameID }) {
-                    Group {
-                        if reduceMotion {
-                            LibraryDetailScreen(game: game)
-                        } else {
-                            LibraryDetailScreen(game: game)
-                                .navigationTransition(.zoom(sourceID: gameID, in: cardTransition))
-                        }
-                    }
+                    LibraryDetailScreen(game: game)
+                        .appCardZoomTransition(sourceID: gameID, in: cardTransition, reduceMotion: reduceMotion)
                     .onAppear {
                         appNavigation.lastViewedLibraryGameID = gameID
                         LibraryActivityLog.log(gameID: gameID, gameName: game.name, kind: .browseGame)

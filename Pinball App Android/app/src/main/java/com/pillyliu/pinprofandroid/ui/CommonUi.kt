@@ -1,11 +1,14 @@
 package com.pillyliu.pinprofandroid.ui
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -54,6 +57,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -64,6 +69,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
@@ -111,6 +117,23 @@ fun AppScreen(
             content()
         }
     }
+}
+
+@Composable
+fun AppRouteScreen(
+    contentPadding: PaddingValues,
+    canGoBack: Boolean,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    horizontalPadding: Dp = PinballThemeTokens.spacing.screenHorizontal,
+    content: @Composable () -> Unit,
+) {
+    AppScreen(
+        contentPadding = contentPadding,
+        modifier = modifier.iosEdgeSwipeBack(enabled = canGoBack, onBack = onBack),
+        horizontalPadding = horizontalPadding,
+        content = content,
+    )
 }
 
 @Composable
@@ -1203,14 +1226,28 @@ fun AppPrimaryButton(
     val colors = PinballThemeTokens.colors
     val shapes = PinballThemeTokens.shapes
     val buttonInk = Color(0xFF261700)
+    val shape = RoundedCornerShape(shapes.controlCorner)
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+
+    val containerColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> colors.brandGold.copy(alpha = 0.24f)
+            pressed -> lerp(colors.brandGold.copy(alpha = 0.92f), buttonInk, 0.22f)
+            else -> colors.brandGold.copy(alpha = 0.92f)
+        },
+        label = "appPrimaryButtonContainerColor",
+    )
+
     Button(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.defaultMinSize(minHeight = minHeight),
-        shape = RoundedCornerShape(shapes.controlCorner),
+        shape = shape,
         contentPadding = contentPadding,
+        interactionSource = interactionSource,
         colors = ButtonDefaults.buttonColors(
-            containerColor = colors.brandGold.copy(alpha = 0.92f),
+            containerColor = containerColor,
             contentColor = buttonInk,
             disabledContainerColor = colors.brandGold.copy(alpha = 0.24f),
             disabledContentColor = buttonInk.copy(alpha = 0.55f),

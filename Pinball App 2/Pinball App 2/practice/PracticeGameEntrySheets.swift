@@ -252,7 +252,7 @@ struct GameTaskEntrySheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var rulesheetProgress: Double = 0
-    @State private var videoKind: VideoProgressInputKind = .clock
+    @State private var videoKind: VideoProgressInputKind = defaultPracticeVideoInputKind
     @State private var selectedVideoSource: String = ""
     @State private var videoWatchedTime: String = ""
     @State private var videoTotalTime: String = ""
@@ -318,8 +318,8 @@ struct GameTaskEntrySheet: View {
                                 .accessibilityLabel("Video")
 
                                 Picker("Input mode", selection: $videoKind) {
-                                    ForEach(VideoProgressInputKind.allCases) { kind in
-                                        Text(kind.label).tag(kind)
+                                    ForEach(practiceVideoInputKindOptions) { kind in
+                                        Text(practiceVideoInputKindLabel(kind)).tag(kind)
                                     }
                                 }
                                 .appSegmentedControlStyle()

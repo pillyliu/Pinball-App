@@ -31,6 +31,15 @@ import androidx.compose.ui.platform.LocalFocusManager
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
 import kotlin.math.roundToInt
 
+internal const val DEFAULT_PRACTICE_VIDEO_INPUT_KIND = "percent"
+internal val practiceVideoInputKindOptions = listOf("percent", "clock")
+
+internal fun practiceVideoInputKindLabel(kind: String): String = when (kind.trim().lowercase()) {
+    "percent" -> "Percentage"
+    "clock" -> "hh:mm:ss"
+    else -> kind
+}
+
 @Composable
 internal fun QuickEntryModeFields(
     mode: QuickActivity,
@@ -155,8 +164,10 @@ internal fun QuickEntryModeFields(
             )
             SimpleMenuDropdown(
                 title = "Input mode",
-                options = listOf("clock", "percent"),
+                options = practiceVideoInputKindOptions,
                 selected = videoInputKind,
+                selectedLabel = practiceVideoInputKindLabel(videoInputKind),
+                formatOptionLabel = ::practiceVideoInputKindLabel,
                 onSelect = onVideoInputKindChange,
             )
             if (videoInputKind == "clock") {

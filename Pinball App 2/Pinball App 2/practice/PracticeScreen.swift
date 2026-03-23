@@ -3,6 +3,7 @@ import SwiftUI
 struct PracticeScreen: View {
     @StateObject var store = PracticeStore()
     @EnvironmentObject var appNavigation: AppNavigationModel
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Namespace var gameTransition
 
     @State var uiState = PracticeScreenState()
@@ -21,7 +22,9 @@ struct PracticeScreen: View {
 
     var body: some View {
         NavigationStack(path: $uiState.gameNavigationPath) {
-            practiceDialogHost(practiceRootContent)
+            AppScreen(dismissesKeyboardOnTap: false) {
+                practiceDialogHost(practiceRootContent)
+            }
         }
     }
 }

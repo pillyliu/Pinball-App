@@ -134,8 +134,13 @@ private struct AppShakeMotionModifier: ViewModifier {
 }
 
 extension View {
-    func appEdgeBackGesture(dismiss _: DismissAction) -> some View {
-        background(AppInteractivePopEnabler().allowsHitTesting(false))
+    @ViewBuilder
+    func appEdgeBackGesture(enabled: Bool = true) -> some View {
+        if enabled {
+            background(AppInteractivePopEnabler().allowsHitTesting(false))
+        } else {
+            self
+        }
     }
 
     func appShakeMotionHandler(isEnabled: Bool = true, onShake: @escaping () -> Void) -> some View {

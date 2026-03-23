@@ -52,29 +52,25 @@ struct PracticeGameSearchSheet: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackground()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    Picker("Mode", selection: $selectedTab) {
-                        ForEach(PracticeGameSearchTab.allCases) { tab in
-                            Text(tab.rawValue).tag(tab)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .appSegmentedControlStyle()
-
-                    switch selectedTab {
-                    case .search:
-                        searchTabContent
-                    case .recent:
-                        recentTabContent
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Picker("Mode", selection: $selectedTab) {
+                    ForEach(PracticeGameSearchTab.allCases) { tab in
+                        Text(tab.rawValue).tag(tab)
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
+                .pickerStyle(.segmented)
+                .appSegmentedControlStyle()
+
+                switch selectedTab {
+                case .search:
+                    searchTabContent
+                case .recent:
+                    recentTabContent
+                }
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
         }
         .navigationTitle("Find Game")
         .navigationBarTitleDisplayMode(.inline)

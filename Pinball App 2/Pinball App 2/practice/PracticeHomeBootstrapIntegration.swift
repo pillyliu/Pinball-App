@@ -4,7 +4,20 @@ private let practiceLastViewedGameSnapshotKey = "practice-last-viewed-game-id"
 
 extension PracticeStore {
     func restoreHomeBootstrapSnapshotIfAvailable() {
-        guard let snapshot = PracticeHomeBootstrapSnapshotStore.load() else {
+        applyHomeBootstrapSnapshot(PracticeHomeBootstrapSnapshotStore.load())
+    }
+
+    func restoreHomeBootstrapSnapshotIfAvailableAsync() {
+        Task(priority: .utility) { [weak self] in
+            let snapshot = await PracticeHomeBootstrapSnapshotStore.loadAsync()
+            guard let self else { return }
+            guard !self.didLoad else { return }
+            self.applyHomeBootstrapSnapshot(snapshot)
+        }
+    }
+
+    private func applyHomeBootstrapSnapshot(_ snapshot: PracticeHomeBootstrapSnapshot?) {
+        guard let snapshot else {
             hasRestoredHomeBootstrapSnapshot = false
             return
         }

@@ -94,13 +94,12 @@ import com.halilibo.richtext.ui.string.RichTextStringStyle
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.downloadTextAllowMissing
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
-import com.pillyliu.pinprofandroid.ui.AppScreen
+import com.pillyliu.pinprofandroid.ui.AppRouteScreen
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.appVideoTileBorderColor
 import com.pillyliu.pinprofandroid.ui.appVideoTileContainerColor
 import com.pillyliu.pinprofandroid.ui.appVideoTileLabelColor
 import com.pillyliu.pinprofandroid.ui.CardContainer
-import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import androidx.compose.animation.core.RepeatMode
@@ -160,9 +159,10 @@ internal fun LibraryDetailScreen(
         if (!loaded) infoStatus = if (sawError) "error" else "missing"
     }
 
-    AppScreen(
+    AppRouteScreen(
         contentPadding = contentPadding,
-        modifier = Modifier.iosEdgeSwipeBack(enabled = true, onBack = onBack),
+        canGoBack = true,
+        onBack = onBack,
     ) {
         Column(
             modifier = Modifier

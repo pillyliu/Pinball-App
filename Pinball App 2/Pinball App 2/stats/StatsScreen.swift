@@ -80,10 +80,14 @@ struct StatsScreen: View {
     var body: some View {
         Group {
             if embeddedInNavigation {
-                content
+                AppScreen {
+                    content
+                }
             } else {
                 NavigationStack {
-                    content
+                    AppScreen {
+                        content
+                    }
                         .toolbar(.hidden, for: .navigationBar)
                 }
             }
@@ -101,9 +105,7 @@ struct StatsScreen: View {
     }
 
     private var content: some View {
-        ZStack {
-            AppBackground()
-
+        Group {
             if useLandscapeSplitLayout {
                 VStack(spacing: 14) {
                     if !embeddedInNavigation {

@@ -48,6 +48,7 @@ struct FallbackAsyncImageView: View {
     var layoutMode: AppImageLayoutMode?
     @State private var index = 0
     @State private var image: UIImage?
+    @State private var loadedURL: URL?
     @State private var didFailCurrent = false
 
     var body: some View {
@@ -73,18 +74,29 @@ struct FallbackAsyncImageView: View {
             }
         }
         .task(id: candidateKey) {
+            if let loadedURL,
+               let preservedIndex = candidates.firstIndex(of: loadedURL),
+               image != nil {
+                index = preservedIndex
+                didFailCurrent = false
+                return
+            }
+
             index = 0
             image = nil
+            loadedURL = nil
             didFailCurrent = false
         }
         .task(id: currentURL) {
             guard let currentURL else {
                 image = nil
+                loadedURL = nil
                 didFailCurrent = true
                 return
             }
             if let cachedImage = RemoteUIImageMemoryCache.shared.image(for: currentURL) {
                 image = cachedImage
+                loadedURL = currentURL
                 didFailCurrent = false
                 return
             }
@@ -95,11 +107,14 @@ struct FallbackAsyncImageView: View {
                 }
                 RemoteUIImageMemoryCache.shared.insert(loaded, for: currentURL)
                 image = loaded
+                loadedURL = currentURL
                 didFailCurrent = false
             } catch is CancellationError {
                 return
             } catch {
-                image = nil
+                if loadedURL != currentURL {
+                    image = nil
+                }
                 didFailCurrent = true
                 if index + 1 < candidates.count {
                     index += 1
@@ -183,11 +198,14 @@ struct HostedImageView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-
+        AppFullscreenStage {
             if let image = loader.image {
-                ZoomableImageScrollView(image: image)
+                ZoomableImageScrollView(
+                    image: image,
+                    onSingleTap: {
+                        chrome.toggle(reduceMotion: reduceMotion)
+                    }
+                )
                     .ignoresSafeArea()
             } else if loader.failed {
                 ZStack {
@@ -227,12 +245,7 @@ struct HostedImageView: View {
                 .transition(.opacity)
             }
         }
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                chrome.toggle(reduceMotion: reduceMotion)
-            }
-        )
-        .appEdgeBackGesture(dismiss: dismiss)
+        .appEdgeBackGesture()
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
@@ -334,9 +347,10 @@ struct ConstrainedAsyncImagePreview: View {
 
 private struct ZoomableImageScrollView: UIViewRepresentable {
     let image: UIImage
+    let onSingleTap: () -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(onSingleTap: onSingleTap)
     }
 
     func makeUIView(context: Context) -> UIScrollView {
@@ -356,8 +370,12 @@ private struct ZoomableImageScrollView: UIViewRepresentable {
         imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
         scrollView.addSubview(imageView)
+        let singleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleSingleTap(_:)))
+        singleTap.numberOfTapsRequired = 1
         let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTap(_:)))
         doubleTap.numberOfTapsRequired = 2
+        singleTap.require(toFail: doubleTap)
+        scrollView.addGestureRecognizer(singleTap)
         scrollView.addGestureRecognizer(doubleTap)
 
         context.coordinator.scrollView = scrollView
@@ -375,8 +393,13 @@ private struct ZoomableImageScrollView: UIViewRepresentable {
     }
 
     final class Coordinator: NSObject, UIScrollViewDelegate {
+        private let onSingleTap: () -> Void
         weak var scrollView: UIScrollView?
         weak var imageView: UIImageView?
+
+        init(onSingleTap: @escaping () -> Void) {
+            self.onSingleTap = onSingleTap
+        }
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
             imageView
@@ -399,6 +422,11 @@ private struct ZoomableImageScrollView: UIViewRepresentable {
                 bottom: verticalInset,
                 right: horizontalInset
             )
+        }
+
+        @objc func handleSingleTap(_ recognizer: UITapGestureRecognizer) {
+            guard recognizer.state == .ended else { return }
+            onSingleTap()
         }
 
         @objc func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {

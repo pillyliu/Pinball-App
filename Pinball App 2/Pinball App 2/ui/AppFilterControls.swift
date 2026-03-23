@@ -101,6 +101,7 @@ struct AppPrimaryActionButtonStyle: ButtonStyle {
     var fillsWidth: Bool = true
 
     func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
         AppPressFeedbackButtonStyleBody(isPressed: configuration.isPressed) { isPressed in
             configuration.label
                 .font(.subheadline.weight(.semibold))
@@ -109,19 +110,21 @@ struct AppPrimaryActionButtonStyle: ButtonStyle {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .background(
-                    RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
+                    shape
                         .fill(AppTheme.brandGold.opacity(isEnabled ? 0.94 : 0.28))
                         .overlay(
-                            RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
-                                .fill(Color.white.opacity(isEnabled && isPressed ? 0.18 : 0))
+                            shape
+                                .fill(AppTheme.brandInk.opacity(isEnabled && isPressed ? 0.24 : 0))
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
-                                .stroke(AppTheme.brandGold.opacity(isEnabled ? (isPressed ? 0.7 : 0.48) : 0.22), lineWidth: 1)
+                            shape
+                                .stroke(
+                                    isEnabled ? AppTheme.brandGold.opacity(0.48) : AppTheme.brandGold.opacity(0.22),
+                                    lineWidth: 1
+                                )
                         )
                 )
-                .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
-                .scaleEffect(isPressed ? 0.985 : 1)
+                .clipShape(shape)
         }
     }
 }

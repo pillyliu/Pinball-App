@@ -66,10 +66,14 @@ struct TargetsScreen: View {
     var body: some View {
         Group {
             if embeddedInNavigation {
-                content
+                AppScreen {
+                    content
+                }
             } else {
                 NavigationStack {
-                    content
+                    AppScreen {
+                        content
+                    }
                         .toolbar(.hidden, for: .navigationBar)
                 }
             }
@@ -87,34 +91,30 @@ struct TargetsScreen: View {
     }
 
     private var content: some View {
-        ZStack {
-            AppBackground()
+        VStack(alignment: .leading, spacing: 8) {
+            headerSection
+                .padding(.horizontal, 4)
 
-            VStack(alignment: .leading, spacing: 8) {
-                headerSection
-                    .padding(.horizontal, 4)
-
-                if let errorMessage = viewModel.errorMessage {
-                    AppInlineStatusMessage(text: errorMessage, isError: true)
-                        .padding(.horizontal, 2)
-                }
-
-                GeometryReader { geo in
-                    let effectiveTableHeight = resolvedTableHeight(maxHeight: geo.size.height)
-                    targetsTable
-                        .padding(.horizontal, 4)
-                        .frame(height: effectiveTableHeight, alignment: .top)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                }
-                .frame(maxHeight: .infinity)
-                footerSection
-                    .fixedSize(horizontal: false, vertical: true)
+            if let errorMessage = viewModel.errorMessage {
+                AppInlineStatusMessage(text: errorMessage, isError: true)
+                    .padding(.horizontal, 2)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(.horizontal, contentHorizontalPadding)
-            .padding(.top, embeddedInNavigation ? 0 : 4)
-            .padding(.bottom, 8)
+
+            GeometryReader { geo in
+                let effectiveTableHeight = resolvedTableHeight(maxHeight: geo.size.height)
+                targetsTable
+                    .padding(.horizontal, 4)
+                    .frame(height: effectiveTableHeight, alignment: .top)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
+            .frame(maxHeight: .infinity)
+            footerSection
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, contentHorizontalPadding)
+        .padding(.top, embeddedInNavigation ? 0 : 4)
+        .padding(.bottom, 8)
         .background(
             GeometryReader { geo in
                 Color.clear

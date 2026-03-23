@@ -79,6 +79,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.pillyliu.pinprofandroid.ui.AppFullscreenActionButton
+import com.pillyliu.pinprofandroid.ui.AppFullscreenStage
 import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
 import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.AppSecondaryButton
@@ -162,154 +163,155 @@ internal fun ScoreScannerDialog(
             decorFitsSystemWindows = false,
         ),
     ) {
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-                .onGloballyPositioned { coordinates ->
-                    rootSize = coordinates.size
-                },
+        AppFullscreenStage(
+            modifier = Modifier.onGloballyPositioned { coordinates ->
+                rootSize = coordinates.size
+            },
         ) {
-            val safeInsets = WindowInsets.safeDrawing.asPaddingValues()
-            val imeBottom = with(density) { WindowInsets.ime.getBottom(this).toDp() }
-            val controlsBottomPadding = maxOf(
-                safeInsets.calculateBottomPadding(),
-                if (imeBottom > 0.dp) imeBottom + 6.dp else 18.dp
-            )
-            val targetWidth = minOf(maxWidth * 0.82f, 420.dp)
-            val targetHeight = minOf(maxOf(maxHeight * 0.10f, 78.dp), 104.dp)
-            val targetTop = minOf(
-                maxOf(safeInsets.calculateTopPadding() + 192.dp, 190.dp),
-                maxOf(maxHeight * 0.26f, safeInsets.calculateTopPadding() + 192.dp),
-            )
-            val livePanelTop = minOf(targetTop + targetHeight + 86.dp, maxHeight - 220.dp)
-            val headerTop = maxOf(targetTop - 84.dp, 78.dp)
-
-            if (controller.hasCameraPermission) {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { viewContext ->
-                        PreviewView(viewContext).apply {
-                            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                            scaleType = PreviewView.ScaleType.FILL_CENTER
-                            alpha = 1f
-                            previewView = this
-                        }
-                    },
-                    update = {
-                        it.alpha = if (controller.isFrozen) 0f else 1f
-                        previewView = it
-                    },
-                )
-            }
-
-            TargetStage(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(y = targetTop)
-                    .width(targetWidth)
-                    .height(targetHeight)
-                    .onGloballyPositioned { coordinates ->
-                        targetRect = coordinates.boundsInRoot().toAndroidRectF()
-                    },
-                controller = controller,
-            )
-
-            ClosePill(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 18.dp, top = safeInsets.calculateTopPadding() + 18.dp),
-                onClose = onClose,
-            )
-
-            Text(
-                text = "Align the score display inside the box",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = headerTop)
-                    .padding(horizontal = 24.dp),
-            )
-
-            LiveReadingPanel(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = livePanelTop)
-                    .padding(horizontal = 18.dp),
-                controller = controller,
-            )
-
-            if (controller.isFrozen && imeBottom > 0.dp) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) {
-                            focusManager.clearFocus(force = true)
-                        }
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 18.dp)
-                    .padding(bottom = controlsBottomPadding),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize(),
             ) {
-                if (controller.isFrozen) {
-                    ScoreConfirmationSheet(
-                        controller = controller,
-                        onUseReading = {
-                            val score = controller.validatedConfirmedScore() ?: return@ScoreConfirmationSheet
-                            onUseReading(score)
+                val safeInsets = WindowInsets.safeDrawing.asPaddingValues()
+                val imeBottom = with(density) { WindowInsets.ime.getBottom(this).toDp() }
+                val controlsBottomPadding = maxOf(
+                    safeInsets.calculateBottomPadding(),
+                    if (imeBottom > 0.dp) imeBottom + 6.dp else 18.dp
+                )
+                val targetWidth = minOf(maxWidth * 0.82f, 420.dp)
+                val targetHeight = minOf(maxOf(maxHeight * 0.10f, 78.dp), 104.dp)
+                val targetTop = minOf(
+                    maxOf(safeInsets.calculateTopPadding() + 192.dp, 190.dp),
+                    maxOf(maxHeight * 0.26f, safeInsets.calculateTopPadding() + 192.dp),
+                )
+                val livePanelTop = minOf(targetTop + targetHeight + 86.dp, maxHeight - 220.dp)
+                val headerTop = maxOf(targetTop - 84.dp, 78.dp)
+
+                if (controller.hasCameraPermission) {
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { viewContext ->
+                            PreviewView(viewContext).apply {
+                                implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                                scaleType = PreviewView.ScaleType.FILL_CENTER
+                                alpha = 1f
+                                previewView = this
+                            }
                         },
-                        onRetake = controller::retake,
-                    )
-                } else {
-                    ScannerControls(
-                        zoomFactor = controller.zoomFactor,
-                        availableZoomRange = controller.availableZoomRange,
-                        onSetZoom = controller::updateZoomFactor,
-                        onFreeze = controller::freezeCurrentFrame,
+                        update = {
+                            it.alpha = if (controller.isFrozen) 0f else 1f
+                            previewView = it
+                        },
                     )
                 }
-            }
 
-            when (controller.status) {
-                ScoreScannerStatus.CameraPermissionRequired -> {
-                    AppFullscreenStatusOverlay(
-                        title = controller.status.title,
-                        text = controller.status.detail,
-                    )
-                    AppFullscreenActionButton(
-                        text = "Open Settings",
-                        onClick = {
-                            val intent = Intent(
-                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                Uri.fromParts("package", context.packageName, null),
-                            )
-                            context.startActivity(intent)
+                TargetStage(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = targetTop)
+                        .width(targetWidth)
+                        .height(targetHeight)
+                        .onGloballyPositioned { coordinates ->
+                            targetRect = coordinates.boundsInRoot().toAndroidRectF()
                         },
+                    controller = controller,
+                )
+
+                ClosePill(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 18.dp, top = safeInsets.calculateTopPadding() + 18.dp),
+                    onClose = onClose,
+                )
+
+                Text(
+                    text = "Align the score display inside the box",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = headerTop)
+                        .padding(horizontal = 24.dp),
+                )
+
+                LiveReadingPanel(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = livePanelTop)
+                        .padding(horizontal = 18.dp),
+                    controller = controller,
+                )
+
+                if (controller.isFrozen && imeBottom > 0.dp) {
+                    Box(
                         modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(top = 132.dp),
+                            .fillMaxSize()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) {
+                                focusManager.clearFocus(force = true)
+                            }
                     )
                 }
 
-                ScoreScannerStatus.CameraUnavailable -> {
-                    AppFullscreenStatusOverlay(
-                        title = controller.status.title,
-                        text = controller.status.detail,
-                    )
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 18.dp)
+                        .padding(bottom = controlsBottomPadding),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    if (controller.isFrozen) {
+                        ScoreConfirmationSheet(
+                            controller = controller,
+                            onUseReading = {
+                                val score = controller.validatedConfirmedScore() ?: return@ScoreConfirmationSheet
+                                onUseReading(score)
+                            },
+                            onRetake = controller::retake,
+                        )
+                    } else {
+                        ScannerControls(
+                            zoomFactor = controller.zoomFactor,
+                            availableZoomRange = controller.availableZoomRange,
+                            onSetZoom = controller::updateZoomFactor,
+                            onFreeze = controller::freezeCurrentFrame,
+                        )
+                    }
                 }
 
-                else -> Unit
+                when (controller.status) {
+                    ScoreScannerStatus.CameraPermissionRequired -> {
+                        AppFullscreenStatusOverlay(
+                            title = controller.status.title,
+                            text = controller.status.detail,
+                        )
+                        AppFullscreenActionButton(
+                            text = "Open Settings",
+                            onClick = {
+                                val intent = Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.fromParts("package", context.packageName, null),
+                                )
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .padding(top = 132.dp),
+                        )
+                    }
+
+                    ScoreScannerStatus.CameraUnavailable -> {
+                        AppFullscreenStatusOverlay(
+                            title = controller.status.title,
+                            text = controller.status.detail,
+                        )
+                    }
+
+                    else -> Unit
+                }
             }
         }
     }

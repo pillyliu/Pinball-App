@@ -127,6 +127,14 @@ enum PracticeHomeBootstrapSnapshotStore {
         }
     }
 
+    static func loadAsync() async -> PracticeHomeBootstrapSnapshot? {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .utility).async {
+                continuation.resume(returning: load())
+            }
+        }
+    }
+
     static func save(_ snapshot: PracticeHomeBootstrapSnapshot) {
         guard snapshot.isUsable else { return }
         DispatchQueue.global(qos: .utility).async {

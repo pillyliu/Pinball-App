@@ -21,31 +21,32 @@ extension PracticeScreen {
             }
         case .groupDateEditor:
             NavigationStack {
-                VStack(alignment: .leading, spacing: 12) {
-                    DatePicker(
-                        context.currentGroupDateEditorTitle,
-                        selection: context.currentGroupDateEditorValue,
-                        displayedComponents: .date
-                    )
-                    .datePickerStyle(.compact)
+                AppScreen {
+                    VStack(alignment: .leading, spacing: 12) {
+                        DatePicker(
+                            context.currentGroupDateEditorTitle,
+                            selection: context.currentGroupDateEditorValue,
+                            displayedComponents: .date
+                        )
+                        .datePickerStyle(.compact)
 
-                    HStack {
-                        Button("Clear", role: .destructive) {
-                            context.onClearEditedGroupDate()
+                        HStack {
+                            Button("Clear", role: .destructive) {
+                                context.onClearEditedGroupDate()
+                            }
+                            .buttonStyle(AppDestructiveActionButtonStyle(fillsWidth: false))
+
+                            Spacer()
+
+                            Button("Save") {
+                                context.onSaveEditedGroupDate()
+                            }
+                            .buttonStyle(AppPrimaryActionButtonStyle(fillsWidth: false))
                         }
-                        .buttonStyle(AppDestructiveActionButtonStyle(fillsWidth: false))
-
-                        Spacer()
-
-                        Button("Save") {
-                            context.onSaveEditedGroupDate()
-                        }
-                        .buttonStyle(AppPrimaryActionButtonStyle(fillsWidth: false))
                     }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(AppBackground())
                 .navigationTitle(context.currentGroupDateEditorTitle == "Start Date" ? "Set Start Date" : "Set End Date")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

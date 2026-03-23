@@ -27,4 +27,107 @@ final class PracticeQuickEntryDefaultsTests: XCTestCase {
 
         XCTAssertEqual(initial, quickEntryAllGamesLibraryID)
     }
+
+    func testVideoEntryDefaultsToPercentInput() {
+        XCTAssertEqual(defaultPracticeVideoInputKind, .percent)
+    }
+
+    func testVideoInputModesShowPercentBeforeClock() {
+        XCTAssertEqual(practiceVideoInputKindOptions, [.percent, .clock])
+    }
+
+    func testExternalRulesheetFallbackUsesOtherTitle() {
+        let link = PinballGame.ReferenceLink(
+            label: "Pinball News",
+            url: "https://www.pinballnews.com/games/tron/index.html"
+        )
+
+        XCTAssertEqual(PinballShortRulesheetTitle(for: link), "Other")
+    }
+
+    func testLocalRulesheetTitleStaysLocal() {
+        let link = PinballGame.ReferenceLink(
+            label: "Rulesheet (source)",
+            url: ""
+        )
+
+        XCTAssertEqual(PinballShortRulesheetTitle(for: link), "Local")
+    }
+
+    func testResolveVideoLinksOrdersByKindThenNaturalLabel() {
+        let resolved = resolveVideoLinks(videoLinks: [
+            CatalogVideoLinkRecord(
+                practiceIdentity: "tron",
+                provider: "matchplay",
+                kind: "tutorial",
+                label: "Tutorial 10",
+                url: "https://www.youtube.com/watch?v=t10",
+                priority: 0
+            ),
+            CatalogVideoLinkRecord(
+                practiceIdentity: "tron",
+                provider: "local",
+                kind: "competition",
+                label: "Competition 1",
+                url: "https://www.youtube.com/watch?v=c1",
+                priority: 0
+            ),
+            CatalogVideoLinkRecord(
+                practiceIdentity: "tron",
+                provider: "local",
+                kind: "gameplay",
+                label: "Gameplay 2",
+                url: "https://www.youtube.com/watch?v=g2",
+                priority: 0
+            ),
+            CatalogVideoLinkRecord(
+                practiceIdentity: "tron",
+                provider: "local",
+                kind: "tutorial",
+                label: "Tutorial 2",
+                url: "https://www.youtube.com/watch?v=t2",
+                priority: 0
+            ),
+            CatalogVideoLinkRecord(
+                practiceIdentity: "tron",
+                provider: "matchplay",
+                kind: "gameplay",
+                label: "Gameplay 10",
+                url: "https://www.youtube.com/watch?v=g10",
+                priority: 0
+            ),
+            CatalogVideoLinkRecord(
+                practiceIdentity: "tron",
+                provider: "local",
+                kind: "tutorial",
+                label: "Tutorial 1",
+                url: "https://www.youtube.com/watch?v=t1",
+                priority: 0
+            )
+        ])
+
+        XCTAssertEqual(
+            resolved.map { $0.label ?? "" },
+            ["Tutorial 1", "Tutorial 2", "Tutorial 10", "Gameplay 2", "Gameplay 10", "Competition 1"]
+        )
+    }
+
+    func testMergeResolvedVideosReordersCuratedAndCatalogVideosByDisplaySequence() {
+        let merged = mergeResolvedVideos(
+            primary: [
+                PinballGame.Video(kind: "competition", label: "Competition 2", url: "https://www.youtube.com/watch?v=c2"),
+                PinballGame.Video(kind: "tutorial", label: "Tutorial 2", url: "https://www.youtube.com/watch?v=t2")
+            ],
+            secondary: [
+                PinballGame.Video(kind: "gameplay", label: "Gameplay 3", url: "https://www.youtube.com/watch?v=g3"),
+                PinballGame.Video(kind: "tutorial", label: "Tutorial 1", url: "https://www.youtube.com/watch?v=t1"),
+                PinballGame.Video(kind: "competition", label: "Competition 1", url: "https://www.youtube.com/watch?v=c1")
+            ]
+        )
+
+        XCTAssertEqual(
+            merged.map { $0.label ?? "" },
+            ["Tutorial 1", "Tutorial 2", "Gameplay 3", "Competition 1", "Competition 2"]
+        )
+    }
 }

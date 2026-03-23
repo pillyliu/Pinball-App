@@ -63,4 +63,14 @@ class PracticeQuickEntryDefaultsTest {
 
         assertEquals("", initial)
     }
+
+    @Test
+    fun videoEntry_defaultsToPercentInput() {
+        assertEquals("percent", DEFAULT_PRACTICE_VIDEO_INPUT_KIND)
+    }
+
+    @Test
+    fun videoEntry_showsPercentBeforeClock() {
+        assertEquals(listOf("percent", "clock"), practiceVideoInputKindOptions)
+    }
 }

@@ -6,7 +6,7 @@ import UIKit
 
 enum GameRoomRoute: Hashable {
     case settings
-    case machineView(UUID)
+    case machineView(UUID, String?, String)
 }
 
 enum GameRoomSettingsSection: String, CaseIterable, Identifiable {
@@ -32,27 +32,37 @@ struct GameRoomScreen: View {
     @StateObject private var store = GameRoomStore()
     @StateObject private var catalogLoader = GameRoomCatalogLoader()
     @State private var path: [GameRoomRoute] = []
+    @Namespace private var machineTransition
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         NavigationStack(path: $path) {
-            GameRoomHomeView(
-                store: store,
-                catalogLoader: catalogLoader,
-                onOpenSettings: { path.append(.settings) },
-                onOpenMachineView: { machineID in path.append(.machineView(machineID)) }
-            )
-            .navigationDestination(for: GameRoomRoute.self) { route in
-                switch route {
-                case .settings:
-                    GameRoomSettingsView(
-                        store: store,
-                        catalogLoader: catalogLoader,
-                        onOpenMachineView: { machineID in
-                            path.append(.machineView(machineID))
-                        }
-                    )
-                case let .machineView(machineID):
-                    GameRoomMachineView(store: store, catalogLoader: catalogLoader, machineID: machineID)
+            AppScreen(dismissesKeyboardOnTap: false) {
+                GameRoomHomeView(
+                    store: store,
+                    catalogLoader: catalogLoader,
+                    gameTransition: machineTransition,
+                    onOpenSettings: { path.append(.settings) },
+                    onOpenMachineView: openMachineView
+                )
+                .navigationDestination(for: GameRoomRoute.self) { route in
+                    switch route {
+                    case .settings:
+                        GameRoomSettingsView(
+                            store: store,
+                            catalogLoader: catalogLoader,
+                            gameTransition: machineTransition,
+                            onOpenMachineView: openMachineView
+                        )
+                    case let .machineView(machineID, transitionSourceID, navigationTitle):
+                        GameRoomMachineView(
+                            store: store,
+                            catalogLoader: catalogLoader,
+                            machineID: machineID,
+                            navigationTitle: navigationTitle
+                        )
+                            .appCardZoomTransition(sourceID: transitionSourceID, in: machineTransition, reduceMotion: reduceMotion)
+                    }
                 }
             }
         }
@@ -62,8 +72,16 @@ struct GameRoomScreen: View {
             store.migrateOwnedMachineOPDBIDs(using: catalogLoader)
         }
     }
+
+    private func openMachineView(_ machineID: UUID, _ sourceID: String?, _ navigationTitle: String) {
+        path.append(.machineView(machineID, sourceID, navigationTitle))
+    }
 }
 
 #Preview {
     GameRoomScreen()
+}
+
+func gameRoomMachineTransitionSourceID(machineID: UUID, surface: String) -> String {
+    "gameroom-machine-\(machineID.uuidString)-\(surface)"
 }

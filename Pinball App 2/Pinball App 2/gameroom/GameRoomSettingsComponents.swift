@@ -3,15 +3,14 @@ import SwiftUI
 struct GameRoomSettingsView: View {
     @ObservedObject var store: GameRoomStore
     @ObservedObject var catalogLoader: GameRoomCatalogLoader
-    let onOpenMachineView: (UUID) -> Void
+    let gameTransition: Namespace.ID
+    let onOpenMachineView: (UUID, String?, String) -> Void
     @State private var selectedSection: GameRoomSettingsSection = .importFromPinside
     @State private var saveFeedbackText: String?
     @State private var saveFeedbackToken = 0
 
     var body: some View {
         ZStack {
-            AppBackground()
-
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     Picker("Mode", selection: $selectedSection) {
@@ -24,6 +23,7 @@ struct GameRoomSettingsView: View {
                     GameRoomSettingsSectionCard(
                         store: store,
                         catalogLoader: catalogLoader,
+                        gameTransition: gameTransition,
                         selectedSection: selectedSection,
                         onOpenMachineView: onOpenMachineView,
                         onShowSaveFeedback: { text in
@@ -55,8 +55,9 @@ struct GameRoomSettingsView: View {
 struct GameRoomSettingsSectionCard: View {
     @ObservedObject var store: GameRoomStore
     @ObservedObject var catalogLoader: GameRoomCatalogLoader
+    let gameTransition: Namespace.ID
     let selectedSection: GameRoomSettingsSection
-    let onOpenMachineView: (UUID) -> Void
+    let onOpenMachineView: (UUID, String?, String) -> Void
     let onShowSaveFeedback: (String) -> Void
 
     var body: some View {
@@ -73,7 +74,11 @@ struct GameRoomSettingsSectionCard: View {
                     onShowSaveFeedback: onShowSaveFeedback
                 )
             case .archive:
-                GameRoomArchiveSettingsView(store: store, onOpenMachineView: onOpenMachineView)
+                GameRoomArchiveSettingsView(
+                    store: store,
+                    gameTransition: gameTransition,
+                    onOpenMachineView: onOpenMachineView
+                )
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1474,7 +1479,8 @@ struct GameRoomArchiveSettingsView: View {
     }
 
     @ObservedObject var store: GameRoomStore
-    let onOpenMachineView: (UUID) -> Void
+    let gameTransition: Namespace.ID
+    let onOpenMachineView: (UUID, String?, String) -> Void
     @State private var selectedFilter: ArchiveFilter = .all
 
     var body: some View {
@@ -1490,7 +1496,8 @@ struct GameRoomArchiveSettingsView: View {
                 AppPanelEmptyCard(text: "No archived machine instances yet.")
             } else {
                 ForEach(filteredMachines) { machine in
-                    Button(action: { onOpenMachineView(machine.id) }) {
+                    let sourceID = gameRoomMachineTransitionSourceID(machineID: machine.id, surface: "archive-row")
+                    Button(action: { onOpenMachineView(machine.id, sourceID, machine.displayTitle) }) {
                         HStack(spacing: 10) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(machine.displayTitle)
@@ -1509,6 +1516,7 @@ struct GameRoomArchiveSettingsView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 2)
+                        .matchedTransitionSource(id: sourceID, in: gameTransition)
                     }
                     .buttonStyle(.plain)
                 }

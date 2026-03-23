@@ -52,10 +52,14 @@ struct StandingsScreen: View {
     var body: some View {
         Group {
             if embeddedInNavigation {
-                content
+                AppScreen {
+                    content
+                }
             } else {
                 NavigationStack {
-                    content
+                    AppScreen {
+                        content
+                    }
                         .toolbar(.hidden, for: .navigationBar)
                 }
             }
@@ -73,27 +77,23 @@ struct StandingsScreen: View {
     }
 
     private var content: some View {
-        ZStack {
-            AppBackground()
-
-            VStack(spacing: 12) {
-                if !embeddedInNavigation {
-                    seasonSelector
-                }
-
-                if let errorMessage = viewModel.errorMessage {
-                    AppInlineStatusMessage(text: errorMessage, isError: true)
-                }
-                updatedStatusRow
-
-                standingsTable
-                    .frame(maxHeight: .infinity)
+        VStack(spacing: 12) {
+            if !embeddedInNavigation {
+                seasonSelector
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .padding(.horizontal, contentHorizontalPadding)
-            .padding(.top, embeddedInNavigation ? 0 : 4)
-            .padding(.bottom, 8)
+
+            if let errorMessage = viewModel.errorMessage {
+                AppInlineStatusMessage(text: errorMessage, isError: true)
+            }
+            updatedStatusRow
+
+            standingsTable
+                .frame(maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .padding(.horizontal, contentHorizontalPadding)
+        .padding(.top, embeddedInNavigation ? 0 : 4)
+        .padding(.bottom, 8)
         .background(
             GeometryReader { geo in
                 Color.clear

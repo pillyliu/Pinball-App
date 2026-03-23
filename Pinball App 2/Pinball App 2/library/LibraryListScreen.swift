@@ -2,6 +2,10 @@ import SwiftUI
 import UIKit
 
 extension LibraryScreen {
+    private var scrollIndicatorTrailingInset: CGFloat {
+        4 - contentHorizontalPadding
+    }
+
     var sourceMenuSection: some View {
         Group {
             if !viewModel.sources.isEmpty {
@@ -106,6 +110,7 @@ extension LibraryScreen {
                     loadMoreFooter
                 }
             }
+            .contentMargins(.trailing, scrollIndicatorTrailingInset, for: .scrollIndicators)
         } else {
             ScrollView {
                 LazyVGrid(columns: gridColumns, alignment: .leading, spacing: gridSpacing) {
@@ -116,6 +121,7 @@ extension LibraryScreen {
 
                 loadMoreFooter
             }
+            .contentMargins(.trailing, scrollIndicatorTrailingInset, for: .scrollIndicators)
         }
     }
 

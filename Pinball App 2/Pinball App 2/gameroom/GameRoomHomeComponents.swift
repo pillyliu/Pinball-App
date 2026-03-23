@@ -17,49 +17,47 @@ enum GameRoomCollectionLayout: String, CaseIterable, Identifiable {
 struct GameRoomHomeView: View {
     @ObservedObject var store: GameRoomStore
     @ObservedObject var catalogLoader: GameRoomCatalogLoader
+    let gameTransition: Namespace.ID
     let onOpenSettings: () -> Void
-    let onOpenMachineView: (UUID) -> Void
+    let onOpenMachineView: (UUID, String?, String) -> Void
     @State private var selectedMachineID: UUID?
     @State private var collectionLayout: GameRoomCollectionLayout = .tiles
 
     var body: some View {
-        ZStack {
-            AppBackground()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text(store.venueName)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(AppTheme.brandInk)
+                        .lineLimit(1)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack {
-                        Text(store.venueName)
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(AppTheme.brandInk)
-                            .lineLimit(1)
+                    Spacer()
 
-                        Spacer()
-
-                        Button(action: onOpenSettings) {
-                            Image(systemName: "gearshape")
-                        }
-                        .buttonStyle(AppCompactIconActionButtonStyle())
+                    Button(action: onOpenSettings) {
+                        Image(systemName: "gearshape")
                     }
-                    .padding(.leading, 8)
-
-                    GameRoomSelectedSummaryCard(
-                        store: store,
-                        selectedMachine: selectedMachine
-                    )
-                    GameRoomCollectionCard(
-                        store: store,
-                        catalogLoader: catalogLoader,
-                        selectedMachineID: selectedMachineID,
-                        collectionLayout: collectionLayout,
-                        onChangeLayout: { collectionLayout = $0 },
-                        onMachineTap: handleMachineTap
-                    )
+                    .buttonStyle(AppCompactIconActionButtonStyle())
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
+                .padding(.leading, 8)
+
+                GameRoomSelectedSummaryCard(
+                    store: store,
+                    selectedMachine: selectedMachine
+                )
+                GameRoomCollectionCard(
+                    store: store,
+                    catalogLoader: catalogLoader,
+                    gameTransition: gameTransition,
+                    selectedMachineID: selectedMachineID,
+                    collectionLayout: collectionLayout,
+                    onChangeLayout: { collectionLayout = $0 },
+                    onMachineTap: handleMachineTap
+                )
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
         }
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
@@ -88,8 +86,12 @@ struct GameRoomHomeView: View {
     }
 
     private func handleMachineTap(_ machine: OwnedMachine) {
+        let sourceID = gameRoomMachineTransitionSourceID(
+            machineID: machine.id,
+            surface: collectionLayout == .tiles ? "home-card" : "home-list"
+        )
         if selectedMachineID == machine.id {
-            onOpenMachineView(machine.id)
+            onOpenMachineView(machine.id, sourceID, machine.displayTitle)
             return
         }
         selectedMachineID = machine.id
@@ -168,6 +170,7 @@ private struct GameRoomSelectedSummaryCard: View {
 private struct GameRoomCollectionCard: View {
     @ObservedObject var store: GameRoomStore
     @ObservedObject var catalogLoader: GameRoomCatalogLoader
+    let gameTransition: Namespace.ID
     let selectedMachineID: UUID?
     let collectionLayout: GameRoomCollectionLayout
     let onChangeLayout: (GameRoomCollectionLayout) -> Void
@@ -209,6 +212,8 @@ private struct GameRoomCollectionCard: View {
                         GameRoomMiniCard(
                             machine: machine,
                             imageCandidates: catalogLoader.imageCandidates(for: machine),
+                            transitionSourceID: gameRoomMachineTransitionSourceID(machineID: machine.id, surface: "home-card"),
+                            transitionNamespace: gameTransition,
                             snapshot: store.snapshot(for: machine.id),
                             isSelected: machine.id == selectedMachineID,
                             onTap: { onMachineTap(machine) }
@@ -221,6 +226,8 @@ private struct GameRoomCollectionCard: View {
                         GameRoomListRow(
                             machine: machine,
                             imageCandidates: catalogLoader.imageCandidates(for: machine),
+                            transitionSourceID: gameRoomMachineTransitionSourceID(machineID: machine.id, surface: "home-list"),
+                            transitionNamespace: gameTransition,
                             snapshot: store.snapshot(for: machine.id),
                             areaName: store.area(for: machine.gameRoomAreaID)?.name,
                             isSelected: machine.id == selectedMachineID,
@@ -239,6 +246,8 @@ private struct GameRoomCollectionCard: View {
 private struct GameRoomMiniCard: View {
     let machine: OwnedMachine
     let imageCandidates: [URL]
+    let transitionSourceID: String
+    let transitionNamespace: Namespace.ID
     let snapshot: OwnedMachineSnapshot
     let isSelected: Bool
     let onTap: () -> Void
@@ -313,6 +322,7 @@ private struct GameRoomMiniCard: View {
         }
         .frame(height: 64)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .matchedTransitionSource(id: transitionSourceID, in: transitionNamespace)
         .onTapGesture(perform: onTap)
     }
 
@@ -333,6 +343,8 @@ private struct GameRoomMiniCard: View {
 private struct GameRoomListRow: View {
     let machine: OwnedMachine
     let imageCandidates: [URL]
+    let transitionSourceID: String
+    let transitionNamespace: Namespace.ID
     let snapshot: OwnedMachineSnapshot
     let areaName: String?
     let isSelected: Bool
@@ -406,6 +418,7 @@ private struct GameRoomListRow: View {
         }
         .frame(height: 58)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .matchedTransitionSource(id: transitionSourceID, in: transitionNamespace)
         .onTapGesture(perform: onTap)
     }
 

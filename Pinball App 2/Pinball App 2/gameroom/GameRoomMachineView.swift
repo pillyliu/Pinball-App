@@ -43,6 +43,7 @@ struct GameRoomMachineView: View {
     @ObservedObject var store: GameRoomStore
     @ObservedObject var catalogLoader: GameRoomCatalogLoader
     let machineID: UUID
+    let navigationTitle: String
     @State private var selectedSubview: MachineSubview = .summary
     @State private var editingEvent: MachineEvent?
     @State private var pendingDeleteEvent: MachineEvent?
@@ -58,61 +59,59 @@ struct GameRoomMachineView: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackground()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                ConstrainedAsyncImagePreview(
+                    candidates: machine.map { catalogLoader.imageCandidates(for: $0) } ?? [],
+                    emptyMessage: "No image",
+                    maxAspectRatio: 4.0 / 3.0,
+                    imagePadding: 0
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    ConstrainedAsyncImagePreview(
-                        candidates: machine.map { catalogLoader.imageCandidates(for: $0) } ?? [],
-                        emptyMessage: "No image",
-                        maxAspectRatio: 4.0 / 3.0,
-                        imagePadding: 0
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                    if let machine {
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(alignment: .center, spacing: 8) {
-                                AppCardTitle(text: machine.displayTitle, lineLimit: 2)
-                                if let label = gameRoomVariantBadgeLabel(variant: machine.displayVariant, title: machine.displayTitle) {
-                                    GameRoomVariantPill(label: label, style: .machineTitle)
-                                }
-                            }
-
-                            Text(machineHeaderLine(machine))
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Picker("Subview", selection: $selectedSubview) {
-                            ForEach(MachineSubview.allCases) { subview in
-                                Text(subview.title).tag(subview)
+                if let machine {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .center, spacing: 8) {
+                            AppCardTitle(text: machine.displayTitle, lineLimit: 2)
+                            if let label = gameRoomVariantBadgeLabel(variant: machine.displayVariant, title: machine.displayTitle) {
+                                GameRoomVariantPill(label: label, style: .machineTitle)
                             }
                         }
-                        .appSegmentedControlStyle()
 
-                        switch selectedSubview {
-                        case .summary:
-                            summarySection(for: machine)
-                        case .input:
-                            inputSection(for: machine)
-                        case .log:
-                            logSection(for: machine)
-                        }
-                    } else {
-                        Text("This machine is no longer available.")
-                            .font(.subheadline)
+                        Text(machineHeaderLine(machine))
+                            .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
+
+                    Picker("Subview", selection: $selectedSubview) {
+                        ForEach(MachineSubview.allCases) { subview in
+                            Text(subview.title).tag(subview)
+                        }
+                    }
+                    .appSegmentedControlStyle()
+
+                    switch selectedSubview {
+                    case .summary:
+                        summarySection(for: machine)
+                    case .input:
+                        inputSection(for: machine)
+                    case .log:
+                        logSection(for: machine)
+                    }
+                } else {
+                    Text("This machine is no longer available.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
         }
-        .navigationTitle(machine?.displayTitle ?? "Machine")
+        .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+        .appEdgeBackGesture()
         .sheet(item: $editingEvent) { event in
             GameRoomEventEditSheet(
                 event: event,

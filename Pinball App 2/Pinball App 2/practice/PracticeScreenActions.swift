@@ -37,11 +37,11 @@ extension PracticeScreen {
     func goToGame(_ gameID: String, zoomSourceID: String? = nil) {
         guard !gameID.isEmpty else { return }
         let canonical = store.canonicalPracticeGameID(gameID)
+        let navigationTitle = store.gameName(for: canonical)
         beginNavigationInteractionShield()
-        uiState.gameTransitionSourceID = zoomSourceID
         uiState.selectedGameID = canonical
         markPracticeGameViewed(canonical)
-        let target = PracticeRoute.game(canonical)
+        let target = PracticeRoute.game(canonical, zoomSourceID, navigationTitle)
         if uiState.gameNavigationPath.last != target {
             uiState.gameNavigationPath.append(target)
         }

@@ -12,7 +12,6 @@ struct PracticeScreenState {
     var currentGroupDateEditorGroupID: UUID?
     var currentGroupDateEditorField: GroupEditorDateField = .start
     var currentGroupDateEditorValue: Date = Date()
-    var gameTransitionSourceID: String?
     var quickEntryKind: QuickEntrySheet?
     var isEditingJournalEntries = false
     var selectedJournalItemIDs: Set<String> = []

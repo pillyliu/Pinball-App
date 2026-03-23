@@ -13,24 +13,9 @@ extension PracticeScreen {
                 content
                     .navigationDestination(for: PracticeRoute.self) { route in
                         switch route {
-                        case .game(let gameID):
-                            PracticeGameWorkspace(store: store, selectedGameID: $uiState.selectedGameID, onGameViewed: { viewedGameID in
-                                markPracticeGameViewed(viewedGameID)
-                            }, onOpenRulesheet: { game, source in
-                                openRulesheet(source: source, for: game)
-                            }, onOpenExternalRulesheet: { game, url in
-                                openExternalRulesheet(url: url, for: game)
-                            }, onOpenPlayfield: { game, candidates in
-                                openPlayfield(for: game, candidates: candidates)
-                            }, onPrepareRulesheet: { game, source in
-                                prepareRulesheet(source: source, for: game)
-                            }, onPrepareExternalRulesheet: { game, url in
-                                prepareExternalRulesheet(url: url, for: game)
-                            }, onPreparePlayfield: { game, candidates in
-                                preparePlayfield(for: game, candidates: candidates)
-                            })
-                            .onAppear { uiState.selectedGameID = gameID }
-                            .navigationTransition(.zoom(sourceID: uiState.gameTransitionSourceID ?? gameID, in: gameTransition))
+                        case let .game(gameID, transitionSourceID, navigationTitle):
+                            practiceGameWorkspace(gameID: gameID, navigationTitle: navigationTitle)
+                                .appCardZoomTransition(sourceID: transitionSourceID, in: gameTransition, reduceMotion: reduceMotion)
                         case .search, .rulesheet, .playfield, .ifpaProfile, .groupDashboard, .groupEditor, .journal, .insights, .mechanics, .settings:
                             routeView(for: route)
                         }
@@ -48,5 +33,23 @@ extension PracticeScreen {
                 context: presentationContext
             )
         )
+    }
+
+    private func practiceGameWorkspace(gameID: String, navigationTitle: String) -> some View {
+        PracticeGameWorkspace(store: store, selectedGameID: $uiState.selectedGameID, navigationTitle: navigationTitle, onGameViewed: { viewedGameID in
+            markPracticeGameViewed(viewedGameID)
+        }, onOpenRulesheet: { game, source in
+            openRulesheet(source: source, for: game)
+        }, onOpenExternalRulesheet: { game, url in
+            openExternalRulesheet(url: url, for: game)
+        }, onOpenPlayfield: { game, candidates in
+            openPlayfield(for: game, candidates: candidates)
+        }, onPrepareRulesheet: { game, source in
+            prepareRulesheet(source: source, for: game)
+        }, onPrepareExternalRulesheet: { game, url in
+            prepareExternalRulesheet(url: url, for: game)
+        }, onPreparePlayfield: { game, candidates in
+            preparePlayfield(for: game, candidates: candidates)
+        })
     }
 }

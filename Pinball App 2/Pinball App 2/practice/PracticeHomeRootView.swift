@@ -33,8 +33,6 @@ struct PracticeHomeRootView: View {
 
     var body: some View {
         ZStack {
-            AppBackground()
-
             if showsLoadingOverlay {
                 AppFullscreenStatusOverlay(
                     text: "Loading practice data…",

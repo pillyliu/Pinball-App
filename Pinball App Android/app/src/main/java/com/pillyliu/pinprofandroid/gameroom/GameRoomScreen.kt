@@ -101,13 +101,12 @@ import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.library.rememberCachedImageModel
 import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
+import com.pillyliu.pinprofandroid.ui.AppRouteScreen
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
-import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.DropdownOption
-import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
@@ -487,12 +486,10 @@ internal fun GameRoomScreen(
         route = GameRoomRoute.Home
     }
 
-    AppScreen(
+    AppRouteScreen(
         contentPadding = contentPadding,
-        modifier = Modifier.iosEdgeSwipeBack(
-            enabled = route != GameRoomRoute.Home,
-            onBack = { route = GameRoomRoute.Home },
-        ),
+        canGoBack = route != GameRoomRoute.Home,
+        onBack = { route = GameRoomRoute.Home },
     ) {
         when (route) {
             GameRoomRoute.Home -> {

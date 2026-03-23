@@ -42,6 +42,65 @@ class LibraryCatalogResolutionParityTest {
         assertNull(selected)
     }
 
+    @Test
+    fun shortRulesheetTitle_usesOtherForUnhandledWebRulesheet() {
+        val link = ReferenceLink(
+            label = "Pinball News",
+            url = "https://www.pinballnews.com/games/tron/index.html",
+        )
+
+        assertEquals("Other", link.shortRulesheetTitle)
+    }
+
+    @Test
+    fun shortRulesheetTitle_keepsPinProfForLocalSource() {
+        val link = ReferenceLink(
+            label = "Rulesheet (source)",
+            url = null,
+        )
+
+        assertEquals("PinProf", link.shortRulesheetTitle)
+    }
+
+    @Test
+    fun resolveVideoLinks_ordersByKindThenNaturalLabel() {
+        val resolved = resolveVideoLinks(
+            listOf(
+                video(provider = "matchplay", kind = "tutorial", label = "Tutorial 10", url = "https://www.youtube.com/watch?v=t10"),
+                video(provider = "local", kind = "competition", label = "Competition 1", url = "https://www.youtube.com/watch?v=c1"),
+                video(provider = "local", kind = "gameplay", label = "Gameplay 2", url = "https://www.youtube.com/watch?v=g2"),
+                video(provider = "local", kind = "tutorial", label = "Tutorial 2", url = "https://www.youtube.com/watch?v=t2"),
+                video(provider = "matchplay", kind = "gameplay", label = "Gameplay 10", url = "https://www.youtube.com/watch?v=g10"),
+                video(provider = "local", kind = "tutorial", label = "Tutorial 1", url = "https://www.youtube.com/watch?v=t1"),
+            ),
+        )
+
+        assertEquals(
+            listOf("Tutorial 1", "Tutorial 2", "Tutorial 10", "Gameplay 2", "Gameplay 10", "Competition 1"),
+            resolved.map { it.label },
+        )
+    }
+
+    @Test
+    fun mergeResolvedVideos_reordersCuratedAndCatalogVideosByDisplaySequence() {
+        val merged = mergeResolvedVideos(
+            primary = listOf(
+                Video(kind = "competition", label = "Competition 2", url = "https://www.youtube.com/watch?v=c2"),
+                Video(kind = "tutorial", label = "Tutorial 2", url = "https://www.youtube.com/watch?v=t2"),
+            ),
+            secondary = listOf(
+                Video(kind = "gameplay", label = "Gameplay 3", url = "https://www.youtube.com/watch?v=g3"),
+                Video(kind = "tutorial", label = "Tutorial 1", url = "https://www.youtube.com/watch?v=t1"),
+                Video(kind = "competition", label = "Competition 1", url = "https://www.youtube.com/watch?v=c1"),
+            ),
+        )
+
+        assertEquals(
+            listOf("Tutorial 1", "Tutorial 2", "Gameplay 3", "Competition 1", "Competition 2"),
+            merged.map { it.label },
+        )
+    }
+
     private fun machine(
         opdbMachineId: String,
         name: String = "Test Machine",
@@ -63,6 +122,24 @@ class LibraryCatalogResolutionParityTest {
             primaryImageLargeUrl = null,
             playfieldImageMediumUrl = null,
             playfieldImageLargeUrl = null,
+        )
+    }
+
+    private fun video(
+        provider: String,
+        kind: String,
+        label: String,
+        url: String,
+        practiceIdentity: String = "g-test",
+        priority: Int? = 0,
+    ): CatalogVideoLinkRecord {
+        return CatalogVideoLinkRecord(
+            practiceIdentity = practiceIdentity,
+            provider = provider,
+            kind = kind,
+            label = label,
+            url = url,
+            priority = priority,
         )
     }
 }

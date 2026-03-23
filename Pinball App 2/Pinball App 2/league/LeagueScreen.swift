@@ -5,8 +5,10 @@ struct LeagueScreen: View {
 
     var body: some View {
         NavigationStack {
-            LeagueShellContent(previewModel: previewModel) { destination in
-                AnyView(LeagueDestinationView(destination: destination))
+            AppScreen {
+                LeagueShellContent(previewModel: previewModel) { destination in
+                    AnyView(LeagueDestinationView(destination: destination))
+                }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)

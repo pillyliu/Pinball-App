@@ -6,37 +6,33 @@ struct LeagueShellContent: View {
 
     var body: some View {
         GeometryReader { geo in
-            ZStack {
-                AppBackground()
-
-                let isLandscape = geo.size.width > geo.size.height
-                ScrollView {
-                    if isLandscape {
-                        VStack(spacing: 12) {
-                            LazyVGrid(
-                                columns: [
-                                    GridItem(.flexible(), spacing: 12),
-                                    GridItem(.flexible(), spacing: 12),
-                                ],
-                                spacing: 12
-                            ) {
-                                destinationLinks
-                            }
-
-                            aboutFooterLink
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.top, 10)
-                        .padding(.bottom, 14)
-                    } else {
-                        VStack(spacing: 12) {
+            let isLandscape = geo.size.width > geo.size.height
+            ScrollView {
+                if isLandscape {
+                    VStack(spacing: 12) {
+                        LazyVGrid(
+                            columns: [
+                                GridItem(.flexible(), spacing: 12),
+                                GridItem(.flexible(), spacing: 12),
+                            ],
+                            spacing: 12
+                        ) {
                             destinationLinks
-                            aboutFooterLink
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.top, 10)
-                        .padding(.bottom, 14)
+
+                        aboutFooterLink
                     }
+                    .padding(.horizontal, 14)
+                    .padding(.top, 10)
+                    .padding(.bottom, 14)
+                } else {
+                    VStack(spacing: 12) {
+                        destinationLinks
+                        aboutFooterLink
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.top, 10)
+                    .padding(.bottom, 14)
                 }
             }
         }

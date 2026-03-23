@@ -47,62 +47,58 @@ struct LPLAboutContent: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackground()
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    LPLLogoView()
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 120, maxHeight: 220)
 
-            VStack(spacing: 0) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        LPLLogoView()
-                            .frame(maxWidth: .infinity)
-                            .frame(minHeight: 120, maxHeight: 220)
+                    Text("Pinball in the Capital City")
+                        .font(aboutTitleFont)
+                        .foregroundStyle(.primary)
 
-                        Text("Pinball in the Capital City")
-                            .font(aboutTitleFont)
-                            .foregroundStyle(.primary)
-
-                        Text("The Lansing Pinball League is the Capital City's IFPA-endorsed pinball league, open to players of all skill levels. New players are always welcome. We're a friendly, casual group with everyone from first-timers to seasoned competitors.")
-                            .font(aboutBodyFont)
-                            .foregroundStyle(.primary)
-
-                        Text(
-                            "We meet the 2nd and 4th Tuesdays at \(Text("The Avenue Cafe").bold()) (2021 E. Michigan Ave, Lansing), about halfway between MSU and the Capitol. We're currently in \(Text("Season 24").bold()), which started in January. New members can join during the first 5 meetings, and players must attend at least 4 of the 8 meetings to qualify for finals. Guests are welcome at any session. \(Text("Season dues are $10").bold()), paid in cash."
-                        )
+                    Text("The Lansing Pinball League is the Capital City's IFPA-endorsed pinball league, open to players of all skill levels. New players are always welcome. We're a friendly, casual group with everyone from first-timers to seasoned competitors.")
                         .font(aboutBodyFont)
                         .foregroundStyle(.primary)
 
-                        Text(
-                            "We also run a side tournament, \(Text("Tuesday Night Smackdown").bold()), played on a single game. Qualifying starts around \(Text("6 pm").bold()), with finals (top 8 players) after league play finishes, usually around \(Text("9:30 pm").bold())."
-                        )
-                        .font(aboutBodyFont)
-                        .foregroundStyle(.primary)
+                    Text(
+                        "We meet the 2nd and 4th Tuesdays at \(Text("The Avenue Cafe").bold()) (2021 E. Michigan Ave, Lansing), about halfway between MSU and the Capitol. We're currently in \(Text("Season 24").bold()), which started in January. New members can join during the first 5 meetings, and players must attend at least 4 of the 8 meetings to qualify for finals. Guests are welcome at any session. \(Text("Season dues are $10").bold()), paid in cash."
+                    )
+                    .font(aboutBodyFont)
+                    .foregroundStyle(.primary)
 
-                        HStack(spacing: 10) {
-                            Link(destination: LPLLinks.website) {
-                                AppExternalLinkButtonLabel(text: "lansingpinleague.com")
-                                    .font(aboutLinkFont)
-                            }
-                            .buttonStyle(.plain)
+                    Text(
+                        "We also run a side tournament, \(Text("Tuesday Night Smackdown").bold()), played on a single game. Qualifying starts around \(Text("6 pm").bold()), with finals (top 8 players) after league play finishes, usually around \(Text("9:30 pm").bold())."
+                    )
+                    .font(aboutBodyFont)
+                    .foregroundStyle(.primary)
 
-                            Link(destination: LPLLinks.facebook) {
-                                AppExternalLinkButtonLabel(text: "Facebook Group")
-                                    .font(aboutLinkFont)
-                            }
-                            .buttonStyle(.plain)
+                    HStack(spacing: 10) {
+                        Link(destination: LPLLinks.website) {
+                            AppExternalLinkButtonLabel(text: "lansingpinleague.com")
+                                .font(aboutLinkFont)
                         }
-                    }
-                    .appReadableWidth(maxWidth: readableContentWidth)
-                    .padding(.horizontal, contentHorizontalPadding)
-                    .padding(.top, 8)
-                    .padding(.bottom, 14)
-                }
+                        .buttonStyle(.plain)
 
-                Text("Source: lansingpinleague.com")
-                    .font(isLargeTablet ? .footnote : .caption2)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.bottom, 4)
+                        Link(destination: LPLLinks.facebook) {
+                            AppExternalLinkButtonLabel(text: "Facebook Group")
+                                .font(aboutLinkFont)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .appReadableWidth(maxWidth: readableContentWidth)
+                .padding(.horizontal, contentHorizontalPadding)
+                .padding(.top, 8)
+                .padding(.bottom, 14)
             }
+
+            Text("Source: lansingpinleague.com")
+                .font(isLargeTablet ? .footnote : .caption2)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.bottom, 4)
         }
         .background(
             GeometryReader { geo in
@@ -119,7 +115,9 @@ struct LPLAboutContent: View {
 struct AboutScreen: View {
     var body: some View {
         NavigationStack {
-            LPLAboutContent()
+            AppScreen {
+                LPLAboutContent()
+            }
                 .toolbar(.hidden, for: .navigationBar)
         }
     }

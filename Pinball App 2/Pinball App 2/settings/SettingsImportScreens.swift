@@ -23,9 +23,7 @@ struct AddManufacturerScreen: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackground()
-
+        AppScreen {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 10) {
@@ -167,9 +165,7 @@ struct AddVenueScreen: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackground()
-
+        AppScreen {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 10) {
@@ -462,9 +458,7 @@ struct AddTournamentScreen: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackground()
-
+        AppScreen {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 10) {

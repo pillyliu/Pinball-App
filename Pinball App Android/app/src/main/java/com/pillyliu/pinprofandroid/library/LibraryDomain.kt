@@ -143,7 +143,7 @@ internal enum class RulesheetSourceKind(val rank: Int, val shortLabel: String) {
     PAPA(4, "PAPA"),
     PP(5, "PP"),
     OPDB(6, "OPDB"),
-    OTHER(7, "PinProf"),
+    OTHER(7, "Other"),
 }
 
 internal val ReferenceLink.rulesheetSourceKind: RulesheetSourceKind

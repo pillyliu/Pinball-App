@@ -8,9 +8,7 @@ struct ScoreScannerCameraTestView: View {
     @StateObject private var viewModel = ScoreScannerCameraTestViewModel()
 
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-
+        AppFullscreenStage {
             if let session = viewModel.session, viewModel.authorizationStatus == .authorized {
                 CameraPreviewView(session: session) { previewLayer in
                     viewModel.attachPreviewLayer(previewLayer)

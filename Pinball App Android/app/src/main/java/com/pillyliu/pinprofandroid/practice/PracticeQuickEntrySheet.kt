@@ -201,7 +201,7 @@ internal fun QuickEntrySheet(
     var scoreContext by remember { mutableStateOf("practice") }
     var tournamentName by remember { mutableStateOf("") }
     var rulesheetProgress by remember { mutableFloatStateOf(0f) }
-    var videoInputKind by remember { mutableStateOf("clock") }
+    var videoInputKind by remember { mutableStateOf(DEFAULT_PRACTICE_VIDEO_INPUT_KIND) }
     var selectedVideoSource by remember { mutableStateOf("") }
     var videoWatchedTime by remember { mutableStateOf("") }
     var videoTotalTime by remember { mutableStateOf("") }

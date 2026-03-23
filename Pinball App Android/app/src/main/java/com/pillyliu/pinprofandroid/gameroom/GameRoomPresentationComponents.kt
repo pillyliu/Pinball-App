@@ -46,11 +46,11 @@ import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
 import com.pillyliu.pinprofandroid.ui.AppFullscreenActionButton
+import com.pillyliu.pinprofandroid.ui.AppFullscreenStage
 import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.AppSwipeActionRow
 import com.pillyliu.pinprofandroid.ui.AppSwipeActionSpec
-import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 
 @Composable
 internal fun GameRoomLogRow(
@@ -205,11 +205,9 @@ internal fun MediaPreviewDialog(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Box(
+        AppFullscreenStage(
+            onBack = onClose,
             modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-                .iosEdgeSwipeBack(enabled = true, onBack = onClose)
                 .clipToBounds()
                 .pointerInput(attachment.id) {
                     detectTapGestures(

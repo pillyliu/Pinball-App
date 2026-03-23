@@ -108,13 +108,23 @@ struct GroupEditorScreen: View {
     @State private var createGroupPosition: Int = 1
     @State private var inlineDateEditorField: GroupEditorDateField?
 
+    private struct SelectedGameItem: Identifiable {
+        let selectionID: String
+        let game: PinballGame
+
+        var id: String { selectionID }
+    }
+
     private var editingGroup: CustomGameGroup? {
         guard let editingGroupID else { return nil }
         return store.state.customGroups.first(where: { $0.id == editingGroupID })
     }
 
-    private var selectedGames: [PinballGame] {
-        selectedGameIDs.compactMap { store.gameForAnyID($0) }
+    private var selectedGameItems: [SelectedGameItem] {
+        selectedGameIDs.compactMap { selectionID in
+            guard let game = store.gameForAnyID(selectionID) else { return nil }
+            return SelectedGameItem(selectionID: selectionID, game: game)
+        }
     }
 
     private var availableBanks: [Int] {
@@ -187,28 +197,21 @@ struct GroupEditorScreen: View {
         } message: {
             Text("This removes the group and its title list.")
         }
-        .confirmationDialog(
-            "Remove this title from the group?",
-            isPresented: Binding(
-                get: { pendingDeleteGameID != nil },
-                set: { isPresented in
-                    if !isPresented { pendingDeleteGameID = nil }
-                }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Delete Title", role: .destructive) {
-                removePendingGameIfNeeded()
-            }
-            Button("Cancel", role: .cancel) {
-                pendingDeleteGameID = nil
-            }
-        }
         .onChange(of: availableBanks) { _, _ in
             syncTemplateDefaultsToAvailableData()
         }
         .onChange(of: store.state.customGroups.map(\.id)) { _, _ in
             syncTemplateDefaultsToAvailableData()
+        }
+        .onChange(of: selectedGameIDs) { oldValue, newValue in
+            let oldSet = Set(oldValue)
+            let newSet = Set(newValue)
+            if oldSet != newSet {
+                draggingGameID = nil
+            }
+            if let pendingDeleteGameID, !newValue.contains(pendingDeleteGameID) {
+                self.pendingDeleteGameID = nil
+            }
         }
     }
 
@@ -291,39 +294,58 @@ struct GroupEditorScreen: View {
             }
             .buttonStyle(.plain)
 
-            if selectedGames.isEmpty {
+            if selectedGameItems.isEmpty {
                 AppPanelEmptyCard(text: "No games selected.")
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(selectedGames) { game in
-                            SelectedGameMiniCard(game: game)
+                        ForEach(selectedGameItems) { item in
+                            ZStack(alignment: .topTrailing) {
+                                SelectedGameMiniCard(game: item.game)
+
+                                Button {
+                                    pendingDeleteGameID = item.selectionID
+                                }
+                                label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.title3.weight(.semibold))
+                                        .foregroundStyle(Color.white, Color.red.opacity(0.96))
+                                        .shadow(color: .black.opacity(0.26), radius: 2, x: 0, y: 1)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(4)
+                                .practiceAdaptivePopover(
+                                    isPresented: Binding(
+                                        get: { pendingDeleteGameID == item.selectionID },
+                                        set: { isPresented in
+                                            if !isPresented, pendingDeleteGameID == item.selectionID {
+                                                pendingDeleteGameID = nil
+                                            }
+                                        }
+                                    ),
+                                    preferredHeight: 180
+                                ) { _ in
+                                    titleDeletePopover()
+                                }
+                            }
                             .onDrag {
-                                let canonicalID = game.canonicalPracticeKey
-                                draggingGameID = canonicalID
-                                return NSItemProvider(object: canonicalID as NSString)
+                                draggingGameID = item.selectionID
+                                return NSItemProvider(object: item.selectionID as NSString)
                             }
                             .onDrop(
                                 of: [UTType.text, UTType.plainText],
                                 delegate: SelectedGameReorderDropDelegate(
-                                    targetGameID: game.canonicalPracticeKey,
+                                    targetGameID: item.selectionID,
                                     selectedGameIDs: $selectedGameIDs,
                                     draggingGameID: $draggingGameID
                                 )
                             )
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    pendingDeleteGameID = game.canonicalPracticeKey
-                                } label: {
-                                    Label("Delete Title", systemImage: "trash")
-                                }
-                            }
                         }
                     }
                     .onDrop(of: [UTType.text, UTType.plainText], delegate: SelectedGameReorderContainerDropDelegate(draggingGameID: $draggingGameID))
                 }
 
-                Text("Long-press a title card to reorder or delete.")
+                Text("Long-press a title card to reorder. Use the remove button to delete.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -499,6 +521,23 @@ struct GroupEditorScreen: View {
         .presentationCompactAdaptation(.popover)
     }
 
+    private func titleDeletePopover() -> some View {
+        HStack(spacing: 10) {
+            Button("Cancel") {
+                pendingDeleteGameID = nil
+            }
+            .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+
+            Button("Delete", role: .destructive) {
+                removePendingGameIfNeeded()
+            }
+            .buttonStyle(AppDestructiveActionButtonStyle(fillsWidth: false))
+        }
+        .padding(12)
+        .frame(minWidth: 180, alignment: .center)
+        .presentationCompactAdaptation(.popover)
+    }
+
     @ViewBuilder
     private func sectionCard<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -606,18 +645,11 @@ struct GroupEditorScreen: View {
         return true
     }
 
-    private func reorderSelectedGames(sourceID: String, targetID: String) {
-        guard sourceID != targetID else { return }
-        guard let sourceIndex = selectedGameIDs.firstIndex(of: sourceID),
-              let targetIndex = selectedGameIDs.firstIndex(of: targetID) else { return }
-        let moving = selectedGameIDs.remove(at: sourceIndex)
-        selectedGameIDs.insert(moving, at: targetIndex)
-    }
-
     private func removePendingGameIfNeeded() {
         guard let gameID = pendingDeleteGameID else { return }
         selectedGameIDs.removeAll { $0 == gameID }
         pendingDeleteGameID = nil
+        draggingGameID = nil
     }
 
     private func applyBankTemplate(bank: Int) {
@@ -628,6 +660,7 @@ struct GroupEditorScreen: View {
         selectedGameIDs = games.map(\.canonicalPracticeKey).reduce(into: [String]()) { result, id in
             if !result.contains(id) { result.append(id) }
         }
+        draggingGameID = nil
         type = .bank
         if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             name = "Bank \(bank) Focus"
@@ -638,6 +671,7 @@ struct GroupEditorScreen: View {
         guard let groupID,
               let source = duplicateCandidates.first(where: { $0.id == groupID }) else { return }
         selectedGameIDs = source.gameIDs
+        draggingGameID = nil
         type = source.type
         isPriority = source.isPriority
         isArchived = source.isArchived
@@ -914,7 +948,7 @@ struct SelectedGameReorderContainerDropDelegate: DropDelegate {
     }
 }
 
-private struct PracticeAdaptivePopoverSourceFramePreferenceKey: PreferenceKey {
+struct PracticeAdaptivePopoverSourceFramePreferenceKey: PreferenceKey {
     static let defaultValue: CGRect = .zero
 
     static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
@@ -924,7 +958,7 @@ private struct PracticeAdaptivePopoverSourceFramePreferenceKey: PreferenceKey {
     }
 }
 
-private struct PracticeAdaptivePopoverModifier<PopoverContent: View>: ViewModifier {
+struct PracticeAdaptivePopoverModifier<PopoverContent: View>: ViewModifier {
     @Binding var isPresented: Bool
     let preferredHeight: CGFloat
     let popoverContent: (CGFloat) -> PopoverContent
@@ -1008,7 +1042,7 @@ extension View {
     }
 }
 
-private func practicePopoverViewportRect() -> CGRect {
+func practicePopoverViewportRect() -> CGRect {
     let windowScenes = UIApplication.shared.connectedScenes
         .compactMap { $0 as? UIWindowScene }
     let keyWindow = windowScenes

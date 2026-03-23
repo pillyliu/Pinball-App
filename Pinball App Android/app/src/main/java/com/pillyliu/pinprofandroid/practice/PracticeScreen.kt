@@ -33,8 +33,7 @@ import com.pillyliu.pinprofandroid.library.resolve
 import com.pillyliu.pinprofandroid.library.rulesheetPathCandidates
 import com.pillyliu.pinprofandroid.library.fullscreenPlayfieldCandidates
 import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
-import com.pillyliu.pinprofandroid.ui.AppScreen
-import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
+import com.pillyliu.pinprofandroid.ui.AppRouteScreen
 
 internal enum class PracticeRoute {
     Home,
@@ -148,14 +147,12 @@ internal fun PracticeScreen(
         store.hasRestoredHomeBootstrapSnapshot &&
         uiState.navigation.route == PracticeRoute.Home
 
-    AppScreen(
+    AppRouteScreen(
         contentPadding = contentPadding,
-        modifier = Modifier.iosEdgeSwipeBack(
-            enabled = uiState.navigation.route != PracticeRoute.Home &&
-                uiState.navigation.route != PracticeRoute.Rulesheet &&
-                uiState.navigation.route != PracticeRoute.Playfield,
-            onBack = uiState::goBack,
-        ),
+        canGoBack = uiState.navigation.route != PracticeRoute.Home &&
+            uiState.navigation.route != PracticeRoute.Rulesheet &&
+            uiState.navigation.route != PracticeRoute.Playfield,
+        onBack = uiState::goBack,
     ) {
         if (showsFullscreenBootstrapOverlay) {
             AppFullscreenStatusOverlay(

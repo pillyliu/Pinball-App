@@ -57,7 +57,7 @@ enum LibraryRulesheetSourceKind: Int {
         case .opdb:
             return "OPDB"
         case .other:
-            return "Local"
+            return "Other"
         }
     }
 }

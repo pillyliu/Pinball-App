@@ -247,6 +247,8 @@ extension PracticeScreen {
             onInitialLoad: {
                 guard !hasRunInitialPracticeLoad else { return }
                 hasRunInitialPracticeLoad = true
+                await Task.yield()
+                try? await Task.sleep(nanoseconds: 180_000_000)
                 await store.loadIfNeeded()
                 applyDefaultsAfterLoad()
                 let trimmedName = uiState.playerName.trimmingCharacters(in: .whitespacesAndNewlines)

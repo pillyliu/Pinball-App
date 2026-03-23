@@ -170,9 +170,7 @@ struct SettingsScreen: View {
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            ZStack {
-                AppBackground()
-
+            AppScreen {
                 ScrollView {
                     SettingsHomeContent(
                         viewModel: viewModel,

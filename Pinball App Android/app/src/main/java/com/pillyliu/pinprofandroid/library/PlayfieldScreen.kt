@@ -58,10 +58,10 @@ import coil.request.ImageRequest
 import coil.size.Size
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
+import com.pillyliu.pinprofandroid.ui.AppFullscreenStage
 import com.pillyliu.pinprofandroid.ui.AppMediaPreviewPlaceholder
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
-import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -179,12 +179,7 @@ internal fun PlayfieldScreen(
         onDispose { bottomBarVisible.value = true }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .iosEdgeSwipeBack(enabled = true, onBack = onBack),
-    ) {
+    AppFullscreenStage(onBack = onBack) {
         ZoomablePlayfieldImage(
             imageUrls = imageUrls,
             title = title,

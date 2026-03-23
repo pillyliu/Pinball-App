@@ -140,7 +140,7 @@ struct RulesheetScreen: View {
         .ignoresSafeArea(.container, edges: [.top, .bottom])
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
-        .appEdgeBackGesture(dismiss: dismiss)
+        .appEdgeBackGesture()
         .task {
             await viewModel.loadIfNeeded()
         }
@@ -884,7 +884,6 @@ struct ExternalRulesheetWebScreen: View {
 
     var body: some View {
         RulesheetWebFallbackView(url: url)
-            .background(AppBackground())
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
     }

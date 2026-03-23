@@ -15,7 +15,9 @@ struct LeagueDestinationView: View {
             TargetsScreen(embeddedInNavigation: true)
                 .navigationBarTitleDisplayMode(.inline)
         case .aboutLpl:
-            LPLAboutContent()
+            AppScreen {
+                LPLAboutContent()
+            }
                 .navigationTitle(destination.title)
                 .navigationBarTitleDisplayMode(.inline)
         }

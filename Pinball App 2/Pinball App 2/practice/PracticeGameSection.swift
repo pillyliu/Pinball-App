@@ -4,7 +4,7 @@ struct PracticeGameSection: View {
     let context: PracticeGameWorkspaceContext
 
     @State private var uiState = PracticeGameWorkspaceState()
-    @Environment(\.dismiss) private var dismiss
+    @State private var navigationTitleText = ""
     @Environment(\.openURL) private var openURL
 
     private var store: PracticeStore { context.store }
@@ -42,6 +42,10 @@ struct PracticeGameSection: View {
         store.gameForAnyID(selectedGameID)
     }
 
+    private var navigationTitle: String {
+        navigationTitleText.isEmpty ? context.navigationTitle : navigationTitleText
+    }
+
     private var playableVideos: [PinballGame.PlayableVideo] {
         guard let game = selectedGame else { return [] }
         return game.videos.compactMap { video in
@@ -53,7 +57,7 @@ struct PracticeGameSection: View {
         }
     }
 
-    var body: some View {
+    private var content: some View {
         PracticeGameLifecycleHost(context: lifecycleContext) {
             PracticeGamePresentationHost(context: presentationContext) {
                 PracticeGameRouteBody(
@@ -72,14 +76,21 @@ struct PracticeGameSection: View {
                 )
             }
         }
-        .navigationTitle(store.gameName(for: selectedGameID))
+    }
+
+    var body: some View {
+        content
+        .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
-        .appEdgeBackGesture(dismiss: dismiss)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 PracticeGameToolbarMenu(store: store, selectedGameID: context.selectedGameID)
             }
+        }
+        .appEdgeBackGesture()
+        .onChange(of: selectedGameID) { _, _ in
+            syncNavigationTitle()
         }
     }
 
@@ -130,5 +141,9 @@ struct PracticeGameSection: View {
                 uiState.saveBanner = nil
             }
         }
+    }
+
+    private func syncNavigationTitle() {
+        navigationTitleText = selectedGame?.name ?? store.gameName(for: selectedGameID)
     }
 }

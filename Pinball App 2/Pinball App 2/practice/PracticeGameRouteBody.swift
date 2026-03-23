@@ -31,32 +31,28 @@ struct PracticeGameRouteBody<Summary: View, Input: View, Study: View, Log: View>
     @ViewBuilder let logView: () -> Log
 
     var body: some View {
-        ZStack {
-            AppBackground()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                PracticeGameScreenshotSection(game: selectedGame)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    PracticeGameScreenshotSection(game: selectedGame)
+                PracticeGameWorkspaceCard(
+                    selectedSubview: $subview,
+                    summaryView: summaryView,
+                    inputView: inputView,
+                    studyView: studyView,
+                    logView: logView
+                )
 
-                    PracticeGameWorkspaceCard(
-                        selectedSubview: $subview,
-                        summaryView: summaryView,
-                        inputView: inputView,
-                        studyView: studyView,
-                        logView: logView
-                    )
-
-                    PracticeGameNoteCard(
-                        note: $gameSummaryDraft,
-                        isDisabled: selectedGameID.isEmpty,
-                        onSave: onSaveNote
-                    )
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 14)
-                .padding(.top, 6)
-                .padding(.bottom, 12)
+                PracticeGameNoteCard(
+                    note: $gameSummaryDraft,
+                    isDisabled: selectedGameID.isEmpty,
+                    onSave: onSaveNote
+                )
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.top, 6)
+            .padding(.bottom, 12)
         }
     }
 }
@@ -89,9 +85,10 @@ private struct PracticeGameWorkspaceCard<Summary: View, Input: View, Study: View
                     logView()
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .appPanelStyle()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .appPanelStyle()
     }
 }

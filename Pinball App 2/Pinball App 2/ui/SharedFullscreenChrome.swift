@@ -1,6 +1,29 @@
 import SwiftUI
 import Combine
 
+struct AppFullscreenStage<Content: View>: View {
+    var backgroundColor: Color = .black
+    var alignment: Alignment = .center
+    @ViewBuilder let content: () -> Content
+
+    init(
+        backgroundColor: Color = .black,
+        alignment: Alignment = .center,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.backgroundColor = backgroundColor
+        self.alignment = alignment
+        self.content = content
+    }
+
+    var body: some View {
+        ZStack(alignment: alignment) {
+            backgroundColor.ignoresSafeArea()
+            content()
+        }
+    }
+}
+
 @MainActor
 final class FullscreenChromeController: ObservableObject {
     @Published var isVisible = false

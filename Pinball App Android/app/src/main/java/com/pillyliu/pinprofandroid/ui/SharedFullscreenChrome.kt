@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -20,6 +21,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
+
+@Composable
+fun AppFullscreenStage(
+    modifier: Modifier = Modifier,
+    backgroundColor: Color = Color.Black,
+    onBack: (() -> Unit)? = null,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(backgroundColor)
+            .let { base ->
+                if (onBack != null) {
+                    base.iosEdgeSwipeBack(enabled = true, onBack = onBack)
+                } else {
+                    base
+                }
+            },
+    ) {
+        content()
+    }
+}
 
 @Composable
 fun AppFullscreenStatusOverlay(

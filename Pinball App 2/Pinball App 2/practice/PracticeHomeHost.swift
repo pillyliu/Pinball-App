@@ -4,8 +4,12 @@ extension PracticeScreen {
     var practiceHomeContent: some View {
         PracticeHomeRootView(
             showsLoadingOverlay: practiceHomeContext.store.isBootstrapping && !practiceHomeContext.store.hasRestoredHomeBootstrapSnapshot,
-            showsInteractionShield: practiceHomeContext.store.isBootstrapping && practiceHomeContext.store.hasRestoredHomeBootstrapSnapshot,
-            showsGenericGreeting: practiceHomeContext.store.isBootstrapping && practiceHomeContext.store.hasRestoredHomeBootstrapSnapshot,
+            showsInteractionShield: practiceHomeContext.store.isBootstrapping &&
+                practiceHomeContext.store.hasRestoredHomeBootstrapSnapshot &&
+                uiState.gameNavigationPath.isEmpty,
+            showsGenericGreeting: practiceHomeContext.store.isBootstrapping &&
+                practiceHomeContext.store.hasRestoredHomeBootstrapSnapshot &&
+                practiceHomeContext.greetingName == nil,
             greetingName: practiceHomeContext.greetingName,
             hasIFPAProfileAccess: practiceHomeContext.hasIFPAProfileAccess,
             onOpenSettings: {

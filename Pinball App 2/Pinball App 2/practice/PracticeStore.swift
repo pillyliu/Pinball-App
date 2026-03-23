@@ -164,7 +164,7 @@ final class PracticeStore: ObservableObject {
     var hasRestoredHomeBootstrapSnapshot = false
 
     init() {
-        restoreHomeBootstrapSnapshotIfAvailable()
+        restoreHomeBootstrapSnapshotIfAvailableAsync()
     }
 
     func loadIfNeeded() async {

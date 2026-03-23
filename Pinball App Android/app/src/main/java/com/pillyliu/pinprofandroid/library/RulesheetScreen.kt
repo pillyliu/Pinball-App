@@ -50,10 +50,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.pillyliu.pinprofandroid.data.downloadTextAllowMissing
 import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
 import com.pillyliu.pinprofandroid.ui.AppReadingProgressPill
+import com.pillyliu.pinprofandroid.ui.AppRouteScreen
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
-import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.AppTextAction
-import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -67,9 +66,10 @@ internal fun ExternalRulesheetWebScreen(
     url: String,
     onBack: () -> Unit,
 ) {
-    AppScreen(
+    AppRouteScreen(
         contentPadding = contentPadding,
-        modifier = Modifier.iosEdgeSwipeBack(enabled = true, onBack = onBack),
+        canGoBack = true,
+        onBack = onBack,
     ) {
         Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             AppScreenHeader(
@@ -183,7 +183,12 @@ internal fun RulesheetScreen(
         status = if (saw404) "missing" else "error"
     }
 
-    AppScreen(contentPadding, horizontalPadding = 8.dp) {
+    AppRouteScreen(
+        contentPadding = contentPadding,
+        canGoBack = true,
+        onBack = onBack,
+        horizontalPadding = 8.dp,
+    ) {
         Box(
             modifier = Modifier.fillMaxSize(),
         ) {

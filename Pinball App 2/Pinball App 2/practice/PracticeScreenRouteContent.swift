@@ -114,22 +114,17 @@ extension PracticeScreen {
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
         }
-        .background(AppBackground())
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
     }
 
     func practiceViewportScreen<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        ZStack {
-            AppBackground()
-
-            VStack(alignment: .leading, spacing: 14) {
-                content()
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+        VStack(alignment: .leading, spacing: 14) {
+            content()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -170,7 +165,7 @@ extension PracticeScreen {
                 context.store.groupDashboardDetail(for: group)
             },
             onOpenGame: { gameID in
-                context.onOpenGame(gameID, nil)
+                context.onOpenGame(gameID, gameID)
             },
             onRemoveGameFromGroup: { gameID, groupID in
                 context.onRemoveGameFromGroup(gameID, groupID)

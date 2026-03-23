@@ -20,9 +20,7 @@ struct ScoreScannerView: View {
             )
             let controlsBottomPadding = resolvedControlsBottomPadding(for: geometry.safeAreaInsets)
 
-            ZStack {
-                Color.black.ignoresSafeArea()
-
+            AppFullscreenStage {
                 if viewModel.isCameraAuthorized {
                     CameraPreviewView(session: viewModel.session) { previewLayer in
                         viewModel.attachPreviewLayer(previewLayer)

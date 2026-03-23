@@ -6,6 +6,18 @@ struct VideoLogDraft {
     let value: String
 }
 
+let defaultPracticeVideoInputKind: VideoProgressInputKind = .percent
+let practiceVideoInputKindOptions: [VideoProgressInputKind] = [.percent, .clock]
+
+func practiceVideoInputKindLabel(_ kind: VideoProgressInputKind) -> String {
+    switch kind {
+    case .percent:
+        return "Percentage"
+    case .clock:
+        return "hh:mm:ss"
+    }
+}
+
 func practiceVideoSourceOptions(game: PinballGame?, task: StudyTaskKind) -> [String] {
     let prefix: String
     switch task {
