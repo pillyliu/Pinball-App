@@ -358,7 +358,13 @@ def parse_markdown(md_text: str, styles: StyleSheet1, diagrams_dir: Path, mono_f
     return story
 
 
-def draw_header_footer(canvas, doc, source_name: str, fonts: dict[str, str]) -> None:
+def draw_header_footer(
+    canvas,
+    doc,
+    source_name: str,
+    fonts: dict[str, str],
+    header_title: str,
+) -> None:
     canvas.saveState()
     w, h = doc.pagesize
 
@@ -368,7 +374,7 @@ def draw_header_footer(canvas, doc, source_name: str, fonts: dict[str, str]) -> 
 
     canvas.setFillColor(colors.HexColor("#0F172A"))
     canvas.setFont(fonts["serif_bold"], 9)
-    canvas.drawString(doc.leftMargin, h - 0.50 * inch, "Pinball App Architecture Blueprint")
+    canvas.drawString(doc.leftMargin, h - 0.50 * inch, header_title)
 
     ts = dt.datetime.now().strftime("%Y-%m-%d")
     canvas.setFont(fonts["serif"], 8)
@@ -385,17 +391,21 @@ def draw_header_footer(canvas, doc, source_name: str, fonts: dict[str, str]) -> 
     canvas.restoreState()
 
 
-def render(markdown_path: Path, output_path: Path, diagrams_dir: Path) -> None:
+def render(
+    markdown_path: Path,
+    output_path: Path,
+    diagrams_dir: Path,
+    title: str,
+    subtitle: str,
+    header_title: str,
+) -> None:
     fonts = register_fonts()
     styles = build_styles(fonts)
     text = markdown_path.read_text(encoding="utf-8")
 
     story = [
-        Paragraph("Pinball App Architecture Blueprint", styles["TitleApp"]),
-        Paragraph(
-            "Complete architecture documentation for the current iOS and Android applications, including embedded diagrams and detailed behavior flows.",
-            styles["Subtitle"],
-        ),
+        Paragraph(title, styles["TitleApp"]),
+        Paragraph(subtitle, styles["Subtitle"]),
         Spacer(1, 8),
     ]
 
@@ -408,11 +418,15 @@ def render(markdown_path: Path, output_path: Path, diagrams_dir: Path) -> None:
         rightMargin=0.8 * inch,
         topMargin=0.86 * inch,
         bottomMargin=0.82 * inch,
-        title="Pinball App Architecture Blueprint",
+        title=title,
         author="Pinball App",
     )
 
-    doc.build(story, onFirstPage=lambda c, d: draw_header_footer(c, d, markdown_path.name, fonts), onLaterPages=lambda c, d: draw_header_footer(c, d, markdown_path.name, fonts))
+    doc.build(
+        story,
+        onFirstPage=lambda c, d: draw_header_footer(c, d, markdown_path.name, fonts, header_title),
+        onLaterPages=lambda c, d: draw_header_footer(c, d, markdown_path.name, fonts, header_title),
+    )
 
 
 def main() -> None:
@@ -424,9 +438,31 @@ def main() -> None:
         required=True,
         help="Directory containing Mermaid diagram images named diagram_01.png, diagram_02.png, ...",
     )
+    parser.add_argument(
+        "--title",
+        default="Pinball App Architecture Blueprint",
+        help="Display title for the rendered PDF",
+    )
+    parser.add_argument(
+        "--subtitle",
+        default="Complete architecture documentation for the current iOS and Android applications, including embedded diagrams and detailed behavior flows.",
+        help="Subtitle shown on the first page",
+    )
+    parser.add_argument(
+        "--header-title",
+        default="Pinball App Architecture Blueprint",
+        help="Short title used in the page header",
+    )
     args = parser.parse_args()
 
-    render(Path(args.input), Path(args.output), Path(args.diagrams_dir))
+    render(
+        Path(args.input),
+        Path(args.output),
+        Path(args.diagrams_dir),
+        title=args.title,
+        subtitle=args.subtitle,
+        header_title=args.header_title,
+    )
 
 
 if __name__ == "__main__":
