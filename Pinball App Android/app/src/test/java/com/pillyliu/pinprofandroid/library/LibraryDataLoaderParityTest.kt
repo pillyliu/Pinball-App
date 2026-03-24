@@ -72,7 +72,7 @@ class LibraryDataLoaderParityTest {
             """.trimIndent(),
         )
 
-        val machine = machines.single()
+        val machine = machines.single { it.opdbMachineId == "GTEST-MBACK" }
         assertEquals("https://img.opdb.org/images/backglasses/backglass-medium.webp", machine.primaryImageMediumUrl)
         assertEquals("https://img.opdb.org/images/backglasses/backglass-large.webp", machine.primaryImageLargeUrl)
         assertNull(machine.playfieldImageMediumUrl)
@@ -124,6 +124,45 @@ class LibraryDataLoaderParityTest {
         assertTrue(jjp.isModern)
         assertFalse(gottlieb.isModern)
         assertEquals(1, stern.gameCount)
+    }
+
+    @Test
+    fun decodeOPDBExportCatalogMachines_appendsPinProfFinalExamWhenMissing() {
+        val machines = decodeOPDBExportCatalogMachines("[]")
+        val machine = machines.single { it.opdbMachineId == "G900001-1" }
+
+        assertEquals("G900001", machine.practiceIdentity)
+        assertEquals("PinProf: The Final Exam", machine.name)
+        assertEquals("PinProf Labs", machine.manufacturerName)
+        assertEquals("/pinball/images/backglasses/G900001-1-backglass.webp", machine.primaryImageMediumUrl)
+        assertEquals("/pinball/images/playfields/G900001-1-playfield_700.webp", machine.playfieldImageMediumUrl)
+    }
+
+    @Test
+    fun decodeCatalogManufacturerOptionsFromOPDBExport_keepsPinProfLabsAtBottomOfModernBucket() {
+        val manufacturers = decodeCatalogManufacturerOptionsFromOPDBExport(
+            """
+            [
+              {
+                "opdb_id": "GSTERN-MPRO",
+                "name": "Foo Fighters",
+                "manufacture_date": "2023-01-01",
+                "manufacturer": { "manufacturer_id": 1, "name": "Stern" },
+                "images": []
+              },
+              {
+                "opdb_id": "GJJP-MPRO",
+                "name": "Avatar",
+                "manufacture_date": "2025-01-01",
+                "manufacturer": { "manufacturer_id": 2, "name": "Jersey Jack Pinball" },
+                "images": []
+              }
+            ]
+            """.trimIndent(),
+        )
+
+        val modernNames = manufacturers.filter { it.isModern }.map { it.name }
+        assertEquals(listOf("Stern", "Jersey Jack Pinball", "PinProf Labs"), modernNames)
     }
 
     @Test

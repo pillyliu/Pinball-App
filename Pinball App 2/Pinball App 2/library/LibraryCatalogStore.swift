@@ -437,6 +437,7 @@ private let curatedModernManufacturerNames = [
     "dutch pinball",
     "pinball brothers",
     "turner pinball",
+    "pinprof labs",
 ]
 
 struct PinballLibraryVenueSearchResult: Identifiable, Hashable {
@@ -604,6 +605,58 @@ struct CatalogMachineRecord: Decodable {
     }
 }
 
+private let syntheticPinProfLabsGroupID = "G900001"
+private let syntheticPinProfLabsMachineID = "G900001-1"
+private let syntheticPinProfLabsManufacturerID = "manufacturer-9001"
+private let syntheticPinProfLabsBackglassPath = "/pinball/images/backglasses/G900001-1-backglass.webp"
+private let syntheticPinProfLabsPlayfieldMediumPath = "/pinball/images/playfields/G900001-1-playfield_700.webp"
+private let syntheticPinProfLabsPlayfieldLargePath = "/pinball/images/playfields/G900001-1-playfield_1400.webp"
+
+private func syntheticPinProfLabsCatalogMachineRecord() -> CatalogMachineRecord {
+    CatalogMachineRecord(
+        practiceIdentity: syntheticPinProfLabsGroupID,
+        opdbMachineID: syntheticPinProfLabsMachineID,
+        opdbGroupID: syntheticPinProfLabsGroupID,
+        slug: "pinprof",
+        name: "PinProf: The Final Exam",
+        variant: nil,
+        manufacturerID: syntheticPinProfLabsManufacturerID,
+        manufacturerName: "PinProf Labs",
+        year: 1982,
+        opdbName: "PinProf: The Final Exam",
+        opdbCommonName: "PinProf: The Final Exam",
+        opdbShortname: "PinProf",
+        opdbDescription: "A long-lost pinball treasure.",
+        opdbType: "ss",
+        opdbDisplay: "alphanumeric",
+        opdbPlayerCount: 4,
+        opdbManufactureDate: "1982-09-03",
+        opdbIpdbID: nil,
+        opdbGroupShortname: "PinProf",
+        opdbGroupDescription: "A long-lost pinball treasure.",
+        primaryImage: CatalogMachineRecord.RemoteImageSet(
+            mediumURL: syntheticPinProfLabsBackglassPath,
+            largeURL: syntheticPinProfLabsBackglassPath
+        ),
+        playfieldImage: CatalogMachineRecord.RemoteImageSet(
+            mediumURL: syntheticPinProfLabsPlayfieldMediumPath,
+            largeURL: syntheticPinProfLabsPlayfieldLargePath
+        )
+    )
+}
+
+private func appendingSyntheticPinProfLabsMachine(to machines: [CatalogMachineRecord]) -> [CatalogMachineRecord] {
+    let normalizedSyntheticMachineID = syntheticPinProfLabsMachineID.lowercased()
+    let normalizedSyntheticGroupID = syntheticPinProfLabsGroupID.lowercased()
+    guard !machines.contains(where: { machine in
+        machine.opdbMachineID?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedSyntheticMachineID ||
+            machine.practiceIdentity.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedSyntheticGroupID
+    }) else {
+        return machines
+    }
+    return machines + [syntheticPinProfLabsCatalogMachineRecord()]
+}
+
 nonisolated func opdbGroupID(from opdbID: String?) -> String? {
     guard let trimmed = catalogNormalizedOptionalString(opdbID),
           trimmed.hasPrefix("G") else {
@@ -692,7 +745,9 @@ private func rawOPDBCatalogMachineRecord(from machine: RawOPDBExportMachineRecor
 
 func decodeOPDBExportCatalogMachines(data: Data) throws -> [CatalogMachineRecord] {
     let machines = try JSONDecoder().decode([RawOPDBExportMachineRecord].self, from: data)
-    return catalogResolvedMachines(machines.compactMap(rawOPDBCatalogMachineRecord))
+    return catalogResolvedMachines(
+        appendingSyntheticPinProfLabsMachine(to: machines.compactMap(rawOPDBCatalogMachineRecord))
+    )
 }
 
 func decodeCatalogManufacturerOptionsFromOPDBExport(data: Data) throws -> [PinballCatalogManufacturerOption] {
