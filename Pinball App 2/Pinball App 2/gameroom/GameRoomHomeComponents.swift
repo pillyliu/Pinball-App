@@ -126,11 +126,6 @@ private struct GameRoomSelectedSummaryCard: View {
 
                 AppMetricGrid(items: snapshotMetrics(for: selectedMachine))
 
-                if let purchaseDateRawText = selectedMachine.purchaseDateRawText, !purchaseDateRawText.isEmpty {
-                    Text("Purchase (raw): \(purchaseDateRawText)")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
             } else {
                 AppPanelEmptyCard(text: "Select a machine from the collection below.")
             }

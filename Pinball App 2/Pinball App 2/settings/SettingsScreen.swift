@@ -165,8 +165,11 @@ struct SettingsScreen: View {
     @State private var navigationPath: [SettingsRoute] = []
     @AppStorage(LPLNamePrivacySettings.fullNameAccessUnlockedDefaultsKey) private var lplFullNameAccessUnlocked = false
     @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
+    @AppStorage("app-intro-show-on-next-launch") private var appIntroShowOnNextLaunch = false
     @State private var lplNamePassword: String = ""
     @State private var lplNamePrivacyError: String?
+    @State private var introOverlayToggleMessage: String?
+    @State private var introOverlayToggleMessageTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -178,12 +181,21 @@ struct SettingsScreen: View {
                         lplFullNameAccessUnlocked: $lplFullNameAccessUnlocked,
                         showFullLPLLastNames: $showFullLPLLastNames,
                         lplNamePassword: $lplNamePassword,
-                        lplNamePrivacyError: $lplNamePrivacyError
+                        lplNamePrivacyError: $lplNamePrivacyError,
+                        onToggleIntroOverlayForNextLaunch: toggleIntroOverlayForNextLaunch
                     )
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                 }
             }
+            .overlay(alignment: .top) {
+                if let introOverlayToggleMessage {
+                    AppSuccessBanner(text: introOverlayToggleMessage)
+                        .padding(.top, 4)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut(duration: 0.25), value: introOverlayToggleMessage)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .task {
@@ -192,9 +204,29 @@ struct SettingsScreen: View {
             .onReceive(NotificationCenter.default.publisher(for: .pinballLibrarySourcesDidChange)) { _ in
                 Task { await viewModel.refresh() }
             }
+            .onDisappear {
+                introOverlayToggleMessageTask?.cancel()
+                introOverlayToggleMessageTask = nil
+            }
             .navigationDestination(for: SettingsRoute.self) { route in
                 settingsRouteDestination(route: route, viewModel: viewModel)
             }
+        }
+    }
+
+    private func toggleIntroOverlayForNextLaunch() {
+        appIntroShowOnNextLaunch.toggle()
+        introOverlayToggleMessage = appIntroShowOnNextLaunch
+            ? "Intro enabled for next launch"
+            : "Intro disabled for next launch"
+
+        introOverlayToggleMessageTask?.cancel()
+        let message = introOverlayToggleMessage
+        introOverlayToggleMessageTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.2))
+            guard !Task.isCancelled, introOverlayToggleMessage == message else { return }
+            introOverlayToggleMessage = nil
+            introOverlayToggleMessageTask = nil
         }
     }
 }

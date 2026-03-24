@@ -68,6 +68,22 @@ struct ContentView: View {
     @StateObject private var appNavigation = AppNavigationModel()
     @StateObject private var shakeCoordinator = AppShakeCoordinator()
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("app-intro-seen-version") private var appIntroSeenVersion = 0
+    @AppStorage("app-intro-show-on-next-launch") private var appIntroShowOnNextLaunch = false
+    @State private var shouldShowIntroOverlayThisLaunch: Bool
+    @State private var isIntroVisible: Bool
+
+    init() {
+        let appIntroSeenVersion = UserDefaults.standard.integer(forKey: "app-intro-seen-version")
+        let appIntroShowOnNextLaunch = UserDefaults.standard.bool(forKey: "app-intro-show-on-next-launch")
+        let shouldShowIntro = appIntroShowOnNextLaunch || appIntroSeenVersion < AppIntroOverlay.currentVersion
+        _shouldShowIntroOverlayThisLaunch = State(initialValue: shouldShowIntro)
+        _isIntroVisible = State(initialValue: shouldShowIntro)
+    }
+
+    private var shouldShowIntroOverlay: Bool {
+        shouldShowIntroOverlayThisLaunch && isIntroVisible
+    }
 
     var body: some View {
         TabView(selection: $appNavigation.selectedTab) {
@@ -85,8 +101,18 @@ struct ContentView: View {
             shakeCoordinator.handleDetectedShake()
         }
         .overlay {
-            if let overlayLevel = shakeCoordinator.overlayLevel {
-                AppShakeWarningOverlay(level: overlayLevel)
+            ZStack {
+                if let overlayLevel = shakeCoordinator.overlayLevel {
+                    AppShakeWarningOverlay(level: overlayLevel)
+                }
+
+                if shouldShowIntroOverlay {
+                    AppIntroOverlay {
+                        isIntroVisible = false
+                        appIntroSeenVersion = AppIntroOverlay.currentVersion
+                        appIntroShowOnNextLaunch = false
+                    }
+                }
             }
         }
         .environmentObject(appNavigation)

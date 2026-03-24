@@ -459,11 +459,6 @@ struct GameRoomMachineView: View {
                     AppMetricItem(label: "Last Inspection", value: snapshot.lastGeneralInspectionAt?.formatted(date: .abbreviated, time: .omitted) ?? "None"),
                     AppMetricItem(label: "Purchase Date", value: machine.purchaseDate?.formatted(date: .abbreviated, time: .omitted) ?? "—")
                 ])
-                if let purchaseDateRawText = machine.purchaseDateRawText, !purchaseDateRawText.isEmpty {
-                    Text("Purchase (raw): \(purchaseDateRawText)")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)

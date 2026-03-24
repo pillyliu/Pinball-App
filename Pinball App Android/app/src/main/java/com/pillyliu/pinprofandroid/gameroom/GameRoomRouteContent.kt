@@ -148,13 +148,6 @@ internal fun GameRoomHomeRoute(
                         AppMetricItem("Purchase Date", formatDate(selectedMachine.purchaseDateMs, "—")),
                     ),
                 )
-                selectedMachine.purchaseDateRawText?.takeIf { it.isNotBlank() }?.let { raw ->
-                    Text(
-                        text = "Purchase (raw): $raw",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
             }
         }
 

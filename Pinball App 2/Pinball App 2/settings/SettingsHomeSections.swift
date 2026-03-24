@@ -7,6 +7,7 @@ struct SettingsHomeContent: View {
     @Binding var showFullLPLLastNames: Bool
     @Binding var lplNamePassword: String
     @Binding var lplNamePrivacyError: String?
+    let onToggleIntroOverlayForNextLaunch: () -> Void
     @AppStorage(AppDisplayMode.defaultsKey) private var displayModeRawValue = AppDisplayMode.system.rawValue
 
     var body: some View {
@@ -368,6 +369,10 @@ struct SettingsHomeContent: View {
                 .scaledToFit()
                 .frame(width: 150)
                 .frame(maxWidth: .infinity, alignment: .center)
+                .contentShape(Rectangle())
+                .onTapGesture(count: 2) {
+                    onToggleIntroOverlayForNextLaunch()
+                }
             Text(aboutAttributionText)
                 .font(.caption)
                 .foregroundStyle(.secondary)

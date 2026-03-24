@@ -186,13 +186,6 @@ private fun GameRoomMachineSummaryPanel(
                 AppMetricItem("Purchase Date", formatDate(machine.purchaseDateMs, "—")),
             ),
         )
-        machine.purchaseDateRawText?.takeIf { it.isNotBlank() }?.let { raw ->
-            Text(
-                text = "Purchase (raw): $raw",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
     }
 
     CardContainer {
