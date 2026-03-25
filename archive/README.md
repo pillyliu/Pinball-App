@@ -46,3 +46,20 @@ Why these were archived:
 - they were legacy app-side bridge helpers from the old `shared/pinball` and starter-pack era
 - their active replacements now live in `PinProf Admin/scripts`, where CAF generation and publish work actually belongs
 - keeping them in the app repo made it look like the app still owned data generation, catalog bridging, or starter-pack maintenance
+
+## Archived on 2026-03-25 (Doc refresh snapshots)
+
+Folder:
+
+- `archive/2026-03-25-doc-refresh/`
+
+Archived today:
+
+- pre-refresh copies of `docs/modernization/features/library/ledger.md`
+- pre-refresh copies of `docs/modernization/features/library/spec.md`
+- pre-refresh copies of `docs/modernization/features/library/parity.md`
+
+Why these were archived:
+
+- the live library modernization docs were updated to describe the CAF preload/hosted contract instead of starter-pack or merged-bridge terminology
+- keeping a local snapshot preserves the old wording for reference without leaving stale architecture language in the active docs tree

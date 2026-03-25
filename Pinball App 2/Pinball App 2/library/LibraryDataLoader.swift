@@ -522,10 +522,10 @@ private func variantPreferenceScore(_ normalizedVariant: String?) -> Int {
 
 private func resolvedPlayfieldSourceLabel(for game: PinballGame) -> String? {
     if libraryIsPinProfPlayfieldURL(game.playfieldImageSourceURL) || libraryIsPinProfPlayfieldURL(game.playfieldLocalOriginalURL) {
-        return game.usesBundledOnlyAppAssetException ? "Local" : "Prof"
+        return game.usesBundledOnlyAppAssetException ? "Local" : "PinProf"
     }
     if game.playfieldLocal != nil {
-        return game.usesBundledOnlyAppAssetException ? "Local" : "Prof"
+        return game.usesBundledOnlyAppAssetException ? "Local" : "PinProf"
     }
     if let explicit = game.playfieldSourceLabel?.trimmingCharacters(in: .whitespacesAndNewlines), !explicit.isEmpty {
         return explicit
@@ -536,7 +536,7 @@ private func resolvedPlayfieldSourceLabel(for game: PinballGame) -> String? {
         return "Playfield (OPDB)"
     }
     if libraryIsPinProfHost(host) {
-        return "Prof"
+        return "PinProf"
     }
     return nil
 }

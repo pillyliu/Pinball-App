@@ -38,7 +38,7 @@ class LibraryDataLoaderParityTest {
             ),
         )
         assertEquals(
-            "Prof",
+            "PinProf",
             resolvedPlayfieldSourceLabel(
                 game(
                     playfieldImageUrl = "https://pillyliu.com/pinball/images/playfields/sample.jpg",

@@ -33,20 +33,22 @@ Library includes:
 - Android resource URL normalization plus rulesheet/game-info/playfield fallback shaping now live in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryResourceResolution.kt` instead of remaining embedded in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDomain.kt`.
 - Android legacy Library payload JSON parsing now lives in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryPayloadParsing.kt` instead of remaining embedded in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDomain.kt`.
 - iOS YouTube oEmbed metadata fetch now lives in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryVideoMetadata.swift` instead of remaining embedded in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/library/LibraryDomain.swift`.
-- The active local asset contract is now v3-only:
-  - `pinball_library_v3.json`
-  - practice-ID `rulesheets/*.md`
-  - practice-ID `gameinfo/*.md`
-  - playfields in `/pinball/images/playfields/` named by OPDB specificity:
-    - `GROUP-playfield_*`
-    - `GROUP-MACHINE-playfield_*`
-    - `GROUP-MACHINE-ALIAS-playfield_*`
-- Library should no longer assume local `v1` or `v2` resource names, slug-based local rulesheets/gameinfo, or legacy fallback keys in starter-pack data.
+- The active runtime contract is now CAF-based:
+  - `opdb_export.json`
+  - `default_pm_venue_sources_v1.json`
+  - `venue_layout_assets.json`
+  - `rulesheet_assets.json`
+  - `video_assets.json`
+  - `playfield_assets.json`
+  - `backglass_assets.json`
+  - `gameinfo_assets.json`
+- Bundled app-only support lives in `SharedAppSupport`, not in hosted data payloads.
+- Library should no longer assume merged bridge payloads, slug-based local rulesheets/gameinfo, or starter-pack fallback keys.
 
 ## Resource contract
 
-- Rulesheets resolve only by practice identity / OPDB group key.
-- Game info resolves only by practice identity / OPDB group key.
+- Rulesheets resolve by OPDB group identity.
+- Game info resolves by OPDB group identity.
 - Playfields resolve by specificity ladder:
   - exact local `group-machine-alias`
   - local `group-machine`
@@ -56,7 +58,7 @@ Library includes:
 
 ## Hosted playfield contract
 
-- Starter bundles stay intentionally small and do not need to contain every playfield that exists on `pillyliu.com`.
+- Preload bundles stay intentionally small and do not need to contain every hosted playfield that exists on `pillyliu.com`.
 - Live app builds should still infer hosted playfield files from `pillyliu.com` for any already-known game identity.
 - Hosted playfield lookup order is:
   - explicit local original path from exported data
@@ -65,4 +67,4 @@ Library includes:
   - inferred hosted `...-playfield_700.webp`
   - less-specific local OPDB-group fallback
   - OPDB-provided playfield fallback
-- That means newly uploaded hosted playfields can work without a starter-bundle update as long as the game already has the correct OPDB/practice identity in app data.
+- That means newly uploaded hosted playfields can work without a preload-bundle update as long as the game already has the correct OPDB identity in app data.
