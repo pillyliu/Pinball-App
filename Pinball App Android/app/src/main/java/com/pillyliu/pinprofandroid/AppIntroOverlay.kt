@@ -32,10 +32,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -359,24 +357,16 @@ private fun AppIntroDeckPage(
         modifier = modifier.fillMaxHeight(),
     ) {
         val minimumHeight = (maxHeight - 4.dp).coerceAtLeast(0.dp)
-        val scrollState = rememberScrollState()
-
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(scrollState),
+                .heightIn(min = minimumHeight),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = minimumHeight),
-                contentAlignment = Alignment.Center,
-            ) {
-                AppIntroCardView(
-                    card = card,
-                    isLandscape = isLandscape,
-                )
-            }
+            AppIntroCardView(
+                card = card,
+                isLandscape = isLandscape,
+            )
         }
     }
 }

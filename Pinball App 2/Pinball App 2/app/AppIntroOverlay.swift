@@ -210,27 +210,25 @@ private struct AppIntroDeckPage: View {
 
     var body: some View {
         GeometryReader { proxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 0) {
-                    if card == .welcome {
-                        Spacer(minLength: 0)
-                    }
-
-                    AppIntroCardView(card: card, isLandscape: isLandscape)
-                        .padding(.horizontal, 2)
-                        .padding(.vertical, 2)
-
-                    if card == .welcome {
-                        Spacer(minLength: 0)
-                    }
+            VStack(spacing: 0) {
+                if card == .welcome {
+                    Spacer(minLength: 0)
                 }
-                .frame(
-                    minHeight: max(0, proxy.size.height - bottomAccessoryHeight - 8),
-                    alignment: card == .welcome ? .center : .top
-                )
-                .padding(.bottom, bottomAccessoryHeight + 12)
+
+                AppIntroCardView(card: card, isLandscape: isLandscape)
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 2)
+
+                if card == .welcome {
+                    Spacer(minLength: 0)
+                }
             }
-            .scrollBounceBehavior(.basedOnSize)
+            .frame(
+                minHeight: max(0, proxy.size.height - bottomAccessoryHeight - 8),
+                maxHeight: .infinity,
+                alignment: card == .welcome ? .center : .top
+            )
+            .padding(.bottom, bottomAccessoryHeight + 12)
         }
     }
 }

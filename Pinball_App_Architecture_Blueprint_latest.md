@@ -1,7 +1,7 @@
 # 1. Release Snapshot
 
 ## Document purpose
-This blueprint is the current-state architecture reference for PinProf version `3.4.8`.
+This blueprint is the current-state architecture reference for PinProf version `3.4.9`.
 
 It is intended to describe what ships today across both mobile apps:
 - iOS app: `Pinball App 2`
@@ -17,7 +17,7 @@ PinProf is a dual-platform pinball companion app for league players and home col
 - personal machine ownership and maintenance logging
 - settings, imports, and hosted data management
 
-## What ships in 3.4.7
+## What ships in 3.4.9
 - Five root tabs on both platforms: `League`, `Library`, `Practice`, `GameRoom`, `Settings`
 - A CAF runtime data contract on both platforms built around:
   - `opdb_export.json`
@@ -160,8 +160,8 @@ PinProf is a dual-platform pinball companion app for league players and home col
   - external rulesheet discovery sources used upstream in publish scripts
 
 ## Current version anchors
-- iOS marketing version: `3.4.8`
-- Android target version for this release: `3.4.8`
+- iOS marketing version: `3.4.9`
+- Android target version for this release: `3.4.9`
 - Practice canonical persisted schema: `v4`
 - Primary runtime content contract: CAF hosted layers over OPDB identities
 - App-owned support artifacts: bundled `pinside_group_map.json`, shake-warning art, and intro overlay source images

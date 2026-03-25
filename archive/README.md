@@ -19,12 +19,15 @@ Archived today:
 - historical root planning/checklist/blueprint documents that no longer describe the current app architecture
 - generated PDF snapshots for those historical documents
 - `docs/ios_shake_warning_parity_spec.md`
+- `docs/android_intro_overlay_parity_spec.md`
+- `docs/ios_onboarding_tipkit_version_overlays.md`
 
 Why these were archived:
 
 - the active app docs are now `README.md`, `Pinball_App_Architecture_Blueprint_latest.md`, and the still-relevant docs under `docs/`
 - old blueprint revisions, dated rollout plans, and parity notes were cluttering the repo root after the CAF migration landed
 - the retired shake-warning parity spec still described `shared/pinball`, starter-pack assets, and hosted warning art, which are no longer the active app path
+- the retired intro/onboarding planning docs still described pre-release planning states, asset-catalog intro art names, and version-overlay recommendations that no longer match the shipped `3.4.9` app
 
 ## Archived on 2026-03-25 (Retired helper scripts)
 
@@ -63,3 +66,18 @@ Why these were archived:
 
 - the live library modernization docs were updated to describe the CAF preload/hosted contract instead of starter-pack or merged-bridge terminology
 - keeping a local snapshot preserves the old wording for reference without leaving stale architecture language in the active docs tree
+
+## Archived on 2026-03-25 (Historical release notes)
+
+Folder:
+
+- `archive/2026-03-25-retired-docs/root/`
+
+Archived today:
+
+- `Pinball App 2/RELEASE_NOTES_2.0.md`
+
+Why this was archived:
+
+- it described the older iOS `2.0` milestone, not the current cross-platform `3.4.9` release line
+- the active release-facing docs are now `README.md`, `RELEASE_NOTES_3.4.9.md`, and `Pinball_App_Architecture_Blueprint_latest.md`

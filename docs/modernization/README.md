@@ -1,11 +1,8 @@
-# 3.2 Modernization Docs
+# Modernization Docs
 
-This folder is the source of truth for the PinProf modernization effort on branch `codex/3.2-modernization`.
+This folder holds the active implementation and parity docs for the current PinProf app architecture.
 
-Recommended chat/thread title:
-- `3.2 Modernization Foundation`
-
-Use this docs set instead of relying on long chat history.
+These docs are no longer tied to the old `3.2 modernization` branch framing. They now serve as living feature-level engineering notes for the current cross-platform app.
 
 ## Document hierarchy
 
@@ -23,7 +20,7 @@ Use this docs set instead of relying on long chat history.
 
 - Chat is for discussion. Markdown is the contract.
 - Update docs before implementation when behavior or scope changes.
-- Do not start Android parity work until the canonical behavior is written.
+- Write the canonical behavior first, then bring the other platform to parity.
 - Do not mark a feature complete until its checklist is checked against both platforms.
 - Record drift, bugs, and deferrals in the feature ledger instead of leaving them implicit.
 
