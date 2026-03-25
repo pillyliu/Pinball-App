@@ -193,6 +193,12 @@ class LibraryDataLoaderParityTest {
         assertEquals("Local", game.localRulesheetChipLabel)
         assertEquals("Local", game.localPlayfieldChipLabel)
         assertEquals("Local", game.resolvedPlayfieldOptions(liveStatus = null).first().label)
+        val hostedLiveStatus = LivePlayfieldStatus(
+            effectiveKind = LivePlayfieldKind.PILLYLIU,
+            effectiveUrl = "https://pillyliu.com/pinball/images/playfields/G900001-1-playfield_700.webp",
+        )
+        assertEquals("Local", game.resolvedPlayfieldOptions(liveStatus = hostedLiveStatus).first().label)
+        assertEquals("Local", game.resolvedPlayfieldButtonLabel(liveStatus = hostedLiveStatus))
     }
 
     @Test

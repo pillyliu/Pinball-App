@@ -308,6 +308,9 @@ private val PinballGame.profPlayfieldBaseCandidates: List<String>
     }
 
 private fun PinballGame.profPlayfieldCandidates(liveStatus: LivePlayfieldStatus?): List<String> {
+    if (usesBundledOnlyAppAssetException) {
+        return emptyList()
+    }
     val liveUrl = liveStatus?.effectiveUrl?.takeIf { liveStatus.effectiveKind == LivePlayfieldKind.PILLYLIU }
     val hasHostedCandidate = liveUrl != null || profPlayfieldBaseCandidates.isNotEmpty()
     return buildList {
@@ -369,7 +372,7 @@ internal fun PinballGame.resolvedPlayfieldCandidates(liveStatus: LivePlayfieldSt
 
 internal fun PinballGame.resolvedPlayfieldButtonLabel(liveStatus: LivePlayfieldStatus?): String =
     when (liveStatus?.effectiveKind) {
-        LivePlayfieldKind.PILLYLIU -> "PinProf"
+        LivePlayfieldKind.PILLYLIU -> if (usesBundledOnlyAppAssetException) localPlayfieldChipLabel else "PinProf"
         LivePlayfieldKind.OPDB -> "OPDB"
         LivePlayfieldKind.EXTERNAL -> playfieldButtonLabel
         LivePlayfieldKind.MISSING -> if (actualFullscreenPlayfieldCandidates.isEmpty()) "Unavailable" else playfieldButtonLabel

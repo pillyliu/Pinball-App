@@ -110,7 +110,7 @@ internal fun PracticeScreen(
                     RulesheetScreen(
                         contentPadding = contentPadding,
                         slug = game.practiceKey,
-                        remoteCandidates = game.rulesheetPathCandidates.mapNotNull { game.resolve(it) },
+                        pathCandidates = game.rulesheetPathCandidates.distinct(),
                         externalSource = uiState.navigation.selectedRulesheetSource,
                         onBack = uiState::goBack,
                         practiceSavedRatio = store.rulesheetSavedProgress(game.practiceKey),

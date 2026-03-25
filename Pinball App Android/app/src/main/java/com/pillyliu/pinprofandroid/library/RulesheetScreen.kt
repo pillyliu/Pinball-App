@@ -47,7 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.pillyliu.pinprofandroid.data.downloadTextAllowMissing
+import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.ui.AppFullscreenStatusOverlay
 import com.pillyliu.pinprofandroid.ui.AppReadingProgressPill
 import com.pillyliu.pinprofandroid.ui.AppRouteScreen
@@ -125,7 +125,7 @@ internal fun RulesheetScreen(
     contentPadding: PaddingValues,
     slug: String,
     title: String? = null,
-    remoteCandidates: List<String>? = null,
+    pathCandidates: List<String>? = null,
     externalSource: RulesheetRemoteSource? = null,
     onBack: () -> Unit,
     practiceSavedRatio: Float? = null,
@@ -162,25 +162,27 @@ internal fun RulesheetScreen(
                 }
             return@LaunchedEffect
         }
-        val urls = (remoteCandidates?.filter { it.isNotBlank() } ?: emptyList())
-            .ifEmpty { listOf("https://pillyliu.com/pinball/rulesheets/$slug.md") }
-        var saw404 = false
-        for (url in urls) {
-            val (code, text) = downloadTextAllowMissing(url)
-            when {
-                code == 404 -> saw404 = true
-                code in 200..299 && !text.isNullOrBlank() -> {
-                    content = RulesheetRenderContent(
-                        kind = RulesheetRenderKind.MARKDOWN,
-                        body = normalizeRulesheet(text) + RULESHEET_BOTTOM_MARKDOWN_FILLER,
-                        baseUrl = "https://pillyliu.com",
-                    )
-                    status = "loaded"
-                    return@LaunchedEffect
-                }
+        val candidates = (pathCandidates?.filter { it.isNotBlank() } ?: emptyList())
+            .ifEmpty { listOf("/pinball/rulesheets/$slug.md") }
+        var sawMissing = false
+        for (candidate in candidates) {
+            val cached = PinballDataCache.loadText(candidate, allowMissing = true)
+            if (cached.isMissing) {
+                sawMissing = true
+                continue
+            }
+            val text = cached.text
+            if (!text.isNullOrBlank()) {
+                content = RulesheetRenderContent(
+                    kind = RulesheetRenderKind.MARKDOWN,
+                    body = normalizeRulesheet(text) + RULESHEET_BOTTOM_MARKDOWN_FILLER,
+                    baseUrl = "https://pillyliu.com",
+                )
+                status = "loaded"
+                return@LaunchedEffect
             }
         }
-        status = if (saw404) "missing" else "error"
+        status = if (sawMissing) "missing" else "error"
     }
 
     AppRouteScreen(

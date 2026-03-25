@@ -320,7 +320,7 @@ extension PinballGame {
     func resolvedPlayfieldButtonLabel(liveStatus: LibraryLivePlayfieldStatus?) -> String {
         switch liveStatus?.effectiveKind {
         case .pillyliu:
-            return "PinProf"
+            return usesBundledOnlyAppAssetException ? localPlayfieldChipTitle : "PinProf"
         case .opdb:
             return "OPDB"
         case .external:
@@ -490,6 +490,9 @@ extension PinballGame {
     }
 
     private func profPlayfieldCandidates(liveStatus: LibraryLivePlayfieldStatus?) -> [URL] {
+        if usesBundledOnlyAppAssetException {
+            return []
+        }
         let liveURL = liveStatus?.effectiveKind == .pillyliu ? liveStatus?.effectiveURL : nil
         let hasHostedCandidate = liveURL != nil || !profPlayfieldBaseCandidates.isEmpty
         return deduplicatedPlayfieldURLs(
