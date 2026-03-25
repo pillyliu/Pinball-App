@@ -1688,8 +1688,8 @@ struct RulesheetRenderContent: Equatable {
     let baseURL: URL?
 }
 
-struct RulesheetRemoteSource: Identifiable, Hashable {
-    enum Provider: String, Hashable {
+nonisolated struct RulesheetRemoteSource: Identifiable, Hashable {
+    nonisolated enum Provider: String, Hashable {
         case tiltForums
         case pinballPrimer
         case papa
