@@ -136,7 +136,7 @@ internal data class ReferenceLink(
 }
 
 internal enum class RulesheetSourceKind(val rank: Int, val shortLabel: String) {
-    LOCAL(0, "PinProf"),
+    LOCAL(0, "Local"),
     TF(1, "TF"),
     PROF(2, "PinProf"),
     BOB(3, "Bob"),

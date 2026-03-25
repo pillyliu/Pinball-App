@@ -499,7 +499,7 @@ internal fun catalogRulesheetLabel(providerRawValue: String, fallback: String, u
         "papa" -> "Rulesheet (PAPA)"
         "prof" -> "Rulesheet (PinProf)"
         "opdb" -> "Rulesheet (OPDB)"
-        "local" -> "Rulesheet (PinProf)"
+        "local" -> "Rulesheet (Local)"
         else -> when (ReferenceLink(label = fallback, url = url).rulesheetSourceKind) {
             RulesheetSourceKind.PROF -> "Rulesheet (PinProf)"
             RulesheetSourceKind.BOB -> "Rulesheet (Bob)"
@@ -507,7 +507,7 @@ internal fun catalogRulesheetLabel(providerRawValue: String, fallback: String, u
             RulesheetSourceKind.PP -> "Rulesheet (PP)"
             RulesheetSourceKind.TF -> "Rulesheet (TF)"
             RulesheetSourceKind.OPDB -> "Rulesheet (OPDB)"
-            RulesheetSourceKind.LOCAL -> "Rulesheet (PinProf)"
+            RulesheetSourceKind.LOCAL -> "Rulesheet (Local)"
             RulesheetSourceKind.OTHER -> fallback
         }
     }

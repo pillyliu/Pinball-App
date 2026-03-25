@@ -107,7 +107,9 @@ internal fun LibraryDetailSummaryCard(
         ) {
             AppResourceRow(label = "Rulesheet:") {
                 if (game.hasLocalRulesheetResource) {
-                    AppResourceChip(label = "Local") { onOpenRulesheet(null, "Local") }
+                    AppResourceChip(label = game.localRulesheetChipLabel) {
+                        onOpenRulesheet(null, game.localRulesheetChipLabel)
+                    }
                 }
                 if (displayedRulesheetLinks.isEmpty()) {
                     if (!game.hasLocalRulesheetResource) {

@@ -27,6 +27,7 @@ import com.pillyliu.pinprofandroid.library.RulesheetRemoteSource
 import com.pillyliu.pinprofandroid.library.displayedRulesheetLinks
 import com.pillyliu.pinprofandroid.library.LivePlayfieldStatus
 import com.pillyliu.pinprofandroid.library.hasLocalRulesheetResource
+import com.pillyliu.pinprofandroid.library.localRulesheetChipLabel
 import com.pillyliu.pinprofandroid.library.loadLivePlayfieldStatus
 import com.pillyliu.pinprofandroid.library.metaLine
 import com.pillyliu.pinprofandroid.library.openYoutubeInApp
@@ -97,7 +98,7 @@ internal fun PracticeGameResourcesCard(
         ) {
             AppResourceRow(label = "Rulesheet:") {
                 if (game.hasLocalRulesheetResource) {
-                    AppResourceChip(label = "Local") { onOpenRulesheet(null) }
+                    AppResourceChip(label = game.localRulesheetChipLabel) { onOpenRulesheet(null) }
                 }
                 if (displayedRulesheetLinks.isEmpty()) {
                     if (!game.hasLocalRulesheetResource) {

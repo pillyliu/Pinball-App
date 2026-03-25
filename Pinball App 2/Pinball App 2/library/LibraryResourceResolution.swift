@@ -8,6 +8,9 @@ nonisolated private let libraryPinProfHosts: Set<String> = [
     "pinprof.com",
     "www.pinprof.com"
 ]
+nonisolated private let libraryBundledOnlyAppGroupIDs: Set<String> = [
+    "G900001"
+]
 
 enum LibraryLivePlayfieldKind: String {
     case pillyliu
@@ -175,6 +178,28 @@ nonisolated func libraryMissingArtworkURL() -> URL? {
 }
 
 extension PinballGame {
+    nonisolated var usesBundledOnlyAppAssetException: Bool {
+        [practiceIdentity, opdbGroupID]
+            .compactMap { raw -> String? in
+                guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+                    return nil
+                }
+                if let dash = trimmed.firstIndex(of: "-") {
+                    return String(trimmed[..<dash])
+                }
+                return trimmed
+            }
+            .contains(where: libraryBundledOnlyAppGroupIDs.contains)
+    }
+
+    nonisolated var localRulesheetChipTitle: String {
+        usesBundledOnlyAppAssetException ? "Local" : "PinProf"
+    }
+
+    nonisolated var localPlayfieldChipTitle: String {
+        usesBundledOnlyAppAssetException ? "Local" : "PinProf"
+    }
+
     nonisolated var opdbGroupID: String? {
         guard let opdbID else { return nil }
         let trimmed = opdbID.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -334,7 +359,7 @@ extension PinballGame {
         if !profCandidates.isEmpty {
             appendOption(title: "PinProf", candidates: profCandidates)
         } else {
-            appendOption(title: "Local", candidates: localFallbackPlayfieldCandidates)
+            appendOption(title: localPlayfieldChipTitle, candidates: localFallbackPlayfieldCandidates)
         }
 
         appendOption(title: "OPDB", candidates: opdbPlayfieldCandidates(liveStatus: liveStatus))
@@ -352,14 +377,14 @@ extension PinballGame {
                 return "PinProf"
             }
             if normalized.contains("local") {
-                return "Local"
+                return localPlayfieldChipTitle
             }
         }
         if !profPlayfieldBaseCandidates.isEmpty {
             return "PinProf"
         }
         if !localFallbackPlayfieldCandidates.isEmpty {
-            return "Local"
+            return localPlayfieldChipTitle
         }
         if let playfieldImageSourceURL {
             if libraryIsPinProfPlayfieldURL(playfieldImageSourceURL) {
@@ -455,7 +480,10 @@ extension PinballGame {
     }
 
     private var profPlayfieldBaseCandidates: [URL] {
-        deduplicatedPlayfieldURLs([
+        if usesBundledOnlyAppAssetException {
+            return []
+        }
+        return deduplicatedPlayfieldURLs([
             libraryIsPinProfPlayfieldURL(playfieldLocalOriginalURL) ? playfieldLocalOriginalURL : nil,
             libraryIsPinProfPlayfieldURL(playfieldImageSourceURL) ? playfieldImageSourceURL : nil
         ])

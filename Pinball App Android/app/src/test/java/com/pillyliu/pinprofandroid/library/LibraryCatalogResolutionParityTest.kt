@@ -53,13 +53,13 @@ class LibraryCatalogResolutionParityTest {
     }
 
     @Test
-    fun shortRulesheetTitle_keepsPinProfForLocalSource() {
+    fun shortRulesheetTitle_keepsLocalForLocalSource() {
         val link = ReferenceLink(
             label = "Rulesheet (source)",
             url = null,
         )
 
-        assertEquals("PinProf", link.shortRulesheetTitle)
+        assertEquals("Local", link.shortRulesheetTitle)
     }
 
     @Test

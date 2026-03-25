@@ -21,7 +21,7 @@ struct PracticeGameResourceCard: View {
 
                 PinballResourceRow("Rulesheet") {
                     if game.hasLocalRulesheetResource {
-                        practiceRulesheetLinkButton(title: "Local", game: game, source: nil)
+                        practiceRulesheetLinkButton(title: game.localRulesheetChipTitle, game: game, source: nil)
                     }
                     if game.rulesheetLinks.isEmpty {
                         if !game.hasLocalRulesheetResource {

@@ -15,6 +15,7 @@ private val pinProfHosts = setOf(
     "pinprof.com",
     "www.pinprof.com",
 )
+private val bundledOnlyAppGroupIds = setOf("G900001")
 
 internal enum class LivePlayfieldKind {
     PILLYLIU,
@@ -173,6 +174,21 @@ internal fun normalizeLibraryCachePath(path: String?): String? {
 private fun missingArtworkUrl(): String? =
     resolveLibraryUrl(libraryMissingArtworkPath)
 
+internal val PinballGame.usesBundledOnlyAppAssetException: Boolean
+    get() = listOfNotNull(practiceIdentity, opdbGroupId)
+        .map { raw ->
+            val trimmed = raw.trim()
+            val dash = trimmed.indexOf('-')
+            if (dash >= 0) trimmed.substring(0, dash) else trimmed
+        }
+        .any(bundledOnlyAppGroupIds::contains)
+
+internal val PinballGame.localRulesheetChipLabel: String
+    get() = if (usesBundledOnlyAppAssetException) "Local" else "PinProf"
+
+internal val PinballGame.localPlayfieldChipLabel: String
+    get() = if (usesBundledOnlyAppAssetException) "Local" else "PinProf"
+
 internal val PinballGame.localAssetKey: String?
     get() = practiceIdentity?.ifBlank { null } ?: opdbGroupId?.ifBlank { null }
 
@@ -287,7 +303,9 @@ private val PinballGame.profPlayfieldBaseCandidates: List<String>
     get() = listOfNotNull(
         playfieldLocalOriginalURL?.takeIf(::isPinProfPlayfieldUrl),
         resolveLibraryUrl(playfieldImageUrl)?.takeIf(::isPinProfPlayfieldUrl),
-    ).distinct()
+    ).distinct().let { candidates ->
+        if (usesBundledOnlyAppAssetException) emptyList() else candidates
+    }
 
 private fun PinballGame.profPlayfieldCandidates(liveStatus: LivePlayfieldStatus?): List<String> {
     val liveUrl = liveStatus?.effectiveUrl?.takeIf { liveStatus.effectiveKind == LivePlayfieldKind.PILLYLIU }
@@ -378,7 +396,7 @@ internal fun PinballGame.resolvedPlayfieldOptions(liveStatus: LivePlayfieldStatu
     if (profCandidates.isNotEmpty()) {
         appendOption(label = "PinProf", candidates = profCandidates)
     } else {
-        appendOption(label = "Local", candidates = localFallbackPlayfieldCandidates)
+        appendOption(label = localPlayfieldChipLabel, candidates = localFallbackPlayfieldCandidates)
     }
 
     appendOption(label = "OPDB", candidates = opdbPlayfieldCandidates(liveStatus))
@@ -393,7 +411,7 @@ internal val PinballGame.playfieldButtonLabel: String
             return when {
                 "opdb" in normalized -> "OPDB"
                 "prof" in normalized -> "PinProf"
-                "local" in normalized -> "Local"
+                "local" in normalized -> localPlayfieldChipLabel
                 "remote" in normalized || "external" in normalized -> "View"
                 else -> explicitLabel
             }
@@ -402,7 +420,7 @@ internal val PinballGame.playfieldButtonLabel: String
             return "PinProf"
         }
         if (localFallbackPlayfieldCandidates.isNotEmpty()) {
-            return "Local"
+            return localPlayfieldChipLabel
         }
         val resolved = resolveLibraryUrl(playfieldImageUrl)
         if (resolved != null) {

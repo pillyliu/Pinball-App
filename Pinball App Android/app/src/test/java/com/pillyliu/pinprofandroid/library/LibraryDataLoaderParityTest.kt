@@ -166,6 +166,36 @@ class LibraryDataLoaderParityTest {
     }
 
     @Test
+    fun hostedPinProfResourceChips_usePinProf() {
+        val game = game(
+            practiceIdentity = "GrkL5",
+            opdbId = "GrkL5-MJoNN",
+            playfieldLocalOriginal = "/pinball/images/playfields/GrkL5-MJoNN-playfield.webp",
+            playfieldLocal = "/pinball/images/playfields/GrkL5-MJoNN-playfield_700.webp",
+            rulesheetLocal = "/pinball/rulesheets/GrkL5-rulesheet.md",
+        )
+
+        assertEquals("PinProf", game.localRulesheetChipLabel)
+        assertEquals("PinProf", game.localPlayfieldChipLabel)
+        assertEquals("PinProf", game.resolvedPlayfieldOptions(liveStatus = null).first().label)
+    }
+
+    @Test
+    fun bundledOnlyFinalExamResourceChips_stayLocal() {
+        val game = game(
+            practiceIdentity = "G900001",
+            opdbId = "G900001-1",
+            playfieldLocalOriginal = "/pinball/images/playfields/G900001-1-playfield.webp",
+            playfieldLocal = "/pinball/images/playfields/G900001-1-playfield_700.webp",
+            rulesheetLocal = "/pinball/rulesheets/G900001-rulesheet.md",
+        )
+
+        assertEquals("Local", game.localRulesheetChipLabel)
+        assertEquals("Local", game.localPlayfieldChipLabel)
+        assertEquals("Local", game.resolvedPlayfieldOptions(liveStatus = null).first().label)
+    }
+
+    @Test
     fun resolveImportedGame_suppressesStaleLocalRulesheetWhenTfExists() {
         val game = resolveImportedGame(
             machine = catalogMachine(),
@@ -453,14 +483,17 @@ class LibraryDataLoaderParityTest {
         )
 
     private fun game(
+        practiceIdentity: String = "G-test",
+        opdbId: String? = null,
         playfieldImageUrl: String? = null,
         playfieldSourceLabel: String? = null,
         playfieldLocal: String? = null,
         playfieldLocalOriginal: String? = null,
+        rulesheetLocal: String? = null,
     ): PinballGame {
         return PinballGame(
             libraryEntryId = null,
-            practiceIdentity = "G-test",
+            practiceIdentity = practiceIdentity,
             variant = null,
             sourceId = "venue--test",
             sourceName = "Test Venue",
@@ -474,6 +507,7 @@ class LibraryDataLoaderParityTest {
             manufacturer = null,
             year = 2024,
             slug = "test-game",
+            opdbId = opdbId,
             primaryImageUrl = null,
             primaryImageLargeUrl = null,
             playfieldImageUrl = playfieldImageUrl,
@@ -482,7 +516,7 @@ class LibraryDataLoaderParityTest {
             playfieldLocal = playfieldLocal,
             playfieldSourceLabel = playfieldSourceLabel,
             gameinfoLocal = null,
-            rulesheetLocal = null,
+            rulesheetLocal = rulesheetLocal,
             rulesheetUrl = null,
             rulesheetLinks = emptyList(),
             videos = emptyList(),

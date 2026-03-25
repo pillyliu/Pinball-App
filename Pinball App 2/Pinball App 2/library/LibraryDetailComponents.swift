@@ -34,7 +34,7 @@ struct LibraryDetailSummaryCard: View {
             VStack(alignment: .leading, spacing: 10) {
                 PinballResourceRow("Rulesheet") {
                     if game.hasLocalRulesheetResource {
-                        libraryRulesheetLinkButton(title: "Local", game: game, source: nil)
+                        libraryRulesheetLinkButton(title: game.localRulesheetChipTitle, game: game, source: nil)
                     }
                     if game.rulesheetLinks.isEmpty {
                         if !game.hasLocalRulesheetResource {

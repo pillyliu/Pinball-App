@@ -1494,10 +1494,10 @@ private fun variantPreferenceScore(normalizedVariant: String?): Int {
 
 internal fun resolvedPlayfieldSourceLabel(game: PinballGame): String? {
     if (isPinProfPlayfieldUrl(game.playfieldImageUrl) || isPinProfPlayfieldUrl(game.playfieldLocalOriginalURL)) {
-        return "Prof"
+        return if (game.usesBundledOnlyAppAssetException) "Local" else "Prof"
     }
     if (!game.playfieldLocal.isNullOrBlank()) {
-        return "Local"
+        return if (game.usesBundledOnlyAppAssetException) "Local" else "Prof"
     }
     val explicit = game.playfieldSourceLabel?.trim()?.takeIf { it.isNotEmpty() }
     if (explicit != null) {
