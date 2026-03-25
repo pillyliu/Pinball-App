@@ -383,9 +383,15 @@ private struct AppIntroArtworkBox: View {
 
 private struct AppIntroWelcomeArtwork: View {
     var body: some View {
-        Image(uiImage: AppIntroBundledArtProvider.requiredImage(named: AppIntroCard.welcome.bundledArtworkFileName))
-            .resizable()
-        .scaledToFill()
+        Group {
+            if let image = AppIntroBundledArtProvider.image(named: AppIntroCard.welcome.bundledArtworkFileName) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Color.clear
+            }
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
     }
@@ -404,11 +410,13 @@ private struct AppIntroScreenshotArtwork: View {
                 endRadius: 240
             )
 
-            Image(uiImage: AppIntroBundledArtProvider.requiredImage(named: bundledFileName))
-                .resizable()
-            .scaledToFit()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .shadow(color: accent.opacity(0.16), radius: 16, y: 8)
+            if let image = AppIntroBundledArtProvider.image(named: bundledFileName) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .shadow(color: accent.opacity(0.16), radius: 16, y: 8)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -554,13 +562,15 @@ private struct AppIntroProfessorSpotlight: View {
                         .stroke(Color.white.opacity(0.10), lineWidth: 1)
                 )
                 .overlay {
-                    Image(uiImage: AppIntroBundledArtProvider.requiredImage(named: "professor-headshot.webp"))
-                        .resizable()
-                    .scaledToFill()
-                    .frame(width: 80, height: 80)
-                    .scaleEffect(x: side == .left ? -1 : 1, y: 1)
-                    .offset(y: -2)
-                    .clipShape(Circle())
+                    if let image = AppIntroBundledArtProvider.image(named: "professor-headshot.webp") {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 80, height: 80)
+                            .scaleEffect(x: side == .left ? -1 : 1, y: 1)
+                            .offset(y: -2)
+                            .clipShape(Circle())
+                    }
                 }
         }
         .frame(width: 82, height: 82)
@@ -568,27 +578,34 @@ private struct AppIntroProfessorSpotlight: View {
 }
 
 enum AppIntroBundledArtProvider {
-    private static let subdirectory = "SharedAppSupport/app-intro"
     private static let cache = NSCache<NSString, UIImage>()
 
-    static func requiredImage(named fileName: String) -> UIImage {
+    static func image(named fileName: String) -> UIImage? {
         let cacheKey = fileName as NSString
         if let cached = cache.object(forKey: cacheKey) {
             return cached
         }
 
-        guard let url = Bundle.main.url(
-            forResource: fileName,
-            withExtension: nil,
-            subdirectory: subdirectory
-        ),
+        guard let url = bundledURL(named: fileName),
         let data = try? Data(contentsOf: url),
         let image = UIImage(data: data) else {
-            preconditionFailure("Missing required bundled intro artwork: \(fileName)")
+            NSLog("Missing bundled intro artwork: %@", fileName)
+            return nil
         }
 
         cache.setObject(image, forKey: cacheKey)
         return image
+    }
+
+    private static func bundledURL(named fileName: String) -> URL? {
+        if let rootURL = Bundle.main.url(forResource: fileName, withExtension: nil) {
+            return rootURL
+        }
+        return Bundle.main.url(
+            forResource: fileName,
+            withExtension: nil,
+            subdirectory: "SharedAppSupport/app-intro"
+        )
     }
 }
 

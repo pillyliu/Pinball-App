@@ -488,16 +488,23 @@ private enum AppShakeProfessorArtProvider {
     }()
 
     static func localImage(for level: AppShakeWarningLevel) -> UIImage? {
-        guard let url = Bundle.main.url(
-            forResource: level.bundledArtFileName,
-            withExtension: nil,
-            subdirectory: "SharedAppSupport/shake-warnings"
-        ),
+        guard let url = bundledURL(named: level.bundledArtFileName),
         let data = try? Data(contentsOf: url),
         let image = UIImage(data: data) else {
             return nil
         }
         return image
+    }
+
+    private static func bundledURL(named fileName: String) -> URL? {
+        if let rootURL = Bundle.main.url(forResource: fileName, withExtension: nil) {
+            return rootURL
+        }
+        return Bundle.main.url(
+            forResource: fileName,
+            withExtension: nil,
+            subdirectory: "SharedAppSupport/shake-warnings"
+        )
     }
 }
 

@@ -382,10 +382,16 @@ struct SettingsHomeContent: View {
     }
 
     private var aboutLogo: some View {
-        Image(uiImage: AppIntroBundledArtProvider.requiredImage(named: AppIntroCard.welcome.bundledArtworkFileName))
-            .resizable()
-            .scaledToFit()
-        .frame(width: 150)
+        Group {
+            if let image = AppIntroBundledArtProvider.image(named: AppIntroCard.welcome.bundledArtworkFileName) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Color.clear
+            }
+        }
+        .frame(width: 150, height: 150)
         .frame(maxWidth: .infinity, alignment: .center)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
