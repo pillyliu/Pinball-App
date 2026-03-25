@@ -1,14 +1,14 @@
 package com.pillyliu.pinprofandroid.gameroom
 
 import android.content.Context
-import com.pillyliu.pinprofandroid.data.PinballDataCache
-import com.pillyliu.pinprofandroid.library.hostedPinsideGroupMapPath
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+
+private const val PINSIDE_GROUP_MAP_ASSET_PATH = "pinside_group_map.json"
 
 internal data class PinsideImportedMachine(
     val id: String,
@@ -416,10 +416,7 @@ internal class GameRoomPinsideImportService(private val context: Context) {
     private suspend fun loadGroupMap(): Map<String, String> {
         cachedGroupMap?.let { return it }
         val raw = runCatching {
-            PinballDataCache.loadText(
-                url = hostedPinsideGroupMapPath,
-                allowMissing = true,
-            ).text
+            context.assets.open(PINSIDE_GROUP_MAP_ASSET_PATH).bufferedReader().use { it.readText() }
         }.getOrNull().orEmpty()
         if (raw.isBlank()) return emptyMap()
         val json = runCatching { JSONObject(raw) }.getOrNull() ?: return emptyMap()

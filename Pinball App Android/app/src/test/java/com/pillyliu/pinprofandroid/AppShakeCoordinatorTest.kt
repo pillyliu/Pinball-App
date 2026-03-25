@@ -23,8 +23,8 @@ class AppShakeCoordinatorTest {
         assertEquals(3_000L, AppShakeWarningLevel.Danger.displayDurationMillis)
         assertEquals(50L, AppShakeWarningLevel.Danger.hapticStartDelayMillis)
         assertEquals(
-            "/pinball/images/ui/shake-warnings/professor-danger_1024.webp",
-            AppShakeWarningLevel.Danger.bundledArtPath,
+            "shake-warnings/professor-danger_1024.webp",
+            AppShakeWarningLevel.Danger.bundledArtAssetPath,
         )
 
         assertEquals("DANGER DANGER", AppShakeWarningLevel.DoubleDanger.title)
@@ -32,8 +32,8 @@ class AppShakeCoordinatorTest {
         assertEquals(3_500L, AppShakeWarningLevel.DoubleDanger.displayDurationMillis)
         assertEquals(200L, AppShakeWarningLevel.DoubleDanger.hapticStartDelayMillis)
         assertEquals(
-            "/pinball/images/ui/shake-warnings/professor-danger-danger_1024.webp",
-            AppShakeWarningLevel.DoubleDanger.bundledArtPath,
+            "shake-warnings/professor-danger-danger_1024.webp",
+            AppShakeWarningLevel.DoubleDanger.bundledArtAssetPath,
         )
 
         assertEquals("TILT", AppShakeWarningLevel.Tilt.title)
@@ -44,8 +44,8 @@ class AppShakeCoordinatorTest {
         assertEquals(4_500L, AppShakeWarningLevel.Tilt.displayDurationMillis)
         assertEquals(200L, AppShakeWarningLevel.Tilt.hapticStartDelayMillis)
         assertEquals(
-            "/pinball/images/ui/shake-warnings/professor-tilt_1024.webp",
-            AppShakeWarningLevel.Tilt.bundledArtPath,
+            "shake-warnings/professor-tilt_1024.webp",
+            AppShakeWarningLevel.Tilt.bundledArtAssetPath,
         )
     }
 

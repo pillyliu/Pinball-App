@@ -53,5 +53,8 @@ tmp_practice_key_crosswalk_*.csv
 tmp/
 scripts/__pycache__/
 Pinball App Android/app/release/
+archive/**
+!archive/
+!archive/README.md
 
 Pinball_App_Architecture_Blueprint_rendered_mermaid.pdf

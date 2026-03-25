@@ -90,7 +90,7 @@ import kotlin.math.sqrt
 internal enum class AppShakeWarningLevel(
     val title: String,
     val subtitle: String,
-    val bundledArtPath: String,
+    val bundledArtAssetPath: String,
     val tint: Color,
     val glow: Color,
     val displayDurationMillis: Long,
@@ -99,7 +99,7 @@ internal enum class AppShakeWarningLevel(
     Danger(
         title = "DANGER",
         subtitle = "A little restraint, if you please.",
-        bundledArtPath = "/pinball/images/ui/shake-warnings/professor-danger_1024.webp",
+        bundledArtAssetPath = "shake-warnings/professor-danger_1024.webp",
         tint = Color(0xFFFF9E2E),
         glow = Color(0xFFFFD15C),
         displayDurationMillis = 3_000L,
@@ -108,7 +108,7 @@ internal enum class AppShakeWarningLevel(
     DoubleDanger(
         title = "DANGER DANGER",
         subtitle = "Really, this is most uncivilised shaking.",
-        bundledArtPath = "/pinball/images/ui/shake-warnings/professor-danger-danger_1024.webp",
+        bundledArtAssetPath = "shake-warnings/professor-danger-danger_1024.webp",
         tint = Color(0xFFFF5729),
         glow = Color(0xFFFF852E),
         displayDurationMillis = 3_500L,
@@ -117,7 +117,7 @@ internal enum class AppShakeWarningLevel(
     Tilt(
         title = "TILT",
         subtitle = "That is quite enough! I will not tolerate any further indignity in this cabinet of higher learning.",
-        bundledArtPath = "/pinball/images/ui/shake-warnings/professor-tilt_1024.webp",
+        bundledArtAssetPath = "shake-warnings/professor-tilt_1024.webp",
         tint = Color(0xFFFF2424),
         glow = Color(0xFFFF472E),
         displayDurationMillis = 4_500L,
@@ -674,11 +674,17 @@ private fun rememberAppShakeProfessorArt(level: AppShakeWarningLevel): ImageBitm
     val context = LocalContext.current.applicationContext
     val image by produceState<ImageBitmap?>(initialValue = null, key1 = context, key2 = level) {
         value = withContext(Dispatchers.IO) {
-            decodeCachedPinballImage(level.bundledArtPath)
+            decodeBundledAppAssetImage(context, level.bundledArtAssetPath)
                 ?: decodeCachedPinballImage(libraryMissingArtworkPath)
         }
     }
     return image
+}
+
+private fun decodeBundledAppAssetImage(context: Context, assetPath: String): ImageBitmap? {
+    val bytes = runCatching { context.assets.open(assetPath).use { it.readBytes() } }.getOrNull() ?: return null
+    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+    return bitmap.asImageBitmap()
 }
 
 private suspend fun decodeCachedPinballImage(path: String): ImageBitmap? {

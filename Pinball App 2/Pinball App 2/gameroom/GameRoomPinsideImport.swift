@@ -1,5 +1,7 @@
 import Foundation
 
+nonisolated private let bundledPinsideGroupMapResourceName = "pinside_group_map"
+
 nonisolated func canonicalPinsideDisplayedTitle(_ title: String, fallbackVariant: String?) -> (title: String, variant: String?) {
     let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
     guard trimmedTitle.hasSuffix(")"),
@@ -105,7 +107,6 @@ enum GameRoomPinsideImportError: LocalizedError {
 }
 
 actor GameRoomPinsideImportService {
-    private let groupMapPath = hostedPinsideGroupMapPath
     private var cachedGroupMap: [String: String]?
 
     func fetchCollectionMachines(sourceInput: String) async throws -> (sourceURL: String, machines: [PinsideImportedMachine]) {
@@ -364,18 +365,26 @@ actor GameRoomPinsideImportService {
             return cachedGroupMap
         }
 
-        let data: Data
-        if let cached = try loadCachedPinballData(path: groupMapPath), !cached.isEmpty {
-            data = cached
-        } else {
-            let cached = try await PinballDataCache.shared.loadText(path: groupMapPath, allowMissing: false)
-            guard let text = cached.text, let encoded = text.data(using: .utf8), !encoded.isEmpty else {
-                throw URLError(.cannotDecodeRawData)
-            }
-            data = encoded
+        let resourceCandidates = [
+            Bundle.main.url(
+                forResource: bundledPinsideGroupMapResourceName,
+                withExtension: "json",
+                subdirectory: "SharedAppSupport"
+            ),
+            Bundle.main.url(
+                forResource: bundledPinsideGroupMapResourceName,
+                withExtension: "json"
+            ),
+        ]
+
+        guard let resourceURL = resourceCandidates.compactMap({ $0 }).first,
+              let data = try? Data(contentsOf: resourceURL),
+              !data.isEmpty,
+              let decoded = try? JSONDecoder().decode([String: String].self, from: data) else {
+            cachedGroupMap = [:]
+            return [:]
         }
 
-        let decoded = try JSONDecoder().decode([String: String].self, from: data)
         cachedGroupMap = decoded
         return decoded
     }

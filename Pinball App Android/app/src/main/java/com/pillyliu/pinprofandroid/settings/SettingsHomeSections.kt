@@ -3,6 +3,7 @@ package com.pillyliu.pinprofandroid.settings
 import android.text.method.LinkMovementMethod
 import android.widget.TextView
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -90,6 +92,7 @@ internal fun SettingsHomeContent(
     onDeleteSource: (String) -> Unit,
     onRefreshHostedData: () -> Unit,
     onClearCache: () -> Unit,
+    onToggleIntroOverlayForNextLaunch: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -143,7 +146,9 @@ internal fun SettingsHomeContent(
         }
 
         item {
-            SettingsAboutSection()
+            SettingsAboutSection(
+                onToggleIntroOverlayForNextLaunch = onToggleIntroOverlayForNextLaunch,
+            )
         }
 
         error?.let { message ->
@@ -277,7 +282,7 @@ private fun SettingsHostedRefreshSection(
     CardContainer {
         SectionTitle("Pinball Data")
         Text(
-            "Force-refresh the hosted OPDB export, CAF asset indexes, league files, redacted players list, and GameRoom group map from pillyliu.com.",
+            "Force-refresh the hosted OPDB export, CAF asset indexes, league files, and redacted players list from pillyliu.com.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -451,7 +456,9 @@ private fun SettingsPrivacySection() {
 }
 
 @Composable
-private fun SettingsAboutSection() {
+private fun SettingsAboutSection(
+    onToggleIntroOverlayForNextLaunch: () -> Unit,
+) {
     CardContainer {
         SectionTitle("About")
         Box(
@@ -463,7 +470,12 @@ private fun SettingsAboutSection() {
                 contentDescription = "PinProf logo",
                 modifier = Modifier
                     .fillMaxWidth(0.42f)
-                    .heightIn(max = 140.dp),
+                    .heightIn(max = 140.dp)
+                    .pointerInput(onToggleIntroOverlayForNextLaunch) {
+                        detectTapGestures(
+                            onDoubleTap = { onToggleIntroOverlayForNextLaunch() },
+                        )
+                    },
                 contentScale = androidx.compose.ui.layout.ContentScale.Fit,
             )
         }

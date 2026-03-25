@@ -1,13 +1,13 @@
 # 1. Release Snapshot
 
 ## Document purpose
-This blueprint is the current-state architecture reference for PinProf version `3.4.7`.
+This blueprint is the current-state architecture reference for PinProf version `3.4.8`.
 
 It is intended to describe what ships today across both mobile apps:
 - iOS app: `Pinball App 2`
 - Android app: `Pinball App Android`
 
-This version replaces the older four-tab blueprint and reflects the current five-tab product footprint, the GameRoom baseline, the expanded Settings surface, the shared design-system cleanup, and the current release/CI path.
+This version reflects the current five-tab product footprint, the GameRoom baseline, the expanded Settings surface, the shared design-system cleanup, the CAF publish path, and the current release/CI path.
 
 ## Product summary
 PinProf is a dual-platform pinball companion app for league players and home collectors. It combines:
@@ -37,7 +37,7 @@ PinProf is a dual-platform pinball companion app for league players and home col
 - Keep iOS and Android functionally aligned within reason
 - Preserve native platform expression where it improves clarity or reliability
 - Make hosted content resilient offline
-- Reflect the real current publish chain from PinProf Admin through the still-active legacy website deploy bridge
+- Reflect the real current publish chain from PinProf Admin through the website deploy repo, while keeping app-only support assets owned by the app workspace
 - Let users move fluidly from browsing to studying, logging, and machine ownership workflows
 
 ## Root experience map
@@ -69,7 +69,7 @@ PinProf is a dual-platform pinball companion app for league players and home col
 - Library is shared infrastructure, not an isolated tab
 - Practice and GameRoom each have their own local domain stores
 - Root shells are lightweight; route contexts, loader seams, store helpers, and shared UI chrome carry most of the composition work
-- PinProf Admin is the source-of-truth-in-progress for content and assets, while the legacy website repo still stages the current deploy and manifest build
+- PinProf Admin is the source of truth for canonical content and hosted assets, while the website repo still owns the deploy entrypoint
 
 ## Current parity posture
 - Both platforms now use CAF/raw OPDB runtime loading for the main Library path, Practice source-aware browsing, GameRoom catalog/media lookup, and hosted refresh behavior
@@ -110,7 +110,8 @@ PinProf is a dual-platform pinball companion app for league players and home col
 - Android
   - `SharedPreferences` for feature state and settings
   - file cache under the app cache directory
-- Optional bundled/starter fallback hooks still exist in cache code, but the active runtime contract is hosted CAF data rather than runtime dependence on `pinball_library_v3.json`, seed DB files, or checked-in starter-pack content
+- The apps ship a curated preload bundle for core data plus app-owned bundled support assets under `SharedAppSupport`
+- Runtime no longer depends on `starter-pack`, `PinballStarter.bundle`, `pinball_library_v3.json`, or seed DB files
 
 ## Published runtime content contracts
 - Hosted CAF layers
@@ -127,22 +128,28 @@ PinProf is a dual-platform pinball companion app for league players and home col
   - `/pinball/data/LPL_Targets.csv`
   - `/pinball/data/lpl_targets_resolved_v1.json`
   - `/pinball/data/redacted_players.csv`
-  - `/pinball/data/pinside_group_map.json`
 - Hosted cache metadata
   - `/pinball/cache-manifest.json`
   - `/pinball/cache-update-log.json`
+- App-owned bundled support files
+  - `SharedAppSupport/pinside_group_map.json`
+  - `SharedAppSupport/shake-warnings/*`
+  - `SharedAppSupport/app-intro/*`
 
 ## External data, source-of-truth, and integrations
-- PinProf Admin source-of-truth-in-progress
+- PinProf Admin canonical workspace
   - `workspace/db/pinprof_admin_v1.sqlite`
   - `workspace/assets/playfields/*`
+  - `workspace/assets/backglasses/*`
   - `workspace/assets/rulesheets/*`
   - `workspace/assets/gameinfo/*`
   - `scripts/importers/*`
   - `scripts/publish/*`
-- Current publish bridge
+- Pinball App shared support workspace
+  - `Pinball App 2/Pinball App 2/SharedAppSupport/*`
+- Current publish/deploy chain
   - PinProf Admin rebuilds published outputs
-  - the legacy `Pillyliu Pinball Website` repo still mirrors and deploys the current remote `/pinball` payload
+  - the `Pillyliu Pinball Website` repo still deploys the current remote `/pinball` payload
 - Third-party or external destinations and sources
   - OPDB export API
   - YouTube
@@ -153,11 +160,11 @@ PinProf is a dual-platform pinball companion app for league players and home col
   - external rulesheet discovery sources used upstream in publish scripts
 
 ## Current version anchors
-- iOS marketing version: `3.4.7`
-- Android target version for this release: `3.4.7`
+- iOS marketing version: `3.4.8`
+- Android target version for this release: `3.4.8`
 - Practice canonical persisted schema: `v4`
 - Primary runtime content contract: CAF hosted layers over OPDB identities
-- Legacy compatibility artifact still published upstream: `pinball_library_v3.json`
+- App-owned support artifacts: bundled `pinside_group_map.json`, shake-warning art, and intro overlay source images
 
 ---
 
@@ -345,7 +352,8 @@ flowchart LR
     MACHINE --> GSTORE
     GSET --> GSTORE
     GCAT["GameRoomCatalogLoader"] --> CACHE["PinballDataCache"]
-    GCAT --> HOST["OPDB export + pinside_group_map + hosted asset hints"]
+    GCAT --> HOST["OPDB export + hosted asset hints"]
+    GCAT --> APPSUPPORT["Bundled Pinside group map"]
     GSTORE --> GCAT
     GSTORE --> LOCAL["Local machine persistence"]
 ```
@@ -975,22 +983,28 @@ sequenceDiagram
   - `LPL_Targets.csv`
   - `lpl_targets_resolved_v1.json`
   - `redacted_players.csv`
-  - `pinside_group_map.json`
 - Cache metadata
   - `cache-manifest.json`
   - `cache-update-log.json`
+- App-owned bundled support
+  - `SharedAppSupport/pinside_group_map.json`
+  - `SharedAppSupport/shake-warnings/*`
+  - `SharedAppSupport/app-intro/*`
 
 ## 7.2 Upstream source-of-truth and publish chain
-- PinProf Admin owns the source-of-truth-in-progress for:
+- PinProf Admin owns the source of truth for:
   - admin DB state in `pinprof_admin_v1.sqlite`
-  - canonical playfield, rulesheet, and game-info files
+  - canonical playfield, backglass, rulesheet, and game-info files
   - importer outputs from OPDB, Pinball Map, Match Play, and external rulesheet discovery
   - publish scripts that rebuild public-safe outputs
-- The legacy `Pillyliu Pinball Website` repo still acts as the current deploy bridge:
-  - mirrors or rebuilds the published payload into `shared/pinball`
-  - rebuilds `cache-manifest.json` and `cache-update-log.json`
+- The `Pillyliu Pinball Website` repo still acts as the current deploy bridge:
+  - stages the hosted `/pinball` payload from `PinProf Admin/workspace`
+  - rebuilds the staged `cache-manifest.json` and `cache-update-log.json` during deploy
   - stages the remote `/pinball` tree consumed by the apps
-- `pinball_library_v3.json` still exists upstream as a compatibility artifact, but it is no longer the main runtime contract described by the current app code
+- The app workspace owns shared support files that are bundled locally into both apps:
+  - `pinside_group_map.json`
+  - shake-warning art
+  - intro overlay source images
 
 ## 7.3 Primary local persisted domains
 - Practice
@@ -1025,9 +1039,9 @@ sequenceDiagram
 - Android
   - feature state in `SharedPreferences`
   - hosted/cache data in the app cache directory
-- Compatibility note
-  - both platforms still retain optional bundled/starter lookup helpers in cache code
-  - the active runtime path is hosted CAF data plus disk cache, not runtime dependence on starter-pack payload files
+- Bundled support note
+  - both platforms also bundle app-owned support artifacts from `SharedAppSupport`
+  - the active runtime path is hosted CAF data plus disk cache, with no starter-pack dependency
 
 ## 7.5 Runtime assembly and identity rules
 - Library assembly

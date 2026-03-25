@@ -41,14 +41,14 @@ enum AppShakeWarningLevel: Int {
         }
     }
 
-    var pinballArtPath: String? {
+    var bundledArtFileName: String {
         switch self {
         case .danger:
-            return "/pinball/images/ui/shake-warnings/professor-danger_1024.webp"
+            return "professor-danger_1024.webp"
         case .doubleDanger:
-            return "/pinball/images/ui/shake-warnings/professor-danger-danger_1024.webp"
+            return "professor-danger-danger_1024.webp"
         case .tilt:
-            return "/pinball/images/ui/shake-warnings/professor-tilt_1024.webp"
+            return "professor-tilt_1024.webp"
         }
     }
 
@@ -474,11 +474,6 @@ private struct AppShakeProfessorArt: View {
                 return
             }
 
-            if let remote = await AppShakeProfessorArtProvider.remoteImage(for: level) {
-                image = remote
-                return
-            }
-
             image = AppShakeProfessorArtProvider.bundledFallbackImage
         }
     }
@@ -493,33 +488,16 @@ private enum AppShakeProfessorArtProvider {
     }()
 
     static func localImage(for level: AppShakeWarningLevel) -> UIImage? {
-        if let bundledPath = level.pinballArtPath,
-           let data = try? loadCachedPinballData(path: bundledPath),
-           let image = UIImage(data: data) {
-            return image
-        }
-
-        return UIImage(named: level.artAssetName)
-    }
-
-    static func remoteImage(for level: AppShakeWarningLevel) async -> UIImage? {
-        guard let path = level.pinballArtPath,
-              let url = libraryResolveURL(pathOrURL: path) else {
+        guard let url = Bundle.main.url(
+            forResource: level.bundledArtFileName,
+            withExtension: nil,
+            subdirectory: "SharedAppSupport/shake-warnings"
+        ),
+        let data = try? Data(contentsOf: url),
+        let image = UIImage(data: data) else {
             return nil
         }
-
-        if let cachedImage = RemoteUIImageMemoryCache.shared.image(for: url) {
-            return cachedImage
-        }
-
-        do {
-            let data = try await PinballDataCache.shared.loadData(url: url)
-            guard let image = UIImage(data: data) else { return nil }
-            RemoteUIImageMemoryCache.shared.insert(image, for: url)
-            return image
-        } catch {
-            return nil
-        }
+        return image
     }
 }
 

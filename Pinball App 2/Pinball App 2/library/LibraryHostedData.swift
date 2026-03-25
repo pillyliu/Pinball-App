@@ -8,7 +8,6 @@ nonisolated let hostedGameinfoAssetsPath = "/pinball/data/gameinfo_assets.json"
 nonisolated let hostedBackglassAssetsPath = "/pinball/data/backglass_assets.json"
 nonisolated let hostedVenueLayoutAssetsPath = "/pinball/data/venue_layout_assets.json"
 nonisolated let hostedRedactedPlayersCSVPath = "/pinball/data/redacted_players.csv"
-nonisolated let hostedPinsideGroupMapPath = "/pinball/data/pinside_group_map.json"
 nonisolated let hostedLeagueStandingsPath = "/pinball/data/LPL_Standings.csv"
 nonisolated let hostedLeagueStatsPath = "/pinball/data/LPL_Stats.csv"
 nonisolated let hostedLeagueTargetsPath = "/pinball/data/LPL_Targets.csv"
@@ -35,7 +34,6 @@ nonisolated let hostedPinballRefreshTargets: [(path: String, allowMissing: Bool)
     (hostedLeagueTargetsPath, true),
     (hostedResolvedLeagueTargetsPath, true),
     (hostedRedactedPlayersCSVPath, true),
-    (hostedPinsideGroupMapPath, true),
 ]
 
 nonisolated private let hostedLibraryRefreshInterval: TimeInterval = 24 * 60 * 60

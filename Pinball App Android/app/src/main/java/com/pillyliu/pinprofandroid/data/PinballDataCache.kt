@@ -24,9 +24,10 @@ import java.security.MessageDigest
 private const val BASE_URL = "https://pillyliu.com"
 private const val MANIFEST_URL = "https://pillyliu.com/pinball/cache-manifest.json"
 private const val UPDATE_LOG_URL = "https://pillyliu.com/pinball/cache-update-log.json"
+private const val PRELOAD_ASSET_ROOT = "pinprof-preload"
+private const val PRELOAD_MANIFEST_ASSET_PATH = "$PRELOAD_ASSET_ROOT/preload-manifest.json"
 private const val META_REFRESH_INTERVAL_MS = 5 * 60 * 1000L
 private const val LEGACY_CACHE_RESET_MARKER = "legacy-cache-reset-v4-rulesheets-v1"
-private const val STARTER_PACK_ROOT = "starter-pack"
 data class CachedTextResult(
     val text: String?,
     val isMissing: Boolean,
@@ -138,7 +139,7 @@ object PinballDataCache {
         val path = normalizePath(url)
         ensureLoaded()
 
-        if (isMissingAndFresh(path, maxCacheAgeMs) && !starterPackAssetExists(path)) {
+        if (isMissingAndFresh(path, maxCacheAgeMs)) {
             return@withContext CachedTextResult(text = null, isMissing = true, updatedAtMs = null)
         }
 
@@ -318,9 +319,45 @@ object PinballDataCache {
             if (!dir.exists()) dir.mkdirs()
             purgeLegacyCachedPinballAssetsIfNeeded(context)
             readIndexState()
+            seedBundledPreloadIntoCacheIfNeeded(context)
             loaded = true
             requestMetadataRefresh(force = true)
         }
+    }
+
+    private fun seedBundledPreloadIntoCacheIfNeeded(context: Context) {
+        val paths = readBundledPreloadPaths(context)
+        paths.forEach { rawPath ->
+            val normalizedPath = normalizePath(rawPath)
+            if (resourceFile(normalizedPath).exists()) {
+                upsertIndex(path = normalizedPath, hash = manifestFiles[normalizedPath], missing = false)
+                return@forEach
+            }
+
+            val bundledBytes = readBundledPreloadBytes(context, normalizedPath)
+                ?: throw IllegalStateException("Missing bundled preload asset for $normalizedPath")
+            writeCached(normalizedPath, bundledBytes)
+            upsertIndex(path = normalizedPath, hash = manifestFiles[normalizedPath], missing = false)
+        }
+    }
+
+    private fun readBundledPreloadPaths(context: Context): List<String> {
+        val manifestText = runCatching {
+            context.assets.open(PRELOAD_MANIFEST_ASSET_PATH).bufferedReader().use { it.readText() }
+        }.getOrNull() ?: return emptyList()
+        val root = runCatching { JSONObject(manifestText) }.getOrNull() ?: return emptyList()
+        val paths = root.optJSONArray("paths") ?: return emptyList()
+        return buildList {
+            for (index in 0 until paths.length()) {
+                val value = paths.optString(index).trim()
+                if (value.isNotEmpty()) add(value)
+            }
+        }
+    }
+
+    private fun readBundledPreloadBytes(context: Context, path: String): ByteArray? {
+        val assetPath = "$PRELOAD_ASSET_ROOT/${normalizePath(path).removePrefix("/")}"
+        return runCatching { context.assets.open(assetPath).use { it.readBytes() } }.getOrNull()
     }
 
     private fun purgeLegacyCachedPinballAssetsIfNeeded(context: Context) {
@@ -433,32 +470,6 @@ object PinballDataCache {
         return File(dir, fileName)
     }
 
-    private fun starterPackAssetPath(path: String): String = "$STARTER_PACK_ROOT${normalizePath(path)}"
-
-    private fun starterPackAssetExists(path: String): Boolean {
-        val context = appContext ?: return false
-        val assetPath = starterPackAssetPath(path)
-        return runCatching {
-            context.assets.open(assetPath).use { }
-            true
-        }.getOrDefault(false)
-    }
-
-    private fun readStarterPackBytes(path: String): ByteArray? {
-        val context = appContext ?: return null
-        val assetPath = starterPackAssetPath(path)
-        return runCatching {
-            context.assets.open(assetPath).use { it.readBytes() }
-        }.getOrNull()
-    }
-
-    private fun seedFromStarterPack(path: String): ByteArray? {
-        val bytes = readStarterPackBytes(path) ?: return null
-        writeCached(path, bytes)
-        upsertIndex(path = path, hash = manifestFiles[path], missing = false)
-        return bytes
-    }
-
     private fun writeCached(path: String, bytes: ByteArray) {
         val file = resourceFile(path)
         file.writeBytes(bytes)
@@ -469,9 +480,7 @@ object PinballDataCache {
             deleteCached(path)
         }
         val file = resourceFile(path)
-        if (!file.exists()) {
-            return seedFromStarterPack(path)
-        }
+        if (!file.exists()) return null
         return file.readBytes()
     }
 

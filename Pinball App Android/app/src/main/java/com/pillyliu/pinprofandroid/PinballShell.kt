@@ -44,7 +44,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.data.AppDisplayMode
+import com.pillyliu.pinprofandroid.data.completeAppIntroOverlay
 import com.pillyliu.pinprofandroid.data.rememberAppDisplayMode
+import com.pillyliu.pinprofandroid.data.shouldShowAppIntroOverlayThisLaunch
 import com.pillyliu.pinprofandroid.gameroom.GameRoomCatalogLoader
 import com.pillyliu.pinprofandroid.gameroom.GameRoomPinsideImportService
 import com.pillyliu.pinprofandroid.gameroom.GameRoomScreen
@@ -93,6 +95,10 @@ fun PinballApp() {
     var leagueDestination by rememberSaveable { mutableStateOf<LeagueDestination?>(null) }
     val bottomBarVisible = rememberSaveable { mutableStateOf(true) }
     val appContext = LocalContext.current.applicationContext
+    val shouldShowIntroOverlayAtLaunch = remember(appContext) {
+        shouldShowAppIntroOverlayThisLaunch(appContext)
+    }
+    var showIntroOverlayHost by rememberSaveable { mutableStateOf(shouldShowIntroOverlayAtLaunch) }
     val displayMode = rememberAppDisplayMode()
     val systemDarkTheme = isSystemInDarkTheme()
     val shakeHaptics = remember(appContext) { AppShakeWarningHaptics(appContext) }
@@ -134,6 +140,15 @@ fun PinballApp() {
                     overlayLevel = shakeCoordinator.overlayLevel,
                     modifier = Modifier.fillMaxSize(),
                 )
+                if (showIntroOverlayHost) {
+                    AppIntroOverlayHost(
+                        modifier = Modifier.fillMaxSize(),
+                        onDismissed = {
+                            showIntroOverlayHost = false
+                            completeAppIntroOverlay(appContext)
+                        },
+                    )
+                }
             }
         }
     }

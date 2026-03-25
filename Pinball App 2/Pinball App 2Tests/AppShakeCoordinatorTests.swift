@@ -23,16 +23,16 @@ final class AppShakeCoordinatorTests: XCTestCase {
         XCTAssertEqual(AppShakeWarningLevel.doubleDanger.artAssetName, "ProfessorShakeDoubleDanger")
         XCTAssertEqual(AppShakeWarningLevel.tilt.artAssetName, "ProfessorShakeTilt")
         XCTAssertEqual(
-            AppShakeWarningLevel.danger.pinballArtPath,
-            "/pinball/images/ui/shake-warnings/professor-danger_1024.webp"
+            AppShakeWarningLevel.danger.bundledArtFileName,
+            "professor-danger_1024.webp"
         )
         XCTAssertEqual(
-            AppShakeWarningLevel.doubleDanger.pinballArtPath,
-            "/pinball/images/ui/shake-warnings/professor-danger-danger_1024.webp"
+            AppShakeWarningLevel.doubleDanger.bundledArtFileName,
+            "professor-danger-danger_1024.webp"
         )
         XCTAssertEqual(
-            AppShakeWarningLevel.tilt.pinballArtPath,
-            "/pinball/images/ui/shake-warnings/professor-tilt_1024.webp"
+            AppShakeWarningLevel.tilt.bundledArtFileName,
+            "professor-tilt_1024.webp"
         )
     }
 

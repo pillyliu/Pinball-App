@@ -117,7 +117,7 @@ struct SettingsHomeContent: View {
         VStack(alignment: .leading, spacing: 8) {
             AppSectionTitle(text: "Pinball Data")
 
-            Text("Refresh Pinball Data force-fetches the hosted OPDB export, CAF asset indexes, league files, redacted players list, and GameRoom group map from pillyliu.com.")
+            Text("Refresh Pinball Data force-fetches the hosted OPDB export, CAF asset indexes, league files, and redacted players list from pillyliu.com.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

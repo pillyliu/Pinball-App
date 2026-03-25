@@ -20,8 +20,8 @@ android {
         applicationId = "com.pillyliu.pinballandroid"
         minSdk = 26
         targetSdk = 36
-        versionCode = 53
-        versionName = "3.4.7"
+        versionCode = 54
+        versionName = "3.4.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -63,6 +63,11 @@ android {
     buildFeatures {
         compose = true
     }
+    sourceSets {
+        getByName("main") {
+            assets.directories.add(project.layout.projectDirectory.dir("../../Pinball App 2/Pinball App 2/SharedAppSupport"))
+        }
+    }
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
@@ -91,6 +96,7 @@ dependencies {
     androidTestImplementation(bom)
 
     implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")

@@ -97,7 +97,7 @@ internal fun PracticeGameResourcesCard(
         ) {
             AppResourceRow(label = "Rulesheet:") {
                 if (game.hasLocalRulesheetResource) {
-                    AppResourceChip(label = "PinProf") { onOpenRulesheet(null) }
+                    AppResourceChip(label = "Local") { onOpenRulesheet(null) }
                 }
                 if (displayedRulesheetLinks.isEmpty()) {
                     if (!game.hasLocalRulesheetResource) {

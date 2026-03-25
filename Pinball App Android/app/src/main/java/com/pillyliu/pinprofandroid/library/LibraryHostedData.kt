@@ -13,7 +13,6 @@ internal const val hostedGameinfoAssetsPath = "/pinball/data/gameinfo_assets.jso
 internal const val hostedBackglassAssetsPath = "/pinball/data/backglass_assets.json"
 internal const val hostedVenueLayoutAssetsPath = "/pinball/data/venue_layout_assets.json"
 internal const val hostedRedactedPlayersCsvPath = "/pinball/data/redacted_players.csv"
-internal const val hostedPinsideGroupMapPath = "/pinball/data/pinside_group_map.json"
 internal const val hostedLeagueStandingsPath = "/pinball/data/LPL_Standings.csv"
 internal const val hostedLeagueStatsPath = "/pinball/data/LPL_Stats.csv"
 internal const val hostedLeagueTargetsPath = "/pinball/data/LPL_Targets.csv"
@@ -45,7 +44,6 @@ internal val HOSTED_PINBALL_REFRESH_TARGETS = listOf(
     HostedPinballRefreshTarget(path = hostedLeagueTargetsPath, allowMissing = true),
     HostedPinballRefreshTarget(path = hostedResolvedLeagueTargetsPath, allowMissing = true),
     HostedPinballRefreshTarget(path = hostedRedactedPlayersCsvPath, allowMissing = true),
-    HostedPinballRefreshTarget(path = hostedPinsideGroupMapPath, allowMissing = true),
 )
 
 internal suspend fun loadHostedLibraryExtraction(

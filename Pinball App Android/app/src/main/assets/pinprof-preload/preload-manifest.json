@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-25T14:55:52Z",
+  "paths": [
+    "/pinball/data/opdb_export.json",
+    "/pinball/data/rulesheet_assets.json",
+    "/pinball/data/video_assets.json",
+    "/pinball/data/playfield_assets.json",
+    "/pinball/data/gameinfo_assets.json",
+    "/pinball/data/backglass_assets.json",
+    "/pinball/data/venue_layout_assets.json",
+    "/pinball/data/LPL_Standings.csv",
+    "/pinball/data/LPL_Stats.csv",
+    "/pinball/data/LPL_Targets.csv",
+    "/pinball/data/redacted_players.csv",
+    "/pinball/data/lpl_targets_resolved_v1.json",
+    "/pinball/rulesheets/G900001-rulesheet.md",
+    "/pinball/gameinfo/G900001-gameinfo.md",
+    "/pinball/images/playfields/G900001-1-playfield.webp",
+    "/pinball/images/playfields/G900001-1-playfield_1400.webp",
+    "/pinball/images/playfields/G900001-1-playfield_700.webp",
+    "/pinball/images/playfields/fallback-image-not-available_2048.webp",
+    "/pinball/images/backglasses/G900001-1-backglass.webp"
+  ]
+}
