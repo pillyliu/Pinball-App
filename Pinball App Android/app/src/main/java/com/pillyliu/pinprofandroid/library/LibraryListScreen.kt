@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -20,7 +21,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -62,6 +62,9 @@ internal fun LibraryList(
     isLoading: Boolean,
     errorMessage: String?,
     browseState: LibraryBrowseState,
+    visibleCount: Int,
+    onVisibleCountChange: (Int) -> Unit,
+    scrollState: ScrollState,
     onSourceChange: (String) -> Unit,
     onQueryChange: (String) -> Unit,
     onSortOptionChange: (String) -> Unit,
@@ -75,14 +78,6 @@ internal fun LibraryList(
     val selectedSource = browseState.selectedSource
     val sortOptions = browseState.sortOptions
     val fallbackSort = browseState.fallbackSort
-    var visibleCount by remember(
-        browseState.selectedSourceId,
-        browseState.query,
-        browseState.sortOptionName,
-        browseState.yearSortDescending,
-        browseState.selectedBank,
-        browseState.games,
-    ) { mutableIntStateOf(48) }
     var showFilterSheet by remember { mutableStateOf(false) }
     val visibleGames = remember(browseState, visibleCount) { browseState.visibleGames(visibleCount) }
     val hasMoreGames = remember(browseState, visibleCount) { browseState.hasMoreGames(visibleCount) }
@@ -107,7 +102,7 @@ internal fun LibraryList(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(scrollState)
                             .padding(top = controlsTopInset),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
@@ -121,7 +116,7 @@ internal fun LibraryList(
                                     onOpenGame = onOpenGame,
                                     onGameAppear = { game ->
                                         if (hasMoreGames && visibleGames.lastOrNull()?.slug == game.slug) {
-                                            visibleCount += 36
+                                            onVisibleCountChange(visibleCount + 36)
                                         }
                                     },
                                 )
@@ -132,7 +127,7 @@ internal fun LibraryList(
                                 onOpenGame = onOpenGame,
                                 onGameAppear = { game ->
                                     if (hasMoreGames && visibleGames.lastOrNull()?.slug == game.slug) {
-                                        visibleCount += 36
+                                        onVisibleCountChange(visibleCount + 36)
                                     }
                                 },
                             )

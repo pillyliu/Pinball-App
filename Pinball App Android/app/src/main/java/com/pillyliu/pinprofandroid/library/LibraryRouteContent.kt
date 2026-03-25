@@ -1,5 +1,6 @@
 package com.pillyliu.pinprofandroid.library
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,6 +20,9 @@ internal fun LibraryRouteContent(
     isLoading: Boolean,
     errorMessage: String?,
     browseState: LibraryBrowseState,
+    listVisibleCount: Int,
+    onListVisibleCountChange: (Int) -> Unit,
+    listScrollState: ScrollState,
     route: LibraryRoute,
     routeGame: PinballGame?,
     onSourceChange: (String) -> Unit,
@@ -38,6 +42,9 @@ internal fun LibraryRouteContent(
             isLoading = isLoading,
             errorMessage = errorMessage,
             browseState = browseState,
+            visibleCount = listVisibleCount,
+            onVisibleCountChange = onListVisibleCountChange,
+            scrollState = listScrollState,
             onSourceChange = onSourceChange,
             onQueryChange = onQueryChange,
             onSortOptionChange = onSortOptionChange,

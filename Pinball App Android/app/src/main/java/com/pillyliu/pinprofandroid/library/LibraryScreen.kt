@@ -2,14 +2,17 @@ package com.pillyliu.pinprofandroid.library
 
 import android.content.Context
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ScrollState
 import androidx.compose.runtime.collectAsState
 import androidx.core.content.edit
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -20,6 +23,7 @@ import com.pillyliu.pinprofandroid.practice.practiceSharedPreferences
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -38,6 +42,9 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var route by rememberSaveable(stateSaver = LibraryRouteSaver) { mutableStateOf<LibraryRoute>(LibraryRoute.List) }
+    var listVisibleCount by rememberSaveable { mutableIntStateOf(48) }
+    val listScrollState = rememberSaveable(saver = ScrollState.Saver) { ScrollState(0) }
+    val scope = rememberCoroutineScope()
     val pinnedSourceIds = remember(sources, selectedSourceId, sourceVersion) {
         LibrarySourceStateStore.load(context).pinnedSourceIds
     }
@@ -106,6 +113,14 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
             isLoading = false
         }
     }
+
+    fun resetListBrowsePosition() {
+        listVisibleCount = 48
+        scope.launch {
+            listScrollState.scrollTo(0)
+        }
+    }
+
     LaunchedEffect(Unit) {
         reloadLibrary()
     }
@@ -131,6 +146,9 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
             isLoading = isLoading,
             errorMessage = errorMessage,
             browseState = browseState,
+            listVisibleCount = listVisibleCount,
+            onListVisibleCountChange = { listVisibleCount = it },
+            listScrollState = listScrollState,
             route = route,
             routeGame = routeGame,
             onSourceChange = { sourceId ->
@@ -147,9 +165,13 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                     selectedBank = resolution.selectedBank
                     prefs.edit { putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, resolution.selectedSourceId) }
                     LibrarySourceStateStore.setSelectedSource(context, resolution.selectedSourceId)
+                    resetListBrowsePosition()
                 }
             },
-            onQueryChange = { query = it },
+            onQueryChange = {
+                query = it
+                resetListBrowsePosition()
+            },
             onSortOptionChange = { sortName ->
                 if (sortName == "YEAR_DESC") {
                     sortOptionName = LibrarySortOption.YEAR.name
@@ -160,12 +182,14 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                 }
                 val persisted = if (sortOptionName == LibrarySortOption.YEAR.name && yearSortDescending) "YEAR_DESC" else sortOptionName
                 LibrarySourceStateStore.setSelectedSort(context, selectedSourceId, persisted)
+                resetListBrowsePosition()
             },
             onBankChange = {
                 selectedBank = it
                 if (selectedSourceId.isNotBlank()) {
                     LibrarySourceStateStore.setSelectedBank(context, selectedSourceId, it)
                 }
+                resetListBrowsePosition()
             },
             onOpenGame = {
                 route = LibraryRoute.Detail(it.slug)
