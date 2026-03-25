@@ -466,7 +466,7 @@ private fun SettingsAboutSection(
             contentAlignment = Alignment.Center,
         ) {
             Image(
-                painter = painterResource(id = R.drawable.splash_logo),
+                painter = painterResource(id = R.drawable.intro_launch_logo),
                 contentDescription = "PinProf logo",
                 modifier = Modifier
                     .fillMaxWidth(0.42f)

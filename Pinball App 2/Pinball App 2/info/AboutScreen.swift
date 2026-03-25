@@ -8,8 +8,9 @@ private enum LPLLinks {
 struct LPLLogoView: View {
     var body: some View {
         if
-            let url = Bundle.main.url(forResource: "LPLLogo", withExtension: "png"),
-            let uiImage = UIImage(contentsOfFile: url.path)
+            let url = Bundle.main.url(forResource: "LPLLogo", withExtension: "webp"),
+            let data = try? Data(contentsOf: url),
+            let uiImage = UIImage(data: data)
         {
             Image(uiImage: uiImage)
                 .resizable()

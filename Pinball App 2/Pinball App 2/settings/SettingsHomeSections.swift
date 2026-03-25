@@ -364,15 +364,7 @@ struct SettingsHomeContent: View {
     private var aboutSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             AppSectionTitle(text: "About")
-            Image("LaunchLogo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 150)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .contentShape(Rectangle())
-                .onTapGesture(count: 2) {
-                    onToggleIntroOverlayForNextLaunch()
-                }
+            aboutLogo
             Text(aboutAttributionText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -387,6 +379,18 @@ struct SettingsHomeContent: View {
         PinProf is built on [OPDB](https://opdb.org/) (Open Pinball Database) to provide machine and manufacturer data. Venue search is powered by [Pinball Map](https://www.pinballmap.com). Rulesheets are sourced from [Tiltforums](https://tiltforums.com/), [Bob's Guide](https://rules.silverballmania.com/), [Pinball Primer](https://pinballprimer.github.io/), and [PAPA](https://replayfoundation.org/papa/learning-center/player-guide/rule-sheets/). Playfield images were manually sourced or provided by OPDB. Videos are manually sourced as well as curated from [Matchplay](https://matchplay.events/).
         """
         return (try? AttributedString(markdown: markdown)) ?? AttributedString("PinProf is built on OPDB (Open Pinball Database) to provide machine and manufacturer data. Rulesheets are sourced from Tiltforums, Bob's Guide, Pinball Primer, and PAPA. Playfield images were manually sourced or provided by OPDB. Videos are manually sourced as well as curated from Matchplay.")
+    }
+
+    private var aboutLogo: some View {
+        Image(uiImage: AppIntroBundledArtProvider.requiredImage(named: AppIntroCard.welcome.bundledArtworkFileName))
+            .resizable()
+            .scaledToFit()
+        .frame(width: 150)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            onToggleIntroOverlayForNextLaunch()
+        }
     }
 }
 

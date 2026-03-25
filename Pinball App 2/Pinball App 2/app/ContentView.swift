@@ -76,7 +76,7 @@ struct ContentView: View {
     init() {
         let appIntroSeenVersion = UserDefaults.standard.integer(forKey: "app-intro-seen-version")
         let appIntroShowOnNextLaunch = UserDefaults.standard.bool(forKey: "app-intro-show-on-next-launch")
-        let shouldShowIntro = appIntroShowOnNextLaunch || appIntroSeenVersion < AppIntroOverlay.currentVersion
+        let shouldShowIntro = appIntroShowOnNextLaunch || appIntroSeenVersion == 0
         _shouldShowIntroOverlayThisLaunch = State(initialValue: shouldShowIntro)
         _isIntroVisible = State(initialValue: shouldShowIntro)
     }

@@ -18,7 +18,7 @@ fun shouldShowAppIntroOverlayThisLaunch(context: Context): Boolean {
     val prefs = appIntroOverlayPreferences(context)
     val seenVersion = prefs.getInt(APP_INTRO_SEEN_VERSION_KEY, 0)
     val showOnNextLaunch = prefs.getBoolean(APP_INTRO_SHOW_ON_NEXT_LAUNCH_KEY, false)
-    return showOnNextLaunch || seenVersion < APP_INTRO_OVERLAY_CURRENT_VERSION
+    return showOnNextLaunch || seenVersion == 0
 }
 
 fun shouldShowAppIntroOverlayOnNextLaunch(context: Context): Boolean {

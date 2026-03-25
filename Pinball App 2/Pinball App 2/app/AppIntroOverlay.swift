@@ -93,20 +93,20 @@ enum AppIntroCard: Int, CaseIterable, Identifiable {
         }
     }
 
-    var screenshotAssetName: String? {
+    var bundledArtworkFileName: String {
         switch self {
         case .welcome:
-            return nil
+            return "launch-logo.webp"
         case .league:
-            return "IntroLeagueScreenshot"
+            return "league-screenshot.webp"
         case .library:
-            return "IntroStudyScreenshot"
+            return "library-screenshot.webp"
         case .practice:
-            return "IntroAssessmentScreenshot"
+            return "practice-screenshot.webp"
         case .gameroom:
-            return "IntroCollectionScreenshot"
+            return "gameroom-screenshot.webp"
         case .settings:
-            return "IntroCurationScreenshot"
+            return "settings-screenshot.webp"
         }
     }
 
@@ -364,9 +364,9 @@ private struct AppIntroArtworkBox: View {
             Group {
                 if card == .welcome {
                     AppIntroWelcomeArtwork()
-                } else if let screenshotAssetName = card.screenshotAssetName {
+                } else {
                     AppIntroScreenshotArtwork(
-                        assetName: screenshotAssetName,
+                        bundledFileName: card.bundledArtworkFileName,
                         accent: card.accent
                     )
                 }
@@ -383,16 +383,16 @@ private struct AppIntroArtworkBox: View {
 
 private struct AppIntroWelcomeArtwork: View {
     var body: some View {
-        Image("LaunchLogo")
+        Image(uiImage: AppIntroBundledArtProvider.requiredImage(named: AppIntroCard.welcome.bundledArtworkFileName))
             .resizable()
-            .scaledToFill()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .clipped()
+        .scaledToFill()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
     }
 }
 
 private struct AppIntroScreenshotArtwork: View {
-    let assetName: String
+    let bundledFileName: String
     let accent: Color
 
     var body: some View {
@@ -404,11 +404,11 @@ private struct AppIntroScreenshotArtwork: View {
                 endRadius: 240
             )
 
-            Image(assetName)
+            Image(uiImage: AppIntroBundledArtProvider.requiredImage(named: bundledFileName))
                 .resizable()
-                .scaledToFit()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .shadow(color: accent.opacity(0.16), radius: 16, y: 8)
+            .scaledToFit()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .shadow(color: accent.opacity(0.16), radius: 16, y: 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -554,16 +554,41 @@ private struct AppIntroProfessorSpotlight: View {
                         .stroke(Color.white.opacity(0.10), lineWidth: 1)
                 )
                 .overlay {
-                    Image("IntroProfessorHeadshot")
+                    Image(uiImage: AppIntroBundledArtProvider.requiredImage(named: "professor-headshot.webp"))
                         .resizable()
-                        .scaledToFill()
-                        .frame(width: 80, height: 80)
-                        .scaleEffect(x: side == .left ? -1 : 1, y: 1)
-                        .offset(y: -2)
-                        .clipShape(Circle())
+                    .scaledToFill()
+                    .frame(width: 80, height: 80)
+                    .scaleEffect(x: side == .left ? -1 : 1, y: 1)
+                    .offset(y: -2)
+                    .clipShape(Circle())
                 }
         }
         .frame(width: 82, height: 82)
+    }
+}
+
+enum AppIntroBundledArtProvider {
+    private static let subdirectory = "SharedAppSupport/app-intro"
+    private static let cache = NSCache<NSString, UIImage>()
+
+    static func requiredImage(named fileName: String) -> UIImage {
+        let cacheKey = fileName as NSString
+        if let cached = cache.object(forKey: cacheKey) {
+            return cached
+        }
+
+        guard let url = Bundle.main.url(
+            forResource: fileName,
+            withExtension: nil,
+            subdirectory: subdirectory
+        ),
+        let data = try? Data(contentsOf: url),
+        let image = UIImage(data: data) else {
+            preconditionFailure("Missing required bundled intro artwork: \(fileName)")
+        }
+
+        cache.setObject(image, forKey: cacheKey)
+        return image
     }
 }
 
