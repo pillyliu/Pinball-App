@@ -358,8 +358,11 @@ nonisolated func resolveRulesheetLinks(
             url: url
         )
     }
+    let preferredLocalPath = sortedLinks.lazy.compactMap { link in
+        catalogNormalizedOptionalString(link.localPath)
+    }.first
     return (
-        catalogNormalizedOptionalString(override?.rulesheetLocalPath) ?? catalogNormalizedOptionalString(sortedLinks.first?.localPath),
+        catalogNormalizedOptionalString(override?.rulesheetLocalPath) ?? preferredLocalPath,
         links
     )
 }

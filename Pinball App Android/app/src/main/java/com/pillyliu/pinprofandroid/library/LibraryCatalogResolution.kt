@@ -270,7 +270,10 @@ internal fun resolveRulesheetLinks(rulesheetLinks: List<CatalogRulesheetLinkReco
         val url = normalizedOptionalString(link.url) ?: return@mapNotNull null
         ReferenceLink(label = catalogRulesheetLabel(link.provider, link.label, url), url = url)
     }
-    val localPath = normalizedOptionalString(sortedLinks.firstOrNull()?.localPath)
+    val localPath = sortedLinks
+        .asSequence()
+        .mapNotNull { normalizedOptionalString(it.localPath) }
+        .firstOrNull()
         ?.takeUnless { shouldSuppressLocalRulesheetPath(links) }
     return ResolvedRulesheetLinks(
         localPath = localPath,

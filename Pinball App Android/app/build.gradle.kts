@@ -65,7 +65,12 @@ android {
     }
     sourceSets {
         getByName("main") {
-            assets.directories.add(project.layout.projectDirectory.dir("../../Pinball App 2/Pinball App 2/SharedAppSupport"))
+            assets.directories.add(
+                project.layout.projectDirectory
+                    .dir("../../Pinball App 2/Pinball App 2/SharedAppSupport")
+                    .asFile
+                    .path
+            )
         }
     }
     testOptions {
