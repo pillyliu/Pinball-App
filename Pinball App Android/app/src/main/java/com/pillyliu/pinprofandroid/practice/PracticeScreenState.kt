@@ -48,6 +48,7 @@ internal class PracticeQuickEntryUiState {
 
 internal class PracticePresentationState {
     var openResetDialog by mutableStateOf(false)
+    var openClearImportedLeagueScoresDialog by mutableStateOf(false)
     var openGroupDateDialog by mutableStateOf(false)
     var groupDateDialogGroupID by mutableStateOf<String?>(null)
     var groupDateDialogField by mutableStateOf(GroupDashboardDateField.Start)

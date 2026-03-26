@@ -4,6 +4,7 @@ import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.library.PinballGame
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.ZoneId
@@ -108,6 +109,48 @@ class PracticeLeagueImportTest {
     }
 
     @Test
+    fun importLeagueScoresFromRows_keepsUnmatchedSummaryGeneric() = runBlocking {
+        val result = importLeagueScoresFromRows(
+            selectedPlayer = "Jane Doe",
+            rows = listOf(
+                LeagueCsvRow(
+                    player = "Jane Doe",
+                    machine = "Foo",
+                    rawScore = 12_345_678.0,
+                    eventDateMs = null,
+                    practiceIdentity = null,
+                    opdbId = null,
+                ),
+                LeagueCsvRow(
+                    player = "Jane Doe",
+                    machine = "Foo",
+                    rawScore = 23_456_789.0,
+                    eventDateMs = null,
+                    practiceIdentity = null,
+                    opdbId = null,
+                ),
+                LeagueCsvRow(
+                    player = "Jane Doe",
+                    machine = "Bar",
+                    rawScore = 34_567_890.0,
+                    eventDateMs = null,
+                    practiceIdentity = null,
+                    opdbId = null,
+                ),
+            ),
+            games = emptyList(),
+            existingScores = emptyList(),
+            machineMappings = emptyMap(),
+            onAddScore = { _, _, _ -> },
+            onRepairScore = { _, _, _, _ -> },
+        )
+
+        assertTrue(result.summaryLine.contains("3 unmatched."))
+        assertTrue(!result.summaryLine.contains("Foo"))
+        assertTrue(!result.summaryLine.contains("Bar"))
+    }
+
+    @Test
     fun importLeagueScoresFromRows_allowsKnownAliasMatches() = runBlocking {
         val captured = mutableListOf<Triple<String, Double, Long>>()
         val eventDateMs = LocalDate.of(2025, 3, 19)
@@ -143,6 +186,53 @@ class PracticeLeagueImportTest {
         assertEquals(0, result.unmatchedRows)
         assertEquals(
             listOf(Triple("G-test", 12_345_678.0, eventDateMs)),
+            captured,
+        )
+    }
+
+    @Test
+    fun importLeagueScoresFromRows_matchesExactOpdbIdLikeIos() = runBlocking {
+        val captured = mutableListOf<Triple<String, Double, Long>>()
+        val eventDateMs = LocalDate.of(2025, 3, 19)
+            .atTime(22, 0)
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+
+        val result = importLeagueScoresFromRows(
+            selectedPlayer = "Jane Doe",
+            rows = listOf(
+                LeagueCsvRow(
+                    player = "Jane Doe",
+                    machine = "Wonka League",
+                    rawScore = 12_345_678.0,
+                    eventDateMs = eventDateMs,
+                    practiceIdentity = null,
+                    opdbId = "GYWBZ-MW9B0",
+                ),
+            ),
+            games = listOf(
+                game(
+                    name = "Willy Wonka & The Chocolate Factory (LE)",
+                    slug = "willy-wonka-and-the-chocolate-factory-le",
+                    practiceIdentity = null,
+                    opdbId = "GYWBZ-MW9B0",
+                ),
+            ),
+            existingScores = emptyList(),
+            machineMappings = emptyMap(),
+            onAddScore = { slug, score, timestampMs ->
+                captured += Triple(slug, score, timestampMs)
+            },
+            onRepairScore = { _, _, _, _ -> },
+        )
+
+        assertEquals(1, result.imported)
+        assertEquals(0, result.repaired)
+        assertEquals(0, result.duplicatesSkipped)
+        assertEquals(0, result.unmatchedRows)
+        assertEquals(
+            listOf(Triple("willy-wonka-and-the-chocolate-factory-le", 12_345_678.0, eventDateMs)),
             captured,
         )
     }
@@ -263,11 +353,13 @@ class PracticeLeagueImportTest {
     private fun game(
         name: String,
         slug: String,
-        practiceIdentity: String = "G-test",
+        practiceIdentity: String? = "G-test",
+        opdbId: String? = null,
     ): PinballGame {
         return PinballGame(
             libraryEntryId = null,
             practiceIdentity = practiceIdentity,
+            opdbId = opdbId,
             variant = null,
             sourceId = "venue--test",
             sourceName = "Test Venue",
@@ -281,7 +373,6 @@ class PracticeLeagueImportTest {
             manufacturer = null,
             year = 2024,
             slug = slug,
-            opdbId = null,
             primaryImageUrl = null,
             primaryImageLargeUrl = null,
             playfieldImageUrl = null,

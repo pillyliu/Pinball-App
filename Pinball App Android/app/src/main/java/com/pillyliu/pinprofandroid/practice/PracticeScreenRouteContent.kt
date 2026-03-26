@@ -133,7 +133,9 @@ internal fun PracticeScreenRouteContent(
             PracticeSettingsSection(
                 store = settingsContext.store,
                 importStatus = settingsContext.importStatus,
+                importedLeagueScoreCount = settingsContext.importedLeagueScoreCount,
                 onImportLplCsv = settingsContext.onImportLplCsv,
+                onOpenClearImportedLeagueScoresDialog = settingsContext.onOpenClearImportedLeagueScoresDialog,
                 onOpenResetDialog = settingsContext.onOpenResetDialog,
             )
         }

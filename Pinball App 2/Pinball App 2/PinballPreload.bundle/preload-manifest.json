@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-03-26T01:08:36Z",
+  "generatedAt": "2026-03-26T21:27:47Z",
   "paths": [
     "/pinball/data/opdb_export.json",
     "/pinball/data/rulesheet_assets.json",
@@ -12,9 +12,10 @@
     "/pinball/data/LPL_Standings.csv",
     "/pinball/data/LPL_Stats.csv",
     "/pinball/data/LPL_Targets.csv",
+    "/pinball/data/LPL_IFPA_Players.csv",
+    "/pinball/data/lpl_machine_mappings_v1.json",
     "/pinball/data/redacted_players.csv",
     "/pinball/data/lpl_targets_resolved_v1.json",
-    "/pinball/data/lpl_machine_mappings_v1.json",
     "/pinball/rulesheets/G900001-rulesheet.md",
     "/pinball/gameinfo/G900001-gameinfo.md",
     "/pinball/images/playfields/G900001-1-playfield.webp",

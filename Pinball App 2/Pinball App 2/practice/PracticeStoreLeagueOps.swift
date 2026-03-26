@@ -17,6 +17,7 @@ extension PracticeStore {
         }
 
         do {
+            await ensureLeagueCatalogGamesLoaded()
             let rows = try await loadLeagueStatsSnapshot(forceRefresh: forceRefresh).rows
             let machineMappings = try await loadLeagueMachineMappings(forceRefresh: forceRefresh)
             let normalizedSelectedPlayer = normalizeHumanName(playerName)
@@ -111,7 +112,7 @@ extension PracticeStore {
 
     func autoImportLeagueScoresIfNeeded(forceRefresh: Bool = true) async -> LeagueImportResult? {
         let playerName = state.leagueSettings.playerName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard state.leagueSettings.csvAutoFillEnabled, !playerName.isEmpty else {
+        guard !playerName.isEmpty else {
             return nil
         }
 

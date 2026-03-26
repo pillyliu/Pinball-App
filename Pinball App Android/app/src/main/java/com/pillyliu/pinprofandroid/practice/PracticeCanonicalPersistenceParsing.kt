@@ -129,7 +129,7 @@ private fun parseCanonicalPracticeState(root: JSONObject): CanonicalPracticePers
         leagueSettings = root.optJSONObject("leagueSettings")?.let { obj ->
             CanonicalLeagueSettings(
                 playerName = obj.optString("playerName", ""),
-                csvAutoFillEnabled = obj.optBoolean("csvAutoFillEnabled", false),
+                csvAutoFillEnabled = obj.optBoolean("csvAutoFillEnabled", true),
                 lastImportAtMs = parseFlexibleTimestampMsOrNull(obj, "lastImportAt"),
                 lastRepairVersion = if (obj.has("lastRepairVersion") && !obj.isNull("lastRepairVersion")) obj.optInt("lastRepairVersion") else null,
             )

@@ -19,4 +19,6 @@ internal data class PracticePresentationContext(
     val groupDatePickerInitialMs: Long?,
     val openResetDialog: Boolean,
     val onOpenResetDialogChange: (Boolean) -> Unit,
+    val openClearImportedLeagueScoresDialog: Boolean,
+    val onOpenClearImportedLeagueScoresDialogChange: (Boolean) -> Unit,
 )

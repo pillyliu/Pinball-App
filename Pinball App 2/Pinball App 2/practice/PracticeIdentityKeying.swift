@@ -84,6 +84,11 @@ extension PracticeStore {
         return enrichedGames
     }
 
+    private var leagueLookupGamesPool: [PinballGame] {
+        let combined = practiceLookupGamesPool + leagueCatalogGames
+        return combined
+    }
+
     func canonicalPracticeGameID(_ raw: String) -> String {
         let parsed = parseSourceScopedPracticeGameID(raw)
         let trimmed = parsed.gameID.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -122,6 +127,15 @@ extension PracticeStore {
                 practiceMatches,
                 preferredSourceID: parsed.sourceID ?? defaultPracticeSourceID
             )
+        }
+        if parsed.sourceID == nil, !leagueCatalogGames.isEmpty {
+            let fallbackMatches = leagueLookupGamesPool.filter { $0.canonicalPracticeKey == trimmed || $0.id == trimmed || $0.slug == trimmed }
+            if !fallbackMatches.isEmpty {
+                return preferredPracticeRepresentative(
+                    fallbackMatches,
+                    preferredSourceID: defaultPracticeSourceID
+                )
+            }
         }
         return nil
     }

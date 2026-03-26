@@ -172,6 +172,10 @@ final class PracticeStore: ObservableObject {
 
     var didLoad = false
     var didLoadAllLibraryGames = false
+    var isLoadingLeagueCatalogGames = false
+    var leagueCatalogGames: [PinballGame] = [] {
+        didSet { invalidatePracticeLookupCaches() }
+    }
     var leagueTargetsByPracticeIdentity: [String: LeagueTargetScores] = [:]
     var leagueTargetsByNormalizedMachine: [String: LeagueTargetScores] = [:]
     var cachedLeagueStatsUpdatedAt: Date?

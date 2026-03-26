@@ -106,6 +106,10 @@ internal class PracticeScreenActions(
         uiState.presentation.openResetDialog = true
     }
 
+    fun openClearImportedLeagueScoresDialog() {
+        uiState.presentation.openClearImportedLeagueScoresDialog = true
+    }
+
     fun openRulesheet(source: RulesheetRemoteSource?) {
         if (selectedGame?.hasLocalRulesheetResource != true && source == null) return
         uiState.navigation.selectedRulesheetSource = source

@@ -572,9 +572,9 @@ struct PracticeSettingsSectionView: View {
     @Binding var playerName: String
     @Binding var ifpaPlayerID: String
     @Binding var leaguePlayerName: String
-    @Binding var leagueCsvAutoFillEnabled: Bool
     let leaguePlayerOptions: [String]
     let leagueImportStatus: String
+    let importedLeagueScoreCount: Int
     @Binding var cloudSyncEnabled: Bool
     let redactName: (String) -> String
     let onSaveProfile: () -> Void
@@ -582,8 +582,12 @@ struct PracticeSettingsSectionView: View {
     let onImportLeagueCSV: () -> Void
     let onLeaguePlayerSelected: (String) -> Void
     let onCloudSyncChanged: (Bool) -> Void
+    let onClearImportedLeagueScores: () -> Void
     let onResetPracticeLog: () -> Void
     @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
+    @State private var showingResetPracticeLogPrompt = false
+    @State private var resetPracticeLogConfirmationText = ""
+    @State private var showingClearImportedLeagueScoresPrompt = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -650,16 +654,14 @@ struct PracticeSettingsSectionView: View {
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text("Used for manual import and auto-sync.")
+                Text("Used for manual import and automatic sync.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Toggle("Auto-import new league scores", isOn: $leagueCsvAutoFillEnabled)
-                    .appControlStyle()
-
-                Text("When enabled, Practice checks for a new LPL stats hash and imports only when the hosted CSV changed.")
+                Text("Practice automatically checks for a new hosted LPL stats file and imports only new rows.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Button("Import LPL CSV", action: onImportLeagueCSV)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -671,19 +673,33 @@ struct PracticeSettingsSectionView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .appPanelStyle()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .appPanelStyle()
 
             VStack(alignment: .leading, spacing: 8) {
-                AppSectionTitle(text: "Reset")
+                AppSectionTitle(text: "Recovery")
+
+                Text(importedLeagueScoreSummary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Button(clearImportedLeagueScoresButtonTitle, role: .destructive) {
+                    showingClearImportedLeagueScoresPrompt = true
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .buttonStyle(AppDestructiveActionButtonStyle())
+                .disabled(importedLeagueScoreCount == 0)
 
                 Text("Erase the full local Practice log state.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Button("Reset Practice Log", role: .destructive, action: onResetPracticeLog)
+                Button("Reset Practice Log", role: .destructive) {
+                    resetPracticeLogConfirmationText = ""
+                    showingResetPracticeLogPrompt = true
+                }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .buttonStyle(AppDestructiveActionButtonStyle())
             }
@@ -692,10 +708,54 @@ struct PracticeSettingsSectionView: View {
             .appPanelStyle()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .alert("Clear Imported League Scores?", isPresented: $showingClearImportedLeagueScoresPrompt) {
+            Button("Cancel", role: .cancel) {}
+            Button(clearImportedLeagueScoresButtonTitle, role: .destructive) {
+                onClearImportedLeagueScores()
+            }
+        } message: {
+            Text(clearImportedLeagueScoresAlertMessage)
+        }
+        .alert("Reset Practice Log?", isPresented: $showingResetPracticeLogPrompt) {
+            TextField("Type reset", text: $resetPracticeLogConfirmationText)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Button("No", role: .cancel) {}
+            Button("Yes, Reset", role: .destructive) {
+                onResetPracticeLog()
+            }
+            .disabled(resetPracticeLogConfirmationText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() != "reset")
+        } message: {
+            Text("This resets the full local Practice JSON log state. Type \"reset\" to enable confirmation.")
+        }
     }
 
     private func displayLPLPlayerName(_ raw: String) -> String {
         _ = showFullLPLLastNames
         return formatLPLPlayerNameForDisplay(raw)
+    }
+
+    private var importedLeagueScoreSummary: String {
+        if importedLeagueScoreCount == 0 {
+            return "No imported league scores are currently saved."
+        }
+        let noun = importedLeagueScoreCount == 1 ? "score" : "scores"
+        return "Remove only the \(importedLeagueScoreCount) imported league \(noun). Manual Practice notes and scores stay."
+    }
+
+    private var clearImportedLeagueScoresButtonTitle: String {
+        guard importedLeagueScoreCount > 0 else {
+            return "Clear Imported League Scores"
+        }
+        let noun = importedLeagueScoreCount == 1 ? "Score" : "Scores"
+        return "Clear \(importedLeagueScoreCount) Imported League \(noun)"
+    }
+
+    private var clearImportedLeagueScoresAlertMessage: String {
+        guard importedLeagueScoreCount > 0 else {
+            return "No imported league scores are currently saved."
+        }
+        let noun = importedLeagueScoreCount == 1 ? "score" : "scores"
+        return "This removes the \(importedLeagueScoreCount) imported league \(noun) and matching journal rows. Manual Practice entries stay."
     }
 }

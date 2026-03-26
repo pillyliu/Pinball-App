@@ -69,7 +69,7 @@ extension PracticeScreen {
                     guard shouldImportLplStats else { return }
                     guard let matchedPlayer = identity?.player else { return }
                     uiState.leaguePlayerName = matchedPlayer
-                    store.updateLeagueSettings(playerName: matchedPlayer, csvAutoFillEnabled: true)
+                    store.updateLeagueSettings(playerName: matchedPlayer)
                     _ = await store.importLeagueScoresFromCSV(forceRefresh: true)
                 }
             },
@@ -160,27 +160,16 @@ extension PracticeScreen {
             playerName: $uiState.playerName,
             ifpaPlayerID: $uiState.ifpaPlayerID,
             leaguePlayerName: $uiState.leaguePlayerName,
-            leagueCsvAutoFillEnabled: Binding(
-                get: { store.state.leagueSettings.csvAutoFillEnabled },
-                set: { isEnabled in
-                    store.updateLeagueSettings(
-                        playerName: uiState.leaguePlayerName,
-                        csvAutoFillEnabled: isEnabled
-                    )
-                }
-            ),
             leaguePlayerOptions: uiState.leaguePlayerOptions,
             leagueImportStatus: uiState.leagueImportStatus,
+            importedLeagueScoreCount: store.state.scoreEntries.filter(\.leagueImported).count,
             cloudSyncEnabled: $uiState.cloudSyncEnabled,
             redactName: { name in
                 formatLPLPlayerNameForDisplay(name)
             },
             onLeaguePlayerSelected: { selectedPlayer in
                 uiState.leaguePlayerName = selectedPlayer
-                store.updateLeagueSettings(
-                    playerName: selectedPlayer,
-                    csvAutoFillEnabled: store.state.leagueSettings.csvAutoFillEnabled
-                )
+                store.updateLeagueSettings(playerName: selectedPlayer)
                 guard !selectedPlayer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
                 Task {
                     guard let identity = await store.approvedLeagueIdentityMatch(for: selectedPlayer) else { return }
@@ -191,17 +180,21 @@ extension PracticeScreen {
             },
             onImportLeagueCSV: {
                 Task {
-                    store.updateLeagueSettings(
-                        playerName: uiState.leaguePlayerName,
-                        csvAutoFillEnabled: store.state.leagueSettings.csvAutoFillEnabled
-                    )
+                    store.updateLeagueSettings(playerName: uiState.leaguePlayerName)
                     let result = await store.importLeagueScoresFromCSV(forceRefresh: true)
                     uiState.leagueImportStatus = result.summaryLine
                 }
             },
+            onClearImportedLeagueScores: {
+                let removed = store.purgeImportedLeagueScores()
+                let label = removed == 1 ? "1 imported league score." : "\(removed) imported league scores."
+                uiState.leagueImportStatus = removed > 0 ? "Cleared \(label)" : "No imported league scores to clear."
+            },
             onResetPracticeLog: {
-                uiState.resetJournalConfirmationText = ""
-                uiState.showingResetJournalPrompt = true
+                store.resetPracticeState()
+                uiState.leagueImportStatus = ""
+                applyDefaultsAfterLoad()
+                LibraryActivityLog.clearAll()
             }
         )
     }

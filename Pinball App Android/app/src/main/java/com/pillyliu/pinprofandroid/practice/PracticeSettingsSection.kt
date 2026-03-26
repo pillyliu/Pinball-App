@@ -1,7 +1,5 @@
 package com.pillyliu.pinprofandroid.practice
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -18,7 +16,6 @@ import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinprofandroid.ui.AppDestructiveButton
 import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
-import com.pillyliu.pinprofandroid.ui.AppSwitch
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import kotlinx.coroutines.launch
@@ -27,7 +24,9 @@ import kotlinx.coroutines.launch
 internal fun PracticeSettingsSection(
     store: PracticeStore,
     importStatus: String,
+    importedLeagueScoreCount: Int,
     onImportLplCsv: () -> Unit,
+    onOpenClearImportedLeagueScoresDialog: () -> Unit,
     onOpenResetDialog: () -> Unit,
 ) {
     val showFullLplLastName = rememberShowFullLplLastName()
@@ -104,26 +103,12 @@ internal fun PracticeSettingsSection(
             },
         )
         Text(
-            "Used for manual import and auto-sync.",
+            "Used for manual import and automatic sync.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                "Auto-import new league scores",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            AppSwitch(
-                checked = store.leagueCsvAutoFillEnabled,
-                onCheckedChange = { store.updateLeagueCsvAutoFillEnabled(it) },
-            )
-        }
         Text(
-            "When enabled, Practice checks for a new LPL stats hash and imports only when the hosted CSV changed.",
+            "Practice automatically checks for a new hosted LPL stats file and imports only new rows.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -138,11 +123,49 @@ internal fun PracticeSettingsSection(
     }
 
     CardContainer {
-        SectionTitle("Reset")
-        Text("Erase the full local Practice log state.")
+        SectionTitle("Recovery")
+        Text(
+            importedLeagueScoreSummary(importedLeagueScoreCount),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        AppDestructiveButton(
+            onClick = onOpenClearImportedLeagueScoresDialog,
+            enabled = importedLeagueScoreCount > 0,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text(clearImportedLeagueScoresButtonTitle(importedLeagueScoreCount)) }
+        Text(
+            "Erase the full local Practice log state.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         AppDestructiveButton(
             onClick = onOpenResetDialog,
             modifier = Modifier.fillMaxWidth(),
         ) { Text("Reset Practice Log") }
+    }
+}
+
+internal fun importedLeagueScoreSummary(count: Int): String {
+    return when (count) {
+        0 -> "No imported league scores are currently saved."
+        1 -> "Remove only the 1 imported league score. Manual Practice notes and scores stay."
+        else -> "Remove only the $count imported league scores. Manual Practice notes and scores stay."
+    }
+}
+
+internal fun clearImportedLeagueScoresButtonTitle(count: Int): String {
+    return when (count) {
+        0 -> "Clear Imported League Scores"
+        1 -> "Clear 1 Imported League Score"
+        else -> "Clear $count Imported League Scores"
+    }
+}
+
+internal fun clearImportedLeagueScoresAlertMessage(count: Int): String {
+    return when (count) {
+        0 -> "No imported league scores are currently saved."
+        1 -> "This removes the 1 imported league score and matching journal rows. Manual Practice entries stay."
+        else -> "This removes the $count imported league scores and matching journal rows. Manual Practice entries stay."
     }
 }

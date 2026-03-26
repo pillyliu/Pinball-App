@@ -123,7 +123,7 @@ internal fun emptyCanonicalPracticePersistedState(): CanonicalPracticePersistedS
         noteEntries = emptyList(),
         journalEntries = emptyList(),
         customGroups = emptyList(),
-        leagueSettings = CanonicalLeagueSettings(playerName = "", csvAutoFillEnabled = false, lastImportAtMs = null, lastRepairVersion = null),
+        leagueSettings = CanonicalLeagueSettings(playerName = "", csvAutoFillEnabled = true, lastImportAtMs = null, lastRepairVersion = null),
         syncSettings = CanonicalSyncSettings(
             cloudSyncEnabled = false,
             endpoint = "pillyliu.com",

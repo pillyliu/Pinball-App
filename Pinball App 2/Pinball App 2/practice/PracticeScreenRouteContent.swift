@@ -249,9 +249,9 @@ extension PracticeScreen {
             playerName: context.playerName,
             ifpaPlayerID: context.ifpaPlayerID,
             leaguePlayerName: context.leaguePlayerName,
-            leagueCsvAutoFillEnabled: context.leagueCsvAutoFillEnabled,
             leaguePlayerOptions: context.leaguePlayerOptions,
             leagueImportStatus: context.leagueImportStatus,
+            importedLeagueScoreCount: context.importedLeagueScoreCount,
             cloudSyncEnabled: context.cloudSyncEnabled,
             redactName: { name in context.redactName(name) },
             onSaveProfile: {
@@ -279,6 +279,9 @@ extension PracticeScreen {
             },
             onCloudSyncChanged: { enabled in
                 context.store.updateSyncSettings(cloudSyncEnabled: enabled)
+            },
+            onClearImportedLeagueScores: {
+                context.onClearImportedLeagueScores()
             },
             onResetPracticeLog: {
                 context.onResetPracticeLog()

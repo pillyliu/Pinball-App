@@ -99,6 +99,7 @@ extension PracticeStore {
         guard !yourNormalized.isEmpty, !opponentNormalized.isEmpty else { return nil }
 
         do {
+            await ensureLeagueCatalogGamesLoaded()
             let rows = try await loadLeagueStatsSnapshot().rows
             let machineMappings = try await loadLeagueMachineMappings()
 
@@ -196,9 +197,9 @@ extension PracticeStore {
         return LeagueIdentityMatch(player: matchedPlayer, ifpaPlayerID: nil)
     }
 
-    func updateLeagueSettings(playerName: String, csvAutoFillEnabled: Bool) {
+    func updateLeagueSettings(playerName: String) {
         state.leagueSettings.playerName = playerName
-        state.leagueSettings.csvAutoFillEnabled = csvAutoFillEnabled
+        state.leagueSettings.csvAutoFillEnabled = true
         saveState()
     }
 

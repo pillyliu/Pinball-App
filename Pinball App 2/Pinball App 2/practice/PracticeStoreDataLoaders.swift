@@ -76,6 +76,21 @@ extension PracticeStore {
         }
     }
 
+    func ensureLeagueCatalogGamesLoaded() async {
+        guard leagueCatalogGames.isEmpty, !isLoadingLeagueCatalogGames else { return }
+
+        isLoadingLeagueCatalogGames = true
+        defer { isLoadingLeagueCatalogGames = false }
+
+        do {
+            leagueCatalogGames = try await PinballPerformanceTrace.measure("PracticeLeagueCatalogLoad") {
+                try await loadPracticeCatalogGames()
+            }
+        } catch {
+            leagueCatalogGames = []
+        }
+    }
+
     func ensureSearchCatalogGamesLoadedForStoredReferencesIfNeeded() async {
         guard shouldLoadSearchCatalogForStoredReferences else { return }
         await ensureSearchCatalogGamesLoaded()

@@ -67,7 +67,7 @@ internal fun canonicalPracticeStateFromLegacyState(legacy: PracticePersistedStat
         customGroups = customGroups,
         leagueSettings = CanonicalLeagueSettings(
             playerName = legacy.leaguePlayerName,
-            csvAutoFillEnabled = false,
+            csvAutoFillEnabled = true,
             lastImportAtMs = null,
             lastRepairVersion = null,
         ),

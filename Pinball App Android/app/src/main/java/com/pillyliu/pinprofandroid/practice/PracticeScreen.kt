@@ -263,7 +263,9 @@ internal fun PracticeScreen(
                     val settingsRouteContext = PracticeSettingsRouteContext(
                         store = store,
                         importStatus = uiState.presentation.importStatus,
+                        importedLeagueScoreCount = store.importedLeagueScoreCount,
                         onImportLplCsv = actions::importLplCsv,
+                        onOpenClearImportedLeagueScoresDialog = actions::openClearImportedLeagueScoresDialog,
                         onOpenResetDialog = actions::openResetDialog,
                     )
                     val journalRouteContext = PracticeJournalRouteContext(
@@ -337,6 +339,10 @@ internal fun PracticeScreen(
             groupDatePickerInitialMs = uiState.presentation.groupDatePickerInitialMs,
             openResetDialog = uiState.presentation.openResetDialog,
             onOpenResetDialogChange = { open -> uiState.presentation.openResetDialog = open },
+            openClearImportedLeagueScoresDialog = uiState.presentation.openClearImportedLeagueScoresDialog,
+            onOpenClearImportedLeagueScoresDialogChange = { open ->
+                uiState.presentation.openClearImportedLeagueScoresDialog = open
+            },
         ),
     )
 }

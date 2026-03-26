@@ -183,3 +183,30 @@ internal fun ResetPracticeLogDialog(
         },
     )
 }
+
+@Composable
+internal fun ClearImportedLeagueScoresDialog(
+    importedLeagueScoreCount: Int,
+    onConfirmClear: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Clear Imported League Scores?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(clearImportedLeagueScoresAlertMessage(importedLeagueScoreCount))
+            }
+        },
+        confirmButton = {
+            AppTextAction(
+                text = clearImportedLeagueScoresButtonTitle(importedLeagueScoreCount),
+                onClick = onConfirmClear,
+                destructive = true,
+            )
+        },
+        dismissButton = {
+            AppTextAction(text = "Cancel", onClick = onDismiss)
+        },
+    )
+}

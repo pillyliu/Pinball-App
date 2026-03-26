@@ -12,6 +12,11 @@ import java.util.Locale
 internal val PinballGame.practiceKey: String
     get() = practiceIdentity?.trim()?.takeIf { it.isNotBlank() } ?: slug
 
+private val PinballGame.lookupId: String
+    get() = libraryEntryId?.trim()?.takeIf { it.isNotBlank() }
+        ?: opdbId?.trim()?.takeIf { it.isNotBlank() }
+        ?: practiceKey
+
 private const val SOURCE_SCOPED_PRACTICE_GAME_ID_PREFIX = "source::"
 
 internal fun sourceScopedPracticeGameID(sourceID: String, gameID: String): String {
@@ -47,13 +52,18 @@ internal fun PinballGame.matchesPracticeLookupKey(value: String?): Boolean {
     val key = parsed.gameID.trim()
     if (key.isBlank()) return false
     if (parsed.sourceID != null && canonicalLibrarySourceId(sourceId) != parsed.sourceID) return false
-    return key == practiceKey || key == slug
+    return key == lookupId || key == practiceKey || key == slug
 }
 
 internal fun findGameByPracticeLookupKey(games: List<PinballGame>, value: String?): PinballGame? {
     val parsed = parseSourceScopedPracticeGameID(value.orEmpty())
     val key = parsed.gameID.trim()
     if (key.isBlank()) return null
+    val exactIdMatch = games.firstOrNull {
+        it.lookupId == key && (parsed.sourceID == null || canonicalLibrarySourceId(it.sourceId) == parsed.sourceID)
+    }
+    if (exactIdMatch != null) return exactIdMatch
+
     val exactSlugMatch = games.firstOrNull {
         it.slug == key && (parsed.sourceID == null || canonicalLibrarySourceId(it.sourceId) == parsed.sourceID)
     }

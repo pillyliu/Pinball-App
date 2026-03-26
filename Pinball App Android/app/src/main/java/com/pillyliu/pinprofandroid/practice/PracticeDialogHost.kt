@@ -25,7 +25,6 @@ internal fun PracticeDialogHost(
                     if (!shouldImportLpl) return@launch
                     val matchedPlayer = identity?.player ?: return@launch
                     context.store.updateLeaguePlayerName(matchedPlayer)
-                    context.store.updateLeagueCsvAutoFillEnabled(true)
                     val importStatus = context.store.importLeagueScoresFromCsv(forceRefresh = true)
                     context.onImportStatusChange(importStatus)
                 }
@@ -79,9 +78,27 @@ internal fun PracticeDialogHost(
         ResetPracticeLogDialog(
             onConfirmReset = {
                 context.store.resetAllState()
+                context.onImportStatusChange("")
                 context.onOpenResetDialogChange(false)
             },
             onDismiss = { context.onOpenResetDialogChange(false) },
+        )
+    }
+
+    if (context.openClearImportedLeagueScoresDialog) {
+        ClearImportedLeagueScoresDialog(
+            importedLeagueScoreCount = context.store.importedLeagueScoreCount,
+            onConfirmClear = {
+                val removedCount = context.store.purgeImportedLeagueScores()
+                val status = when (removedCount) {
+                    0 -> "No imported league scores to clear."
+                    1 -> "Cleared 1 imported league score."
+                    else -> "Cleared $removedCount imported league scores."
+                }
+                context.onImportStatusChange(status)
+                context.onOpenClearImportedLeagueScoresDialogChange(false)
+            },
+            onDismiss = { context.onOpenClearImportedLeagueScoresDialogChange(false) },
         )
     }
 }
