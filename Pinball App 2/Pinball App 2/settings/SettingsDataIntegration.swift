@@ -21,6 +21,7 @@ func loadSettingsDataSnapshot() async throws -> SettingsDataSnapshot {
 
 func forceRefreshHostedSettingsData() async throws -> SettingsDataSnapshot {
     try await PinballDataCache.shared.forceRefreshHostedLibraryData()
+    notifyLeaguePreviewNeedsRefresh()
     return try await loadSettingsDataSnapshot()
 }
 

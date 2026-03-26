@@ -1,23 +1,95 @@
 import Foundation
 
+private let humanNameSuffixes: Set<String> = ["jr", "sr", "ii", "iii", "iv", "v"]
+
+private func normalizedHumanNameTokens(_ raw: String) -> [String] {
+    raw
+        .lowercased()
+        .replacingOccurrences(of: "[^a-z0-9]+", with: " ", options: .regularExpression)
+        .split(separator: " ")
+        .map(String.init)
+}
+
+private func relaxedHumanNameTokens(_ raw: String) -> [String] {
+    let baseTokens = normalizedHumanNameTokens(raw)
+    guard !baseTokens.isEmpty else { return [] }
+
+    let withoutSuffixes = baseTokens.filter { !humanNameSuffixes.contains($0) }
+    guard withoutSuffixes.count > 2 else { return withoutSuffixes }
+
+    return withoutSuffixes.enumerated().compactMap { index, token in
+        let isFirstOrLast = index == 0 || index == withoutSuffixes.count - 1
+        if isFirstOrLast || token.count > 1 {
+            return token
+        }
+        return nil
+    }
+}
+
+private func joinedHumanNameTokens(_ tokens: [String]) -> String {
+    tokens.joined(separator: " ")
+}
+
+private func humanNameKeys(_ raw: String) -> Set<String> {
+    let strict = joinedHumanNameTokens(normalizedHumanNameTokens(raw))
+    let relaxed = joinedHumanNameTokens(relaxedHumanNameTokens(raw))
+    return Set([strict, relaxed].filter { !$0.isEmpty })
+}
+
+private func softHumanNameMatches(_ left: String, _ right: String) -> Bool {
+    let leftTokens = relaxedHumanNameTokens(left)
+    let rightTokens = relaxedHumanNameTokens(right)
+    guard !leftTokens.isEmpty, !rightTokens.isEmpty else { return false }
+    if leftTokens == rightTokens {
+        return true
+    }
+    guard leftTokens.count >= 2, rightTokens.count >= 2 else { return false }
+    guard leftTokens.last == rightTokens.last else { return false }
+
+    let leftFirst = leftTokens[0]
+    let rightFirst = rightTokens[0]
+    if leftFirst == rightFirst {
+        return true
+    }
+    guard min(leftFirst.count, rightFirst.count) >= 3 else { return false }
+    return leftFirst.hasPrefix(rightFirst) || rightFirst.hasPrefix(leftFirst)
+}
+
 extension PracticeStore {
     struct LeagueCSVRow {
         let player: String
         let machine: String
         let rawScore: Double
         let eventDate: Date?
+        let practiceIdentity: String?
+        let opdbID: String?
+    }
+
+    struct LeagueIFPAPlayerRecord {
+        let player: String
+        let ifpaPlayerID: String
+        let ifpaName: String
+    }
+
+    struct LeagueIdentityMatch {
+        let player: String
+        let ifpaPlayerID: String?
     }
 
     struct LeagueStatsSnapshot {
         let rows: [LeagueCSVRow]
         let players: [String]
+        let updatedAt: Date?
     }
 
     static let eventDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .autoupdatingCurrent
+        formatter.calendar = calendar
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = .autoupdatingCurrent
         return formatter
     }()
 
@@ -28,6 +100,7 @@ extension PracticeStore {
 
         do {
             let rows = try await loadLeagueStatsSnapshot().rows
+            let machineMappings = try await loadLeagueMachineMappings()
 
             let yourRows = rows.filter { normalizeHumanName($0.player) == yourNormalized }
             let opponentRows = rows.filter { normalizeHumanName($0.player) == opponentNormalized }
@@ -40,7 +113,7 @@ extension PracticeStore {
 
             func aggregate(_ rows: [LeagueCSVRow]) -> [String: PerGameAggregate] {
                 Dictionary(grouping: rows.compactMap { row -> (String, Double)? in
-                    guard let gameID = matchGameID(fromMachine: row.machine) else { return nil }
+                    guard let gameID = resolveLeagueGameID(for: row, machineMappings: machineMappings) else { return nil }
                     return (gameID, row.rawScore)
                 }, by: { $0.0 })
                 .mapValues { pairs in
@@ -90,13 +163,37 @@ extension PracticeStore {
         }
     }
 
-    func availableLeaguePlayers() async -> [String] {
+    func availableLeaguePlayers(forceRefresh: Bool = false) async -> [String] {
         do {
-            return try await loadLeagueStatsSnapshot().players
+            return try await loadLeagueStatsSnapshot(forceRefresh: forceRefresh).players
         } catch {
             lastErrorMessage = "Could not load player list: \(error.localizedDescription)"
             return []
         }
+    }
+
+    func approvedLeagueIdentityMatch(for inputName: String, forceRefresh: Bool = false) async -> LeagueIdentityMatch? {
+        let trimmedInput = inputName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedInput.isEmpty else { return nil }
+
+        do {
+            let approvedPlayers = try await loadLeagueIFPAPlayers(forceRefresh: forceRefresh)
+            if let approvedMatch = approvedPlayers.matchedApprovedIFPAPlayer(for: trimmedInput) {
+                return LeagueIdentityMatch(
+                    player: approvedMatch.player,
+                    ifpaPlayerID: approvedMatch.ifpaPlayerID
+                )
+            }
+        } catch {
+            lastErrorMessage = "Could not load IFPA lookup: \(error.localizedDescription)"
+        }
+
+        let players = await availableLeaguePlayers(forceRefresh: forceRefresh)
+        let normalizedInput = normalizeHumanName(trimmedInput)
+        guard let matchedPlayer = players.first(where: { normalizeHumanName($0) == normalizedInput }) else {
+            return nil
+        }
+        return LeagueIdentityMatch(player: matchedPlayer, ifpaPlayerID: nil)
     }
 
     func updateLeagueSettings(playerName: String, csvAutoFillEnabled: Bool) {
@@ -167,6 +264,8 @@ extension PracticeStore {
         let machineIndex = firstIndex(["Machine", "Game"])
         let rawScoreIndex = firstIndex(["RawScore", "Score"])
         let eventDateIndex = firstIndex(["EventDate", "Event Date", "Date"])
+        let practiceIdentityIndex = firstIndex(["PracticeIdentity", "practice_identity"])
+        let opdbIDIndex = firstIndex(["OPDBID", "OPDB ID", "opdb_id", "opdbId"])
 
         guard [playerIndex, machineIndex, rawScoreIndex].allSatisfy({ $0 >= 0 }) else { return [] }
 
@@ -175,7 +274,11 @@ extension PracticeStore {
             guard columns.indices.contains(maxRequired) else { return nil }
             let player = columns[playerIndex].trimmingCharacters(in: .whitespacesAndNewlines)
             let machine = columns[machineIndex].trimmingCharacters(in: .whitespacesAndNewlines)
-            let rawScore = Double(columns[rawScoreIndex].trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+            let rawScore = Double(
+                columns[rawScoreIndex]
+                    .replacingOccurrences(of: ",", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            ) ?? 0
 
             guard !player.isEmpty, !machine.isEmpty, rawScore > 0 else { return nil }
             let eventDate: Date? = {
@@ -184,18 +287,44 @@ extension PracticeStore {
                 guard !value.isEmpty else { return nil }
                 return Self.eventDateFormatter.date(from: value)
             }()
+            let practiceIdentity: String? = {
+                guard practiceIdentityIndex >= 0, columns.indices.contains(practiceIdentityIndex) else { return nil }
+                let value = columns[practiceIdentityIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+                return value.isEmpty ? nil : value
+            }()
+            let opdbID: String? = {
+                guard opdbIDIndex >= 0, columns.indices.contains(opdbIDIndex) else { return nil }
+                let value = columns[opdbIDIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+                return value.isEmpty ? nil : value
+            }()
 
-            return LeagueCSVRow(player: player, machine: machine, rawScore: rawScore, eventDate: eventDate)
+            return LeagueCSVRow(
+                player: player,
+                machine: machine,
+                rawScore: rawScore,
+                eventDate: eventDate,
+                practiceIdentity: practiceIdentity,
+                opdbID: opdbID
+            )
         }
     }
 
-    func loadLeagueStatsSnapshot() async throws -> LeagueStatsSnapshot {
-        let cached = try await PinballDataCache.shared.loadText(path: Self.leagueStatsPath)
+    func loadLeagueStatsSnapshot(forceRefresh: Bool = false) async throws -> LeagueStatsSnapshot {
+        let cached: CachedTextResult
+        if forceRefresh {
+            do {
+                cached = try await PinballDataCache.shared.forceRefreshText(path: Self.leagueStatsPath)
+            } catch {
+                cached = try await PinballDataCache.shared.loadText(path: Self.leagueStatsPath)
+            }
+        } else {
+            cached = try await PinballDataCache.shared.loadText(path: Self.leagueStatsPath)
+        }
         guard let text = cached.text else {
             cachedLeagueStatsUpdatedAt = cached.updatedAt
             cachedLeagueStatsRows = []
             cachedLeaguePlayers = []
-            return LeagueStatsSnapshot(rows: [], players: [])
+            return LeagueStatsSnapshot(rows: [], players: [], updatedAt: cached.updatedAt)
         }
 
         if cachedLeagueStatsRows.isEmpty || cachedLeagueStatsUpdatedAt != cached.updatedAt {
@@ -203,7 +332,8 @@ extension PracticeStore {
                 let rows = parseLeagueRows(text: text)
                 return LeagueStatsSnapshot(
                     rows: rows,
-                    players: leaguePlayers(from: rows)
+                    players: leaguePlayers(from: rows),
+                    updatedAt: cached.updatedAt
                 )
             }
             cachedLeagueStatsRows = snapshot.rows
@@ -213,8 +343,67 @@ extension PracticeStore {
 
         return LeagueStatsSnapshot(
             rows: cachedLeagueStatsRows,
-            players: cachedLeaguePlayers
+            players: cachedLeaguePlayers,
+            updatedAt: cached.updatedAt
         )
+    }
+
+    func parseLeagueIFPAPlayers(text: String) -> [LeagueIFPAPlayerRecord] {
+        let table = parseCSVRows(text)
+        guard let header = table.first else { return [] }
+        let headers = header.map(normalizeCSVHeader)
+
+        func idx(_ name: String) -> Int {
+            headers.firstIndex(of: normalizeCSVHeader(name)) ?? -1
+        }
+
+        let playerIndex = idx("player")
+        let ifpaPlayerIDIndex = idx("ifpa_player_id")
+        let ifpaNameIndex = idx("ifpa_name")
+
+        guard [playerIndex, ifpaPlayerIDIndex, ifpaNameIndex].allSatisfy({ $0 >= 0 }) else { return [] }
+
+        return table.dropFirst().compactMap { columns in
+            let maxRequired = max(playerIndex, ifpaPlayerIDIndex, ifpaNameIndex)
+            guard columns.indices.contains(maxRequired) else { return nil }
+
+            let player = columns[playerIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+            let ifpaPlayerID = columns[ifpaPlayerIDIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+            let ifpaName = columns[ifpaNameIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !player.isEmpty, !ifpaPlayerID.isEmpty else { return nil }
+
+            return LeagueIFPAPlayerRecord(
+                player: player,
+                ifpaPlayerID: ifpaPlayerID,
+                ifpaName: ifpaName.isEmpty ? player : ifpaName
+            )
+        }
+    }
+
+    func loadLeagueIFPAPlayers(forceRefresh: Bool = false) async throws -> [LeagueIFPAPlayerRecord] {
+        let cached: CachedTextResult
+        if forceRefresh {
+            do {
+                cached = try await PinballDataCache.shared.forceRefreshText(path: Self.leagueIFPAPlayersPath, allowMissing: true)
+            } catch {
+                cached = try await PinballDataCache.shared.loadText(path: Self.leagueIFPAPlayersPath, allowMissing: true)
+            }
+        } else {
+            cached = try await PinballDataCache.shared.loadText(path: Self.leagueIFPAPlayersPath, allowMissing: true)
+        }
+
+        guard let text = cached.text else {
+            cachedLeagueIFPAPlayersUpdatedAt = cached.updatedAt
+            cachedLeagueIFPAPlayers = []
+            return []
+        }
+
+        if cachedLeagueIFPAPlayers.isEmpty || cachedLeagueIFPAPlayersUpdatedAt != cached.updatedAt {
+            cachedLeagueIFPAPlayers = parseLeagueIFPAPlayers(text: text)
+            cachedLeagueIFPAPlayersUpdatedAt = cached.updatedAt
+        }
+
+        return cachedLeagueIFPAPlayers
     }
 
     func leaguePlayers(from rows: [LeagueCSVRow]) -> [String] {
@@ -232,8 +421,81 @@ extension PracticeStore {
             .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
+    func loadLeagueMachineMappings(forceRefresh: Bool = false) async throws -> [String: LeagueMachineMappingRecord] {
+        let cached: CachedTextResult
+        if forceRefresh {
+            do {
+                cached = try await PinballDataCache.shared.forceRefreshText(path: Self.leagueMachineMappingsPath, allowMissing: true)
+            } catch {
+                cached = try await PinballDataCache.shared.loadText(path: Self.leagueMachineMappingsPath, allowMissing: true)
+            }
+        } else {
+            cached = try await PinballDataCache.shared.loadText(path: Self.leagueMachineMappingsPath, allowMissing: true)
+        }
+
+        guard let text = cached.text else {
+            cachedLeagueMachineMappingsUpdatedAt = cached.updatedAt
+            cachedLeagueMachineMappings = [:]
+            return [:]
+        }
+
+        if cachedLeagueMachineMappings.isEmpty || cachedLeagueMachineMappingsUpdatedAt != cached.updatedAt {
+            cachedLeagueMachineMappings = parseLeagueMachineMappings(text: text)
+            cachedLeagueMachineMappingsUpdatedAt = cached.updatedAt
+        }
+
+        return cachedLeagueMachineMappings
+    }
+
+    func leagueEventTimestamp(for eventDate: Date) -> Date {
+        let calendar = Calendar.autoupdatingCurrent
+        return calendar.date(bySettingHour: 22, minute: 0, second: 0, of: eventDate) ?? eventDate
+    }
+
+    func resolveLeagueGameID(
+        for row: LeagueCSVRow,
+        machineMappings: [String: LeagueMachineMappingRecord]
+    ) -> String? {
+        if let direct = leaguePracticeGameID(practiceIdentity: row.practiceIdentity, opdbID: row.opdbID) {
+            return direct
+        }
+
+        let normalizedMachine = LibraryGameLookup.normalizeMachineName(row.machine)
+        if let mapping = machineMappings[normalizedMachine],
+           let mapped = leaguePracticeGameID(practiceIdentity: mapping.practiceIdentity, opdbID: mapping.opdbID) {
+            return mapped
+        }
+
+        return matchGameID(fromMachine: row.machine)
+    }
+
+    private func leaguePracticeGameID(practiceIdentity: String?, opdbID: String?) -> String? {
+        let candidates = [
+            practiceIdentity?.trimmingCharacters(in: .whitespacesAndNewlines),
+            opdbID.flatMap(leagueOPDBGroupID(from:)),
+            opdbID?.trimmingCharacters(in: .whitespacesAndNewlines)
+        ]
+        for candidate in candidates {
+            guard let candidate, !candidate.isEmpty else { continue }
+            let canonical = canonicalPracticeGameID(candidate)
+            if !canonical.isEmpty, gameForAnyID(canonical) != nil || gameForAnyID(candidate) != nil {
+                return canonical
+            }
+        }
+        return nil
+    }
+
     func matchGameID(fromMachine machine: String) -> String? {
-        LibraryGameLookup.bestMatch(gameName: machine, games: games)?.canonicalPracticeKey
+        let machineKeys = LibraryGameLookup.equivalentKeys(gameName: machine)
+        guard !machineKeys.isEmpty else { return nil }
+
+        let matches = Set(practiceGamesDeduped().compactMap { game -> String? in
+            let gameKeys = LibraryGameLookup.equivalentKeys(gameName: game.name)
+            guard !machineKeys.isDisjoint(with: gameKeys) else { return nil }
+            return game.canonicalPracticeKey
+        })
+
+        return matches.count == 1 ? matches.first : nil
     }
 
     func isDuplicateLeagueScore(gameID: String, score: Double, eventDate: Date) -> Bool {
@@ -243,6 +505,73 @@ extension PracticeStore {
             guard abs(existing.score - score) < 0.5 else { return false }
             return Calendar.current.isDate(existing.timestamp, inSameDayAs: eventDate)
         }
+    }
+
+    func repairImportedLeagueScore(gameID: String, score: Double, eventDate: Date) -> Bool {
+        let calendar = Calendar.autoupdatingCurrent
+        let canonicalGameID = canonicalPracticeGameID(gameID)
+        let matchingScores = state.scoreEntries.enumerated().filter { _, existing in
+            guard existing.leagueImported, existing.context == .league else { return false }
+            guard abs(existing.score - score) < 0.5 else { return false }
+            return calendar.isDate(existing.timestamp, inSameDayAs: eventDate)
+        }
+        guard matchingScores.count == 1 else { return false }
+
+        let (scoreIndex, existingScore) = matchingScores[0]
+        var didChange = false
+        if existingScore.gameID != canonicalGameID || existingScore.timestamp != eventDate {
+            state.scoreEntries[scoreIndex] = ScoreLogEntry(
+                id: existingScore.id,
+                gameID: canonicalGameID,
+                score: existingScore.score,
+                context: existingScore.context,
+                tournamentName: existingScore.tournamentName,
+                timestamp: eventDate,
+                leagueImported: existingScore.leagueImported
+            )
+            didChange = true
+        }
+
+        let matchingJournal = state.journalEntries.enumerated().filter { _, existing in
+            guard existing.action == .scoreLogged, existing.scoreContext == .league else { return false }
+            guard let existingScore = existing.score, abs(existingScore - score) < 0.5 else { return false }
+            return calendar.isDate(existing.timestamp, inSameDayAs: eventDate)
+        }
+        if matchingJournal.count == 1 {
+            let (journalIndex, existingJournal) = matchingJournal[0]
+            if existingJournal.gameID != canonicalGameID || existingJournal.timestamp != eventDate {
+                state.journalEntries[journalIndex] = JournalEntry(
+                    id: existingJournal.id,
+                    gameID: canonicalGameID,
+                    action: existingJournal.action,
+                    task: existingJournal.task,
+                    progressPercent: existingJournal.progressPercent,
+                    videoKind: existingJournal.videoKind,
+                    videoValue: existingJournal.videoValue,
+                    score: existingJournal.score,
+                    scoreContext: existingJournal.scoreContext,
+                    tournamentName: existingJournal.tournamentName,
+                    noteCategory: existingJournal.noteCategory,
+                    noteDetail: existingJournal.noteDetail,
+                    note: existingJournal.note,
+                    timestamp: eventDate
+                )
+                didChange = true
+            }
+        }
+
+        return didChange
+    }
+
+    private func leagueOPDBGroupID(from raw: String) -> String? {
+        let pattern = #"(?i)\bG[0-9A-Z]{4,}\b"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let range = NSRange(raw.startIndex..<raw.endIndex, in: raw)
+        guard let match = regex.firstMatch(in: raw, options: [], range: range),
+              let tokenRange = Range(match.range, in: raw) else {
+            return nil
+        }
+        return String(raw[tokenRange])
     }
 
     func normalizeHumanName(_ raw: String) -> String {
@@ -270,5 +599,26 @@ extension PracticeStore {
         }
 
         return nil
+    }
+}
+
+private extension Array where Element == PracticeStore.LeagueIFPAPlayerRecord {
+    func matchedApprovedIFPAPlayer(for inputName: String) -> PracticeStore.LeagueIFPAPlayerRecord? {
+        let inputKeys = humanNameKeys(inputName)
+        let exactMatches = filter { record in
+            let candidateKeys = humanNameKeys(record.player).union(humanNameKeys(record.ifpaName))
+            return !candidateKeys.isDisjoint(with: inputKeys)
+        }
+        if exactMatches.count == 1 {
+            return exactMatches[0]
+        }
+        if exactMatches.count > 1 {
+            return nil
+        }
+
+        let softMatches = filter { record in
+            softHumanNameMatches(inputName, record.player) || softHumanNameMatches(inputName, record.ifpaName)
+        }
+        return softMatches.count == 1 ? softMatches[0] : nil
     }
 }

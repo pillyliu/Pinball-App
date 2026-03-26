@@ -68,10 +68,30 @@ internal object LibraryGameLookup {
         return listOf(normalizedTarget) + machineAliases[normalizedTarget].orEmpty()
     }
 
+    fun equivalentKeys(gameName: String): Set<String> {
+        return equivalentKeysForNormalizedName(normalizeMachineName(gameName))
+    }
+
     fun normalizeMachineName(raw: String): String {
         return raw.lowercase(Locale.US)
             .replace("&", " and ")
             .filter { it.isLetterOrDigit() }
+    }
+
+    private fun equivalentKeysForNormalizedName(normalizedName: String): Set<String> {
+        if (normalizedName.isBlank()) return emptySet()
+
+        val keys = linkedSetOf(normalizedName)
+        keys += machineAliases[normalizedName].orEmpty()
+
+        machineAliases.forEach { (primary, aliases) ->
+            if (normalizedName in aliases) {
+                keys += primary
+                keys += aliases
+            }
+        }
+
+        return keys
     }
 
     private fun weightedOrder(index: Int, group: Int?, position: Int?): Int {

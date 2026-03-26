@@ -1,6 +1,14 @@
 import SwiftUI
 import Combine
 
+extension Notification.Name {
+    static let pinballLeaguePreviewNeedsRefresh = Notification.Name("pinballLeaguePreviewNeedsRefresh")
+}
+
+func notifyLeaguePreviewNeedsRefresh() {
+    NotificationCenter.default.post(name: .pinballLeaguePreviewNeedsRefresh, object: nil)
+}
+
 @MainActor
 final class LeaguePreviewModel: ObservableObject {
     @Published private(set) var nextBankTargets: [LeagueTargetPreviewRow] = []
@@ -20,6 +28,10 @@ final class LeaguePreviewModel: ObservableObject {
 
     func loadIfNeeded() async {
         guard !didLoad else { return }
+        await reload()
+    }
+
+    func reload() async {
         didLoad = true
         apply(snapshot: await loadLeaguePreviewSnapshot())
     }

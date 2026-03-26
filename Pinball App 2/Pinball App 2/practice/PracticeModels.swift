@@ -389,8 +389,9 @@ struct LeagueLinkSettings: Codable {
     var playerName: String
     var csvAutoFillEnabled: Bool
     var lastImportAt: Date?
+    var lastRepairVersion: Int?
 
-    static let empty = LeagueLinkSettings(playerName: "", csvAutoFillEnabled: false, lastImportAt: nil)
+    static let empty = LeagueLinkSettings(playerName: "", csvAutoFillEnabled: false, lastImportAt: nil, lastRepairVersion: nil)
 }
 
 struct SyncSettings: Codable {

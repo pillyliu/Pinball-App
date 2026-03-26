@@ -377,6 +377,7 @@ private final class StandingsViewModel: ObservableObject {
             errorMessage = nil
             if forceRefresh {
                 hasNewerData = false
+                notifyLeaguePreviewNeedsRefresh()
             }
             Task { await refreshUpdateIndicator() }
 

@@ -101,9 +101,30 @@ struct LeagueImportResult {
     let unmatchedRows: Int
     let selectedPlayer: String
     let sourcePath: String
+    let repaired: Int
+
+    init(
+        imported: Int,
+        duplicatesSkipped: Int,
+        unmatchedRows: Int,
+        selectedPlayer: String,
+        sourcePath: String,
+        repaired: Int = 0
+    ) {
+        self.imported = imported
+        self.duplicatesSkipped = duplicatesSkipped
+        self.unmatchedRows = unmatchedRows
+        self.selectedPlayer = selectedPlayer
+        self.sourcePath = sourcePath
+        self.repaired = repaired
+    }
+
+    var hasNewScores: Bool { imported > 0 }
+    var hasChanges: Bool { imported > 0 || repaired > 0 }
 
     var summaryLine: String {
-        "League import for \(formatLPLPlayerNameForDisplay(selectedPlayer)): \(imported) imported, \(duplicatesSkipped) skipped, \(unmatchedRows) unmatched."
+        let repairedSegment = repaired > 0 ? ", \(repaired) repaired" : ""
+        return "League import for \(formatLPLPlayerNameForDisplay(selectedPlayer)): \(imported) imported\(repairedSegment), \(duplicatesSkipped) skipped, \(unmatchedRows) unmatched."
     }
 }
 
@@ -142,9 +163,12 @@ final class PracticeStore: ObservableObject {
 
     static let leagueStatsPath = hostedLeagueStatsPath
     static let leagueTargetsPath = hostedLeagueTargetsPath
+    static let leagueIFPAPlayersPath = hostedLeagueIFPAPlayersPath
     static let resolvedLeagueTargetsPath = hostedResolvedLeagueTargetsPath
+    static let leagueMachineMappingsPath = hostedLeagueMachineMappingsPath
     static let storageKey = "practice-state-json"
     static let legacyStorageKey = "practice-upgrade-state-v1"
+    static let leagueScoreRepairVersion = 2
 
     var didLoad = false
     var didLoadAllLibraryGames = false
@@ -153,6 +177,12 @@ final class PracticeStore: ObservableObject {
     var cachedLeagueStatsUpdatedAt: Date?
     var cachedLeagueStatsRows: [LeagueCSVRow] = []
     var cachedLeaguePlayers: [String] = []
+    var cachedLeagueIFPAPlayersUpdatedAt: Date?
+    var cachedLeagueIFPAPlayers: [LeagueIFPAPlayerRecord] = []
+    var cachedLeagueMachineMappingsUpdatedAt: Date?
+    var cachedLeagueMachineMappings: [String: LeagueMachineMappingRecord] = [:]
+    var lastLeagueAutoImportAttemptAt: Date?
+    var isAutoImportingLeagueScores = false
     var cachedScoreEntriesByGameID: [String: [ScoreLogEntry]] = [:]
     var cachedScoreSummariesByGameID: [String: ScoreSummary] = [:]
     var cachedGameJournalEntriesByGameID: [String: [JournalEntry]] = [:]
@@ -162,6 +192,7 @@ final class PracticeStore: ObservableObject {
     var cachedGroupDashboardDetails: [UUID: GroupDashboardDetail] = [:]
     var isLoadingBankTemplateGames = false
     var hasRestoredHomeBootstrapSnapshot = false
+    let leagueAutoImportCooldown: TimeInterval = 60
 
     init() {
         restoreHomeBootstrapSnapshotIfAvailableAsync()

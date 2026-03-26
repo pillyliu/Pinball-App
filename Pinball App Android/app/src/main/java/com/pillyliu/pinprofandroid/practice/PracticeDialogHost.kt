@@ -16,14 +16,17 @@ internal fun PracticeDialogHost(
             onSave = { name, shouldImportLpl ->
                 context.store.updatePlayerName(name)
                 context.onOpenNamePromptChange(false)
-                if (!shouldImportLpl) return@PracticeNamePromptSheet
                 scope.launch {
-                    val normalizedInput = normalizeHumanName(name)
-                    val matchedPlayer = context.store.availableLeaguePlayers().firstOrNull { candidate ->
-                        normalizeHumanName(candidate) == normalizedInput
-                    } ?: return@launch
+                    val identity = context.store.approvedLeagueIdentityMatch(
+                        name = name,
+                        forceRefresh = shouldImportLpl,
+                    )
+                    identity?.ifpaPlayerID?.let(context.store::updateIfpaPlayerID)
+                    if (!shouldImportLpl) return@launch
+                    val matchedPlayer = identity?.player ?: return@launch
                     context.store.updateLeaguePlayerName(matchedPlayer)
-                    val importStatus = context.store.importLeagueScoresFromCsv()
+                    context.store.updateLeagueCsvAutoFillEnabled(true)
+                    val importStatus = context.store.importLeagueScoresFromCsv(forceRefresh = true)
                     context.onImportStatusChange(importStatus)
                 }
             },

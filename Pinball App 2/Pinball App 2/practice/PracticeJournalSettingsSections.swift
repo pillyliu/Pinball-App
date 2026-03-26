@@ -572,6 +572,7 @@ struct PracticeSettingsSectionView: View {
     @Binding var playerName: String
     @Binding var ifpaPlayerID: String
     @Binding var leaguePlayerName: String
+    @Binding var leagueCsvAutoFillEnabled: Bool
     let leaguePlayerOptions: [String]
     let leagueImportStatus: String
     @Binding var cloudSyncEnabled: Bool
@@ -579,6 +580,7 @@ struct PracticeSettingsSectionView: View {
     let onSaveProfile: () -> Void
     let onSaveIFPAID: () -> Void
     let onImportLeagueCSV: () -> Void
+    let onLeaguePlayerSelected: (String) -> Void
     let onCloudSyncChanged: (Bool) -> Void
     let onResetPracticeLog: () -> Void
     @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
@@ -629,14 +631,14 @@ struct PracticeSettingsSectionView: View {
 
                 Menu {
                     Button("Select league player") {
-                        leaguePlayerName = ""
+                        onLeaguePlayerSelected("")
                     }
                     if leaguePlayerOptions.isEmpty {
                         AppSelectableMenuRow(text: "No player names found", isSelected: false)
                     } else {
                         ForEach(leaguePlayerOptions, id: \.self) { name in
                             Button(displayLPLPlayerName(name)) {
-                                leaguePlayerName = name
+                                onLeaguePlayerSelected(name)
                             }
                         }
                     }
@@ -648,7 +650,14 @@ struct PracticeSettingsSectionView: View {
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text("Used when you tap Import LPL CSV.")
+                Text("Used for manual import and auto-sync.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Auto-import new league scores", isOn: $leagueCsvAutoFillEnabled)
+                    .appControlStyle()
+
+                Text("When enabled, Practice checks for a new LPL stats hash and imports only when the hosted CSV changed.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

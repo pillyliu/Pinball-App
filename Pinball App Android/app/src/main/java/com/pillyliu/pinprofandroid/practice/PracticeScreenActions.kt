@@ -98,7 +98,7 @@ internal class PracticeScreenActions(
 
     fun importLplCsv() {
         scope.launch {
-            uiState.presentation.importStatus = store.importLeagueScoresFromCsv()
+            uiState.presentation.importStatus = store.importLeagueScoresFromCsv(forceRefresh = true)
         }
     }
 

@@ -69,6 +69,7 @@ internal fun canonicalPracticeStateFromLegacyState(legacy: PracticePersistedStat
             playerName = legacy.leaguePlayerName,
             csvAutoFillEnabled = false,
             lastImportAtMs = null,
+            lastRepairVersion = null,
         ),
         syncSettings = emptyCanonicalPracticePersistedState().syncSettings.copy(cloudSyncEnabled = legacy.cloudSyncEnabled),
         rulesheetResumeOffsets = legacy.rulesheetProgress.mapValues { it.value.toDouble() },

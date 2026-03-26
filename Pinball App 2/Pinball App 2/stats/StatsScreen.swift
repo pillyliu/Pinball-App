@@ -764,6 +764,7 @@ private final class StatsViewModel: ObservableObject {
             applyLoadedRows(loaded, resetSelection: false)
             errorMessage = nil
             hasNewerData = false
+            notifyLeaguePreviewNeedsRefresh()
             Task { await refreshUpdateIndicator() }
         } catch {
             errorMessage = error.localizedDescription

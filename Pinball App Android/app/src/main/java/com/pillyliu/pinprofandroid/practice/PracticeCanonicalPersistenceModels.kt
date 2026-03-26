@@ -71,6 +71,7 @@ internal data class CanonicalLeagueSettings(
     val playerName: String,
     val csvAutoFillEnabled: Boolean,
     val lastImportAtMs: Long?,
+    val lastRepairVersion: Int?,
 )
 
 internal data class CanonicalSyncSettings(
@@ -122,7 +123,7 @@ internal fun emptyCanonicalPracticePersistedState(): CanonicalPracticePersistedS
         noteEntries = emptyList(),
         journalEntries = emptyList(),
         customGroups = emptyList(),
-        leagueSettings = CanonicalLeagueSettings(playerName = "", csvAutoFillEnabled = false, lastImportAtMs = null),
+        leagueSettings = CanonicalLeagueSettings(playerName = "", csvAutoFillEnabled = false, lastImportAtMs = null, lastRepairVersion = null),
         syncSettings = CanonicalSyncSettings(
             cloudSyncEnabled = false,
             endpoint = "pillyliu.com",

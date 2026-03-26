@@ -67,6 +67,24 @@ enum LibraryGameLookup {
         return [normalizedTarget] + (machineAliases[normalizedTarget] ?? [])
     }
 
+    static func equivalentKeys(gameName: String) -> Set<String> {
+        equivalentKeys(normalizedName: normalizeMachineName(gameName))
+    }
+
+    static func equivalentKeys(normalizedName: String) -> Set<String> {
+        guard !normalizedName.isEmpty else { return [] }
+
+        var keys: Set<String> = [normalizedName]
+        keys.formUnion(machineAliases[normalizedName] ?? [])
+
+        for (primary, aliases) in machineAliases where aliases.contains(normalizedName) {
+            keys.insert(primary)
+            keys.formUnion(aliases)
+        }
+
+        return keys
+    }
+
     static func normalizeMachineName(_ raw: String) -> String {
         raw.lowercased()
             .replacingOccurrences(of: "&", with: " and ")

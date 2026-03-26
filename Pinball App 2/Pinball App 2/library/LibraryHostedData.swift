@@ -11,7 +11,9 @@ nonisolated let hostedRedactedPlayersCSVPath = "/pinball/data/redacted_players.c
 nonisolated let hostedLeagueStandingsPath = "/pinball/data/LPL_Standings.csv"
 nonisolated let hostedLeagueStatsPath = "/pinball/data/LPL_Stats.csv"
 nonisolated let hostedLeagueTargetsPath = "/pinball/data/LPL_Targets.csv"
+nonisolated let hostedLeagueIFPAPlayersPath = "/pinball/data/LPL_IFPA_Players.csv"
 nonisolated let hostedResolvedLeagueTargetsPath = "/pinball/data/lpl_targets_resolved_v1.json"
+nonisolated let hostedLeagueMachineMappingsPath = "/pinball/data/lpl_machine_mappings_v1.json"
 nonisolated let hostedCAFDataPaths = [
     hostedOPDBExportPath,
     hostedRulesheetAssetsPath,
@@ -32,7 +34,9 @@ nonisolated let hostedPinballRefreshTargets: [(path: String, allowMissing: Bool)
     (hostedLeagueStandingsPath, true),
     (hostedLeagueStatsPath, true),
     (hostedLeagueTargetsPath, true),
+    (hostedLeagueIFPAPlayersPath, true),
     (hostedResolvedLeagueTargetsPath, true),
+    (hostedLeagueMachineMappingsPath, true),
     (hostedRedactedPlayersCSVPath, true),
 ]
 

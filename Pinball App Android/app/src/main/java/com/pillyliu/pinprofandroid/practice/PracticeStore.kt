@@ -15,6 +15,9 @@ import com.pillyliu.pinprofandroid.library.canonicalLibrarySourceId
 import com.pillyliu.pinprofandroid.library.loadPracticeCatalogGames
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import java.time.Instant
+import java.time.ZoneId
+import kotlin.math.abs
 internal class PracticeStore(private val context: Context) {
     private companion object {
         val QUICK_GAME_PREF_KEYS = listOf(
@@ -91,6 +94,9 @@ internal class PracticeStore(private val context: Context) {
     var leaguePlayerName by mutableStateOf("")
         private set
 
+    var leagueCsvAutoFillEnabled by mutableStateOf(false)
+        private set
+
     var cloudSyncEnabled by mutableStateOf(false)
         private set
 
@@ -105,6 +111,8 @@ internal class PracticeStore(private val context: Context) {
 
     private var rulesheetResumeOffsets: Map<String, Double> = emptyMap()
     private var canonicalPersistedState: CanonicalPracticePersistedState = emptyCanonicalPracticePersistedState()
+    private var lastLeagueAutoImportAttemptMs: Long = 0L
+    private var isAutoImportingLeagueScores = false
     private val leagueIntegration by lazy { PracticeLeagueIntegration(::gameName) }
     private val journalIntegration by lazy { PracticeJournalIntegration(::practiceLookupGames, ::gameName) }
     private val progressIntegration by lazy { PracticeProgressIntegration() }
@@ -173,6 +181,7 @@ internal class PracticeStore(private val context: Context) {
     private fun applyPersistedState(payload: ParsedPracticeStatePayload) {
         canonicalPersistedState = payload.canonical
         rulesheetResumeOffsets = payload.canonical.rulesheetResumeOffsets
+        syncLeagueSettingsFromCanonical()
         applyRuntimePersistedState(payload.runtime)
     }
 
@@ -244,7 +253,20 @@ internal class PracticeStore(private val context: Context) {
     }
 
     fun updateLeaguePlayerName(name: String) {
-        mutateAndSave { leaguePlayerName = name.trim() }
+        val trimmed = name.trim()
+        leaguePlayerName = trimmed
+        canonicalPersistedState = canonicalPersistedState.copy(
+            leagueSettings = canonicalPersistedState.leagueSettings.copy(playerName = trimmed),
+        )
+        saveState()
+    }
+
+    fun updateLeagueCsvAutoFillEnabled(enabled: Boolean) {
+        leagueCsvAutoFillEnabled = enabled
+        canonicalPersistedState = canonicalPersistedState.copy(
+            leagueSettings = canonicalPersistedState.leagueSettings.copy(csvAutoFillEnabled = enabled),
+        )
+        saveState()
     }
 
     fun updateCloudSyncEnabled(enabled: Boolean) {
@@ -350,6 +372,55 @@ internal class PracticeStore(private val context: Context) {
         refreshRuntimeFromCanonical()
         markPracticeViewedGame(canonicalKey)
         saveState()
+    }
+
+    private fun repairImportedLeagueScore(existingId: String, score: Double, gameSlug: String, timestampMs: Long) {
+        val canonicalKey = canonicalGameID(gameSlug)
+        if (canonicalKey.isBlank()) return
+
+        val zoneId = ZoneId.systemDefault()
+        val targetDate = Instant.ofEpochMilli(timestampMs).atZone(zoneId).toLocalDate()
+        val matchingJournalIds = canonicalPersistedState.journalEntries.filter { entry ->
+            entry.action == "scoreLogged" &&
+                entry.scoreContext == "league" &&
+                entry.score != null &&
+                abs(entry.score - score) < 0.5 &&
+                Instant.ofEpochMilli(entry.timestampMs).atZone(zoneId).toLocalDate() == targetDate
+        }.map { it.id }
+
+        var didChange = false
+        val updatedScores = canonicalPersistedState.scoreEntries.map { entry ->
+            if (entry.id != existingId) {
+                entry
+            } else if (entry.gameID != canonicalKey || entry.timestampMs != timestampMs) {
+                didChange = true
+                entry.copy(gameID = canonicalKey, timestampMs = timestampMs)
+            } else {
+                entry
+            }
+        }
+
+        val updatedJournal = if (matchingJournalIds.size == 1) {
+            val journalId = matchingJournalIds.single()
+            canonicalPersistedState.journalEntries.map { entry ->
+                if (entry.id != journalId) {
+                    entry
+                } else if (entry.gameID != canonicalKey || entry.timestampMs != timestampMs) {
+                    didChange = true
+                    entry.copy(gameID = canonicalKey, timestampMs = timestampMs)
+                } else {
+                    entry
+                }
+            }
+        } else {
+            canonicalPersistedState.journalEntries
+        }
+
+        if (!didChange) return
+        canonicalPersistedState = canonicalPersistedState.copy(
+            scoreEntries = updatedScores,
+            journalEntries = updatedJournal,
+        )
     }
 
     fun addStudy(gameSlug: String, category: String, value: String, note: String? = null) {
@@ -506,31 +577,97 @@ internal class PracticeStore(private val context: Context) {
         }
     }
 
-    suspend fun availableLeaguePlayers(): List<String> = leagueIntegration.availablePlayers()
+    suspend fun availableLeaguePlayers(forceRefresh: Boolean = false): List<String> =
+        leagueIntegration.availablePlayers(forceRefresh = forceRefresh)
 
-    suspend fun importLeagueScoresFromCsv(): String {
+    suspend fun approvedLeagueIdentityMatch(
+        name: String,
+        forceRefresh: Boolean = false,
+    ): LeagueIdentityMatch? = leagueIntegration.approvedLeagueIdentityMatch(
+        inputName = name,
+        forceRefresh = forceRefresh,
+    )
+
+    suspend fun importLeagueScoresFromCsv(forceRefresh: Boolean = false): String {
+        return importLeagueScoresFromCsvResult(forceRefresh = forceRefresh).summaryLine
+    }
+
+    suspend fun importLeagueScoresFromCsvResult(forceRefresh: Boolean = false): LeagueImportResult {
+        val selectedPlayer = leaguePlayerName.trim()
         val result = leagueIntegration.importScores(
-            selectedPlayer = leaguePlayerName.trim(),
-            games = games,
+            selectedPlayer = selectedPlayer,
+            games = practiceLookupGames(),
+            existingScores = scores,
+            forceRefresh = forceRefresh,
             onAddScore = { slug, score, timestampMs ->
                 addScore(slug, score, context = "league", timestampMs = timestampMs, leagueImported = true)
             },
+            onRepairScore = { existingId, score, slug, timestampMs ->
+                repairImportedLeagueScore(existingId, score, slug, timestampMs)
+            },
         )
-        saveState()
+        if (result.errorMessage == null) {
+            canonicalPersistedState = canonicalPersistedState.copy(
+                leagueSettings = canonicalPersistedState.leagueSettings.copy(
+                    playerName = selectedPlayer,
+                    lastImportAtMs = System.currentTimeMillis(),
+                    lastRepairVersion = PracticeLeagueIntegration.LEAGUE_SCORE_REPAIR_VERSION,
+                ),
+            )
+            refreshRuntimeFromCanonical()
+            saveState()
+        }
         return result
+    }
+
+    suspend fun autoImportLeagueScoresIfEnabled(): LeagueImportResult? {
+        if (!leagueCsvAutoFillEnabled || leaguePlayerName.isBlank() || practiceLookupGames().isEmpty()) return null
+
+        val nowMs = System.currentTimeMillis()
+        if (isAutoImportingLeagueScores || (nowMs - lastLeagueAutoImportAttemptMs) < 60_000L) return null
+
+        isAutoImportingLeagueScores = true
+        lastLeagueAutoImportAttemptMs = nowMs
+        return try {
+            val hasRemoteUpdate = runCatching {
+                com.pillyliu.pinprofandroid.data.PinballDataCache.hasRemoteUpdate(
+                    com.pillyliu.pinprofandroid.library.hostedLeagueStatsPath,
+                )
+            }.getOrDefault(false)
+            val statsUpdatedAtMs = runCatching {
+                leagueIntegration.statsUpdatedAtMs(forceRefresh = hasRemoteUpdate)
+            }.getOrNull()
+            val csvIsNewerThanLastImport = canonicalPersistedState.leagueSettings.lastImportAtMs?.let { lastImportAtMs ->
+                statsUpdatedAtMs?.let { it > lastImportAtMs }
+            } == true
+            val needsRepairPass = canonicalPersistedState.leagueSettings.lastRepairVersion != PracticeLeagueIntegration.LEAGUE_SCORE_REPAIR_VERSION
+            val shouldImport = canonicalPersistedState.leagueSettings.lastImportAtMs == null ||
+                hasRemoteUpdate ||
+                csvIsNewerThanLastImport ||
+                needsRepairPass
+            if (!shouldImport) {
+                null
+            } else {
+                val result = importLeagueScoresFromCsvResult(forceRefresh = false)
+                result.takeIf { it.errorMessage == null && it.hasChanges }
+            }
+        } finally {
+            isAutoImportingLeagueScores = false
+        }
     }
 
     suspend fun comparePlayers(yourName: String, opponentName: String): HeadToHeadComparison? {
         return leagueIntegration.comparePlayers(
             yourName = yourName,
             opponentName = opponentName,
-            games = games,
+            games = practiceLookupGames(),
         )
     }
 
     fun resetAllState() {
         canonicalPersistedState = emptyCanonicalPracticePersistedState()
         rulesheetResumeOffsets = emptyMap()
+        syncLeagueSettingsFromCanonical()
         applyRuntimePersistedState(emptyPracticePersistedState())
         LibraryActivityLog.clear(context)
         persistenceIntegration.clearPrimaryState()
@@ -642,6 +779,7 @@ internal class PracticeStore(private val context: Context) {
         ) ?: return false
         canonicalPersistedState = migrated.canonicalState
         rulesheetResumeOffsets = migrated.canonicalState.rulesheetResumeOffsets
+        syncLeagueSettingsFromCanonical()
         applyRuntimePersistedState(migrated.runtimeState)
         saveState()
         return true
@@ -680,6 +818,7 @@ internal class PracticeStore(private val context: Context) {
             ),
         )
         rulesheetResumeOffsets = emptyMap()
+        syncLeagueSettingsFromCanonical()
         applyRuntimePersistedState(
             practicePersistedStateFromValues(
                 playerName = snapshot.playerName,
@@ -782,6 +921,7 @@ internal class PracticeStore(private val context: Context) {
                 gameSummaryNotes = gameSummaryNotes,
             ),
         )
+        syncLeagueSettingsFromCanonical()
     }
 
     private fun runtimeStateSnapshot(): PracticePersistedState {
@@ -803,7 +943,12 @@ internal class PracticeStore(private val context: Context) {
 
     private fun refreshRuntimeFromCanonical() {
         rulesheetResumeOffsets = canonicalPersistedState.rulesheetResumeOffsets
+        syncLeagueSettingsFromCanonical()
         applyRuntimePersistedState(runtimePracticeStateFromCanonicalState(canonicalPersistedState, ::gameName))
+    }
+
+    private fun syncLeagueSettingsFromCanonical() {
+        leagueCsvAutoFillEnabled = canonicalPersistedState.leagueSettings.csvAutoFillEnabled
     }
 
     private fun storedReferenceIds(): List<String> {

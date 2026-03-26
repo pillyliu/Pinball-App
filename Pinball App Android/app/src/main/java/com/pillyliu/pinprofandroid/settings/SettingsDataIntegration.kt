@@ -6,6 +6,7 @@ import android.webkit.WebStorage
 import android.webkit.WebView
 import coil.imageLoader
 import com.pillyliu.pinprofandroid.data.PinballDataCache
+import com.pillyliu.pinprofandroid.league.LeaguePreviewRefreshEvents
 import com.pillyliu.pinprofandroid.library.CatalogManufacturerOption
 import com.pillyliu.pinprofandroid.library.ImportedSourceProvider
 import com.pillyliu.pinprofandroid.library.ImportedSourceRecord
@@ -43,6 +44,7 @@ internal suspend fun forceRefreshHostedSettingsData(context: Context): SettingsD
     withContext(Dispatchers.IO) {
         PinballDataCache.forceRefreshHostedLibraryData()
     }
+    LeaguePreviewRefreshEvents.notifyChanged()
     LibrarySourceEvents.notifyChanged()
     return loadSettingsDataSnapshot(context)
 }

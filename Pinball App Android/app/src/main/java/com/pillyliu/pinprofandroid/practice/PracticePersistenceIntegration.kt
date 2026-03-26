@@ -19,7 +19,9 @@ internal class PracticePersistenceIntegration(
 ) {
     suspend fun loadState(): LoadedPracticeStatePayload? = PinballPerformanceTrace.measureSuspend("PracticeStateDecode") {
         withContext(Dispatchers.IO) {
-            loadPracticeStatePayload(prefs, gameNameForSlug)
+            loadPracticeStatePayload(prefs, gameNameForSlug)?.let { loaded ->
+                normalizeImportedLeagueTimestamps(loaded, gameNameForSlug)
+            }
         }
     }
 

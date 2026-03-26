@@ -186,6 +186,7 @@ extension PracticeStore {
             return (entry.note ?? "").localizedCaseInsensitiveContains("Imported from LPL stats CSV")
         })
         state.leagueSettings.lastImportAt = nil
+        state.leagueSettings.lastRepairVersion = nil
         saveState()
         return before - state.scoreEntries.count
     }

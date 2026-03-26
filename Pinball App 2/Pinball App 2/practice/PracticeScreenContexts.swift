@@ -57,16 +57,20 @@ extension PracticeScreen {
                 store.updatePracticeSettings(playerName: trimmedName)
                 practiceNamePrompted = true
                 uiState.showingNamePrompt = false
-                guard shouldImportLplStats else { return }
                 Task {
-                    let normalizedInput = store.normalizeHumanName(trimmedName)
-                    let players = await store.availableLeaguePlayers()
-                    guard let matchedPlayer = players.first(where: {
-                        store.normalizeHumanName($0) == normalizedInput
-                    }) else { return }
+                    let identity = await store.approvedLeagueIdentityMatch(
+                        for: trimmedName,
+                        forceRefresh: shouldImportLplStats
+                    )
+                    if let ifpaPlayerID = identity?.ifpaPlayerID {
+                        uiState.ifpaPlayerID = ifpaPlayerID
+                        store.updatePracticeSettings(ifpaPlayerID: ifpaPlayerID)
+                    }
+                    guard shouldImportLplStats else { return }
+                    guard let matchedPlayer = identity?.player else { return }
                     uiState.leaguePlayerName = matchedPlayer
                     store.updateLeagueSettings(playerName: matchedPlayer, csvAutoFillEnabled: true)
-                    _ = await store.importLeagueScoresFromCSV()
+                    _ = await store.importLeagueScoresFromCSV(forceRefresh: true)
                 }
             },
             onViewportHeightChanged: { height in
@@ -156,16 +160,42 @@ extension PracticeScreen {
             playerName: $uiState.playerName,
             ifpaPlayerID: $uiState.ifpaPlayerID,
             leaguePlayerName: $uiState.leaguePlayerName,
+            leagueCsvAutoFillEnabled: Binding(
+                get: { store.state.leagueSettings.csvAutoFillEnabled },
+                set: { isEnabled in
+                    store.updateLeagueSettings(
+                        playerName: uiState.leaguePlayerName,
+                        csvAutoFillEnabled: isEnabled
+                    )
+                }
+            ),
             leaguePlayerOptions: uiState.leaguePlayerOptions,
             leagueImportStatus: uiState.leagueImportStatus,
             cloudSyncEnabled: $uiState.cloudSyncEnabled,
             redactName: { name in
                 formatLPLPlayerNameForDisplay(name)
             },
+            onLeaguePlayerSelected: { selectedPlayer in
+                uiState.leaguePlayerName = selectedPlayer
+                store.updateLeagueSettings(
+                    playerName: selectedPlayer,
+                    csvAutoFillEnabled: store.state.leagueSettings.csvAutoFillEnabled
+                )
+                guard !selectedPlayer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                Task {
+                    guard let identity = await store.approvedLeagueIdentityMatch(for: selectedPlayer) else { return }
+                    guard let ifpaPlayerID = identity.ifpaPlayerID else { return }
+                    uiState.ifpaPlayerID = ifpaPlayerID
+                    store.updatePracticeSettings(ifpaPlayerID: ifpaPlayerID)
+                }
+            },
             onImportLeagueCSV: {
                 Task {
-                    store.updateLeagueSettings(playerName: uiState.leaguePlayerName, csvAutoFillEnabled: true)
-                    let result = await store.importLeagueScoresFromCSV()
+                    store.updateLeagueSettings(
+                        playerName: uiState.leaguePlayerName,
+                        csvAutoFillEnabled: store.state.leagueSettings.csvAutoFillEnabled
+                    )
+                    let result = await store.importLeagueScoresFromCSV(forceRefresh: true)
                     uiState.leagueImportStatus = result.summaryLine
                 }
             },
@@ -241,6 +271,7 @@ extension PracticeScreen {
 
     var practiceLifecycleContext: PracticeLifecycleContext {
         PracticeLifecycleContext(
+            scenePhase: scenePhase,
             lastViewedLibraryGameID: appNavigation.lastViewedLibraryGameID,
             journalFilterRaw: journalFilterRaw,
             presentedSheet: uiState.presentedSheet,
@@ -251,11 +282,20 @@ extension PracticeScreen {
                 try? await Task.sleep(nanoseconds: 180_000_000)
                 await store.loadIfNeeded()
                 applyDefaultsAfterLoad()
+                if let result = await store.autoImportLeagueScoresIfNeeded(forceRefresh: true) {
+                    uiState.leagueImportStatus = result.summaryLine
+                }
                 let trimmedName = uiState.playerName.trimmingCharacters(in: .whitespacesAndNewlines)
                 if trimmedName.isEmpty {
                     uiState.firstNamePromptValue = ""
                     uiState.importLplStatsOnNameSave = true
                     uiState.showingNamePrompt = true
+                }
+            },
+            onScenePhaseChanged: { phase in
+                guard phase == .active else { return }
+                if let result = await store.autoImportLeagueScoresIfNeeded(forceRefresh: true) {
+                    uiState.leagueImportStatus = result.summaryLine
                 }
             },
             onLibraryGameViewedChanged: { newValue in

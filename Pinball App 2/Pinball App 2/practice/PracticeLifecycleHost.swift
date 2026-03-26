@@ -8,6 +8,11 @@ extension PracticeScreen {
             .task {
                 await lifecycleContext.onInitialLoad()
             }
+            .onChange(of: lifecycleContext.scenePhase) { _, newPhase in
+                Task {
+                    await lifecycleContext.onScenePhaseChanged(newPhase)
+                }
+            }
             .onChange(of: lifecycleContext.lastViewedLibraryGameID) { _, newValue in
                 lifecycleContext.onLibraryGameViewedChanged(newValue)
             }

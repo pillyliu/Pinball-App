@@ -93,6 +93,7 @@ internal fun buildCanonicalPracticeStateJson(state: CanonicalPracticePersistedSt
         put("playerName", state.leagueSettings.playerName)
         put("csvAutoFillEnabled", state.leagueSettings.csvAutoFillEnabled)
         state.leagueSettings.lastImportAtMs?.let { put("lastImportAt", it) }
+        state.leagueSettings.lastRepairVersion?.let { put("lastRepairVersion", it) }
     })
     root.put("syncSettings", JSONObject().apply {
         put("cloudSyncEnabled", state.syncSettings.cloudSyncEnabled)

@@ -16,7 +16,9 @@ internal const val hostedRedactedPlayersCsvPath = "/pinball/data/redacted_player
 internal const val hostedLeagueStandingsPath = "/pinball/data/LPL_Standings.csv"
 internal const val hostedLeagueStatsPath = "/pinball/data/LPL_Stats.csv"
 internal const val hostedLeagueTargetsPath = "/pinball/data/LPL_Targets.csv"
+internal const val hostedLeagueIfpaPlayersPath = "/pinball/data/LPL_IFPA_Players.csv"
 internal const val hostedResolvedLeagueTargetsPath = "/pinball/data/lpl_targets_resolved_v1.json"
+internal const val hostedLeagueMachineMappingsPath = "/pinball/data/lpl_machine_mappings_v1.json"
 internal val HOSTED_LIBRARY_PATHS = listOf(
     hostedOPDBExportPath,
     hostedRulesheetAssetsPath,
@@ -42,7 +44,9 @@ internal val HOSTED_PINBALL_REFRESH_TARGETS = listOf(
     HostedPinballRefreshTarget(path = hostedLeagueStandingsPath, allowMissing = true),
     HostedPinballRefreshTarget(path = hostedLeagueStatsPath, allowMissing = true),
     HostedPinballRefreshTarget(path = hostedLeagueTargetsPath, allowMissing = true),
+    HostedPinballRefreshTarget(path = hostedLeagueIfpaPlayersPath, allowMissing = true),
     HostedPinballRefreshTarget(path = hostedResolvedLeagueTargetsPath, allowMissing = true),
+    HostedPinballRefreshTarget(path = hostedLeagueMachineMappingsPath, allowMissing = true),
     HostedPinballRefreshTarget(path = hostedRedactedPlayersCsvPath, allowMissing = true),
 )
 

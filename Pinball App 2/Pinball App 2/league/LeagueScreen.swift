@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct LeagueScreen: View {
     @StateObject private var previewModel = LeaguePreviewModel()
@@ -15,6 +16,9 @@ struct LeagueScreen: View {
         }
         .task {
             await previewModel.loadIfNeeded()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .pinballLeaguePreviewNeedsRefresh)) { _ in
+            Task { await previewModel.reload() }
         }
     }
 }

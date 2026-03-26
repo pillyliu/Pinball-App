@@ -4,6 +4,7 @@ struct PracticeScreen: View {
     @StateObject var store = PracticeStore()
     @EnvironmentObject var appNavigation: AppNavigationModel
     @Environment(\.accessibilityReduceMotion) var reduceMotion
+    @Environment(\.scenePhase) var scenePhase
     @Namespace var gameTransition
 
     @State var uiState = PracticeScreenState()

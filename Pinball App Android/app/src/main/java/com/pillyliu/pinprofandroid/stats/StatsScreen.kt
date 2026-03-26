@@ -49,6 +49,7 @@ import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
 import com.pillyliu.pinprofandroid.data.parseCsv
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
+import com.pillyliu.pinprofandroid.league.LeaguePreviewRefreshEvents
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
 import com.pillyliu.pinprofandroid.ui.AppScreen
@@ -215,6 +216,9 @@ fun StatsScreen(
                     reconcileSeasonScopedSelections()
                 }
                 error = null
+                if (force) {
+                    LeaguePreviewRefreshEvents.notifyChanged()
+                }
                 if (dataUpdatedAtMs != null) {
                     scope.launch {
                         val remoteHasNewer = PinballDataCache.hasRemoteUpdate(CSV_URL)

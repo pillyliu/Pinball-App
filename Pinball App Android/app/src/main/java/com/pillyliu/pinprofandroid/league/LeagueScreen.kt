@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
@@ -35,7 +36,8 @@ fun LeagueScreen(
 ) {
     val context = LocalContext.current
     val showFullLplLastName = rememberShowFullLplLastName()
-    val previewState by produceState(initialValue = LeaguePreviewState()) {
+    val previewVersion by LeaguePreviewRefreshEvents.version.collectAsState()
+    val previewState by produceState(initialValue = LeaguePreviewState(), key1 = previewVersion) {
         value = loadLeaguePreviewState(context)
     }
     val previewRotation = rememberLeaguePreviewRotationState(previewState)

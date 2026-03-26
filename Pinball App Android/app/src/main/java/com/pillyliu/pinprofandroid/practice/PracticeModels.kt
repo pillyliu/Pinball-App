@@ -1,5 +1,7 @@
 package com.pillyliu.pinprofandroid.practice
 
+import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
+
 internal data class PracticeGroup(
     val id: String,
     val name: String,
@@ -43,6 +45,41 @@ internal data class LeagueTargetScores(
     val main: Double,
     val floor: Double,
 )
+
+internal data class LeagueImportResult(
+    val imported: Int,
+    val duplicatesSkipped: Int,
+    val unmatchedRows: Int,
+    val selectedPlayer: String,
+    val errorMessage: String? = null,
+    val repaired: Int = 0,
+) {
+    val hasNewScores: Boolean
+        get() = imported > 0
+
+    val hasChanges: Boolean
+        get() = imported > 0 || repaired > 0
+
+    val summaryLine: String
+        get() = errorMessage
+            ?: buildString {
+                append("League import for ")
+                append(formatLplPlayerNameForDisplay(selectedPlayer, false))
+                append(": ")
+                append(imported)
+                append(" imported")
+                if (repaired > 0) {
+                    append(", ")
+                    append(repaired)
+                    append(" repaired")
+                }
+                append(", ")
+                append(duplicatesSkipped)
+                append(" skipped, ")
+                append(unmatchedRows)
+                append(" unmatched.")
+            }
+}
 
 internal data class PracticeDashboardAlert(
     val message: String,

@@ -249,12 +249,22 @@ extension PracticeScreen {
             playerName: context.playerName,
             ifpaPlayerID: context.ifpaPlayerID,
             leaguePlayerName: context.leaguePlayerName,
+            leagueCsvAutoFillEnabled: context.leagueCsvAutoFillEnabled,
             leaguePlayerOptions: context.leaguePlayerOptions,
             leagueImportStatus: context.leagueImportStatus,
             cloudSyncEnabled: context.cloudSyncEnabled,
             redactName: { name in context.redactName(name) },
             onSaveProfile: {
-                context.store.updatePracticeSettings(playerName: context.playerName.wrappedValue)
+                let trimmedName = context.playerName.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                context.playerName.wrappedValue = trimmedName
+                context.store.updatePracticeSettings(playerName: trimmedName)
+                guard !trimmedName.isEmpty else { return }
+                Task {
+                    guard let identity = await context.store.approvedLeagueIdentityMatch(for: trimmedName) else { return }
+                    guard let ifpaPlayerID = identity.ifpaPlayerID else { return }
+                    context.ifpaPlayerID.wrappedValue = ifpaPlayerID
+                    context.store.updatePracticeSettings(ifpaPlayerID: ifpaPlayerID)
+                }
             },
             onSaveIFPAID: {
                 let sanitized = context.ifpaPlayerID.wrappedValue.filter(\.isNumber)
@@ -263,6 +273,9 @@ extension PracticeScreen {
             },
             onImportLeagueCSV: {
                 context.onImportLeagueCSV()
+            },
+            onLeaguePlayerSelected: { playerName in
+                context.onLeaguePlayerSelected(playerName)
             },
             onCloudSyncChanged: { enabled in
                 context.store.updateSyncSettings(cloudSyncEnabled: enabled)

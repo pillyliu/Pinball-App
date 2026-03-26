@@ -10,7 +10,18 @@ import com.pillyliu.pinprofandroid.practice.loadPreferredLeaguePlayerName
 import com.pillyliu.pinprofandroid.practice.practiceSharedPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
+
+internal object LeaguePreviewRefreshEvents {
+    private val _version = MutableStateFlow(0L)
+    val version = _version.asStateFlow()
+
+    fun notifyChanged() {
+        _version.value = System.currentTimeMillis()
+    }
+}
 
 internal suspend fun loadLeaguePreviewState(context: Context): LeaguePreviewState = withContext(Dispatchers.IO) {
     try {
