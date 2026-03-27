@@ -213,8 +213,7 @@ Current log behavior on both platforms:
 
 ### Group Editor
 
-- iOS: presented as an explicit `PracticeSheet.groupEditor`, not an ad hoc boolean
-- Android: dedicated route
+- Dedicated pushed route on both platforms
 - Titles:
   - iOS: `Create Group` or `Edit Group`
   - Android: same intent via route title logic
@@ -250,11 +249,10 @@ Current log behavior on both platforms:
 
 ## Current structural divergence to remove
 
-- iOS now models the main pushed surfaces explicitly via `PracticeRoute` and modal surfaces via `PracticeSheet`.
-- iOS still differs from Android because Android models more of the full product surface as one unified route layer.
-- Android models most primary surfaces as explicit routes.
-- Product behavior is broadly aligned, but the route architecture is not.
-- Modernization should normalize this into one explicit route contract per product surface, regardless of platform implementation details.
+- Both platforms now model the main pushed Practice surfaces explicitly through route contracts, while modal editors still sit behind platform-specific presentation hosts.
+- The remaining architectural drift is less about route identity and more about how much orchestration still lives in root hosts and route-adjacent helper seams.
+- Product behavior is broadly aligned, but ownership boundaries are still uneven.
+- Modernization should keep the product-surface route contract explicit while continuing to normalize orchestration and state boundaries, regardless of platform implementation details.
 
 ## Current state ownership snapshot
 
@@ -429,7 +427,7 @@ Practice should be normalized into four ownership buckets on both platforms:
    - analytics, summaries, and derived projections
 
 Modernization goal:
-- iOS should gain an explicit route-state seam equivalent in role to `PracticeScreenState.kt`.
+- iOS now has an explicit route-state seam equivalent in role to `PracticeScreenState.kt`; the next step is keeping route orchestration and remaining drafts from re-concentrating elsewhere.
 - Android should keep its route seam, but shrink the context and move more non-route logic out of `PracticeStore.kt`.
 - Both platforms should describe the same ownership model even if the concrete types and files differ.
 
@@ -469,7 +467,7 @@ Current status:
 
 ## First refactor seams
 
-1. Extract a dedicated Practice route state model on iOS instead of storing all navigation and modal flags in `PracticeScreen.swift`.
+1. Continue tightening the dedicated Practice route state model on iOS instead of letting navigation and modal concerns drift back into `PracticeScreen.swift` or adjacent hosts.
 2. Continue splitting Practice Game workspace into explicit subcomponents shared by contract:
    - remaining route-level helper ownership
    - note/study contract hardening
@@ -485,7 +483,7 @@ Current status:
 3. Continue decomposing Android `PracticeStore.kt` only where a real ownership seam exists; avoid moving trivial runtime-state mutation helpers out just to reduce line count.
 4. Normalize quick-entry, journal editing, and group-editor launch state so both platforms describe the same ownership model in docs.
 
-## 3.2 focus
+## Current focus
 
 1. inventory exact route flow and top-bar behavior
 2. document game workspace section order and interaction contracts

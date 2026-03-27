@@ -14,7 +14,7 @@ League includes:
 - targets
 - nested `About Lansing Pinball League`
 
-## 3.2 focus
+## Current focus
 
 - confirm destination contracts
 - normalize shell/card patterns

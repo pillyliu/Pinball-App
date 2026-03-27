@@ -17,7 +17,7 @@ Library includes:
 - video/resource presentation
 - GameRoom venue overlay integration
 
-## 3.2 focus
+## Current focus
 
 - normalize source behavior
 - normalize resource availability states

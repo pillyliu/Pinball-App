@@ -243,12 +243,9 @@ The Avengers rulesheet layout section references remote Stern-hosted `.webp` pla
 
 ## Future Cleanup
 
-Once confidence is high from real-device testing, the temporary DEBUG logging can be reduced or removed:
+The temporary named debug channels used during this investigation are no longer present in the current codebase.
 
-- `RulesheetRotationDebug`
-- `RulesheetViewportRestore`
-
-The restore behavior itself should remain.
+The restore behavior itself should remain, and any future rotation debugging can be added back in a more targeted form if regressions return.
 
 ## Practical Takeaway
 

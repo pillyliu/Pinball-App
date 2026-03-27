@@ -1249,11 +1249,11 @@ flowchart TB
 
 # 12. Final Architecture Summary
 
-PinProf `3.4.7` is a five-tab, dual-platform pinball app with one shared product model and two native implementations. The current runtime centers on three strong foundations:
+PinProf `3.4.9` is a five-tab, dual-platform pinball app with one shared product model and two native implementations. The current runtime centers on three strong foundations:
 - a hosted-content system built around `PinballDataCache`, manifest-driven refresh, OPDB export, and asset-database JSON layers
 - local-first user domains led by `PracticeStore` and `GameRoomStore`
 - shared presentation and resource seams that reduce parity drift without flattening away native platform behavior
 
 The most important architectural relationship is that `Library` is not just a tab. It is the runtime assembly substrate for `Practice`, `GameRoom`, manufacturer browsing, and imported venue sources. The most important user-data relationship is that `Practice` remains group-identity compatible while `GameRoom` preserves exact machine `opdb_id`. The most important publish relationship is that PinProf Admin now owns the clean data-and-asset model, while the legacy website repo still stages the current deploy path the apps consume.
 
-This is the corrected reference architecture for the `3.4.7` release line based on the current app code and the current PinProf Admin publish model.
+This is the corrected reference architecture for the `3.4.9` release line based on the current app code and the current PinProf Admin publish model.

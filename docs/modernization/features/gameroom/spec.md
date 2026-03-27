@@ -7,9 +7,9 @@
 
 ## Canonical references
 
-- `/Users/pillyliu/Documents/Codex/Pinball App/GameRoom_3.1_Master_Plan.md`
-- `/Users/pillyliu/Documents/Codex/Pinball App/GameRoom_3.1_Parity_Journal.md`
-- `/Users/pillyliu/Documents/Codex/Pinball App/GameRoom_3.1_Android_Parity_Kickoff.md`
+- `/Users/pillyliu/Documents/Codex/Pinball App/archive/2026-03-25-retired-docs/root/GameRoom_3.1_Master_Plan.md`
+- `/Users/pillyliu/Documents/Codex/Pinball App/archive/2026-03-25-retired-docs/root/GameRoom_3.1_Parity_Journal.md`
+- `/Users/pillyliu/Documents/Codex/Pinball App/archive/2026-03-25-retired-docs/root/GameRoom_3.1_Android_Parity_Kickoff.md`
 
 ## Scope summary
 
@@ -23,7 +23,7 @@ GameRoom is the personal machine-ownership feature for:
 - library overlay integration
 - Pinside import
 
-## 3.2 focus
+## Current focus
 
 - audit 3.1 for structural cleanup
 - split oversized screens and helper clusters
@@ -40,4 +40,4 @@ GameRoom is the personal machine-ownership feature for:
 - Android machine-detail route body now lives in `GameRoomMachineRoute.kt` instead of staying inline in `GameRoomScreen.kt`.
 - Android settings import, edit, and archive surfaces now live in `GameRoomSettingsSections.kt` instead of staying inline in `GameRoomScreen.kt`.
 - Android log/media presentation helpers now live in `GameRoomPresentationComponents.kt`, leaving `GameRoomScreen.kt` focused on root state, route wiring, and active presentation state.
-- GameRoom is now at a “clean enough” structural baseline for `3.2`; the next major work should move to League and broader shell/design-system cleanup instead of more GameRoom slicing.
+- GameRoom is now at a “clean enough” structural baseline for the current modernization phase; the next major work should move to League and broader shell/design-system cleanup instead of more GameRoom slicing.

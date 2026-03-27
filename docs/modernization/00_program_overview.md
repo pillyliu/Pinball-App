@@ -2,9 +2,10 @@
 
 ## Name
 
-- Program: `3.2 Modernization`
-- Branch: `codex/3.2-modernization`
-- Recommended chat title: `3.2 Modernization Foundation`
+- Program: `PinProf modernization and parity maintenance`
+- Historical label: `3.2 Modernization`
+- Historical branch reference: `codex/3.2-modernization`
+- Recommended chat title: `PinProf modernization`
 
 ## Goal
 
@@ -57,9 +58,9 @@ Modernize the iOS and Android apps so they have:
 
 - `GameRoom 3.1` is the most fully specified parity effort to date.
 - Existing source docs remain valid inputs:
-  - `/Users/pillyliu/Documents/Codex/Pinball App/GameRoom_3.1_Master_Plan.md`
-  - `/Users/pillyliu/Documents/Codex/Pinball App/GameRoom_3.1_Parity_Journal.md`
-  - `/Users/pillyliu/Documents/Codex/Pinball App/GameRoom_3.1_Android_Parity_Kickoff.md`
+  - `/Users/pillyliu/Documents/Codex/Pinball App/archive/2026-03-25-retired-docs/root/GameRoom_3.1_Master_Plan.md`
+  - `/Users/pillyliu/Documents/Codex/Pinball App/archive/2026-03-25-retired-docs/root/GameRoom_3.1_Parity_Journal.md`
+  - `/Users/pillyliu/Documents/Codex/Pinball App/archive/2026-03-25-retired-docs/root/GameRoom_3.1_Android_Parity_Kickoff.md`
 
 ## Current product map
 

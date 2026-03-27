@@ -25,6 +25,6 @@
 
 ## Drift rule
 
-Any GameRoom drift found during 3.2 must be logged in `ledger.md` and either:
+Any GameRoom drift found during active modernization/parity maintenance must be logged in `ledger.md` and either:
 - fixed to match the written contract
 - or approved here as an intentional difference

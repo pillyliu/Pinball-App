@@ -29,7 +29,31 @@ Run practice migration XCTest suite
 [bundle exec] fastlane ios build
 ```
 
-Build an App Store archive
+Build an App Store archive without uploading
+
+### ios upload_build
+
+```sh
+[bundle exec] fastlane ios upload_build
+```
+
+Optionally bump version/build, archive, and upload the binary to App Store Connect
+
+### ios submit_review
+
+```sh
+[bundle exec] fastlane ios submit_review
+```
+
+Update App Store Connect metadata, select a build, and submit the version for review
+
+### ios release_history
+
+```sh
+[bundle exec] fastlane ios release_history
+```
+
+Read recent App Store release notes and promotional text for drafting
 
 ### ios beta
 
@@ -37,7 +61,7 @@ Build an App Store archive
 [bundle exec] fastlane ios beta
 ```
 
-Build and upload to TestFlight
+Alias for upload_build
 
 ### ios release
 
@@ -45,7 +69,7 @@ Build and upload to TestFlight
 [bundle exec] fastlane ios release
 ```
 
-Build and submit to App Store Connect
+Alias for submit_review
 
 ----
 

@@ -64,6 +64,7 @@ convert_android_webp() {
   if [[ "${source_path##*.}" == "webp" ]]; then
     rsync -a "${source_path}" "${target_path}"
   else
+    require_command cwebp
     cwebp -quiet -q 82 "${source_path}" -o "${target_path}"
   fi
 }
@@ -83,8 +84,6 @@ render_ios_scaled_png() {
   mkdir -p "$(dirname "${target_path}")"
   sips -z "${height}" "${width}" -s format png "${source_path}" --out "${target_path}" >/dev/null
 }
-
-require_command cwebp
 
 LAUNCH_LOGO_SOURCE="$(resolve_shared_asset "launch-logo")"
 LEAGUE_SCREENSHOT_SOURCE="$(resolve_shared_asset "league-screenshot")"

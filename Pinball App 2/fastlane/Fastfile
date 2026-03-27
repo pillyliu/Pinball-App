@@ -1,10 +1,35 @@
 default_platform(:ios)
 require "json"
+require "fileutils"
+require "spaceship"
+
+def normalized_text_option(value)
+  return nil if value.nil?
+
+  text = value.to_s.strip
+  text.empty? ? nil : text
+end
+
+def truthy_option?(value, default: false)
+  return default if value.nil?
+
+  %w[1 true yes y on].include?(value.to_s.strip.downcase)
+end
 
 platform :ios do
+  private_lane :ios_release_config do |options|
+    {
+      project: options[:project] || File.expand_path("../Pinball App 2.xcodeproj", __dir__),
+      scheme: options[:scheme] || "PinProf",
+      target: options[:target] || "PinProf",
+      metadata_root: File.expand_path("./metadata", __dir__)
+    }
+  end
+
   private_lane :resolve_ios_simulator_id do |options|
-    scheme = options[:scheme] || "PinProf"
-    project = options[:project] || "../Pinball App 2.xcodeproj"
+    config = ios_release_config(options)
+    scheme = config[:scheme]
+    project = config[:project]
     destinations_json = sh(
       "xcodebuild -project '#{project}' -scheme '#{scheme}' -showdestinations -json 2>/dev/null || true"
     ).to_s.strip
@@ -53,10 +78,190 @@ platform :ios do
     )
   end
 
+  private_lane :asc_api_key do
+    ensure_asc_env
+    app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_filepath: ENV.fetch("APP_STORE_CONNECT_KEY_PATH"),
+      duration: 1200,
+      in_house: false
+    )
+  end
+
+  private_lane :asc_bundle_identifier do |options|
+    bundle_identifier =
+      normalized_text_option(options[:app_identifier]) ||
+      CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+
+    UI.user_error!("No App Store bundle identifier configured for release-history lookup") if bundle_identifier.to_s.empty?
+    bundle_identifier
+  end
+
+  private_lane :asc_connect_app do |options|
+    bundle_identifier = asc_bundle_identifier(options)
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(
+      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      filepath: ENV.fetch("APP_STORE_CONNECT_KEY_PATH")
+    )
+
+    app = Spaceship::ConnectAPI::App.find(bundle_identifier)
+    UI.user_error!("App Store Connect app not found for #{bundle_identifier}") unless app
+    app
+  end
+
+  private_lane :asc_release_history_rows do |options|
+    ensure_asc_env
+    app = asc_connect_app(options)
+    locale = normalized_text_option(options[:locale]) || "en-US"
+    requested_version = normalized_text_option(options[:version_number])
+    limit = [options[:limit].to_i, 1].max
+    limit = 8 if options[:limit].to_i <= 0
+
+    versions = app.get_app_store_versions(includes: nil)
+    versions = versions.select { |version| version.version_string == requested_version } if requested_version
+    versions = versions.sort_by { |version| Gem::Version.new(version.version_string) }.reverse.first(limit)
+
+    versions.map do |version|
+      localization = version.get_app_store_version_localizations.find { |item| item.locale == locale }
+      {
+        version: version.version_string,
+        state: version.app_version_state,
+        locale: locale,
+        release_notes: localization&.whats_new.to_s.strip,
+        promotional_text: localization&.promotional_text.to_s.strip
+      }
+    end
+  end
+
+  private_lane :current_project_release_values do |options|
+    config = ios_release_config(options)
+    {
+      version: get_version_number(
+        xcodeproj: config[:project],
+        target: config[:target]
+      ),
+      build: get_build_number(
+        xcodeproj: config[:project]
+      ).to_s
+    }
+  end
+
+  private_lane :prepare_project_release_values do |options|
+    config = ios_release_config(options)
+    version_number = normalized_text_option(options[:version_number])
+    build_number = normalized_text_option(options[:build_number])
+    should_increment_build = truthy_option?(
+      options[:increment_build],
+      default: options[:default_increment_build]
+    )
+
+    increment_version_number(
+      xcodeproj: config[:project],
+      version_number: version_number
+    ) if version_number
+
+    if build_number
+      increment_build_number(
+        xcodeproj: config[:project],
+        build_number: build_number
+      )
+    elsif should_increment_build
+      increment_build_number(
+        xcodeproj: config[:project]
+      )
+    end
+
+    current_project_release_values(config)
+  end
+
+  private_lane :maybe_run_release_tests do |options|
+    if truthy_option?(options[:run_tests], default: false)
+      test(options)
+    end
+  end
+
+  private_lane :build_release_archive do |options|
+    config = ios_release_config(options)
+    build_app(
+      project: config[:project],
+      scheme: config[:scheme],
+      clean: true,
+      export_method: "app-store"
+    )
+  end
+
+  private_lane :review_metadata_paths do |options|
+    config = ios_release_config(options)
+    locale = normalized_text_option(options[:locale]) || "en-US"
+    locale_root = File.join(config[:metadata_root], locale)
+
+    {
+      locale: locale,
+      locale_root: locale_root,
+      release_notes: File.join(locale_root, "release_notes.txt"),
+      promotional_text: File.join(locale_root, "promotional_text.txt")
+    }
+  end
+
+  private_lane :persist_review_metadata do |options|
+    paths = review_metadata_paths(options)
+    release_notes = normalized_text_option(options[:release_notes])
+    promotional_text = normalized_text_option(options[:promotional_text])
+    written_paths = []
+
+    if release_notes || promotional_text
+      FileUtils.mkdir_p(paths[:locale_root])
+    end
+
+    if release_notes
+      File.write(paths[:release_notes], "#{release_notes}\n")
+      written_paths << paths[:release_notes]
+    end
+
+    if promotional_text
+      File.write(paths[:promotional_text], "#{promotional_text}\n")
+      written_paths << paths[:promotional_text]
+    end
+
+    unless written_paths.empty?
+      UI.message("Updated review metadata files:\n- #{written_paths.join("\n- ")}")
+    end
+
+    paths
+  end
+
+  private_lane :load_review_metadata do |options|
+    paths = persist_review_metadata(options)
+    locale = paths[:locale]
+    release_notes = File.exist?(paths[:release_notes]) ? File.read(paths[:release_notes]).strip : nil
+    promotional_text = File.exist?(paths[:promotional_text]) ? File.read(paths[:promotional_text]).strip : nil
+
+    UI.user_error!(
+      "submit_review needs release notes. Pass release_notes:'...' or create #{paths[:release_notes]}"
+    ) if release_notes.to_s.empty?
+
+    metadata = {
+      release_notes: {
+        locale => release_notes
+      }
+    }
+
+    unless promotional_text.to_s.empty?
+      metadata[:promotional_text] = {
+        locale => promotional_text
+      }
+    end
+
+    metadata
+  end
+
   desc "Run practice migration XCTest suite"
   lane :test do |options|
-    scheme = options[:scheme] || "PinProf"
-    project = options[:project] || "../Pinball App 2.xcodeproj"
+    config = ios_release_config(options)
+    scheme = config[:scheme]
+    project = config[:project]
     simulator_id = resolve_ios_simulator_id(project: project, scheme: scheme)
     UI.message("Using simulator id: #{simulator_id}")
     sh(
@@ -66,71 +271,97 @@ platform :ios do
     )
   end
 
-  desc "Build an App Store archive"
+  desc "Build an App Store archive without uploading"
   lane :build do |options|
-    test(options)
-    build_app(
-      project: options[:project] || "../Pinball App 2.xcodeproj",
-      scheme: options[:scheme] || "PinProf",
-      clean: true,
-      export_method: "app-store"
-    )
+    maybe_run_release_tests(options)
+    release_values = prepare_project_release_values(options.merge(default_increment_build: false))
+    build_release_archive(options)
+    UI.success("Built archive for #{release_values[:version]} (#{release_values[:build]})")
   end
 
-  desc "Build and upload to TestFlight"
-  lane :beta do |options|
-    ensure_asc_env
-    test(options)
-    api_key = app_store_connect_api_key(
-      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
-      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
-      key_filepath: ENV.fetch("APP_STORE_CONNECT_KEY_PATH"),
-      duration: 1200,
-      in_house: false
-    )
+  desc "Optionally bump version/build, archive, and upload the binary to App Store Connect"
+  lane :upload_build do |options|
+    maybe_run_release_tests(options)
+    api_key = asc_api_key
+    release_values = prepare_project_release_values(options.merge(default_increment_build: true))
 
-    build_app(
-      project: options[:project] || "../Pinball App 2.xcodeproj",
-      scheme: options[:scheme] || "PinProf",
-      clean: true,
-      export_method: "app-store"
-    )
-
-    upload_to_testflight(
-      api_key: api_key,
-      skip_waiting_for_build_processing: true
-    )
-  end
-
-  desc "Build and submit to App Store Connect"
-  lane :release do |options|
-    ensure_asc_env
-    test(options)
-    api_key = app_store_connect_api_key(
-      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
-      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
-      key_filepath: ENV.fetch("APP_STORE_CONNECT_KEY_PATH"),
-      duration: 1200,
-      in_house: false
-    )
-
-    build_app(
-      project: options[:project] || "../Pinball App 2.xcodeproj",
-      scheme: options[:scheme] || "PinProf",
-      clean: true,
-      export_method: "app-store"
-    )
-
-    submit_for_review = options[:submit_for_review].to_s.downcase == "true"
-    automatic_release = options[:automatic_release].to_s.downcase == "true"
+    build_release_archive(options)
 
     upload_to_app_store(
       api_key: api_key,
       force: true,
-      skip_screenshots: true,
       skip_metadata: true,
-      submit_for_review: submit_for_review,
-      automatic_release: automatic_release
+      skip_screenshots: true,
+      skip_app_version_update: true,
+      submit_for_review: false,
+      automatic_release: false
     )
+
+    UI.success("Uploaded #{release_values[:version]} (#{release_values[:build]}) to App Store Connect")
+  end
+
+  desc "Update App Store Connect metadata, select a build, and submit the version for review"
+  lane :submit_review do |options|
+    api_key = asc_api_key
+    metadata = load_review_metadata(options)
+    project_values = current_project_release_values(options)
+    version_number = normalized_text_option(options[:version_number]) || project_values[:version]
+    build_number = normalized_text_option(options[:build_number])
+
+    unless build_number
+      latest_build = latest_testflight_build_number(
+        api_key: api_key,
+        version: version_number,
+        initial_build_number: 0
+      ).to_i
+
+      UI.user_error!(
+        "No uploaded build found for version #{version_number}. Upload a build first or pass build_number:'...'"
+      ) if latest_build <= 0
+
+      build_number = latest_build.to_s
+      UI.message("Using latest uploaded build #{build_number} for App Store version #{version_number}")
+    end
+
+    upload_to_app_store(
+      api_key: api_key,
+      force: true,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      app_version: version_number,
+      build_number: build_number,
+      release_notes: metadata[:release_notes],
+      promotional_text: metadata[:promotional_text],
+      submit_for_review: true,
+      automatic_release: truthy_option?(options[:automatic_release], default: false),
+      phased_release: truthy_option?(options[:phased_release], default: false)
+    )
+
+    UI.success("Submitted App Store version #{version_number} with build #{build_number} for review")
+  end
+
+  desc "Read recent App Store release notes and promotional text for drafting"
+  lane :release_history do |options|
+    rows = asc_release_history_rows(options)
+    locale = normalized_text_option(options[:locale]) || "en-US"
+
+    UI.user_error!("No App Store release history found for locale #{locale}") if rows.empty?
+
+    rows.each do |row|
+      UI.message("Version #{row[:version]} [#{row[:state]}] (#{row[:locale]})")
+      UI.message("What's New:\n#{row[:release_notes].empty? ? '(empty)' : row[:release_notes]}")
+      UI.message("Promotional Text:\n#{row[:promotional_text].empty? ? '(empty)' : row[:promotional_text]}")
+      UI.message("-" * 40)
+    end
+  end
+
+  desc "Alias for upload_build"
+  lane :beta do |options|
+    upload_build(options)
+  end
+
+  desc "Alias for submit_review"
+  lane :release do |options|
+    submit_review(options)
   end
 end

@@ -12,7 +12,7 @@ Settings includes:
 - integration clients and service entry points
 - feature-specific settings entry patterns where applicable
 
-## 3.2 focus
+## Current focus
 
 - normalize list/grouping patterns
 - align visual treatment with the broader design system

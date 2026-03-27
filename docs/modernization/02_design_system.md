@@ -77,9 +77,9 @@ Do not add mascot styling ad hoc. First establish the system that branding will 
 
 ## Current gap to close
 
-- iOS already uses a light custom semantic layer in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppTheme.swift`.
-- Android still leans heavily on Material color-scheme defaults in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/PinballTheme.kt`.
-- The next design-system step is not a visual overhaul first. It is defining semantic roles that both files can implement consistently.
+- iOS already uses a custom semantic layer in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/ui/AppTheme.swift`.
+- Android now has an explicit semantic token layer in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/PinballDesignTokens.kt`, but broader shared-component adoption is still underway in `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/PinballTheme.kt` and related UI seams.
+- The next design-system step is still not a visual overhaul first. It is keeping both platforms aligned on semantic roles before broader styling passes.
 
 ## 2026-03-07 baseline progress
 

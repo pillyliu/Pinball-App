@@ -10,7 +10,7 @@ from typing import Any
 
 
 class OPDBClient:
-    def __init__(self, autoload_local_env: bool = True) -> None:
+    def __init__(self, _autoload_local_env: bool = True) -> None:
         self.api_token = os.environ.get("OPDB_API_TOKEN", "").strip()
         self.export_url = os.environ.get("OPDB_EXPORT_URL", "https://opdb.org/api/export").strip()
         if not self.api_token:
