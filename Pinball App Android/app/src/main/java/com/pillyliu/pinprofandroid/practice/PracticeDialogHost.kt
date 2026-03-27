@@ -14,14 +14,12 @@ internal fun PracticeDialogHost(
         PracticeNamePromptSheet(
             initialName = context.store.playerName,
             onSave = { name, shouldImportLpl ->
-                context.store.updatePlayerName(name)
                 context.onOpenNamePromptChange(false)
                 scope.launch {
-                    val identity = context.store.approvedLeagueIdentityMatch(
+                    val identity = context.store.savePlayerProfileAndSyncIfpa(
                         name = name,
-                        forceRefresh = shouldImportLpl,
+                        forceRefreshLeagueIdentity = shouldImportLpl,
                     )
-                    identity?.ifpaPlayerID?.let(context.store::updateIfpaPlayerID)
                     if (!shouldImportLpl) return@launch
                     val matchedPlayer = identity?.player ?: return@launch
                     context.store.updateLeaguePlayerName(matchedPlayer)
@@ -89,12 +87,7 @@ internal fun PracticeDialogHost(
         ClearImportedLeagueScoresDialog(
             importedLeagueScoreCount = context.store.importedLeagueScoreCount,
             onConfirmClear = {
-                val removedCount = context.store.purgeImportedLeagueScores()
-                val status = when (removedCount) {
-                    0 -> "No imported league scores to clear."
-                    1 -> "Cleared 1 imported league score."
-                    else -> "Cleared $removedCount imported league scores."
-                }
+                val status = context.store.clearImportedLeagueScoresAndBuildStatus()
                 context.onImportStatusChange(status)
                 context.onOpenClearImportedLeagueScoresDialogChange(false)
             },

@@ -252,33 +252,17 @@ extension PracticeScreen {
             leaguePlayerOptions: context.leaguePlayerOptions,
             leagueImportStatus: context.leagueImportStatus,
             importedLeagueScoreCount: context.importedLeagueScoreCount,
-            cloudSyncEnabled: context.cloudSyncEnabled,
-            redactName: { name in context.redactName(name) },
             onSaveProfile: {
-                let trimmedName = context.playerName.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                context.playerName.wrappedValue = trimmedName
-                context.store.updatePracticeSettings(playerName: trimmedName)
-                guard !trimmedName.isEmpty else { return }
-                Task {
-                    guard let identity = await context.store.approvedLeagueIdentityMatch(for: trimmedName) else { return }
-                    guard let ifpaPlayerID = identity.ifpaPlayerID else { return }
-                    context.ifpaPlayerID.wrappedValue = ifpaPlayerID
-                    context.store.updatePracticeSettings(ifpaPlayerID: ifpaPlayerID)
-                }
+                context.onSaveProfile()
             },
             onSaveIFPAID: {
-                let sanitized = context.ifpaPlayerID.wrappedValue.filter(\.isNumber)
-                context.ifpaPlayerID.wrappedValue = sanitized
-                context.store.updatePracticeSettings(ifpaPlayerID: sanitized)
+                context.onSaveIFPAID()
             },
             onImportLeagueCSV: {
                 context.onImportLeagueCSV()
             },
             onLeaguePlayerSelected: { playerName in
                 context.onLeaguePlayerSelected(playerName)
-            },
-            onCloudSyncChanged: { enabled in
-                context.store.updateSyncSettings(cloudSyncEnabled: enabled)
             },
             onClearImportedLeagueScores: {
                 context.onClearImportedLeagueScores()

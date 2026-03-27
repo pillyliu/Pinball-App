@@ -46,13 +46,9 @@ internal fun PracticeSettingsSection(
             onClick = {
                 val trimmed = draftName.trim()
                 draftName = trimmed
-                store.updatePlayerName(trimmed)
-                if (trimmed.isNotBlank()) {
-                    scope.launch {
-                        val ifpaPlayerID = store.approvedLeagueIdentityMatch(trimmed)?.ifpaPlayerID ?: return@launch
-                        store.updateIfpaPlayerID(ifpaPlayerID)
-                        draftIfpaId = ifpaPlayerID
-                    }
+                scope.launch {
+                    val identity = store.savePlayerProfileAndSyncIfpa(trimmed)
+                    identity?.ifpaPlayerID?.let { draftIfpaId = it }
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -94,21 +90,14 @@ internal fun PracticeSettingsSection(
             selected = if (store.leaguePlayerName.isBlank()) "Select league player" else formatLplPlayerNameForDisplay(store.leaguePlayerName, showFullLplLastName),
             formatOptionLabel = { formatLplPlayerNameForDisplay(it, showFullLplLastName) },
             onSelect = { selectedPlayer ->
-                store.updateLeaguePlayerName(selectedPlayer)
                 scope.launch {
-                    val ifpaPlayerID = store.approvedLeagueIdentityMatch(selectedPlayer)?.ifpaPlayerID ?: return@launch
-                    store.updateIfpaPlayerID(ifpaPlayerID)
-                    draftIfpaId = ifpaPlayerID
+                    val identity = store.selectLeaguePlayerAndSyncIfpa(selectedPlayer)
+                    identity?.ifpaPlayerID?.let { draftIfpaId = it }
                 }
             },
         )
         Text(
-            "Used for manual import and automatic sync.",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            "Practice automatically checks for a new hosted LPL stats file and imports only new rows.",
+            PRACTICE_LEAGUE_IMPORT_DESCRIPTION,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -143,29 +132,5 @@ internal fun PracticeSettingsSection(
             onClick = onOpenResetDialog,
             modifier = Modifier.fillMaxWidth(),
         ) { Text("Reset Practice Log") }
-    }
-}
-
-internal fun importedLeagueScoreSummary(count: Int): String {
-    return when (count) {
-        0 -> "No imported league scores are currently saved."
-        1 -> "Remove only the 1 imported league score. Manual Practice notes and scores stay."
-        else -> "Remove only the $count imported league scores. Manual Practice notes and scores stay."
-    }
-}
-
-internal fun clearImportedLeagueScoresButtonTitle(count: Int): String {
-    return when (count) {
-        0 -> "Clear Imported League Scores"
-        1 -> "Clear 1 Imported League Score"
-        else -> "Clear $count Imported League Scores"
-    }
-}
-
-internal fun clearImportedLeagueScoresAlertMessage(count: Int): String {
-    return when (count) {
-        0 -> "No imported league scores are currently saved."
-        1 -> "This removes the 1 imported league score and matching journal rows. Manual Practice entries stay."
-        else -> "This removes the $count imported league scores and matching journal rows. Manual Practice entries stay."
     }
 }

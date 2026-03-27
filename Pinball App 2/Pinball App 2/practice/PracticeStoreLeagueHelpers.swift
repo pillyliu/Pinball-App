@@ -197,8 +197,38 @@ extension PracticeStore {
         return LeagueIdentityMatch(player: matchedPlayer, ifpaPlayerID: nil)
     }
 
+    @discardableResult
+    func savePracticeProfileAndSyncIFPA(
+        playerName: String,
+        forceRefreshLeagueIdentity: Bool = false
+    ) async -> LeagueIdentityMatch? {
+        let trimmedPlayerName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        updatePracticeSettings(playerName: trimmedPlayerName)
+        guard !trimmedPlayerName.isEmpty else { return nil }
+        let identity = await approvedLeagueIdentityMatch(
+            for: trimmedPlayerName,
+            forceRefresh: forceRefreshLeagueIdentity
+        )
+        if let ifpaPlayerID = identity?.ifpaPlayerID {
+            updatePracticeSettings(ifpaPlayerID: ifpaPlayerID)
+        }
+        return identity
+    }
+
+    @discardableResult
+    func selectLeaguePlayerAndSyncIFPA(_ playerName: String) async -> LeagueIdentityMatch? {
+        let trimmedPlayerName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        updateLeagueSettings(playerName: trimmedPlayerName)
+        guard !trimmedPlayerName.isEmpty else { return nil }
+        let identity = await approvedLeagueIdentityMatch(for: trimmedPlayerName)
+        if let ifpaPlayerID = identity?.ifpaPlayerID {
+            updatePracticeSettings(ifpaPlayerID: ifpaPlayerID)
+        }
+        return identity
+    }
+
     func updateLeagueSettings(playerName: String) {
-        state.leagueSettings.playerName = playerName
+        state.leagueSettings.playerName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
         state.leagueSettings.csvAutoFillEnabled = true
         saveState()
     }

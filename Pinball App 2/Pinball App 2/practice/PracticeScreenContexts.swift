@@ -54,23 +54,22 @@ extension PracticeScreen {
             },
             onSaveName: { trimmedName, shouldImportLplStats in
                 uiState.playerName = trimmedName
-                store.updatePracticeSettings(playerName: trimmedName)
                 practiceNamePrompted = true
                 uiState.showingNamePrompt = false
                 Task {
-                    let identity = await store.approvedLeagueIdentityMatch(
-                        for: trimmedName,
-                        forceRefresh: shouldImportLplStats
+                    let identity = await store.savePracticeProfileAndSyncIFPA(
+                        playerName: trimmedName,
+                        forceRefreshLeagueIdentity: shouldImportLplStats
                     )
                     if let ifpaPlayerID = identity?.ifpaPlayerID {
                         uiState.ifpaPlayerID = ifpaPlayerID
-                        store.updatePracticeSettings(ifpaPlayerID: ifpaPlayerID)
                     }
                     guard shouldImportLplStats else { return }
                     guard let matchedPlayer = identity?.player else { return }
                     uiState.leaguePlayerName = matchedPlayer
                     store.updateLeagueSettings(playerName: matchedPlayer)
-                    _ = await store.importLeagueScoresFromCSV(forceRefresh: true)
+                    let result = await store.importLeagueScoresFromCSV(forceRefresh: true)
+                    uiState.leagueImportStatus = result.summaryLine
                 }
             },
             onViewportHeightChanged: { height in
@@ -156,26 +155,35 @@ extension PracticeScreen {
 
     var practiceSettingsContext: PracticeSettingsContext {
         PracticeSettingsContext(
-            store: store,
             playerName: $uiState.playerName,
             ifpaPlayerID: $uiState.ifpaPlayerID,
             leaguePlayerName: $uiState.leaguePlayerName,
             leaguePlayerOptions: uiState.leaguePlayerOptions,
             leagueImportStatus: uiState.leagueImportStatus,
             importedLeagueScoreCount: store.state.scoreEntries.filter(\.leagueImported).count,
-            cloudSyncEnabled: $uiState.cloudSyncEnabled,
-            redactName: { name in
-                formatLPLPlayerNameForDisplay(name)
+            onSaveProfile: {
+                let trimmedName = uiState.playerName.trimmingCharacters(in: .whitespacesAndNewlines)
+                uiState.playerName = trimmedName
+                Task {
+                    let identity = await store.savePracticeProfileAndSyncIFPA(playerName: trimmedName)
+                    if let ifpaPlayerID = identity?.ifpaPlayerID {
+                        uiState.ifpaPlayerID = ifpaPlayerID
+                    }
+                }
+            },
+            onSaveIFPAID: {
+                let sanitized = uiState.ifpaPlayerID.filter(\.isNumber)
+                uiState.ifpaPlayerID = sanitized
+                store.updatePracticeSettings(ifpaPlayerID: sanitized)
             },
             onLeaguePlayerSelected: { selectedPlayer in
-                uiState.leaguePlayerName = selectedPlayer
-                store.updateLeagueSettings(playerName: selectedPlayer)
-                guard !selectedPlayer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                let trimmedPlayer = selectedPlayer.trimmingCharacters(in: .whitespacesAndNewlines)
+                uiState.leaguePlayerName = trimmedPlayer
                 Task {
-                    guard let identity = await store.approvedLeagueIdentityMatch(for: selectedPlayer) else { return }
-                    guard let ifpaPlayerID = identity.ifpaPlayerID else { return }
-                    uiState.ifpaPlayerID = ifpaPlayerID
-                    store.updatePracticeSettings(ifpaPlayerID: ifpaPlayerID)
+                    let identity = await store.selectLeaguePlayerAndSyncIFPA(trimmedPlayer)
+                    if let ifpaPlayerID = identity?.ifpaPlayerID {
+                        uiState.ifpaPlayerID = ifpaPlayerID
+                    }
                 }
             },
             onImportLeagueCSV: {
@@ -186,9 +194,7 @@ extension PracticeScreen {
                 }
             },
             onClearImportedLeagueScores: {
-                let removed = store.purgeImportedLeagueScores()
-                let label = removed == 1 ? "1 imported league score." : "\(removed) imported league scores."
-                uiState.leagueImportStatus = removed > 0 ? "Cleared \(label)" : "No imported league scores to clear."
+                uiState.leagueImportStatus = store.clearImportedLeagueScoresAndBuildStatus()
             },
             onResetPracticeLog: {
                 store.resetPracticeState()

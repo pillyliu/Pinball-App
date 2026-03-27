@@ -247,6 +247,21 @@ internal class PracticeStore(private val context: Context) {
         saveHomeBootstrapSnapshotIfNeeded()
     }
 
+    suspend fun savePlayerProfileAndSyncIfpa(
+        name: String,
+        forceRefreshLeagueIdentity: Boolean = false,
+    ): LeagueIdentityMatch? {
+        val trimmedName = name.trim()
+        updatePlayerName(trimmedName)
+        if (trimmedName.isBlank()) return null
+        val identity = approvedLeagueIdentityMatch(
+            name = trimmedName,
+            forceRefresh = forceRefreshLeagueIdentity,
+        )
+        identity?.ifpaPlayerID?.let(::updateIfpaPlayerID)
+        return identity
+    }
+
     fun updateIfpaPlayerID(value: String) {
         mutateAndSave { ifpaPlayerID = value.trim() }
     }
@@ -265,6 +280,15 @@ internal class PracticeStore(private val context: Context) {
             ),
         )
         saveState()
+    }
+
+    suspend fun selectLeaguePlayerAndSyncIfpa(name: String): LeagueIdentityMatch? {
+        val trimmedName = name.trim()
+        updateLeaguePlayerName(trimmedName)
+        if (trimmedName.isBlank()) return null
+        val identity = approvedLeagueIdentityMatch(name = trimmedName)
+        identity?.ifpaPlayerID?.let(::updateIfpaPlayerID)
+        return identity
     }
 
     fun updateCloudSyncEnabled(enabled: Boolean) {
@@ -700,6 +724,10 @@ internal class PracticeStore(private val context: Context) {
         saveState()
         saveHomeBootstrapSnapshotIfNeeded()
         return removedCount
+    }
+
+    fun clearImportedLeagueScoresAndBuildStatus(): String {
+        return clearedImportedLeagueScoresStatusMessage(purgeImportedLeagueScores())
     }
 
     fun markPracticeViewedGame(slug: String) {

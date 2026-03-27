@@ -191,6 +191,10 @@ extension PracticeStore {
         return before - state.scoreEntries.count
     }
 
+    func clearImportedLeagueScoresAndBuildStatus() -> String {
+        clearedImportedLeagueScoresStatusMessage(purgeImportedLeagueScores())
+    }
+
     func updateSyncSettings(cloudSyncEnabled: Bool) {
         state.syncSettings.cloudSyncEnabled = cloudSyncEnabled
         state.syncSettings.phaseLabel = cloudSyncEnabled ? "Phase 2: Optional cloud sync" : "Phase 1: On-device"
