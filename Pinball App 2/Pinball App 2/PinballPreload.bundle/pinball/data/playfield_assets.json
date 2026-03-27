@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-27T16:35:19Z",
+  "generatedAt": "2026-03-27T19:09:13Z",
   "records": [
     {
       "playfieldAssetId": 4346,
@@ -19,7 +19,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T11:22:22.881Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4367,
@@ -39,7 +39,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.22395571877724643,\"y\":0.10984840978896265},{\"x\":0,\"y\":0.8270434954919251},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.6385762409590805},{\"x\":0.8008930222727153,\"y\":0.10859506588724858}]",
       "createdAt": "2026-03-27T14:56:51.924Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 15,
@@ -59,7 +59,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4349,
@@ -79,7 +79,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T11:46:08.108Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 39,
@@ -99,7 +99,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4365,
@@ -119,7 +119,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.21631350894343312,\"y\":0},{\"x\":0,\"y\":0.8320530864686992},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.8609974031637792},{\"x\":0.7929403683056355,\"y\":0}]",
       "createdAt": "2026-03-27T14:05:44.529Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 110,
@@ -139,7 +139,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.22284604613067716,\"y\":0.006023977013771921},{\"x\":0.09489022167032155,\"y\":1},{\"x\":0.9843588998388333,\"y\":1},{\"x\":0.8144931173875135,\"y\":0}]",
       "createdAt": "2026-03-15T15:39:31.416Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 35,
@@ -159,7 +159,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 79,
@@ -179,7 +179,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.20436902932727638,\"y\":0},{\"x\":0,\"y\":0.8247923201026124},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.6243223472588257},{\"x\":0.8115505377780747,\"y\":0}]",
       "createdAt": "2026-03-15T02:02:45.597Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 17,
@@ -199,7 +199,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 12,
@@ -219,7 +219,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 68,
@@ -239,7 +239,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.13638185583539314,\"y\":0},{\"x\":0.046262275369096134,\"y\":1},{\"x\":0.9303627496826775,\"y\":1},{\"x\":0.8289331284654953,\"y\":0}]",
       "createdAt": "2026-03-08T15:17:25.322Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 36,
@@ -259,7 +259,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 3,
@@ -279,7 +279,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 117,
@@ -299,7 +299,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.20518404703052975,\"y\":0},{\"x\":0.07624423809205692,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.983781427555039},{\"x\":0.8158260404836662,\"y\":0}]",
       "createdAt": "2026-03-15T17:08:46.961Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 56,
@@ -319,7 +319,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 80,
@@ -339,7 +339,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.1712940076157392,\"y\":0},{\"x\":0,\"y\":0.7406331105388153},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.8064543605262894},{\"x\":0.7854632908009888,\"y\":0}]",
       "createdAt": "2026-03-15T02:29:15.337Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 13,
@@ -359,7 +359,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
+    },
+    {
+      "playfieldAssetId": 4502,
+      "practiceIdentity": "G4N6n",
+      "sourceOpdbMachineId": "G4N6n-MLxER",
+      "coveredAliasIds": [
+        "G4N6n-MLxER"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/G4N6n-MLxER-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/G4N6n-MLxER-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/G4N6n-MLxER-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/4/5a/7c/45a7c016deaeb31b51fda1458566cb71e46db84b.jpg",
+      "playfieldSourceNote": "20180127_162309 (resized).jpg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/63819",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.22474173690189966,\"y\":0.011547607252551273},{\"x\":0.06829110412428334,\"y\":1},{\"x\":0.9907130967793073,\"y\":1},{\"x\":0.8140241485904516,\"y\":0.023843257703358763}]",
+      "createdAt": "2026-03-27T17:33:27.880Z",
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 14,
@@ -379,7 +399,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 45,
@@ -399,7 +419,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 93,
@@ -419,7 +439,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.13698309840336695,\"y\":0},{\"x\":0,\"y\":0.7207018528353692},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.8569088012185223},{\"x\":0.8384594829313915,\"y\":0}]",
       "createdAt": "2026-03-15T12:08:32.360Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 18,
@@ -439,7 +459,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4357,
@@ -459,7 +479,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.16622632037834553,\"y\":0},{\"x\":0,\"y\":0.5766273655008421},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.6540275438422669},{\"x\":0.8513434965256678,\"y\":0}]",
       "createdAt": "2026-03-27T12:47:22.031Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 25,
@@ -479,7 +499,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 11,
@@ -499,7 +519,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 365,
@@ -519,7 +539,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-20T12:46:58Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 112,
@@ -539,7 +559,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.257993185917563,\"y\":0.036505566522701996},{\"x\":0.02384260805665041,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.7575882075897107},{\"x\":0.8333422406306367,\"y\":0.01792209874440091}]",
       "createdAt": "2026-03-15T16:21:21.352Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 66,
@@ -559,7 +579,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-08T15:08:54.817Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 301,
@@ -579,7 +599,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-20T12:46:58Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4369,
@@ -599,7 +619,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.21526988824011203,\"y\":0},{\"x\":0,\"y\":0.9614138511839889},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.7392499752303576},{\"x\":0.7975111627784089,\"y\":0}]",
       "createdAt": "2026-03-27T15:13:16.413Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
+    },
+    {
+      "playfieldAssetId": 4509,
+      "practiceIdentity": "G5K19",
+      "sourceOpdbMachineId": "G5K19-MBRlz",
+      "coveredAliasIds": [
+        "G5K19-MBRlz"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/G5K19-MBRlz-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/G5K19-MBRlz-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/G5K19-MBRlz-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/3/fc/35/3fc358d1636a1796d8fbb6d9e6ffd8801d1072e1.jpeg",
+      "playfieldSourceNote": "IMG_2469.jpeg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/172991",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.18195328806573488,\"y\":0.04965322500743089},{\"x\":0,\"y\":0.6592985237293173},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.6868126424254434},{\"x\":0.7787590160902533,\"y\":0.05250173387496285}]",
+      "createdAt": "2026-03-27T19:01:39.781Z",
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 47,
@@ -619,7 +659,47 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
+    },
+    {
+      "playfieldAssetId": 4511,
+      "practiceIdentity": "G5LW9",
+      "sourceOpdbMachineId": "G5LW9-ML371",
+      "coveredAliasIds": [
+        "G5LW9-ML371"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/G5LW9-ML371-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/G5LW9-ML371-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/G5LW9-ML371-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/6/8e/93/68e939cd76a614e6ad52876c85e9777d5a2748e3.jpeg",
+      "playfieldSourceNote": "C046DDB5-598D-4D01-AB7D-54E55DEE074E (resized).jpeg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/147622",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.1933076171100954,\"y\":0},{\"x\":0.03537081560939523,\"y\":1},{\"x\":0.9814856403075378,\"y\":1},{\"x\":0.7971016407302702,\"y\":0}]",
+      "createdAt": "2026-03-27T19:07:22.488Z",
+      "updatedAt": "2026-03-27T19:09:13Z"
+    },
+    {
+      "playfieldAssetId": 4487,
+      "practiceIdentity": "G5nz5",
+      "sourceOpdbMachineId": "G5nz5-M3d38",
+      "coveredAliasIds": [
+        "G5nz5-M3d38"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/G5nz5-M3d38-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/G5nz5-M3d38-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/G5nz5-M3d38-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/7/e7/ff/7e7ffee22738a08f362830fc0747ce456e586a3a.jpeg",
+      "playfieldSourceNote": "IMG_1443.jpeg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/203883",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.14878860736082855,\"y\":0},{\"x\":0.030212158841713122,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.7590656890914496},{\"x\":0.8597386985125103,\"y\":0}]",
+      "createdAt": "2026-03-27T16:38:33.114Z",
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 38,
@@ -639,7 +719,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 108,
@@ -659,7 +739,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.2718169568548707,\"y\":0.06944416922619637},{\"x\":0.7743005099210019,\"y\":0.07291687308035272},{\"x\":0.8708090042009036,\"y\":0.8786832458139304},{\"x\":0.18505112420407407,\"y\":0.8796492618646586}]",
       "createdAt": "2026-03-15T15:28:36.512Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 6,
@@ -679,7 +759,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 101,
@@ -699,7 +779,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.13789832320128265,\"y\":0},{\"x\":0,\"y\":0.5867794266475616},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.9026142546518502},{\"x\":0.7703453804529361,\"y\":0}]",
       "createdAt": "2026-03-15T13:35:08.436Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 55,
@@ -720,7 +800,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 97,
@@ -740,7 +820,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.23455808671253925,\"y\":0.07489252753199122},{\"x\":0,\"y\":0.6805211788401991},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.6590141593097713},{\"x\":0.8141191796379184,\"y\":0.06184552022686962}]",
       "createdAt": "2026-03-15T13:19:11.213Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 20,
@@ -760,7 +840,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 5,
@@ -780,7 +860,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 1428,
@@ -800,7 +880,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-24T06:53:19Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 8,
@@ -820,7 +900,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 21,
@@ -840,7 +920,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4348,
@@ -860,7 +940,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T11:44:22.733Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 42,
@@ -880,7 +960,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4350,
@@ -900,7 +980,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T11:49:06.418Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 24,
@@ -920,7 +1000,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 37,
@@ -940,7 +1020,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4342,
@@ -960,7 +1040,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T11:05:13.977Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 31,
@@ -980,7 +1060,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4351,
@@ -1000,7 +1080,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T11:50:34.068Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 1,
@@ -1020,7 +1100,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4341,
@@ -1040,7 +1120,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T11:02:51.939Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 34,
@@ -1060,7 +1140,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 26,
@@ -1080,7 +1160,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 33,
@@ -1100,7 +1180,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 49,
@@ -1120,7 +1200,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4361,
@@ -1140,7 +1220,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.22244973447118815,\"y\":0.01346477756861191},{\"x\":0,\"y\":0.8518973546021995},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.7637471514911325},{\"x\":0.7957211551163835,\"y\":0.008144258396908749}]",
       "createdAt": "2026-03-27T13:47:52.300Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 22,
@@ -1160,7 +1240,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 16,
@@ -1180,7 +1260,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4363,
@@ -1200,7 +1280,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.29118338661523424,\"y\":0.051936642976036354},{\"x\":0.2855425506618405,\"y\":0.9337961372823589},{\"x\":0.7116634521387619,\"y\":0.9330860788924411},{\"x\":0.7046487357658062,\"y\":0.052108378028481596}]",
       "createdAt": "2026-03-27T13:56:47.535Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 28,
@@ -1220,7 +1300,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 30,
@@ -1240,7 +1320,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4352,
@@ -1260,7 +1340,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T11:53:31.309Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4343,
@@ -1280,7 +1360,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T11:08:20.027Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 59,
@@ -1300,7 +1380,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 10,
@@ -1320,7 +1400,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4371,
@@ -1340,7 +1420,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T15:25:27.213Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 46,
@@ -1360,7 +1440,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 103,
@@ -1380,7 +1460,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.04854031665441913,\"y\":0},{\"x\":0.033729708063330886,\"y\":0.44217964247696656},{\"x\":0.00604582804462556,\"y\":0.9335352200565283},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":0.9990647337831519,\"y\":0.9602429982013728},{\"x\":0.9774333622820496,\"y\":0.6204125830488566},{\"x\":0.9681875876812078,\"y\":0.22653525676320524},{\"x\":0.9603714342975482,\"y\":0}]",
       "createdAt": "2026-03-15T14:48:07.290Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 50,
@@ -1400,7 +1480,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 91,
@@ -1420,7 +1500,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.2018772129066738,\"y\":0},{\"x\":0.8028392010154319,\"y\":0},{\"x\":1,\"y\":0.810868931661888},{\"x\":1,\"y\":1},{\"x\":0,\"y\":1},{\"x\":0,\"y\":0.797105007365246}]",
       "createdAt": "2026-03-15T03:52:50.403Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 32,
@@ -1440,7 +1520,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 2,
@@ -1460,7 +1540,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4354,
@@ -1480,7 +1560,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.22191471373087795,\"y\":0.052050926384623004},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.7801149311403943},{\"x\":0.8873748315675447,\"y\":0.37772713762013277},{\"x\":0.8000211366218394,\"y\":0.04891508966610522}]",
       "createdAt": "2026-03-27T12:20:23.665Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
+    },
+    {
+      "playfieldAssetId": 4492,
+      "practiceIdentity": "Grd2o",
+      "sourceOpdbMachineId": "Grd2o-MQK8Z",
+      "coveredAliasIds": [
+        "Grd2o-MQK8Z"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/Grd2o-MQK8Z-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/Grd2o-MQK8Z-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/Grd2o-MQK8Z-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/7/d5/7f/7d57f31e37bde8d25bcd5e60ceb94ff7e66ee463.jpeg",
+      "playfieldSourceNote": "20241027_163541.jpg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/185202",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.19231683796137283,\"y\":0.036777964926186464},{\"x\":0,\"y\":0.4972010304171208},{\"x\":0,\"y\":0.9870652927771723},{\"x\":1,\"y\":0.969652234221738},{\"x\":1,\"y\":0.5683741206776974},{\"x\":0.7933895215197231,\"y\":0.05137719211334588}]",
+      "createdAt": "2026-03-27T17:01:42.289Z",
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 52,
@@ -1500,7 +1600,67 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
+    },
+    {
+      "playfieldAssetId": 4496,
+      "practiceIdentity": "GredR",
+      "sourceOpdbMachineId": "GredR-Mb5jN",
+      "coveredAliasIds": [
+        "GredR-Mb5jN"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GredR-Mb5jN-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GredR-Mb5jN-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GredR-Mb5jN-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/d/f2/fe/df2fed172b9091a6e424b4b1daf2fcd2e1bde8dd.jpeg",
+      "playfieldSourceNote": "IMG_1272.jpeg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/190414",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.27005997516446933,\"y\":0.1147676607549787},{\"x\":0.031632275621548786,\"y\":0.9367036559992074},{\"x\":0.991446273349362,\"y\":0.9327454671554543},{\"x\":0.762886734127718,\"y\":0.1219112256019023}]",
+      "createdAt": "2026-03-27T17:17:24.441Z",
+      "updatedAt": "2026-03-27T19:09:13Z"
+    },
+    {
+      "playfieldAssetId": 4506,
+      "practiceIdentity": "GrEkZ",
+      "sourceOpdbMachineId": "GrEkZ-ML13O",
+      "coveredAliasIds": [
+        "GrEkZ-ML13O"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GrEkZ-ML13O-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GrEkZ-ML13O-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GrEkZ-ML13O-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/f/74/71/f74716d4e1140207dd5ecbe6fb64a430d02487a0.jpg",
+      "playfieldSourceNote": "20240711_180637.jpg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/179871",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.22927290020872415,\"y\":0.10281383136827504},{\"x\":0,\"y\":0.7684533835331417},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.8111661547607253},{\"x\":0.746822901529763,\"y\":0.10270484494203903}]",
+      "createdAt": "2026-03-27T17:50:34.931Z",
+      "updatedAt": "2026-03-27T19:09:13Z"
+    },
+    {
+      "playfieldAssetId": 4494,
+      "practiceIdentity": "Grj6X",
+      "sourceOpdbMachineId": "Grj6X-MJNV1",
+      "coveredAliasIds": [
+        "Grj6X-MJNV1"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/Grj6X-MJNV1-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/Grj6X-MJNV1-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/Grj6X-MJNV1-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/4/8d/48/48d487633b38a387a69b401f1379bee089df288b.jpeg",
+      "playfieldSourceNote": "IMG_6190.jpeg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/167340",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.1966828714100769,\"y\":0.02829188546517388},{\"x\":0.0034016750772807736,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.8305954622015258},{\"x\":0.7981914977938651,\"y\":0.026825522639453085}]",
+      "createdAt": "2026-03-27T17:11:00.415Z",
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 23,
@@ -1520,7 +1680,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 54,
@@ -1540,7 +1700,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
+    },
+    {
+      "playfieldAssetId": 4498,
+      "practiceIdentity": "GRnPz",
+      "sourceOpdbMachineId": "GRnPz-MLBzV",
+      "coveredAliasIds": [
+        "GRnPz-MLBzV"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GRnPz-MLBzV-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GRnPz-MLBzV-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GRnPz-MLBzV-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/5/b7/a2/5b7a2bc423541e45e54b48cf1eeb89abeac4db38.jpg",
+      "playfieldSourceNote": "https://o.pinside.com/5/b7/a2/5b7a2bc423541e45e54b48cf1eeb89abeac4db38.jpg",
+      "playfieldSourcePageUrl": null,
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.18884250574651906,\"y\":0},{\"x\":0,\"y\":0.6738878430595462},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.45968988407807393},{\"x\":0.8647454358107215,\"y\":0}]",
+      "createdAt": "2026-03-27T17:23:37.972Z",
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 114,
@@ -1560,7 +1740,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.24127864252789097,\"y\":0.023213051015602296},{\"x\":0.039307902999532365,\"y\":0.9197889631537283},{\"x\":1,\"y\":0.9202900003006222},{\"x\":1,\"y\":0.9011102983175172},{\"x\":0.7768388001870532,\"y\":0.01891415229525117}]",
       "createdAt": "2026-03-15T16:59:48.241Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4347,
@@ -1580,7 +1760,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T11:24:09.018Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 48,
@@ -1600,7 +1780,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 57,
@@ -1620,7 +1800,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 70,
@@ -1640,7 +1820,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.1982229941879885,\"y\":0.029521108694998646},{\"x\":0,\"y\":0.8900924914573166},{\"x\":0,\"y\":1},{\"x\":0.9760438239027324,\"y\":1},{\"x\":0.7434163938806867,\"y\":0.023628911847524376}]",
       "createdAt": "2026-03-08T15:23:32.173Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4377,
@@ -1660,7 +1840,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.22748289254669873,\"y\":0.06746755176855246},{\"x\":0.0429998150545589,\"y\":1},{\"x\":0.9809704351502021,\"y\":1},{\"x\":0.7547887658854924,\"y\":0.05476072525512732}]",
       "createdAt": "2026-03-27T15:58:55.004Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 72,
@@ -1680,7 +1860,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.1738487146291844,\"y\":0.015129297532943625},{\"x\":0.06553673809083463,\"y\":1},{\"x\":0.9809770403445269,\"y\":1},{\"x\":0.825774789294301,\"y\":0.012568116516397504}]",
       "createdAt": "2026-03-08T15:30:54.306Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 7,
@@ -1700,7 +1880,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 69,
@@ -1720,7 +1900,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.16721223862649476,\"y\":0.007395308288156484},{\"x\":0,\"y\":0.9634343090196708},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.7701492088623451},{\"x\":0.8063063664907475,\"y\":0.0031865962542462897}]",
       "createdAt": "2026-03-08T15:19:41.428Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 43,
@@ -1742,7 +1922,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4375,
@@ -1762,7 +1942,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.25350735818647785,\"y\":0.10269989101357377},{\"x\":0.07881317868371687,\"y\":1},{\"x\":0.9609699067346561,\"y\":1},{\"x\":0.769313588205765,\"y\":0.0982413553948281}]",
       "createdAt": "2026-03-27T15:55:03.122Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 67,
@@ -1782,7 +1962,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.22462422339501636,\"y\":0},{\"x\":0,\"y\":0.8567133967312337},{\"x\":0,\"y\":1},{\"x\":0.9996325739862382,\"y\":1},{\"x\":1,\"y\":0.6693705971360717},{\"x\":0.8330416193466498,\"y\":0}]",
       "createdAt": "2026-03-08T15:16:32.953Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4344,
@@ -1802,7 +1982,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T11:09:01.660Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 95,
@@ -1822,7 +2002,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.2480760237824838,\"y\":0.019783451745112382},{\"x\":0.048693967532901325,\"y\":0.8585321615744592},{\"x\":0.9059322600040083,\"y\":0.8660527291493392},{\"x\":0.7678802859242434,\"y\":0.024761255799504975}]",
       "createdAt": "2026-03-15T13:03:17.854Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 9,
@@ -1842,7 +2022,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 53,
@@ -1862,7 +2042,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 71,
@@ -1882,7 +2062,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.1412785014135116,\"y\":0},{\"x\":0,\"y\":0.6124368374120678},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.6960566729416428},{\"x\":0.8291632539829322,\"y\":0}]",
       "createdAt": "2026-03-08T15:26:38.261Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 60,
@@ -1902,7 +2082,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4,
@@ -1922,7 +2102,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4372,
@@ -1942,7 +2122,47 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.1633398504584005,\"y\":0.03827900525116417},{\"x\":0,\"y\":0.8586668978499951},{\"x\":0,\"y\":1},{\"x\":0.9482813284366826,\"y\":1},{\"x\":0.7941689344500515,\"y\":0.019711681363321115}]",
       "createdAt": "2026-03-27T15:42:39.786Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
+    },
+    {
+      "playfieldAssetId": 4504,
+      "practiceIdentity": "GrZBr",
+      "sourceOpdbMachineId": "GrZBr-MDbx7",
+      "coveredAliasIds": [
+        "GrZBr-MDbx7"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GrZBr-MDbx7-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GrZBr-MDbx7-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GrZBr-MDbx7-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/c/9c/f6/c9cf6d688a2608a03e4acb32d94bacdcf82bfbaa.jpeg",
+      "playfieldSourceNote": "0114D4A5-CA4F-43EF-A0F0-A5C1442C638C (resized).jpeg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/140828",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.14707786203070095,\"y\":0.013177457082821234},{\"x\":0,\"y\":0.7535780834952226},{\"x\":0,\"y\":1},{\"x\":0.9792200586541256,\"y\":1},{\"x\":0.7554426801236492,\"y\":0.004618800301312295}]",
+      "createdAt": "2026-03-27T17:39:34.960Z",
+      "updatedAt": "2026-03-27T19:09:13Z"
+    },
+    {
+      "playfieldAssetId": 4489,
+      "practiceIdentity": "GRzNR",
+      "sourceOpdbMachineId": "GRzNR-MLlEj",
+      "coveredAliasIds": [
+        "GRzNR-MLlEj"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GRzNR-MLlEj-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GRzNR-MLlEj-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GRzNR-MLlEj-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/4/cd/69/4cd6942d121b4c0b2b7d5250931effa530b602ae.jpeg",
+      "playfieldSourceNote": "IMG_1629.jpeg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/175731",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.149422706016011,\"y\":0.028702230011266296},{\"x\":0,\"y\":0.6755843273306031},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.6247116364741859},{\"x\":0.7816719067874977,\"y\":0.02753536365099519}]",
+      "createdAt": "2026-03-27T16:48:52.192Z",
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 73,
@@ -1962,7 +2182,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-09T02:08:56.425Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 61,
@@ -1982,7 +2202,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4345,
@@ -2002,7 +2222,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T11:15:58.856Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 62,
@@ -2022,7 +2242,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T23:23:42.077Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 41,
@@ -2042,7 +2262,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 27,
@@ -2062,7 +2282,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4359,
@@ -2082,7 +2302,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.16649052815133822,\"y\":0.010675715842663231},{\"x\":0.03073396919337367,\"y\":1},{\"x\":0.9606594626013897,\"y\":1},{\"x\":0.8062762556474411,\"y\":0}]",
       "createdAt": "2026-03-27T13:38:04.009Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 4353,
@@ -2102,7 +2322,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-27T11:53:42.412Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 44,
@@ -2122,7 +2342,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 29,
@@ -2142,7 +2362,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     },
     {
       "playfieldAssetId": 40,
@@ -2162,7 +2382,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-27T16:35:18Z"
+      "updatedAt": "2026-03-27T19:09:13Z"
     }
   ]
 }
