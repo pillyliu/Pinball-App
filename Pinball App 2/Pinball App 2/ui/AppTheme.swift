@@ -307,28 +307,6 @@ extension View {
             .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
     }
 
-    func appGlassControlStyle() -> some View {
-        self
-            .background(
-                RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay(Color.black.opacity(0.24))
-                    .overlay(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.14), Color.white.opacity(0.0)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: AppRadii.control)
-                    .stroke(Color.white.opacity(0.18), lineWidth: 1.0)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
-            .shadow(color: Color.black.opacity(0.35), radius: 10, y: 4)
-    }
-
     func dismissKeyboardOnTap() -> some View {
         simultaneousGesture(
             TapGesture().onEnded {

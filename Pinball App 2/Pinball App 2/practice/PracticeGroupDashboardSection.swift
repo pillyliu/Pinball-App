@@ -4,6 +4,7 @@ struct PracticeGroupDashboardSectionView: View {
     let selectedGroup: CustomGameGroup?
     let allGroups: [CustomGameGroup]
     let selectedGroupID: UUID?
+    let dashboardReloadRevision: Int
     let gameTransition: Namespace.ID
 
     let onOpenCreateGroup: () -> Void
@@ -27,77 +28,15 @@ struct PracticeGroupDashboardSectionView: View {
             groupListCard
 
             if let group = selectedGroup {
-                VStack(alignment: .leading, spacing: 10) {
-                    AppCardSubheading(text: group.name)
-
-                    HStack(spacing: 8) {
-                        statusChip(group.isActive ? "Active" : "Inactive", color: group.isActive ? .green : .secondary)
-                        statusChip(group.type.label, color: .secondary)
-                        if group.isPriority {
-                            statusChip("Priority", color: .orange)
-                        }
-                        if let start = group.startDate {
-                            statusChip("\(formatGroupDate(start))", color: .secondary, font: .caption2)
-                        }
-                        if let end = group.endDate {
-                            statusChip("\(formatGroupDate(end))", color: .secondary, font: .caption2)
-                        }
+                PracticeGroupDashboardSelectedGroupCard(
+                    group: group,
+                    detail: loadedDashboardDetail,
+                    gameTransition: gameTransition,
+                    onOpenGame: onOpenGame,
+                    onRemoveGame: { selectionGameID in
+                        onRemoveGameFromGroup(selectionGameID, group.id)
                     }
-
-                    if let detail = loadedDashboardDetail {
-                        let score = detail.score
-                        HStack(spacing: 8) {
-                            AppMetricPill(label: "Completion", value: "\(score.completionAverage)%")
-                            AppMetricPill(label: "Stale", value: "\(score.staleGameCount)")
-                            AppMetricPill(label: "Variance Risk", value: "\(score.weakerGameCount)")
-                        }
-
-                        if detail.snapshots.isEmpty {
-                            AppPanelEmptyCard(text: "No games in this group yet.")
-                        } else {
-                            ForEach(detail.snapshots) { snapshot in
-                                Button {
-                                    onOpenGame(snapshot.selectionGameID)
-                                } label: {
-                                    HStack(spacing: 10) {
-                                        GroupProgressWheel(taskProgress: snapshot.taskProgress)
-                                            .frame(width: 46, height: 46)
-
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(snapshot.game.name)
-                                                .font(.footnote.weight(.semibold))
-                                            Text(progressSummary(taskProgress: snapshot.taskProgress))
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    .matchedTransitionSource(id: snapshot.selectionGameID, in: gameTransition)
-                                }
-                                .buttonStyle(.plain)
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        onRemoveGameFromGroup(snapshot.selectionGameID, group.id)
-                                    } label: {
-                                        Label("Delete Game", systemImage: "trash")
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        AppPanelStatusCard(
-                            text: "Loading group dashboard…",
-                            showsProgress: true
-                        )
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
-                .appPanelStyle()
+                )
             } else {
                 AppPanelEmptyCard(text: "Create or select a group to populate the dashboard.")
             }
@@ -153,33 +92,15 @@ struct PracticeGroupDashboardSectionView: View {
                             SwipeableGroupListRow(
                                 group: group,
                                 selectedGroupID: selectedGroupID,
-                                isStartDatePopoverPresented: Binding(
-                                    get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .start },
-                                    set: { isPresented in
-                                        if !isPresented {
-                                            inlineDateEditorGroupID = nil
-                                            inlineDateEditorField = nil
-                                        }
-                                    }
-                                ),
-                                isEndDatePopoverPresented: Binding(
-                                    get: { inlineDateEditorGroupID == group.id && inlineDateEditorField == .end },
-                                    set: { isPresented in
-                                        if !isPresented {
-                                            inlineDateEditorGroupID = nil
-                                            inlineDateEditorField = nil
-                                        }
-                                    }
-                                ),
+                                isStartDatePopoverPresented: datePopoverBinding(for: group.id, field: .start),
+                                isEndDatePopoverPresented: datePopoverBinding(for: group.id, field: .end),
                                 onSelectGroup: onSelectGroup,
                                 onTogglePriority: onTogglePriority,
                                 onStartDateTap: {
-                                    inlineDateEditorGroupID = group.id
-                                    inlineDateEditorField = .start
+                                    presentInlineDateEditor(for: group.id, field: .start)
                                 },
                                 onEndDateTap: {
-                                    inlineDateEditorGroupID = group.id
-                                    inlineDateEditorField = .end
+                                    presentInlineDateEditor(for: group.id, field: .end)
                                 },
                                 onArchiveToggle: {
                                     onSetGroupArchived(group.id, !group.isArchived)
@@ -187,7 +108,7 @@ struct PracticeGroupDashboardSectionView: View {
                                 onDelete: {
                                     onDeleteGroup(group.id)
                                 },
-                                formattedDashboardDate: formattedDashboardDate,
+                                formattedDashboardDate: PracticeGroupDashboardFormatting.formatDate,
                                 startDatePopoverContent: { availableHeight in
                                     AnyView(popoverCalendar(for: group, field: .start, availableHeight: availableHeight))
                                 },
@@ -237,16 +158,14 @@ struct PracticeGroupDashboardSectionView: View {
                 HStack {
                     Button("Clear", role: .destructive) {
                         onUpdateGroupDate(group.id, field, nil)
-                        inlineDateEditorGroupID = nil
-                        inlineDateEditorField = nil
+                        dismissInlineDateEditor()
                     }
                     .buttonStyle(AppDestructiveActionButtonStyle(fillsWidth: false))
 
                     Spacer()
 
                     Button("Done") {
-                        inlineDateEditorGroupID = nil
-                        inlineDateEditorField = nil
+                        dismissInlineDateEditor()
                     }
                     .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
                 }
@@ -258,11 +177,6 @@ struct PracticeGroupDashboardSectionView: View {
         .presentationCompactAdaptation(.popover)
     }
 
-    private func formattedDashboardDate(_ date: Date?) -> String {
-        guard let date else { return "-" }
-        return Self.shortDashboardDateFormatter.string(from: date)
-    }
-
     private func filteredGroups() -> [CustomGameGroup] {
         allGroups.filter { showArchivedGroups ? $0.isArchived : !$0.isArchived }
     }
@@ -272,7 +186,7 @@ struct PracticeGroupDashboardSectionView: View {
         let gameIDs = group.gameIDs.joined(separator: "|")
         let start = group.startDate?.timeIntervalSince1970 ?? -1
         let end = group.endDate?.timeIntervalSince1970 ?? -1
-        return "\(group.id.uuidString)|\(gameIDs)|\(start)|\(end)"
+        return "\(group.id.uuidString)|\(gameIDs)|\(start)|\(end)|\(dashboardReloadRevision)"
     }
 
     @MainActor
@@ -291,17 +205,128 @@ struct PracticeGroupDashboardSectionView: View {
         loadedDashboardDetail = detail
     }
 
+    private func datePopoverBinding(for groupID: UUID, field: GroupEditorDateField) -> Binding<Bool> {
+        Binding(
+            get: { inlineDateEditorGroupID == groupID && inlineDateEditorField == field },
+            set: { isPresented in
+                if !isPresented {
+                    dismissInlineDateEditor()
+                }
+            }
+        )
+    }
+
+    private func presentInlineDateEditor(for groupID: UUID, field: GroupEditorDateField) {
+        inlineDateEditorGroupID = groupID
+        inlineDateEditorField = field
+    }
+
+    private func dismissInlineDateEditor() {
+        inlineDateEditorGroupID = nil
+        inlineDateEditorField = nil
+    }
+
     private func groupListHeight(for count: Int) -> CGFloat {
         CGFloat(count) * 36
     }
+}
 
-    private static let shortDashboardDateFormatter: DateFormatter = {
+private enum PracticeGroupDashboardFormatting {
+    nonisolated static func formatDate(_ date: Date?) -> String {
+        guard let date else { return "-" }
+        return groupDateFormatter.string(from: date)
+    }
+
+    nonisolated static func progressSummary(taskProgress: [StudyTaskKind: Int]) -> String {
+        let ordered = StudyTaskKind.allCases.map { task in
+            "\(taskShortLabel(task)): \(taskProgress[task] ?? 0)%"
+        }
+        return ordered.joined(separator: "  •  ")
+    }
+
+    nonisolated private static func taskShortLabel(_ task: StudyTaskKind) -> String {
+        switch task {
+        case .playfield: return "Playfield"
+        case .rulesheet: return "Rules"
+        case .tutorialVideo: return "Tutorial"
+        case .gameplayVideo: return "Gameplay"
+        case .practice: return "Practice"
+        }
+    }
+
+    nonisolated private static let groupDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "MM/dd/yy"
         return formatter
     }()
+}
+
+private struct PracticeGroupDashboardSelectedGroupCard: View {
+    let group: CustomGameGroup
+    let detail: GroupDashboardDetail?
+    let gameTransition: Namespace.ID
+    let onOpenGame: (String) -> Void
+    let onRemoveGame: (String) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            AppCardSubheading(text: group.name)
+            statusChipRow
+
+            if let detail {
+                detailContent(detail)
+            } else {
+                AppPanelStatusCard(
+                    text: "Loading group dashboard…",
+                    showsProgress: true
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .appPanelStyle()
+    }
+
+    private var statusChipRow: some View {
+        HStack(spacing: 8) {
+            statusChip(group.isActive ? "Active" : "Inactive", color: group.isActive ? .green : .secondary)
+            statusChip(group.type.label, color: .secondary)
+            if group.isPriority {
+                statusChip("Priority", color: .orange)
+            }
+            if let start = group.startDate {
+                statusChip(PracticeGroupDashboardFormatting.formatDate(start), color: .secondary, font: .caption2)
+            }
+            if let end = group.endDate {
+                statusChip(PracticeGroupDashboardFormatting.formatDate(end), color: .secondary, font: .caption2)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func detailContent(_ detail: GroupDashboardDetail) -> some View {
+        let score = detail.score
+        HStack(spacing: 8) {
+            AppMetricPill(label: "Completion", value: "\(score.completionAverage)%")
+            AppMetricPill(label: "Stale", value: "\(score.staleGameCount)")
+            AppMetricPill(label: "Variance Risk", value: "\(score.weakerGameCount)")
+        }
+
+        if detail.snapshots.isEmpty {
+            AppPanelEmptyCard(text: "No games in this group yet.")
+        } else {
+            ForEach(detail.snapshots) { snapshot in
+                PracticeGroupDashboardSnapshotRow(
+                    snapshot: snapshot,
+                    gameTransition: gameTransition,
+                    onOpenGame: onOpenGame,
+                    onRemoveGame: onRemoveGame
+                )
+            }
+        }
+    }
 
     private func statusChip(_ text: String, color: Color, font: Font = .caption) -> some View {
         AppTintedStatusChip(
@@ -310,33 +335,44 @@ struct PracticeGroupDashboardSectionView: View {
             compact: font == .caption2
         )
     }
+}
 
-    private func formatGroupDate(_ date: Date) -> String {
-        Self.groupDateFormatter.string(from: date)
-    }
+private struct PracticeGroupDashboardSnapshotRow: View {
+    let snapshot: GroupProgressSnapshot
+    let gameTransition: Namespace.ID
+    let onOpenGame: (String) -> Void
+    let onRemoveGame: (String) -> Void
 
-    private static let groupDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "MM/dd/yy"
-        return formatter
-    }()
+    var body: some View {
+        Button {
+            onOpenGame(snapshot.selectionGameID)
+        } label: {
+            HStack(spacing: 10) {
+                GroupProgressWheel(taskProgress: snapshot.taskProgress)
+                    .frame(width: 46, height: 46)
 
-    private func progressSummary(taskProgress: [StudyTaskKind: Int]) -> String {
-        let ordered = StudyTaskKind.allCases.map { task in
-            "\(taskShortLabel(task)): \(taskProgress[task] ?? 0)%"
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(snapshot.game.name)
+                        .font(.footnote.weight(.semibold))
+                    Text(PracticeGroupDashboardFormatting.progressSummary(taskProgress: snapshot.taskProgress))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .matchedTransitionSource(id: snapshot.selectionGameID, in: gameTransition)
         }
-        return ordered.joined(separator: "  •  ")
-    }
-
-    private func taskShortLabel(_ task: StudyTaskKind) -> String {
-        switch task {
-        case .playfield: return "Playfield"
-        case .rulesheet: return "Rules"
-        case .tutorialVideo: return "Tutorial"
-        case .gameplayVideo: return "Gameplay"
-        case .practice: return "Practice"
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button(role: .destructive) {
+                onRemoveGame(snapshot.selectionGameID)
+            } label: {
+                Label("Delete Game", systemImage: "trash")
+            }
         }
     }
 }

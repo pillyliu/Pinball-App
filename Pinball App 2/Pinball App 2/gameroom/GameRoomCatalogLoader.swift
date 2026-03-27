@@ -1,5 +1,11 @@
 import Foundation
 import Combine
+import OSLog
+
+private let gameRoomCatalogLogger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "com.pillyliu.Pinball-App-2",
+    category: "DataIntegrity"
+)
 
 struct GameRoomCatalogGame: Identifiable, Hashable {
     let id: String
@@ -24,28 +30,10 @@ struct GameRoomCatalogSlugMatch: Hashable {
     let variant: String?
 }
 
-nonisolated func gameRoomCatalogMatchesSearch(
-    _ game: GameRoomCatalogGame,
-    query: String,
-    variantAliases: [String] = []
-) -> Bool {
-    var fields: [String?] = [
-        game.displayTitle,
-        game.displayVariant,
-        game.opdbShortname,
-        game.opdbCommonName,
-        game.manufacturer,
-        game.year.map(String.init)
-    ]
-    fields.append(contentsOf: variantAliases.map(Optional.some))
-    return matchesSearchQuery(query, fields: fields)
-}
-
 @MainActor
 final class GameRoomCatalogLoader: ObservableObject {
     @Published private(set) var games: [GameRoomCatalogGame] = []
     @Published private(set) var variantOptionsByCatalogGameID: [String: [String]] = [:]
-    @Published private(set) var manufacturerOptions: [PinballCatalogManufacturerOption] = []
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
 
@@ -67,11 +55,7 @@ final class GameRoomCatalogLoader: ObservableObject {
         errorMessage = nil
 
         do {
-            async let gamesTask = loadCatalogGames()
-            async let manufacturersTask = loadManufacturers()
-
-            games = try await gamesTask
-            manufacturerOptions = try await manufacturersTask
+            games = try await loadCatalogGames()
         } catch {
             errorMessage = "Failed to load catalog data: \(error.localizedDescription)"
         }
@@ -246,10 +230,6 @@ final class GameRoomCatalogLoader: ObservableObject {
         }
     }
 
-    private func loadManufacturers() async throws -> [PinballCatalogManufacturerOption] {
-        try await loadHostedCatalogManufacturerOptions()
-    }
-
     private static func makeGame(_ machine: CatalogMachineRecord) -> GameRoomCatalogGame {
         let parsedName = parsedCatalogName(title: machine.name, explicitVariant: machine.variant)
         let opdbID = machine.opdbMachineID ?? machine.opdbGroupID ?? machine.practiceIdentity
@@ -310,7 +290,13 @@ final class GameRoomCatalogLoader: ObservableObject {
                 canonicalPracticeIdentity: machine.practiceIdentity,
                 variant: parsedName.variant
             )
-            for key in buildSlugKeys(from: machine.slug) where matches[key] == nil {
+            for key in buildSlugKeys(from: machine.slug) {
+                if let existing = matches[key] {
+                    gameRoomCatalogLogger.warning(
+                        "Duplicate GameRoom catalog slug key \(key, privacy: .public); keeping existing catalog game \(existing.catalogGameID, privacy: .public) and ignoring \(match.catalogGameID, privacy: .public)"
+                    )
+                    continue
+                }
                 matches[key] = match
             }
         }

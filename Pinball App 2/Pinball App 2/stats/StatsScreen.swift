@@ -443,8 +443,7 @@ struct StatsScreen: View {
     }
 
     private func displayLPLPlayerName(_ raw: String) -> String {
-        _ = showFullLPLLastNames
-        return formatLPLPlayerNameForDisplay(raw)
+        formatLPLPlayerNameForDisplay(raw, showFullLastNames: showFullLPLLastNames)
     }
 
     private func resolvedTableHeight(maxHeight: CGFloat) -> CGFloat {
@@ -491,8 +490,7 @@ private struct TableRowView: View {
     }
 
     private func displayLPLPlayerName(_ raw: String) -> String {
-        _ = showFullLPLLastNames
-        return formatLPLPlayerNameForDisplay(raw)
+        formatLPLPlayerNameForDisplay(raw, showFullLastNames: showFullLPLLastNames)
     }
 
     private func rowCell(_ text: String, width: CGFloat, alignment: Alignment = .leading, monospaced: Bool = false) -> some View {
@@ -557,6 +555,7 @@ private struct MachineStatsTable: View {
     let selectedStats: StatResult
     let allSeasonsStats: StatResult
     let largeText: Bool
+    @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
 
     private let labels = ["High", "Low", "Avg", "Med", "Std", "Count"]
     private var labelColumnWidth: CGFloat { largeText ? 64 : 44 }
@@ -580,9 +579,9 @@ private struct MachineStatsTable: View {
                         .foregroundStyle(.primary)
                         .frame(width: labelColumnWidth, alignment: .leading)
                         .padding(.vertical, largeText ? 5 : 3)
-                    statCell(label: label, stats: selectedStats, allSeasons: false)
+                    statCell(label: label, stats: selectedStats)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    statCell(label: label, stats: allSeasonsStats, allSeasons: true)
+                    statCell(label: label, stats: allSeasonsStats)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -597,7 +596,7 @@ private struct MachineStatsTable: View {
             .frame(maxWidth: .infinity, alignment: align)
     }
 
-    private func statCell(label: String, stats: StatResult, allSeasons: Bool) -> some View {
+    private func statCell(label: String, stats: StatResult) -> some View {
         let value: String = switch label {
         case "High": formatScore(stats.high)
         case "Low": formatScore(stats.low)
@@ -613,7 +612,7 @@ private struct MachineStatsTable: View {
         case "Avg", "Med": AppTheme.statsMeanMedian
         default: .primary
         }
-        let player: String? = switch label {
+        let player: StatPlayerLabel? = switch label {
         case "High": stats.highPlayer
         case "Low": stats.lowPlayer
         default: nil
@@ -626,7 +625,7 @@ private struct MachineStatsTable: View {
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if label == "High" || label == "Low" {
-                Text(playerName(player, allSeasons: allSeasons))
+                Text(playerName(player))
                     .font(largeText ? .footnote : .caption2)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
@@ -636,10 +635,16 @@ private struct MachineStatsTable: View {
         .padding(.vertical, largeText ? 5 : 3)
     }
 
-    private func playerName(_ raw: String?, allSeasons: Bool) -> String {
-        guard let raw, !raw.isEmpty else { return "-" }
-        let display = allSeasons ? raw : raw.components(separatedBy: " (S").first ?? raw
-        return formatLPLPlayerNameForDisplay(display)
+    private func playerName(_ player: StatPlayerLabel?) -> String {
+        guard let player else { return "-" }
+        let display = formatLPLPlayerNameForDisplay(
+            player.rawPlayer,
+            showFullLastNames: showFullLPLLastNames
+        )
+        guard let season = player.season, !season.isEmpty else {
+            return display
+        }
+        return "\(display) (\(season))"
     }
 }
 
@@ -914,11 +919,11 @@ private final class StatsViewModel: ObservableObject {
         )
     }
 
-    private func playerLabel(for row: ScoreRow, isBankScope: Bool) -> String {
-        if isBankScope {
-            return formatLPLPlayerNameForDisplay(row.player)
-        }
-        return "\(formatLPLPlayerNameForDisplay(row.player)) (\(abbreviateSeason(row.season)))"
+    private func playerLabel(for row: ScoreRow, isBankScope: Bool) -> StatPlayerLabel {
+        StatPlayerLabel(
+            rawPlayer: row.player,
+            season: isBankScope ? nil : abbreviateSeason(row.season)
+        )
     }
 
     private func abbreviateSeason(_ season: String) -> String {
@@ -937,12 +942,17 @@ private struct ScoreRow: Identifiable {
     let points: Double
 }
 
+private struct StatPlayerLabel {
+    let rawPlayer: String
+    let season: String?
+}
+
 private struct StatResult {
     let count: Int
     let low: Double?
-    let lowPlayer: String?
+    let lowPlayer: StatPlayerLabel?
     let high: Double?
-    let highPlayer: String?
+    let highPlayer: StatPlayerLabel?
     let mean: Double?
     let median: Double?
     let std: Double?

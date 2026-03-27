@@ -967,17 +967,19 @@ private fun buildGameRoomOverlay(
     root: NormalizedRoot,
 ): GameRoomOverlay {
     val prefs = context.getSharedPreferences(GameRoomStore.PREFS_NAME, Context.MODE_PRIVATE)
-    val raw = prefs.getString(GameRoomStore.STORAGE_KEY, null)
-        ?: prefs.getString(GameRoomStore.LEGACY_STORAGE_KEY, null)
-        ?: return GameRoomOverlay(source = null, games = emptyList())
-    val decodedState = GameRoomStateCodec.decode(raw)?.let { state ->
-        DecodedGameRoomOverlayState(
-            venueName = state.venueName,
-            areas = state.areas,
-            ownedMachines = state.ownedMachines,
+    val loadResult = GameRoomStateCodec.loadFromRaw(
+        currentRaw = prefs.getString(GameRoomStore.STORAGE_KEY, null),
+        legacyRaw = prefs.getString(GameRoomStore.LEGACY_STORAGE_KEY, null),
+    )
+    val decodedState = when (loadResult) {
+        GameRoomStateCodec.LoadResult.Missing,
+        is GameRoomStateCodec.LoadResult.Failed -> return GameRoomOverlay(source = null, games = emptyList())
+        is GameRoomStateCodec.LoadResult.Loaded -> DecodedGameRoomOverlayState(
+            venueName = loadResult.state.venueName,
+            areas = loadResult.state.areas,
+            ownedMachines = loadResult.state.ownedMachines,
         )
-    } ?: decodeGameRoomOverlayStateFromRaw(raw)
-        ?: return GameRoomOverlay(source = null, games = emptyList())
+    }
 
     val venueName = decodedState.venueName.trim().ifBlank { "GameRoom" }
     val areasByID = decodedState.areas.associateBy { it.id }
@@ -992,34 +994,36 @@ private fun buildGameRoomOverlay(
     val videosByPracticeIdentity = root.videoLinks.groupBy { it.practiceIdentity }
 
     val games = activeMachines.map { ownedMachine ->
-        val template = bestTemplateForOwnedMachine(ownedMachine = ownedMachine, baseGames = baseGames)
+        val visualTemplate = bestVisualTemplateForOwnedMachine(ownedMachine = ownedMachine, baseGames = baseGames)
+        val contentTemplate = bestContentTemplateForOwnedMachine(ownedMachine = ownedMachine, baseGames = baseGames)
         val opdbMedia = bestOPDBMediaRecord(
             ownedMachine = ownedMachine,
             mediaIndex = opdbMediaIndex,
         )
         val canonicalPracticeIdentity = ownedMachine.canonicalPracticeIdentity.trim()
         val practiceIdentity = normalizedOptionalString(opdbMedia?.practiceIdentity)
-            ?: normalizedOptionalString(template?.practiceIdentity)
+            ?: normalizedOptionalString(contentTemplate?.practiceIdentity)
+            ?: normalizedOptionalString(visualTemplate?.practiceIdentity)
             ?: canonicalPracticeIdentity.takeIf { it.isNotBlank() }
             ?: normalizedOptionalString(ownedMachine.catalogGameID)
             ?: ownedMachine.id
         val area = areasByID[ownedMachine.gameRoomAreaID]
         val resolvedRulesheet = when {
-            !template?.rulesheetLocal.isNullOrBlank() -> normalizedOptionalString(template?.rulesheetLocal) to emptyList()
-            !template?.rulesheetLinks.isNullOrEmpty() -> null to (template?.rulesheetLinks ?: emptyList())
+            !contentTemplate?.rulesheetLocal.isNullOrBlank() -> normalizedOptionalString(contentTemplate?.rulesheetLocal) to emptyList()
+            !contentTemplate?.rulesheetLinks.isNullOrEmpty() -> null to (contentTemplate?.rulesheetLinks ?: emptyList())
             else -> {
                 val resolved = resolveRulesheetLinks(rulesheetsByPracticeIdentity[practiceIdentity].orEmpty())
                 resolved.localPath to resolved.links
             }
         }
         val resolvedVideos = mergeResolvedVideos(
-            primary = template?.videos.orEmpty(),
+            primary = contentTemplate?.videos.orEmpty(),
             secondary = resolveVideoLinks(videosByPracticeIdentity[practiceIdentity].orEmpty()),
         )
-        val playfieldLocalRaw = normalizedOptionalString(template?.playfieldLocalOriginal ?: template?.playfieldLocal)
-        val playfieldImageUrl = normalizedOptionalString(template?.playfieldImageUrl)
-        val playfieldSourceLabel = template?.let(::resolvedPlayfieldSourceLabel)
-        val rawResolvedName = ownedMachine.displayTitle.trim().ifBlank { template?.name ?: ownedMachine.catalogGameID }
+        val playfieldLocalRaw = normalizedOptionalString(visualTemplate?.playfieldLocalOriginal ?: visualTemplate?.playfieldLocal)
+        val playfieldImageUrl = normalizedOptionalString(visualTemplate?.playfieldImageUrl)
+        val playfieldSourceLabel = visualTemplate?.let(::resolvedPlayfieldSourceLabel)
+        val rawResolvedName = ownedMachine.displayTitle.trim().ifBlank { visualTemplate?.name ?: ownedMachine.catalogGameID }
         val parsedResolvedName = parseOwnedMachineLibraryName(
             title = rawResolvedName,
             explicitVariant = ownedMachine.displayVariant,
@@ -1049,14 +1053,14 @@ private fun buildGameRoomOverlay(
             year = ownedMachine.year,
             slug = slugForLibraryGame(title = resolvedName, fallback = slugFallback),
             primaryImageUrl = normalizedOptionalString(opdbMedia?.primaryImageMediumUrl)
-                ?: normalizedOptionalString(template?.primaryImageUrl),
+                ?: normalizedOptionalString(visualTemplate?.primaryImageUrl),
             primaryImageLargeUrl = normalizedOptionalString(opdbMedia?.primaryImageLargeUrl)
-                ?: normalizedOptionalString(template?.primaryImageLargeUrl),
+                ?: normalizedOptionalString(visualTemplate?.primaryImageLargeUrl),
             playfieldImageUrl = playfieldImageUrl,
             playfieldLocalOriginal = normalizeLibraryCachePath(playfieldLocalRaw),
             playfieldLocal = normalizeLibraryPlayfieldLocalPath(playfieldLocalRaw),
             playfieldSourceLabel = playfieldSourceLabel,
-            gameinfoLocal = template?.gameinfoLocal,
+            gameinfoLocal = contentTemplate?.gameinfoLocal,
             rulesheetLocal = resolvedRulesheet.first,
             rulesheetUrl = resolvedRulesheet.second.firstOrNull()?.url,
             rulesheetLinks = resolvedRulesheet.second,
@@ -1096,72 +1100,6 @@ private data class DecodedGameRoomOverlayState(
     val areas: List<GameRoomArea>,
     val ownedMachines: List<OwnedMachine>,
 )
-
-private fun decodeGameRoomOverlayStateFromRaw(raw: String): DecodedGameRoomOverlayState? {
-    return runCatching {
-        val root = JSONObject(raw)
-        val venueName = root.optString("venueName").ifBlank { "GameRoom" }
-        val areas = buildList {
-            val areaArray = root.optJSONArray("areas") ?: JSONArray()
-            for (index in 0 until areaArray.length()) {
-                val obj = areaArray.optJSONObject(index) ?: continue
-                val id = obj.optString("id").ifBlank { continue }
-                val name = obj.optString("name").ifBlank { "Area" }
-                add(
-                    GameRoomArea(
-                        id = id,
-                        name = name,
-                        areaOrder = obj.optInt("areaOrder", 0),
-                        createdAtMs = obj.optLong("createdAt").takeIf { it > 0L } ?: System.currentTimeMillis(),
-                        updatedAtMs = obj.optLong("updatedAt").takeIf { it > 0L } ?: System.currentTimeMillis(),
-                    ),
-                )
-            }
-        }
-        val ownedMachines = buildList {
-            val machines = root.optJSONArray("ownedMachines") ?: JSONArray()
-            for (index in 0 until machines.length()) {
-                val obj = machines.optJSONObject(index) ?: continue
-                val id = obj.optString("id").ifBlank { continue }
-                val catalogGameID = obj.optString("catalogGameID").ifBlank { continue }
-                val canonicalPracticeIdentity = obj.optString("canonicalPracticeIdentity").ifBlank { catalogGameID }
-                val displayTitle = obj.optString("displayTitle").ifBlank { catalogGameID }
-                val statusRaw = obj.optString("status").trim().lowercase()
-                val status = when (statusRaw) {
-                    OwnedMachineStatus.active.name -> OwnedMachineStatus.active
-                    OwnedMachineStatus.loaned.name -> OwnedMachineStatus.loaned
-                    OwnedMachineStatus.archived.name -> OwnedMachineStatus.archived
-                    OwnedMachineStatus.sold.name -> OwnedMachineStatus.sold
-                    OwnedMachineStatus.traded.name -> OwnedMachineStatus.traded
-                    else -> OwnedMachineStatus.active
-                }
-                add(
-                    OwnedMachine(
-                        id = id,
-                        catalogGameID = catalogGameID,
-                        opdbID = obj.optString("opdb_id").ifBlank { null },
-                        canonicalPracticeIdentity = canonicalPracticeIdentity,
-                        displayTitle = displayTitle,
-                        displayVariant = obj.optString("displayVariant").ifBlank { null },
-                        manufacturer = obj.optString("manufacturer").ifBlank { null },
-                        year = obj.optInt("year").takeIf { it > 0 },
-                        status = status,
-                        gameRoomAreaID = obj.optString("gameRoomAreaID").ifBlank { null },
-                        groupNumber = if (obj.has("groupNumber") && !obj.isNull("groupNumber")) obj.optInt("groupNumber") else null,
-                        position = if (obj.has("position") && !obj.isNull("position")) obj.optInt("position") else null,
-                        createdAtMs = obj.optLong("createdAt").takeIf { it > 0L } ?: System.currentTimeMillis(),
-                        updatedAtMs = obj.optLong("updatedAt").takeIf { it > 0L } ?: System.currentTimeMillis(),
-                    ),
-                )
-            }
-        }
-        DecodedGameRoomOverlayState(
-            venueName = venueName,
-            areas = areas,
-            ownedMachines = ownedMachines,
-        )
-    }.getOrNull()
-}
 
 private data class ParsedOwnedMachineLibraryName(
     val displayTitle: String,
@@ -1279,7 +1217,7 @@ private fun compareGameRoomOwnedMachinesForLibrary(
     return lhs.id.compareTo(rhs.id)
 }
 
-private fun bestTemplateForOwnedMachine(
+private fun bestVisualTemplateForOwnedMachine(
     ownedMachine: OwnedMachine,
     baseGames: List<PinballGame>,
 ): PinballGame? {
@@ -1287,7 +1225,6 @@ private fun bestTemplateForOwnedMachine(
     val normalizedCatalogID = normalizedGameRoomID(ownedMachine.catalogGameID)
     val normalizedCatalogGroup = normalizedGroupFromOpdbID(ownedMachine.catalogGameID)
     val normalizedPracticeIdentity = normalizedGameRoomID(ownedMachine.canonicalPracticeIdentity)
-    val normalizedMachineTitle = normalizedGameRoomID(ownedMachine.displayTitle)
     val normalizedMachineVariant = normalizedGameRoomVariant(ownedMachine.displayVariant)
 
     val candidates = baseGames.mapNotNull { game ->
@@ -1300,12 +1237,42 @@ private fun bestTemplateForOwnedMachine(
                 catalogID = normalizedCatalogID,
                 catalogGroupID = normalizedCatalogGroup,
                 canonicalPracticeIdentity = normalizedPracticeIdentity,
-                machineTitle = normalizedMachineTitle,
             )
             if (gameMatchScore <= 0) {
                 null
             } else {
-                game to (gameMatchScore + templateScore(game, machineVariant = normalizedMachineVariant))
+                game to (gameMatchScore + visualTemplateScore(game, machineVariant = normalizedMachineVariant))
+            }
+        }
+    }
+
+    return candidates.maxByOrNull { it.second }?.first
+}
+
+private fun bestContentTemplateForOwnedMachine(
+    ownedMachine: OwnedMachine,
+    baseGames: List<PinballGame>,
+): PinballGame? {
+    val normalizedExactOPDBID = normalizedGameRoomID(ownedMachine.opdbID)
+    val normalizedCatalogID = normalizedGameRoomID(ownedMachine.catalogGameID)
+    val normalizedCatalogGroup = normalizedGroupFromOpdbID(ownedMachine.catalogGameID)
+    val normalizedPracticeIdentity = normalizedGameRoomID(ownedMachine.canonicalPracticeIdentity)
+
+    val candidates = baseGames.mapNotNull { game ->
+        if (game.sourceId == BUILTIN_GAME_ROOM_LIBRARY_SOURCE_ID) {
+            null
+        } else {
+            val gameMatchScore = templateMatchScore(
+                game = game,
+                exactOPDBID = normalizedExactOPDBID,
+                catalogID = normalizedCatalogID,
+                catalogGroupID = normalizedCatalogGroup,
+                canonicalPracticeIdentity = normalizedPracticeIdentity,
+            )
+            if (gameMatchScore <= 0) {
+                null
+            } else {
+                game to (gameMatchScore + contentTemplateScore(game))
             }
         }
     }
@@ -1319,12 +1286,10 @@ private fun templateMatchScore(
     catalogID: String?,
     catalogGroupID: String?,
     canonicalPracticeIdentity: String?,
-    machineTitle: String?,
 ): Int {
     val gameOPDBID = normalizedGameRoomID(game.opdbId)
     val gameOPDBGroupID = normalizedGameRoomID(game.opdbGroupId)
     val gamePracticeIdentity = normalizedGameRoomID(game.practiceIdentity)
-    val gameTitle = normalizedGameRoomID(game.name)
 
     var score = 0
 
@@ -1349,14 +1314,10 @@ private fun templateMatchScore(
         if (gameOPDBGroupID == canonicalPracticeIdentity) score = maxOf(score, 1000)
     }
 
-    if (score == 0 && machineTitle != null && gameTitle == machineTitle) {
-        score = 700
-    }
-
     return score
 }
 
-private fun templateScore(game: PinballGame, machineVariant: String?): Int {
+private fun visualTemplateScore(game: PinballGame, machineVariant: String?): Int {
     val normalizedTemplateVariant = normalizedGameRoomVariant(game.normalizedVariant)
     var score = 0
     if (machineVariant == normalizedTemplateVariant) {
@@ -1369,7 +1330,18 @@ private fun templateScore(game: PinballGame, machineVariant: String?): Int {
     if (!game.playfieldImageUrl.isNullOrBlank() || !game.primaryImageUrl.isNullOrBlank()) {
         score += 20
     }
+    return score
+}
+
+private fun contentTemplateScore(game: PinballGame): Int {
+    var score = 0
     if (game.hasRulesheetResource || game.rulesheetLinks.isNotEmpty()) {
+        score += 40
+    }
+    if (game.videos.isNotEmpty()) {
+        score += 30
+    }
+    if (!game.gameinfoLocal.isNullOrBlank()) {
         score += 10
     }
     return score

@@ -23,7 +23,6 @@ extension PracticeScreen {
             },
             resumeGame: practiceHomeContext.resumeGame,
             allGames: practiceHomeContext.allGames,
-            searchGames: practiceHomeContext.searchGames,
             librarySources: practiceHomeContext.librarySources,
             selectedLibrarySourceID: practiceHomeContext.selectedLibrarySourceID,
             activeGroups: practiceHomeContext.activeGroups,

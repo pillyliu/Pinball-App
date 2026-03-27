@@ -5,16 +5,49 @@ private enum LPLLinks {
     static let facebook = URL(string: "https://www.facebook.com/groups/LansingPinLeague/")!
 }
 
+private enum LPLBundledArtProvider {
+    nonisolated private static let logoFileName = "LPLLogo.webp"
+
+    nonisolated static func loadLogo() async -> UIImage? {
+        return await Task.detached(priority: .utility) {
+            guard let url = bundledURL(named: logoFileName),
+            let image = UIImage(contentsOfFile: url.path) else {
+                return nil
+            }
+            return image
+        }.value
+    }
+
+    nonisolated private static func bundledURL(named fileName: String) -> URL? {
+        if let rootURL = Bundle.main.url(forResource: fileName, withExtension: nil) {
+            return rootURL
+        }
+
+        return Bundle.main.url(
+            forResource: fileName,
+            withExtension: nil,
+            subdirectory: "info"
+        )
+    }
+}
+
 struct LPLLogoView: View {
+    @State private var image: UIImage?
+
     var body: some View {
-        if
-            let url = Bundle.main.url(forResource: "LPLLogo", withExtension: "webp"),
-            let data = try? Data(contentsOf: url),
-            let uiImage = UIImage(data: data)
-        {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFit()
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.secondary.opacity(0.08))
+            }
+        }
+        .task {
+            guard image == nil else { return }
+            image = await LPLBundledArtProvider.loadLogo()
         }
     }
 }

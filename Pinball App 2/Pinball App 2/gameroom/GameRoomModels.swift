@@ -8,6 +8,10 @@ enum OwnedMachineStatus: String, CaseIterable, Codable, Identifiable {
     case traded
 
     var id: String { rawValue }
+
+    var countsAsActiveInventory: Bool {
+        self == .active || self == .loaned
+    }
 }
 
 enum GameRoomAttentionState: String, CaseIterable, Codable, Identifiable {
@@ -128,6 +132,27 @@ enum MachineReminderTaskType: String, CaseIterable, Codable, Identifiable {
     case generalInspection
 
     var id: String { rawValue }
+
+    var matchingEventTypes: [MachineEventType] {
+        switch self {
+        case .glassCleaned:
+            return [.glassCleaned]
+        case .playfieldCleaned:
+            return [.playfieldCleaned]
+        case .ballsReplaced:
+            return [.ballsReplaced]
+        case .pitchChecked:
+            return [.pitchChecked]
+        case .machineLeveled:
+            return [.machineLeveled]
+        case .rubbersReplaced:
+            return [.rubbersReplaced]
+        case .flipperServiced:
+            return [.flipperServiced]
+        case .generalInspection:
+            return [.generalInspection]
+        }
+    }
 }
 
 enum MachineReminderMode: String, CaseIterable, Codable, Identifiable {
@@ -402,6 +427,19 @@ struct MachineEvent: Identifiable, Codable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+
+    var contributesToPlayCount: Bool {
+        type == .custom && category == .custom
+    }
+
+    var loggedPlayCountTotal: Int? {
+        guard contributesToPlayCount,
+              let playCountAtEvent,
+              playCountAtEvent >= 0 else {
+            return nil
+        }
+        return playCountAtEvent
+    }
 }
 
 struct MachineIssue: Identifiable, Codable {
@@ -515,6 +553,43 @@ struct MachineReminderConfig: Identifiable, Codable {
         self.enabled = enabled
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+
+    static func defaultConfigs(for machineID: UUID, now: Date = Date()) -> [MachineReminderConfig] {
+        [
+            MachineReminderConfig(
+                ownedMachineID: machineID,
+                taskType: .glassCleaned,
+                mode: .dateBased,
+                intervalDays: 30,
+                createdAt: now,
+                updatedAt: now
+            ),
+            MachineReminderConfig(
+                ownedMachineID: machineID,
+                taskType: .playfieldCleaned,
+                mode: .dateBased,
+                intervalDays: 90,
+                createdAt: now,
+                updatedAt: now
+            ),
+            MachineReminderConfig(
+                ownedMachineID: machineID,
+                taskType: .ballsReplaced,
+                mode: .playBased,
+                intervalPlays: 5000,
+                createdAt: now,
+                updatedAt: now
+            ),
+            MachineReminderConfig(
+                ownedMachineID: machineID,
+                taskType: .generalInspection,
+                mode: .dateBased,
+                intervalDays: 45,
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
     }
 }
 

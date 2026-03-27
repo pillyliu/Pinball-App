@@ -1,6 +1,6 @@
 import SwiftUI
 
-private let practiceHomeAllGamesSourceMenuID = "__practice_home_all_games__"
+let practiceHomeAllGamesSourceMenuID = "__practice_home_all_games__"
 
 struct PracticeHomeSection: View {
     let resumeGame: PinballGame?

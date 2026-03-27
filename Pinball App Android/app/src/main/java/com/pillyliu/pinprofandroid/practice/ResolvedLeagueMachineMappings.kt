@@ -1,7 +1,10 @@
 package com.pillyliu.pinprofandroid.practice
 
+import android.util.Log
 import com.pillyliu.pinprofandroid.library.LibraryGameLookup
 import org.json.JSONObject
+
+private const val LEAGUE_MACHINE_MAPPINGS_TAG = "PinballDataIntegrity"
 
 internal data class LeagueMachineMappingRecord(
     val machine: String,
@@ -20,6 +23,12 @@ internal fun parseLeagueMachineMappings(text: String): Map<String, LeagueMachine
         if (machine.isBlank()) continue
         val key = LibraryGameLookup.normalizeMachineName(machine)
         if (key.isBlank()) continue
+        out[key]?.let { existing ->
+            Log.w(
+                LEAGUE_MACHINE_MAPPINGS_TAG,
+                "Duplicate league machine mapping for normalized key $key; replacing ${existing.machine} with $machine",
+            )
+        }
         out[key] = LeagueMachineMappingRecord(
             machine = machine,
             practiceIdentity = obj.optString("practice_identity").trim().ifBlank { null },

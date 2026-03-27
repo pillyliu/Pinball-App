@@ -7,10 +7,6 @@ struct PracticeGameWorkspace: View {
     var onGameViewed: ((String) -> Void)? = nil
     var onOpenRulesheet: (PinballGame, RulesheetRemoteSource?) -> Void
     var onOpenExternalRulesheet: (PinballGame, URL) -> Void
-    var onOpenPlayfield: (PinballGame, [URL]) -> Void
-    var onPrepareRulesheet: (PinballGame, RulesheetRemoteSource?) -> Bool
-    var onPrepareExternalRulesheet: (PinballGame, URL) -> Void
-    var onPreparePlayfield: (PinballGame, [URL]) -> Bool
 
     var workspaceContext: PracticeGameWorkspaceContext {
         PracticeGameWorkspaceContext(
@@ -19,11 +15,7 @@ struct PracticeGameWorkspace: View {
             navigationTitle: navigationTitle,
             onGameViewed: onGameViewed,
             onOpenRulesheet: onOpenRulesheet,
-            onOpenExternalRulesheet: onOpenExternalRulesheet,
-            onOpenPlayfield: onOpenPlayfield,
-            onPrepareRulesheet: onPrepareRulesheet,
-            onPrepareExternalRulesheet: onPrepareExternalRulesheet,
-            onPreparePlayfield: onPreparePlayfield
+            onOpenExternalRulesheet: onOpenExternalRulesheet
         )
     }
 

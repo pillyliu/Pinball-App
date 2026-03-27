@@ -262,10 +262,6 @@ struct GameTaskEntrySheet: View {
     @State private var noteText: String = ""
     @State private var validationMessage: String?
 
-    private var selectedGame: PinballGame? {
-        store.games.first(where: { $0.id == gameID })
-    }
-
     private var videoSourceOptions: [String] {
         guard task == .tutorialVideo || task == .gameplayVideo else { return [] }
         return practiceVideoSourceOptions(store: store, gameID: gameID, task: task)
@@ -394,19 +390,13 @@ struct GameTaskEntrySheet: View {
             }
         }
         .onAppear {
-            if selectedVideoSource.isEmpty || !videoSourceOptions.contains(selectedVideoSource) {
-                selectedVideoSource = videoSourceOptions.first ?? ""
-            }
+            syncSelectedVideoSource()
         }
         .onChange(of: task) { _, _ in
-            if selectedVideoSource.isEmpty || !videoSourceOptions.contains(selectedVideoSource) {
-                selectedVideoSource = videoSourceOptions.first ?? ""
-            }
+            syncSelectedVideoSource()
         }
         .onChange(of: gameID) { _, _ in
-            if selectedVideoSource.isEmpty || !videoSourceOptions.contains(selectedVideoSource) {
-                selectedVideoSource = videoSourceOptions.first ?? ""
-            }
+            syncSelectedVideoSource()
         }
     }
 
@@ -463,6 +453,12 @@ struct GameTaskEntrySheet: View {
             Slider(value: value, in: 0...100, step: 1)
                 .tint(.white.opacity(0.92))
                 .padding(.horizontal, 2)
+        }
+    }
+
+    private func syncSelectedVideoSource() {
+        if selectedVideoSource.isEmpty || !videoSourceOptions.contains(selectedVideoSource) {
+            selectedVideoSource = videoSourceOptions.first ?? ""
         }
     }
 

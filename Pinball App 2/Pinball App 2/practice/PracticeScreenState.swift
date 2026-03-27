@@ -26,12 +26,9 @@ struct PracticeScreenState {
     var leaguePlayerName: String = ""
     var leaguePlayerOptions: [String] = []
     var leagueImportStatus: String = ""
-    var cloudSyncEnabled = false
     var showingNamePrompt = false
     var firstNamePromptValue: String = ""
     var importLplStatsOnNameSave = true
-    var showingResetJournalPrompt = false
-    var resetJournalConfirmationText: String = ""
     var headToHead: HeadToHeadComparison?
     var isLoadingHeadToHead = false
     var viewportHeight: CGFloat = 0

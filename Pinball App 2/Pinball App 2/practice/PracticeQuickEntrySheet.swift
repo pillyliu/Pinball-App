@@ -107,7 +107,7 @@ struct PracticeQuickEntrySheet: View {
     }
 
     private var availableLibrarySources: [PinballLibrarySource] {
-        store.librarySources.isEmpty ? inferPracticeLibrarySources(from: allLibraryGamesForPicker) : store.librarySources
+        store.librarySources.isEmpty ? libraryInferSources(from: allLibraryGamesForPicker) : store.librarySources
     }
 
     private var avenueLibrarySourceIDForQuickEntry: String? {
@@ -694,18 +694,6 @@ struct PracticeQuickEntrySheet: View {
     }
 
 }
-
-private func inferPracticeLibrarySources(from games: [PinballGame]) -> [PinballLibrarySource] {
-    var seen = Set<String>()
-    var out: [PinballLibrarySource] = []
-    for game in games {
-        if seen.insert(game.sourceId).inserted {
-            out.append(PinballLibrarySource(id: game.sourceId, name: game.sourceName, type: game.sourceType))
-        }
-    }
-    return out
-}
-
 private func formatScoreInputWithCommas(_ raw: String) -> String {
     let digits = raw.filter(\.isNumber)
     guard !digits.isEmpty else { return "" }

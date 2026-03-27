@@ -62,15 +62,23 @@ nonisolated func loadCachedPinballData(path: String) throws -> Data? {
     return nil
 }
 
-nonisolated func cachePinballData(path: String, data: Data) throws {
-    let fileManager = FileManager.default
-    let fileURL = pinballCachedFileURL(path: path, fileManager: fileManager)
-    try fileManager.createDirectory(
-        at: fileURL.deletingLastPathComponent(),
-        withIntermediateDirectories: true,
-        attributes: nil
-    )
-    try data.write(to: fileURL, options: .atomic)
+nonisolated func pinballCacheLatestUpdateScanAt(
+    eventGeneratedAts: [String],
+    existingLastScan: String?
+) -> String? {
+    var latest = existingLastScan
+
+    for generatedAt in eventGeneratedAts {
+        guard let currentLatest = latest else {
+            latest = generatedAt
+            continue
+        }
+        if generatedAt > currentLatest {
+            latest = generatedAt
+        }
+    }
+
+    return latest
 }
 
 struct CachedTextResult {
@@ -170,8 +178,9 @@ actor PinballDataCache {
     private var isLoaded = false
     private var index = CacheIndex()
     private var manifest: Manifest?
-    private var inFlightRevalidations: Set<String> = []
-    private var inFlightRemoteImageRevalidations: Set<String> = []
+    private var cacheGeneration: UInt64 = 0
+    private var inFlightRevalidations: [String: UInt64] = [:]
+    private var inFlightRemoteImageRevalidations: [String: UInt64] = [:]
     private let remoteImageLimiter = RequestLimiter(limit: 8)
 
     private let fileManager = FileManager.default
@@ -228,6 +237,7 @@ actor PinballDataCache {
             try? fileManager.removeItem(at: indexURL)
         }
 
+        cacheGeneration &+= 1
         index = CacheIndex()
         manifest = nil
         inFlightRevalidations.removeAll()
@@ -270,12 +280,6 @@ actor PinballDataCache {
         return sha256Hex(localData) != remoteHash
     }
 
-    func cachedUpdatedAt(path: String) async throws -> Date? {
-        try await ensureLoaded()
-        let normalizedPath = normalize(path)
-        return cachedFileUpdatedAt(for: normalizedPath)
-    }
-
     func loadData(url: URL) async throws -> Data {
         try await ensureLoaded()
 
@@ -306,6 +310,7 @@ actor PinballDataCache {
     }
 
     private func fetchRemoteImageFromNetwork(url: URL, allowStaleOnFailure: Bool = true) async throws -> Data {
+        let expectedGeneration = cacheGeneration
         await remoteImageLimiter.acquire()
         defer {
             Task {
@@ -321,7 +326,7 @@ actor PinballDataCache {
             if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
                 throw URLError(.badServerResponse)
             }
-            try writeRemoteImage(data: data, for: url)
+            try writeRemoteImage(data: data, for: url, expectedGeneration: expectedGeneration)
             return data
         } catch {
             if allowStaleOnFailure, let stale = try cachedRemoteImageData(for: url) {
@@ -337,18 +342,19 @@ actor PinballDataCache {
               Date().timeIntervalSince(updatedAt) >= remoteImageDiskRevalidateInterval else {
             return
         }
-        if inFlightRemoteImageRevalidations.contains(key) {
+        if inFlightRemoteImageRevalidations[key] != nil {
             return
         }
 
-        inFlightRemoteImageRevalidations.insert(key)
+        let generation = cacheGeneration
+        inFlightRemoteImageRevalidations[key] = generation
         Task.detached(priority: .utility) {
-            await PinballDataCache.shared.runRemoteImageRevalidate(url: url)
+            await PinballDataCache.shared.runRemoteImageRevalidate(url: url, generation: generation)
         }
     }
 
-    private func runRemoteImageRevalidate(url: URL) async {
-        defer { inFlightRemoteImageRevalidations.remove(remoteImageCacheKey(for: url)) }
+    private func runRemoteImageRevalidate(url: URL, generation: UInt64) async {
+        defer { finishRemoteImageRevalidate(url: url, generation: generation) }
         do {
             _ = try await fetchRemoteImageFromNetwork(url: url)
         } catch {
@@ -370,18 +376,19 @@ actor PinballDataCache {
            now - resource.lastValidatedAt < backgroundRevalidateInterval {
             return
         }
-        if inFlightRevalidations.contains(path) {
+        if inFlightRevalidations[path] != nil {
             return
         }
 
-        inFlightRevalidations.insert(path)
+        let generation = cacheGeneration
+        inFlightRevalidations[path] = generation
         Task.detached(priority: .utility) {
-            await PinballDataCache.shared.runRevalidate(path: path, allowMissing: allowMissing)
+            await PinballDataCache.shared.runRevalidate(path: path, allowMissing: allowMissing, generation: generation)
         }
     }
 
-    private func runRevalidate(path: String, allowMissing: Bool) async {
-        defer { inFlightRevalidations.remove(path) }
+    private func runRevalidate(path: String, allowMissing: Bool, generation: UInt64) async {
+        defer { finishRevalidate(path: path, generation: generation) }
         await revalidate(path: path, allowMissing: allowMissing)
     }
 
@@ -404,6 +411,7 @@ actor PinballDataCache {
     }
 
     private func fetchBinaryFromNetwork(path: String, allowMissing: Bool, allowStaleOnFailure: Bool = true) async throws -> Data? {
+        let expectedGeneration = cacheGeneration
         do {
             try await refreshMetadataIfNeeded(force: false)
         } catch {
@@ -413,8 +421,7 @@ actor PinballDataCache {
         if let manifest,
            manifest.files[path] == nil,
            allowMissing {
-            index.resources[path] = CacheIndex.Resource(path: path, hash: nil, lastValidatedAt: Date().timeIntervalSince1970, missing: true)
-            try persistIndex()
+            try markResourceMissing(path: path, validatedAt: Date().timeIntervalSince1970, expectedGeneration: expectedGeneration)
             return nil
         }
 
@@ -427,8 +434,7 @@ actor PinballDataCache {
             let (data, response) = try await URLSession.shared.data(for: request)
             if let http = response as? HTTPURLResponse {
                 if http.statusCode == 404, allowMissing {
-                    index.resources[path] = CacheIndex.Resource(path: path, hash: nil, lastValidatedAt: Date().timeIntervalSince1970, missing: true)
-                    try persistIndex()
+                    try markResourceMissing(path: path, validatedAt: Date().timeIntervalSince1970, expectedGeneration: expectedGeneration)
                     return nil
                 }
                 if !(200...299).contains(http.statusCode) {
@@ -436,10 +442,13 @@ actor PinballDataCache {
                 }
             }
 
-            try write(data: data, for: path)
-            let manifestHash = manifest?.files[path]?.hash
-            index.resources[path] = CacheIndex.Resource(path: path, hash: manifestHash, lastValidatedAt: Date().timeIntervalSince1970, missing: false)
-            try persistIndex()
+            try storeFetchedResource(
+                data: data,
+                path: path,
+                manifestHash: manifest?.files[path]?.hash,
+                validatedAt: Date().timeIntervalSince1970,
+                expectedGeneration: expectedGeneration
+            )
             return data
         } catch {
             if allowStaleOnFailure, let stale = try cachedData(for: path) {
@@ -526,7 +535,10 @@ actor PinballDataCache {
             return event.generatedAt > lastScan
         }
 
-        index.lastUpdateScanAt = updateLog.events.first?.generatedAt ?? lastScan
+        index.lastUpdateScanAt = pinballCacheLatestUpdateScanAt(
+            eventGeneratedAts: updateLog.events.map(\.generatedAt),
+            existingLastScan: lastScan
+        )
 
         // Ensure removed paths don't stay on disk forever.
         let removedPaths = updatedEvents.flatMap(\.removed)
@@ -621,9 +633,11 @@ actor PinballDataCache {
             try? fileManager.removeItem(at: indexURL)
         }
 
+        cacheGeneration &+= 1
         index = CacheIndex()
         manifest = nil
         inFlightRevalidations.removeAll()
+        inFlightRemoteImageRevalidations.removeAll()
 
         try Data("ok".utf8).write(to: markerURL, options: .atomic)
     }
@@ -683,12 +697,48 @@ actor PinballDataCache {
         return modified
     }
 
-    private func writeRemoteImage(data: Data, for url: URL) throws {
+    private func writeRemoteImage(data: Data, for url: URL, expectedGeneration: UInt64) throws {
+        guard cacheGeneration == expectedGeneration else { return }
         let fileURL = remoteImageFileURL(for: url)
         let dir = fileURL.deletingLastPathComponent()
         try fileManager.createDirectory(at: dir, withIntermediateDirectories: true, attributes: nil)
         try data.write(to: fileURL, options: .atomic)
         try pruneRemoteImageCacheIfNeeded()
+    }
+
+    private func finishRemoteImageRevalidate(url: URL, generation: UInt64) {
+        let key = remoteImageCacheKey(for: url)
+        guard inFlightRemoteImageRevalidations[key] == generation else { return }
+        inFlightRemoteImageRevalidations.removeValue(forKey: key)
+    }
+
+    private func finishRevalidate(path: String, generation: UInt64) {
+        guard inFlightRevalidations[path] == generation else { return }
+        inFlightRevalidations.removeValue(forKey: path)
+    }
+
+    private func markResourceMissing(path: String, validatedAt: TimeInterval, expectedGeneration: UInt64) throws {
+        guard cacheGeneration == expectedGeneration else { return }
+        index.resources[path] = CacheIndex.Resource(path: path, hash: nil, lastValidatedAt: validatedAt, missing: true)
+        try persistIndex()
+    }
+
+    private func storeFetchedResource(
+        data: Data,
+        path: String,
+        manifestHash: String?,
+        validatedAt: TimeInterval,
+        expectedGeneration: UInt64
+    ) throws {
+        guard cacheGeneration == expectedGeneration else { return }
+        try write(data: data, for: path)
+        index.resources[path] = CacheIndex.Resource(
+            path: path,
+            hash: manifestHash,
+            lastValidatedAt: validatedAt,
+            missing: false
+        )
+        try persistIndex()
     }
 
     private func pruneRemoteImageCacheIfNeeded() throws {

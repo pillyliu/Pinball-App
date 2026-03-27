@@ -83,12 +83,17 @@ private data class ScoreRow(
     val points: Double,
 )
 
+private data class StatPlayerLabel(
+    val rawPlayer: String,
+    val season: String?,
+)
+
 private data class StatResult(
     val count: Int,
     val low: Double?,
-    val lowPlayer: String?,
+    val lowPlayer: StatPlayerLabel?,
     val high: Double?,
-    val highPlayer: String?,
+    val highPlayer: StatPlayerLabel?,
     val mean: Double?,
     val median: Double?,
     val std: Double?,
@@ -518,13 +523,11 @@ private fun MachineStatsTable(selectedLabel: String, selectedStats: StatResult, 
                 StatValueCell(
                     label = label,
                     stats = selectedStats,
-                    isAllSeasons = false,
                     modifier = Modifier.weight(1.65f),
                 )
                 StatValueCell(
                     label = label,
                     stats = allSeasonsStats,
-                    isAllSeasons = true,
                     modifier = Modifier.weight(1.65f),
                 )
             }
@@ -558,7 +561,7 @@ private fun StatLabelCell(text: String, modifier: Modifier) {
 }
 
 @Composable
-private fun StatValueCell(label: String, stats: StatResult, isAllSeasons: Boolean, modifier: Modifier) {
+private fun StatValueCell(label: String, stats: StatResult, modifier: Modifier) {
     val showFullLplLastName = rememberShowFullLplLastName()
     val valueColor = statsAccentColor(label)
     val value = when (label) {
@@ -587,9 +590,8 @@ private fun StatValueCell(label: String, stats: StatResult, isAllSeasons: Boolea
             maxLines = 1,
         )
         if (label == "High" || label == "Low") {
-            val playerText = if (player.isNullOrBlank()) "-" else if (isAllSeasons) player else player.substringBefore(" (S")
             Text(
-                text = formatLplPlayerNameForDisplay(playerText, showFullLplLastName),
+                text = formatStatPlayerLabel(player, showFullLplLastName),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 9.sp,
                 textAlign = TextAlign.Start,
@@ -600,6 +602,12 @@ private fun StatValueCell(label: String, stats: StatResult, isAllSeasons: Boolea
             )
         }
     }
+}
+
+private fun formatStatPlayerLabel(player: StatPlayerLabel?, showFullLplLastName: Boolean): String {
+    player ?: return "-"
+    val display = formatLplPlayerNameForDisplay(player.rawPlayer, showFullLplLastName)
+    return player.season?.takeIf { it.isNotBlank() }?.let { "$display ($it)" } ?: display
 }
 
 @Composable
@@ -710,8 +718,11 @@ private fun computeStats(scope: List<ScoreRow>, isBankScope: Boolean): StatResul
     val lowRow = scope.firstOrNull { it.rawScore == low }
     val highRow = scope.firstOrNull { it.rawScore == high }
 
-    fun label(row: ScoreRow): String =
-        if (isBankScope) row.player else "${row.player} (${abbrSeason(row.season)})"
+    fun label(row: ScoreRow): StatPlayerLabel =
+        StatPlayerLabel(
+            rawPlayer = row.player,
+            season = if (isBankScope) null else abbrSeason(row.season),
+        )
 
     return StatResult(
         count = count,

@@ -2,15 +2,10 @@ import Foundation
 
 struct CachedPracticeJournalPayload {
     let libraryActivityRevision: UInt
-    let items: [PracticeJournalItem]
     let sections: [PracticeJournalDaySection]
 }
 
 extension PracticeStore {
-    func journalItems(filter: JournalFilter) -> [PracticeJournalItem] {
-        cachedJournalPayload(for: filter).items
-    }
-
     func journalSections(filter: JournalFilter) -> [PracticeJournalDaySection] {
         cachedJournalPayload(for: filter).sections
     }
@@ -44,19 +39,6 @@ extension PracticeStore {
         )
         cachedScoreSummariesByGameID[gameID] = summary
         return summary
-    }
-
-    func recentJournalEntries(limit: Int = 60) -> [JournalEntry] {
-        Array(state.journalEntries.sorted { $0.timestamp > $1.timestamp }.prefix(limit))
-    }
-
-    func allJournalEntries() -> [JournalEntry] {
-        state.journalEntries.sorted { $0.timestamp > $1.timestamp }
-    }
-
-    func clearJournalLog() {
-        state.journalEntries.removeAll()
-        saveState()
     }
 
     func gameJournalEntries(for gameID: String) -> [JournalEntry] {
@@ -230,7 +212,6 @@ extension PracticeStore {
         let sections = groupedPracticeJournalSections(items)
         let payload = CachedPracticeJournalPayload(
             libraryActivityRevision: libraryActivityRevision,
-            items: items,
             sections: sections
         )
         cachedJournalPayloads[filter] = payload

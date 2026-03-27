@@ -113,40 +113,6 @@ func buildLeagueStatsPreview(statsCSV: String, preferredPlayer: String?) -> Leag
     )
 }
 
-func parseLeagueTargetRows(_ text: String) -> [LeagueTargetPreviewRow] {
-    let table = parseCSVRows(text)
-    guard let header = table.first else { return [] }
-
-    let headers = header.map(normalizeCSVHeader)
-    guard let gameIndex = headers.firstIndex(of: "game"),
-          let secondIndex = headers.firstIndex(of: "second_highest_avg"),
-          let fourthIndex = headers.firstIndex(of: "fourth_highest_avg"),
-          let eighthIndex = headers.firstIndex(of: "eighth_highest_avg") else {
-        return []
-    }
-
-    return table.dropFirst().compactMap { row in
-        guard row.indices.contains(gameIndex),
-              row.indices.contains(secondIndex),
-              row.indices.contains(fourthIndex),
-              row.indices.contains(eighthIndex) else {
-            return nil
-        }
-
-        let game = row[gameIndex].trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !game.isEmpty else { return nil }
-
-        return LeagueTargetPreviewRow(
-            game: game,
-            secondHighest: Int64(row[secondIndex]) ?? 0,
-            fourthHighest: Int64(row[fourthIndex]) ?? 0,
-            eighthHighest: Int64(row[eighthIndex]) ?? 0,
-            bank: nil,
-            order: Int.max
-        )
-    }
-}
-
 func parseLeagueStandingsRows(_ text: String) -> [LeagueParsedStandingRow] {
     let table = parseCSVRows(text)
     guard let header = table.first else { return [] }
@@ -236,25 +202,6 @@ func parseLeagueStatsRows(_ text: String) -> [LeagueParsedStatsRow] {
             points: points,
             eventDate: eventDate,
             sourceOrder: offset
-        )
-    }
-}
-
-func mergeLeagueTargetsWithLibrary(
-    targetRows: [LeagueTargetPreviewRow],
-    libraryEntries: [LibraryGameLookupEntry]
-) -> [LeagueTargetPreviewRow] {
-    return targetRows.map { row in
-        let bestMatch = LibraryGameLookup.bestMatch(gameName: row.game, entries: libraryEntries)
-        guard let bestMatch else { return row }
-
-        return LeagueTargetPreviewRow(
-            game: row.game,
-            secondHighest: row.secondHighest,
-            fourthHighest: row.fourthHighest,
-            eighthHighest: row.eighthHighest,
-            bank: bestMatch.bank,
-            order: bestMatch.order
         )
     }
 }

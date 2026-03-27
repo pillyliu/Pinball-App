@@ -51,6 +51,22 @@ internal fun rememberScoreScannerController(
 internal class ScoreScannerController(
     private val appContext: Context,
 ) {
+    private data class AnalyzerState(
+        var lastOcrTimeMs: Long = 0L,
+        var lastLiveBitmapFallbackTimeMs: Long = 0L,
+        var isProcessingFrame: Boolean = false,
+        var processingPaused: Boolean = false,
+        var pendingFreezeRequest: Boolean = false,
+        var pendingFreezePreferredReading: ScoreScannerLockedReading? = null,
+        var frozenGate: Boolean = false,
+        var latestSnapshot: ScoreScannerStabilityService.Snapshot? = null,
+    )
+
+    private data class AnalyzerFramePermit(
+        val requestedFreeze: Boolean,
+        val requestedFreezePreferredReading: ScoreScannerLockedReading?,
+    )
+
     var hasCameraPermission by mutableStateOf(false)
         private set
     var status by mutableStateOf(ScoreScannerStatus.Searching)
@@ -87,30 +103,12 @@ internal class ScoreScannerController(
     private val minimumLiveVerticalPadding = 0.04f
     private val strongLiveCandidateDigitCount = 6
     private val strongLiveCandidateFormatQuality = 5
+    private val analyzerStateLock = Any()
+    private val analyzerState = AnalyzerState()
 
     @Volatile
     private var previewMapping: ScoreScannerPreviewMapping? = null
-
-    @Volatile
-    private var lastOcrTimeMs = 0L
-
-    @Volatile
-    private var lastLiveBitmapFallbackTimeMs = 0L
-
-    @Volatile
-    private var isProcessingFrame = false
-
-    @Volatile
-    private var processingPaused = false
-
-    @Volatile
-    private var pendingFreezeRequest = false
-
-    @Volatile
-    private var pendingFreezePreferredReading: ScoreScannerLockedReading? = null
-
     private var displayMode = ScoreScannerDisplayMode.Lcd
-    private var latestSnapshot: ScoreScannerStabilityService.Snapshot? = null
     private var boundLifecycleOwner: LifecycleOwner? = null
     private var boundPreviewView: PreviewView? = null
     private var cameraProvider: ProcessCameraProvider? = null
@@ -202,8 +200,7 @@ internal class ScoreScannerController(
 
     fun freezeCurrentFrame() {
         if (isFrozen) return
-        pendingFreezePreferredReading = preferredFreezeReading()
-        pendingFreezeRequest = true
+        requestPendingFreeze(preferredFreezeReading())
     }
 
     fun freezeDisplayedCandidate() {
@@ -218,19 +215,21 @@ internal class ScoreScannerController(
             return
         }
 
-        pendingFreezePreferredReading = preferredReading
-        pendingFreezeRequest = true
+        requestPendingFreeze(preferredReading)
     }
 
     fun retake() {
-        processingPaused = false
-        pendingFreezeRequest = false
-        pendingFreezePreferredReading = null
-        isProcessingFrame = false
-        lastOcrTimeMs = 0L
-        lastLiveBitmapFallbackTimeMs = 0L
-        latestSnapshot = null
-        stabilityService.reset()
+        withAnalyzerState {
+            processingPaused = false
+            pendingFreezeRequest = false
+            pendingFreezePreferredReading = null
+            isProcessingFrame = false
+            lastOcrTimeMs = 0L
+            lastLiveBitmapFallbackTimeMs = 0L
+            latestSnapshot = null
+            frozenGate = false
+            stabilityService.reset()
+        }
 
         isFrozen = false
         frozenPreviewBitmap = null
@@ -265,25 +264,19 @@ internal class ScoreScannerController(
     }
 
     private fun analyzeFrame(imageProxy: ImageProxy) {
-        if (processingPaused || isFrozen) {
-            imageProxy.close()
-            return
-        }
-
         val now = SystemClock.elapsedRealtime()
-        if (isProcessingFrame || now - lastOcrTimeMs < liveOcrIntervalMs) {
+        val framePermit = beginAnalyzerFrame(now)
+        if (framePermit == null) {
             imageProxy.close()
             return
         }
 
         val mediaImage = imageProxy.image
         if (mediaImage == null) {
+            finishAnalyzerFrame()
             imageProxy.close()
             return
         }
-
-        lastOcrTimeMs = now
-        isProcessingFrame = true
 
         val rotationDegrees = imageProxy.imageInfo.rotationDegrees
         val frameSize = orientedFrameSize(
@@ -299,12 +292,8 @@ internal class ScoreScannerController(
         )
 
         val inputImage = com.google.mlkit.vision.common.InputImage.fromMediaImage(mediaImage, rotationDegrees)
-        val requestedFreeze = pendingFreezeRequest
-        val requestedFreezePreferredReading = pendingFreezePreferredReading
-        if (requestedFreeze) {
-            pendingFreezeRequest = false
-            pendingFreezePreferredReading = null
-        }
+        val requestedFreeze = framePermit.requestedFreeze
+        val requestedFreezePreferredReading = framePermit.requestedFreezePreferredReading
         scope.launch {
             try {
                 val previewBitmap = if (requestedFreeze) capturePreviewCropBitmap() else null
@@ -329,8 +318,7 @@ internal class ScoreScannerController(
                     sourceCropRect = cropRect,
                 )
             } catch (_: Exception) {
-                val snapshot = stabilityService.ingest(candidate = null)
-                latestSnapshot = snapshot
+                val snapshot = updateAnalyzerSnapshot(candidate = null)
                 val lockedReading = latestLockedReading(snapshot)
                 if (snapshot.state == ScoreScannerStatus.Locked && lockedReading != null) {
                     freeze(
@@ -348,7 +336,7 @@ internal class ScoreScannerController(
                 }
             } finally {
                 imageProxy.close()
-                isProcessingFrame = false
+                finishAnalyzerFrame()
             }
         }
     }
@@ -364,8 +352,7 @@ internal class ScoreScannerController(
             minimumHorizontalPadding = minimumLiveHorizontalPadding,
             minimumVerticalPadding = minimumLiveVerticalPadding,
         )
-        val snapshot = stabilityService.ingest(filtered.bestCandidate)
-        latestSnapshot = snapshot
+        val snapshot = updateAnalyzerSnapshot(candidate = filtered.bestCandidate)
         val displayedReading = latestDisplayedReading(
             snapshot = snapshot,
             bestCandidate = filtered.bestCandidate,
@@ -400,7 +387,18 @@ internal class ScoreScannerController(
     ) {
         if (isFrozen) return
 
-        processingPaused = true
+        val shouldFreeze = withAnalyzerState {
+            if (frozenGate) {
+                false
+            } else {
+                processingPaused = true
+                frozenGate = true
+                true
+            }
+        }
+        if (!shouldFreeze) {
+            return
+        }
         isFrozen = true
         frozenPreviewBitmap = previewBitmap
         lockedReading = preferredReading
@@ -488,7 +486,8 @@ internal class ScoreScannerController(
     }
 
     private fun preferredFreezeReading(): ScoreScannerLockedReading? {
-        return liveCandidateReading ?: latestLockedReading(latestSnapshot)
+        val snapshot = withAnalyzerState { latestSnapshot }
+        return liveCandidateReading ?: latestLockedReading(snapshot)
     }
 
     private fun latestDisplayedReading(
@@ -532,7 +531,9 @@ internal class ScoreScannerController(
         }
 
         val previewBitmap = capturePreviewCropBitmap() ?: return sourceAnalysis
-        lastLiveBitmapFallbackTimeMs = now
+        withAnalyzerState {
+            lastLiveBitmapFallbackTimeMs = now
+        }
         return try {
             ocrService.recognize(
                 bitmap = previewBitmap,
@@ -551,8 +552,11 @@ internal class ScoreScannerController(
         now: Long,
         sourceBestCandidate: ScoreScannerCandidate?,
     ): Boolean {
-        if (now - lastLiveBitmapFallbackTimeMs < liveBitmapFallbackIntervalMs) return false
-        if (latestSnapshot?.state == ScoreScannerStatus.Locked) return false
+        val (snapshot, lastFallbackAt) = withAnalyzerState {
+            latestSnapshot to lastLiveBitmapFallbackTimeMs
+        }
+        if (now - lastFallbackAt < liveBitmapFallbackIntervalMs) return false
+        if (snapshot?.state == ScoreScannerStatus.Locked) return false
         val candidate = sourceBestCandidate ?: return true
         return candidate.digitCount < strongLiveCandidateDigitCount ||
             candidate.formatQuality < strongLiveCandidateFormatQuality
@@ -597,6 +601,49 @@ internal class ScoreScannerController(
             Size(width.toFloat(), height.toFloat())
         }
     }
+
+    private inline fun <T> withAnalyzerState(block: AnalyzerState.() -> T): T =
+        synchronized(analyzerStateLock) {
+            analyzerState.block()
+        }
+
+    private fun requestPendingFreeze(preferredReading: ScoreScannerLockedReading?) {
+        withAnalyzerState {
+            pendingFreezePreferredReading = preferredReading
+            pendingFreezeRequest = true
+        }
+    }
+
+    private fun beginAnalyzerFrame(now: Long): AnalyzerFramePermit? =
+        withAnalyzerState {
+            if (processingPaused || frozenGate || isProcessingFrame || now - lastOcrTimeMs < liveOcrIntervalMs) {
+                null
+            } else {
+                lastOcrTimeMs = now
+                isProcessingFrame = true
+                val requestedFreeze = pendingFreezeRequest
+                val requestedFreezePreferredReading = pendingFreezePreferredReading
+                if (requestedFreeze) {
+                    pendingFreezeRequest = false
+                    pendingFreezePreferredReading = null
+                }
+                AnalyzerFramePermit(
+                    requestedFreeze = requestedFreeze,
+                    requestedFreezePreferredReading = requestedFreezePreferredReading,
+                )
+            }
+        }
+
+    private fun finishAnalyzerFrame() {
+        withAnalyzerState {
+            isProcessingFrame = false
+        }
+    }
+
+    private fun updateAnalyzerSnapshot(candidate: ScoreScannerCandidate?): ScoreScannerStabilityService.Snapshot =
+        withAnalyzerState {
+            stabilityService.ingest(candidate).also { latestSnapshot = it }
+        }
 }
 
 private suspend fun <T> ListenableFuture<T>.await(): T = suspendCancellableCoroutine { continuation ->

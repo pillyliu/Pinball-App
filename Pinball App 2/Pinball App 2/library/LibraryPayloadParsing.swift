@@ -106,7 +106,7 @@ struct PinballLibraryBrowsingState {
         if let selectedSource, !visible.contains(where: { $0.id == selectedSource.id }) {
             visible.append(selectedSource)
         }
-        if let gameRoomSource = sources.first(where: { $0.id == "venue--gameroom" }),
+        if let gameRoomSource = sources.first(where: { $0.id == gameRoomLibrarySourceID }),
            !visible.contains(where: { $0.id == gameRoomSource.id }) {
             visible.append(gameRoomSource)
         }

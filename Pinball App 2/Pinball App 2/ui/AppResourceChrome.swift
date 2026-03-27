@@ -324,22 +324,6 @@ func AppVariantPill(
 }
 
 @ViewBuilder
-func PinballOverlayMetadataBadge(_ title: String) -> some View {
-    Text(title)
-        .font(.system(size: 9, weight: .semibold))
-        .foregroundStyle(.white)
-        .lineLimit(1)
-        .truncationMode(.tail)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2.5)
-        .background(AppTheme.brandGold.opacity(0.20), in: Capsule())
-        .overlay(
-            Capsule()
-                .stroke(AppTheme.brandGold.opacity(0.42), lineWidth: 0.8)
-        )
-}
-
-@ViewBuilder
 func AppOverlayTitle(_ title: String) -> some View {
     Text(title)
         .font(.system(size: 16, weight: .semibold))

@@ -12,7 +12,6 @@ struct PracticeHomeRootView: View {
 
     let resumeGame: PinballGame?
     let allGames: [PinballGame]
-    let searchGames: [PinballGame]
     let librarySources: [PinballLibrarySource]
     let selectedLibrarySourceID: String?
     let activeGroups: [CustomGameGroup]

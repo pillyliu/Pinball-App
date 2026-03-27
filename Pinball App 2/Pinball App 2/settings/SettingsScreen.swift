@@ -100,6 +100,7 @@ final class SettingsViewModel: ObservableObject {
         guard !builtin else { return }
         PinballLibrarySourceStateStore.setEnabled(sourceID: sourceID, isEnabled: isOn)
         sourceState = PinballLibrarySourceStateStore.load()
+        errorMessage = nil
         postPinballLibrarySourcesDidChange()
     }
 
@@ -109,11 +110,15 @@ final class SettingsViewModel: ObservableObject {
             errorMessage = "Pinned sources are limited to \(PinballLibrarySourceStateStore.maxPinnedSources)."
         }
         sourceState = PinballLibrarySourceStateStore.load()
+        if success {
+            errorMessage = nil
+        }
         postPinballLibrarySourcesDidChange()
     }
 
     func addManufacturer(_ manufacturer: PinballCatalogManufacturerOption) {
         applySourceSnapshot(addManufacturerSource(manufacturer))
+        errorMessage = nil
         postPinballLibrarySourcesDidChange()
     }
 
@@ -126,16 +131,19 @@ final class SettingsViewModel: ObservableObject {
                 radiusMiles: radiusMiles
             )
         )
+        errorMessage = nil
         postPinballLibrarySourcesDidChange()
     }
 
     func importTournament(result: MatchPlayTournamentImportResult) {
         applySourceSnapshot(addTournamentSource(result))
+        errorMessage = nil
         postPinballLibrarySourcesDidChange()
     }
 
     func removeImportedSource(_ sourceID: String) {
         applySourceSnapshot(removeSettingsSource(sourceID))
+        errorMessage = nil
         postPinballLibrarySourcesDidChange()
     }
 
@@ -143,6 +151,7 @@ final class SettingsViewModel: ObservableObject {
         guard source.type == .venue else { return }
         do {
             applySourceSnapshot(try await refreshVenueSource(source))
+            errorMessage = nil
             postPinballLibrarySourcesDidChange()
         } catch {
             errorMessage = "Venue refresh failed: \(error.localizedDescription)"
@@ -153,6 +162,7 @@ final class SettingsViewModel: ObservableObject {
         guard source.type == .tournament else { return }
         do {
             applySourceSnapshot(try await refreshTournamentSource(source))
+            errorMessage = nil
             postPinballLibrarySourcesDidChange()
         } catch {
             errorMessage = "Tournament refresh failed: \(error.localizedDescription)"

@@ -53,11 +53,6 @@ nonisolated func canonicalLibrarySourceID(_ rawID: String?) -> String? {
     return canonicalBuiltinVenueLibrarySourceID(trimmed) ?? trimmed
 }
 
-nonisolated func builtinVenueSourceName(for rawID: String?) -> String? {
-    guard let canonicalID = canonicalLibrarySourceID(rawID) else { return nil }
-    return builtinVenueSourceNames[canonicalID]
-}
-
 nonisolated func builtinVenueSources(includeGameRoom: Bool = false) -> [PinballLibrarySource] {
     var sourceIDs = defaultBuiltinVenueSourceIDs
     if includeGameRoom {
@@ -75,14 +70,6 @@ nonisolated func isAvenueLibrarySourceID(_ rawID: String?) -> Bool {
 
 nonisolated func isImportedPinballMapSourceID(_ rawID: String?) -> Bool {
     canonicalLibrarySourceID(rawID)?.lowercased().hasPrefix("venue--pm-") == true
-}
-
-nonisolated func pinballMapLocationID(for rawID: String?) -> String? {
-    guard let canonicalID = canonicalLibrarySourceID(rawID),
-          canonicalID.hasPrefix("venue--pm-") else {
-        return nil
-    }
-    return canonicalID.replacingOccurrences(of: "venue--pm-", with: "")
 }
 
 func migrateLegacyPinnedVenueImportsIfNeeded() async {

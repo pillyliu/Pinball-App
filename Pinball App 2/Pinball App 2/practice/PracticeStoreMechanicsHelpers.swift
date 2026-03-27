@@ -116,7 +116,7 @@ extension PracticeStore {
     }
 
     func parseComfortValue(from note: String) -> Int? {
-        let pattern = #"comfort\s+([1-5])(?:\s*/\s*5)?"#
+        let pattern = #"(?:comfort|competency)\s+([1-5])(?:\s*/\s*5)?"#
         guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
         let range = NSRange(location: 0, length: note.utf16.count)
         guard let match = regex.firstMatch(in: note, options: [], range: range),

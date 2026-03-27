@@ -1,5 +1,3 @@
-import Foundation
-
 let practiceLeagueImportDescription = "Select name to import Lansing Pinball League scores. Automatically imports new scores throughout the season."
 
 func importedLeagueScoreSummary(_ count: Int) -> String {

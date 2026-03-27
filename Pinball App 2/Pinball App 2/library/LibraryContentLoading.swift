@@ -2,6 +2,25 @@ import Combine
 import Foundation
 import SwiftUI
 
+private func libraryLoadFirstAvailableText(pathCandidates: [String]) async throws -> (text: String?, sawMissing: Bool) {
+    var sawMissing = false
+
+    for path in pathCandidates {
+        let cached = try await PinballDataCache.shared.loadText(path: path, allowMissing: true)
+        if cached.isMissing {
+            sawMissing = true
+            continue
+        }
+        guard let text = cached.text, !text.isEmpty else {
+            sawMissing = true
+            continue
+        }
+        return (text, sawMissing)
+    }
+
+    return (nil, sawMissing)
+}
+
 enum LoadStatus {
     case idle
     case loading
@@ -22,10 +41,6 @@ final class PinballGameInfoViewModel: ObservableObject {
         self.pathCandidates = pathCandidates.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
 
-    convenience init(slug: String) {
-        self.init(pathCandidates: ["/pinball/gameinfo/\(slug).md"])
-    }
-
     func loadIfNeeded() async {
         guard !didLoad else { return }
         didLoad = true
@@ -37,23 +52,13 @@ final class PinballGameInfoViewModel: ObservableObject {
         markdownText = nil
 
         do {
-            var sawMissing = false
-            for path in pathCandidates {
-                let cached = try await PinballDataCache.shared.loadText(path: path, allowMissing: true)
-                if cached.isMissing {
-                    sawMissing = true
-                    continue
-                }
-                guard let text = cached.text, !text.isEmpty else {
-                    sawMissing = true
-                    continue
-                }
-
+            let loaded = try await libraryLoadFirstAvailableText(pathCandidates: pathCandidates)
+            if let text = loaded.text {
                 markdownText = text
                 status = .loaded
                 return
             }
-            status = sawMissing ? .missing : .error
+            status = loaded.sawMissing ? .missing : .error
         } catch {
             status = .error
         }
@@ -87,18 +92,8 @@ final class RulesheetScreenModel: ObservableObject {
         webFallbackURL = nil
 
         do {
-            var sawMissing = false
-            for path in pathCandidates {
-                let cached = try await PinballDataCache.shared.loadText(path: path, allowMissing: true)
-                if cached.isMissing {
-                    sawMissing = true
-                    continue
-                }
-                guard let text = cached.text, !text.isEmpty else {
-                    sawMissing = true
-                    continue
-                }
-
+            let loaded = try await libraryLoadFirstAvailableText(pathCandidates: pathCandidates)
+            if let text = loaded.text {
                 content = RulesheetRenderContent(
                     kind: .markdown,
                     body: Self.normalizeRulesheet(text),
@@ -108,34 +103,32 @@ final class RulesheetScreenModel: ObservableObject {
                 return
             }
 
-            if let externalSource {
-                do {
-                    content = try await RemoteRulesheetLoader.load(from: externalSource)
-                    status = .loaded
-                    return
-                } catch {
-                    webFallbackURL = externalSource.url
-                    status = webFallbackURL == nil ? .error : .loaded
-                    return
-                }
+            if await loadExternalFallbackIfNeeded() {
+                return
             }
 
-            status = sawMissing ? .missing : .error
+            status = loaded.sawMissing ? .missing : .error
         } catch {
-            if let externalSource {
-                do {
-                    content = try await RemoteRulesheetLoader.load(from: externalSource)
-                    status = .loaded
-                    return
-                } catch {
-                    webFallbackURL = externalSource.url
-                    status = webFallbackURL == nil ? .error : .loaded
-                    return
-                }
+            if await loadExternalFallbackIfNeeded() {
+                return
             }
 
             status = .error
         }
+    }
+
+    private func loadExternalFallbackIfNeeded() async -> Bool {
+        guard let externalSource else { return false }
+
+        do {
+            content = try await RemoteRulesheetLoader.load(from: externalSource)
+            status = .loaded
+        } catch {
+            webFallbackURL = externalSource.url
+            status = webFallbackURL == nil ? .error : .loaded
+        }
+
+        return true
     }
 
     private static func normalizeRulesheet(_ input: String) -> String {

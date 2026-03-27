@@ -14,7 +14,6 @@ struct PracticeInsightsSectionView: View {
     let opponentOptions: [String]
     let isLoadingHeadToHead: Bool
     let headToHead: HeadToHeadComparison?
-    let redactName: (String) -> String
     let onRefreshHeadToHead: () async -> Void
     let onRefreshOpponentOptions: () async -> Void
     @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
@@ -199,8 +198,7 @@ struct PracticeInsightsSectionView: View {
     }
 
     private func displayLPLPlayerName(_ raw: String) -> String {
-        _ = showFullLPLLastNames
-        return formatLPLPlayerNameForDisplay(raw)
+        formatLPLPlayerNameForDisplay(raw, showFullLastNames: showFullLPLLastNames)
     }
     private func headToHeadPlotHeight(for count: Int) -> CGFloat {
         guard count > 0 else { return 170 }
@@ -212,10 +210,7 @@ struct PracticeInsightsSectionView: View {
     }
 
     private func formattedScore(_ value: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        return formatter.string(from: NSNumber(value: value)) ?? String(Int(value))
+        formatPracticeWholeScoreDisplay(value)
     }
 
     private func signedScore(_ value: Double) -> String {

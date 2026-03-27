@@ -1,16 +1,5 @@
 import SwiftUI
 
-private func inferPracticeLibrarySourcesForWorkspace(from games: [PinballGame]) -> [PinballLibrarySource] {
-    var seen = Set<String>()
-    var out: [PinballLibrarySource] = []
-    for game in games {
-        if seen.insert(game.sourceId).inserted {
-            out.append(PinballLibrarySource(id: game.sourceId, name: game.sourceName, type: game.sourceType))
-        }
-    }
-    return out
-}
-
 struct PracticeGameToolbarMenu: View {
     @ObservedObject var store: PracticeStore
     @Binding var selectedGameID: String
@@ -18,7 +7,7 @@ struct PracticeGameToolbarMenu: View {
     private var availableLibrarySources: [PinballLibrarySource] {
         if store.librarySources.isEmpty {
             let sourceGames = store.allLibraryGames.isEmpty ? store.games : store.allLibraryGames
-            return inferPracticeLibrarySourcesForWorkspace(from: sourceGames)
+            return libraryInferSources(from: sourceGames)
         }
         return store.librarySources
     }

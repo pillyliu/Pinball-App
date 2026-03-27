@@ -2,7 +2,9 @@ import Foundation
 
 extension PinballGame {
     var canonicalPracticeKey: String {
-        practiceIdentity?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ?? slug
+        practiceIdentity?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ??
+            opdbGroupID?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ??
+            slug
     }
 }
 
@@ -64,7 +66,6 @@ private func practiceRepresentativeScore(_ game: PinballGame) -> Int {
 }
 
 extension PracticeStore {
-    private static let practiceIdentityAliases: [String: String] = [:]
     static let practicePreferenceGameIDKeys: [String] = [
         "practice-quick-game-score",
         "practice-quick-game-study",
@@ -93,15 +94,14 @@ extension PracticeStore {
         let parsed = parseSourceScopedPracticeGameID(raw)
         let trimmed = parsed.gameID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "" }
-        let aliased = Self.practiceIdentityAliases[trimmed] ?? trimmed
-        let lookupID = parsed.sourceID.map { sourceScopedPracticeGameID(sourceID: $0, gameID: aliased) } ?? aliased
+        let lookupID = parsed.sourceID.map { sourceScopedPracticeGameID(sourceID: $0, gameID: trimmed) } ?? trimmed
         if let match = gameForAnyID(lookupID) {
             return match.canonicalPracticeKey
         }
-        if let match = legacyPracticeKeyMatch(for: aliased) {
+        if let match = legacyPracticeKeyMatch(for: trimmed) {
             return match.canonicalPracticeKey
         }
-        return aliased
+        return trimmed
     }
 
     func gameForAnyID(_ id: String) -> PinballGame? {

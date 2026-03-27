@@ -1,9 +1,20 @@
 package com.pillyliu.pinprofandroid.gameroom
 
+import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
 
 internal object GameRoomStateCodec {
+    sealed class LoadResult {
+        data object Missing : LoadResult()
+        data class Loaded(
+            val state: GameRoomPersistedState,
+            val needsResave: Boolean,
+            val noticeMessage: String?,
+        ) : LoadResult()
+        data class Failed(val message: String) : LoadResult()
+    }
+
     fun encode(state: GameRoomPersistedState): String {
         val root = JSONObject()
         root.put("schemaVersion", state.schemaVersion)
@@ -154,6 +165,63 @@ internal object GameRoomStateCodec {
             }
         })
         return root.toString()
+    }
+
+    fun loadFromPreferences(
+        prefs: SharedPreferences,
+        storageKey: String,
+        legacyStorageKey: String,
+    ): LoadResult {
+        return loadFromRaw(
+            currentRaw = prefs.getString(storageKey, null),
+            legacyRaw = prefs.getString(legacyStorageKey, null),
+        )
+    }
+
+    fun loadFromRaw(currentRaw: String?, legacyRaw: String?): LoadResult {
+        if (currentRaw != null) {
+            decode(currentRaw)?.let { decoded ->
+                return LoadResult.Loaded(
+                    state = decoded,
+                    needsResave = legacyRaw != null,
+                    noticeMessage = null,
+                )
+            }
+
+            if (legacyRaw != null) {
+                decode(legacyRaw)?.let { decoded ->
+                    return LoadResult.Loaded(
+                        state = decoded,
+                        needsResave = true,
+                        noticeMessage = "GameRoom recovered from the legacy save because the current saved data could not be read.",
+                    )
+                }
+
+                return LoadResult.Failed(
+                    "Saved GameRoom data could not be restored from either the current or legacy save. GameRoom opened empty, and the unreadable saved data was not overwritten.",
+                )
+            }
+
+            return LoadResult.Failed(
+                "Saved GameRoom data could not be restored from the current save. GameRoom opened empty, and the unreadable saved data was not overwritten.",
+            )
+        }
+
+        if (legacyRaw != null) {
+            decode(legacyRaw)?.let { decoded ->
+                return LoadResult.Loaded(
+                    state = decoded,
+                    needsResave = true,
+                    noticeMessage = null,
+                )
+            }
+
+            return LoadResult.Failed(
+                "Saved GameRoom data could not be restored from the legacy save. GameRoom opened empty, and the unreadable saved data was not overwritten.",
+            )
+        }
+
+        return LoadResult.Missing
     }
 
     fun decode(raw: String): GameRoomPersistedState? {

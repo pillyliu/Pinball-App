@@ -8,6 +8,10 @@ internal enum class OwnedMachineStatus {
     archived,
     sold,
     traded,
+    ;
+
+    val countsAsActiveInventory: Boolean
+        get() = this == active || this == loaned
 }
 
 internal enum class GameRoomAttentionState {
@@ -110,6 +114,19 @@ internal enum class MachineReminderTaskType {
     rubbersReplaced,
     flipperServiced,
     generalInspection,
+    ;
+
+    val matchingEventTypes: Set<MachineEventType>
+        get() = when (this) {
+            glassCleaned -> setOf(MachineEventType.glassCleaned)
+            playfieldCleaned -> setOf(MachineEventType.playfieldCleaned)
+            ballsReplaced -> setOf(MachineEventType.ballsReplaced)
+            pitchChecked -> setOf(MachineEventType.pitchChecked)
+            machineLeveled -> setOf(MachineEventType.machineLeveled)
+            rubbersReplaced -> setOf(MachineEventType.rubbersReplaced)
+            flipperServiced -> setOf(MachineEventType.flipperServiced)
+            generalInspection -> setOf(MachineEventType.generalInspection)
+        }
 }
 
 internal enum class MachineReminderMode {
@@ -204,7 +221,17 @@ internal data class MachineEvent(
     val linkedIssueID: String? = null,
     val createdAtMs: Long = System.currentTimeMillis(),
     val updatedAtMs: Long = createdAtMs,
-)
+) {
+    val contributesToPlayCount: Boolean
+        get() = type == MachineEventType.custom && category == MachineEventCategory.custom
+
+    val loggedPlayCountTotal: Int?
+        get() {
+            if (!contributesToPlayCount) return null
+            val value = playCountAtEvent ?: return null
+            return value.takeIf { it >= 0 }
+        }
+}
 
 internal data class MachineIssue(
     val id: String = UUID.randomUUID().toString(),
@@ -244,7 +271,49 @@ internal data class MachineReminderConfig(
     val enabled: Boolean = true,
     val createdAtMs: Long = System.currentTimeMillis(),
     val updatedAtMs: Long = createdAtMs,
-)
+) {
+    companion object {
+        fun defaultConfigs(
+            machineID: String,
+            nowMs: Long = System.currentTimeMillis(),
+        ): List<MachineReminderConfig> {
+            return listOf(
+                MachineReminderConfig(
+                    ownedMachineID = machineID,
+                    taskType = MachineReminderTaskType.glassCleaned,
+                    mode = MachineReminderMode.dateBased,
+                    intervalDays = 30,
+                    createdAtMs = nowMs,
+                    updatedAtMs = nowMs,
+                ),
+                MachineReminderConfig(
+                    ownedMachineID = machineID,
+                    taskType = MachineReminderTaskType.playfieldCleaned,
+                    mode = MachineReminderMode.dateBased,
+                    intervalDays = 90,
+                    createdAtMs = nowMs,
+                    updatedAtMs = nowMs,
+                ),
+                MachineReminderConfig(
+                    ownedMachineID = machineID,
+                    taskType = MachineReminderTaskType.ballsReplaced,
+                    mode = MachineReminderMode.playBased,
+                    intervalPlays = 5000,
+                    createdAtMs = nowMs,
+                    updatedAtMs = nowMs,
+                ),
+                MachineReminderConfig(
+                    ownedMachineID = machineID,
+                    taskType = MachineReminderTaskType.generalInspection,
+                    mode = MachineReminderMode.dateBased,
+                    intervalDays = 45,
+                    createdAtMs = nowMs,
+                    updatedAtMs = nowMs,
+                ),
+            )
+        }
+    }
+}
 
 internal data class MachineImportRecord(
     val id: String = UUID.randomUUID().toString(),

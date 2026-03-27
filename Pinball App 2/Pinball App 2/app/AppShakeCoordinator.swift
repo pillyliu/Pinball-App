@@ -439,7 +439,7 @@ private struct AppShakeProfessorArt: View {
     init(level: AppShakeWarningLevel, boxSide: CGFloat) {
         self.level = level
         self.boxSide = boxSide
-        _image = State(initialValue: AppShakeProfessorArtProvider.localImage(for: level))
+        _image = State(initialValue: AppShakeProfessorArtProvider.cachedImage(for: level))
     }
 
     var body: some View {
@@ -469,31 +469,55 @@ private struct AppShakeProfessorArt: View {
         )
         .shadow(color: level.tint.opacity(0.24), radius: 18, y: 8)
         .task(id: level.rawValue) {
-            if let local = AppShakeProfessorArtProvider.localImage(for: level) {
+            if let local = await AppShakeProfessorArtProvider.loadImage(for: level) {
                 image = local
                 return
             }
 
-            image = AppShakeProfessorArtProvider.bundledFallbackImage
+            image = await AppShakeProfessorArtProvider.loadFallbackImage()
         }
     }
 }
 
 private enum AppShakeProfessorArtProvider {
     private static let fallbackPath = libraryMissingArtworkPath
+    private static let dataCache = NSCache<NSString, NSData>()
+    private static let fallbackCacheKey = "__app_shake_fallback__" as NSString
 
-    static let bundledFallbackImage: UIImage? = {
-        guard let data = try? loadCachedPinballData(path: fallbackPath) else { return nil }
-        return UIImage(data: data)
-    }()
+    static func cachedImage(for level: AppShakeWarningLevel) -> UIImage? {
+        image(forCacheKey: level.bundledArtFileName as NSString)
+    }
 
-    static func localImage(for level: AppShakeWarningLevel) -> UIImage? {
+    static func loadImage(for level: AppShakeWarningLevel) async -> UIImage? {
+        let cacheKey = level.bundledArtFileName as NSString
+        if let image = image(forCacheKey: cacheKey) {
+            return image
+        }
+
         guard let url = bundledURL(named: level.bundledArtFileName),
-        let data = try? Data(contentsOf: url),
-        let image = UIImage(data: data) else {
+              let data = await loadData(from: url) else {
             return nil
         }
-        return image
+
+        dataCache.setObject(data as NSData, forKey: cacheKey)
+        return UIImage(data: data)
+    }
+
+    static func loadFallbackImage() async -> UIImage? {
+        if let image = image(forCacheKey: fallbackCacheKey) {
+            return image
+        }
+
+        let path = fallbackPath
+        let data = await Task.detached(priority: .utility) {
+            try? loadCachedPinballData(path: path)
+        }.value
+        guard let data else {
+            return nil
+        }
+
+        dataCache.setObject(data as NSData, forKey: fallbackCacheKey)
+        return UIImage(data: data)
     }
 
     private static func bundledURL(named fileName: String) -> URL? {
@@ -505,6 +529,17 @@ private enum AppShakeProfessorArtProvider {
             withExtension: nil,
             subdirectory: "SharedAppSupport/shake-warnings"
         )
+    }
+
+    private static func image(forCacheKey key: NSString) -> UIImage? {
+        guard let data = dataCache.object(forKey: key) else { return nil }
+        return UIImage(data: data as Data)
+    }
+
+    private static func loadData(from url: URL) async -> Data? {
+        await Task.detached(priority: .utility) {
+            try? Data(contentsOf: url)
+        }.value
     }
 }
 

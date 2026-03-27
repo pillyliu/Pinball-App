@@ -41,11 +41,11 @@ enum PinballPerformanceTrace {
 
         if let detail = interval.detail, !detail.isEmpty {
             pinballPerformanceLogger.notice(
-                "practice_perf name=\(name, privacy: .public) duration_ms=\(durationText, privacy: .public) detail=\(detail, privacy: .public)"
+                "pinball_perf name=\(name, privacy: .public) duration_ms=\(durationText, privacy: .public) detail=\(detail, privacy: .public)"
             )
         } else {
             pinballPerformanceLogger.notice(
-                "practice_perf name=\(name, privacy: .public) duration_ms=\(durationText, privacy: .public)"
+                "pinball_perf name=\(name, privacy: .public) duration_ms=\(durationText, privacy: .public)"
             )
         }
     }

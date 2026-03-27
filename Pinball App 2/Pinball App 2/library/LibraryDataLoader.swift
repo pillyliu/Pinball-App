@@ -1,9 +1,5 @@
 import Foundation
 
-private enum LibraryDataLoader {
-    static let gameRoomLibrarySourceID = "venue--gameroom"
-}
-
 private struct GameRoomOPDBCatalogRoot: Decodable {
     struct Machine: Decodable {
         struct RemoteImageSet: Decodable {
@@ -117,7 +113,7 @@ private func loadCAFLibraryExtraction(filterBySourceState: Bool) async throws ->
 private func augmentExtractionWithGameRoom(_ extraction: LegacyCatalogExtraction) -> LegacyCatalogExtraction {
     let gameRoomData = loadGameRoomLibraryData(extractionGames: extraction.payload.games)
     let gameRoomSource = PinballLibrarySource(
-        id: LibraryDataLoader.gameRoomLibrarySourceID,
+        id: gameRoomLibrarySourceID,
         name: gameRoomData.venueName,
         type: .venue
     )
@@ -144,12 +140,17 @@ private func augmentExtractionWithGameRoom(_ extraction: LegacyCatalogExtraction
 
 private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueName: String, games: [PinballGame]) {
     let defaults = UserDefaults.standard
-    guard let state = GameRoomStateCodec.loadFromDefaults(
+    let state: GameRoomPersistedState
+
+    switch GameRoomStateCodec.loadFromDefaults(
         defaults,
         storageKey: GameRoomStore.storageKey,
         legacyStorageKey: GameRoomStore.legacyStorageKey
-    ) else {
+    ) {
+    case .missing, .failed:
         return (GameRoomPersistedState.defaultVenueName, [])
+    case let .loaded(loaded, _, _):
+        state = loaded
     }
     let venueName = normalizedGameRoomVenueName(state.venueName)
 
@@ -189,7 +190,8 @@ private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueNa
 
     let gameRecords = sortedMachines.compactMap { machine -> PinballGame? in
         let area = machine.gameRoomAreaID.flatMap { areasByID[$0] }
-        let template = bestTemplateGame(for: machine, from: extractionGames)
+        let visualTemplate = bestVisualTemplateGame(for: machine, from: extractionGames)
+        let contentTemplate = bestContentTemplateGame(for: machine, from: extractionGames)
         let opdbMedia = bestOPDBMediaRecord(for: machine, from: opdbMediaIndex)
         let canonicalPracticeIdentity = machine.canonicalPracticeIdentity.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedPracticeIdentity: String = {
@@ -197,14 +199,18 @@ private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueNa
                !opdbPracticeIdentity.isEmpty {
                 return opdbPracticeIdentity
             }
-            if let templatePracticeIdentity = template?.practiceIdentity?.trimmingCharacters(in: .whitespacesAndNewlines),
+            if let templatePracticeIdentity = contentTemplate?.practiceIdentity?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !templatePracticeIdentity.isEmpty {
+                return templatePracticeIdentity
+            }
+            if let templatePracticeIdentity = visualTemplate?.practiceIdentity?.trimmingCharacters(in: .whitespacesAndNewlines),
                !templatePracticeIdentity.isEmpty {
                 return templatePracticeIdentity
             }
             return canonicalPracticeIdentity.isEmpty ? machine.catalogGameID : canonicalPracticeIdentity
         }()
         let rawResolvedName = machine.displayTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? (template?.name ?? machine.catalogGameID)
+            ? (visualTemplate?.name ?? machine.catalogGameID)
             : machine.displayTitle
         let resolvedName = catalogResolvedDisplayTitle(
             title: rawResolvedName,
@@ -220,12 +226,12 @@ private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueNa
         )
 
         var row: [String: Any] = [
-            "library_id": LibraryDataLoader.gameRoomLibrarySourceID,
+            "library_id": gameRoomLibrarySourceID,
             "library_name": venueName,
             "library_type": PinballLibrarySourceType.venue.rawValue,
             "name": resolvedName,
             "slug": normalizedSlug,
-            "library_entry_id": "\(LibraryDataLoader.gameRoomLibrarySourceID)--\(machine.id.uuidString)",
+            "library_entry_id": "\(gameRoomLibrarySourceID)--\(machine.id.uuidString)",
             "practice_identity": normalizedPracticeIdentity
         ]
 
@@ -256,33 +262,33 @@ private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueNa
         } else if !machine.catalogGameID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             row["opdb_id"] = machine.catalogGameID
         }
-        if let primaryImageURL = opdbMedia?.primaryMediumURL ?? template?.primaryImageUrl {
+        if let primaryImageURL = opdbMedia?.primaryMediumURL ?? visualTemplate?.primaryImageUrl {
             row["primary_image_url"] = primaryImageURL
         }
-        if let primaryImageLargeURL = opdbMedia?.primaryLargeURL ?? template?.primaryImageLargeUrl {
+        if let primaryImageLargeURL = opdbMedia?.primaryLargeURL ?? visualTemplate?.primaryImageLargeUrl {
             row["primary_image_large_url"] = primaryImageLargeURL
         }
-        if let playfieldImageURL = template?.playfieldImageUrl {
+        if let playfieldImageURL = visualTemplate?.playfieldImageUrl {
             row["playfield_image_url"] = playfieldImageURL
         }
-        if let template {
-            if let sourceLabel = resolvedPlayfieldSourceLabel(for: template) {
+        if let visualTemplate {
+            if let sourceLabel = resolvedPlayfieldSourceLabel(for: visualTemplate) {
                 row["playfield_source_label"] = sourceLabel
             }
         }
-        if let rulesheetURL = template?.rulesheetUrl {
+        if let rulesheetURL = contentTemplate?.rulesheetUrl {
             row["rulesheet_url"] = rulesheetURL
         }
-        if let template, !template.rulesheetLinks.isEmpty {
-            row["rulesheet_links"] = template.rulesheetLinks.map { link in
+        if let contentTemplate, !contentTemplate.rulesheetLinks.isEmpty {
+            row["rulesheet_links"] = contentTemplate.rulesheetLinks.map { link in
                 [
                     "label": link.label,
                     "url": link.url
                 ]
             }
         }
-        if let template, !template.videos.isEmpty {
-            row["videos"] = template.videos.map { video in
+        if let contentTemplate, !contentTemplate.videos.isEmpty {
+            row["videos"] = contentTemplate.videos.map { video in
                 var payload: [String: Any] = [:]
                 if let kind = video.kind {
                     payload["kind"] = kind
@@ -296,15 +302,15 @@ private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueNa
                 return payload
             }
         }
-        if let template {
+        if visualTemplate != nil || contentTemplate != nil {
             var assets: [String: Any] = [:]
-            if let playfieldLocalPath = template.playfieldLocalOriginal ?? template.playfieldLocal {
+            if let playfieldLocalPath = visualTemplate?.playfieldLocalOriginal ?? visualTemplate?.playfieldLocal {
                 assets["playfield_local_practice"] = playfieldLocalPath
             }
-            if let rulesheetLocalPath = template.rulesheetLocal {
+            if let rulesheetLocalPath = contentTemplate?.rulesheetLocal {
                 assets["rulesheet_local_practice"] = rulesheetLocalPath
             }
-            if let gameinfoLocalPath = template.gameinfoLocal {
+            if let gameinfoLocalPath = contentTemplate?.gameinfoLocal {
                 assets["gameinfo_local_practice"] = gameinfoLocalPath
             }
             if !assets.isEmpty {
@@ -541,16 +547,15 @@ private func resolvedPlayfieldSourceLabel(for game: PinballGame) -> String? {
     return nil
 }
 
-private func bestTemplateGame(for machine: OwnedMachine, from games: [PinballGame]) -> PinballGame? {
+private func bestVisualTemplateGame(for machine: OwnedMachine, from games: [PinballGame]) -> PinballGame? {
     let normalizedExactOPDBID = normalizedGameRoomID(machine.opdbID)
     let normalizedCatalogID = normalizedGameRoomID(machine.catalogGameID)
     let normalizedCatalogGroup = normalizedGroupFromOpdbID(machine.catalogGameID)
     let normalizedPracticeIdentity = normalizedGameRoomID(machine.canonicalPracticeIdentity)
-    let normalizedMachineTitle = normalizedGameRoomID(machine.displayTitle)
     let normalizedMachineVariant = normalizedGameRoomVariant(machine.displayVariant)
 
     let candidates = games.compactMap { game -> (PinballGame, Int)? in
-        if game.sourceId == LibraryDataLoader.gameRoomLibrarySourceID {
+        if game.sourceId == gameRoomLibrarySourceID {
             return nil
         }
 
@@ -559,11 +564,10 @@ private func bestTemplateGame(for machine: OwnedMachine, from games: [PinballGam
             exactOPDBID: normalizedExactOPDBID,
             catalogID: normalizedCatalogID,
             catalogGroupID: normalizedCatalogGroup,
-            canonicalPracticeIdentity: normalizedPracticeIdentity,
-            machineTitle: normalizedMachineTitle
+            canonicalPracticeIdentity: normalizedPracticeIdentity
         )
         guard gameMatchScore > 0 else { return nil }
-        let score = gameMatchScore + templateScore(game, machineVariant: normalizedMachineVariant)
+        let score = gameMatchScore + visualTemplateScore(game, machineVariant: normalizedMachineVariant)
         return (game, score)
     }
 
@@ -572,7 +576,35 @@ private func bestTemplateGame(for machine: OwnedMachine, from games: [PinballGam
     return candidates.max(by: { $0.1 < $1.1 })?.0
 }
 
-private func templateScore(_ game: PinballGame, machineVariant: String?) -> Int {
+private func bestContentTemplateGame(for machine: OwnedMachine, from games: [PinballGame]) -> PinballGame? {
+    let normalizedExactOPDBID = normalizedGameRoomID(machine.opdbID)
+    let normalizedCatalogID = normalizedGameRoomID(machine.catalogGameID)
+    let normalizedCatalogGroup = normalizedGroupFromOpdbID(machine.catalogGameID)
+    let normalizedPracticeIdentity = normalizedGameRoomID(machine.canonicalPracticeIdentity)
+
+    let candidates = games.compactMap { game -> (PinballGame, Int)? in
+        if game.sourceId == gameRoomLibrarySourceID {
+            return nil
+        }
+
+        let gameMatchScore = templateMatchScore(
+            game,
+            exactOPDBID: normalizedExactOPDBID,
+            catalogID: normalizedCatalogID,
+            catalogGroupID: normalizedCatalogGroup,
+            canonicalPracticeIdentity: normalizedPracticeIdentity
+        )
+        guard gameMatchScore > 0 else { return nil }
+        let score = gameMatchScore + contentTemplateScore(game)
+        return (game, score)
+    }
+
+    guard !candidates.isEmpty else { return nil }
+
+    return candidates.max(by: { $0.1 < $1.1 })?.0
+}
+
+private func visualTemplateScore(_ game: PinballGame, machineVariant: String?) -> Int {
     let normalizedTemplateVariant = normalizedGameRoomVariant(game.normalizedVariant)
     var score = 0
     if machineVariant == normalizedTemplateVariant {
@@ -585,7 +617,18 @@ private func templateScore(_ game: PinballGame, machineVariant: String?) -> Int 
     if game.playfieldImageUrl != nil || game.primaryImageUrl != nil {
         score += 20
     }
+    return score
+}
+
+private func contentTemplateScore(_ game: PinballGame) -> Int {
+    var score = 0
     if game.hasRulesheetResource || !game.rulesheetLinks.isEmpty {
+        score += 40
+    }
+    if !game.videos.isEmpty {
+        score += 30
+    }
+    if game.gameinfoLocal != nil {
         score += 10
     }
     return score
@@ -596,13 +639,11 @@ private func templateMatchScore(
     exactOPDBID: String?,
     catalogID: String?,
     catalogGroupID: String?,
-    canonicalPracticeIdentity: String?,
-    machineTitle: String?
+    canonicalPracticeIdentity: String?
 ) -> Int {
     let gameOPDBID = normalizedGameRoomID(game.opdbID)
     let gameOPDBGroupID = normalizedGameRoomID(game.opdbGroupID)
     let gamePracticeIdentity = normalizedGameRoomID(game.practiceIdentity)
-    let gameTitle = normalizedGameRoomID(game.name)
 
     var score = 0
 
@@ -625,10 +666,6 @@ private func templateMatchScore(
         if gamePracticeIdentity == canonicalPracticeIdentity { score = max(score, 1050) }
         if gameOPDBID == canonicalPracticeIdentity { score = max(score, 1000) }
         if gameOPDBGroupID == canonicalPracticeIdentity { score = max(score, 1000) }
-    }
-
-    if score == 0, let machineTitle, let gameTitle, machineTitle == gameTitle {
-        score = 700
     }
 
     return score

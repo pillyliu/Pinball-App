@@ -623,26 +623,6 @@ private struct AppIntroPageIndicators: View {
     }
 }
 
-private struct AppIntroGhostButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        AppPressFeedbackButtonStyleBody(isPressed: configuration.isPressed) { isPressed in
-            configuration.label
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.white.opacity(0.92))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(Color.white.opacity(isPressed ? 0.18 : 0.10))
-                        .overlay(
-                            Capsule(style: .continuous)
-                                .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                        )
-                )
-        }
-    }
-}
-
 private extension Font {
     static func appIntroTitle(size: CGFloat) -> Font {
         let preferredNames = [

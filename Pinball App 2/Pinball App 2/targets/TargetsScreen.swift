@@ -206,28 +206,14 @@ struct TargetsScreen: View {
     }
 
     private var sortDropdown: some View {
-        Group {
-            if embeddedInNavigation {
-                sortDropdownMenu
-                    .buttonStyle(.plain)
-            } else {
-                sortDropdownMenu
-                    .buttonStyle(.plain)
-            }
-        }
+        sortDropdownMenu
+            .buttonStyle(.plain)
         .frame(width: sortControlWidth)
     }
 
     private var bankDropdown: some View {
-        Group {
-            if embeddedInNavigation {
-                bankDropdownMenu
-                    .buttonStyle(.plain)
-            } else {
-                bankDropdownMenu
-                    .buttonStyle(.plain)
-            }
-        }
+        bankDropdownMenu
+            .buttonStyle(.plain)
         .frame(width: bankControlWidth)
     }
 

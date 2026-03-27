@@ -71,20 +71,4 @@ extension PracticeScreen {
             }
         }
     }
-
-    func practiceResetAlert<Content: View>(_ content: Content, context: PracticePresentationContext) -> some View {
-        content
-            .alert("Reset Practice Log?", isPresented: context.showingResetJournalPrompt) {
-                TextField("Type reset", text: context.resetJournalConfirmationText)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                Button("No", role: .cancel) {}
-                Button("Yes, Reset", role: .destructive) {
-                    context.onConfirmResetPracticeLog()
-                }
-                .disabled(context.resetJournalConfirmationText.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() != "reset")
-            } message: {
-                Text("This resets the full local Practice JSON log state. Type \"reset\" to enable confirmation.")
-            }
-    }
 }

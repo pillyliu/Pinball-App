@@ -1,5 +1,6 @@
 package com.pillyliu.pinprofandroid.practice
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,14 +18,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import coil.compose.AsyncImage
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppExternalLinkButton
@@ -36,11 +40,16 @@ import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.SectionTitle
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URL
+import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.ZoneId
 import java.util.Locale
+import org.json.JSONArray
+import org.json.JSONObject
 
 internal data class IfpaRecentTournament(
     val name: String,
@@ -64,36 +73,74 @@ internal data class IfpaPlayerProfile(
     val recentTournaments: List<IfpaRecentTournament>,
 )
 
+private data class IfpaCachedProfileSnapshot(
+    val profile: IfpaPlayerProfile,
+    val cachedAtEpochMs: Long,
+)
+
 @Composable
 internal fun PracticeIfpaProfileScreen(
     playerName: String,
     ifpaPlayerID: String,
 ) {
     val trimmedIfpaPlayerID = ifpaPlayerID.trim()
+    val context = LocalContext.current
     var profile by remember(trimmedIfpaPlayerID) { mutableStateOf<IfpaPlayerProfile?>(null) }
     var isLoading by remember(trimmedIfpaPlayerID) { mutableStateOf(false) }
     var errorMessage by remember(trimmedIfpaPlayerID) { mutableStateOf<String?>(null) }
+    var cachedProfileUpdatedAtMs by remember(trimmedIfpaPlayerID) { mutableStateOf<Long?>(null) }
+    var staleSnapshotFailureMessage by remember(trimmedIfpaPlayerID) { mutableStateOf<String?>(null) }
     val uriHandler = LocalUriHandler.current
+    val coroutineScope = rememberCoroutineScope()
+    val staleSnapshotNotice = remember(cachedProfileUpdatedAtMs, staleSnapshotFailureMessage) {
+        val cachedAt = cachedProfileUpdatedAtMs ?: return@remember null
+        val failureMessage = staleSnapshotFailureMessage ?: return@remember null
+        "Showing your last saved IFPA snapshot from ${formatIfpaCachedAt(cachedAt)}. It may be outdated because the latest refresh failed. $failureMessage"
+    }
 
-    suspend fun loadProfile() {
+    suspend fun loadProfile(cachedSnapshot: IfpaCachedProfileSnapshot? = null) {
         if (trimmedIfpaPlayerID.isBlank()) return
+        val resolvedCachedSnapshot = cachedSnapshot ?: withContext(Dispatchers.IO) {
+            IfpaProfileCacheStore.load(context, trimmedIfpaPlayerID)
+        }
         isLoading = true
         errorMessage = null
         runCatching {
             IfpaPublicProfileService.fetchProfile(trimmedIfpaPlayerID)
         }.onSuccess {
             profile = it
+            cachedProfileUpdatedAtMs = null
+            staleSnapshotFailureMessage = null
+            withContext(Dispatchers.IO) {
+                IfpaProfileCacheStore.save(context, it)
+            }
         }.onFailure {
-            profile = null
-            errorMessage = it.message ?: "Could not load IFPA profile."
+            if (resolvedCachedSnapshot != null) {
+                profile = resolvedCachedSnapshot.profile
+                cachedProfileUpdatedAtMs = resolvedCachedSnapshot.cachedAtEpochMs
+                staleSnapshotFailureMessage = it.message ?: "Could not load IFPA profile."
+                errorMessage = null
+            } else {
+                profile = null
+                cachedProfileUpdatedAtMs = null
+                staleSnapshotFailureMessage = null
+                errorMessage = it.message ?: "Could not load IFPA profile."
+            }
         }
         isLoading = false
     }
 
     LaunchedEffect(trimmedIfpaPlayerID) {
         profile = null
+        errorMessage = null
+        cachedProfileUpdatedAtMs = null
+        staleSnapshotFailureMessage = null
         if (trimmedIfpaPlayerID.isNotBlank()) {
-            loadProfile()
+            val cachedSnapshot = withContext(Dispatchers.IO) {
+                IfpaProfileCacheStore.load(context, trimmedIfpaPlayerID)
+            }
+            profile = cachedSnapshot?.profile
+            loadProfile(cachedSnapshot)
         }
     }
 
@@ -111,6 +158,17 @@ internal fun PracticeIfpaProfileScreen(
 
         profile != null -> {
             val loadedProfile = profile!!
+            if (staleSnapshotNotice != null) {
+                CardContainer {
+                    AppInlineTaskStatus(text = staleSnapshotNotice, isError = true)
+                    AppPrimaryButton(
+                        onClick = { coroutineScope.launch { loadProfile() } },
+                    ) {
+                        Text("Try Again")
+                    }
+                }
+            }
+
             CardContainer {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -197,14 +255,14 @@ internal fun PracticeIfpaProfileScreen(
                 SectionTitle("Could not load IFPA profile")
                 AppInlineTaskStatus(text = errorMessage!!, isError = true)
                 AppPrimaryButton(onClick = {
-                    profile = null
-                    errorMessage = null
+                    coroutineScope.launch {
+                        profile = null
+                        errorMessage = null
+                        loadProfile()
+                    }
                 }) {
                     Text("Try Again")
                 }
-            }
-            LaunchedEffect(errorMessage) {
-                if (errorMessage == null) loadProfile()
             }
         }
     }
@@ -316,6 +374,110 @@ private object IfpaPublicProfileService {
             .map { it.groupValues.drop(1) }
             .toList()
     }
+}
+
+private object IfpaProfileCacheStore {
+    private const val KEY_PREFIX = "ifpa-public-profile-cache"
+
+    fun load(context: Context, playerID: String): IfpaCachedProfileSnapshot? {
+        val prefs = context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE)
+        val key = cacheKey(playerID)
+        val raw = prefs.getString(key, null) ?: return null
+        return try {
+            val root = JSONObject(raw)
+            val profileObject = root.optJSONObject("profile") ?: error("Missing cached profile.")
+            val cachedAtEpochMs = root.optLong("cachedAtEpochMs", 0L).takeIf { it > 0L }
+                ?: error("Missing cached timestamp.")
+            IfpaCachedProfileSnapshot(
+                profile = profileFromJson(profileObject),
+                cachedAtEpochMs = cachedAtEpochMs,
+            )
+        } catch (_: Exception) {
+            prefs.edit { remove(key) }
+            null
+        }
+    }
+
+    fun save(context: Context, profile: IfpaPlayerProfile) {
+        val prefs = context.getSharedPreferences(PRACTICE_PREFS, Context.MODE_PRIVATE)
+        val root = JSONObject()
+            .put("cachedAtEpochMs", System.currentTimeMillis())
+            .put("profile", profile.toJson())
+        prefs.edit {
+            putString(cacheKey(profile.playerID), root.toString())
+        }
+    }
+
+    private fun cacheKey(playerID: String): String = "$KEY_PREFIX.$playerID"
+}
+
+private fun IfpaPlayerProfile.toJson(): JSONObject {
+    return JSONObject()
+        .put("playerID", playerID)
+        .put("displayName", displayName)
+        .put("location", location)
+        .put("profilePhotoUrl", profilePhotoUrl)
+        .put("currentRank", currentRank)
+        .put("currentWpprPoints", currentWpprPoints)
+        .put("rating", rating)
+        .put("lastEventDate", lastEventDate)
+        .put("seriesLabel", seriesLabel)
+        .put("seriesRank", seriesRank)
+        .put(
+            "recentTournaments",
+            JSONArray().apply {
+                recentTournaments.forEach { put(it.toJson()) }
+            },
+        )
+}
+
+private fun IfpaRecentTournament.toJson(): JSONObject {
+    return JSONObject()
+        .put("name", name)
+        .put("date", date.toString())
+        .put("dateLabel", dateLabel)
+        .put("finish", finish)
+        .put("pointsGained", pointsGained)
+}
+
+private fun profileFromJson(json: JSONObject): IfpaPlayerProfile {
+    val recentTournamentsArray = json.optJSONArray("recentTournaments") ?: JSONArray()
+    val recentTournaments = buildList {
+        for (index in 0 until recentTournamentsArray.length()) {
+            val item = recentTournamentsArray.optJSONObject(index) ?: continue
+            val date = item.optString("date").takeIf { it.isNotBlank() }?.let(LocalDate::parse) ?: continue
+            add(
+                IfpaRecentTournament(
+                    name = item.optString("name"),
+                    date = date,
+                    dateLabel = item.optString("dateLabel"),
+                    finish = item.optString("finish"),
+                    pointsGained = item.optString("pointsGained"),
+                ),
+            )
+        }
+    }
+    return IfpaPlayerProfile(
+        playerID = json.optString("playerID"),
+        displayName = json.optString("displayName"),
+        location = json.optString("location").takeIf { it.isNotBlank() },
+        profilePhotoUrl = json.optString("profilePhotoUrl").takeIf { it.isNotBlank() },
+        currentRank = json.optString("currentRank"),
+        currentWpprPoints = json.optString("currentWpprPoints"),
+        rating = json.optString("rating"),
+        lastEventDate = json.optString("lastEventDate").takeIf { it.isNotBlank() },
+        seriesLabel = json.optString("seriesLabel").takeIf { it.isNotBlank() },
+        seriesRank = json.optString("seriesRank").takeIf { it.isNotBlank() },
+        recentTournaments = recentTournaments,
+    )
+}
+
+private val ifpaCachedAtFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a", Locale.US)
+
+private fun formatIfpaCachedAt(epochMs: Long): String {
+    return Instant.ofEpochMilli(epochMs)
+        .atZone(ZoneId.systemDefault())
+        .format(ifpaCachedAtFormatter)
 }
 
 private fun String.cleanedHtmlText(): String {

@@ -3,10 +3,6 @@ import Foundation
 private let practiceLastViewedGameSnapshotKey = "practice-last-viewed-game-id"
 
 extension PracticeStore {
-    func restoreHomeBootstrapSnapshotIfAvailable() {
-        applyHomeBootstrapSnapshot(PracticeHomeBootstrapSnapshotStore.load())
-    }
-
     func restoreHomeBootstrapSnapshotIfAvailableAsync() {
         Task(priority: .utility) { [weak self] in
             let snapshot = await PracticeHomeBootstrapSnapshotStore.loadAsync()

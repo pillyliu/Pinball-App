@@ -104,8 +104,6 @@ nonisolated struct ScoreScannerLockedReading: Equatable {
     let score: Int
     let formattedScore: String
     let rawText: String
-    let confidence: Float
-    let averageConfidence: Float
 }
 
 nonisolated struct ScoreScannerPreviewMapping: Equatable {

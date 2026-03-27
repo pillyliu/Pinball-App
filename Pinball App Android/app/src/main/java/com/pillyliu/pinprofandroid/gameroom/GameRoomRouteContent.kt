@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppCardTitle
 import com.pillyliu.pinprofandroid.ui.AppCardSubheading
+import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppMetricGrid
 import com.pillyliu.pinprofandroid.ui.AppMetricItem
 import com.pillyliu.pinprofandroid.ui.AppSelectionPill
@@ -104,6 +105,10 @@ internal fun GameRoomHomeRoute(
                 contentDescription = "GameRoom Settings",
                 onClick = context.onOpenSettings,
             )
+        }
+
+        store.lastErrorMessage?.let { message ->
+            AppInlineTaskStatus(text = message, isError = true)
         }
 
         CardContainer {
@@ -265,6 +270,7 @@ internal fun GameRoomSettingsRoute(
     selectedSettingsSection: GameRoomSettingsSection,
     onSelectedSettingsSectionChange: (GameRoomSettingsSection) -> Unit,
     onBack: () -> Unit,
+    errorMessage: String?,
     overlayContent: @Composable BoxScope.() -> Unit = {},
     importContent: @Composable () -> Unit,
     editContent: @Composable () -> Unit,
@@ -282,6 +288,10 @@ internal fun GameRoomSettingsRoute(
                 onBack = onBack,
                 titleColor = MaterialTheme.colorScheme.onSurface,
             )
+
+            errorMessage?.let { message ->
+                AppInlineTaskStatus(text = message, isError = true)
+            }
 
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 GameRoomSettingsSection.entries.forEachIndexed { index, section ->

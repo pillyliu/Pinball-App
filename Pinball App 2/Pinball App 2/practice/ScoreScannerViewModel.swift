@@ -18,7 +18,6 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     @Published private(set) var status: ScoreScannerStatus = .searching
     @Published private(set) var liveReadingText: String = "No reading yet"
     @Published private(set) var liveCandidateReading: ScoreScannerLockedReading?
-    @Published private(set) var rawReadingText: String = ""
     @Published private(set) var candidateHighlights: [ScoreScannerCandidate] = []
     @Published private(set) var lockedReading: ScoreScannerLockedReading?
     @Published private(set) var isFrozen = false
@@ -49,6 +48,7 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
             self?.handleCapturedFrame(fullFrame)
         }
     }
+    // Keep frame-processing state on captureQueue so freeze/retake/OCR callbacks share one owner.
     private weak var previewLayer: AVCaptureVideoPreviewLayer?
     private var previewMapping: ScoreScannerPreviewMapping?
     private var latestOrientedFrame: CIImage?
@@ -132,7 +132,7 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     }
 
     func retake() {
-        captureQueue.async { [weak self] in
+        captureQueue.sync { [weak self] in
             guard let self else { return }
             self.processingPaused = false
             self.latestSnapshot = nil
@@ -151,7 +151,6 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
             self.confirmationText = ""
             self.confirmationValidationMessage = nil
             self.liveReadingText = "No reading yet"
-            self.rawReadingText = ""
             self.status = .searching
         }
     }
@@ -296,11 +295,10 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     ) {
         guard frame != nil || preferredPreviewImage != nil else { return }
 
-        captureQueue.async { [weak self] in
-            self?.processingPaused = true
+        let mapping = captureQueue.sync { () -> ScoreScannerPreviewMapping? in
+            processingPaused = true
+            return previewMapping
         }
-
-        let mapping = captureQueue.sync { previewMapping }
         let cropped = frame.flatMap { crop(frame: $0, previewMapping: mapping) }
         let previewSource = cropped ?? frame
         let previewImage = preferredPreviewImage ?? previewSource.flatMap(renderPreviewImage(from:))
@@ -336,7 +334,6 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                     self.lockedReading = locked
                     if let locked {
                         self.confirmationText = locked.formattedScore
-                        self.rawReadingText = locked.rawText
                         self.status = .locked
                     }
                 }
@@ -345,7 +342,6 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                     if let preferredReading {
                         self.lockedReading = preferredReading
                         self.confirmationText = preferredReading.formattedScore
-                        self.rawReadingText = preferredReading.rawText
                         self.status = .locked
                     }
                 }
@@ -381,7 +377,6 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
             )
 
             self.candidateHighlights = Array(filteredAnalysis.candidates.prefix(3))
-            self.rawReadingText = filteredAnalysis.bestCandidate?.rawText ?? ""
             self.liveCandidateReading = displayedReading
             if let reading = snapshot.dominantReading {
                 self.liveReadingText = reading.formattedScore
@@ -411,9 +406,7 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
         return ScoreScannerLockedReading(
             score: reading.score,
             formattedScore: reading.formattedScore,
-            rawText: reading.rawText,
-            confidence: reading.confidence,
-            averageConfidence: snapshot.averageConfidence
+            rawText: reading.rawText
         )
     }
 
@@ -432,14 +425,16 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
         ScoreScannerLockedReading(
             score: candidate.normalizedScore,
             formattedScore: candidate.formattedScore,
-            rawText: candidate.rawText,
-            confidence: candidate.confidence,
-            averageConfidence: candidate.confidence
+            rawText: candidate.rawText
         )
     }
 
     private func preferredFreezeReading() -> ScoreScannerLockedReading? {
-        liveCandidateReading ?? latestLockedReading(from: latestSnapshot)
+        if let liveCandidateReading {
+            return liveCandidateReading
+        }
+        let snapshot = captureQueue.sync { latestSnapshot }
+        return latestLockedReading(from: snapshot)
     }
 
     private func crop(frame: CIImage, previewMapping: ScoreScannerPreviewMapping?) -> CIImage? {
@@ -567,32 +562,12 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     }
 
     fileprivate func handleCapturedFrame(_ fullFrame: CIImage) {
-        captureQueue.async { [weak self] in
-            self?.latestOrientedFrame = fullFrame
-        }
-
-        if processingPaused || isProcessingFrame {
-            return
-        }
-
-        let now = CACurrentMediaTime()
-        guard now - lastOCRTime >= liveOCRInterval else { return }
-        lastOCRTime = now
-        isProcessingFrame = true
-
-        let mapping = captureQueue.sync { previewMapping }
-
-        guard let cropped = crop(frame: fullFrame, previewMapping: mapping) else {
-            isProcessingFrame = false
-            return
-        }
+        guard let cropped = beginLiveProcessing(for: fullFrame) else { return }
 
         ocrQueue.async { [weak self] in
             guard let self else { return }
             defer {
-                self.captureQueue.async {
-                    self.isProcessingFrame = false
-                }
+                self.finishLiveProcessing()
             }
 
             do {
@@ -604,7 +579,8 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                     self.latestSnapshot = snapshot
                     return snapshot
                 }
-                if snapshot.state == .locked, let locked = self.latestLockedReading(from: snapshot) {
+                let locked = self.latestLockedReading(from: snapshot)
+                if snapshot.state == .locked, let locked {
                     DispatchQueue.main.async {
                         let feedback = UINotificationFeedbackGenerator()
                         feedback.notificationOccurred(.success)
@@ -615,10 +591,8 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
                         preferredPreviewImage: self.bufferedFreezePreviewImage(for: locked.score)
                     )
                 } else {
-                    let locked = self.latestLockedReading(from: snapshot)
                     DispatchQueue.main.async {
                         self.candidateHighlights = []
-                        self.rawReadingText = locked?.rawText ?? ""
                         self.liveReadingText = locked?.formattedScore ?? "No reading yet"
                         self.status = snapshot.state
                     }
@@ -630,6 +604,28 @@ final class ScoreScannerViewModel: NSObject, ObservableObject {
     nonisolated fileprivate static func portraitOrientedFrame(from pixelBuffer: CVPixelBuffer) -> CIImage {
         CIImage(cvPixelBuffer: pixelBuffer)
             .oriented(forExifOrientation: Int32(CGImagePropertyOrientation.right.rawValue))
+    }
+
+    private func beginLiveProcessing(for fullFrame: CIImage) -> CIImage? {
+        captureQueue.sync {
+            latestOrientedFrame = fullFrame
+
+            guard !processingPaused, !isProcessingFrame else { return nil }
+
+            let now = CACurrentMediaTime()
+            guard now - lastOCRTime >= liveOCRInterval else { return nil }
+            guard let cropped = crop(frame: fullFrame, previewMapping: previewMapping) else { return nil }
+
+            lastOCRTime = now
+            isProcessingFrame = true
+            return cropped
+        }
+    }
+
+    private func finishLiveProcessing() {
+        captureQueue.async { [weak self] in
+            self?.isProcessingFrame = false
+        }
     }
 }
 

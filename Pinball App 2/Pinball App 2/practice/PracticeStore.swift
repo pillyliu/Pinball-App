@@ -100,7 +100,6 @@ struct LeagueImportResult {
     let duplicatesSkipped: Int
     let unmatchedRows: Int
     let selectedPlayer: String
-    let sourcePath: String
     let repaired: Int
 
     init(
@@ -108,14 +107,12 @@ struct LeagueImportResult {
         duplicatesSkipped: Int,
         unmatchedRows: Int,
         selectedPlayer: String,
-        sourcePath: String,
         repaired: Int = 0
     ) {
         self.imported = imported
         self.duplicatesSkipped = duplicatesSkipped
         self.unmatchedRows = unmatchedRows
         self.selectedPlayer = selectedPlayer
-        self.sourcePath = sourcePath
         self.repaired = repaired
     }
 
@@ -194,6 +191,7 @@ final class PracticeStore: ObservableObject {
     var cachedPracticeGameNames: [String: String] = [:]
     var cachedJournalPayloads: [JournalFilter: CachedPracticeJournalPayload] = [:]
     var cachedGroupDashboardDetails: [UUID: GroupDashboardDetail] = [:]
+    var derivedDataRevision = 0
     var isLoadingBankTemplateGames = false
     var hasRestoredHomeBootstrapSnapshot = false
     let leagueAutoImportCooldown: TimeInterval = 60
@@ -289,6 +287,7 @@ final class PracticeStore: ObservableObject {
     }
 
     func invalidateDerivedCaches() {
+        derivedDataRevision &+= 1
         cachedScoreEntriesByGameID.removeAll()
         cachedScoreSummariesByGameID.removeAll()
         cachedGameJournalEntriesByGameID.removeAll()

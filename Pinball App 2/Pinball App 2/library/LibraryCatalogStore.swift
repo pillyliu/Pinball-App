@@ -1414,36 +1414,6 @@ func decodeMergedLibraryPayloadWithState(
     return legacyCatalogExtraction(payload: payload, state: state, filterBySourceState: filterBySourceState)
 }
 
-func decodeCatalogManufacturerOptions(data: Data) throws -> [PinballCatalogManufacturerOption] {
-    let root = try JSONDecoder().decode(NormalizedLibraryRoot.self, from: data)
-    let groupCountsByManufacturerID: [String: Int] = {
-        guard let machines = root.machines.map(catalogResolvedMachines) else { return [:] }
-        let grouped = Dictionary(grouping: machines) { machine in
-            machine.manufacturerID ?? ""
-        }
-        return grouped.reduce(into: [:]) { partialResult, entry in
-            let manufacturerID = entry.key
-            guard !manufacturerID.isEmpty else { return }
-            partialResult[manufacturerID] = Set(entry.value.map { $0.opdbGroupID ?? $0.practiceIdentity }).count
-        }
-    }()
-    return (root.manufacturers ?? [])
-        .map { record in
-            PinballCatalogManufacturerOption(
-                id: record.id,
-                name: record.name,
-                gameCount: groupCountsByManufacturerID[record.id] ?? record.gameCount ?? 0,
-                isModern: record.isModern ?? false,
-                featuredRank: record.featuredRank,
-                sortBucket: (record.isModern ?? false) ? 0 : (record.featuredRank == nil ? 2 : 1)
-            )
-        }
-        .sorted {
-            ($0.sortBucket, $0.featuredRank ?? Int.max, $0.name.lowercased())
-                < ($1.sortBucket, $1.featuredRank ?? Int.max, $1.name.lowercased())
-        }
-}
-
 private func catalogResolvedMachines(_ machines: [CatalogMachineRecord]) -> [CatalogMachineRecord] {
     machines.map { machine in
         CatalogMachineRecord(
@@ -1847,7 +1817,7 @@ private func buildLegacyCuratedOverrides(from games: [PinballGame]) -> [String: 
 
 private func preferredLegacyNameOverride(for game: PinballGame) -> String? {
     guard let name = catalogNormalizedOptionalString(game.name) else { return nil }
-    if game.sourceId == "venue--gameroom" { return name }
+    if game.sourceId == gameRoomLibrarySourceID { return name }
     if game.sourceType != .venue { return name }
     if name.contains(":") { return name }
     return nil
@@ -1988,47 +1958,6 @@ private func resolveNormalizedCatalog(root: NormalizedLibraryRoot, machines: [Ca
     }
 
     return PinballLibraryPayload(games: resolvedGames, sources: sources)
-}
-
-func decodePracticeCatalogGames(data: Data) throws -> [PinballGame] {
-    let root = try JSONDecoder().decode(NormalizedLibraryRoot.self, from: data)
-    let machines = catalogResolvedMachines(root.machines ?? [])
-    guard !machines.isEmpty else { return [] }
-
-    let manufacturerByID = Dictionary(uniqueKeysWithValues: (root.manufacturers ?? []).map { ($0.id, $0) })
-    let rulesheetsByPracticeIdentity = Dictionary(grouping: root.rulesheetLinks ?? [], by: \.practiceIdentity)
-    let videosByPracticeIdentity = Dictionary(grouping: root.videoLinks ?? [], by: \.practiceIdentity)
-    let source = PinballImportedSourceRecord(
-        id: "catalog--opdb-practice",
-        name: "All OPDB Games",
-        type: .category,
-        provider: .opdb,
-        providerSourceID: "opdb-catalog",
-        machineIDs: [],
-        lastSyncedAt: nil,
-        searchQuery: nil,
-        distanceMiles: nil
-    )
-
-    return Dictionary(grouping: machines, by: { $0.opdbGroupID ?? $0.practiceIdentity })
-        .values
-        .compactMap { group -> PinballGame? in
-            guard let machine = group.min(by: catalogPreferredGroupDefaultMachine) else { return nil }
-            return resolveImportedGame(
-                machine: machine,
-                source: source,
-                manufacturerByID: manufacturerByID,
-                curatedOverride: nil,
-                opdbRulesheets: rulesheetsByPracticeIdentity[machine.practiceIdentity] ?? [],
-                opdbVideos: videosByPracticeIdentity[machine.practiceIdentity] ?? [],
-                venueMetadata: nil
-            )
-        }
-        .sorted {
-            let nameCompare = $0.name.localizedCaseInsensitiveCompare($1.name)
-            if nameCompare != .orderedSame { return nameCompare == .orderedAscending }
-            return $0.slug.localizedCaseInsensitiveCompare($1.slug) == .orderedAscending
-        }
 }
 
 func decodePracticeCatalogGamesFromOPDBExport(data: Data) throws -> [PinballGame] {

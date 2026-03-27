@@ -64,9 +64,9 @@ internal object PinballPerformanceTrace {
         val durationMs = (SystemClock.elapsedRealtimeNanos() - startedAtNs) / 1_000_000.0
         val formattedDuration = String.format(Locale.US, "%.2f", durationMs)
         if (detail.isNullOrBlank()) {
-            Log.i(TAG, "practice_perf name=$name duration_ms=$formattedDuration")
+            Log.i(TAG, "pinball_perf name=$name duration_ms=$formattedDuration")
         } else {
-            Log.i(TAG, "practice_perf name=$name duration_ms=$formattedDuration detail=$detail")
+            Log.i(TAG, "pinball_perf name=$name duration_ms=$formattedDuration detail=$detail")
         }
     }
 

@@ -195,12 +195,6 @@ extension PracticeStore {
         clearedImportedLeagueScoresStatusMessage(purgeImportedLeagueScores())
     }
 
-    func updateSyncSettings(cloudSyncEnabled: Bool) {
-        state.syncSettings.cloudSyncEnabled = cloudSyncEnabled
-        state.syncSettings.phaseLabel = cloudSyncEnabled ? "Phase 2: Optional cloud sync" : "Phase 1: On-device"
-        saveState()
-    }
-
     func updateAnalyticsSettings(gapMode: ChartGapMode, useMedian: Bool) {
         state.analyticsSettings.gapMode = gapMode
         state.analyticsSettings.useMedian = useMedian
@@ -215,12 +209,7 @@ extension PracticeStore {
     }
 
     func canEditJournalEntry(_ entry: JournalEntry) -> Bool {
-        switch entry.action {
-        case .rulesheetRead, .tutorialWatch, .gameplayWatch, .playfieldViewed, .practiceSession, .scoreLogged, .noteAdded:
-            return true
-        case .gameBrowse:
-            return false
-        }
+        entry.action.supportsEditing
     }
 
     @discardableResult

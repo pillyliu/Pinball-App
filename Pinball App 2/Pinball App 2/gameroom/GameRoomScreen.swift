@@ -1,8 +1,4 @@
 import SwiftUI
-import PhotosUI
-import AVKit
-import UniformTypeIdentifiers
-import UIKit
 
 enum GameRoomRoute: Hashable {
     case settings
@@ -45,36 +41,43 @@ struct GameRoomScreen: View {
                     onOpenSettings: { path.append(.settings) },
                     onOpenMachineView: openMachineView
                 )
-                .navigationDestination(for: GameRoomRoute.self) { route in
-                    switch route {
-                    case .settings:
-                        GameRoomSettingsView(
-                            store: store,
-                            catalogLoader: catalogLoader,
-                            gameTransition: machineTransition,
-                            onOpenMachineView: openMachineView
-                        )
-                    case let .machineView(machineID, transitionSourceID, navigationTitle):
-                        GameRoomMachineView(
-                            store: store,
-                            catalogLoader: catalogLoader,
-                            machineID: machineID,
-                            navigationTitle: navigationTitle
-                        )
-                            .appCardZoomTransition(sourceID: transitionSourceID, in: machineTransition, reduceMotion: reduceMotion)
-                    }
-                }
+                .navigationDestination(for: GameRoomRoute.self, destination: destination(for:))
             }
         }
         .task {
-            store.loadIfNeeded()
-            await catalogLoader.loadIfNeeded()
-            store.migrateOwnedMachineOPDBIDs(using: catalogLoader)
+            await loadDataIfNeeded()
         }
     }
 
     private func openMachineView(_ machineID: UUID, _ sourceID: String?, _ navigationTitle: String) {
         path.append(.machineView(machineID, sourceID, navigationTitle))
+    }
+
+    @ViewBuilder
+    private func destination(for route: GameRoomRoute) -> some View {
+        switch route {
+        case .settings:
+            GameRoomSettingsView(
+                store: store,
+                catalogLoader: catalogLoader,
+                gameTransition: machineTransition,
+                onOpenMachineView: openMachineView
+            )
+        case let .machineView(machineID, transitionSourceID, navigationTitle):
+            GameRoomMachineView(
+                store: store,
+                catalogLoader: catalogLoader,
+                machineID: machineID,
+                navigationTitle: navigationTitle
+            )
+            .appCardZoomTransition(sourceID: transitionSourceID, in: machineTransition, reduceMotion: reduceMotion)
+        }
+    }
+
+    private func loadDataIfNeeded() async {
+        store.loadIfNeeded()
+        await catalogLoader.loadIfNeeded()
+        store.migrateOwnedMachineOPDBIDs(using: catalogLoader)
     }
 }
 

@@ -1,5 +1,4 @@
 import SwiftUI
-import Foundation
 
 enum PracticeGameSubview: String, CaseIterable, Identifiable {
     case summary

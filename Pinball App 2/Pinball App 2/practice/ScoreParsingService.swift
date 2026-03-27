@@ -25,10 +25,6 @@ nonisolated enum ScoreParsingService {
             }
     }
 
-    nonisolated static func bestCandidate(from observations: [ScoreOCRObservation]) -> ScoreScannerCandidate? {
-        rankedCandidates(from: observations).first
-    }
-
     nonisolated static func normalizedScore(fromManualInput raw: String) -> Int? {
         let digits = raw.filter(\.isNumber)
         guard !digits.isEmpty, let score = Int(digits), score > 0 else { return nil }

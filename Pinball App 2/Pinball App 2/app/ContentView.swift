@@ -56,12 +56,6 @@ final class AppNavigationModel: ObservableObject {
     @Published var selectedTab: RootTab = .league
     @Published var libraryGameIDToOpen: String?
     @Published var lastViewedLibraryGameID: String?
-
-    func openLibraryGame(gameID: String) {
-        guard !gameID.isEmpty else { return }
-        libraryGameIDToOpen = gameID
-        selectedTab = .library
-    }
 }
 
 struct ContentView: View {

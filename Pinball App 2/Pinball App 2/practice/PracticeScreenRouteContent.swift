@@ -134,6 +134,7 @@ extension PracticeScreen {
             selectedGroup: context.selectedGroup,
             allGroups: context.store.state.customGroups,
             selectedGroupID: context.store.state.practiceSettings.selectedGroupID,
+            dashboardReloadRevision: context.dashboardReloadRevision,
             gameTransition: context.gameTransition,
             onOpenCreateGroup: {
                 context.onOpenCreateGroup()
@@ -206,9 +207,6 @@ extension PracticeScreen {
             opponentOptions: context.opponentOptions,
             isLoadingHeadToHead: context.isLoadingHeadToHead,
             headToHead: context.headToHead,
-            redactName: { name in
-                context.redactName(name)
-            },
             onRefreshHeadToHead: {
                 await context.onRefreshHeadToHead()
             },

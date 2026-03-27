@@ -36,7 +36,7 @@ extension PracticeScreen {
                 resumeToPracticeGame(zoomSourceID: sourceID)
             },
             onSelectLibrarySource: { sourceID in
-                let normalizedSourceID = (sourceID == "__practice_home_all_games__") ? nil : sourceID
+                let normalizedSourceID = (sourceID == practiceHomeAllGamesSourceMenuID) ? nil : sourceID
                 store.selectPracticeLibrarySource(id: normalizedSourceID)
                 if store.gameForAnyID(uiState.selectedGameID) == nil || !store.games.contains(where: { $0.canonicalPracticeKey == store.canonicalPracticeGameID(uiState.selectedGameID) }) {
                     uiState.selectedGameID = orderedGamesForDropdown(store.games, collapseByPracticeIdentity: true).first?.canonicalPracticeKey ?? ""
@@ -82,6 +82,7 @@ extension PracticeScreen {
         PracticeGroupDashboardContext(
             store: store,
             selectedGroup: selectedGroup,
+            dashboardReloadRevision: store.derivedDataRevision,
             gameTransition: gameTransition,
             onOpenCreateGroup: {
                 openGroupEditorForCreate()
@@ -214,8 +215,6 @@ extension PracticeScreen {
             currentGroupDateEditorTitle: uiState.currentGroupDateEditorField == .start ? "Start Date" : "End Date",
             currentGroupDateEditorValue: $uiState.currentGroupDateEditorValue,
             editingJournalEntry: uiState.editingJournalEntry,
-            showingResetJournalPrompt: $uiState.showingResetJournalPrompt,
-            resetJournalConfirmationText: $uiState.resetJournalConfirmationText,
             onRememberQuickEntryGame: { sheet, gameID in
                 rememberQuickEntryGame(sheet: sheet, gameID: gameID)
             },
@@ -253,12 +252,6 @@ extension PracticeScreen {
             },
             onSaveEditedJournalEntry: { entry in
                 saveEditedJournalEntry(entry)
-            },
-            onConfirmResetPracticeLog: {
-                uiState.resetJournalConfirmationText = ""
-                store.resetPracticeState()
-                applyDefaultsAfterLoad()
-                LibraryActivityLog.clearAll()
             },
             onPresentedSheetDismissed: {
                 uiState.quickEntryKind = nil
@@ -345,9 +338,6 @@ extension PracticeScreen {
             opponentOptions: uiState.insightsOpponentOptions,
             isLoadingHeadToHead: uiState.isLoadingHeadToHead,
             headToHead: uiState.headToHead,
-            redactName: { name in
-                formatLPLPlayerNameForDisplay(name)
-            },
             onRefreshHeadToHead: {
                 await refreshHeadToHead()
             },

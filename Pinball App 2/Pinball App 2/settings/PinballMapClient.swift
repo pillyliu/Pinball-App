@@ -30,7 +30,11 @@ enum PinballMapClient {
     private static func fetchVenues(components: URLComponents?) async throws -> [PinballLibraryVenueSearchResult] {
         guard let url = components?.url else { return [] }
 
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await URLSession.shared.data(from: url)
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200 ... 299).contains(httpResponse.statusCode) {
+            throw PinballMapClientError.http(statusCode: httpResponse.statusCode)
+        }
         let payload = try decoder.decode(VenueSearchResponse.self, from: data)
         return payload.locations.map { location in
             PinballLibraryVenueSearchResult(
@@ -52,10 +56,34 @@ enum PinballMapClient {
             return []
         }
 
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await URLSession.shared.data(from: url)
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200 ... 299).contains(httpResponse.statusCode) {
+            throw PinballMapClientError.http(statusCode: httpResponse.statusCode)
+        }
         let payload = try decoder.decode(VenueMachinesResponse.self, from: data)
-        return payload.machines.compactMap { machine in
-            machine.opdbID?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return Array(
+            NSOrderedSet(
+                array: payload.machines.compactMap { machine in
+                    let trimmed = machine.opdbID?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard let trimmed, !trimmed.isEmpty else { return nil }
+                    return trimmed
+                }
+            )
+        ).compactMap { $0 as? String }
+    }
+}
+
+private enum PinballMapClientError: LocalizedError {
+    case http(statusCode: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .http(let statusCode):
+            if statusCode == 404 {
+                return "Pinball Map location not found."
+            }
+            return "Pinball Map request failed (\(statusCode))."
         }
     }
 }

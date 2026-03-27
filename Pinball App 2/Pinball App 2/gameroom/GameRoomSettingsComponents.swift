@@ -1,6 +1,19 @@
 import SwiftUI
 
 struct GameRoomSettingsView: View {
+    private struct SectionPickerBar: View {
+        @Binding var selectedSection: GameRoomSettingsSection
+
+        var body: some View {
+            Picker("Mode", selection: $selectedSection) {
+                ForEach(GameRoomSettingsSection.allCases) { section in
+                    Text(section.title).tag(section)
+                }
+            }
+            .appSegmentedControlStyle()
+        }
+    }
+
     @ObservedObject var store: GameRoomStore
     @ObservedObject var catalogLoader: GameRoomCatalogLoader
     let gameTransition: Namespace.ID
@@ -11,44 +24,55 @@ struct GameRoomSettingsView: View {
 
     var body: some View {
         ZStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Picker("Mode", selection: $selectedSection) {
-                        ForEach(GameRoomSettingsSection.allCases) { section in
-                            Text(section.title).tag(section)
-                        }
-                    }
-                    .appSegmentedControlStyle()
-
-                    GameRoomSettingsSectionCard(
-                        store: store,
-                        catalogLoader: catalogLoader,
-                        gameTransition: gameTransition,
-                        selectedSection: selectedSection,
-                        onOpenMachineView: onOpenMachineView,
-                        onShowSaveFeedback: { text in
-                            saveFeedbackText = text
-                            saveFeedbackToken += 1
-                        }
-                    )
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-            }
-
-            GameRoomFloatingSaveFeedbackOverlay(
-                token: saveFeedbackToken,
-                text: saveFeedbackText
-            )
-            .allowsHitTesting(false)
-            .padding(.horizontal, 28)
+            settingsScrollBody
+            saveFeedbackOverlay
         }
         .navigationTitle("GameRoom Settings")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await catalogLoader.loadIfNeeded()
         }
+    }
+
+    private var settingsScrollBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                SectionPickerBar(selectedSection: $selectedSection)
+                errorStatus
+                GameRoomSettingsSectionCard(
+                    store: store,
+                    catalogLoader: catalogLoader,
+                    gameTransition: gameTransition,
+                    selectedSection: selectedSection,
+                    onOpenMachineView: onOpenMachineView,
+                    onShowSaveFeedback: showSaveFeedback
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+        }
+    }
+
+    @ViewBuilder
+    private var errorStatus: some View {
+        if let lastErrorMessage = store.lastErrorMessage, !lastErrorMessage.isEmpty {
+            AppInlineTaskStatus(text: lastErrorMessage, isError: true)
+        }
+    }
+
+    private var saveFeedbackOverlay: some View {
+        GameRoomFloatingSaveFeedbackOverlay(
+            token: saveFeedbackToken,
+            text: saveFeedbackText
+        )
+        .allowsHitTesting(false)
+        .padding(.horizontal, 28)
+    }
+
+    private func showSaveFeedback(_ text: String) {
+        saveFeedbackText = text
+        saveFeedbackToken += 1
     }
 }
 
@@ -63,27 +87,31 @@ struct GameRoomSettingsSectionCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             AppSectionTitle(text: sectionHeading)
-
-            switch selectedSection {
-            case .importFromPinside:
-                GameRoomImportSettingsView(store: store, catalogLoader: catalogLoader)
-            case .editMachines:
-                GameRoomEditMachinesView(
-                    store: store,
-                    catalogLoader: catalogLoader,
-                    onShowSaveFeedback: onShowSaveFeedback
-                )
-            case .archive:
-                GameRoomArchiveSettingsView(
-                    store: store,
-                    gameTransition: gameTransition,
-                    onOpenMachineView: onOpenMachineView
-                )
-            }
+            sectionContent
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .appPanelStyle()
+    }
+
+    @ViewBuilder
+    private var sectionContent: some View {
+        switch selectedSection {
+        case .importFromPinside:
+            GameRoomImportSettingsView(store: store, catalogLoader: catalogLoader)
+        case .editMachines:
+            GameRoomEditMachinesView(
+                store: store,
+                catalogLoader: catalogLoader,
+                onShowSaveFeedback: onShowSaveFeedback
+            )
+        case .archive:
+            GameRoomArchiveSettingsView(
+                store: store,
+                gameTransition: gameTransition,
+                onOpenMachineView: onOpenMachineView
+            )
+        }
     }
 
     private var sectionHeading: String {
@@ -124,6 +152,10 @@ struct GameRoomImportSettingsView: View {
     @State private var resultMessage: String?
     @State private var reviewFilter: ImportReviewFilter = .all
 
+    private var importMatcher: ImportMatcher {
+        ImportMatcher(store: store, catalogLoader: catalogLoader)
+    }
+
     private struct ImportDraftRow: Identifiable {
         let id: String
         let sourceItemKey: String
@@ -138,31 +170,306 @@ struct GameRoomImportSettingsView: View {
         var rawVariant: String?
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            TextField("Pinside username or public collection URL", text: $sourceInput)
-                .textFieldStyle(.roundedBorder)
-                .submitLabel(.go)
-                .onSubmit {
-                    guard !isLoading, !sourceInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-                    fetchCollection()
-                }
+    private struct ImportMatcher {
+        let store: GameRoomStore
+        let catalogLoader: GameRoomCatalogLoader
 
-            HStack(spacing: 10) {
-                Button("Fetch Collection") {
-                    fetchCollection()
+        func needsReview(_ row: ImportDraftRow) -> Bool {
+            row.matchConfidence != .high || row.selectedCatalogGameID == nil || duplicateWarningMessage(for: row) != nil
+        }
+
+        func duplicateWarningMessage(for row: ImportDraftRow) -> String? {
+            if store.hasImportFingerprint(row.fingerprint) {
+                return "Already imported previously."
+            }
+            guard let selectedCatalogGameID = row.selectedCatalogGameID,
+                  let selectedGame = catalogLoader.game(for: selectedCatalogGameID) else {
+                return nil
+            }
+            let selectedVariant = row.selectedVariant ?? row.rawVariant
+            if let existing = store.existingOwnedMachine(catalogGameID: selectedGame.catalogGameID, displayVariant: selectedVariant) {
+                if let variant = existing.displayVariant, !variant.isEmpty {
+                    return "Duplicate of existing machine: \(existing.displayTitle) (\(variant))."
                 }
-                .buttonStyle(AppPrimaryActionButtonStyle())
-                .disabled(isLoading || sourceInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                return "Duplicate of existing machine: \(existing.displayTitle)."
+            }
+            return nil
+        }
+
+        func importVariantOptions(for row: ImportDraftRow, selectedCatalogGameID: String) -> [String] {
+            var variants: [String] = []
+
+            if let currentVariant = row.selectedVariant?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !currentVariant.isEmpty {
+                variants.append(currentVariant)
+            }
+            if let rawVariant = row.rawVariant?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !rawVariant.isEmpty,
+               !variants.contains(where: { $0.caseInsensitiveCompare(rawVariant) == .orderedSame }) {
+                variants.append(rawVariant)
+            }
+            for variant in catalogLoader.variantOptions(for: selectedCatalogGameID) {
+                if !variants.contains(where: { $0.caseInsensitiveCompare(variant) == .orderedSame }) {
+                    variants.append(variant)
+                }
             }
 
-            if isLoading {
-                AppInlineTaskStatus(text: "Fetching collection…", showsProgress: true)
-            } else if let errorMessage {
-                AppInlineTaskStatus(text: errorMessage, isError: true)
+            return variants
+        }
+
+        func makeDraftRow(_ machine: PinsideImportedMachine) -> ImportDraftRow {
+            let scored = scoredSuggestions(for: machine)
+            let suggestions = scored.map(\.game)
+            let top = scored.first
+
+            return ImportDraftRow(
+                id: machine.id,
+                sourceItemKey: machine.slug,
+                rawTitle: machine.rawTitle,
+                rawPurchaseDateText: machine.rawPurchaseDateText,
+                normalizedPurchaseDate: machine.normalizedPurchaseDate,
+                matchConfidence: confidence(for: top?.score ?? 0),
+                suggestions: suggestions,
+                fingerprint: machine.fingerprint,
+                selectedCatalogGameID: top?.game.catalogGameID,
+                selectedVariant: machine.rawVariant,
+                rawVariant: machine.rawVariant
+            )
+        }
+
+        func normalizedFirstOfMonth(from raw: String?) -> Date? {
+            guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return nil }
+
+            let monthYearFormats = [
+                "MMMM yyyy",
+                "MMM yyyy",
+                "M/yyyy",
+                "MM/yyyy",
+                "M-yyyy",
+                "MM-yyyy",
+                "yyyy-MM",
+                "yyyy/M"
+            ]
+
+            let fullDateFormats = [
+                "yyyy-MM-dd",
+                "M/d/yyyy",
+                "MM/dd/yyyy",
+                "MMM d, yyyy",
+                "MMMM d, yyyy"
+            ]
+
+            let calendar = Calendar(identifier: .gregorian)
+
+            for format in monthYearFormats {
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.calendar = calendar
+                formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                formatter.dateFormat = format
+                if let date = formatter.date(from: raw),
+                   let normalized = calendar.date(from: calendar.dateComponents([.year, .month], from: date)) {
+                    return normalized
+                }
             }
 
-            if !draftRows.isEmpty {
+            for format in fullDateFormats {
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.calendar = calendar
+                formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                formatter.dateFormat = format
+                if let date = formatter.date(from: raw),
+                   let normalized = calendar.date(from: calendar.dateComponents([.year, .month], from: date)) {
+                    return normalized
+                }
+            }
+
+            return nil
+        }
+
+        func matchLabel(for game: GameRoomCatalogGame) -> String {
+            if let year = game.year {
+                return "\(game.displayTitle) (\(year))"
+            }
+            return game.displayTitle
+        }
+
+        private func scoredSuggestions(for machine: PinsideImportedMachine) -> [(game: GameRoomCatalogGame, score: Int)] {
+            let normalizedRawTitle = normalized(machine.rawTitle)
+            let normalizedVariant = normalized(machine.rawVariant ?? "")
+            let slugMatch = catalogLoader.slugMatch(for: machine.slug)
+            let candidates = catalogLoader.games.map { game -> (GameRoomCatalogGame, Int) in
+                let normalizedGameTitle = normalized(game.displayTitle)
+                var score = 0
+
+                if let slugMatch,
+                   slugMatch.catalogGameID.caseInsensitiveCompare(game.catalogGameID) == .orderedSame {
+                    score += 400
+                }
+
+                if normalizedRawTitle == normalizedGameTitle {
+                    score += 120
+                } else if normalizedGameTitle.contains(normalizedRawTitle) || normalizedRawTitle.contains(normalizedGameTitle) {
+                    score += 80
+                } else {
+                    score += tokenOverlapScore(lhs: normalizedRawTitle, rhs: normalizedGameTitle)
+                }
+
+                if !normalizedVariant.isEmpty {
+                    let variants = catalogLoader.variantOptions(for: game.catalogGameID).map(normalized)
+                    if variants.contains(normalizedVariant) {
+                        score += 20
+                    }
+                }
+
+                score += metadataScore(machine: machine, game: game)
+
+                return (game, score)
+            }
+
+            return candidates
+                .filter { $0.1 > 0 }
+                .sorted(by: {
+                    if $0.1 != $1.1 { return $0.1 > $1.1 }
+                    let lhsMetadata = metadataScore(machine: machine, game: $0.0)
+                    let rhsMetadata = metadataScore(machine: machine, game: $1.0)
+                    if lhsMetadata != rhsMetadata { return lhsMetadata > rhsMetadata }
+                    return $0.0.displayTitle.localizedCaseInsensitiveCompare($1.0.displayTitle) == .orderedAscending
+                })
+                .prefix(3)
+                .map { $0 }
+        }
+
+        private func confidence(for score: Int) -> MachineImportMatchConfidence {
+            if score >= 120 { return .high }
+            if score >= 80 { return .medium }
+            if score > 0 { return .low }
+            return .manual
+        }
+
+        private func tokenOverlapScore(lhs: String, rhs: String) -> Int {
+            let lhsSet = Set(lhs.split(separator: " ").map(String.init))
+            let rhsSet = Set(rhs.split(separator: " ").map(String.init))
+            guard !lhsSet.isEmpty, !rhsSet.isEmpty else { return 0 }
+            let intersection = lhsSet.intersection(rhsSet).count
+            if intersection == 0 { return 0 }
+            return Int((Double(intersection) / Double(max(lhsSet.count, rhsSet.count))) * 70.0)
+        }
+
+        private func normalized(_ value: String) -> String {
+            value
+                .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                .lowercased()
+                .replacingOccurrences(of: "[^a-z0-9 ]", with: " ", options: .regularExpression)
+                .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        private func metadataScore(machine: PinsideImportedMachine, game: GameRoomCatalogGame) -> Int {
+            manufacturerMatchScore(imported: machine.manufacturerLabel, catalog: game.manufacturer) +
+                yearMatchScore(imported: machine.manufactureYear, catalog: game.year)
+        }
+
+        private func manufacturerMatchScore(imported: String?, catalog: String?) -> Int {
+            let importedLabel = canonicalManufacturerLabel(imported)
+            let catalogLabel = canonicalManufacturerLabel(catalog)
+            guard !importedLabel.isEmpty, !catalogLabel.isEmpty else { return 0 }
+            if importedLabel == catalogLabel { return 35 }
+
+            let importedTokens = Set(importedLabel.split(separator: " ").map(String.init))
+            let catalogTokens = Set(catalogLabel.split(separator: " ").map(String.init))
+            let sharedTokens = importedTokens.intersection(catalogTokens).count
+            if sharedTokens > 0 {
+                return max(10, Int((Double(sharedTokens) / Double(max(importedTokens.count, catalogTokens.count))) * 24.0))
+            }
+            return -12
+        }
+
+        private func yearMatchScore(imported: Int?, catalog: Int?) -> Int {
+            guard let imported, let catalog else { return 0 }
+            let difference = abs(imported - catalog)
+            switch difference {
+            case 0:
+                return 25
+            case 1:
+                return 16
+            case 2:
+                return 10
+            case 3:
+                return 4
+            default:
+                return -12
+            }
+        }
+
+        private func canonicalManufacturerLabel(_ value: String?) -> String {
+            let normalizedValue = normalized(value ?? "")
+            guard !normalizedValue.isEmpty else { return "" }
+
+            let ignoredTokens: Set<String> = [
+                "co",
+                "company",
+                "corp",
+                "corporation",
+                "inc",
+                "ltd",
+                "limited",
+                "manufacturing",
+                "pinball"
+            ]
+            let filteredTokens = normalizedValue
+                .split(separator: " ")
+                .map(String.init)
+                .filter { !ignoredTokens.contains($0) }
+            if filteredTokens.isEmpty {
+                return normalizedValue
+            }
+            return filteredTokens.joined(separator: " ")
+        }
+    }
+
+    private struct SourceSection: View {
+        @Binding var sourceInput: String
+        let isLoading: Bool
+        let errorMessage: String?
+        let canFetchCollection: Bool
+        let onFetchCollection: () -> Void
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 10) {
+                TextField("Pinside username or public collection URL", text: $sourceInput)
+                    .textFieldStyle(.roundedBorder)
+                    .submitLabel(.go)
+                    .onSubmit(onFetchCollection)
+
+                HStack(spacing: 10) {
+                    Button("Fetch Collection", action: onFetchCollection)
+                        .buttonStyle(AppPrimaryActionButtonStyle())
+                        .disabled(!canFetchCollection)
+                }
+
+                if isLoading {
+                    AppInlineTaskStatus(text: "Fetching collection…", showsProgress: true)
+                } else if let errorMessage {
+                    AppInlineTaskStatus(text: errorMessage, isError: true)
+                }
+            }
+        }
+    }
+
+    private struct ReviewSection: View {
+        @Binding var draftRows: [ImportDraftRow]
+        @Binding var reviewFilter: ImportReviewFilter
+        let filteredRowIndexes: [Int]
+        let duplicateWarningMessage: (ImportDraftRow) -> String?
+        let matchLabel: (GameRoomCatalogGame) -> String
+        let importVariantOptions: (ImportDraftRow, String) -> [String]
+        let normalizePurchaseDate: (String?) -> Date?
+        let onImport: () -> Void
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 10) {
                 Text("Review matches (\(draftRows.count))")
                     .font(.subheadline.weight(.semibold))
                     .padding(.top, 4)
@@ -176,107 +483,181 @@ struct GameRoomImportSettingsView: View {
 
                 ScrollView {
                     LazyVStack(spacing: 8) {
-                        ForEach(Array(filteredRowIndexes.enumerated()), id: \.offset) { _, index in
-                            let duplicateWarning = duplicateWarningMessage(for: draftRows[index])
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                    Text(draftRows[index].rawTitle)
-                                        .font(.subheadline.weight(.semibold))
-                                    Spacer(minLength: 8)
-                                    confidenceBadge(draftRows[index].matchConfidence)
-                                }
-
-                                if let rawVariant = draftRows[index].rawVariant, !rawVariant.isEmpty {
-                                    Text("Variant: \(rawVariant)")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                TextField(
-                                    "Purchase date (raw import text)",
-                                    text: Binding(
-                                        get: { draftRows[index].rawPurchaseDateText ?? "" },
-                                        set: { newValue in
-                                            let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                                            draftRows[index].rawPurchaseDateText = trimmed.isEmpty ? nil : trimmed
-                                            draftRows[index].normalizedPurchaseDate = normalizedFirstOfMonth(from: draftRows[index].rawPurchaseDateText)
-                                        }
-                                    )
-                                )
-                                .textFieldStyle(.roundedBorder)
-
-                                if let normalizedPurchaseDate = draftRows[index].normalizedPurchaseDate {
-                                    Text("Normalized: \(normalizedPurchaseDate.formatted(date: .abbreviated, time: .omitted))")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                if let duplicateWarning {
-                                    Text(duplicateWarning)
-                                        .font(.footnote.weight(.semibold))
-                                        .foregroundStyle(.yellow)
-                                }
-
-                                Menu {
-                                    ForEach(draftRows[index].suggestions, id: \.id) { suggestion in
-                                        Button(matchLabel(for: suggestion)) {
-                                            draftRows[index].selectedCatalogGameID = suggestion.catalogGameID
-                                            if let current = draftRows[index].selectedVariant {
-                                                let variants = importVariantOptions(
-                                                    for: draftRows[index],
-                                                    selectedCatalogGameID: suggestion.catalogGameID
-                                                )
-                                                if !variants.contains(where: { $0.caseInsensitiveCompare(current) == .orderedSame }) {
-                                                    draftRows[index].selectedVariant = nil
-                                                }
-                                            }
-                                        }
-                                    }
-                                    Button("Clear Match") {
-                                        draftRows[index].selectedCatalogGameID = nil
-                                    }
-                                } label: {
-                                    AppCompactIconMenuLabel(
-                                        text: matchMenuLabel(for: draftRows[index]),
-                                        systemName: "link"
-                                    )
-                                }
-                                .buttonStyle(.plain)
-
-                                if let selectedCatalogGameID = draftRows[index].selectedCatalogGameID {
-                                    let variants = importVariantOptions(for: draftRows[index], selectedCatalogGameID: selectedCatalogGameID)
-                                    if !variants.isEmpty {
-                                        Menu {
-                                            Button("None") {
-                                                draftRows[index].selectedVariant = nil
-                                            }
-                                            ForEach(variants, id: \.self) { variant in
-                                                Button(variant) {
-                                                    draftRows[index].selectedVariant = variant
-                                                }
-                                            }
-                                        } label: {
-                                            AppCompactIconMenuLabel(
-                                                text: "Variant: \(draftRows[index].selectedVariant ?? "None")",
-                                                systemName: "tag"
-                                            )
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(10)
-                            .appControlStyle()
+                        ForEach(filteredRowIndexes, id: \.self) { index in
+                            ReviewRowCard(
+                                row: $draftRows[index],
+                                duplicateWarning: duplicateWarningMessage(draftRows[index]),
+                                matchLabel: matchLabel,
+                                importVariantOptions: importVariantOptions,
+                                normalizePurchaseDate: normalizePurchaseDate
+                            )
                         }
                     }
                 }
                 .frame(maxHeight: 360)
 
-                Button("Import Selected Matches") {
-                    performImport()
+                Button("Import Selected Matches", action: onImport)
+                    .buttonStyle(AppPrimaryActionButtonStyle())
+            }
+        }
+    }
+
+    private struct ReviewRowCard: View {
+        @Binding var row: ImportDraftRow
+        let duplicateWarning: String?
+        let matchLabel: (GameRoomCatalogGame) -> String
+        let importVariantOptions: (ImportDraftRow, String) -> [String]
+        let normalizePurchaseDate: (String?) -> Date?
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(row.rawTitle)
+                        .font(.subheadline.weight(.semibold))
+                    Spacer(minLength: 8)
+                    confidenceBadge(row.matchConfidence)
                 }
-                .buttonStyle(AppPrimaryActionButtonStyle())
+
+                if let rawVariant = row.rawVariant, !rawVariant.isEmpty {
+                    Text("Variant: \(rawVariant)")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                TextField(
+                    "Purchase date (raw import text)",
+                    text: purchaseDateBinding
+                )
+                .textFieldStyle(.roundedBorder)
+
+                if let normalizedPurchaseDate = row.normalizedPurchaseDate {
+                    Text("Normalized: \(normalizedPurchaseDate.formatted(date: .abbreviated, time: .omitted))")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let duplicateWarning {
+                    Text(duplicateWarning)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.yellow)
+                }
+
+                Menu {
+                    ForEach(row.suggestions, id: \.id) { suggestion in
+                        Button(matchLabel(suggestion)) {
+                            selectSuggestion(suggestion)
+                        }
+                    }
+                    Button("Clear Match") {
+                        clearMatch()
+                    }
+                } label: {
+                    AppCompactIconMenuLabel(
+                        text: matchMenuLabel,
+                        systemName: "link"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                if let selectedCatalogGameID = row.selectedCatalogGameID {
+                    let variants = importVariantOptions(row, selectedCatalogGameID)
+                    if !variants.isEmpty {
+                        Menu {
+                            Button("None") {
+                                row.selectedVariant = nil
+                            }
+                            ForEach(variants, id: \.self) { variant in
+                                Button(variant) {
+                                    row.selectedVariant = variant
+                                }
+                            }
+                        } label: {
+                            AppCompactIconMenuLabel(
+                                text: "Variant: \(row.selectedVariant ?? "None")",
+                                systemName: "tag"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .appControlStyle()
+        }
+
+        private var purchaseDateBinding: Binding<String> {
+            Binding(
+                get: { row.rawPurchaseDateText ?? "" },
+                set: { newValue in
+                    let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                    row.rawPurchaseDateText = trimmed.isEmpty ? nil : trimmed
+                    row.normalizedPurchaseDate = normalizePurchaseDate(row.rawPurchaseDateText)
+                }
+            )
+        }
+
+        private var matchMenuLabel: String {
+            guard let selectedCatalogGameID = row.selectedCatalogGameID,
+                  let selected = row.suggestions.first(where: { $0.catalogGameID == selectedCatalogGameID }) else {
+                return "No Match Selected"
+            }
+            return "Match: \(matchLabel(selected))"
+        }
+
+        private func selectSuggestion(_ suggestion: GameRoomCatalogGame) {
+            row.selectedCatalogGameID = suggestion.catalogGameID
+            guard let current = row.selectedVariant else { return }
+            let variants = importVariantOptions(row, suggestion.catalogGameID)
+            if !variants.contains(where: { $0.caseInsensitiveCompare(current) == .orderedSame }) {
+                row.selectedVariant = nil
+            }
+        }
+
+        private func clearMatch() {
+            row.selectedCatalogGameID = nil
+        }
+
+        private func confidenceBadge(_ confidence: MachineImportMatchConfidence) -> some View {
+            let color: Color
+            switch confidence {
+            case .high:
+                color = .green
+            case .medium:
+                color = .yellow
+            case .low, .manual:
+                color = .red
+            }
+
+            return AppTintedStatusChip(
+                text: confidence.rawValue.capitalized,
+                foreground: color,
+                compact: true
+            )
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SourceSection(
+                sourceInput: $sourceInput,
+                isLoading: isLoading,
+                errorMessage: errorMessage,
+                canFetchCollection: canFetchCollection,
+                onFetchCollection: fetchCollectionIfPossible
+            )
+
+            if !draftRows.isEmpty {
+                ReviewSection(
+                    draftRows: $draftRows,
+                    reviewFilter: $reviewFilter,
+                    filteredRowIndexes: filteredRowIndexes,
+                    duplicateWarningMessage: importMatcher.duplicateWarningMessage(for:),
+                    matchLabel: importMatcher.matchLabel(for:),
+                    importVariantOptions: importMatcher.importVariantOptions(for:selectedCatalogGameID:),
+                    normalizePurchaseDate: importMatcher.normalizedFirstOfMonth(from:),
+                    onImport: performImport
+                )
             }
 
             if let resultMessage {
@@ -291,76 +672,24 @@ struct GameRoomImportSettingsView: View {
         }
     }
 
+    private var canFetchCollection: Bool {
+        !isLoading && !sourceInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private var filteredRowIndexes: [Int] {
         draftRows.indices.filter { index in
             switch reviewFilter {
             case .all:
                 return true
             case .needsReview:
-                return needsReview(draftRows[index])
+                return importMatcher.needsReview(draftRows[index])
             }
         }
     }
 
-    private func needsReview(_ row: ImportDraftRow) -> Bool {
-        row.matchConfidence != .high || row.selectedCatalogGameID == nil || duplicateWarningMessage(for: row) != nil
-    }
-
-    private func confidenceBadge(_ confidence: MachineImportMatchConfidence) -> some View {
-        let color: Color
-        switch confidence {
-        case .high:
-            color = .green
-        case .medium:
-            color = .yellow
-        case .low, .manual:
-            color = .red
-        }
-
-        return AppTintedStatusChip(
-            text: confidence.rawValue.capitalized,
-            foreground: color,
-            compact: true
-        )
-    }
-
-    private func duplicateWarningMessage(for row: ImportDraftRow) -> String? {
-        if store.hasImportFingerprint(row.fingerprint) {
-            return "Already imported previously."
-        }
-        guard let selectedCatalogGameID = row.selectedCatalogGameID,
-              let selectedGame = catalogLoader.game(for: selectedCatalogGameID) else {
-            return nil
-        }
-        let selectedVariant = row.selectedVariant ?? row.rawVariant
-        if let existing = store.existingOwnedMachine(catalogGameID: selectedGame.catalogGameID, displayVariant: selectedVariant) {
-            if let variant = existing.displayVariant, !variant.isEmpty {
-                return "Duplicate of existing machine: \(existing.displayTitle) (\(variant))."
-            }
-            return "Duplicate of existing machine: \(existing.displayTitle)."
-        }
-        return nil
-    }
-
-    private func importVariantOptions(for row: ImportDraftRow, selectedCatalogGameID: String) -> [String] {
-        var variants: [String] = []
-
-        if let currentVariant = row.selectedVariant?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !currentVariant.isEmpty {
-            variants.append(currentVariant)
-        }
-        if let rawVariant = row.rawVariant?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !rawVariant.isEmpty,
-           !variants.contains(where: { $0.caseInsensitiveCompare(rawVariant) == .orderedSame }) {
-            variants.append(rawVariant)
-        }
-        for variant in catalogLoader.variantOptions(for: selectedCatalogGameID) {
-            if !variants.contains(where: { $0.caseInsensitiveCompare(variant) == .orderedSame }) {
-                variants.append(variant)
-            }
-        }
-
-        return variants
+    private func fetchCollectionIfPossible() {
+        guard canFetchCollection else { return }
+        fetchCollection()
     }
 
     private func fetchCollection() {
@@ -372,7 +701,7 @@ struct GameRoomImportSettingsView: View {
         Task {
             do {
                 let result = try await importService.fetchCollectionMachines(sourceInput: input)
-                let rows = result.machines.map(makeDraftRow)
+                let rows = result.machines.map(importMatcher.makeDraftRow)
                 await MainActor.run {
                     importedSourceURL = result.sourceURL
                     draftRows = rows
@@ -426,224 +755,6 @@ struct GameRoomImportSettingsView: View {
         resultMessage = "Imported \(importedCount). Skipped \(skippedDuplicates) duplicates, \(skippedUnmatched) unmatched."
     }
 
-    private func makeDraftRow(_ machine: PinsideImportedMachine) -> ImportDraftRow {
-        let scored = scoredSuggestions(for: machine)
-        let suggestions = scored.map(\.game)
-        let top = scored.first
-
-        return ImportDraftRow(
-            id: machine.id,
-            sourceItemKey: machine.slug,
-            rawTitle: machine.rawTitle,
-            rawPurchaseDateText: machine.rawPurchaseDateText,
-            normalizedPurchaseDate: machine.normalizedPurchaseDate,
-            matchConfidence: confidence(for: top?.score ?? 0),
-            suggestions: suggestions,
-            fingerprint: machine.fingerprint,
-            selectedCatalogGameID: top?.game.catalogGameID,
-            selectedVariant: machine.rawVariant,
-            rawVariant: machine.rawVariant
-        )
-    }
-
-    private func scoredSuggestions(for machine: PinsideImportedMachine) -> [(game: GameRoomCatalogGame, score: Int)] {
-        let normalizedRawTitle = normalized(machine.rawTitle)
-        let normalizedVariant = normalized(machine.rawVariant ?? "")
-        let slugMatch = catalogLoader.slugMatch(for: machine.slug)
-        let candidates = catalogLoader.games.map { game -> (GameRoomCatalogGame, Int) in
-            let normalizedGameTitle = normalized(game.displayTitle)
-            var score = 0
-
-            if let slugMatch,
-               slugMatch.catalogGameID.caseInsensitiveCompare(game.catalogGameID) == .orderedSame {
-                score += 400
-            }
-
-            if normalizedRawTitle == normalizedGameTitle {
-                score += 120
-            } else if normalizedGameTitle.contains(normalizedRawTitle) || normalizedRawTitle.contains(normalizedGameTitle) {
-                score += 80
-            } else {
-                score += tokenOverlapScore(lhs: normalizedRawTitle, rhs: normalizedGameTitle)
-            }
-
-            if !normalizedVariant.isEmpty {
-                let variants = catalogLoader.variantOptions(for: game.catalogGameID).map(normalized)
-                if variants.contains(normalizedVariant) {
-                    score += 20
-                }
-            }
-
-            score += metadataScore(machine: machine, game: game)
-
-            return (game, score)
-        }
-
-        return candidates
-            .filter { $0.1 > 0 }
-            .sorted(by: {
-                if $0.1 != $1.1 { return $0.1 > $1.1 }
-                let lhsMetadata = metadataScore(machine: machine, game: $0.0)
-                let rhsMetadata = metadataScore(machine: machine, game: $1.0)
-                if lhsMetadata != rhsMetadata { return lhsMetadata > rhsMetadata }
-                return $0.0.displayTitle.localizedCaseInsensitiveCompare($1.0.displayTitle) == .orderedAscending
-            })
-            .prefix(3)
-            .map { $0 }
-    }
-
-    private func confidence(for score: Int) -> MachineImportMatchConfidence {
-        if score >= 120 { return .high }
-        if score >= 80 { return .medium }
-        if score > 0 { return .low }
-        return .manual
-    }
-
-    private func tokenOverlapScore(lhs: String, rhs: String) -> Int {
-        let lhsSet = Set(lhs.split(separator: " ").map(String.init))
-        let rhsSet = Set(rhs.split(separator: " ").map(String.init))
-        guard !lhsSet.isEmpty, !rhsSet.isEmpty else { return 0 }
-        let intersection = lhsSet.intersection(rhsSet).count
-        if intersection == 0 { return 0 }
-        return Int((Double(intersection) / Double(max(lhsSet.count, rhsSet.count))) * 70.0)
-    }
-
-    private func normalized(_ value: String) -> String {
-        value
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            .lowercased()
-            .replacingOccurrences(of: "[^a-z0-9 ]", with: " ", options: .regularExpression)
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private func metadataScore(machine: PinsideImportedMachine, game: GameRoomCatalogGame) -> Int {
-        manufacturerMatchScore(imported: machine.manufacturerLabel, catalog: game.manufacturer) +
-            yearMatchScore(imported: machine.manufactureYear, catalog: game.year)
-    }
-
-    private func manufacturerMatchScore(imported: String?, catalog: String?) -> Int {
-        let importedLabel = canonicalManufacturerLabel(imported)
-        let catalogLabel = canonicalManufacturerLabel(catalog)
-        guard !importedLabel.isEmpty, !catalogLabel.isEmpty else { return 0 }
-        if importedLabel == catalogLabel { return 35 }
-
-        let importedTokens = Set(importedLabel.split(separator: " ").map(String.init))
-        let catalogTokens = Set(catalogLabel.split(separator: " ").map(String.init))
-        let sharedTokens = importedTokens.intersection(catalogTokens).count
-        if sharedTokens > 0 {
-            return max(10, Int((Double(sharedTokens) / Double(max(importedTokens.count, catalogTokens.count))) * 24.0))
-        }
-        return -12
-    }
-
-    private func yearMatchScore(imported: Int?, catalog: Int?) -> Int {
-        guard let imported, let catalog else { return 0 }
-        let difference = abs(imported - catalog)
-        switch difference {
-        case 0:
-            return 25
-        case 1:
-            return 16
-        case 2:
-            return 10
-        case 3:
-            return 4
-        default:
-            return -12
-        }
-    }
-
-    private func canonicalManufacturerLabel(_ value: String?) -> String {
-        let normalizedValue = normalized(value ?? "")
-        guard !normalizedValue.isEmpty else { return "" }
-
-        let ignoredTokens: Set<String> = [
-            "co",
-            "company",
-            "corp",
-            "corporation",
-            "inc",
-            "ltd",
-            "limited",
-            "manufacturing",
-            "pinball"
-        ]
-        let filteredTokens = normalizedValue
-            .split(separator: " ")
-            .map(String.init)
-            .filter { !ignoredTokens.contains($0) }
-        if filteredTokens.isEmpty {
-            return normalizedValue
-        }
-        return filteredTokens.joined(separator: " ")
-    }
-
-    private func normalizedFirstOfMonth(from raw: String?) -> Date? {
-        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return nil }
-
-        let monthYearFormats = [
-            "MMMM yyyy",
-            "MMM yyyy",
-            "M/yyyy",
-            "MM/yyyy",
-            "M-yyyy",
-            "MM-yyyy",
-            "yyyy-MM",
-            "yyyy/M"
-        ]
-
-        let fullDateFormats = [
-            "yyyy-MM-dd",
-            "M/d/yyyy",
-            "MM/dd/yyyy",
-            "MMM d, yyyy",
-            "MMMM d, yyyy"
-        ]
-
-        let calendar = Calendar(identifier: .gregorian)
-
-        for format in monthYearFormats {
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "en_US_POSIX")
-            formatter.calendar = calendar
-            formatter.timeZone = TimeZone(secondsFromGMT: 0)
-            formatter.dateFormat = format
-            if let date = formatter.date(from: raw),
-               let normalized = calendar.date(from: calendar.dateComponents([.year, .month], from: date)) {
-                return normalized
-            }
-        }
-
-        for format in fullDateFormats {
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "en_US_POSIX")
-            formatter.calendar = calendar
-            formatter.timeZone = TimeZone(secondsFromGMT: 0)
-            formatter.dateFormat = format
-            if let date = formatter.date(from: raw),
-               let normalized = calendar.date(from: calendar.dateComponents([.year, .month], from: date)) {
-                return normalized
-            }
-        }
-
-        return nil
-    }
-
-    private func matchLabel(for game: GameRoomCatalogGame) -> String {
-        if let year = game.year {
-            return "\(game.displayTitle) (\(year))"
-        }
-        return game.displayTitle
-    }
-
-    private func matchMenuLabel(for row: ImportDraftRow) -> String {
-        guard let selectedCatalogGameID = row.selectedCatalogGameID,
-              let selected = catalogLoader.game(for: selectedCatalogGameID) else {
-            return "No Match Selected"
-        }
-        return "Match: \(matchLabel(for: selected))"
-    }
 }
 
 struct GameRoomEditMachinesView: View {
@@ -652,6 +763,551 @@ struct GameRoomEditMachinesView: View {
         let key: String
         let title: String
         let machines: [OwnedMachine]
+    }
+
+    private struct VenueNamePanel: View {
+        @Binding var venueNameDraft: String
+        let onSave: () -> Void
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 10) {
+                TextField("GameRoom Name", text: $venueNameDraft)
+                    .textFieldStyle(.roundedBorder)
+
+                Button("Save", action: onSave)
+                    .buttonStyle(AppPrimaryActionButtonStyle())
+            }
+        }
+    }
+
+    private struct AreaManagementPanel: View {
+        @Binding var newAreaName: String
+        @Binding var newAreaOrder: Int
+        let areas: [GameRoomArea]
+        let onSave: () -> Void
+        let onEditArea: (GameRoomArea) -> Void
+        let onDeleteArea: (GameRoomArea) -> Void
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .center, spacing: 10) {
+                    TextField("Area name", text: $newAreaName)
+                        .textFieldStyle(.roundedBorder)
+
+                    TextField("Area order", value: $newAreaOrder, format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 96)
+                        .keyboardType(.numberPad)
+                }
+
+                Button("Save", action: onSave)
+                    .buttonStyle(AppPrimaryActionButtonStyle())
+
+                if areas.isEmpty {
+                    AppPanelEmptyCard(text: "No areas yet. Add an area like Upstairs or Basement to keep area order consistent across machines.")
+                } else {
+                    VStack(spacing: 8) {
+                        ForEach(areas) { area in
+                            AreaRow(
+                                area: area,
+                                onEditArea: onEditArea,
+                                onDeleteArea: onDeleteArea
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private struct AreaRow: View {
+        let area: GameRoomArea
+        let onEditArea: (GameRoomArea) -> Void
+        let onDeleteArea: (GameRoomArea) -> Void
+
+        var body: some View {
+            HStack {
+                Button {
+                    onEditArea(area)
+                } label: {
+                    Text("\(area.name) (\(area.areaOrder))")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                Button(role: .destructive) {
+                    onDeleteArea(area)
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(AppCompactIconActionButtonStyle())
+            }
+        }
+    }
+
+    private struct MachineManagementPanel: View {
+        let allMachines: [OwnedMachine]
+        let machineMenuGroups: [MachineMenuGroup]
+        let selectedMachine: OwnedMachine?
+        let currentVariantLabel: String
+        let variantOptions: [String]
+        let areas: [GameRoomArea]
+        @Binding var selectedMachineID: UUID?
+        @Binding var draftAreaID: UUID?
+        @Binding var draftStatus: OwnedMachineStatus
+        @Binding var draftGroup: String
+        @Binding var draftPosition: String
+        @Binding var draftPurchaseSource: String
+        @Binding var draftSerialNumber: String
+        @Binding var draftOwnershipNotes: String
+        let machineMenuLabel: (OwnedMachine) -> String
+        let onClearVariant: () -> Void
+        let onSelectVariant: (String) -> Void
+        let onSaveMachine: (OwnedMachine) -> Void
+        let onDeleteMachine: (OwnedMachine) -> Void
+        let onArchiveMachine: (OwnedMachine) -> Void
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 10) {
+                if allMachines.isEmpty {
+                    AppPanelEmptyCard(text: "No machines in the collection yet. Add a machine above to start organizing the GameRoom.")
+                } else {
+                    MachineSelectionRow(
+                        machineMenuGroups: machineMenuGroups,
+                        selectedMachineTitle: selectedMachine?.displayTitle ?? "Select Machine",
+                        currentVariantLabel: currentVariantLabel,
+                        variantOptions: variantOptions,
+                        machineMenuLabel: machineMenuLabel,
+                        onSelectMachine: { selectedMachineID = $0 },
+                        onClearVariant: onClearVariant,
+                        onSelectVariant: onSelectVariant
+                    )
+
+                    if let selectedMachine {
+                        MachineEditorFields(
+                            selectedMachine: selectedMachine,
+                            areas: areas,
+                            draftAreaID: $draftAreaID,
+                            draftStatus: $draftStatus,
+                            draftGroup: $draftGroup,
+                            draftPosition: $draftPosition,
+                            draftPurchaseSource: $draftPurchaseSource,
+                            draftSerialNumber: $draftSerialNumber,
+                            draftOwnershipNotes: $draftOwnershipNotes,
+                            onSaveMachine: onSaveMachine,
+                            onDeleteMachine: onDeleteMachine,
+                            onArchiveMachine: onArchiveMachine
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private struct MachineSelectionRow: View {
+        let machineMenuGroups: [MachineMenuGroup]
+        let selectedMachineTitle: String
+        let currentVariantLabel: String
+        let variantOptions: [String]
+        let machineMenuLabel: (OwnedMachine) -> String
+        let onSelectMachine: (UUID) -> Void
+        let onClearVariant: () -> Void
+        let onSelectVariant: (String) -> Void
+
+        var body: some View {
+            HStack(spacing: 10) {
+                Menu {
+                    ForEach(machineMenuGroups) { group in
+                        Section(group.title) {
+                            ForEach(group.machines) { machine in
+                                Button(machineMenuLabel(machine)) {
+                                    onSelectMachine(machine.id)
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    AppCompactDropdownLabel(text: selectedMachineTitle)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                Menu {
+                    Button("None") {
+                        onClearVariant()
+                    }
+
+                    if !variantOptions.isEmpty {
+                        Divider()
+                        ForEach(variantOptions, id: \.self) { variant in
+                            Button(variant) {
+                                onSelectVariant(variant)
+                            }
+                        }
+                    }
+                } label: {
+                    GameRoomVariantPill(label: currentVariantLabel, style: .editSelector)
+                }
+            }
+            .padding(.bottom, 2)
+        }
+    }
+
+    private struct MachineEditorFields: View {
+        let selectedMachine: OwnedMachine
+        let areas: [GameRoomArea]
+        @Binding var draftAreaID: UUID?
+        @Binding var draftStatus: OwnedMachineStatus
+        @Binding var draftGroup: String
+        @Binding var draftPosition: String
+        @Binding var draftPurchaseSource: String
+        @Binding var draftSerialNumber: String
+        @Binding var draftOwnershipNotes: String
+        let onSaveMachine: (OwnedMachine) -> Void
+        let onDeleteMachine: (OwnedMachine) -> Void
+        let onArchiveMachine: (OwnedMachine) -> Void
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 10) {
+                areaAndStatusRow
+                numericFields
+                metadataFields
+                actionRow
+            }
+        }
+
+        private var areaAndStatusRow: some View {
+            HStack(spacing: 10) {
+                Menu {
+                    Button("No Area") {
+                        draftAreaID = nil
+                    }
+
+                    if !areas.isEmpty {
+                        Divider()
+                    }
+
+                    ForEach(areas) { area in
+                        Button(area.name) {
+                            draftAreaID = area.id
+                        }
+                    }
+                } label: {
+                    AppCompactIconMenuLabel(text: selectedAreaLabel, systemName: "map")
+                }
+                .buttonStyle(.plain)
+
+                Picker("Status", selection: $draftStatus) {
+                    ForEach(OwnedMachineStatus.allCases) { status in
+                        Text(status.rawValue.capitalized).tag(status)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+        }
+
+        private var numericFields: some View {
+            HStack(spacing: 10) {
+                TextField("Group", text: $draftGroup)
+                    .textFieldStyle(.roundedBorder)
+                    .keyboardType(.numberPad)
+
+                TextField("Position", text: $draftPosition)
+                    .textFieldStyle(.roundedBorder)
+                    .keyboardType(.numberPad)
+            }
+        }
+
+        private var metadataFields: some View {
+            VStack(alignment: .leading, spacing: 10) {
+                TextField("Purchase Source", text: $draftPurchaseSource)
+                    .textFieldStyle(.roundedBorder)
+                TextField("Serial Number", text: $draftSerialNumber)
+                    .textFieldStyle(.roundedBorder)
+
+                TextField("Ownership Notes", text: $draftOwnershipNotes, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .lineLimit(3, reservesSpace: true)
+            }
+        }
+
+        private var actionRow: some View {
+            HStack {
+                Button("Save") {
+                    onSaveMachine(selectedMachine)
+                }
+                .buttonStyle(AppPrimaryActionButtonStyle())
+
+                Button(role: .destructive) {
+                    onDeleteMachine(selectedMachine)
+                } label: {
+                    Text("Delete")
+                }
+                .buttonStyle(AppDestructiveActionButtonStyle())
+
+                Spacer()
+
+                if selectedMachine.status != .archived {
+                    Button("Archive") {
+                        onArchiveMachine(selectedMachine)
+                    }
+                    .buttonStyle(AppSecondaryActionButtonStyle())
+                }
+            }
+        }
+
+        private var selectedAreaLabel: String {
+            guard let draftAreaID,
+                  let area = areas.first(where: { $0.id == draftAreaID }) else {
+                return "No Area"
+            }
+            return area.name
+        }
+    }
+
+    private struct AddMachinePanel: View {
+        @Binding var searchText: String
+        @Binding var manufacturerQuery: String
+        @Binding var yearQuery: String
+        @Binding var selectedType: GameRoomAddMachineTypeFilter?
+        @Binding var isAdvancedExpanded: Bool
+        let catalogErrorMessage: String?
+        let isCatalogLoading: Bool
+        let hasSearchFilters: Bool
+        let filteredGameCount: Int
+        let filteredCatalogGames: [GameRoomCatalogGame]
+        let filteredManufacturerSuggestions: [String]
+        let showManufacturerSuggestions: Bool
+        let pendingVariantPickerGameID: String?
+        let pendingVariantPickerTitle: String
+        let pendingVariantPickerOptions: [String]
+        let onSelectManufacturer: (String) -> Void
+        let onSelectType: (GameRoomAddMachineTypeFilter?) -> Void
+        let onClearFilters: () -> Void
+        let onBeginAddMachineSelection: (GameRoomCatalogGame) -> Void
+        let onDismissVariantPicker: () -> Void
+        let onSelectPendingVariant: (String) -> Void
+        let resultMetaLine: (GameRoomCatalogGame) -> String
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 10) {
+                if let catalogErrorMessage {
+                    AppInlineTaskStatus(text: catalogErrorMessage, isError: true)
+                }
+
+                AppNativeClearTextField(
+                    placeholder: "Game name",
+                    text: $searchText,
+                    style: .roundedBorder
+                )
+
+                AddMachineAdvancedFilters(
+                    manufacturerQuery: $manufacturerQuery,
+                    yearQuery: $yearQuery,
+                    selectedType: $selectedType,
+                    isExpanded: $isAdvancedExpanded,
+                    filteredManufacturerSuggestions: filteredManufacturerSuggestions,
+                    showManufacturerSuggestions: showManufacturerSuggestions,
+                    hasSearchFilters: hasSearchFilters,
+                    onSelectManufacturer: onSelectManufacturer,
+                    onSelectType: onSelectType,
+                    onClearFilters: onClearFilters
+                )
+
+                statusContent
+
+                if hasSearchFilters {
+                    ScrollView {
+                        LazyVStack(spacing: 8) {
+                            ForEach(filteredCatalogGames, id: \.id) { game in
+                                AddMachineResultRow(
+                                    game: game,
+                                    metaLine: resultMetaLine(game),
+                                    isVariantPickerPresented: pendingVariantPickerGameID == game.catalogGameID && !pendingVariantPickerOptions.isEmpty,
+                                    pendingVariantPickerTitle: pendingVariantPickerTitle,
+                                    pendingVariantPickerOptions: pendingVariantPickerOptions,
+                                    onBeginAddMachineSelection: { onBeginAddMachineSelection(game) },
+                                    onDismissVariantPicker: onDismissVariantPicker,
+                                    onSelectPendingVariant: onSelectPendingVariant
+                                )
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 260)
+                }
+            }
+        }
+
+        @ViewBuilder
+        private var statusContent: some View {
+            if isCatalogLoading {
+                AppInlineTaskStatus(text: "Loading catalog data…", showsProgress: true)
+            } else if hasSearchFilters {
+                AppInlineTaskStatus(text: "\(filteredGameCount) matches")
+            } else {
+                AppPanelEmptyCard(text: "Search by name or abbreviation. Open Advanced Filters for manufacturer, year, and game type.")
+            }
+        }
+    }
+
+    private struct AddMachineAdvancedFilters: View {
+        @Binding var manufacturerQuery: String
+        @Binding var yearQuery: String
+        @Binding var selectedType: GameRoomAddMachineTypeFilter?
+        @Binding var isExpanded: Bool
+        let filteredManufacturerSuggestions: [String]
+        let showManufacturerSuggestions: Bool
+        let hasSearchFilters: Bool
+        let onSelectManufacturer: (String) -> Void
+        let onSelectType: (GameRoomAddMachineTypeFilter?) -> Void
+        let onClearFilters: () -> Void
+
+        var body: some View {
+            DisclosureGroup(isExpanded: $isExpanded) {
+                VStack(alignment: .leading, spacing: 10) {
+                    AppNativeClearTextField(
+                        placeholder: "Manufacturer",
+                        text: $manufacturerQuery,
+                        style: .roundedBorder
+                    )
+
+                    if showManufacturerSuggestions {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(filteredManufacturerSuggestions, id: \.self) { suggestion in
+                                    Button(suggestion) {
+                                        onSelectManufacturer(suggestion)
+                                    }
+                                    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+
+                    AppNativeClearTextField(
+                        placeholder: "Year",
+                        text: $yearQuery,
+                        style: .roundedBorder,
+                        keyboardType: .numberPad
+                    )
+
+                    Menu {
+                        Button("Any type") {
+                            onSelectType(nil)
+                        }
+
+                        ForEach(GameRoomAddMachineTypeFilter.allCases) { option in
+                            Button(option.label) {
+                                onSelectType(option)
+                            }
+                        }
+                    } label: {
+                        AppCompactFilterLabel(text: selectedType?.label ?? "Any type")
+                    }
+                    .buttonStyle(.plain)
+
+                    if hasSearchFilters {
+                        Button("Clear filters", action: onClearFilters)
+                            .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
+                    }
+                }
+                .padding(.top, 8)
+            } label: {
+                Text("Advanced Filters")
+                    .font(.subheadline.weight(.semibold))
+            }
+        }
+    }
+
+    private struct AddMachineResultRow: View {
+        let game: GameRoomCatalogGame
+        let metaLine: String
+        let isVariantPickerPresented: Bool
+        let pendingVariantPickerTitle: String
+        let pendingVariantPickerOptions: [String]
+        let onBeginAddMachineSelection: () -> Void
+        let onDismissVariantPicker: () -> Void
+        let onSelectPendingVariant: (String) -> Void
+
+        var body: some View {
+            HStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(game.displayTitle)
+                        .font(.subheadline.weight(.semibold))
+                    Text(metaLine)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                ZStack {
+                    Button(action: onBeginAddMachineSelection) {
+                        Image(systemName: "plus")
+                    }
+                    .buttonStyle(AppCompactIconActionButtonStyle())
+                    .gameRoomAdaptivePopover(
+                        isPresented: Binding(
+                            get: { isVariantPickerPresented },
+                            set: { presenting in
+                                if !presenting {
+                                    onDismissVariantPicker()
+                                }
+                            }
+                        ),
+                        preferredHeight: min(CGFloat(pendingVariantPickerOptions.count) * 44 + 68, 300)
+                    ) { availableHeight in
+                        AddMachineVariantPickerPopover(
+                            title: pendingVariantPickerTitle,
+                            options: pendingVariantPickerOptions,
+                            availableHeight: availableHeight,
+                            onSelectVariant: onSelectPendingVariant
+                        )
+                    }
+                }
+            }
+            .padding(10)
+            .appControlStyle()
+        }
+    }
+
+    private struct AddMachineVariantPickerPopover: View {
+        let title: String
+        let options: [String]
+        let availableHeight: CGFloat
+        let onSelectVariant: (String) -> Void
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                Text("Choose the machine variant")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(options, id: \.self) { option in
+                            Button(option) {
+                                onSelectVariant(option)
+                            }
+                            .buttonStyle(AppSecondaryActionButtonStyle())
+                        }
+                    }
+                }
+                .frame(maxHeight: max(min(availableHeight - 44, 220), 0))
+            }
+            .padding(12)
+            .frame(width: 220, alignment: .leading)
+            .presentationCompactAdaptation(.popover)
+        }
     }
 
     @ObservedObject var store: GameRoomStore
@@ -686,6 +1342,25 @@ struct GameRoomEditMachinesView: View {
     @State private var indexedManufacturers: [String] = []
 
     var body: some View {
+        panelStack
+        .onAppear {
+            handleAppear()
+        }
+        .onChange(of: store.state.ownedMachines.map(\.id)) { _, _ in
+            syncMachineSelectionState()
+        }
+        .onChange(of: selectedMachineID) { _, _ in
+            syncDraftFromSelection()
+        }
+        .onChange(of: catalogLoader.games) { _, _ in
+            rebuildCatalogSearchIndex()
+        }
+        .onChange(of: catalogLoader.variantOptionsByCatalogGameID) { _, _ in
+            rebuildCatalogSearchIndex()
+        }
+    }
+
+    private var panelStack: some View {
         VStack(alignment: .leading, spacing: 14) {
             panelDisclosure(title: "Name", isExpanded: $isNameExpanded) {
                 venueNamePanel
@@ -699,25 +1374,6 @@ struct GameRoomEditMachinesView: View {
             panelDisclosure(title: editMachinesPanelTitle, isExpanded: $isEditMachinesExpanded) {
                 machineManagementPanel
             }
-        }
-        .onAppear {
-            seedSelectionIfNeeded()
-        }
-        .onChange(of: store.state.ownedMachines.map(\.id)) { _, _ in
-            seedSelectionIfNeeded()
-            syncDraftFromSelection()
-        }
-        .onChange(of: selectedMachineID) { _, _ in
-            syncDraftFromSelection()
-        }
-        .onAppear {
-            rebuildCatalogSearchIndex()
-        }
-        .onChange(of: catalogLoader.games) { _, _ in
-            rebuildCatalogSearchIndex()
-        }
-        .onChange(of: catalogLoader.variantOptionsByCatalogGameID) { _, _ in
-            rebuildCatalogSearchIndex()
         }
     }
 
@@ -738,406 +1394,79 @@ struct GameRoomEditMachinesView: View {
     }
 
     private var addMachinePanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let errorMessage = catalogLoader.errorMessage {
-                AppInlineTaskStatus(text: errorMessage, isError: true)
-            }
-
-            addMachineSearchTab
-        }
-    }
-
-    private var addMachineSearchTab: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            AppNativeClearTextField(
-                placeholder: "Game name",
-                text: $searchText,
-                style: .roundedBorder
-            )
-
-            DisclosureGroup(isExpanded: $isAdvancedExpanded) {
-                VStack(alignment: .leading, spacing: 10) {
-                    AppNativeClearTextField(
-                        placeholder: "Manufacturer",
-                        text: $manufacturerQuery,
-                        style: .roundedBorder
-                    )
-
-                    if !filteredManufacturerSuggestions.isEmpty &&
-                        !filteredManufacturerSuggestions.contains(where: {
-                            $0.caseInsensitiveCompare(manufacturerQuery.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame
-                        }) {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(filteredManufacturerSuggestions, id: \.self) { suggestion in
-                                    Button(suggestion) {
-                                        manufacturerQuery = suggestion
-                                    }
-                                    .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
-                                }
-                            }
-                            .padding(.vertical, 2)
-                        }
-                    }
-
-                    AppNativeClearTextField(
-                        placeholder: "Year",
-                        text: $yearQuery,
-                        style: .roundedBorder,
-                        keyboardType: .numberPad
-                    )
-
-                    Menu {
-                        Button("Any type") {
-                            selectedType = nil
-                        }
-
-                            ForEach(GameRoomAddMachineTypeFilter.allCases) { option in
-                            Button(option.label) {
-                                selectedType = option
-                            }
-                        }
-                    } label: {
-                        AppCompactFilterLabel(text: selectedType?.label ?? "Any type")
-                    }
-                    .buttonStyle(.plain)
-
-                    if hasSearchFilters {
-                        Button("Clear filters") {
-                            searchText = ""
-                            manufacturerQuery = ""
-                            yearQuery = ""
-                            selectedType = nil
-                        }
-                        .buttonStyle(AppSecondaryActionButtonStyle(fillsWidth: false))
-                    }
-                }
-                .padding(.top, 8)
-            } label: {
-                Text("Advanced Filters")
-                    .font(.subheadline.weight(.semibold))
-            }
-
-            if catalogLoader.isLoading {
-                AppInlineTaskStatus(text: "Loading catalog data…", showsProgress: true)
-            } else if hasSearchFilters {
-                AppInlineTaskStatus(text: "\(filteredCatalogGames.count) matches")
-            } else {
-                AppPanelEmptyCard(text: "Search by name or abbreviation. Open Advanced Filters for manufacturer, year, and game type.")
-            }
-
-            if hasSearchFilters {
-                ScrollView {
-                    LazyVStack(spacing: 8) {
-                        ForEach(filteredCatalogGames, id: \.id) { game in
-                            addMachineResultRow(for: game)
-                        }
-                    }
-                }
-                .frame(maxHeight: 260)
-            }
-        }
-    }
-
-    private func addMachineResultRow(for game: GameRoomCatalogGame) -> some View {
-        HStack(alignment: .center, spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(game.displayTitle)
-                    .font(.subheadline.weight(.semibold))
-                Text(resultMetaLine(for: game))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            ZStack {
-                Button {
-                    beginAddMachineSelection(for: game)
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .buttonStyle(AppCompactIconActionButtonStyle())
-                .gameRoomAdaptivePopover(
-                    isPresented: Binding(
-                        get: {
-                            pendingVariantPickerGameID == game.catalogGameID &&
-                                !pendingVariantPickerOptions.isEmpty
-                        },
-                        set: { presenting in
-                            if !presenting {
-                                clearPendingVariantPicker()
-                            }
-                        }
-                    ),
-                    preferredHeight: min(CGFloat(pendingVariantPickerOptions.count) * 44 + 68, 300)
-                ) { availableHeight in
-                    variantPickerPopoverContent(availableHeight: availableHeight)
-                }
-            }
-        }
-        .padding(10)
-        .appControlStyle()
-    }
-
-    private func variantPickerPopoverContent(availableHeight: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(pendingVariantPickerTitle)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-
-            Text("Choose the machine variant")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(pendingVariantPickerOptions, id: \.self) { option in
-                        Button(option) {
-                            completeAddMachineSelection(catalogGameID: pendingVariantPickerGameID, variant: option)
-                        }
-                        .buttonStyle(AppSecondaryActionButtonStyle())
-                    }
-                }
-            }
-            .frame(maxHeight: max(min(availableHeight - 44, 220), 0))
-        }
-        .padding(12)
-        .frame(width: 220, alignment: .leading)
-        .presentationCompactAdaptation(.popover)
+        AddMachinePanel(
+            searchText: $searchText,
+            manufacturerQuery: $manufacturerQuery,
+            yearQuery: $yearQuery,
+            selectedType: $selectedType,
+            isAdvancedExpanded: $isAdvancedExpanded,
+            catalogErrorMessage: catalogLoader.errorMessage,
+            isCatalogLoading: catalogLoader.isLoading,
+            hasSearchFilters: hasSearchFilters,
+            filteredGameCount: filteredCatalogGames.count,
+            filteredCatalogGames: filteredCatalogGames,
+            filteredManufacturerSuggestions: filteredManufacturerSuggestions,
+            showManufacturerSuggestions: shouldShowManufacturerSuggestions,
+            pendingVariantPickerGameID: pendingVariantPickerGameID,
+            pendingVariantPickerTitle: pendingVariantPickerTitle,
+            pendingVariantPickerOptions: pendingVariantPickerOptions,
+            onSelectManufacturer: { manufacturerQuery = $0 },
+            onSelectType: { selectedType = $0 },
+            onClearFilters: clearAddMachineFilters,
+            onBeginAddMachineSelection: beginAddMachineSelection(for:),
+            onDismissVariantPicker: clearPendingVariantPicker,
+            onSelectPendingVariant: { option in
+                completeAddMachineSelection(catalogGameID: pendingVariantPickerGameID, variant: option)
+            },
+            resultMetaLine: resultMetaLine(for:)
+        )
     }
 
     private var venueNamePanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            TextField("GameRoom Name", text: $venueNameDraft)
-                .textFieldStyle(.roundedBorder)
-
-            Button("Save") {
-                store.updateVenueName(venueNameDraft)
-                venueNameDraft = store.venueName
-                onShowSaveFeedback("GameRoom name saved")
-            }
-            .buttonStyle(AppPrimaryActionButtonStyle())
-        }
+        VenueNamePanel(
+            venueNameDraft: $venueNameDraft,
+            onSave: saveVenueNameDraft
+        )
     }
 
     private var areaManagementPanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 10) {
-                TextField("Area name", text: $newAreaName)
-                    .textFieldStyle(.roundedBorder)
-
-                TextField("Area order", value: $newAreaOrder, format: .number)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 96)
-                    .keyboardType(.numberPad)
-            }
-
-            Button("Save") {
-                store.upsertArea(id: selectedAreaID, name: newAreaName, areaOrder: max(1, newAreaOrder))
-                selectedAreaID = nil
-                newAreaName = ""
-                newAreaOrder = 1
-                onShowSaveFeedback("Area saved")
-            }
-            .buttonStyle(AppPrimaryActionButtonStyle())
-
-            if store.state.areas.isEmpty {
-                AppPanelEmptyCard(text: "No areas yet. Add an area like Upstairs or Basement to keep area order consistent across machines.")
-            } else {
-                VStack(spacing: 8) {
-                    ForEach(store.state.areas) { area in
-                        HStack {
-                            Button {
-                                selectedAreaID = area.id
-                                newAreaName = area.name
-                                newAreaOrder = area.areaOrder
-                            } label: {
-                                Text("\(area.name) (\(area.areaOrder))")
-                                    .font(.subheadline.weight(.semibold))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .buttonStyle(.plain)
-
-                            Spacer()
-
-                            Button(role: .destructive) {
-                                if draftAreaID == area.id {
-                                    draftAreaID = nil
-                                }
-                                if selectedAreaID == area.id {
-                                    selectedAreaID = nil
-                                    newAreaName = ""
-                                    newAreaOrder = 1
-                                }
-                                store.deleteArea(id: area.id)
-                                onShowSaveFeedback("Area deleted")
-                            } label: {
-                                Image(systemName: "trash")
-                            }
-                            .buttonStyle(AppCompactIconActionButtonStyle())
-                        }
-                    }
-                }
-            }
-        }
+        AreaManagementPanel(
+            newAreaName: $newAreaName,
+            newAreaOrder: $newAreaOrder,
+            areas: store.state.areas,
+            onSave: saveAreaDraftWithFeedback,
+            onEditArea: editArea,
+            onDeleteArea: deleteAreaWithFeedback
+        )
     }
 
     private var machineManagementPanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if allMachines.isEmpty {
-                AppPanelEmptyCard(text: "No machines in the collection yet. Add a machine above to start organizing the GameRoom.")
-            } else {
-                HStack(spacing: 10) {
-                    Menu {
-                        ForEach(machineMenuGroups) { group in
-                            Section(group.title) {
-                                ForEach(group.machines) { machine in
-                                    Button(machineMenuLabel(for: machine)) {
-                                        selectedMachineID = machine.id
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
-                        AppCompactDropdownLabel(text: selectedMachine?.displayTitle ?? "Select Machine")
-                    }
-                    .buttonStyle(.plain)
+        MachineManagementPanel(
+            allMachines: allMachines,
+            machineMenuGroups: machineMenuGroups,
+            selectedMachine: selectedMachine,
+            currentVariantLabel: currentVariantLabel,
+            variantOptions: selectedMachineVariantOptions,
+            areas: store.state.areas,
+            selectedMachineID: $selectedMachineID,
+            draftAreaID: $draftAreaID,
+            draftStatus: $draftStatus,
+            draftGroup: $draftGroup,
+            draftPosition: $draftPosition,
+            draftPurchaseSource: $draftPurchaseSource,
+            draftSerialNumber: $draftSerialNumber,
+            draftOwnershipNotes: $draftOwnershipNotes,
+            machineMenuLabel: machineMenuLabel(for:),
+            onClearVariant: { draftDisplayVariant = "" },
+            onSelectVariant: { draftDisplayVariant = $0 },
+            onSaveMachine: persistMachineEditsWithFeedback,
+            onDeleteMachine: deleteMachine,
+            onArchiveMachine: archiveMachine
+        )
+    }
 
-                    Spacer()
-
-                    Menu {
-                        Button("None") {
-                            draftDisplayVariant = ""
-                        }
-
-                        if let selectedMachine, !variantOptions(for: selectedMachine).isEmpty {
-                            Divider()
-                            ForEach(variantOptions(for: selectedMachine), id: \.self) { variant in
-                                Button(variant) {
-                                    draftDisplayVariant = variant
-                                }
-                            }
-                        }
-                    } label: {
-                        GameRoomVariantPill(label: currentVariantLabel, style: .editSelector)
-                    }
-                }
-                .padding(.bottom, 2)
-
-                if let selectedMachine = selectedMachine {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 10) {
-                            Menu {
-                                Button("No Area") {
-                                    draftAreaID = nil
-                                }
-
-                                if !store.state.areas.isEmpty {
-                                    Divider()
-                                }
-
-                                ForEach(store.state.areas) { area in
-                                    Button(area.name) {
-                                        draftAreaID = area.id
-                                    }
-                                }
-                            } label: {
-                                AppCompactIconMenuLabel(text: selectedAreaLabel, systemName: "map")
-                            }
-                            .buttonStyle(.plain)
-
-                            Picker("Status", selection: $draftStatus) {
-                                ForEach(OwnedMachineStatus.allCases) { status in
-                                    Text(status.rawValue.capitalized).tag(status)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                        }
-
-                        HStack(spacing: 10) {
-                            TextField("Group", text: $draftGroup)
-                                .textFieldStyle(.roundedBorder)
-                                .keyboardType(.numberPad)
-
-                            TextField("Position", text: $draftPosition)
-                                .textFieldStyle(.roundedBorder)
-                                .keyboardType(.numberPad)
-                        }
-
-                        TextField("Purchase Source", text: $draftPurchaseSource)
-                            .textFieldStyle(.roundedBorder)
-                        TextField("Serial Number", text: $draftSerialNumber)
-                            .textFieldStyle(.roundedBorder)
-
-                        TextField("Ownership Notes", text: $draftOwnershipNotes, axis: .vertical)
-                            .textFieldStyle(.roundedBorder)
-                            .lineLimit(3, reservesSpace: true)
-
-                        HStack {
-                            Button("Save") {
-                                let resolvedGame = resolvedEditedMachine(for: selectedMachine)
-                                store.updateMachine(
-                                    id: selectedMachine.id,
-                                    areaID: draftAreaID,
-                                    groupNumber: parsedOptionalInt(draftGroup),
-                                    position: parsedOptionalInt(draftPosition),
-                                    status: draftStatus,
-                                    opdbID: resolvedGame?.opdbID ?? selectedMachine.opdbID,
-                                    canonicalPracticeIdentity: resolvedGame?.canonicalPracticeIdentity,
-                                    displayTitle: resolvedGame?.displayTitle,
-                                    displayVariant: parsedOptionalString(draftDisplayVariant) ?? resolvedGame?.displayVariant,
-                                    manufacturer: resolvedGame?.manufacturer,
-                                    year: resolvedGame?.year,
-                                    purchaseSource: draftPurchaseSource,
-                                    serialNumber: draftSerialNumber,
-                                    ownershipNotes: draftOwnershipNotes
-                                )
-                                onShowSaveFeedback("Machine details saved")
-                            }
-                            .buttonStyle(AppPrimaryActionButtonStyle())
-
-                            Button(role: .destructive) {
-                                store.deleteMachine(id: selectedMachine.id)
-                                selectedMachineID = allMachines.first?.id
-                                syncDraftFromSelection()
-                                onShowSaveFeedback("Machine deleted")
-                            } label: {
-                                Text("Delete")
-                            }
-                            .buttonStyle(AppDestructiveActionButtonStyle())
-
-                            Spacer()
-
-                            if selectedMachine.status != .archived {
-                                Button("Archive") {
-                                    let resolvedGame = resolvedEditedMachine(for: selectedMachine)
-                                    store.updateMachine(
-                                        id: selectedMachine.id,
-                                        areaID: draftAreaID,
-                                        groupNumber: parsedOptionalInt(draftGroup),
-                                        position: parsedOptionalInt(draftPosition),
-                                        status: .archived,
-                                        opdbID: resolvedGame?.opdbID ?? selectedMachine.opdbID,
-                                        canonicalPracticeIdentity: resolvedGame?.canonicalPracticeIdentity,
-                                        displayTitle: resolvedGame?.displayTitle,
-                                        displayVariant: parsedOptionalString(draftDisplayVariant) ?? resolvedGame?.displayVariant,
-                                        manufacturer: resolvedGame?.manufacturer,
-                                        year: resolvedGame?.year,
-                                        purchaseSource: draftPurchaseSource,
-                                        serialNumber: draftSerialNumber,
-                                        ownershipNotes: draftOwnershipNotes
-                                    )
-                                    draftStatus = .archived
-                                    onShowSaveFeedback("Machine archived")
-                                }
-                                .buttonStyle(AppSecondaryActionButtonStyle())
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    private var selectedMachineVariantOptions: [String] {
+        selectedMachine.map(variantOptions(for:)) ?? []
     }
 
     private var allMachines: [OwnedMachine] {
@@ -1180,9 +1509,73 @@ struct GameRoomEditMachinesView: View {
         "Edit Machines (\(store.activeMachines.count))"
     }
 
+    private func handleAppear() {
+        syncMachineSelectionState()
+        rebuildCatalogSearchIndex()
+    }
+
     private func areaTitle(for areaID: UUID?) -> String {
         guard let areaID, let area = store.area(for: areaID) else { return "No Area" }
         return area.name
+    }
+
+    private func saveAreaDraft() {
+        store.upsertArea(id: selectedAreaID, name: newAreaName, areaOrder: max(1, newAreaOrder))
+        clearAreaDraft()
+    }
+
+    private func saveAreaDraftWithFeedback() {
+        saveAreaDraft()
+        onShowSaveFeedback("Area saved")
+    }
+
+    private func saveVenueNameDraft() {
+        store.updateVenueName(venueNameDraft)
+        venueNameDraft = store.venueName
+        onShowSaveFeedback("GameRoom name saved")
+    }
+
+    private func editArea(_ area: GameRoomArea) {
+        selectedAreaID = area.id
+        newAreaName = area.name
+        newAreaOrder = area.areaOrder
+    }
+
+    private func deleteArea(_ area: GameRoomArea) {
+        if draftAreaID == area.id {
+            draftAreaID = nil
+        }
+        if selectedAreaID == area.id {
+            clearAreaDraft()
+        }
+        store.deleteArea(id: area.id)
+    }
+
+    private func deleteAreaWithFeedback(_ area: GameRoomArea) {
+        deleteArea(area)
+        onShowSaveFeedback("Area deleted")
+    }
+
+    private func clearAreaDraft() {
+        selectedAreaID = nil
+        newAreaName = ""
+        newAreaOrder = 1
+    }
+
+    private func deleteMachine(_ machine: OwnedMachine) {
+        store.deleteMachine(id: machine.id)
+        onShowSaveFeedback("Machine deleted")
+    }
+
+    private func persistMachineEditsWithFeedback(for machine: OwnedMachine) {
+        persistMachineEdits(for: machine)
+        onShowSaveFeedback("Machine details saved")
+    }
+
+    private func archiveMachine(_ machine: OwnedMachine) {
+        persistMachineEdits(for: machine, status: .archived)
+        draftStatus = .archived
+        onShowSaveFeedback("Machine archived")
     }
 
     private func machineMenuLabel(for machine: OwnedMachine) -> String {
@@ -1204,19 +1597,18 @@ struct GameRoomEditMachinesView: View {
         gameRoomManufacturerSuggestions(options: manufacturerOptions, query: manufacturerQuery)
     }
 
+    private var shouldShowManufacturerSuggestions: Bool {
+        !filteredManufacturerSuggestions.isEmpty &&
+            !filteredManufacturerSuggestions.contains(where: {
+                $0.caseInsensitiveCompare(manufacturerQuery.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame
+            })
+    }
+
     private var hasSearchFilters: Bool {
         !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
             !manufacturerQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
             !yearQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
             selectedType != nil
-    }
-
-    private var selectedAreaLabel: String {
-        guard let draftAreaID,
-              let area = store.area(for: draftAreaID) else {
-            return "No Area"
-        }
-        return area.name
     }
 
     private var currentVariantLabel: String {
@@ -1234,6 +1626,13 @@ struct GameRoomEditMachinesView: View {
         )
     }
 
+    private func clearAddMachineFilters() {
+        searchText = ""
+        manufacturerQuery = ""
+        yearQuery = ""
+        selectedType = nil
+    }
+
     private func resultMetaLine(for game: GameRoomCatalogGame) -> String {
         var parts: [String] = []
         if let manufacturer = game.manufacturer {
@@ -1245,16 +1644,30 @@ struct GameRoomEditMachinesView: View {
         return parts.isEmpty ? "Catalog match" : parts.joined(separator: " • ")
     }
 
-    private func seedSelectionIfNeeded() {
+    private func syncMachineSelectionState() {
+        syncVenueNameDraftIfNeeded()
+        ensureSelectedMachineIsValid()
+    }
+
+    private func syncVenueNameDraftIfNeeded() {
         if venueNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             venueNameDraft = store.venueName
         }
-        guard selectedMachineID == nil else { return }
+    }
+
+    private func ensureSelectedMachineIsValid() {
+        if let selectedMachineID,
+           allMachines.contains(where: { $0.id == selectedMachineID }) {
+            return
+        }
         selectedMachineID = allMachines.first?.id
     }
 
     private func syncDraftFromSelection() {
-        guard let selectedMachine else { return }
+        guard let selectedMachine else {
+            clearMachineDraft()
+            return
+        }
         draftAreaID = selectedMachine.gameRoomAreaID
         draftGroup = selectedMachine.groupNumber.map(String.init) ?? ""
         draftPosition = selectedMachine.position.map(String.init) ?? ""
@@ -1263,6 +1676,17 @@ struct GameRoomEditMachinesView: View {
         draftPurchaseSource = selectedMachine.purchaseSource ?? ""
         draftSerialNumber = selectedMachine.serialNumber ?? ""
         draftOwnershipNotes = selectedMachine.ownershipNotes ?? ""
+    }
+
+    private func clearMachineDraft() {
+        draftAreaID = nil
+        draftGroup = ""
+        draftPosition = ""
+        draftStatus = .active
+        draftDisplayVariant = ""
+        draftPurchaseSource = ""
+        draftSerialNumber = ""
+        draftOwnershipNotes = ""
     }
 
     private func parsedOptionalInt(_ raw: String) -> Int? {
@@ -1318,6 +1742,26 @@ struct GameRoomEditMachinesView: View {
     private func resolvedEditedMachine(for machine: OwnedMachine) -> GameRoomCatalogGame? {
         let editedVariant = parsedOptionalString(draftDisplayVariant)
         return catalogLoader.game(for: machine.catalogGameID, variant: editedVariant)
+    }
+
+    private func persistMachineEdits(for machine: OwnedMachine, status: OwnedMachineStatus? = nil) {
+        let resolvedGame = resolvedEditedMachine(for: machine)
+        store.updateMachine(
+            id: machine.id,
+            areaID: draftAreaID,
+            groupNumber: parsedOptionalInt(draftGroup),
+            position: parsedOptionalInt(draftPosition),
+            status: status ?? draftStatus,
+            opdbID: resolvedGame?.opdbID ?? machine.opdbID,
+            canonicalPracticeIdentity: resolvedGame?.canonicalPracticeIdentity,
+            displayTitle: resolvedGame?.displayTitle,
+            displayVariant: parsedOptionalString(draftDisplayVariant) ?? resolvedGame?.displayVariant,
+            manufacturer: resolvedGame?.manufacturer,
+            year: resolvedGame?.year,
+            purchaseSource: draftPurchaseSource,
+            serialNumber: draftSerialNumber,
+            ownershipNotes: draftOwnershipNotes
+        )
     }
 
     private func clearPendingVariantPicker() {
@@ -1478,6 +1922,56 @@ struct GameRoomArchiveSettingsView: View {
         }
     }
 
+    private struct ArchiveFilterPicker: View {
+        @Binding var selectedFilter: ArchiveFilter
+
+        var body: some View {
+            Picker("Archive Filter", selection: $selectedFilter) {
+                ForEach(ArchiveFilter.allCases) { filter in
+                    Text(filter.title).tag(filter)
+                }
+            }
+            .appSegmentedControlStyle()
+        }
+    }
+
+    private struct ArchiveMachineRow: View {
+        let machine: OwnedMachine
+        let sourceID: String
+        let metaLine: String
+        let gameTransition: Namespace.ID
+        let onOpenMachineView: (UUID, String?, String) -> Void
+
+        var body: some View {
+            Button(action: openMachine) {
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(machine.displayTitle)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                        Text(metaLine)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 2)
+                .matchedTransitionSource(id: sourceID, in: gameTransition)
+            }
+            .buttonStyle(.plain)
+        }
+
+        private func openMachine() {
+            onOpenMachineView(machine.id, sourceID, machine.displayTitle)
+        }
+    }
+
     @ObservedObject var store: GameRoomStore
     let gameTransition: Namespace.ID
     let onOpenMachineView: (UUID, String?, String) -> Void
@@ -1485,47 +1979,33 @@ struct GameRoomArchiveSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Picker("Archive Filter", selection: $selectedFilter) {
-                ForEach(ArchiveFilter.allCases) { filter in
-                    Text(filter.title).tag(filter)
-                }
-            }
-            .appSegmentedControlStyle()
-
-            if filteredMachines.isEmpty {
-                AppPanelEmptyCard(text: "No archived machine instances yet.")
-            } else {
-                ForEach(filteredMachines) { machine in
-                    let sourceID = gameRoomMachineTransitionSourceID(machineID: machine.id, surface: "archive-row")
-                    Button(action: { onOpenMachineView(machine.id, sourceID, machine.displayTitle) }) {
-                        HStack(spacing: 10) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(machine.displayTitle)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.primary)
-                                Text(archiveMetaLine(for: machine))
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer(minLength: 8)
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 2)
-                        .matchedTransitionSource(id: sourceID, in: gameTransition)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            Text("Archived machines: \(filteredMachines.count)")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            ArchiveFilterPicker(selectedFilter: $selectedFilter)
+            archiveListContent
+            archiveSummaryFooter
         }
+    }
+
+    @ViewBuilder
+    private var archiveListContent: some View {
+        if filteredMachines.isEmpty {
+            AppPanelEmptyCard(text: "No archived machine instances yet.")
+        } else {
+            ForEach(filteredMachines) { machine in
+                ArchiveMachineRow(
+                    machine: machine,
+                    sourceID: gameRoomMachineTransitionSourceID(machineID: machine.id, surface: "archive-row"),
+                    metaLine: archiveMetaLine(for: machine),
+                    gameTransition: gameTransition,
+                    onOpenMachineView: onOpenMachineView
+                )
+            }
+        }
+    }
+
+    private var archiveSummaryFooter: some View {
+        Text("Archived machines: \(filteredMachines.count)")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
     }
 
     private var filteredMachines: [OwnedMachine] {

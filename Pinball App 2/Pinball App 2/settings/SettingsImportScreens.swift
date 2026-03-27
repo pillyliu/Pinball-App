@@ -386,6 +386,9 @@ private final class VenueLocationRequester: NSObject, CLLocationManagerDelegate 
         guard continuation == nil else {
             throw VenueLocationError.unavailable
         }
+        guard CLLocationManager.locationServicesEnabled() else {
+            throw VenueLocationError.servicesDisabled
+        }
         return try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
             switch manager.authorizationStatus {

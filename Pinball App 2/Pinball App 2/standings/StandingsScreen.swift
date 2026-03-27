@@ -255,8 +255,7 @@ private struct StandingsRowView: View {
     }
 
     private func displayLPLPlayerName(_ raw: String) -> String {
-        _ = showFullLPLLastNames
-        return formatLPLPlayerNameForDisplay(raw)
+        formatLPLPlayerNameForDisplay(raw, showFullLastNames: showFullLPLLastNames)
     }
 
     private var rankColor: Color {
@@ -425,10 +424,6 @@ private struct Standing: Identifiable {
     let eligible: String
     let nights: String
     let banks: [Double]
-
-    var displayPlayer: String {
-        formatLPLPlayerNameForDisplay(rawPlayer)
-    }
 }
 
 private struct StandingsCSVRow {

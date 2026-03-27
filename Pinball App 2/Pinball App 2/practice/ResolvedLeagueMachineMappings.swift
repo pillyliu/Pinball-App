@@ -1,4 +1,10 @@
 import Foundation
+import OSLog
+
+private let leagueMachineMappingsLogger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "com.pillyliu.Pinball-App-2",
+    category: "DataIntegrity"
+)
 
 struct LeagueMachineMappingRecord: Decodable {
     let machine: String
@@ -28,6 +34,11 @@ func parseLeagueMachineMappings(text: String) -> [String: LeagueMachineMappingRe
     for record in root.items {
         let key = LibraryGameLookup.normalizeMachineName(record.machine)
         guard !key.isEmpty else { continue }
+        if let existing = out[key] {
+            leagueMachineMappingsLogger.warning(
+                "Duplicate league machine mapping for normalized key \(key, privacy: .public); replacing \(existing.machine, privacy: .public) with \(record.machine, privacy: .public)"
+            )
+        }
         out[key] = record
     }
     return out

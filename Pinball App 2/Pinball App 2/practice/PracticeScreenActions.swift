@@ -23,8 +23,6 @@ extension PracticeScreen {
         uiState.ifpaPlayerID = store.state.practiceSettings.ifpaPlayerID
         uiState.insightsOpponentName = store.state.practiceSettings.comparisonPlayerName
         uiState.leaguePlayerName = store.state.leagueSettings.playerName
-        uiState.cloudSyncEnabled = store.state.syncSettings.cloudSyncEnabled
-
         let knownGroupIDs = Set(store.state.customGroups.map(\.id))
         if let selectedGroupID = store.state.practiceSettings.selectedGroupID,
            knownGroupIDs.contains(selectedGroupID) {
@@ -216,48 +214,6 @@ extension PracticeScreen {
         guard itemID.hasPrefix(prefix) else { return nil }
         let raw = String(itemID.dropFirst(prefix.count))
         return UUID(uuidString: raw)
-    }
-
-    func actionIcon(_ action: JournalActionType) -> String {
-        switch action {
-        case .rulesheetRead: return "book"
-        case .tutorialWatch: return "play.rectangle"
-        case .gameplayWatch: return "video"
-        case .playfieldViewed: return "photo"
-        case .gameBrowse: return "gamecontroller"
-        case .practiceSession: return "figure.run"
-        case .scoreLogged: return "number.circle"
-        case .noteAdded: return "note.text"
-        }
-    }
-
-    func libraryActivityIcon(_ kind: LibraryActivityKind) -> String {
-        switch kind {
-        case .browseGame:
-            return "rectangle.grid.2x2"
-        case .openRulesheet:
-            return "book"
-        case .openPlayfield:
-            return "photo"
-        case .tapVideo:
-            return "play.rectangle"
-        }
-    }
-
-    func libraryActivitySummary(_ event: LibraryActivityEvent) -> String {
-        switch event.kind {
-        case .browseGame:
-            return "Browsed \(event.gameName) in Library"
-        case .openRulesheet:
-            return "Opened \(event.gameName) rulesheet from Library"
-        case .openPlayfield:
-            return "Opened \(event.gameName) playfield image from Library"
-        case .tapVideo:
-            if let detail = event.detail, !detail.isEmpty {
-                return "Opened \(detail) video for \(event.gameName) in Library"
-            }
-            return "Opened video for \(event.gameName) in Library"
-        }
     }
 
     func scoreTrendValues(for gameID: String) -> [Double] {

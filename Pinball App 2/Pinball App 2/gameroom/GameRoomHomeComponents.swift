@@ -41,6 +41,10 @@ struct GameRoomHomeView: View {
                 }
                 .padding(.leading, 8)
 
+                if let lastErrorMessage = store.lastErrorMessage, !lastErrorMessage.isEmpty {
+                    AppInlineTaskStatus(text: lastErrorMessage, isError: true)
+                }
+
                 GameRoomSelectedSummaryCard(
                     store: store,
                     selectedMachine: selectedMachine

@@ -8,16 +8,22 @@ struct PracticeGameLifecycleHost<Content: View>: View {
     var body: some View {
         content()
             .onAppear {
+                let bootstrappedSelection: Bool
                 if context.selectedGameID.wrappedValue.isEmpty,
                    let first = orderedGamesForDropdown(context.store.games, collapseByPracticeIdentity: true).first {
                     context.selectedGameID.wrappedValue = first.canonicalPracticeKey
+                    bootstrappedSelection = true
+                } else {
+                    bootstrappedSelection = false
                 }
 
-                syncSelectedGame(context.selectedGameID.wrappedValue)
-                scheduleBrowseLog(for: context.selectedGameID.wrappedValue)
+                if !bootstrappedSelection {
+                    syncSelectedGame(context.selectedGameID.wrappedValue)
+                    scheduleBrowseLog(for: context.selectedGameID.wrappedValue)
 
-                if context.activeVideoID.wrappedValue == nil {
-                    context.activeVideoID.wrappedValue = context.currentVideoFallbackID()
+                    if context.activeVideoID.wrappedValue == nil {
+                        context.activeVideoID.wrappedValue = context.currentVideoFallbackID()
+                    }
                 }
             }
             .onChange(of: context.selectedGameID.wrappedValue) { _, newValue in

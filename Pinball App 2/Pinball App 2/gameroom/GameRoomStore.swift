@@ -21,21 +21,28 @@ final class GameRoomStore: ObservableObject {
 
     func loadState() {
         let defaults = UserDefaults.standard
-        guard let loaded = GameRoomStateCodec.loadFromDefaults(
+        switch GameRoomStateCodec.loadFromDefaults(
             defaults,
             storageKey: Self.storageKey,
             legacyStorageKey: Self.legacyStorageKey
-        ) else {
+        ) {
+        case .missing:
+            lastErrorMessage = nil
             state = .empty
             recomputeSnapshots()
-            return
-        }
+        case let .loaded(loaded, needsResave, noticeMessage):
+            state = loaded
+            recomputeSnapshots()
 
-        state = loaded
-        recomputeSnapshots()
+            if needsResave {
+                saveState()
+            }
 
-        if defaults.data(forKey: Self.storageKey) == nil || defaults.data(forKey: Self.legacyStorageKey) != nil {
-            saveState()
+            lastErrorMessage = noticeMessage
+        case let .failed(message):
+            state = .empty
+            recomputeSnapshots()
+            lastErrorMessage = message
         }
     }
 
@@ -46,6 +53,7 @@ final class GameRoomStore: ObservableObject {
             let defaults = UserDefaults.standard
             defaults.set(data, forKey: Self.storageKey)
             defaults.removeObject(forKey: Self.legacyStorageKey)
+            lastErrorMessage = nil
         } catch {
             lastErrorMessage = "Failed to save GameRoom data: \(error.localizedDescription)"
         }
@@ -53,13 +61,13 @@ final class GameRoomStore: ObservableObject {
 
     var activeMachines: [OwnedMachine] {
         state.ownedMachines
-            .filter { $0.status == .active || $0.status == .loaned }
+            .filter { $0.status.countsAsActiveInventory }
             .sorted(by: sortMachines)
     }
 
     var archivedMachines: [OwnedMachine] {
         state.ownedMachines
-            .filter { !($0.status == .active || $0.status == .loaned) }
+            .filter { !$0.status.countsAsActiveInventory }
             .sorted(by: sortMachines)
     }
 
@@ -308,21 +316,22 @@ final class GameRoomStore: ObservableObject {
 
     func upsertArea(id: UUID? = nil, name: String, areaOrder: Int) {
         let normalizedName = normalizedOptionalString(name) ?? "Area"
+        let normalizedOrder = max(1, areaOrder)
         let now = Date()
 
         if let id, let index = state.areas.firstIndex(where: { $0.id == id }) {
             state.areas[index].name = normalizedName
-            state.areas[index].areaOrder = max(0, areaOrder)
+            state.areas[index].areaOrder = normalizedOrder
             state.areas[index].updatedAt = now
         } else if let index = state.areas.firstIndex(where: { $0.name.caseInsensitiveCompare(normalizedName) == .orderedSame }) {
             state.areas[index].name = normalizedName
-            state.areas[index].areaOrder = max(0, areaOrder)
+            state.areas[index].areaOrder = normalizedOrder
             state.areas[index].updatedAt = now
         } else {
             state.areas.append(
                 GameRoomArea(
                     name: normalizedName,
-                    areaOrder: max(0, areaOrder),
+                    areaOrder: normalizedOrder,
                     createdAt: now,
                     updatedAt: now
                 )
@@ -540,7 +549,7 @@ final class GameRoomStore: ObservableObject {
     }
 
     private func dueTaskCount(for machine: OwnedMachine, events: [MachineEvent], currentPlayCount: Int, now: Date) -> Int {
-        guard machine.status == .active || machine.status == .loaned else { return 0 }
+        guard machine.status.countsAsActiveInventory else { return 0 }
 
         let configs = effectiveReminderConfigs(for: machine.id)
         guard !configs.isEmpty else { return 0 }
@@ -582,7 +591,7 @@ final class GameRoomStore: ObservableObject {
         }
         var runningTotal = 0
         for event in eventsAsc {
-            guard let total = playLogTotal(for: event) else { continue }
+            guard let total = event.loggedPlayCountTotal else { continue }
             runningTotal = total
         }
         return runningTotal
@@ -598,10 +607,10 @@ final class GameRoomStore: ObservableObject {
         var lastByTask: [MachineReminderTaskType: Int] = [:]
 
         for event in eventsAsc {
-            if let total = playLogTotal(for: event) {
+            if let total = event.loggedPlayCountTotal {
                 runningPlayCount = total
             }
-            for taskType in MachineReminderTaskType.allCases where eventTypes(for: taskType).contains(event.type) {
+            for taskType in MachineReminderTaskType.allCases where taskType.matchingEventTypes.contains(event.type) {
                 lastByTask[taskType] = runningPlayCount
             }
         }
@@ -609,93 +618,23 @@ final class GameRoomStore: ObservableObject {
     }
 
     private func latestEventDate(for taskType: MachineReminderTaskType, events: [MachineEvent]) -> Date? {
-        let candidateTypes = eventTypes(for: taskType)
-
-        return events.first(where: { candidateTypes.contains($0.type) })?.occurredAt
-    }
-
-    private func eventTypes(for taskType: MachineReminderTaskType) -> [MachineEventType] {
-        switch taskType {
-        case .glassCleaned:
-            return [.glassCleaned]
-        case .playfieldCleaned:
-            return [.playfieldCleaned]
-        case .ballsReplaced:
-            return [.ballsReplaced]
-        case .pitchChecked:
-            return [.pitchChecked]
-        case .machineLeveled:
-            return [.machineLeveled]
-        case .rubbersReplaced:
-            return [.rubbersReplaced]
-        case .flipperServiced:
-            return [.flipperServiced]
-        case .generalInspection:
-            return [.generalInspection]
-        }
-    }
-
-    private func isPlayCountEvent(_ event: MachineEvent) -> Bool {
-        event.type == .custom && event.category == .custom
-    }
-
-    private func playLogTotal(for event: MachineEvent) -> Int? {
-        guard isPlayCountEvent(event),
-              let value = event.playCountAtEvent,
-              value >= 0 else {
-            return nil
-        }
-        return value
+        events.first(where: { taskType.matchingEventTypes.contains($0.type) })?.occurredAt
     }
 
     private func effectiveReminderConfigs(for machineID: UUID) -> [MachineReminderConfig] {
-        let machineConfigs = state.reminderConfigs
-            .filter { $0.ownedMachineID == machineID }
-            .sorted { lhs, rhs in
-                lhs.taskType.rawValue < rhs.taskType.rawValue
-            }
-        if !machineConfigs.isEmpty {
-            return machineConfigs
+        let machineConfigs = state.reminderConfigs.filter { $0.ownedMachineID == machineID }
+        guard !machineConfigs.isEmpty else {
+            return MachineReminderConfig.defaultConfigs(for: machineID)
+                .sorted { $0.taskType.rawValue < $1.taskType.rawValue }
         }
-        return defaultReminderConfigs(for: machineID)
-    }
 
-    private func defaultReminderConfigs(for machineID: UUID) -> [MachineReminderConfig] {
-        let now = Date()
-        return [
-            MachineReminderConfig(
-                ownedMachineID: machineID,
-                taskType: .glassCleaned,
-                mode: .dateBased,
-                intervalDays: 30,
-                createdAt: now,
-                updatedAt: now
-            ),
-            MachineReminderConfig(
-                ownedMachineID: machineID,
-                taskType: .playfieldCleaned,
-                mode: .dateBased,
-                intervalDays: 90,
-                createdAt: now,
-                updatedAt: now
-            ),
-            MachineReminderConfig(
-                ownedMachineID: machineID,
-                taskType: .ballsReplaced,
-                mode: .playBased,
-                intervalPlays: 5000,
-                createdAt: now,
-                updatedAt: now
-            ),
-            MachineReminderConfig(
-                ownedMachineID: machineID,
-                taskType: .generalInspection,
-                mode: .dateBased,
-                intervalDays: 45,
-                createdAt: now,
-                updatedAt: now
-            )
-        ]
+        var mergedByTask = Dictionary(
+            uniqueKeysWithValues: MachineReminderConfig.defaultConfigs(for: machineID).map { ($0.taskType, $0) }
+        )
+        for config in machineConfigs {
+            mergedByTask[config.taskType] = config
+        }
+        return mergedByTask.values.sorted { $0.taskType.rawValue < $1.taskType.rawValue }
     }
 
     private func saveAndRecompute() {

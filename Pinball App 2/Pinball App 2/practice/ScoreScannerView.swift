@@ -428,12 +428,6 @@ private final class KeyboardFrameObserver: ObservableObject {
     }
 }
 
-private struct FreezeButtonLayoutModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-    }
-}
-
 private struct ScoreScannerTargetOverlay: View {
     let targetRect: CGRect
     let candidateHighlights: [ScoreScannerCandidate]

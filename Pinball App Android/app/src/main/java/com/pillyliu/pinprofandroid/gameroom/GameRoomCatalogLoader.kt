@@ -1,6 +1,7 @@
 package com.pillyliu.pinprofandroid.gameroom
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,6 +10,8 @@ import com.pillyliu.pinprofandroid.library.decodeCatalogManufacturerOptionsFromO
 import com.pillyliu.pinprofandroid.library.decodeOPDBExportCatalogMachines
 import com.pillyliu.pinprofandroid.library.hostedOPDBExportPath
 import kotlinx.coroutines.runBlocking
+
+private const val GAME_ROOM_CATALOG_TAG = "PinballDataIntegrity"
 
 internal data class GameRoomCatalogGame(
     val catalogGameID: String,
@@ -210,7 +213,13 @@ internal class GameRoomCatalogLoader(private val context: Context) {
                 variant = variant,
             )
             buildSlugKeys(slug).forEach { key ->
-                if (!slugMatches.containsKey(key)) {
+                val existing = slugMatches[key]
+                if (existing != null) {
+                    Log.w(
+                        GAME_ROOM_CATALOG_TAG,
+                        "Duplicate GameRoom catalog slug key $key; keeping existing catalog game ${existing.catalogGameID} and ignoring ${slugMatch.catalogGameID}",
+                    )
+                } else {
                     slugMatches[key] = slugMatch
                 }
             }

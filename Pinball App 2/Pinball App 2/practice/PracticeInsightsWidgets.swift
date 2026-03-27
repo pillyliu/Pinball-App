@@ -1,14 +1,20 @@
 import SwiftUI
 
-struct HeadToHeadGameRow: View {
-    let game: HeadToHeadGameStats
-
-    private func formatted(_ value: Double) -> String {
+private enum PracticeInsightsScoreFormatting {
+    static let wholeScoreFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = 0
-        return formatter.string(from: NSNumber(value: value)) ?? String(Int(value))
-    }
+        return formatter
+    }()
+}
+
+func formatPracticeWholeScoreDisplay(_ value: Double) -> String {
+    PracticeInsightsScoreFormatting.wholeScoreFormatter.string(from: NSNumber(value: value)) ?? String(Int(value))
+}
+
+struct HeadToHeadGameRow: View {
+    let game: HeadToHeadGameStats
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -20,11 +26,11 @@ struct HeadToHeadGameRow: View {
                     Text("Mean")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                    Text("\(formatted(game.yourMean)) vs \(formatted(game.opponentMean))")
+                    Text("\(formatPracticeWholeScoreDisplay(game.yourMean)) vs \(formatPracticeWholeScoreDisplay(game.opponentMean))")
                         .font(.caption)
                 }
                 Spacer()
-                Text(game.meanDelta >= 0 ? "+\(formatted(abs(game.meanDelta)))" : "-\(formatted(abs(game.meanDelta)))")
+                Text(game.meanDelta >= 0 ? "+\(formatPracticeWholeScoreDisplay(abs(game.meanDelta)))" : "-\(formatPracticeWholeScoreDisplay(abs(game.meanDelta)))")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(game.meanDelta >= 0 ? .green : .orange)
             }
@@ -194,10 +200,7 @@ struct ScoreTrendSparkline: View {
             return "\(rounded) mil"
         }
 
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        return formatter.string(from: NSNumber(value: value)) ?? String(Int(value))
+        return formatPracticeWholeScoreDisplay(value)
     }
 }
 

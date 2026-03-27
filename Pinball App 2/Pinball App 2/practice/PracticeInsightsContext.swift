@@ -13,7 +13,6 @@ struct PracticeInsightsContext {
     let opponentOptions: [String]
     let isLoadingHeadToHead: Bool
     let headToHead: HeadToHeadComparison?
-    let redactName: (String) -> String
     let onRefreshHeadToHead: () async -> Void
     let onRefreshOpponentOptions: () async -> Void
 }

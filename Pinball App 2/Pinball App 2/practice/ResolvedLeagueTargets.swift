@@ -1,4 +1,10 @@
 import Foundation
+import OSLog
+
+private let resolvedLeagueTargetsLogger = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "com.pillyliu.Pinball-App-2",
+    category: "DataIntegrity"
+)
 
 struct ResolvedLeagueTargetRecord: Decodable, Identifiable {
     let order: Int
@@ -59,6 +65,11 @@ func resolvedLeagueTargetScoresByPracticeIdentity(records: [ResolvedLeagueTarget
         guard let practiceIdentity = record.practiceIdentity?.trimmingCharacters(in: .whitespacesAndNewlines),
               !practiceIdentity.isEmpty else {
             continue
+        }
+        if out[practiceIdentity] != nil {
+            resolvedLeagueTargetsLogger.warning(
+                "Duplicate resolved league target for practice identity \(practiceIdentity, privacy: .public); keeping later row from game \(record.game, privacy: .public)"
+            )
         }
         out[practiceIdentity] = record.scores
     }

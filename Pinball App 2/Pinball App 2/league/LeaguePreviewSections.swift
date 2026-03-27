@@ -165,8 +165,7 @@ struct StandingsPreview: View {
     }
 
     private func displayLPLPlayerName(_ raw: String) -> String {
-        _ = showFullLPLLastNames
-        return formatLPLPlayerNameForDisplay(raw)
+        formatLPLPlayerNameForDisplay(raw, showFullLastNames: showFullLPLLastNames)
     }
 
     private func rankColor(_ rank: Int) -> Color {

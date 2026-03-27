@@ -1,6 +1,9 @@
 package com.pillyliu.pinprofandroid.practice
 
+import android.util.Log
 import org.json.JSONObject
+
+private const val RESOLVED_LEAGUE_TARGETS_TAG = "PinballDataIntegrity"
 
 internal data class ResolvedLeagueTargetRecord(
     val order: Int,
@@ -58,6 +61,12 @@ internal fun resolvedLeagueTargetScoresByPracticeIdentity(records: List<Resolved
     records.forEach { record ->
         val practiceIdentity = record.practiceIdentity?.trim().orEmpty()
         if (practiceIdentity.isBlank()) return@forEach
+        if (out.containsKey(practiceIdentity)) {
+            Log.w(
+                RESOLVED_LEAGUE_TARGETS_TAG,
+                "Duplicate resolved league target for practice identity $practiceIdentity; keeping later row from game ${record.game}",
+            )
+        }
         out[practiceIdentity] = record.scores
     }
     return out

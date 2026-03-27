@@ -109,7 +109,11 @@ func normalizeSeasonToken(_ raw: String) -> String {
     return digits.isEmpty ? trimmed : digits
 }
 
-func formatLPLPlayerNameForDisplay(_ raw: String, defaults: UserDefaults = .standard) -> String {
+func formatLPLPlayerNameForDisplay(
+    _ raw: String,
+    showFullLastNames: Bool? = nil,
+    defaults: UserDefaults = .standard
+) -> String {
     let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else { return "" }
     if shouldRedactPlayerName(trimmed) {
@@ -119,8 +123,9 @@ func formatLPLPlayerNameForDisplay(_ raw: String, defaults: UserDefaults = .stan
     let suffixRange = trimmed.range(of: #" \([^)]*\)$"#, options: .regularExpression)
     let namePortion = suffixRange.map { String(trimmed[..<$0.lowerBound]) } ?? trimmed
     let suffix = suffixRange.map { String(trimmed[$0]) } ?? ""
+    let shouldShowFullLastNames = showFullLastNames ?? defaults.bool(forKey: LPLNamePrivacySettings.showFullLastNameDefaultsKey)
 
-    guard !defaults.bool(forKey: LPLNamePrivacySettings.showFullLastNameDefaultsKey) else {
+    guard !shouldShowFullLastNames else {
         return namePortion + suffix
     }
 

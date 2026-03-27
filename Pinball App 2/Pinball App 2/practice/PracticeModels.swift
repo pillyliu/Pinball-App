@@ -44,6 +44,15 @@ enum JournalActionType: String, CaseIterable, Codable, Identifiable {
         case .noteAdded: return "Note"
         }
     }
+
+    var supportsEditing: Bool {
+        switch self {
+        case .gameBrowse:
+            return false
+        case .rulesheetRead, .tutorialWatch, .gameplayWatch, .playfieldViewed, .practiceSession, .scoreLogged, .noteAdded:
+            return true
+        }
+    }
 }
 
 enum ScoreContext: String, CaseIterable, Codable, Identifiable {

@@ -9,29 +9,26 @@ extension PracticeScreen {
         let presentationContext = practicePresentationContext
 
         return practiceLifecycleHost(
-            practiceResetAlert(
-                content
-                    .navigationDestination(for: PracticeRoute.self) { route in
-                        switch route {
-                        case let .game(gameID, transitionSourceID, navigationTitle):
-                            practiceGameWorkspace(gameID: gameID, navigationTitle: navigationTitle)
-                                .appCardZoomTransition(sourceID: transitionSourceID, in: gameTransition, reduceMotion: reduceMotion)
-                        case .search, .rulesheet, .playfield, .ifpaProfile, .groupDashboard, .groupEditor, .journal, .insights, .mechanics, .settings:
-                            routeView(for: route)
-                        }
+            content
+                .navigationDestination(for: PracticeRoute.self) { route in
+                    switch route {
+                    case let .game(gameID, transitionSourceID, navigationTitle):
+                        practiceGameWorkspace(gameID: gameID, navigationTitle: navigationTitle)
+                            .appCardZoomTransition(sourceID: transitionSourceID, in: gameTransition, reduceMotion: reduceMotion)
+                    case .search, .rulesheet, .playfield, .ifpaProfile, .groupDashboard, .groupEditor, .journal, .insights, .mechanics, .settings:
+                        routeView(for: route)
                     }
-                    .sheet(item: presentationContext.presentedSheet) { sheet in
-                        practiceSheetContent(for: sheet, context: presentationContext)
+                }
+                .sheet(item: presentationContext.presentedSheet) { sheet in
+                    practiceSheetContent(for: sheet, context: presentationContext)
+                }
+                .overlay {
+                    if uiState.isNavigationInteractionShieldActive {
+                        Rectangle()
+                            .fill(Color.black.opacity(0.001))
+                            .ignoresSafeArea()
                     }
-                    .overlay {
-                        if uiState.isNavigationInteractionShieldActive {
-                            Rectangle()
-                                .fill(Color.black.opacity(0.001))
-                                .ignoresSafeArea()
-                        }
-                    },
-                context: presentationContext
-            )
+                }
         )
     }
 
@@ -42,14 +39,6 @@ extension PracticeScreen {
             openRulesheet(source: source, for: game)
         }, onOpenExternalRulesheet: { game, url in
             openExternalRulesheet(url: url, for: game)
-        }, onOpenPlayfield: { game, candidates in
-            openPlayfield(for: game, candidates: candidates)
-        }, onPrepareRulesheet: { game, source in
-            prepareRulesheet(source: source, for: game)
-        }, onPrepareExternalRulesheet: { game, url in
-            prepareExternalRulesheet(url: url, for: game)
-        }, onPreparePlayfield: { game, candidates in
-            preparePlayfield(for: game, candidates: candidates)
         })
     }
 }

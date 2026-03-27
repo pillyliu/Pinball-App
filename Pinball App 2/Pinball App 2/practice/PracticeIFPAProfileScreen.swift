@@ -1,7 +1,7 @@
 import SwiftUI
 import Foundation
 
-struct IFPARecentTournament: Identifiable, Equatable {
+struct IFPARecentTournament: Identifiable, Codable, Equatable {
     let name: String
     let date: Date
     let dateLabel: String
@@ -11,7 +11,7 @@ struct IFPARecentTournament: Identifiable, Equatable {
     var id: String { "\(name)|\(dateLabel)|\(finish)|\(pointsGained)" }
 }
 
-struct IFPAPlayerProfile: Equatable {
+struct IFPAPlayerProfile: Codable, Equatable {
     let playerID: String
     let displayName: String
     let location: String?
@@ -25,6 +25,11 @@ struct IFPAPlayerProfile: Equatable {
     let recentTournaments: [IFPARecentTournament]
 }
 
+private struct IFPACachedProfileSnapshot: Codable {
+    let profile: IFPAPlayerProfile
+    let cachedAt: Date
+}
+
 struct PracticeIFPAProfileScreen: View {
     let playerName: String
     let ifpaPlayerID: String
@@ -32,9 +37,18 @@ struct PracticeIFPAProfileScreen: View {
     @State private var profile: IFPAPlayerProfile?
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var staleSnapshot: IFPACachedProfileSnapshot?
+    @State private var staleSnapshotFailureMessage: String?
+    @State private var loadedPlayerID: String = ""
 
     private var trimmedIFPAPlayerID: String {
         ifpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var staleSnapshotNotice: String? {
+        guard let staleSnapshot, let staleSnapshotFailureMessage else { return nil }
+        let cachedAtLabel = Self.cachedSnapshotDateFormatter.string(from: staleSnapshot.cachedAt)
+        return "Showing your last saved IFPA snapshot from \(cachedAtLabel). It may be outdated because the latest refresh failed. \(staleSnapshotFailureMessage)"
     }
 
     var body: some View {
@@ -53,9 +67,17 @@ struct PracticeIFPAProfileScreen: View {
             }
         }
         .task(id: trimmedIFPAPlayerID) {
-            await loadProfileIfNeeded()
+            await handleProfileTask()
         }
     }
+
+    private static let cachedSnapshotDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
 
     private var missingIDCard: some View {
         AppPanelEmptyCard(text: "Add your IFPA ID in Practice Settings to load your public ranking snapshot here.")
@@ -65,20 +87,34 @@ struct PracticeIFPAProfileScreen: View {
         VStack(alignment: .leading, spacing: 8) {
             AppSectionTitle(text: "Could not load IFPA profile")
             AppInlineTaskStatus(text: message, isError: true)
-            Button("Try Again") {
-                Task {
-                    await reloadProfile()
-                }
-            }
-            .buttonStyle(AppPrimaryActionButtonStyle())
+            retryButton
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .appPanelStyle()
     }
 
+    private var retryButton: some View {
+        Button("Try Again") {
+            Task {
+                await reloadProfile()
+            }
+        }
+        .buttonStyle(AppPrimaryActionButtonStyle())
+    }
+
     @ViewBuilder
     private func profileContent(_ profile: IFPAPlayerProfile) -> some View {
+        if let staleSnapshotNotice {
+            VStack(alignment: .leading, spacing: 8) {
+                AppInlineTaskStatus(text: staleSnapshotNotice, isError: true)
+                retryButton
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .appPanelStyle()
+        }
+
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 8) {
                 AppCardTitle(text: displayName(for: profile))
@@ -207,23 +243,81 @@ struct PracticeIFPAProfileScreen: View {
         return profile.displayName
     }
 
-    private func loadProfileIfNeeded() async {
-        guard !trimmedIFPAPlayerID.isEmpty, profile == nil, !isLoading else { return }
+    private func handleProfileTask() async {
+        guard !trimmedIFPAPlayerID.isEmpty else {
+            loadedPlayerID = ""
+            profile = nil
+            errorMessage = nil
+            staleSnapshot = nil
+            staleSnapshotFailureMessage = nil
+            return
+        }
+
+        if loadedPlayerID != trimmedIFPAPlayerID {
+            loadedPlayerID = trimmedIFPAPlayerID
+            errorMessage = nil
+            staleSnapshot = nil
+            staleSnapshotFailureMessage = nil
+            profile = IFPAPublicProfileCacheStore.load(playerID: trimmedIFPAPlayerID)?.profile
+        }
+
         await reloadProfile()
     }
 
     private func reloadProfile() async {
-        guard !trimmedIFPAPlayerID.isEmpty else { return }
+        guard !trimmedIFPAPlayerID.isEmpty, !isLoading else { return }
+        let cachedSnapshot = IFPAPublicProfileCacheStore.load(playerID: trimmedIFPAPlayerID)
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            profile = try await IFPAPublicProfileService.fetchProfile(playerID: trimmedIFPAPlayerID)
+            let fetchedProfile = try await IFPAPublicProfileService.fetchProfile(playerID: trimmedIFPAPlayerID)
+            profile = fetchedProfile
+            staleSnapshot = nil
+            staleSnapshotFailureMessage = nil
+            IFPAPublicProfileCacheStore.save(fetchedProfile)
         } catch {
-            profile = nil
-            errorMessage = error.localizedDescription
+            if let cachedSnapshot {
+                profile = cachedSnapshot.profile
+                staleSnapshot = cachedSnapshot
+                staleSnapshotFailureMessage = error.localizedDescription
+                errorMessage = nil
+            } else {
+                profile = nil
+                staleSnapshot = nil
+                staleSnapshotFailureMessage = nil
+                errorMessage = error.localizedDescription
+            }
         }
+    }
+}
+
+private enum IFPAPublicProfileCacheStore {
+    private static let keyPrefix = "ifpa-public-profile-cache"
+    private static let encoder = JSONEncoder()
+    private static let decoder = JSONDecoder()
+
+    static func load(playerID: String) -> IFPACachedProfileSnapshot? {
+        let defaults = UserDefaults.standard
+        let key = cacheKey(for: playerID)
+        guard let data = defaults.data(forKey: key) else { return nil }
+        guard let snapshot = try? decoder.decode(IFPACachedProfileSnapshot.self, from: data) else {
+            defaults.removeObject(forKey: key)
+            return nil
+        }
+        return snapshot
+    }
+
+    static func save(_ profile: IFPAPlayerProfile) {
+        guard let data = try? encoder.encode(IFPACachedProfileSnapshot(profile: profile, cachedAt: Date())) else {
+            return
+        }
+        UserDefaults.standard.set(data, forKey: cacheKey(for: profile.playerID))
+    }
+
+    private static func cacheKey(for playerID: String) -> String {
+        "\(keyPrefix).\(playerID)"
     }
 }
 

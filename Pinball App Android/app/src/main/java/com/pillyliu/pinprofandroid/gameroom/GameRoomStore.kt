@@ -33,12 +33,31 @@ internal class GameRoomStore(private val context: Context) {
     }
 
     fun loadState() {
-        val raw = prefs.getString(STORAGE_KEY, null) ?: prefs.getString(LEGACY_STORAGE_KEY, null)
-        val loaded = raw?.let { GameRoomStateCodec.decode(it) } ?: GameRoomPersistedState.empty
-        state = loaded.copy(schemaVersion = GameRoomPersistedState.CURRENT_SCHEMA_VERSION)
-        recomputeSnapshots()
-        if (prefs.getString(STORAGE_KEY, null) == null || prefs.contains(LEGACY_STORAGE_KEY)) {
-            saveState()
+        when (val result = GameRoomStateCodec.loadFromPreferences(
+            prefs = prefs,
+            storageKey = STORAGE_KEY,
+            legacyStorageKey = LEGACY_STORAGE_KEY,
+        )) {
+            GameRoomStateCodec.LoadResult.Missing -> {
+                lastErrorMessage = null
+                state = GameRoomPersistedState.empty
+                recomputeSnapshots()
+            }
+
+            is GameRoomStateCodec.LoadResult.Loaded -> {
+                state = result.state.copy(schemaVersion = GameRoomPersistedState.CURRENT_SCHEMA_VERSION)
+                recomputeSnapshots()
+                if (result.needsResave) {
+                    saveState()
+                }
+                lastErrorMessage = result.noticeMessage
+            }
+
+            is GameRoomStateCodec.LoadResult.Failed -> {
+                state = GameRoomPersistedState.empty
+                recomputeSnapshots()
+                lastErrorMessage = result.message
+            }
         }
     }
 
@@ -52,6 +71,7 @@ internal class GameRoomStore(private val context: Context) {
                 remove(LEGACY_STORAGE_KEY)
             }
             LibrarySourceEvents.notifyChanged()
+            lastErrorMessage = null
         }.onFailure { error ->
             lastErrorMessage = "Failed to save GameRoom data: ${error.localizedMessage}"
         }
@@ -62,12 +82,12 @@ internal class GameRoomStore(private val context: Context) {
 
     val activeMachines: List<OwnedMachine>
         get() = state.ownedMachines
-            .filter { it.status == OwnedMachineStatus.active || it.status == OwnedMachineStatus.loaned }
+            .filter { it.status.countsAsActiveInventory }
             .sortedWith(::compareMachines)
 
     val archivedMachines: List<OwnedMachine>
         get() = state.ownedMachines
-            .filter { it.status != OwnedMachineStatus.active && it.status != OwnedMachineStatus.loaned }
+            .filterNot { it.status.countsAsActiveInventory }
             .sortedWith(::compareMachines)
 
     fun area(id: String?): GameRoomArea? {
@@ -286,7 +306,7 @@ internal class GameRoomStore(private val context: Context) {
     fun upsertArea(id: String? = null, name: String, areaOrder: Int) {
         val normalizedName = name.trim().ifBlank { "Area" }
         val now = System.currentTimeMillis()
-        val normalizedOrder = areaOrder.coerceAtLeast(0)
+        val normalizedOrder = areaOrder.coerceAtLeast(1)
         val existing = state.areas.toMutableList()
         val explicitIndex = id?.let { explicitID ->
             existing.indexOfFirst { it.id == explicitID }
@@ -639,7 +659,7 @@ internal class GameRoomStore(private val context: Context) {
         currentPlayCount: Int,
         nowMs: Long,
     ): Int {
-        if (machine.status != OwnedMachineStatus.active && machine.status != OwnedMachineStatus.loaned) return 0
+        if (!machine.status.countsAsActiveInventory) return 0
 
         val configs = effectiveReminderConfigs(machine.id)
         if (configs.isEmpty()) return 0
@@ -675,7 +695,7 @@ internal class GameRoomStore(private val context: Context) {
         val asc = eventsDesc.sortedWith(compareBy<MachineEvent> { it.occurredAtMs }.thenBy { it.createdAtMs }.thenBy { it.id })
         var runningTotal = 0
         asc.forEach { event ->
-            playLogTotal(event)?.let { runningTotal = it }
+            event.loggedPlayCountTotal?.let { runningTotal = it }
         }
         return runningTotal
     }
@@ -685,9 +705,9 @@ internal class GameRoomStore(private val context: Context) {
         var runningPlayCount = 0
         val lastByTask = mutableMapOf<MachineReminderTaskType, Int>()
         asc.forEach { event ->
-            playLogTotal(event)?.let { runningPlayCount = it }
+            event.loggedPlayCountTotal?.let { runningPlayCount = it }
             MachineReminderTaskType.entries.forEach { taskType ->
-                if (eventTypes(taskType).contains(event.type)) {
+                if (taskType.matchingEventTypes.contains(event.type)) {
                     lastByTask[taskType] = runningPlayCount
                 }
             }
@@ -696,77 +716,22 @@ internal class GameRoomStore(private val context: Context) {
     }
 
     private fun latestEventDate(taskType: MachineReminderTaskType, events: List<MachineEvent>): Long? {
-        val candidateTypes = eventTypes(taskType)
-        return events.firstOrNull { candidateTypes.contains(it.type) }?.occurredAtMs
-    }
-
-    private fun eventTypes(taskType: MachineReminderTaskType): List<MachineEventType> {
-        return when (taskType) {
-            MachineReminderTaskType.glassCleaned -> listOf(MachineEventType.glassCleaned)
-            MachineReminderTaskType.playfieldCleaned -> listOf(MachineEventType.playfieldCleaned)
-            MachineReminderTaskType.ballsReplaced -> listOf(MachineEventType.ballsReplaced)
-            MachineReminderTaskType.pitchChecked -> listOf(MachineEventType.pitchChecked)
-            MachineReminderTaskType.machineLeveled -> listOf(MachineEventType.machineLeveled)
-            MachineReminderTaskType.rubbersReplaced -> listOf(MachineEventType.rubbersReplaced)
-            MachineReminderTaskType.flipperServiced -> listOf(MachineEventType.flipperServiced)
-            MachineReminderTaskType.generalInspection -> listOf(MachineEventType.generalInspection)
-        }
-    }
-
-    private fun isPlayCountEvent(event: MachineEvent): Boolean {
-        return event.type == MachineEventType.custom && event.category == MachineEventCategory.custom
-    }
-
-    private fun playLogTotal(event: MachineEvent): Int? {
-        if (!isPlayCountEvent(event)) return null
-        val value = event.playCountAtEvent ?: return null
-        return value.takeIf { it >= 0 }
+        return events.firstOrNull { taskType.matchingEventTypes.contains(it.type) }?.occurredAtMs
     }
 
     private fun effectiveReminderConfigs(machineID: String): List<MachineReminderConfig> {
-        val existing = state.reminderConfigs
-            .filter { it.ownedMachineID == machineID }
-            .sortedBy { it.taskType.name }
-        if (existing.isNotEmpty()) return existing
-        return defaultReminderConfigs(machineID)
-    }
+        val existing = state.reminderConfigs.filter { it.ownedMachineID == machineID }
+        if (existing.isEmpty()) {
+            return MachineReminderConfig.defaultConfigs(machineID).sortedBy { it.taskType.name }
+        }
 
-    private fun defaultReminderConfigs(machineID: String): List<MachineReminderConfig> {
-        val now = System.currentTimeMillis()
-        return listOf(
-            MachineReminderConfig(
-                ownedMachineID = machineID,
-                taskType = MachineReminderTaskType.glassCleaned,
-                mode = MachineReminderMode.dateBased,
-                intervalDays = 30,
-                createdAtMs = now,
-                updatedAtMs = now,
-            ),
-            MachineReminderConfig(
-                ownedMachineID = machineID,
-                taskType = MachineReminderTaskType.playfieldCleaned,
-                mode = MachineReminderMode.dateBased,
-                intervalDays = 90,
-                createdAtMs = now,
-                updatedAtMs = now,
-            ),
-            MachineReminderConfig(
-                ownedMachineID = machineID,
-                taskType = MachineReminderTaskType.ballsReplaced,
-                mode = MachineReminderMode.playBased,
-                intervalPlays = 5000,
-                createdAtMs = now,
-                updatedAtMs = now,
-            ),
-            MachineReminderConfig(
-                ownedMachineID = machineID,
-                taskType = MachineReminderTaskType.generalInspection,
-                mode = MachineReminderMode.dateBased,
-                intervalDays = 45,
-                createdAtMs = now,
-                updatedAtMs = now,
-            ),
-        )
+        val mergedByTask = MachineReminderConfig.defaultConfigs(machineID)
+            .associateBy { it.taskType }
+            .toMutableMap()
+        existing.forEach { config ->
+            mergedByTask[config.taskType] = config
+        }
+        return mergedByTask.values.sortedBy { it.taskType.name }
     }
 
     private fun saveAndRecompute() {

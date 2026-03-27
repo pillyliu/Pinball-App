@@ -11,8 +11,7 @@ extension PracticeStore {
                 imported: 0,
                 duplicatesSkipped: 0,
                 unmatchedRows: 0,
-                selectedPlayer: "(none)",
-                sourcePath: Self.leagueStatsPath
+                selectedPlayer: "(none)"
             )
         }
 
@@ -82,7 +81,6 @@ extension PracticeStore {
                 duplicatesSkipped: duplicates,
                 unmatchedRows: unmatched,
                 selectedPlayer: playerName,
-                sourcePath: Self.leagueStatsPath,
                 repaired: repaired
             )
             if recordImportSummaryInJournal {
@@ -104,8 +102,7 @@ extension PracticeStore {
                 imported: 0,
                 duplicatesSkipped: 0,
                 unmatchedRows: 0,
-                selectedPlayer: playerName,
-                sourcePath: Self.leagueStatsPath
+                selectedPlayer: playerName
             )
         }
     }

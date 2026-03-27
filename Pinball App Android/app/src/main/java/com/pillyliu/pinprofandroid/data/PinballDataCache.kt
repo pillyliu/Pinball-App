@@ -5,6 +5,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.pillyliu.pinprofandroid.library.HOSTED_PINBALL_REFRESH_TARGETS
 import com.pillyliu.pinprofandroid.library.hostedOPDBExportPath
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -51,6 +52,9 @@ object PinballDataCache {
 
     @Volatile
     private var loaded = false
+
+    @Volatile
+    private var cacheGeneration = 0L
 
     private val manifestFiles = mutableMapOf<String, String>()
     private var lastMetaFetchAt: Long = 0L
@@ -113,26 +117,30 @@ object PinballDataCache {
 
     suspend fun clearAllCachedData() = withContext(Dispatchers.IO) {
         ensureLoaded()
-        val context = appContext ?: error("PinballDataCache.initialize(context) was not called")
-        val root = cacheRoot(context)
-        val resources = resourcesDir(context)
-        val index = indexFile(context)
+        mutex.withLock {
+            cacheGeneration += 1
 
-        if (resources.exists()) {
-            resources.deleteRecursively()
-        }
-        if (index.exists()) {
-            index.delete()
-        }
+            val context = appContext ?: error("PinballDataCache.initialize(context) was not called")
+            val root = cacheRoot(context)
+            val resources = resourcesDir(context)
+            val index = indexFile(context)
 
-        manifestFiles.clear()
-        lastMetaFetchAt = 0L
-        lastUpdateScanAt = null
+            if (resources.exists()) {
+                resources.deleteRecursively()
+            }
+            if (index.exists()) {
+                index.delete()
+            }
 
-        if (!root.exists()) {
-            root.mkdirs()
+            manifestFiles.clear()
+            lastMetaFetchAt = 0L
+            lastUpdateScanAt = null
+
+            if (!root.exists()) {
+                root.mkdirs()
+            }
+            writeIndexRoot(context, JSONObject().put("resources", JSONObject()))
         }
-        writeIndexRoot(context, JSONObject().put("resources", JSONObject()))
     }
 
     suspend fun loadText(url: String, allowMissing: Boolean = false, maxCacheAgeMs: Long): CachedTextResult = withContext(Dispatchers.IO) {
@@ -196,6 +204,7 @@ object PinballDataCache {
     }
 
     private suspend fun fetchBytes(path: String, allowMissing: Boolean, allowStaleOnFailure: Boolean = true): CachedBytesResult {
+        val fetchGeneration = cacheGeneration
         if (!hasUsableNetwork(appContext)) {
             val stale = readCached(path)
             if (stale != null) {
@@ -226,11 +235,13 @@ object PinballDataCache {
 
                 val code = conn.responseCode
                 if (code == 404 && allowMissing) {
+                    ensureActiveGeneration(fetchGeneration)
                     upsertIndex(path = path, hash = null, missing = true)
                     CachedBytesResult(bytes = null, isMissing = true, updatedAtMs = null)
                 } else {
                     if (code !in 200..299) throw IllegalStateException("Fetch failed ($code) for $url")
                     val bytes = conn.inputStream.use { it.readBytes() }
+                    ensureActiveGeneration(fetchGeneration)
                     writeCached(path, bytes)
                     upsertIndex(path = path, hash = manifestFiles[path], missing = false)
                     CachedBytesResult(bytes = bytes, isMissing = false, updatedAtMs = cachedUpdatedAtMs(path))
@@ -255,6 +266,12 @@ object PinballDataCache {
                 }
             } catch (_: Throwable) {
             }
+        }
+    }
+
+    private fun ensureActiveGeneration(generation: Long) {
+        if (generation != cacheGeneration) {
+            throw CancellationException("Discarding stale cache write for generation $generation")
         }
     }
 

@@ -252,7 +252,7 @@ internal fun GameRoomScreen(
     var areasExpanded by rememberSaveable { mutableStateOf(false) }
     var editMachinesExpanded by rememberSaveable { mutableStateOf(false) }
     var areaNameDraft by rememberSaveable { mutableStateOf("") }
-    var areaOrderDraft by rememberSaveable { mutableStateOf("0") }
+    var areaOrderDraft by rememberSaveable { mutableStateOf("1") }
     var selectedAreaID by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedEditMachineID by rememberSaveable { mutableStateOf<String?>(null) }
     var draftAreaID by rememberSaveable { mutableStateOf<String?>(null) }
@@ -298,7 +298,18 @@ internal fun GameRoomScreen(
     }
 
     LaunchedEffect(selectedEditMachineID) {
-        val machine = selectedEditMachine ?: return@LaunchedEffect
+        val machine = selectedEditMachine
+        if (machine == null) {
+            draftAreaID = null
+            draftGroup = ""
+            draftPosition = ""
+            draftStatus = OwnedMachineStatus.active.name
+            draftVariant = "None"
+            draftPurchaseSource = ""
+            draftSerialNumber = ""
+            draftOwnershipNotes = ""
+            return@LaunchedEffect
+        }
         draftAreaID = machine.gameRoomAreaID
         draftGroup = machine.groupNumber?.toString().orEmpty()
         draftPosition = machine.position?.toString().orEmpty()
@@ -513,6 +524,7 @@ internal fun GameRoomScreen(
                     selectedSettingsSection = selectedSettingsSection,
                     onSelectedSettingsSectionChange = { selectedSettingsSection = it },
                     onBack = { route = GameRoomRoute.Home },
+                    errorMessage = store.lastErrorMessage,
                     overlayContent = {
                         GameRoomFloatingSaveFeedbackOverlay(
                             message = settingsSaveFeedbackMessage,
@@ -662,16 +674,16 @@ internal fun GameRoomScreen(
                                     store.upsertArea(
                                         id = selectedAreaID,
                                         name = areaNameDraft,
-                                        areaOrder = areaOrderDraft.toIntOrNull() ?: 0,
+                                        areaOrder = areaOrderDraft.toIntOrNull() ?: 1,
                                     )
                                     selectedAreaID = null
                                     areaNameDraft = ""
-                                    areaOrderDraft = "0"
+                                    areaOrderDraft = "1"
                                 },
                                 onResetAreaDraft = {
                                     selectedAreaID = null
                                     areaNameDraft = ""
-                                    areaOrderDraft = "0"
+                                    areaOrderDraft = "1"
                                 },
                                 onEditArea = { area ->
                                     selectedAreaID = area.id

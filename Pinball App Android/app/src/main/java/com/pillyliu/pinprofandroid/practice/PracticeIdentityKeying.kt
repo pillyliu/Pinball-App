@@ -10,7 +10,9 @@ import com.pillyliu.pinprofandroid.library.normalizedVariant
 import java.util.Locale
 
 internal val PinballGame.practiceKey: String
-    get() = practiceIdentity?.trim()?.takeIf { it.isNotBlank() } ?: slug
+    get() = practiceIdentity?.trim()?.takeIf { it.isNotBlank() }
+        ?: opdbGroupId?.trim()?.takeIf { it.isNotBlank() }
+        ?: slug
 
 private val PinballGame.lookupId: String
     get() = libraryEntryId?.trim()?.takeIf { it.isNotBlank() }

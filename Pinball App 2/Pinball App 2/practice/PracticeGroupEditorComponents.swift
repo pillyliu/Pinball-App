@@ -786,7 +786,7 @@ struct GroupGameSelectionScreen: View {
     }
 
     private var availableLibrarySources: [PinballLibrarySource] {
-        store.librarySources.isEmpty ? inferPracticeLibrarySourcesForGroupPicker(from: allLibraryGamesForPicker) : store.librarySources
+        store.librarySources.isEmpty ? libraryInferSources(from: allLibraryGamesForPicker) : store.librarySources
     }
 
     private var baseGamesForSelection: [PinballGame] {
@@ -894,17 +894,6 @@ struct GroupGameSelectionScreen: View {
         }
         return game.canonicalPracticeKey
     }
-}
-
-private func inferPracticeLibrarySourcesForGroupPicker(from games: [PinballGame]) -> [PinballLibrarySource] {
-    var seen = Set<String>()
-    var out: [PinballLibrarySource] = []
-    for game in games {
-        if seen.insert(game.sourceId).inserted {
-            out.append(PinballLibrarySource(id: game.sourceId, name: game.sourceName, type: game.sourceType))
-        }
-    }
-    return out
 }
 
 struct SelectedGameReorderDropDelegate: DropDelegate {

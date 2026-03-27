@@ -71,7 +71,6 @@ struct LeagueCard: View {
     }
 
     private func displayLPLPlayerName(_ raw: String) -> String {
-        _ = showFullLPLLastNames
-        return formatLPLPlayerNameForDisplay(raw)
+        formatLPLPlayerNameForDisplay(raw, showFullLastNames: showFullLPLLastNames)
     }
 }
