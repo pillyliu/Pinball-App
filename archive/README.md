@@ -81,3 +81,19 @@ Why this was archived:
 
 - it described the older iOS `2.0` milestone, not the current cross-platform `3.4.9` release line
 - the active release-facing docs are now `README.md`, `RELEASE_NOTES_3.4.9.md`, and `Pinball_App_Architecture_Blueprint_latest.md`
+
+## Archived on 2026-03-27 (Retired doc renderer)
+
+Folder:
+
+- `archive/2026-03-27-retired-scripts/`
+
+Archived today:
+
+- `scripts/render_architecture_pdf.py`
+
+Why this was archived:
+
+- the app repo now has one active architecture print-layout path: `scripts/generate_architecture_blueprint.sh` -> `scripts/render_mermaid_blocks.py` -> `scripts/render_architecture_pdf_upgraded.py`
+- the older `render_architecture_pdf.py` renderer did not support embedded Mermaid diagrams and no longer had active references outside historical review notes
+- keeping both renderers side-by-side made it look like the repo still supported two equally valid blueprint export paths

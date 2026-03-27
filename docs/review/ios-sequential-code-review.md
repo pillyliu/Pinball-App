@@ -1,0 +1,9001 @@
+# iOS Sequential Code Review
+
+This is a review log for the iOS app as it exists today, not a modernization plan.
+
+Goals:
+- inspect the iOS codebase in deterministic order
+- record what each file does
+- record what other code each file interacts with
+- surface hidden coupling, duplicated behavior, competing logic, and unused code
+- make only safe, behavior-preserving cleanup edits during the review unless a deeper fix is clearly justified
+- keep Android parity in view when a review finding affects shared behavior or naming
+
+Review rules:
+- audit order is folder-by-folder, then alphabetical within each folder
+- each file gets a responsibility summary, dependency map, findings, and recommended follow-up
+- code changes made during the review are logged in the same pass entry
+- anything that looks risky but not yet proven gets logged before it gets rewritten
+
+Current deterministic order:
+1. `app/`
+2. `ui/`
+3. `data/`
+4. `info/`
+5. `league/`
+6. `library/`
+7. `practice/`
+8. `gameroom/`
+9. `settings/`
+10. `targets/`
+11. `stats/`
+12. `standings/`
+13. `Pinball App 2Tests/`
+
+Status legend:
+- `reviewed`
+- `reviewing`
+- `queued`
+- `change made`
+- `follow-up`
+
+## Pass 001: App Shell
+
+Files in scope:
+- `Pinball App 2/Pinball App 2/app/Pinball_App_2App.swift`
+- `Pinball App 2/Pinball App 2/app/ContentView.swift`
+- `Pinball App 2/Pinball App 2/app/AppShakeCoordinator.swift`
+- `Pinball App 2/Pinball App 2/app/AppIntroOverlay.swift`
+- `Pinball App 2/Pinball App 2/app/PinballPerformanceTrace.swift`
+
+### `Pinball_App_2App.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- app entry point
+- reads persisted display-mode preference
+- boots the root shell
+- runs app-level startup refresh tasks
+- reruns selected refresh work when the scene becomes active
+
+Line map:
+- `10-17`: defines the `@main` app entry and resolves `AppDisplayMode` from `@AppStorage`
+- `19-28`: launches `ContentView`, applies the preferred color scheme, and runs initial async startup work
+- `29-36`: listens for `scenePhase` changes and reruns foreground refresh work on `.active`
+
+Primary interactions:
+- `ContentView.swift`: root shell view for the app window
+- `ui/AppTheme.swift`: `AppDisplayMode` and `preferredColorScheme`
+- `library/LibraryBuiltInSources.swift`: `migrateLegacyPinnedVenueImportsIfNeeded()`
+- `data/SharedCSV.swift`: `refreshRedactedPlayersFromCSV()`
+- `library/LibraryHostedData.swift`: `warmHostedCAFData()`
+- `data/PinballDataCache.swift`: `PinballDataCache.shared.refreshMetadataFromForeground()`
+
+Findings:
+- `follow-up`: startup work is partially duplicated. `migrateLegacyPinnedVenueImportsIfNeeded()` and `refreshRedactedPlayersFromCSV()` run once in the initial `.task` and then again on the first `.active` scene transition. That may be harmless, but it is hidden duplicate work at launch.
+- `follow-up`: the foreground refresh path uses an untracked `Task { ... }`. If scene phase flips rapidly, overlapping refresh jobs are possible.
+
+Recommended follow-up:
+- centralize startup and foreground refresh decisions behind one coordinator or one guarded bootstrap path
+- decide which work is initial-only, foreground-only, or safe to rerun
+
+Changes made in this pass:
+- none
+
+### `ContentView.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- defines the root tab contract
+- owns the app-level navigation environment object
+- owns app-wide shake warning overlay state
+- owns app intro visibility state and dismissal persistence
+- mounts the main `TabView`
+
+Line map:
+- `10-52`: `RootTab` defines the five root tabs, their labels, icons, and root views
+- `54-58`: `AppNavigationModel` stores selected tab state plus cross-feature library navigation state
+- `60-79`: `ContentView` owns root-scoped state, intro persistence, and one-launch intro visibility decisions
+- `81-112`: builds the tab shell, applies shared gestures, and renders the shake warning plus intro overlay
+
+Primary interactions:
+- `league/LeagueScreen.swift`
+- `library/LibraryScreen.swift`
+- `practice/PracticeScreen.swift`
+- `gameroom/GameRoomScreen.swift`
+- `settings/SettingsScreen.swift`
+- `ui/AppTheme.swift`: `dismissKeyboardOnTap()`
+- `ui/SharedGestures.swift`: `appShakeMotionHandler`
+- `app/AppShakeCoordinator.swift`
+- `app/AppIntroOverlay.swift`
+- `library/LibraryScreen.swift` and `library/LibraryListScreen.swift`: consume `libraryGameIDToOpen` and set `lastViewedLibraryGameID`
+- `practice/PracticeScreen.swift`, `practice/PracticeScreenDerivedData.swift`, and `practice/PracticeLifecycleHost.swift`: consume `lastViewedLibraryGameID`
+
+Findings:
+- `reviewed`: `Combine` looks visually unused at first glance, but it is still required in this target because `ObservableObject` and `@Published` do not compile here without the explicit import. The review initially tried removing it and the simulator build failed, so the import was restored.
+- `change made`: `AppNavigationModel.openLibraryGame(gameID:)` had no callers and was removed.
+- `follow-up`: `AppNavigationModel.selectedTab` currently has no programmatic writers after the dead helper was removed. The property is still valid for `TabView(selection:)`, but it may not need to live in a shared environment object unless another feature starts mutating tabs directly again.
+- `follow-up`: intro visibility is initialized from raw `UserDefaults` in `init()` while persistence later uses `@AppStorage`. The behavior is understandable, but the split storage access pattern is easy to forget when adjusting intro logic.
+
+Recommended follow-up:
+- keep `selectedTab` in the environment object only if cross-feature tab jumping is expected
+- if intro rules grow, move the launch-decision logic into a tiny dedicated type instead of leaving it inline in the shell view
+
+Changes made in this pass:
+- removed unused `openLibraryGame(gameID:)` helper
+
+### `AppShakeCoordinator.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines shake escalation levels and overlay copy
+- decides when fallback shake warnings should appear
+- suppresses fallback warnings when native undo should handle the shake
+- drives warning overlay state and haptics
+- renders the warning overlay and professor artwork fallback UI
+
+Line map:
+- `6-96`: `AppShakeWarningLevel` defines display text, art file names, colors, timing, and haptic delay per level
+- `98-175`: `AppShakeCoordinator` escalates warning levels, suppresses fallback when native undo is active, and clears the overlay after a timed delay
+- `177-321`: `AppShakeWarningHaptics` plays Core Haptics patterns with UIKit fallback
+- `323-431`: `AppShakeWarningOverlay` renders the warning presentation in portrait or landscape
+- `434-509`: professor artwork loading and fallback provider
+- `511-579`: font helper, emergency placeholder, and first-responder lookup helper
+
+Primary interactions:
+- `app/ContentView.swift`: owns `AppShakeCoordinator` and displays `AppShakeWarningOverlay`
+- `ui/SharedGestures.swift`: shake motion detection eventually calls `handleDetectedShake()`
+- `ui/AppTheme.swift`: shared theme colors used by artwork fallback UI
+- `library/LibraryResourceResolution.swift` and related library chrome indirectly provide `libraryMissingArtworkPath` and `loadCachedPinballData(...)` for bundled fallback artwork
+- `Pinball App 2Tests/AppShakeCoordinatorTests.swift`: verifies escalation timing and shared-motion tuning expectations
+
+Findings:
+- `follow-up`: `AppShakeProfessorArt` loads local artwork twice for the same level during one presentation path. It initializes state with `localImage(for:)` and then reruns `localImage(for:)` again inside `.task`.
+- `follow-up`: `AppShakeProfessorArtProvider.localImage(for:)` uses synchronous `Data(contentsOf:)` reads on the main actor and does not cache successful image loads.
+- `follow-up`: `artAssetName` is now only used by tests and the emergency placeholder copy. Actual image resolution is file-name based, so the naming contract is partly legacy.
+
+Recommended follow-up:
+- collapse the artwork load path to one read per level and cache the resulting `UIImage`
+- decide whether `artAssetName` is still part of the real contract or only a placeholder/debug detail
+
+Changes made in this pass:
+- none
+
+### `AppIntroOverlay.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- defines the intro-card content model
+- renders the full intro deck
+- owns the bundled artwork loader for intro assets
+- provides typography helpers and page-indicator chrome
+
+Line map:
+- `4-141`: intro enums and theme values define card metadata, quotes, accents, artwork names, and spotlight behavior
+- `143-204`: `AppIntroOverlay` renders the paged deck and final dismiss button
+- `206-576`: page composition, artwork frames, quote rendering, and professor spotlight UI
+- `578-607`: `AppIntroBundledArtProvider` resolves and caches bundled intro images
+- `610-624`: page indicators
+- `626-682`: font helpers
+
+Primary interactions:
+- `app/ContentView.swift`: shows the overlay and persists dismissal
+- `settings/SettingsScreen.swift`: toggles whether the intro should show again on next launch
+- `settings/SettingsHomeSections.swift`: reuses the bundled intro artwork loader for the About logo
+
+Findings:
+- `change made`: `AppIntroGhostButtonStyle` had no call sites and was removed.
+- `follow-up`: `AppIntroBundledArtProvider.image(named:)` still performs synchronous `Data(contentsOf:)` reads on first load. The `NSCache` avoids repeat cost, but first render still blocks on the main thread.
+- `follow-up`: `AppIntroBundledArtProvider` is no longer purely intro-local because `SettingsHomeSections.swift` reuses it for the About section logo. That cross-feature reuse is fine, but it means intro asset loading now has a hidden settings dependency.
+
+Recommended follow-up:
+- either keep the provider shared intentionally and rename it to match that wider role, or move the shared logo load path out of the intro file
+- consider switching initial image load to a less blocking path if more intro/settings media gets added
+
+Changes made in this pass:
+- removed unused `AppIntroGhostButtonStyle`
+
+### `PinballPerformanceTrace.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- wraps signpost timing
+- logs elapsed duration text for sync and async work
+- exposes a small common performance-instrumentation API
+
+Line map:
+- `4-6`: shared subsystem and logger definitions
+- `8-13`: interval value recorded by `begin`
+- `15-51`: start and stop helpers emit signposts and log duration text
+- `53-71`: sync and async `measure` wrappers
+
+Primary interactions:
+- `library/LibraryHostedData.swift`: hosted-data warmup timing
+- `practice/PracticeStore.swift`, `practice/PracticeStoreDataLoaders.swift`, `practice/PracticeStorePersistence.swift`, `practice/PracticeStoreLeagueHelpers.swift`, and `practice/PracticeHomeBootstrapSnapshot.swift`: practice bootstrap and load timing
+- Android parity file: `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/PinballPerformanceTrace.kt`
+
+Findings:
+- `follow-up`: the log message prefix is hard-coded as `practice_perf`, but the helper is already used outside Practice for hosted library warmup. The Android implementation mirrors the same naming mismatch, so this is a cross-platform observability debt item.
+
+Recommended follow-up:
+- rename the emitted log prefix to something feature-neutral on both platforms, or split Practice-specific logging from the generic performance helper
+
+Changes made in this pass:
+- none
+
+## Pass 001 summary
+
+Safe cleanup changes made:
+- removed an unused dead helper from `ContentView.swift`
+- removed an unused button style from `AppIntroOverlay.swift`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. reduce duplicate launch/foreground startup work in `Pinball_App_2App.swift`
+2. collapse and cache app-shake artwork loading in `AppShakeCoordinator.swift`
+3. decide whether intro artwork loading should remain in `AppIntroOverlay.swift` now that Settings reuses it
+4. rename the generic performance log prefix on both iOS and Android
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/ui/AppFilterControls.swift`
+- `Pinball App 2/Pinball App 2/ui/AppPresentationChrome.swift`
+- `Pinball App 2/Pinball App 2/ui/AppResourceChrome.swift`
+- `Pinball App 2/Pinball App 2/ui/AppTheme.swift`
+- `Pinball App 2/Pinball App 2/ui/AppToolbarActions.swift`
+
+## Pass 002: Shared UI Seams
+
+Files in scope:
+- `Pinball App 2/Pinball App 2/ui/AppToolbarActions.swift`
+- `Pinball App 2/Pinball App 2/ui/AppPresentationChrome.swift`
+- `Pinball App 2/Pinball App 2/ui/AppTheme.swift`
+- `Pinball App 2/Pinball App 2/ui/AppResourceChrome.swift`
+- `Pinball App 2/Pinball App 2/ui/AppFilterControls.swift`
+
+### `AppToolbarActions.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the shared toolbar button wrappers for `Cancel`, `Confirm`, and `Done`
+
+Primary interactions:
+- `practice/PracticeGameEntrySheets.swift`
+- `practice/PracticeGroupEditorComponents.swift`
+- `practice/PracticeJournalSettingsSections.swift`
+- `practice/PracticePresentationHost.swift`
+- `practice/PracticeQuickEntrySheet.swift`
+- `gameroom/GameRoomPresentationComponents.swift`
+
+Findings:
+- no dead code found
+- intentionally thin abstraction, but it is used widely enough to justify existing as a consistency seam
+
+Changes made in this pass:
+- none
+
+### `AppPresentationChrome.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the shared full-screen shell wrapper (`AppScreen`)
+- defines shared sheet presentation chrome
+- defines shared zoom-transition wiring
+
+Primary interactions:
+- root screens across League, Library, Practice, GameRoom, Settings, Targets, Standings, Stats, and About
+- presentation hosts in Practice and GameRoom
+
+Findings:
+- no dead code found
+- compact and cohesive; this is a healthy shared seam, not a cleanup hotspot
+
+Changes made in this pass:
+- none
+
+### `AppTheme.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- owns display-mode values
+- owns semantic color, spacing, shape, and typography tokens
+- owns shared layout heuristics and the global background/panel/control modifiers
+
+Primary interactions:
+- effectively all iOS feature folders
+- `app/Pinball_App_2App.swift` for display mode
+- `app/ContentView.swift` and `ui/AppPresentationChrome.swift` for shell behavior
+
+Findings:
+- `change made`: removed `appGlassControlStyle()`, which no longer had any call sites.
+- `follow-up`: this file exposes tokens through multiple access paths (`AppTheme.spacing` and `AppSpacing`, `AppTheme.shapes` and `AppRadii`). That works, but it expands the surface area of the design system and makes future cleanup harder.
+- `follow-up`: this file is still cohesive, but it mixes foundational tokens with concrete view modifiers. If it keeps growing, it should eventually split into `tokens` and `view modifiers` rather than one long theme file.
+
+Changes made in this pass:
+- removed unused `appGlassControlStyle()`
+
+### `AppResourceChrome.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- owns shared resource-chip button styles
+- owns shared resource-row and chip-wrap layout seams
+- owns shared variant, overlay, reading-progress, and media-placeholder helpers
+- owns shared video-tile chrome
+
+Primary interactions:
+- `library/LibraryDetailComponents.swift`
+- `library/RulesheetScreen.swift`
+- `library/PlayfieldScreen.swift`
+- `practice/PracticeVideoComponents.swift`
+- `gameroom/GameRoomHomeComponents.swift`
+- `gameroom/GameRoomMachineView.swift`
+- `app/AppShakeCoordinator.swift`
+
+Findings:
+- `change made`: removed `PinballOverlayMetadataBadge`, which no longer had any call sites.
+- `follow-up`: this file is a real shared seam, but it has also become a utility bucket for styles, layouts, overlay text, and placeholder states. It is still coherent around “resource/media chrome,” yet it is approaching the size where layout utilities and visual chrome may want separate files.
+- `follow-up`: `PinballResourceRowView` depends on custom layout types defined in the same file, which is fine for now, but it makes the file harder to skim linearly.
+
+Changes made in this pass:
+- removed unused `PinballOverlayMetadataBadge`
+
+### `AppFilterControls.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- owns shared press-feedback behavior
+- owns shared action-button styles
+- owns shared toolbar labels, dropdown labels, status chips, metric pills, and success banners
+
+Primary interactions:
+- used across Library, Practice, Settings, GameRoom, Stats, Standings, and Targets
+- `ui/AppResourceChrome.swift` also depends on `AppPressFeedbackButtonStyleBody`, so these two shared seam files are coupled
+
+Findings:
+- no dead code confirmed in the currently used controls after symbol tracing
+- this is a high-growth hotspot: one file now owns press-state behavior, multiple button families, toolbar labels, menu labels, status chips, metric chrome, and segmented-control styling
+- the file is still legitimate shared UI, but it is a prime candidate for future split-by-concern if it keeps accumulating helpers
+
+Changes made in this pass:
+- none
+
+## Pass 002 summary
+
+Safe cleanup changes made:
+- removed unused `appGlassControlStyle()` from `AppTheme.swift`
+- removed unused `PinballOverlayMetadataBadge` from `AppResourceChrome.swift`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. decide whether `AppTheme.swift` should stay as one combined token-plus-modifier file
+2. watch `AppFilterControls.swift` for further growth and split by concern before it turns into a second shared “misc” file
+3. watch `AppResourceChrome.swift` for further growth and split layout helpers from visual helpers if new resource/media variants are added
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/data/PinballDataCache.swift`
+- `Pinball App 2/Pinball App 2/data/SharedCSV.swift`
+
+## Pass 003: Data Foundations
+
+Files in scope:
+- `Pinball App 2/Pinball App 2/data/PinballDataCache.swift`
+- `Pinball App 2/Pinball App 2/data/SharedCSV.swift`
+
+### `PinballDataCache.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- owns the disk-cache root and hashed file layout for hosted pinball resources
+- seeds the app-shipped preload bundle into the cache on first load
+- refreshes remote cache metadata and update-log removals
+- serves text and binary hosted resources with stale-on-failure behavior
+- serves non-manifest remote images through a separate disk cache and background revalidation path
+- exposes nonisolated cached-file readers for callers that need synchronous local fallback access
+
+Line map:
+- `4-63`: preload manifest helpers, cache-path normalization, hashed file resolution, and synchronous local fallback reads
+- `65-171`: cache actor definition, concurrency limiter, manifest/update-log/index schemas, and actor state
+- `173-247`: public text-load, force-refresh, hosted-library refresh, cache-clear, and age-bounded load APIs
+- `249-343`: update checks, binary load path, remote-image fetches, and remote-image revalidation scheduling
+- `345-527`: hosted-resource revalidation, network fetch/write paths, cached-file reads, and metadata refresh
+- `529-619`: startup load, bundled preload seeding, and one-time legacy cache purge
+- `621-715`: best-effort foreground refresh, persistence, remote-image pruning, and manifest-cache eligibility
+
+Primary interactions:
+- `app/Pinball_App_2App.swift`: foreground metadata refresh
+- `app/AppShakeCoordinator.swift`: synchronous fallback-art reads via `loadCachedPinballData(path:)`
+- `library/LibraryHostedData.swift`: age-bounded hosted JSON loads and hosted-data warmup
+- `library/LibraryDataLoader.swift`: synchronous OPDB fallback reads
+- `library/PlayfieldScreen.swift` and `gameroom/GameRoomPresentationComponents.swift`: binary/image data loads
+- `settings/SettingsDataIntegration.swift`: force-refresh and clear-cache entry points
+- `league/LeaguePreviewLoader.swift`
+- `practice/PracticeStoreDataLoaders.swift`
+- `practice/PracticeStoreLeagueHelpers.swift`
+- `practice/PracticeStoreLeagueOps.swift`
+- `standings/StandingsScreen.swift`
+- `stats/StatsScreen.swift`
+- `targets/TargetsScreen.swift`
+
+Findings:
+- `change made`: removed unused `cachePinballData(path:data:)` and unused `cachedUpdatedAt(path:)`. A repo-wide caller search found no references to either helper.
+- `follow-up`: `clearAllCachedData()` clears disk state, but already-launched `Task.detached` revalidation jobs are not cancelled. Those background jobs can finish after a clear and silently repopulate `resources` or `remote-images`, which is competing behavior between the clear-cache action and the cache's own fire-and-forget maintenance work.
+- `follow-up`: update-log checkpointing currently stores `updateLog.events.first?.generatedAt` as the new scan marker. That assumes the server always returns newest-first ordering. Android's `PinballDataCache.kt` already computes the newest timestamp explicitly, so iOS is the more fragile side of the parity pair here.
+- `follow-up`: for `allowMissing` resources, `fetchBinaryFromNetwork` can mark a path missing purely because the refreshed manifest lacks the entry. That means manifest completeness, not just an actual `404`, is part of the runtime truth for optional league/library files.
+- `follow-up`: bundled preload fallback is split across two surfaces. The actor only serves seeded disk files, while `loadCachedPinballData(path:)` still falls back directly to bundle files. After a runtime cache clear, actor-based consumers and synchronous-helper consumers can temporarily see different offline behavior until the app relaunches or data refetches.
+
+Recommended follow-up:
+- add a generation or cancellation guard so clear-cache cannot be undone by outstanding background revalidation
+- compute the newest update-log timestamp explicitly on iOS, mirroring the more defensive Android implementation
+- decide whether optional hosted files should trust manifest absence immediately or only after a direct fetch confirms they are gone
+- decide whether bundled preload is a one-time bootstrap mechanism or a stable offline fallback contract, then make both access paths follow that same rule
+
+Changes made in this pass:
+- removed unused `cachePinballData(path:data:)`
+- removed unused `cachedUpdatedAt(path:)`
+
+### `SharedCSV.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- provides the shared CSV row parser used by league, standings, stats, and practice imports
+- provides shared header and season normalization helpers
+- owns LPL name-privacy keys and the client-side unlock gate
+- formats player names for display while applying redaction rules
+- refreshes the redacted-player set from hosted CSV data at app startup/foreground refresh
+
+Line map:
+- `4-30`: redaction constants, hosted redaction path alias, privacy keys, and the thread-safe redacted-player store
+- `32-110`: CSV row parsing plus header and season normalization helpers
+- `112-157`: display formatting, full-name unlock logic, redaction display helper, and hosted redaction refresh
+- `159-205`: name normalization, redaction token generation, and redacted-player CSV parsing
+
+Primary interactions:
+- `app/Pinball_App_2App.swift`: boot/foreground refresh of redacted-player data
+- `settings/SettingsHomeSections.swift`: unlock/full-name settings UI
+- `practice/PracticeScreenDerivedData.swift`: explicit redacted-name display
+- `practice/PracticeStoreDataLoaders.swift` and `practice/PracticeStoreLeagueHelpers.swift`: shared CSV parsing
+- `league/LeaguePreviewParsing.swift`
+- `standings/StandingsScreen.swift`
+- `stats/StatsScreen.swift`
+- `practice/PracticeScreenContexts.swift`, `practice/PracticeInsightsSection.swift`, `practice/PracticeJournalSettingsSections.swift`, `practice/PracticeStore.swift`, `league/LeagueTypes.swift`, `league/LeaguePreviewSections.swift`, and `league/LeagueCardPreviews.swift`: shared player-name display formatting
+
+Findings:
+- no dead code confirmed after tracing every public helper to current callers
+- `follow-up`: this file mixes three concerns that have grown together over time: generic CSV parsing, name-privacy preference policy, and live redaction-data refresh. Android already splits the analogous behavior across `Csv.kt` and `LplNamePrivacy.kt`, so iOS carries more hidden cross-feature coupling here than Android does.
+- `follow-up`: `formatLPLPlayerNameForDisplay` looks like a pure formatter at the call site, but it reads both `UserDefaults` and the global redacted-player store. That hides app-state dependencies inside render-time string formatting across Stats, Standings, League, and Practice.
+- `follow-up`: `LPLNamePrivacySettings.fullNamePassword` is hard-coded in the client and mirrored on Android. That keeps parity, but it means the feature is a convenience gate, not a security boundary.
+
+Recommended follow-up:
+- split iOS CSV parsing from LPL privacy policy so the file boundaries match the real responsibilities more closely
+- make the “show full last name” decision explicit at more call sites if clarity matters more than convenience
+- document the full-name unlock behavior as a product gate rather than a protected secret, unless a stronger server-backed control is intended later
+
+Changes made in this pass:
+- none
+
+## Pass 003 summary
+
+Safe cleanup changes made:
+- removed unused `cachePinballData(path:data:)` from `PinballDataCache.swift`
+- removed unused `cachedUpdatedAt(path:)` from `PinballDataCache.swift`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. prevent detached cache revalidation work from repopulating disk after a user-initiated cache clear
+2. mirror Android's more defensive update-log checkpointing on iOS
+3. decide whether manifest absence is enough to mark optional hosted files missing
+4. split `SharedCSV.swift` by concern before more privacy or parsing rules accumulate there
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/info/AboutScreen.swift`
+
+## Pass 004: Info
+
+Files in scope:
+- `Pinball App 2/Pinball App 2/info/AboutScreen.swift`
+- `Pinball App 2/Pinball App 2/info/LPLLogo.webp`
+
+### `AboutScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the reusable Lansing Pinball League logo view
+- defines the reusable Lansing Pinball League about-content block
+- wraps that content in a standalone screen for the root About route
+
+Line map:
+- `3-6`: external website and Facebook links
+- `8-20`: bundled LPL logo loading and image rendering
+- `22-114`: responsive About content layout, copy, external links, and width tracking
+- `116-125`: standalone screen wrapper
+
+Primary interactions:
+- `league/LeagueDestinationView.swift`: reuses `LPLAboutContent()` for the League tab's About destination
+- `league/LeagueShellContent.swift`: reuses `LPLLogoView`
+- `ui/AppPresentationChrome.swift`: `AppScreen`
+- shared theme/layout helpers such as `AppLayout`, `AppExternalLinkButtonLabel`, and `appReadableWidth`
+
+Findings:
+- no dead code found
+- `follow-up`: `LPLLogoView` reads `LPLLogo.webp` synchronously with `Data(contentsOf:)` and decodes it inline on the main thread every time the view is rebuilt. There is no cache or shared provider here.
+- `follow-up`: this file hard-codes time-sensitive league copy directly in SwiftUI view code. A live check against the official Lansing Pinball League site on March 26, 2026 shows the side-tournament finals are currently described there as top 4, while the in-app copy still says top 8 and anchors the schedule in more brittle prose. This is content drift hiding inside code.
+- `reviewed`: `LPLAboutContent` is intentionally reused between the standalone About screen and League navigation, so any copy or media change here affects both surfaces together.
+
+Recommended follow-up:
+- centralize or cache bundled LPL logo loading instead of decoding the asset inline in the view body path
+- move frequently changing league logistics out of hard-coded prose, or at least keep the copy in one explicitly maintained constant/model so seasonal updates are easier to spot
+
+Changes made in this pass:
+- none
+
+## Pass 004 summary
+
+Safe cleanup changes made:
+- none
+
+Verification:
+- no code changes in this pass; prior simulator build still applies
+
+Open follow-up items from this pass:
+1. cache or centralize `LPLLogo.webp` loading
+2. remove season-coupled or tournament-structure-coupled copy from `AboutScreen.swift`
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/league/LeagueCardPreviews.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueDestinationView.swift`
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewLoader.swift`
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewModel.swift`
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewParsing.swift`
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewRotationState.swift`
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewSections.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueScreen.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueShellContent.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueTypes.swift`
+
+## Pass 005: League
+
+Files in scope:
+- `Pinball App 2/Pinball App 2/league/LeagueCardPreviews.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueDestinationView.swift`
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewLoader.swift`
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewModel.swift`
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewParsing.swift`
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewRotationState.swift`
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewSections.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueScreen.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueShellContent.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueTypes.swift`
+
+### `LeagueCardPreviews.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the tappable preview cards for the League home screen
+- owns rotating preview state per card
+- formats the visible player label for preview stats cards
+
+Primary interactions:
+- `league/LeagueShellContent.swift`
+- `league/LeaguePreviewModel.swift`
+- `league/LeaguePreviewRotationState.swift`
+- `league/LeaguePreviewSections.swift`
+- `league/LeagueTypes.swift`
+- `data/SharedCSV.swift`
+
+Findings:
+- `follow-up`: `@AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey)` is only touched through `_ = showFullLPLLastNames` so SwiftUI invalidates when the preference changes. The actual formatting decision still happens inside `formatLPLPlayerNameForDisplay`, which means the dependency is intentionally hidden twice.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `LeagueDestinationView.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- routes each `LeagueDestination` to its full-screen destination view
+
+Primary interactions:
+- `stats/StatsScreen.swift`
+- `standings/StandingsScreen.swift`
+- `targets/TargetsScreen.swift`
+- `info/AboutScreen.swift`
+
+Findings:
+- no dead code found
+- intentionally small route seam; healthy as-is
+
+Changes made in this pass:
+- none
+
+### `LeaguePreviewLoader.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- loads the three preview data sources in parallel
+- resolves the preferred league player from Practice defaults
+- constructs the combined League home snapshot
+
+Primary interactions:
+- `data/PinballDataCache.swift`
+- `practice/PracticeStore.swift`
+- `league/LeaguePreviewParsing.swift`
+- `library/LibraryHostedData.swift` path constants
+
+Findings:
+- `follow-up`: one thrown fetch currently empties the whole League home snapshot because all three preview loads live inside one `do/catch` that falls back to `LeaguePreviewSnapshot()`. That creates cross-preview coupling between Targets, Standings, and Stats even though they are logically independent.
+- `follow-up`: the preferred-player source comes directly from `PracticeStore.loadPreferredLeaguePlayerNameFromDefaults()`, so the League home screen has an implicit dependency on Practice preference state.
+
+Changes made in this pass:
+- none
+
+### `LeaguePreviewModel.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- stores the League home preview snapshot for SwiftUI
+- exposes one notification-based refresh trigger for cross-feature updates
+
+Primary interactions:
+- `league/LeagueScreen.swift`
+- `stats/StatsScreen.swift`
+- `standings/StandingsScreen.swift`
+- `settings/SettingsDataIntegration.swift`
+
+Findings:
+- `follow-up`: preview refresh is coordinated through a global `NotificationCenter` notification. It works, but it is ambient coupling rather than an explicit dependency path, so refresh behavior is harder to trace from call sites.
+
+Changes made in this pass:
+- none
+
+### `LeaguePreviewParsing.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- parses standings and stats preview data
+- computes next-bank and around-you preview slices
+- normalizes names and dates for preview selection
+- defines the lightweight parsed-row payloads used by League previews
+
+Line map:
+- `3-14`: preview payload containers
+- `16-114`: standings/stats preview construction
+- `116-195`: standings/stats CSV parsing
+- `197-231`: next-bank resolution and preview-selection helpers
+- `233-285`: name normalization, around-you windowing, date formatter, and parsed row models
+
+Primary interactions:
+- `league/LeaguePreviewLoader.swift`
+- `data/SharedCSV.swift`
+
+Findings:
+- `change made`: removed unused `parseLeagueTargetRows(_:)`, which is a leftover from the older CSV-based target preview path. The current loader uses resolved JSON targets instead.
+- `change made`: removed unused `mergeLeagueTargetsWithLibrary(...)`, another leftover from the earlier target-preview shaping path.
+- `follow-up`: preview parsing now lives in a separate local pipeline rather than reusing full-screen Stats/Standings loaders, so CSV interpretation logic is duplicated across the League preview stack and the full feature screens.
+
+Changes made in this pass:
+- removed unused `parseLeagueTargetRows(_:)`
+- removed unused `mergeLeagueTargetsWithLibrary(...)`
+
+### `LeaguePreviewRotationState.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- rotates the preview metric shown in Targets
+- rotates the preview mode shown in Standings
+- rotates the preview value shown in Stats
+
+Primary interactions:
+- `league/LeagueCardPreviews.swift`
+
+Findings:
+- `follow-up`: the state object starts three separate 4-second timers that all live for the lifetime of the view model. That is simple, but it means three independent publishers and three separate invalidation streams for one small preview surface.
+
+Changes made in this pass:
+- none
+
+### `LeaguePreviewSections.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the preview tables/chips for Targets, Standings, and Stats
+
+Primary interactions:
+- `league/LeagueCardPreviews.swift`
+- `league/LeagueTypes.swift`
+- `data/SharedCSV.swift`
+- shared UI seams in `ui/AppFilterControls.swift` and `ui/AppTheme.swift`
+
+Findings:
+- `follow-up`: `StandingsPreview` repeats the same `_ = showFullLPLLastNames` invalidation pattern used by `LeagueCard`. That makes the preview UI depend on both `@AppStorage` and the global formatter side effect instead of one explicit formatting contract.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `LeagueScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- owns the League home preview model
+- mounts the League shell content inside the root navigation stack
+- listens for cross-feature preview refresh notifications
+
+Primary interactions:
+- `league/LeaguePreviewModel.swift`
+- `league/LeagueShellContent.swift`
+- `league/LeagueDestinationView.swift`
+
+Findings:
+- `follow-up`: `.onReceive` launches `Task { await previewModel.reload() }` for every notification without coalescing or cancellation. Rapid refresh notifications can overlap preview reload work.
+
+Changes made in this pass:
+- none
+
+### `LeagueShellContent.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- lays out the League home navigation cards
+- switches between portrait list and landscape grid presentation
+- owns the reusable footer link to the About destination
+
+Primary interactions:
+- `league/LeagueCardPreviews.swift`
+- `league/LeagueTypes.swift`
+- `info/AboutScreen.swift`
+
+Findings:
+- no dead code found
+- healthy shell file; most of the interesting complexity lives in preview content rather than layout
+
+Changes made in this pass:
+- none
+
+### `LeagueTypes.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- defines League destinations, preview modes, and preview row types
+- defines small number-formatting helpers used by the preview UI
+
+Primary interactions:
+- used throughout the entire `league/` folder
+- `data/SharedCSV.swift` for formatted player names
+
+Findings:
+- `change made`: removed unused `LeagueStandingsPreviewRow.displayPlayer`.
+- `follow-up`: the preview row types are intentionally lightweight, but name-display behavior still leaks in through `rawPlayer` plus the global formatter instead of one explicit presentation field.
+
+Changes made in this pass:
+- removed unused `LeagueStandingsPreviewRow.displayPlayer`
+
+## Pass 005 summary
+
+Safe cleanup changes made:
+- removed unused `parseLeagueTargetRows(_:)` from `LeaguePreviewParsing.swift`
+- removed unused `mergeLeagueTargetsWithLibrary(...)` from `LeaguePreviewParsing.swift`
+- removed unused `LeagueStandingsPreviewRow.displayPlayer` from `LeagueTypes.swift`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. make League preview loading degrade per source instead of blanking the whole home snapshot on one failure
+2. replace hidden `@AppStorage` invalidation hacks with a more explicit player-name formatting contract
+3. decide whether NotificationCenter is still the right refresh seam for League previews
+4. collapse the three preview-rotation timers if preview churn becomes noisy
+5. decide whether preview CSV parsing should intentionally stay separate from the full-screen loaders
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/library/LibraryActivityLog.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryBuiltInSources.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryContentLoading.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDataLoader.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDetailComponents.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDetailScreen.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDomain.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryGameLookup.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryHostedData.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryListScreen.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdown.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownParsing.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryPayloadParsing.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryResourceResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryScreen.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryVideoMetadata.swift`
+- `Pinball App 2/Pinball App 2/library/PlayfieldScreen.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetScreen.swift`
+
+## Pass 006: Library Foundations
+
+Files in scope:
+- `Pinball App 2/Pinball App 2/library/LibraryActivityLog.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryBuiltInSources.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryContentLoading.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDataLoader.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDetailComponents.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDetailScreen.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDomain.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryGameLookup.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryHostedData.swift`
+
+### `LibraryActivityLog.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- persists recent library interactions in `UserDefaults`
+- deduplicates bursty repeated events
+- exposes an in-memory cache plus revision number for consumers that need cheap refresh checks
+
+Primary interactions:
+- `library/LibraryScreen.swift`
+- `library/LibraryDetailComponents.swift`
+- `practice/PracticeStoreJournalHelpers.swift`
+- `practice/PracticeScreenContexts.swift`
+
+Findings:
+- `follow-up`: the static `cachedEvents` plus `revision` pair is a benign but implicit threading contract. The code assumes all callers are effectively on the main/UI side even though the type itself is not actor-isolated.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `LibraryBuiltInSources.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- defines canonical built-in venue IDs
+- normalizes legacy source aliases
+- describes built-in venue names
+- repairs old pinned Pinball Map venue references by importing them on demand
+
+Line map:
+- `3-21`: built-in IDs, alias map, display names, and default-enabled source list
+- `23-40`: legacy migration target definitions
+- `42-73`: canonicalization helpers and small built-in source list constructor
+- `75-115`: startup/foreground migration repair path for old pinned Pinball Map sources
+
+Primary interactions:
+- `app/Pinball_App_2App.swift`
+- `library/LibraryCatalogStore.swift`
+- `library/LibraryPayloadParsing.swift`
+- `settings/SettingsDataIntegration.swift`
+- `PinballMapClient`
+
+Findings:
+- `change made`: removed unused `builtinVenueSourceName(for:)`.
+- `change made`: removed unused `pinballMapLocationID(for:)`.
+- `follow-up`: `defaultBuiltinVenueSourceIDs` is intentionally empty. Built-in venue knowledge mostly exists now for aliasing, migration, and the special GameRoom source rather than for auto-enabled defaults.
+- `follow-up`: `migrateLegacyPinnedVenueImportsIfNeeded()` is legitimate repair logic, but it is still hidden app-shell work that runs outside Settings and outside Library proper.
+
+Changes made in this pass:
+- removed unused `builtinVenueSourceName(for:)`
+- removed unused `pinballMapLocationID(for:)`
+
+### `LibraryCatalogResolution.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- resolves imported catalog machines into app-level `PinballGame` rows
+- chooses preferred machines for manufacturer/group/variant lookups
+- normalizes variant labels and display titles
+- resolves imported rulesheet and video preference order
+
+Line map:
+- `3-72`: imported machine to `PinballGame` resolution
+- `75-123`: preferred-machine comparators
+- `125-222`: variant normalization and title/variant suffix interpretation
+- `224-690`: preferred-variant/source lookup helpers plus imported rulesheet/video merge rules
+
+Primary interactions:
+- `library/LibraryCatalogStore.swift`
+- `library/LibraryDataLoader.swift`
+- `practice/PracticeStoreDataLoaders.swift`
+
+Findings:
+- `reviewed`: `catalogPreferredGroupDefaultMachine(_:_ )` looks visually redundant next to `catalogPreferredManufacturerMachine(_:_ )`, but it is still live through practice/export decode in `LibraryCatalogStore.swift`. The review briefly removed it and the simulator build failed, so the comparator was restored.
+- `follow-up`: `catalogResolvedVariantLabel(title:explicitVariant:)` and `catalogResolvedDisplayTitle(title:explicitVariant:)` both parse the same parenthetical suffix shape. The behavior is correct, but the suffix-detection logic is duplicated.
+- no dead code found beyond the disproved comparator-removal assumption above
+
+Changes made in this pass:
+- none
+
+### `LibraryCatalogStore.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- persists source enable/pin/sort/bank state
+- persists imported external sources
+- posts the global Library source-change notification
+- decodes OPDB export payloads into multiple library/practice shapes
+- merges imported data, overrides, venue layout metadata, rulesheets, videos, and legacy overrides
+
+Line map:
+- `3-160`: library source-state model and persistence
+- `162-287`: source-change notification seam plus imported-source persistence
+- `289-1370`: decode and normalization helpers for imported records, OPDB export, venue metadata, and overrides
+- `1372-2313`: library/practice extraction builders, imported-source merge logic, and legacy override application
+
+Primary interactions:
+- `library/LibraryBuiltInSources.swift`
+- `library/LibraryCatalogResolution.swift`
+- `library/LibraryDataLoader.swift`
+- `library/LibraryDomain.swift`
+- `settings/SettingsDataIntegration.swift`
+- `practice/PracticeStoreDataLoaders.swift`
+
+Findings:
+- `change made`: removed unused `decodeCatalogManufacturerOptions(data:)`. The active callers already use `decodeCatalogManufacturerOptionsFromOPDBExport(data:)` directly.
+- `change made`: removed unused `decodePracticeCatalogGames(data:)`. The active callers already use `decodePracticeCatalogGamesFromOPDBExport(data:)` directly.
+- `change made`: replaced one remaining hard-coded `"venue--gameroom"` check with `gameRoomLibrarySourceID` so the special source contract now lives in one place.
+- `follow-up`: `loadBundledDefaults()` currently returns `[]`. That is a real code path, but it behaves as a placeholder hook rather than as meaningful bundled data today.
+- `follow-up`: the file owns both persistence and part of the global refresh contract. It posts `pinballLibrarySourcesDidChange` in some workflows, while other write paths rely on callers to post after mutations. That split makes refresh behavior harder to reason about.
+
+Changes made in this pass:
+- removed unused `decodeCatalogManufacturerOptions(data:)`
+- removed unused `decodePracticeCatalogGames(data:)`
+- replaced a hard-coded GameRoom source ID literal with `gameRoomLibrarySourceID`
+
+### `LibraryContentLoading.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- defines the small shared load-state enum for library markdown/resource loaders
+- loads local game-info markdown
+- loads local rulesheet markdown
+- falls back to remote rulesheet providers when local rulesheets are absent or broken
+
+Line map:
+- `5-22`: shared helper for first-available cached text loading
+- `24-66`: `PinballGameInfoViewModel`
+- `68-151`: `RulesheetScreenModel`
+
+Primary interactions:
+- `library/LibraryDetailScreen.swift`
+- `library/RulesheetScreen.swift`
+- `data/PinballDataCache.swift`
+- `library/RulesheetScreen.swift` remote loader types
+
+Findings:
+- `change made`: removed unused `PinballGameInfoViewModel.init(slug:)`.
+- `change made`: collapsed the duplicated local-path read loop into `libraryLoadFirstAvailableText(pathCandidates:)`.
+- `change made`: collapsed the duplicated external-rulesheet fallback block in `RulesheetScreenModel` into `loadExternalFallbackIfNeeded()`.
+- `follow-up`: both view models still mirror the same `didLoad` one-shot pattern and the same status transitions. That is reasonable now, but it is still a shared contract spread across two classes.
+
+Changes made in this pass:
+- removed unused `PinballGameInfoViewModel.init(slug:)`
+- added `libraryLoadFirstAvailableText(pathCandidates:)` to centralize local text loading
+- collapsed duplicate external rulesheet fallback logic in `RulesheetScreenModel`
+
+### `LibraryDataLoader.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- loads hosted CAF extraction inputs
+- builds library extraction data for Library and Practice
+- loads the practice catalog search set from hosted OPDB export
+- augments the public library extraction with locally persisted GameRoom machines
+
+Line map:
+- `3-46`: GameRoom OPDB/media support payloads
+- `48-111`: top-level library/practice extraction load functions
+- `113-306`: GameRoom augmentation and GameRoom row synthesis
+- `308-676`: GameRoom template/media matching and legacy catalog merge helpers
+
+Primary interactions:
+- `library/LibraryCatalogStore.swift`
+- `library/LibraryCatalogResolution.swift`
+- `library/LibraryHostedData.swift`
+- `gameroom/` persisted state codecs and store types
+- `practice/PracticeStoreDataLoaders.swift`
+
+Findings:
+- `change made`: removed the local duplicate `LibraryDataLoader.gameRoomLibrarySourceID` constant and switched this file to the shared `gameRoomLibrarySourceID`.
+- `follow-up`: this is a real cross-feature seam. Library extraction silently reaches into GameRoom persisted state and rehydrates those machines into the public catalog shape. That behavior is useful, but it is easy to miss when debugging data mismatches.
+- no dead code found
+
+Changes made in this pass:
+- centralized GameRoom source ID usage on `gameRoomLibrarySourceID`
+
+### `LibraryDetailComponents.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the library detail screenshot, summary, resource, video, and game-info cards
+- resolves live playfield options for a game
+- fetches lightweight YouTube metadata for the selected video
+- logs library activity events when resources are opened
+
+Primary interactions:
+- `library/LibraryResourceResolution.swift`
+- `library/PlayfieldScreen.swift`
+- `library/RulesheetScreen.swift`
+- `library/LibraryVideoMetadata.swift`
+- `library/LibraryActivityLog.swift`
+
+Findings:
+- `follow-up`: the detail surface is partly static and partly live-enriched. `LibraryLivePlayfieldStatusStore` and `YouTubeVideoMetadataService` both make extra network-backed decisions after the base `PinballGame` has already been loaded, which is easy to overlook if the detail UI looks like a pure render layer.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `LibraryDetailScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- thin detail wrapper that composes the screenshot, summary/resources, videos, and game-info cards
+- owns the one game-info loader instance for the current game
+
+Primary interactions:
+- `library/LibraryDetailComponents.swift`
+- `library/LibraryContentLoading.swift`
+
+Findings:
+- no dead code found
+- intentionally small composition seam; healthy as-is
+
+Changes made in this pass:
+- none
+
+### `LibraryDomain.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines library source types, search helpers, and sort options
+- owns the `PinballLibraryViewModel`
+- owns source selection, sort selection, pagination, and bank filter state
+- decodes `PinballGame` and exposes many display/resource helper properties
+
+Line map:
+- `3-71`: source/search/sort domain helpers
+- `73-351`: `PinballLibraryViewModel`
+- `353-764`: `PinballGame` decode model plus presentation helpers
+
+Primary interactions:
+- `library/LibraryPayloadParsing.swift`
+- `library/LibraryDataLoader.swift`
+- `library/LibraryCatalogStore.swift`
+- `library/LibraryResourceResolution.swift`
+- `library/LibraryScreen.swift`
+
+Findings:
+- `follow-up`: selected source persistence is duplicated. `selectSource(_:)` and `loadGames()` both write the raw `preferred-library-source-id` `UserDefaults` key and also write `PinballLibrarySourceState.selectedSourceID`. That is hidden dual persistence for one preference.
+- `follow-up`: `browsingState` pulls pinned source IDs from `PinballLibrarySourceStateStore.load()` every time the computed state is rebuilt. It works, but it means the view model is not the single owner of all browsing inputs.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `LibraryGameLookup.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- normalizes machine names
+- defines a tiny alias table for league/target matching
+- exposes candidate/equivalent key generation used by Practice-side machine resolution
+
+Primary interactions:
+- `practice/PracticeStoreLeagueHelpers.swift`
+- `practice/PracticeStoreDataLoaders.swift`
+- `practice/ResolvedLeagueMachineMappings.swift`
+
+Findings:
+- `change made`: removed unused `LibraryGameLookupEntry`.
+- `change made`: removed unused `buildEntries(games:)`.
+- `change made`: removed unused `bestMatch(gameName:entries:)`.
+- `change made`: removed unused `bestMatch(gameName:games:)`.
+- `change made`: removed now-dead helper `weightedOrder(index:group:position:)`.
+- `change made`: removed now-dead private `String.nilIfEmpty`.
+- `reviewed`: the remaining alias/normalization helpers are still live through Practice league resolution code, so the file is now much smaller but still very real.
+
+Changes made in this pass:
+- removed unused `LibraryGameLookupEntry`
+- removed unused `buildEntries(games:)`
+- removed unused `bestMatch(gameName:entries:)`
+- removed unused `bestMatch(gameName:games:)`
+- removed unused `weightedOrder(index:group:position:)`
+- removed unused private `String.nilIfEmpty`
+
+### `LibraryHostedData.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines hosted library/league asset paths
+- defines the hosted refresh target list
+- provides shared hosted JSON load helpers
+- warms hosted CAF data for app startup
+
+Primary interactions:
+- `app/Pinball_App_2App.swift`
+- `library/LibraryDataLoader.swift`
+- `library/LibraryCatalogStore.swift`
+- `league/LeaguePreviewLoader.swift`
+- `data/SharedCSV.swift`
+
+Findings:
+- `follow-up`: `warmHostedCAFData()` deliberately walks `hostedCAFDataPaths` serially inside one performance trace. That is fine for predictability, but it also means the warmup path is conservative rather than aggressive.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+## Pass 006 summary
+
+Safe cleanup changes made:
+- removed unused `builtinVenueSourceName(for:)` from `LibraryBuiltInSources.swift`
+- removed unused `pinballMapLocationID(for:)` from `LibraryBuiltInSources.swift`
+- removed unused `decodeCatalogManufacturerOptions(data:)` from `LibraryCatalogStore.swift`
+- removed unused `decodePracticeCatalogGames(data:)` from `LibraryCatalogStore.swift`
+- removed unused `PinballGameInfoViewModel.init(slug:)` from `LibraryContentLoading.swift`
+- collapsed duplicate local text loading in `LibraryContentLoading.swift`
+- collapsed duplicate external rulesheet fallback logic in `LibraryContentLoading.swift`
+- centralized GameRoom source ID usage in `LibraryDataLoader.swift`
+- removed unused lookup-entry matching helpers from `LibraryGameLookup.swift`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. decide whether Library source selection should persist in one place instead of both `preferred-library-source-id` and `PinballLibrarySourceState.selectedSourceID`
+2. decide whether `loadBundledDefaults()` should become real data or be removed as a placeholder seam
+3. document or isolate the hidden GameRoom-to-Library extraction bridge in `LibraryDataLoader.swift`
+4. decide whether `LibraryActivityLog` should stay implicitly single-threaded or move behind actor/main-actor isolation
+5. decide whether `catalogResolvedVariantLabel` and `catalogResolvedDisplayTitle` should share one parenthetical-suffix parser
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/library/LibraryListScreen.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdown.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownParsing.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryPayloadParsing.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryResourceResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryScreen.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryVideoMetadata.swift`
+- `Pinball App 2/Pinball App 2/library/PlayfieldScreen.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetScreen.swift`
+
+## Pass 007: Library Presentation And Media
+
+Files in scope:
+- `Pinball App 2/Pinball App 2/library/LibraryListScreen.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdown.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownParsing.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryPayloadParsing.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryResourceResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryScreen.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryVideoMetadata.swift`
+- `Pinball App 2/Pinball App 2/library/PlayfieldScreen.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetScreen.swift`
+
+### `LibraryListScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the Library source/sort/bank menus
+- renders grouped and ungrouped game-card grids
+- renders the card overlay title/manufacturer/location chrome
+- consumes pending library deep links when a target game exists
+
+Line map:
+- `4-64`: filter-menu sections
+- `67-126`: empty/loading/content shell
+- `128-219`: game card rendering, load-more trigger, and deep-link consumption
+- `221-341`: UIKit-backed attributed card-title label
+
+Primary interactions:
+- `library/LibraryScreen.swift`
+- `library/PlayfieldScreen.swift`
+- `library/LibraryResourceResolution.swift`
+
+Findings:
+- `follow-up`: `consumeLibraryDeepLink()` only clears `appNavigation.libraryGameIDToOpen` after the target game exists in the loaded data set. That is intentional, but it means navigation success is coupled to load timing and refresh timing rather than to one explicit routing coordinator.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `LibraryMarkdown.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- converts parsed markdown blocks into renderable document blocks
+- sanitizes inline HTML/markdown fragments
+- renders headings, paragraphs, lists, blockquotes, code, tables, and images
+- owns renderer-side regex helper extensions for inline transforms
+
+Primary interactions:
+- `library/LibraryMarkdownParsing.swift`
+- `library/PlayfieldScreen.swift`
+- `library/LibraryDetailComponents.swift`
+- `library/RulesheetScreen.swift`
+
+Findings:
+- `follow-up`: renderer-side regex helpers (`firstRegexCapture`, `firstRegexMatch`, transformed `replacingOccurrences`) overlap with similar capture helpers in `LibraryMarkdownParsing.swift`. The split works, but the mini regex utility surface is duplicated.
+- `follow-up`: markdown image rendering reuses `FallbackAsyncImageView`, so the markdown stack quietly depends on the library/practice/gameroom shared image-loading infrastructure.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `LibraryMarkdownParsing.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- parses markdown-ish text into the app’s custom `MarkdownBlock` model
+- handles headings, lists, tables, blockquotes, code fences, anchors, and raw HTML tables
+- owns parser-side regex helpers for HTML table extraction and image capture
+
+Primary interactions:
+- `library/LibraryMarkdown.swift`
+
+Findings:
+- `follow-up`: the parser duplicates a second set of regex helper utilities instead of sharing one internal utility layer with the renderer.
+- `reviewed`: the custom parser is still justified. It handles HTML table content and image cases that the built-in attributed-markdown parser would not cover cleanly by itself.
+
+Changes made in this pass:
+- none
+
+### `LibraryPayloadParsing.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- defines the lightweight library payload/source decode wrappers
+- normalizes source IDs and source types
+- computes Library browsing state, visible sources, sort options, filters, grouping, and sectioning
+
+Line map:
+- `3-31`: payload and source-payload decode wrappers
+- `33-78`: source-ID/type normalization helpers
+- `80-322`: browsing state and visible/sorted/sectioned game derivation
+
+Primary interactions:
+- `library/LibraryDomain.swift`
+- `library/LibraryBuiltInSources.swift`
+
+Findings:
+- `change made`: replaced the hard-coded GameRoom source ID literal in `visibleSources` with `gameRoomLibrarySourceID`.
+- `follow-up`: Library source visibility rules are split across this browsing-state type and `PinballLibraryViewModel`. The file owns pinned-source filtering and GameRoom source forcing, while the view model owns selection and persistence.
+- no dead code found
+
+Changes made in this pass:
+- centralized GameRoom source ID usage on `gameRoomLibrarySourceID`
+
+### `LibraryResourceResolution.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- normalizes library resource URLs and cache paths
+- classifies playfield and rulesheet source kinds
+- loads live PinProf playfield-status metadata
+- extends `PinballGame` with derived playfield/rulesheet/resource candidate logic
+
+Line map:
+- `3-14`: source-path constants and bundled-only exception IDs
+- `15-104`: live playfield status model and fetch store
+- `106-178`: URL/cache-path normalization helpers
+- `180-628`: `PinballGame` resource derivation and rulesheet source classification
+
+Primary interactions:
+- `library/LibraryDetailComponents.swift`
+- `library/PlayfieldScreen.swift`
+- `practice/PracticeVideoComponents.swift`
+- `gameroom/GameRoomPresentationComponents.swift`
+- `app/AppShakeCoordinator.swift`
+
+Findings:
+- `follow-up`: this is a high-coupling seam. Library, Practice, GameRoom, and the app-shake fallback art path all rely on this file for URL normalization or missing-artwork behavior.
+- `follow-up`: `LibraryLivePlayfieldStatusStore` performs live network reads but does not keep a durable cache or publish a refresh policy. Every consumer simply asks the actor for the current status and accepts `nil` on failure.
+- `follow-up`: bundled-only exception behavior is encoded as the hard-coded `libraryBundledOnlyAppGroupIDs` set. That is a real business rule, but it lives as code rather than as data/config.
+
+Changes made in this pass:
+- none
+
+### `LibraryScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- owns the Library root navigation stack
+- owns the Library view model and the card transition namespace
+- mounts search, filter, refresh, and navigation-destination wiring
+- logs browse events when a game detail screen opens
+
+Line map:
+- `3-46`: viewport/layout-derived card sizing
+- `47-127`: root shell, search/filter toolbar, refresh/deep-link triggers, and navigation destination
+
+Primary interactions:
+- `library/LibraryListScreen.swift`
+- `library/LibraryDomain.swift`
+- `library/LibraryDetailScreen.swift`
+- `library/LibraryCatalogStore.swift`
+- `app/ContentView.swift`
+- `library/LibraryActivityLog.swift`
+
+Findings:
+- `follow-up`: `.onReceive(NotificationCenter.default.publisher(for: .pinballLibrarySourcesDidChange))` launches an untracked `Task { ... }`. Rapid source-change notifications can overlap refresh work.
+- `follow-up`: deep-link consumption is intentionally retried from four separate triggers: initial `.task`, library-source change refresh, `appNavigation.libraryGameIDToOpen` changes, and `viewModel.games.count` changes. The behavior works, but the routing contract is spread out.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `LibraryVideoMetadata.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- fetches YouTube oEmbed metadata for selected videos
+- caches fetched metadata in memory for the current app session
+
+Primary interactions:
+- `library/LibraryDetailComponents.swift`
+
+Findings:
+- `follow-up`: cache lifetime is in-memory only and has no TTL/eviction policy beyond process lifetime. That is acceptable for this small use, but it is still an implicit caching contract.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `PlayfieldScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- provides the shared in-memory `UIImage` cache
+- renders fallback candidate-based async images with retry
+- renders fullscreen hosted-image viewing with zoom chrome
+- provides constrained image preview helpers reused outside Library
+
+Line map:
+- `5-41`: image layout mode enum and shared memory cache
+- `43-153`: candidate-based fallback async image loader view
+- `155-191`: content-mode view modifier
+- `193-458`: fullscreen hosted image viewer, shared async loader, preview, and zoomable UIKit bridge
+
+Primary interactions:
+- `library/LibraryListScreen.swift`
+- `library/LibraryDetailComponents.swift`
+- `library/LibraryMarkdown.swift`
+- `practice/PracticeHomeComponents.swift`
+- `practice/PracticeVideoComponents.swift`
+- `gameroom/GameRoomPresentationComponents.swift`
+- `settings/SettingsDataIntegration.swift`
+
+Findings:
+- `follow-up`: `FallbackAsyncImageView` and `RemoteUIImageLoader` both iterate candidate URLs, consult `RemoteUIImageMemoryCache`, and load remote images. They serve different UI shapes, but there is still duplicated candidate-load orchestration.
+- `follow-up`: `RemoteUIImageMemoryCache` is effectively shared infrastructure across Library, Practice, GameRoom, and Settings cache-clearing behavior. That is fine, but it is broader than the file name suggests.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `RulesheetScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the full-screen rulesheet reader
+- persists and restores per-rulesheet reading progress
+- hosts the custom WebKit-based markdown/HTML reader with anchor restoration
+- provides web fallback and remote rulesheet provider loading/caching
+
+Line map:
+- `6-220`: reader shell, progress persistence, and UI chrome
+- `236-1678`: WebKit renderer, viewport-anchor restore, HTML template generation, and fallback web view
+- `1680-1885`: render-content model, remote-source model, and remote rulesheet loader
+- `1887-2241`: remote fetch cleanup, cache implementation, and small string helpers
+
+Primary interactions:
+- `library/LibraryContentLoading.swift`
+- `library/LibraryDetailComponents.swift`
+- `practice/PracticeScreenRouteContent.swift`
+- `settings/SettingsDataIntegration.swift`
+
+Findings:
+- `follow-up`: this file is a major growth hotspot. View chrome, WKWebView coordination, HTML templating, provider-specific remote fetch cleanup, and remote caching all live together in one file.
+- `follow-up`: rulesheet reading progress is keyed by `slug` in `UserDefaults`, so Library and Practice implicitly share the same reading-progress history whenever they open the same rulesheet slug.
+- `reviewed`: the remote provider layer is real and still active. `RemoteRulesheetLoader`, `RulesheetRemoteSource`, and `RemoteRulesheetCache` are all in use by Library, Practice, and Settings cache-clearing.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+## Pass 007 summary
+
+Safe cleanup changes made:
+- centralized GameRoom source ID usage in `LibraryPayloadParsing.swift`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. decide whether Library deep-link handling should move behind one explicit coordinator instead of four retry triggers
+2. decide whether renderer/parser regex helpers should be shared between `LibraryMarkdown.swift` and `LibraryMarkdownParsing.swift`
+3. decide whether `LibraryLivePlayfieldStatusStore` needs an explicit caching policy or refresh strategy
+4. decide whether `FallbackAsyncImageView` and `RemoteUIImageLoader` should share one candidate-loading core
+5. split `RulesheetScreen.swift` if future growth continues, because it already owns reader UI, web bridge, provider parsing, and remote caching
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/CameraPreviewView.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeCatalogSearchSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeDialogHost.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeDisplayTitles.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeEntryGlassStyle.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameDropdownOrder.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameEntrySheets.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleHost.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGamePresentationContext.swift`
+
+## Pass 008: Practice Intake Seams
+
+Files in scope:
+- `Pinball App 2/Pinball App 2/practice/CameraPreviewView.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeCatalogSearchSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeDialogHost.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeDisplayTitles.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeEntryGlassStyle.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameDropdownOrder.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameEntrySheets.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameLifecycleHost.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGamePresentationContext.swift`
+
+### `CameraPreviewView.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- wraps `AVCaptureVideoPreviewLayer` in SwiftUI
+- hands the configured preview layer back to scanner flows once layout is ready
+
+Primary interactions:
+- `practice/ScoreScannerView.swift`
+- `practice/ScoreScannerCameraTestView.swift`
+
+Findings:
+- `follow-up`: `onPreviewLayerReady` can fire from both `updateUIView` and `layoutSubviews`. That is fine as long as callers treat it as an idempotent readiness callback rather than a one-shot event.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `PracticeCatalogSearchSupport.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines Practice catalog-search filters and result rows
+- builds the grouped game search index from library games
+- stores recent search selections in `UserDefaults`
+
+Line map:
+- `3-47`: search filter enums and filter state
+- `49-121`: `PracticeGameSearchIndex`
+- `123-142`: recent-search persistence
+- `144-219`: grouped search-result builders and manufacturer/year/type extraction helpers
+
+Primary interactions:
+- `practice/PracticeGameSearchSheet.swift`
+- `practice/PracticeDisplayTitles.swift`
+- `library/LibraryDomain.swift` search-token helpers
+
+Findings:
+- `follow-up`: Practice catalog search depends directly on `PinballGame` plus the library-side `normalizedSearchTokens` and `matchesSearchTokens` helpers. Search behavior is therefore partly owned by Library code even though the feature lives in Practice.
+- `follow-up`: machine-type filtering is inferred directly from raw OPDB fields (`opdbDisplay` and `opdbType`) instead of one shared machine-type normalization seam.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `PracticeDialogHost.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- wraps the Practice root content with lifecycle/reset-alert/presentation hosts
+- mounts Practice route destinations and sheet presentation
+- inserts the navigation interaction shield overlay
+
+Line map:
+- `4-6`: trivial root-content alias
+- `8-36`: route/sheet/reset/lifecycle host wiring
+- `38-54`: `PracticeGameWorkspace` construction and callback bridging
+
+Primary interactions:
+- `practice/PracticeScreen.swift`
+- `practice/PracticeLifecycleHost.swift`
+- `practice/PracticePresentationHost.swift`
+- `practice/PracticeGameWorkspace.swift`
+- `practice/PracticeScreenActions.swift`
+
+Findings:
+- `follow-up`: route wiring, sheet wiring, lifecycle wiring, and workspace callback bridging are all split across several small Practice seam files. The structure is intentionally modular, but navigation ownership is distributed rather than centered.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `PracticeDisplayTitles.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- chooses the preferred display title for grouped Practice games
+- strips trailing parenthetical suffixes from candidate names
+- ranks title candidates by frequency, then by shorter/lexicographically earlier preference
+
+Primary interactions:
+- `practice/PracticeCatalogSearchSupport.swift`
+- `practice/PracticeStore.swift`
+- `practice/PracticeGameToolbarMenu.swift`
+
+Findings:
+- `follow-up`: Practice maintains its own parenthetical-title cleanup logic instead of reusing Library’s `catalogResolvedDisplayTitle(...)`. The behaviors are related but not currently unified.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `PracticeEntryGlassStyle.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- provides the shared glass-card container for Practice entry sheets
+- provides the shared sheet-chrome modifier for Practice modal entry flows
+
+Primary interactions:
+- `practice/PracticeGamePresentationHost.swift`
+- `practice/PracticePresentationHost.swift`
+- `practice/PracticeQuickEntrySheet.swift`
+- `practice/PracticeGameEntrySheets.swift`
+
+Findings:
+- no dead code found
+- healthy styling seam; simple and intentionally shared
+
+Changes made in this pass:
+- none
+
+### `PracticeGameDropdownOrder.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- orders games for dropdown/picker presentation
+- optionally deduplicates grouped games by canonical practice identity
+
+Primary interactions:
+- `practice/PracticeGameLifecycleHost.swift`
+- `practice/PracticeHomeSection.swift`
+- `practice/PracticeQuickEntrySheet.swift`
+- `practice/PracticeScreenActions.swift`
+- `practice/PracticeGroupEditorComponents.swift`
+
+Findings:
+- `follow-up`: dropdown ordering is based on raw `game.name`, then `year`, then `canonicalPracticeKey`. That can differ slightly from the grouped display-title rules in `PracticeDisplayTitles.swift`, so picker ordering and search-result naming are not driven by exactly the same presentation logic.
+- no dead code found
+
+Changes made in this pass:
+- none
+
+### `PracticeGameEntrySheets.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- renders the score-entry sheet
+- renders the note-entry sheet
+- renders the rulesheet/video/playfield/practice task-entry sheet
+- validates and translates sheet input into `PracticeStore` mutations
+
+Line map:
+- `3-152`: score-entry sheet and score input formatter
+- `154-244`: note-entry sheet
+- `246-554`: task-entry sheet, shared field helpers, and save logic
+
+Primary interactions:
+- `practice/PracticeGamePresentationHost.swift`
+- `practice/PracticeStore.swift`
+- `practice/ScoreScannerView.swift`
+- `practice/PracticeVideoLoggingHelpers.swift`
+- `practice/PracticeTimePopoverField.swift`
+
+Findings:
+- `change made`: removed unused `selectedGame`.
+- `change made`: collapsed the repeated selected-video-source reset block into `syncSelectedVideoSource()`.
+- `follow-up`: `formatScoreInputWithCommas(_:)` is duplicated in `PracticeQuickEntrySheet.swift`, which means score-formatting behavior is already split across two Practice entry surfaces.
+- `follow-up`: this file is a clear growth hotspot. Three distinct sheet flows plus their inline save rules live together here.
+
+Changes made in this pass:
+- removed unused `selectedGame`
+- collapsed repeated selected-video-source reset logic into `syncSelectedVideoSource()`
+
+### `PracticeGameLifecycleContext.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- tiny dependency bag for `PracticeGameLifecycleHost`
+
+Primary interactions:
+- `practice/PracticeGameSection.swift`
+- `practice/PracticeGameLifecycleHost.swift`
+
+Findings:
+- no dead code found
+- intentional seam file; healthy as-is
+
+Changes made in this pass:
+- none
+
+### `PracticeGameLifecycleHost.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- bootstraps the selected Practice game when one is missing
+- syncs the per-game summary draft
+- syncs the active video fallback when game selection changes
+- schedules delayed browse logging into `PracticeStore`
+
+Line map:
+- `3-32`: on-appear/on-change lifecycle orchestration
+- `34-42`: selected-game sync into summary draft and optional viewed callback
+- `44-57`: delayed browse-log task scheduling
+
+Primary interactions:
+- `practice/PracticeGameLifecycleContext.swift`
+- `practice/PracticeGameDropdownOrder.swift`
+- `practice/PracticeStore.swift`
+- `practice/PracticeGameSection.swift`
+
+Findings:
+- `change made`: avoided duplicate initial sync work when the host bootstraps the first selected game on `.onAppear`. Before this cleanup, the bootstrap selection path could run `syncSelectedGame(...)` immediately and then again through `.onChange`.
+- `follow-up`: browse logging still relies on a delayed `Task` owned by view state. That is reasonable, but it is another ambient timing contract between UI lifecycle and store mutation.
+
+Changes made in this pass:
+- collapsed duplicate bootstrap-selection sync work on first appearance
+
+### `PracticeGamePresentationContext.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- tiny dependency bag for Practice game sheet presentation state
+
+Primary interactions:
+- `practice/PracticeGameSection.swift`
+- `practice/PracticeGamePresentationHost.swift`
+
+Findings:
+- no dead code found
+- intentional seam file; healthy as-is
+
+Changes made in this pass:
+- none
+
+## Pass 008 summary
+
+Safe cleanup changes made:
+- removed unused `selectedGame` from `PracticeGameEntrySheets.swift`
+- collapsed repeated selected-video-source reset logic in `PracticeGameEntrySheets.swift`
+- collapsed duplicate bootstrap-selection sync work in `PracticeGameLifecycleHost.swift`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. decide whether Practice display-title cleanup should share more logic with Library title normalization
+2. decide whether Practice machine-type search filters should rely on one normalized machine-type seam instead of raw OPDB fields
+3. collapse the duplicated `formatScoreInputWithCommas(_:)` helper when `PracticeQuickEntrySheet.swift` comes into scope
+4. split `PracticeGameEntrySheets.swift` if entry flow logic keeps growing
+5. decide whether delayed browse logging belongs in the lifecycle host or in store-level navigation semantics
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeGamePresentationHost.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameRouteBody.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameSearchSheet.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameSummaryComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameToolbarMenu.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameWorkspace.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceState.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceSubviews.swift`
+
+## Pass 009: Practice Workspace Navigation
+
+Files reviewed:
+- `Pinball App 2/Pinball App 2/practice/PracticeGamePresentationHost.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameRouteBody.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameSearchSheet.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameSection.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameSummaryComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameToolbarMenu.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameWorkspace.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceState.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameWorkspaceSubviews.swift`
+
+### `PracticeGamePresentationHost.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- central presentation seam for the game-specific Practice workspace
+- owns task-entry, score-entry, journal-edit, and delete-entry modal presentation
+- overlays the transient save banner above the workspace content
+
+Line map:
+- `3-48`: sheet, alert, overlay, and animation composition
+- `50-55`: delete-alert binding adapter
+- `57-68`: shared task-entry sheet builder
+
+Primary interactions:
+- `practice/PracticeGamePresentationContext.swift`
+- `practice/PracticeGameEntrySheets.swift`
+- `practice/PracticeJournalSettingsSections.swift`
+- `practice/PracticeGameSection.swift`
+
+Findings:
+- no dead code found
+- intentional presentation seam; healthy as-is
+- `follow-up`: this host is concise, but every new modal path still has to stay in lockstep with the state exposed by `PracticeGamePresentationContext`
+
+Changes made in this pass:
+- none
+
+### `PracticeGameRouteBody.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- renders the shared screenshot, segmented workspace card, and game-note shell around the selected Practice game
+- switches between the summary, input, study, and log subviews
+
+Line map:
+- `3-19`: game-workspace subview enum and labels
+- `21-57`: outer scroll layout and note-card composition
+- `59-93`: segmented workspace card and route switching
+
+Primary interactions:
+- `practice/PracticeGameSection.swift`
+- `practice/PracticeGameSummaryComponents.swift`
+- `practice/PracticeGameWorkspaceSubviews.swift`
+
+Findings:
+- `change made`: removed an unused `Foundation` import
+- no dead code found after cleanup
+
+Changes made in this pass:
+- removed the unused `Foundation` import
+
+### `PracticeGameSearchSheet.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- loads the full searchable game catalog for manual Practice selection
+- manages text filters, manufacturer suggestions, recent selections, and index rebuilds
+
+Line map:
+- `3-8`: sheet tab enum
+- `10-83`: local state and task-based loading/index orchestration
+- `85-176`: search tab UI and advanced filters
+- `178-190`: recent tab UI
+- `192-220`: result row rendering and search-index rebuild helper
+
+Primary interactions:
+- `practice/PracticeCatalogSearchSupport.swift`
+- `practice/PracticeDialogHost.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: `searchIndexRevision` rebuilds one large concatenated string from every searchable field to drive `.task(id:)`. That keeps invalidation deterministic, but it also turns indexing into a hidden cross-file contract with `PracticeGameSearchIndex(games:)`
+
+Changes made in this pass:
+- none
+
+### `PracticeGameSection.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- composition root for the selected-game Practice experience
+- wires lifecycle host, presentation host, route body, toolbar, and the log/input/summary/study subviews
+- owns transient save-banner and navigation-title state
+
+Line map:
+- `3-58`: derived dependency helpers and selected-game/video state
+- `60-79`: composed lifecycle and presentation tree
+- `81-95`: navigation and toolbar wiring
+- `97-134`: log, input, summary, and study subview builders
+- `136-148`: save-banner and navigation-title helpers
+
+Primary interactions:
+- `practice/PracticeGameLifecycleHost.swift`
+- `practice/PracticeGamePresentationHost.swift`
+- `practice/PracticeGameRouteBody.swift`
+- `practice/PracticeGameToolbarMenu.swift`
+- `practice/PracticeGameWorkspaceSubviews.swift`
+- `practice/PracticeVideoComponents.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: `showSaveBanner(_:)` clears UI state through an untracked delayed `Task`. The equality guard prevents most accidental clears, but the timing contract still lives in view state
+- `follow-up`: `syncNavigationTitle()` only runs when `selectedGameID` changes. If richer game data arrives later for the same selected ID, the visible title can stay on the caller-provided fallback until another selection event occurs
+
+Changes made in this pass:
+- none
+
+### `PracticeGameSummaryComponents.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- small chrome helpers for the game artwork preview and editable per-game note card
+
+Line map:
+- `3-29`: screenshot/artwork preview with empty placeholder
+- `31-58`: editable note card and save button
+
+Primary interactions:
+- `practice/PracticeGameRouteBody.swift`
+- `practice/PracticeGameSection.swift`
+
+Findings:
+- no dead code found
+- intentional small view seam; healthy as-is
+
+Changes made in this pass:
+- none
+
+### `PracticeGameToolbarMenu.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- renders the Practice top-bar menu for source filtering and direct game selection
+- keeps the selected game stable when the active Practice source changes
+
+Line map:
+- `3-13`: available library-source resolution
+- `15-18`: ordered dropdown game options
+- `20-50`: menu composition
+- `52-61`: source-selection application and selected-game fallback
+
+Primary interactions:
+- `practice/PracticeStore.swift`
+- `practice/PracticeGameDropdownOrder.swift`
+- `practice/PracticeDisplayTitles.swift`
+- `library/LibraryPayloadParsing.swift`
+
+Findings:
+- `change made`: removed the local duplicate source-inference helper and reused the shared `libraryInferSources(from:)` helper from the Library layer
+- `follow-up`: when `store.librarySources` is empty, this menu silently derives source filters from whatever game list is currently available. That fallback is useful, but it is also a hidden Practice-to-Library coupling seam
+
+Changes made in this pass:
+- replaced the local duplicate source-inference logic with shared `libraryInferSources(from:)`
+
+### `PracticeGameWorkspace.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- thin wrapper that converts the selected-game Practice dependencies into `PracticeGameWorkspaceContext`
+- renders `PracticeGameSection`
+
+Line map:
+- `3-20`: dependency capture and context construction
+- `22-24`: section rendering
+
+Primary interactions:
+- `practice/PracticeDialogHost.swift`
+- `practice/PracticeGameWorkspaceContext.swift`
+- `practice/PracticeGameSection.swift`
+
+Findings:
+- `change made`: removed unused `onOpenPlayfield`, `onPrepareRulesheet`, `onPrepareExternalRulesheet`, and `onPreparePlayfield` parameters. This wrapper was forwarding dead closures that nothing in the reviewed workspace path consumed
+- now that the dead forwarding is gone, this file is a clean seam again
+
+Changes made in this pass:
+- removed four unused forwarded workspace parameters
+
+### `PracticeGameWorkspaceContext.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- minimal dependency bag for `PracticeGameSection`
+
+Line map:
+- `3-10`: stored dependencies and callbacks
+
+Primary interactions:
+- `practice/PracticeGameWorkspace.swift`
+- `practice/PracticeGameSection.swift`
+
+Findings:
+- `change made`: removed unused playfield-opening and rulesheet/playfield-preparation closures that were no longer consumed by `PracticeGameSection`
+- this is now a tighter representation of the actual game-workspace dependency surface
+
+Changes made in this pass:
+- removed dead unused closure fields from the workspace context
+
+### `PracticeGameWorkspaceState.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- local UI state bag for the selected-game Practice workspace
+
+Primary interactions:
+- `practice/PracticeGameSection.swift`
+- `practice/PracticeGamePresentationHost.swift`
+- `practice/PracticeGameRouteBody.swift`
+
+Findings:
+- no dead code found
+- intentional state seam; healthy as-is
+
+Changes made in this pass:
+- none
+
+### `PracticeGameWorkspaceSubviews.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- contains the selected-game log panel, task-input panel, and summary dashboard panel
+- owns score-stat formatting, next-action guidance, alert rendering, and embedded list sizing
+
+Line map:
+- `3-71`: log panel and editable row handling
+- `73-109`: task-input shortcuts
+- `111-321`: summary dashboard, stat helpers, and coaching heuristics
+- `323-328`: shortcut model
+
+Primary interactions:
+- `practice/PracticeStore.swift`
+- `practice/PracticeGameSection.swift`
+- `practice/PracticeJournalSummaryStyling.swift`
+- `practice/PracticeModels.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: this is more than a subviews bucket. `nextAction(gameID:)`, `scoreStats(for:)`, consistency guidance, and alert coloring make it a real behavior owner
+- `follow-up`: `formatScore(_:)` creates a fresh `NumberFormatter` on each call while the summary panel renders. That is not wrong, but it is avoidable formatting churn inside a frequently recomputed view
+
+Changes made in this pass:
+- none
+
+### Related cleanup: `PracticeDialogHost.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- Practice route host that wires navigation destinations and shared presentation around the overall Practice screen
+
+Primary interactions:
+- `practice/PracticeGameWorkspace.swift`
+- `practice/PracticeScreen.swift`
+
+Findings:
+- `change made`: removed dead forwarding of `onOpenPlayfield`, `onPrepareRulesheet`, `onPrepareExternalRulesheet`, and `onPreparePlayfield` into `PracticeGameWorkspace(...)`. The reviewed workspace path no longer consumed those closures at all
+
+Changes made in this pass:
+- removed unused workspace-closure forwarding from `practiceGameWorkspace(gameID:navigationTitle:)`
+
+## Pass 009 summary
+
+Safe cleanup changes made:
+- removed the unused `Foundation` import from `PracticeGameRouteBody.swift`
+- removed the local duplicate source-inference helper from `PracticeGameToolbarMenu.swift`
+- removed dead forwarded playfield/rulesheet-preparation closures from `PracticeDialogHost.swift`
+- removed the corresponding unused parameters from `PracticeGameWorkspace.swift`
+- removed the corresponding unused fields from `PracticeGameWorkspaceContext.swift`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. decide whether `PracticeGameSearchSheet.swift` should invalidate its search index with a cheaper explicit revision signal instead of the concatenated all-fields string
+2. decide whether `PracticeGameSection.swift` should resync its navigation title when selected-game data changes without an ID change
+3. decide whether `PracticeGameWorkspaceSubviews.swift` should move coaching/stat heuristics into a dedicated Practice summary seam
+4. collapse repeated score-formatting behavior when `PracticeQuickEntrySheet.swift` comes into scope
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupEditorComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeBootstrapIntegration.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeBootstrapSnapshot.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeHost.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeRootView.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeSection.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeWidgets.swift`
+
+## Pass 010: Practice Groups And Home Bootstrap
+
+Files reviewed:
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupEditorComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeBootstrapIntegration.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeBootstrapSnapshot.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeHost.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeRootView.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeSection.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeWidgets.swift`
+
+### `PracticeGroupDashboardContext.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- tiny dependency bag for the Practice group dashboard route
+
+Line map:
+- `3-10`: stored group-dashboard dependencies and callbacks
+
+Primary interactions:
+- `practice/PracticeScreenContexts.swift`
+- `practice/PracticeScreenRouteContent.swift`
+- `practice/PracticeGroupDashboardSection.swift`
+
+Findings:
+- no dead code found
+- intentional seam file; healthy as-is
+
+Changes made in this pass:
+- none
+
+### `PracticeGroupDashboardSection.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- renders the selected-group dashboard summary, dashboard snapshots, and editable group list
+- owns inline date-popover editing and selected-group detail loading
+
+Line map:
+- `3-108`: selected-group dashboard summary and async detail loading trigger
+- `110-212`: group list card and embedded swipeable rows
+- `214-258`: inline start/end date popover calendar
+- `261-334`: formatting helpers, dashboard task key, and detail-loading helpers
+- `336-439`: swipeable group row chrome and actions
+
+Primary interactions:
+- `practice/PracticeGroupDashboardContext.swift`
+- `practice/PracticeScreenRouteContent.swift`
+- `practice/PracticeStore.swift`
+- `practice/PracticeGroupEditorComponents.swift`
+
+Findings:
+- `change made`: removed a duplicate `DateFormatter` and reused the existing `groupDateFormatter`
+- `follow-up`: `selectedGroupDashboardTaskKey` only tracks group ID, game IDs, and group start/end dates. Practice progress, scores, and journal changes do not invalidate the async dashboard detail load, so the dashboard can silently lag behind live data until another group-shape change occurs
+- `follow-up`: `progressSummary(taskProgress:)` duplicates the same task-label summary concept already present in other Practice surfaces
+
+Changes made in this pass:
+- removed the duplicate short dashboard date formatter
+
+### `PracticeGroupEditorComponents.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- contains the group progress wheel, the full group editor screen, the title picker, drag/drop reorder delegates, and the adaptive popover helper
+
+Line map:
+- `5-61`: `GroupProgressWheel`
+- `63-82`: template and date enums
+- `84-773`: `GroupEditorScreen` and its editor/save/template/date helpers
+- `775-897`: `GroupGameSelectionScreen`
+- `899-1055`: drag/drop delegates and adaptive popover support
+
+Primary interactions:
+- `practice/PracticeStore.swift`
+- `practice/PracticeHomeComponents.swift`
+- `practice/PracticeCatalogSearchSupport.swift`
+- `library/LibraryPayloadParsing.swift`
+
+Findings:
+- `change made`: removed the duplicate local library-source inference helper from the group picker and reused shared `libraryInferSources(from:)`
+- `follow-up`: this file is now over 1,000 lines and owns several unrelated concerns. It is a clear growth hotspot and a good future split candidate
+- `follow-up`: `GroupGameSelectionScreen` still depends on `quickEntryAllGamesLibraryID`, which is a hidden cross-feature coupling between group editing and quick-entry source-filter semantics
+
+Changes made in this pass:
+- replaced the group-picker duplicate source-inference helper with shared `libraryInferSources(from:)`
+
+### `PracticeHomeBootstrapIntegration.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- owns async home bootstrap restoration, bootstrap snapshot saving, and the lookup-game pool used by fast home resume
+
+Line map:
+- `3-13`: async bootstrap restoration
+- `15-32`: applying a bootstrap snapshot into `PracticeStore`
+- `34-52`: save/build snapshot flow
+- `54-73`: lookup-game pool construction
+
+Primary interactions:
+- `practice/PracticeStore.swift`
+- `practice/PracticeHomeBootstrapSnapshot.swift`
+- `practice/PracticeScreenActions.swift`
+
+Findings:
+- `change made`: removed the unused synchronous `restoreHomeBootstrapSnapshotIfAvailable()` helper. The async restore path is the live one
+- `follow-up`: `applyHomeBootstrapSnapshot(_:)` starts from `PracticePersistedState.empty` and restores only a subset of Practice state. Any new bootstrap-critical fields now have to be remembered in two places
+- `follow-up`: `currentHomeBootstrapLookupGames()` is a hidden cross-feature seam. It mixes visible games, full library games, search catalog games, bank template games, and the last-viewed resume candidate into one deduplicated lookup pool
+
+Changes made in this pass:
+- removed the unused synchronous bootstrap-restore helper
+
+### `PracticeHomeBootstrapSnapshot.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the home bootstrap snapshot schema
+- loads and saves the snapshot on disk
+- rehydrates a minimal `PinballGame` from snapshot payload data
+
+Line map:
+- `3-99`: snapshot schema and nested `Source` / `Game` payloads
+- `101-178`: snapshot store load/save helpers
+- `180-223`: `PinballGame` snapshot initializer
+
+Primary interactions:
+- `practice/PracticeHomeBootstrapIntegration.swift`
+- `practice/PracticeStore.swift`
+- `app/PinballPerformanceTrace.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: the snapshot schema duplicates a large slice of `PinballGame`. That is practical for fast bootstrap, but it is also a drift risk any time the live model changes
+- `follow-up`: `loadFileURL()` and `saveFileURL()` are intentionally separate because save needs directory creation, but the path-building logic is still duplicated
+
+Changes made in this pass:
+- none
+
+### `PracticeHomeComponents.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- home-card chrome for selected games and the shared artwork background layer
+
+Line map:
+- `3-29`: selected-game mini card
+- `31-58`: resume card
+- `60-84`: shared mini-card title band
+- `86-119`: shared card background image layer
+
+Primary interactions:
+- `practice/PracticeHomeSection.swift`
+- `library/LibraryResourceResolution.swift`
+
+Findings:
+- no dead code found
+- intentional presentation helper file; healthy as-is
+
+Changes made in this pass:
+- none
+
+### `PracticeHomeContext.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- dependency bag for the Practice home route and its related search/bootstrap callbacks
+
+Line map:
+- `3-29`: stored home-route data and callbacks
+
+Primary interactions:
+- `practice/PracticeScreenContexts.swift`
+- `practice/PracticeHomeHost.swift`
+- `practice/PracticeScreenRouteContent.swift`
+
+Findings:
+- no dead code found
+- `note`: `searchGames` remains live even though `PracticeHomeRootView` no longer uses it, because the Practice search route still reads it from this context
+
+Changes made in this pass:
+- none
+
+### `PracticeHomeHost.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- adapter from `PracticeScreen` state into `PracticeHomeRootView`
+- reports viewport height changes back into `PracticeScreen` state
+
+Line map:
+- `3-70`: root-view wiring and viewport-height background measurement
+
+Primary interactions:
+- `practice/PracticeScreen.swift`
+- `practice/PracticeHomeContext.swift`
+- `practice/PracticeHomeRootView.swift`
+
+Findings:
+- `change made`: removed unused `searchGames` forwarding into `PracticeHomeRootView`
+- healthy thin adapter after cleanup
+
+Changes made in this pass:
+- removed unused `searchGames` forwarding
+
+### `PracticeHomeRootView.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- renders the Practice home root, including bootstrapping overlays, greeting chrome, the home section, hub cards, and the welcome prompt overlay
+
+Line map:
+- `3-114`: root home layout and overlays
+- `116-136`: greeting header logic
+
+Primary interactions:
+- `practice/PracticeHomeHost.swift`
+- `practice/PracticeHomeSection.swift`
+- `practice/PracticeHomeWidgets.swift`
+
+Findings:
+- `change made`: removed unused `searchGames` input
+- no dead code found after cleanup
+
+Changes made in this pass:
+- removed the unused `searchGames` property
+
+### `PracticeHomeSection.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- renders the resume card, library/game menus, quick-entry actions, active-group carousels, and the welcome overlay
+
+Line map:
+- `3-173`: home section, source/game menus, quick-entry actions, and active-group rows
+- `175-181`: resume-control preference key
+- `183-256`: welcome overlay
+
+Primary interactions:
+- `practice/PracticeHomeComponents.swift`
+- `practice/PracticeScreenContexts.swift`
+- `practice/PracticeGroupEditorComponents.swift`
+
+Findings:
+- `change made`: promoted `practiceHomeAllGamesSourceMenuID` into a shared module constant so the home menu and `PracticeScreenContexts.swift` now use the same source-filter sentinel instead of a private constant plus a raw string literal
+- `follow-up`: the `Game List` menu still labels entries with `listGame.name`, which may eventually drift from any shared Practice display-title normalization the app adopts elsewhere
+
+Changes made in this pass:
+- shared the home "All games" source sentinel across files
+
+### `PracticeHomeWidgets.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- small dashboard card used for Practice hub destinations
+
+Line map:
+- `3-29`: hub mini-card chrome
+
+Primary interactions:
+- `practice/PracticeHomeRootView.swift`
+- `practice/PracticeModels.swift`
+
+Findings:
+- no dead code found
+- intentional presentation seam; healthy as-is
+
+Changes made in this pass:
+- none
+
+### Related cleanup: `PracticeScreenContexts.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- constructs route-specific dependency bags for the Practice screen
+
+Primary interactions:
+- `practice/PracticeHomeContext.swift`
+- `practice/PracticeHomeSection.swift`
+
+Findings:
+- `change made`: replaced the raw `"__practice_home_all_games__"` literal with shared `practiceHomeAllGamesSourceMenuID`, eliminating a hidden cross-file sentinel duplication
+
+Changes made in this pass:
+- switched home source-filter normalization to the shared constant
+
+## Pass 010 summary
+
+Safe cleanup changes made:
+- removed the unused synchronous bootstrap-restore helper from `PracticeHomeBootstrapIntegration.swift`
+- removed unused `searchGames` forwarding from `PracticeHomeHost.swift`
+- removed the unused `searchGames` property from `PracticeHomeRootView.swift`
+- shared the home "All games" source sentinel between `PracticeHomeSection.swift` and `PracticeScreenContexts.swift`
+- removed the duplicate group-picker source-inference helper from `PracticeGroupEditorComponents.swift`
+- removed the duplicate date formatter from `PracticeGroupDashboardSection.swift`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. decide whether `PracticeGroupDashboardSection.swift` should invalidate dashboard detail loads when practice progress or scores change, not just when group metadata changes
+2. split `PracticeGroupEditorComponents.swift` into smaller seams so group CRUD, title picking, drag/drop, and adaptive popover logic stop growing in one file
+3. decide whether the home bootstrap snapshot should share more schema or mapping logic with the live `PinballGame` and persisted Practice state models to reduce drift risk
+4. decide whether `PracticeHomeSection.swift` should use the same normalized display-title seam as other Practice selection surfaces
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeIFPAProfileScreen.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeIdentityKeying.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeInsightsContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeInsightsSection.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeInsightsWidgets.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSummaryStyling.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeLifecycleContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeLifecycleHost.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeMechanicsContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeMechanicsSection.swift`
+
+## Pass 011: Practice Identity, Insights, Journal, And Lifecycle
+
+Files reviewed:
+- `Pinball App 2/Pinball App 2/practice/PracticeIFPAProfileScreen.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeIdentityKeying.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeInsightsContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeInsightsSection.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeInsightsWidgets.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSummaryStyling.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeLifecycleContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeLifecycleHost.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeMechanicsContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeMechanicsSection.swift`
+
+### `PracticeIFPAProfileScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the Practice IFPA profile screen
+- fetches and parses the public IFPA player page into a lightweight local profile model
+
+Line map:
+- `4-26`: IFPA profile and recent-tournament models
+- `28-58`: screen state and load trigger
+- `60-78`: missing-ID and retry/error cards
+- `80-227`: profile content and screen-level loading helpers
+- `230-393`: public IFPA fetch/parsing service
+- `395-413`: IFPA error surface
+- `415-437`: HTML cleanup/slicing string helpers
+
+Primary interactions:
+- `practice/PracticeHomeRootView.swift`
+- `practice/PracticeJournalSettingsSections.swift`
+- `practice/PracticeScreenRouteContent.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: this file scrapes live HTML from the public IFPA site with regexes. That is workable, but it is a brittle contract: any markup change can break parsing immediately
+- `follow-up`: the screen owns network fetch, parse rules, and presentation in one file, so correctness changes and UI changes are tightly coupled
+
+Changes made in this pass:
+- none
+
+### `PracticeIdentityKeying.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- defines canonical Practice IDs, source-scoped Practice IDs, representative-game selection, and state/default migration toward canonical IDs
+
+Line map:
+- `3-64`: canonical key helpers, source-scoped ID helpers, and representative scoring
+- `66-140`: lookup pools, canonical ID resolution, and `gameForAnyID(_:)`
+- `143-163`: deduped Practice-game list and migration entrypoint
+- `166-273`: state/default migration and legacy key matching
+- `275-279`: small string helper
+
+Primary interactions:
+- `practice/PracticeStore.swift`
+- `practice/PracticeScreenActions.swift`
+- `practice/PracticeGroupEditorComponents.swift`
+- `practice/PracticeGameToolbarMenu.swift`
+
+Findings:
+- `change made`: removed the dead alias layer from canonical Practice ID resolution. `practiceIdentityAliases` was an empty dictionary, so that branch no longer carried any real behavior
+- `follow-up`: canonical ID resolution depends on several lookup pools (`allLibraryGames`, `searchCatalogGames`, `bankTemplateGames`, `leagueCatalogGames`). That makes this file a real cross-feature identity seam, not just a utility
+
+Changes made in this pass:
+- removed the empty alias dictionary and simplified canonical ID resolution accordingly
+
+### `PracticeInsightsContext.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- dependency bag for the Practice insights route
+
+Line map:
+- `3-19`: stored insight data, bindings, and async refresh callbacks
+
+Primary interactions:
+- `practice/PracticeScreenContexts.swift`
+- `practice/PracticeInsightsSection.swift`
+
+Findings:
+- no dead code found
+- intentional seam file; healthy as-is
+
+Changes made in this pass:
+- none
+
+### `PracticeInsightsSection.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- renders score stats, sparkline trends, and head-to-head comparison for the selected Practice game and opponent
+
+Line map:
+- `3-37`: selected-game helpers and route state
+- `38-148`: stats card, head-to-head card, and async refresh tasks
+- `150-199`: game and opponent dropdowns
+- `201-221`: privacy-display, chart-height, and score-format helpers
+
+Primary interactions:
+- `practice/PracticeInsightsContext.swift`
+- `practice/PracticeInsightsWidgets.swift`
+- `practice/PracticeStore.swift`
+
+Findings:
+- `change made`: replaced the local whole-score formatter duplication with shared `formatPracticeWholeScoreDisplay(_:)`
+- `follow-up`: this view still relies on the `_ = showFullLPLLastNames` invalidation trick to react to last-name privacy changes. That is a hidden Observation contract and should eventually become an explicit display seam
+- `follow-up`: the game dropdown still labels rows with raw `game.name`, which can drift from any future shared Practice display-title normalization
+
+Changes made in this pass:
+- switched whole-score formatting to the shared helper used by the insights widgets
+
+### `PracticeInsightsWidgets.swift`
+
+Status: `change made`
+
+Responsibility summary:
+- chart and row widgets for head-to-head comparison, score trends, and mechanics trends
+
+Line map:
+- `3-14`: shared whole-score formatting helper
+- `16-40`: head-to-head game row
+- `42-84`: mechanics trend sparkline
+- `86-205`: score trend sparkline
+- `207-273`: head-to-head delta bars
+
+Primary interactions:
+- `practice/PracticeInsightsSection.swift`
+- `practice/PracticeMechanicsSection.swift`
+- `practice/PracticeModels.swift`
+
+Findings:
+- `change made`: collapsed repeated whole-score formatting onto shared `formatPracticeWholeScoreDisplay(_:)`
+- `follow-up`: this file is a legitimate chart seam, but it still mixes rendering with inline chart math and abbreviated-number rules, so it is another place where behavior can drift quietly
+
+Changes made in this pass:
+- added the shared whole-score formatter helper and reused it across insights widgets
+
+### `PracticeJournalContext.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- dependency bag for the Practice journal route
+
+Line map:
+- `3-13`: stored journal bindings, transition namespace, and row actions
+
+Primary interactions:
+- `practice/PracticeScreenContexts.swift`
+- `practice/PracticeScreenRouteContent.swift`
+- `practice/PracticeJournalSettingsSections.swift`
+
+Findings:
+- no dead code found
+- intentional seam file; healthy as-is
+
+Changes made in this pass:
+- none
+
+### `PracticeJournalSettingsSections.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines journal item/day models, grouped journal rendering, journal-entry editing, score-input formatting, and the Practice settings section
+
+Line map:
+- `3-36`: journal models and day grouping
+- `38-227`: journal list view and row rendering
+- `229-247`: static editable-row chrome
+- `249-555`: journal entry editor sheet and save logic
+- `557-569`: score input formatter
+- `571-730`: Practice settings section
+
+Primary interactions:
+- `practice/PracticeJournalSummaryStyling.swift`
+- `practice/PracticeStore.swift`
+- `practice/PracticeScreenActions.swift`
+- `practice/PracticeIFPAProfileScreen.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: this file has become a large mixed seam. Journal rendering, journal editing, score-input formatting, and Practice settings now live together
+- `follow-up`: `formatJournalScoreInputWithCommas(_:)` is another copy of the score-input formatting logic already noted elsewhere in Practice entry flows
+- `follow-up`: the settings section uses the same `_ = showFullLPLLastNames` invalidation trick as the insights screen
+
+Changes made in this pass:
+- none
+
+### `PracticeJournalSummaryStyling.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- tokenizes and colorizes Practice journal summary text into styled `Text`
+- caches parsed token sequences for reuse
+
+Line map:
+- `4-44`: token models, cache, and array helpers
+- `46-92`: public renderer and token-color resolution
+- `94-168`: summary dispatch, score parsing, and bullet-game parsing
+- `170-257`: structured Practice/game-note/study parsers
+- `259-315`: library-summary parsing and string helpers
+- `316-450`: video/progress/browsed summary parsers and helper splits
+
+Primary interactions:
+- `practice/PracticeJournalSettingsSections.swift`
+- `practice/PracticeGameWorkspaceSubviews.swift`
+- `practice/PracticeScreenActions.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: this parser is a hidden schema layer. It depends on literal summary-string formats emitted by multiple other Practice and Library surfaces, so wording changes elsewhere can quietly break styling here
+
+Changes made in this pass:
+- none
+
+### `PracticeLifecycleContext.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- dependency bag for app-level Practice lifecycle events
+
+Line map:
+- `3-14`: stored lifecycle values and callbacks
+
+Primary interactions:
+- `practice/PracticeLifecycleHost.swift`
+- `practice/PracticeScreen.swift`
+
+Findings:
+- no dead code found
+- intentional seam file; healthy as-is
+
+Changes made in this pass:
+- none
+
+### `PracticeLifecycleHost.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- centralizes Practice initial load, scene-phase reactions, library-viewed sync, journal-filter sync, sheet sync, and library-source change handling
+
+Line map:
+- `3-30`: lifecycle/event host wiring
+
+Primary interactions:
+- `practice/PracticeLifecycleContext.swift`
+- `practice/PracticeDialogHost.swift`
+- `practice/PracticeScreen.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: this host is the app-level side-effect seam for Practice. Initial load, scene changes, sheet changes, and notification-driven refreshes all run through view-owned hooks here, so timing behavior is spread across multiple event sources
+
+Changes made in this pass:
+- none
+
+### `PracticeMechanicsContext.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- dependency bag for the mechanics route
+
+Line map:
+- `3-15`: stored mechanics bindings, closures, and height limit
+
+Primary interactions:
+- `practice/PracticeScreenContexts.swift`
+- `practice/PracticeMechanicsSection.swift`
+
+Findings:
+- no dead code found
+- intentional seam file; healthy as-is
+
+Changes made in this pass:
+- none
+
+### `PracticeMechanicsSection.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders mechanics skill logging, summary metrics, per-skill history, and an external tutorial link
+
+Line map:
+- `3-140`: mechanics screen content
+- `142-150`: compact trend and selected-skill helpers
+
+Primary interactions:
+- `practice/PracticeMechanicsContext.swift`
+- `practice/PracticeInsightsWidgets.swift`
+- `practice/PracticeStore.swift`
+
+Findings:
+- no dead code found
+- lightweight route file overall; healthy as-is
+- `follow-up`: the route mixes skill logging and history rendering with the hard-coded external tutorial link, which is small but still another behavior/UI seam worth keeping an eye on
+
+Changes made in this pass:
+- none
+
+## Pass 011 summary
+
+Safe cleanup changes made:
+- removed the dead alias layer from `PracticeIdentityKeying.swift`
+- added shared whole-score formatting in `PracticeInsightsWidgets.swift`
+- switched `PracticeInsightsSection.swift` to the shared whole-score formatter
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. decide whether the IFPA profile surface should keep scraping public HTML directly or move behind a more stable parsing/service seam
+2. replace the repeated `_ = showFullLPLLastNames` invalidation trick with an explicit privacy-aware LPL name display seam
+3. collapse the remaining duplicated score-input formatting helpers across Practice entry and journal surfaces
+4. decide whether `PracticeJournalSummaryStyling.swift` should consume a more structured summary payload instead of parsing literal emitted strings
+5. decide whether the Practice lifecycle host should own fewer async side effects directly in view event hooks
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeModels.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticePresentationContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticePresentationHost.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeQuickEntrySheet.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeScreen.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeScreenActions.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeScreenContexts.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeScreenDerivedData.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeScreenRouteContent.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeScreenState.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeSettingsContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeSettingsCopy.swift`
+
+## Pass 012: `practice/` core screen, presentation, and settings seams
+
+### `PracticeModels.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the core Practice domain enums, event/log models, group/settings models, persisted-state schema, and percentile helper
+
+Line map:
+- `3-111`: Practice enums and user-facing labels
+- `113-259`: study, video, score, note, and journal entry models
+- `261-410`: group, league, sync, analytics, and practice settings models
+- `412-513`: persisted-state schema and decode defaults
+- `515-536`: score summary shell and percentile math helper
+
+Primary interactions:
+- `practice/PracticeStore.swift`
+- `practice/PracticeStorePersistence.swift`
+- `practice/PracticeStoreEntryMutations.swift`
+- most Practice UI/context files
+
+Findings:
+- no dead code found
+- `follow-up`: this is the main Practice schema seam. `PracticePersistedState.currentSchemaVersion` is `4`, so any future parity or cleanup work that changes stored fields needs to stay in lockstep with persistence and migration behavior
+- decode-time fallback defaults are intentional, but they also make schema drift harder to notice during review because older payloads silently hydrate into current state
+
+Changes made in this pass:
+- none
+
+### `PracticePresentationContext.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- packages the bindings and callbacks needed by the screen-level Practice sheet host
+
+Line map:
+- `3-18`: stored presentation bindings, values, and callbacks
+
+Primary interactions:
+- `practice/PracticePresentationHost.swift`
+- `practice/PracticeDialogHost.swift`
+- `practice/PracticeScreenContexts.swift`
+
+Findings:
+- no dead code found after cleanup
+- intentional seam file; healthy as-is
+
+Changes made in this pass:
+- removed the dead reset-prompt bindings and callback after confirming the root-level reset alert path was orphaned
+
+### `PracticePresentationHost.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- routes live Practice sheet presentation to quick entry, group date editing, and journal entry editing
+
+Line map:
+- `4-73`: sheet-content switch and sheet chrome for the three presentation cases
+
+Primary interactions:
+- `practice/PracticePresentationContext.swift`
+- `practice/PracticeQuickEntrySheet.swift`
+- `practice/PracticeJournalSettingsSections.swift`
+- `practice/PracticeScreenContexts.swift`
+
+Findings:
+- no dead code found after cleanup
+- central presentation seam is healthy overall now that only the live sheet paths remain
+
+Changes made in this pass:
+- removed the dead root-level reset alert helper after confirming Settings already owns the only live reset confirmation UI
+
+### `PracticeQuickEntrySheet.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the quick-entry sheet for score, study, practice, and mechanics logging, including filtering, scanner presentation, and save-time entry composition
+
+Line map:
+- `3-35`: library-filter constants and initial filter-resolution helpers
+- `37-188`: view state and derived picker/source labels
+- `190-477`: quick-entry UI, scanner presentation, and state-sync hooks
+- `479-602`: shared local subviews and picker builders
+- `604-694`: save pipeline for every quick-entry activity
+- `697-709`: local score-input comma formatter
+
+Primary interactions:
+- `practice/PracticeScreenActions.swift`
+- `practice/PracticeScreenContexts.swift`
+- `practice/PracticeStoreEntryMutations.swift`
+- `library/LibraryPayloadParsing.swift`
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: this is a major growth hotspot. Filtering, remembered selection, score scanning, activity-specific forms, and save-time note composition all live in one file
+- `follow-up`: `preferredLibrarySourceDefaultsKey` intentionally shares the same UserDefaults key string as Library and `PracticeStoreDataLoaders`, so source preference behavior is coupled across features through literal storage contracts
+- `follow-up`: score-input comma formatting is still duplicated with `PracticeGameEntrySheets.swift`
+- `follow-up`: mechanics note composition is duplicated with `practiceMechanicsContext.onLogMechanicsSession` in `PracticeScreenContexts.swift`
+
+Changes made in this pass:
+- replaced the local library-source inference helper with shared `libraryInferSources(from:)`
+- removed the dead duplicate `inferPracticeLibrarySources(from:)`
+
+### `PracticeScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- owns the root Practice store, global Practice app-storage keys, screen-local UI state, and the top-level navigation shell
+
+Line map:
+- `3-31`: store ownership, app-storage wiring, and root navigation shell
+- `34-36`: preview
+
+Primary interactions:
+- `practice/PracticeScreenState.swift`
+- `practice/PracticeDialogHost.swift`
+- `practice/PracticeScreenContexts.swift`
+- `practice/PracticeLifecycleHost.swift`
+
+Findings:
+- no dead code found
+- intentionally thin root file; healthy overall
+- `follow-up`: the `@AppStorage` keys here are a hidden global-state seam tying Practice resume behavior, quick-entry defaults, and prompt behavior to persisted keys outside the store
+
+Changes made in this pass:
+- none
+
+### `PracticeScreenActions.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- centralizes Practice navigation, quick-entry opening, sheet/editor setup, journal deletion, and async data refresh actions
+
+Line map:
+- `4-15`: navigation interaction shield
+- `17-35`: post-load default application
+- `37-102`: route opening and rulesheet/playfield preparation
+- `104-148`: quick-entry remembered-selection logic
+- `150-219`: viewed-state, group editor, and journal editing helpers
+- `221-261`: icon and activity summary helpers
+- `263-297`: score trend and async insights refresh helpers
+
+Primary interactions:
+- `practice/PracticeScreenContexts.swift`
+- `practice/PracticeScreenRouteContent.swift`
+- `practice/PracticeQuickEntrySheet.swift`
+- `practice/PracticeStore.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: this is a large behavior seam. Navigation, remembered quick-entry defaults, sheet setup, and async insight refreshes are all coordinated here through direct `uiState` mutation
+- `follow-up`: quick-entry game defaulting is split between this file and `PracticeQuickEntrySheet.swift`, which makes selection behavior harder to reason about during parity review
+
+Changes made in this pass:
+- none
+
+### `PracticeScreenContexts.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- constructs every major Practice view context and inlines the screen-level orchestration for home, journal, mechanics, settings, presentation, lifecycle, and insights
+
+Line map:
+- `4-79`: home context
+- `81-99`: group dashboard context
+- `101-125`: journal context
+- `127-154`: mechanics context
+- `156-206`: settings context
+- `208-261`: presentation context
+- `263-311`: lifecycle context
+- `313-350`: insights context
+
+Primary interactions:
+- `practice/PracticeScreen.swift`
+- `practice/PracticeScreenActions.swift`
+- `practice/PracticeLifecycleHost.swift`
+- all `Practice*Context.swift` seam files
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: this is one of the biggest coordination seams in Practice. View wiring, async side effects, reset behavior, profile sync, import flows, and privacy/redaction callbacks all live inline here
+- `follow-up`: mechanics logging string composition is duplicated with `PracticeQuickEntrySheet.swift`, including the `#mechanics` fallback and `competency x/5` note format
+- `follow-up`: initial load, scene refresh, library-source reload, and name-prompt behavior are still embedded directly in context construction rather than behind narrower orchestration helpers
+
+Changes made in this pass:
+- removed the orphaned presentation-layer reset prompt plumbing that no live UI path was using
+
+### `PracticeScreenDerivedData.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- derives Practice resume state, greeting text, selected group, and journal filter data from root screen state
+
+Line map:
+- `4-18`: resume-game selection logic
+- `20-25`: default game and selected group helpers
+- `28-40`: greeting-name derivation
+- `42-48`: journal sections and filter decoding
+
+Primary interactions:
+- `practice/PracticeScreen.swift`
+- `practice/PracticeScreenContexts.swift`
+- `app/AppNavigationModel.swift`
+- `practice/PracticeStore.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: `resumeGame` is a hidden cross-feature contract because it resolves between Library and Practice by comparing separate timestamp keys
+
+Changes made in this pass:
+- none
+
+### `PracticeScreenRouteContent.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- switches Practice routes into concrete screens and wraps the major section views with shared route-level screen chrome
+
+Line map:
+- `5-107`: route switch for search, rulesheet, playfield, dashboard, journal, insights, mechanics, settings, and IFPA profile
+- `109-130`: shared scroll and viewport screen wrappers
+- `132-174`: group dashboard wrapper
+- `176-187`: journal wrapper
+- `189-219`: insights wrapper
+- `221-245`: mechanics wrapper
+- `247-274`: settings wrapper
+- `276-279`: mechanics history sizing helper
+
+Primary interactions:
+- `practice/PracticeScreenContexts.swift`
+- `practice/PracticeScreenActions.swift`
+- `practice/PracticeJournalSettingsSections.swift`
+- `library/RulesheetScreen.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: route switching and wrapper composition for all major Practice sub-screens still live together here, so navigation and presentation concerns are tightly coupled
+- `follow-up`: the search route still depends on `practiceHomeContext.searchGames`, which keeps the home/search context seam indirectly coupled
+
+Changes made in this pass:
+- none
+
+### `PracticeScreenState.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- stores the full view-owned transient Practice UI state bag
+
+Line map:
+- `4-38`: root Practice UI state fields
+
+Primary interactions:
+- `practice/PracticeScreen.swift`
+- `practice/PracticeScreenActions.swift`
+- `practice/PracticeScreenContexts.swift`
+- `practice/PracticeDialogHost.swift`
+
+Findings:
+- no dead code found after cleanup
+- healthy state-bag file overall, though it is now the main accumulation point for any view-local Practice state that is not yet lifted into a narrower seam
+
+Changes made in this pass:
+- removed the dead root-level reset prompt state after confirming no live UI path ever toggled it
+
+### `PracticeSettingsContext.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- dependency bag for the Practice settings route
+
+Line map:
+- `3-16`: stored settings bindings, counts, status text, and callbacks
+
+Primary interactions:
+- `practice/PracticeScreenContexts.swift`
+- `practice/PracticeScreenRouteContent.swift`
+- `practice/PracticeJournalSettingsSections.swift`
+
+Findings:
+- no dead code found
+- intentional seam file; healthy as-is
+
+Changes made in this pass:
+- none
+
+### `PracticeSettingsCopy.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- centralizes Practice settings copy for league-import recovery messaging
+
+Line map:
+- `1-45`: static copy builders for imported-league-score summaries, button titles, alerts, and status text
+
+Primary interactions:
+- `practice/PracticeJournalSettingsSections.swift`
+- `practice/PracticeScreenContexts.swift`
+
+Findings:
+- no dead code found after cleanup
+- small copy-only seam; healthy as-is
+
+Changes made in this pass:
+- removed an unused `Foundation` import
+
+## Pass 012 summary
+
+Safe cleanup changes made:
+- removed the orphaned root-level Practice reset prompt plumbing spanning `PracticeDialogHost.swift`, `PracticePresentationContext.swift`, `PracticePresentationHost.swift`, `PracticeScreenContexts.swift`, and `PracticeScreenState.swift`
+- switched `PracticeQuickEntrySheet.swift` to shared `libraryInferSources(from:)` and removed its dead duplicate inference helper
+- removed an unused `Foundation` import from `PracticeSettingsCopy.swift`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. decide whether quick-entry source preference should keep sharing the Library UserDefaults key literally or move behind an explicit shared preference seam
+2. collapse the duplicated score-input formatting helpers across quick-entry and in-game Practice entry surfaces
+3. collapse the duplicated mechanics note-composition logic shared by quick entry and the mechanics route
+4. decide whether `PracticeScreenContexts.swift` should keep owning so much inline orchestration or split lifecycle/settings/presentation behavior into narrower coordinators
+5. keep migration-sensitive parity changes around `PracticePersistedState` explicitly aligned with persistence and decode-default behavior
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeStore.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreAnalytics.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreDataLoaders.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreEntryMutations.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreGroupHelpers.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreJournalHelpers.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreLeagueHelpers.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreLeagueOps.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreMechanicsHelpers.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStorePersistence.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeTimePopoverField.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeTypes.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeVideoComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeVideoLoggingHelpers.swift`
+- `Pinball App 2/Pinball App 2/practice/ResolvedLeagueMachineMappings.swift`
+- `Pinball App 2/Pinball App 2/practice/ResolvedLeagueTargets.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreConfirmationSheet.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreOCRService.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreParsingService.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerCameraTestView.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerModels.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerView.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerViewModel.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreStabilityService.swift`
+
+## Pass 014: `practice/` video helpers, resolved league assets, and score-scanner stack
+
+### `PracticeTypes.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the lightweight Practice navigation, sheet, quick-entry, and journal filter enums used by the rest of the Practice UI
+
+Line map:
+- `3-46`: hub destinations, labels, icons, and route mapping
+- `48-60`: route enum
+- `62-68`: sheet enum
+- `70-90`: quick-entry sheet enum and default activity mapping
+- `92-126`: quick-entry activity enum and `StudyTaskKind` mapping
+- `128-148`: journal filter enum
+
+Primary interactions:
+- `practice/PracticeHomeRootView.swift`
+- `practice/PracticePresentationHost.swift`
+- `practice/PracticeQuickEntrySheet.swift`
+- `practice/PracticeStoreJournalHelpers.swift`
+
+Findings:
+- no dead code found
+- healthy seam overall
+- `follow-up`: this is still a parity-sensitive contract layer because route or enum-case churn propagates widely through Practice state restoration, navigation, and filtering
+
+Changes made in this pass:
+- none
+
+### `PracticeVideoComponents.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the Practice resource card, including rulesheet chips, live playfield options, featured video launch panel, and selectable video tiles
+
+Line map:
+- `3-120`: game resource card and rulesheet/playfield/video composition
+- `122-131`: featured video launch panel wrapper
+- `133-157`: selectable video tile
+- `159-171`: YouTube thumbnail loader
+
+Primary interactions:
+- `practice/PracticeGameSection.swift`
+- `library/LibraryHostedData.swift`
+- `ui/AppResourceChrome.swift`
+
+Findings:
+- no dead code found
+- healthy UI seam overall
+- `follow-up`: this file depends on a shared `LibraryLivePlayfieldStatusStore` side channel, so playfield availability is not purely a function of the `PinballGame` payload passed into the card
+
+Changes made in this pass:
+- none
+
+### `PracticeVideoLoggingHelpers.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- centralizes Practice video input-mode labels, source-option derivation, and watched-progress string construction
+
+Line map:
+- `3-19`: draft model and shared video input-mode labels/options
+- `21-95`: source-option discovery across game/library candidates
+- `97-129`: video log draft builder
+- `131-159`: `hh:mm:ss` parsing and formatting helpers
+- `161-165`: integer clamping helper
+
+Primary interactions:
+- `practice/PracticeQuickEntrySheet.swift`
+- `practice/PracticeGameEntrySheets.swift`
+- `practice/PracticeStoreEntryMutations.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: placeholder labels like `"Tutorial -"` and `"Gameplay -"` are part of the persisted note/value contract here, so video logs can be saved even when there is no concrete referenced video
+- `follow-up`: source selection across multiple library candidates prefers the caller’s preferred source and then the candidate with the most matching video options, which is a hidden cross-source heuristic seam
+
+Changes made in this pass:
+- none
+
+### `ResolvedLeagueMachineMappings.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- decodes the resolved league machine-mapping JSON payload into normalized machine-name lookups
+
+Line map:
+- `3-18`: decodable record and JSON root
+- `20-34`: parser and normalized-name dictionary assembly
+
+Primary interactions:
+- `practice/PracticeStoreLeagueHelpers.swift`
+- `library/LibraryGameLookup.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: duplicate machine names collapse silently because the normalized-name dictionary overwrites earlier records with later ones
+- small parse seam otherwise healthy
+
+Changes made in this pass:
+- none
+
+### `ResolvedLeagueTargets.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- decodes resolved league-target JSON rows and projects them into per-identity score targets
+
+Line map:
+- `3-40`: decodable target record and computed score projection
+- `42-54`: versioned JSON parser
+- `56-66`: score-target lookup by practice identity
+
+Primary interactions:
+- `practice/PracticeStoreDataLoaders.swift`
+- `league/LeaguePreviewLoader.swift`
+- `targets/TargetsScreen.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: duplicate `practiceIdentity` values overwrite silently in `resolvedLeagueTargetScoresByPracticeIdentity(records:)`, so bad upstream data is not surfaced
+- healthy parse seam overall
+
+Changes made in this pass:
+- none
+
+### `ScoreConfirmationSheet.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the frozen scanner confirmation card, including OCR echo, manual correction formatting, validation, and confirmation actions
+
+Line map:
+- `3-25`: bindings, formatted manual-entry wrapper, and validation gate
+- `27-95`: confirmation UI
+
+Primary interactions:
+- `practice/ScoreScannerView.swift`
+- `practice/ScoreParsingService.swift`
+
+Findings:
+- no dead code found
+- healthy focused seam overall
+- `follow-up`: the confirm button only depends on manual-input normalization, so frozen-scanner state and manual-entry state intentionally collapse into one validation path
+
+Changes made in this pass:
+- none
+
+### `ScoreOCRService.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- runs Vision OCR against live and final-pass score images, including multiple CI-filter variants and display-mode-specific minimum text-height tuning
+
+Line map:
+- `6-32`: OCR entrypoint and candidate ranking handoff
+- `34-58`: Vision request configuration and observation conversion
+- `60-132`: final-pass image-variant generation
+- `134-149`: display-mode-specific minimum text-height thresholds
+
+Primary interactions:
+- `practice/ScoreParsingService.swift`
+- `practice/ScoreScannerViewModel.swift`
+- `Vision`
+- `CoreImage`
+
+Findings:
+- no dead code found
+- `follow-up`: this is a heuristic hotspot. CI filter recipes, confidence multipliers, and text-height thresholds are all hard-coded and not externally tunable
+- `follow-up`: scanner display-mode support exists here, but the live scanner currently never switches away from `.lcd`, so DMD and segmented tuning paths are dormant today
+
+Changes made in this pass:
+- none
+
+### `ScoreParsingService.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- normalizes OCR text into ranked score candidates, applies separator and leading-digit rescue heuristics, and formats manual score input
+
+Line map:
+- `5-44`: normalization models and public formatting/parser entrypoints
+- `47-85`: candidate construction and ranking
+- `87-213`: OCR text normalization and run-candidate expansion
+- `215-452`: grouped rescue heuristics and run sorting
+- `454-530`: format-quality scoring and separator helpers
+
+Primary interactions:
+- `practice/ScoreOCRService.swift`
+- `practice/ScoreScannerViewModel.swift`
+- `practice/ScoreConfirmationSheet.swift`
+- `practice/PracticeQuickEntrySheet.swift`
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: this is the core score-scanner heuristic seam. Zero-confusion rescue, missing-leading-digit rescue, and quality scoring all contain embedded OCR assumptions that can drift from Android easily
+- `follow-up`: rescue logic intentionally mutates ambiguous leading digits like `0 -> 6/8` and `1 -> 7` under certain grouping patterns, which is powerful but also makes false-positive “corrections” harder to reason about during regressions
+
+Changes made in this pass:
+- removed the dead `bestCandidate(from:)` helper after confirming all callers go through `rankedCandidates(from:)`
+
+### `ScoreScannerCameraTestView.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- implements a preview-only rear-camera test screen and local view model for manual on-device scanner setup checks
+
+Line map:
+- `5-99`: full-screen camera test UI and permission card
+- `101-246`: local view model for permission flow, preview startup, and portrait rotation
+
+Primary interactions:
+- `practice/CameraPreviewView.swift`
+- `AVFoundation`
+- `UIApplication.openSettingsURLString`
+
+Findings:
+- no dead code found inside the file itself
+- `follow-up`: repo-wide search found no instantiation call sites for `ScoreScannerCameraTestView`, so this currently looks like orphaned manual QA code rather than a live product path
+- `follow-up`: the preview utility starts and stops the camera session on the main actor, which would be worth fixing only if the file remains in active use
+
+Changes made in this pass:
+- none
+
+### `ScoreScannerModels.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines scanner display/status enums, OCR and locked-reading models, preview-to-frame mapping helpers, and target-box layout rules
+
+Line map:
+- `5-11`: display-mode enum
+- `13-59`: scanner status copy
+- `61-107`: OCR observation, candidate, analysis, and locked-reading models
+- `109-176`: frame-mapping helpers
+- `178-188`: target-box layout
+
+Primary interactions:
+- `practice/ScoreOCRService.swift`
+- `practice/ScoreScannerViewModel.swift`
+- `practice/ScoreScannerView.swift`
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: `ScoreScannerDisplayMode` is currently a dormant seam because the live scanner never changes its fixed `.lcd` mode
+- `follow-up`: target-box layout and crop mapping are hidden UX contracts; even small geometry changes here affect OCR candidate quality and live overlay positioning
+
+Changes made in this pass:
+- removed dead confidence-only fields from `ScoreScannerLockedReading` after confirming no UI or scanner behavior read them
+
+### `ScoreScannerView.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the full-screen scanner shell, target overlay, live reading panel, frozen confirmation flow, keyboard handling, and camera-permission overlays
+
+Line map:
+- `5-117`: scanner shell, lifecycle, viewport stabilization, and top-level presentation
+- `119-184`: top bar, header, and tappable live-reading panel
+- `186-359`: zoom/freeze controls, status styling, and permission overlays
+- `361-385`: use-reading action and frozen preview rendering
+- `387-428`: keyboard overlap observer
+- `430-491`: target overlay highlight rendering
+
+Primary interactions:
+- `practice/ScoreScannerViewModel.swift`
+- `practice/ScoreConfirmationSheet.swift`
+- `practice/CameraPreviewView.swift`
+- `UIKit`
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: viewport stabilization and keyboard-overlap handling are doing real layout work here, so scanner geometry now depends on both camera state and keyboard state
+- `follow-up`: zoom affordances are hard-coded to `1x` and `8x`, even though the slider already exposes the device’s actual max zoom range
+
+Changes made in this pass:
+- removed the dead empty `FreezeButtonLayoutModifier`
+
+### `ScoreScannerViewModel.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- owns camera authorization, session setup, live OCR throttling, freeze buffering, candidate filtering, confirmation-state updates, and final-pass lock logic
+
+Line map:
+- `8-59`: scanner state, capture services, queues, and tuning constants
+- `61-108`: lifecycle, preview-layer attachment, target mapping, and zoom control
+- `110-166`: freeze, retake, and manual-score validation
+- `168-285`: camera authorization and capture-session configuration
+- `287-349`: freeze pipeline and final-pass OCR
+- `351-429`: live OCR processing and locked-reading derivation
+- `431-553`: crop, render, buffer, and candidate-filter helpers
+- `555-642`: frame handling and video-output delegate
+
+Primary interactions:
+- `practice/ScoreScannerView.swift`
+- `practice/ScoreOCRService.swift`
+- `practice/ScoreStabilityService.swift`
+- `practice/ScoreScannerModels.swift`
+- `AVFoundation`
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: this is now one of the highest-risk hidden-behavior seams in Practice. Capture-session configuration, OCR timing, buffered freeze selection, and UI state updates are all coordinated here
+- `follow-up`: `displayMode` is fixed to `.lcd`, so the scanner’s DMD and segmented OCR tuning paths are currently unreachable
+- `follow-up`: `processingPaused`, `isProcessingFrame`, `lastOCRTime`, and `latestSnapshot` are mutated from multiple queues/actors with mixed `sync` and `async` access, which makes the live scanner vulnerable to racey state transitions and duplicate OCR work
+
+Changes made in this pass:
+- removed dead `rawReadingText` state that never left the view model
+- removed dead confidence-only payload wiring from `ScoreScannerLockedReading` construction
+
+### `ScoreStabilityService.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- reduces live OCR candidates into scanner status snapshots using recent-reading consensus, confidence thresholds, and miss-count fallback behavior
+
+Line map:
+- `4-33`: configuration, reading/snapshot models, and initialization
+- `35-98`: reset and ingest state machine
+- `100-123`: dominant-consensus ranking
+
+Primary interactions:
+- `practice/ScoreScannerViewModel.swift`
+- `practice/ScoreScannerModels.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: required matches, confidence threshold, recent-reading window, and failed-after-misses thresholds are all hard-coded here
+- `follow-up`: consensus groups only by normalized score, so alternate candidates with identical numbers but very different boxes/text get merged intentionally
+
+Changes made in this pass:
+- none
+
+## Pass 014 summary
+
+Safe cleanup changes made:
+- removed the dead `ScoreParsingService.bestCandidate(from:)` helper
+- removed dead confidence-only fields from `ScoreScannerLockedReading`
+- removed dead `rawReadingText` state from `ScoreScannerViewModel.swift`
+- removed the dead empty `FreezeButtonLayoutModifier` from `ScoreScannerView.swift`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. decide whether `ScoreScannerCameraTestView.swift` should remain as an intentional manual QA utility or be removed as orphaned scanner code
+2. expose or delete the dormant DMD/segmented scanner tuning path so `ScoreScannerDisplayMode` is either real product behavior or no longer misleading
+3. isolate `ScoreScannerViewModel` queue/actor state so OCR throttling and freeze flow stop depending on unsynchronized shared mutable fields
+4. decide whether video logs should keep allowing placeholder-only source labels like `"Tutorial -"` and `"Gameplay -"` to persist
+5. make duplicate handling explicit in resolved league asset loaders instead of silently overwriting repeated normalized machine names or practice identities
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/settings/MatchPlayClient.swift`
+- `Pinball App 2/Pinball App 2/settings/PinballMapClient.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsDataIntegration.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsHomeSections.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsImportScreens.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsRouteContent.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsScreen.swift`
+- `Pinball App 2/Pinball App 2/standings/StandingsScreen.swift`
+- `Pinball App 2/Pinball App 2/stats/StatsScreen.swift`
+- `Pinball App 2/Pinball App 2/targets/TargetsScreen.swift`
+- `Pinball App 2/Pinball App 2/ui/SharedFullscreenChrome.swift`
+- `Pinball App 2/Pinball App 2/ui/SharedGestures.swift`
+- `Pinball App 2/Pinball App 2/ui/SharedTableUi.swift`
+
+## Pass 015: `settings/` import clients, data integration, and settings shell
+
+### `MatchPlayClient.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- fetches Match Play tournament metadata and extracts OPDB-linked arena machine IDs for settings imports
+
+Line map:
+- `3-7`: import-result model
+- `9-43`: tournament fetch pipeline
+- `45-60`: user-facing error mapping
+- `62-84`: Match Play payload models
+- `86-90`: local blank-string helper
+
+Primary interactions:
+- `settings/SettingsImportScreens.swift`
+- `settings/SettingsDataIntegration.swift`
+
+Findings:
+- no dead code found
+- healthy network seam overall
+- `follow-up`: this file imports only OPDB-linked arenas, so tournaments without OPDB mappings appear as partially empty imports even if Match Play has more arena data
+
+Changes made in this pass:
+- none
+
+### `PinballMapClient.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- searches Pinball Map venues by address or lat/lon and fetches per-venue machine IDs for settings imports
+
+Line map:
+- `3-27`: venue search entrypoints
+- `30-74`: shared fetch helpers and machine-ID import
+- `77-89`: user-facing HTTP error mapping
+- `91-127`: Pinball Map payload models
+
+Primary interactions:
+- `settings/SettingsImportScreens.swift`
+- `settings/SettingsDataIntegration.swift`
+- `library/LibraryBuiltInSources.swift`
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: this is a live external contract seam. Address search, current-location search, venue import, and legacy venue migration all depend on the Pinball Map API shape here
+- `follow-up`: venue IDs are still projected into the app’s internal `"venue--pm-<id>"` source format outside this file, so provider/app ID translation remains a hidden multi-file contract
+- on March 27, 2026, I verified The Avenue (`Pinball Map` location `8760`) currently returns distinct OPDB IDs for `Godzilla (LE)` and `Godzilla (Premium)`, so the dedupe added here does not collapse that venue pair
+- `follow-up`: exact duplicate OPDB IDs are already collapsed later by imported-source normalization in `LibraryCatalogStore.swift`, so true same-ID multiplicity is not represented anywhere in the current venue-import model
+
+Changes made in this pass:
+- aligned HTTP status handling with `MatchPlayClient` so Pinball Map failures no longer decode silently from non-2xx responses
+- normalized imported venue machine IDs to drop blank strings and dedupe duplicates before they enter Library source records
+
+### `SettingsDataIntegration.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- loads settings snapshots, refreshes hosted data, clears runtime caches, and mutates imported Library source records from settings flows
+
+Line map:
+- `3-12`: snapshot shells
+- `14-33`: snapshot loading, hosted refresh, and cache clearing
+- `35-116`: add, remove, and refresh helpers for manufacturer, venue, and tournament imports
+- `118-123`: shared source-state snapshot builder
+
+Primary interactions:
+- `settings/SettingsScreen.swift`
+- `settings/PinballMapClient.swift`
+- `settings/MatchPlayClient.swift`
+- `data/PinballDataCache.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: this is the write seam for Library source imports. Settings UI stays thin because all mutation side effects route through these helpers
+- `follow-up`: `clearAppRuntimeCaches()` intentionally clears hosted-data/runtime caches without touching settings, Practice history, or GameRoom data, so cache-reset expectations are distributed across copy and code
+
+Changes made in this pass:
+- none
+
+### `SettingsHomeSections.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the main settings home content, including appearance, Library source management, hosted-data refresh, privacy controls, and about content
+
+Line map:
+- `3-58`: top-level content and appearance section
+- `60-114`: Library add-source section
+- `116-175`: hosted refresh and cache-clear section
+- `177-318`: source table, row projection, subtitles, and toggle actions
+- `320-362`: privacy section
+- `364-409`: about section and hidden intro-toggle affordance
+
+Primary interactions:
+- `settings/SettingsScreen.swift`
+- `settings/SettingsImportScreens.swift`
+- `library/LibraryCatalogStore.swift`
+- `app/AppIntroOverlay.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: this is a growth hotspot at 400+ lines and currently owns most of the live settings UI composition
+- intentional hidden owner affordance: the about logo’s double-tap toggle for next-launch intro behavior is user-confirmed and should stay in place during cleanup review
+- `follow-up`: Library source management depends on a wide cross-feature contract between imported-source records, source-state toggles, pinned-source limits, and Library/Practice source filters
+
+Changes made in this pass:
+- none
+
+### `SettingsImportScreens.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- implements manufacturer, venue, and tournament import flows, plus shared import-row UI and location/tournament parsing helpers
+
+Line map:
+- `4-88`: add-manufacturer flow
+- `90-134`: manufacturer bucket enum and filtering heuristic
+- `136-354`: add-venue flow
+- `356-447`: location error handling and current-location requester
+- `449-517`: add-tournament flow
+- `519-574`: shared provider caption and import result row
+- `576-590`: tournament-ID extraction helper
+
+Primary interactions:
+- `settings/SettingsScreen.swift`
+- `settings/PinballMapClient.swift`
+- `settings/MatchPlayClient.swift`
+- `CoreLocation`
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: classic-manufacturer bucketing is heuristic-driven here; the “Classic” bucket is the top 20 non-modern manufacturers by game count, and “Other” is everything else
+- `follow-up`: the venue minimum-game filter is persisted in `@AppStorage`, so import UI behavior survives between launches through a hidden user-defaults seam
+- `follow-up`: `extractTournamentID(from:)` only recognizes raw digits or URLs containing `tournaments/<digits>`, so some Match Play share-link variants may still be rejected
+
+Changes made in this pass:
+- activated the previously dead `servicesDisabled` path by checking `CLLocationManager.locationServicesEnabled()` before requesting current location
+
+### `SettingsRouteContent.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- maps settings routes to the three concrete import screens
+
+Line map:
+- `3-16`: route switch
+
+Primary interactions:
+- `settings/SettingsScreen.swift`
+- `settings/SettingsImportScreens.swift`
+
+Findings:
+- no dead code found
+- intentional seam file; healthy as-is
+
+Changes made in this pass:
+- none
+
+### `SettingsScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines settings routes, owns the settings view model, coordinates snapshot loading and source mutations, and hosts the root settings navigation shell
+
+Line map:
+- `4-8`: route enum
+- `10-171`: settings view model
+- `173-242`: root settings screen and intro-toggle banner behavior
+
+Primary interactions:
+- `settings/SettingsHomeSections.swift`
+- `settings/SettingsDataIntegration.swift`
+- `settings/SettingsRouteContent.swift`
+- `library/LibraryCatalogStore.swift`
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: this is the app-level settings coordination seam. Source mutation, hosted refresh, cache clearing, and notification-driven reload behavior all converge here
+- `follow-up`: settings refresh still depends on observing `.pinballLibrarySourcesDidChange`, so the screen’s freshness is coupled to notification discipline in other code paths
+- `follow-up`: the view model’s `didLoad` guard assumes one long-lived screen instance, which is fine today but worth keeping in mind if settings ever gains explicit reload/reset flows
+
+Changes made in this pass:
+- cleared stale top-level `errorMessage` state on successful source toggles, imports, removals, and refreshes so old error banners no longer linger after later successful actions
+
+## Pass 015 summary
+
+Safe cleanup changes made:
+- aligned `PinballMapClient.swift` with `MatchPlayClient.swift` by checking HTTP status codes explicitly
+- normalized Pinball Map machine imports to remove blank OPDB IDs and dedupe duplicates
+- activated the dead location-services-disabled error path in `VenueLocationRequester`
+- cleared stale success-path settings errors in `SettingsViewModel`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. make Library source ID translation more explicit so `"venue--pm-"` and `"tournament--mp-"` contracts are not spread across multiple settings and library files
+2. decide whether the top-20 “Classic” manufacturer heuristic should stay hard-coded in UI code or move behind a shared bucketing policy
+3. audit whether settings refresh should keep depending on notification rebroadcasts or move to a more explicit shared source-state model
+4. expand Match Play tournament ID parsing if the app should accept more share-link formats than `tournaments/<digits>`
+5. if venue imports ever need to preserve true duplicate exact OPDB IDs as counts, add explicit multiplicity support instead of continuing to treat `machineIDs` as a set
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/standings/StandingsScreen.swift`
+- `Pinball App 2/Pinball App 2/stats/StatsScreen.swift`
+- `Pinball App 2/Pinball App 2/targets/TargetsScreen.swift`
+- `Pinball App 2/Pinball App 2/ui/SharedFullscreenChrome.swift`
+- `Pinball App 2/Pinball App 2/ui/SharedGestures.swift`
+- `Pinball App 2/Pinball App 2/ui/SharedTableUi.swift`
+
+## Pass 013: `practice/` store, league-import, and persistence seams
+
+### `PracticeStore.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- owns the central Practice store object, published library and persisted state, transient cache fields, bootstrap flags, league snapshots, and shared lookup invalidation helpers
+
+Line map:
+- `1-129`: store support structs, snapshots, and `LeagueImportResult`
+- `137-230`: published state, caches, bootstrap flags, and initialization
+- `233-299`: target lookup, name resolution, and cache invalidation helpers
+
+Primary interactions:
+- `practice/PracticeStoreDataLoaders.swift`
+- `practice/PracticeStoreEntryMutations.swift`
+- `practice/PracticeStorePersistence.swift`
+- nearly every Practice screen/context file
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: this is the main Practice ownership seam. Library state, league caches, journal caches, dashboard caches, and persisted state all converge here, so parity drift tends to become hidden inside store-level side effects
+- `follow-up`: `LeagueImportResult` still acts as a broad cross-file contract for import summaries, journal recording, and settings recovery UI, so field changes need coordinated review across multiple store helpers
+
+Changes made in this pass:
+- removed the dead `LeagueImportResult.sourcePath` field after confirming it had no callers
+
+### `PracticeStoreAnalytics.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- derives Practice dashboard alerts, timeline summaries, focus priorities, and gap/completion heuristics from persisted activity state
+
+Line map:
+- `4-18`: priority candidate and focus-game ranking
+- `20-60`: dashboard alerts
+- `62-100`: timeline summary derivation
+- `103-200`: completion, gap severity, and focus-priority heuristics
+- `203-211`: adjacent date-gap helper
+
+Primary interactions:
+- `practice/PracticeInsightsSection.swift`
+- `practice/PracticeInsightsWidgets.swift`
+- `practice/PracticeHomeBootstrapSnapshot.swift`
+- `practice/PracticeStore.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: this is a parity-sensitive behavior seam because alert thresholds and focus heuristics are hard-coded here rather than sourced from a shared policy layer
+- `follow-up`: embedded constants like the 90-day rulesheet window, 14-day practice gap, and `0.6` spread threshold are easy to drift from Android if they change opportunistically
+
+Changes made in this pass:
+- none
+
+### `PracticeStoreDataLoaders.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- loads Practice library/search state, hydrates stored references, parses target CSV content, resolves preferred source selection, and assembles Avenue bank templates
+
+Line map:
+- `3-9`: load-result shell
+- `11-124`: library, search, bank, and target load orchestration
+- `126-197`: target CSV parsing
+- `199-253`: source selection and applied library state
+- `256-307`: stored-reference hydration checks
+- `310-421`: Avenue bank-template assembly from OPDB and venue assets
+
+Primary interactions:
+- `practice/PracticeStore.swift`
+- `practice/PracticeQuickEntrySheet.swift`
+- `library/LibraryCatalogStore.swift`
+- `library/LibraryPayloadParsing.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: `preferredLibrarySourceDefaultsKey = "preferred-library-source-id"` is a hidden literal contract shared with Library and quick-entry flows, so source preference behavior is coupled through storage-key reuse
+- `follow-up`: load/apply source selection is split across `UserDefaults` and `PinballLibrarySourceStateStore`, which makes parity review harder because selection state comes from more than one persistence path
+- `follow-up`: `loadInitialLibraryState()` still reports a “practice upgrade” failure message that now looks stale relative to the actual failure modes in this file
+
+Changes made in this pass:
+- none
+
+### `PracticeStoreEntryMutations.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- mutates Practice tasks, videos, scores, notes, journal edits, imported-league cleanup, and settings/reset flows, then reconciles journal edits back into the underlying state arrays
+
+Line map:
+- `4-27`: study getters and update wrapper
+- `29-142`: add task, video, score, and note mutations
+- `144-209`: browse, settings, import, and reset mutations
+- `211-372`: journal edit and delete entrypoints
+- `374-496`: array-matching and reconciliation helpers
+
+Primary interactions:
+- `practice/PracticeStore.swift`
+- `practice/PracticeStoreJournalHelpers.swift`
+- `practice/PracticeJournalSettingsSections.swift`
+- `practice/PracticeQuickEntrySheet.swift`
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: journal edit/delete reconciliation is fragile because it tries to match back into parallel arrays using timestamp and field heuristics rather than stable IDs
+- `follow-up`: `resetPracticeState()` removes the storage key and immediately calls `saveState()`, so reset does not leave storage empty; it overwrites persistence with canonical `.empty` state instead
+- `follow-up`: imported-league cleanup depends partly on the literal note prefix `"Imported from LPL stats CSV"`, which is a hidden string contract
+
+Changes made in this pass:
+- removed the dead `updateSyncSettings(cloudSyncEnabled:)` helper after confirming nothing called it
+
+### `PracticeStoreGroupHelpers.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- manages Practice groups, template import, dashboard detail derivation, group ordering, archived recommendations, and duplicate detection
+
+Line map:
+- `4-40`: create-group flow
+- `42-74`: bank-template and selected-group resolution
+- `76-138`: update and delete group flows
+- `140-200`: auto-archive, reorder, and remove-game helpers
+- `202-300`: group games, progress, dashboard detail, recommendations, and dedupe
+
+Primary interactions:
+- `practice/PracticeGroupDashboardSection.swift`
+- `practice/PracticeGroupEditorComponents.swift`
+- `practice/PracticeHomeSection.swift`
+- `practice/PracticeStore.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: this file is a meaningful parity seam because group recommendation, archive, and dedupe behavior all live in store helpers rather than UI-only composition
+- `follow-up`: dashboard detail and group progress calculations are tightly coupled to current Practice state shape, so schema cleanup needs to keep this logic aligned
+
+Changes made in this pass:
+- none
+
+### `PracticeStoreJournalHelpers.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- builds Practice journal payloads, score summaries, icon/summary text, filtered journal projections, and cached journal lookup data
+
+Line map:
+- `3-7`: cached journal payload shell
+- `9-179`: journal, score, and note summary helpers
+- `181-233`: cached journal payload and score-entry caches
+- `236-343`: filter, icon, summary, and private formatting helpers
+
+Primary interactions:
+- `practice/PracticeJournalSettingsSections.swift`
+- `practice/PracticeScreenActions.swift`
+- `practice/PracticeInsightsSection.swift`
+- `practice/PracticeStore.swift`
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: league journal filtering depends on `entry.note` containing `"league import"`, so imported-summary visibility is controlled by literal note text rather than explicit entry metadata
+- `follow-up`: `parsedPracticeSessionParts(from:)` is a hidden schema seam because it parses human-readable `"Practice session..."` strings produced elsewhere
+- `follow-up`: icon/summary formatting here overlaps conceptually with screen-level helpers, which makes it easy for presentation drift to hide in duplicate formatting code
+
+Changes made in this pass:
+- removed dead journal helpers: `journalItems(filter:)`, `recentJournalEntries(limit:)`, `allJournalEntries()`, and `clearJournalLog()`
+
+### `PracticeStoreLeagueHelpers.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- normalizes league names, parses LPL CSVs, loads IFPA and machine-mapping snapshots, resolves games and targets, and coordinates imported-league recovery/note behavior
+
+Line map:
+- `3-56`: human-name normalization helpers
+- `58-160`: league row/player structs, formatter, and head-to-head comparison
+- `167-279`: available players, IFPA matching, league settings, and resume/note helpers
+- `281-340`: league CSV parsing
+- `343-479`: stats, IFPA, and machine-mapping snapshot loads
+- `481-633`: event timestamp, game resolution, duplicate repair, and target lookup
+- `636-655`: approved-player array matching helper
+
+Primary interactions:
+- `practice/PracticeStoreLeagueOps.swift`
+- `practice/PracticeSettingsCopy.swift`
+- `practice/ResolvedLeagueMachineMappings.swift`
+- `practice/ResolvedLeagueTargets.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: this is one of the highest-coupling Practice seams. Name normalization, IFPA approval matching, machine resolution, timestamp normalization, and recovery-note logic all live together here
+- `follow-up`: `leagueEventTimestamp(for:)` canonicalizes imported league events to `22:00` local time, which is a hidden persistence contract also mirrored elsewhere
+- `follow-up`: `updateGameSummaryNote()` is a dual-write seam because it both updates summary state and writes a journal note when the saved text changes
+- `follow-up`: IFPA matching falls back from approved CSV matching to raw league-player matching with nil IFPA IDs, which is permissive behavior worth keeping explicit for parity review
+
+Changes made in this pass:
+- none
+
+### `PracticeStoreLeagueOps.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- executes the league CSV import pipeline and auto-import gating, including optional journal summary recording and settings-status updates
+
+Line map:
+- `4-108`: CSV import pipeline
+- `110-145`: auto-import gating
+
+Primary interactions:
+- `practice/PracticeStoreLeagueHelpers.swift`
+- `practice/PracticeStoreEntryMutations.swift`
+- `practice/PracticeStore.swift`
+- `practice/PracticeSettingsCopy.swift`
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: import summary recording is a hidden schema overload because the summary gets appended as a `.scoreLogged` journal entry with no score and only a note payload
+- `follow-up`: the imported-summary row stays visible in league filters because `summaryLine` currently begins with `"League import"`, which is another literal text dependency
+
+Changes made in this pass:
+- removed dead `sourcePath:` initializer wiring after the backing field was deleted from `LeagueImportResult`
+
+### `PracticeStoreMechanicsHelpers.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines curated mechanics skills, infers mechanics sessions from notes, expands aliases, and parses/stylizes mechanics comfort summaries
+
+Line map:
+- `4-23`: curated mechanics skill list
+- `25-75`: detection and log-expansion helpers
+- `77-128`: summary and comfort parsing
+- `130-160`: aliases and mechanics-entry detection
+
+Primary interactions:
+- `practice/PracticeMechanicsSection.swift`
+- `practice/PracticeQuickEntrySheet.swift`
+- `practice/PracticeScreenContexts.swift`
+- `practice/PracticeStoreJournalHelpers.swift`
+
+Findings:
+- dead-code cleanup was not needed, but a real parse bug was present
+- `follow-up`: mechanics parsing depends on the curated `mechanicsSkills` list, so free-form user wording still falls outside the inferred summary system
+- `follow-up`: this file is another hidden schema seam because it parses note text written by other Practice entry surfaces
+
+Changes made in this pass:
+- fixed `parseComfortValue(from:)` so it accepts both `comfort x/5` and `competency x/5`; before this change, mechanics summaries failed to parse values from notes the app itself was saving
+
+### `PracticeStorePersistence.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- loads persisted Practice state from defaults, normalizes imported-league timestamps on decode, and saves canonical state back through `PracticeStateCodec`
+
+Line map:
+- `3-34`: loaded-state shell and defaults loader
+- `36-91`: imported-league timestamp normalization
+- `94-150`: async load/apply/save persistence helpers
+
+Primary interactions:
+- `practice/PracticeModels.swift`
+- `practice/PracticeStateCodec.swift`
+- `practice/PracticeStore.swift`
+- `practice/PracticeStoreLeagueHelpers.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: imported-league timestamp normalization is duplicated conceptually with `PracticeStoreLeagueHelpers.leagueEventTimestamp(for:)`, so future cleanup should avoid silent divergence between import and decode paths
+- `follow-up`: decode-time normalization silently marks `requiresCanonicalSave`, which is healthy migration behavior but also makes old imported timestamps self-heal without any explicit user-visible signal
+
+Changes made in this pass:
+- none
+
+### `PracticeTimePopoverField.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders a compact popover-backed `hh:mm:ss` duration field with a finite wheel-picker editor
+
+Line map:
+- `3-89`: field UI, formatting, and binding behavior
+- `91-115`: finite wheel picker
+
+Primary interactions:
+- `practice/PracticeQuickEntrySheet.swift`
+- `practice/PracticeGameEntrySheets.swift`
+
+Findings:
+- no dead code found
+- healthy small seam overall
+- `follow-up`: the hours picker uses an upper bound of `24`, so users can currently compose durations up to `24:59:59`
+
+Changes made in this pass:
+- none
+
+## Pass 013 summary
+
+Safe cleanup changes made:
+- removed dead `LeagueImportResult.sourcePath` from `PracticeStore.swift` and the dead initializer wiring in `PracticeStoreLeagueOps.swift`
+- removed dead journal helper APIs from `PracticeStoreJournalHelpers.swift`
+- removed dead `updateSyncSettings(cloudSyncEnabled:)` from `PracticeStoreEntryMutations.swift`
+- removed dead duplicate icon/summary helpers from `PracticeScreenActions.swift` and removed dead `cloudSyncEnabled` UI state from `PracticeScreenState.swift`
+- fixed the real mechanics-note parsing bug in `PracticeStoreMechanicsHelpers.swift` so stored `competency x/5` notes now parse correctly
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. replace timestamp-and-field journal reconciliation heuristics with stable entry identity so edit/delete flows cannot silently target the wrong underlying arrays
+2. make imported-league summary rows explicit journal metadata instead of relying on literal note text like `"league import"` and `"Imported from LPL stats CSV"`
+3. unify imported-league timestamp normalization so import-time and decode-time canonicalization do not drift from each other
+4. decide whether Library source preference should keep sharing the same literal defaults key across Library, quick-entry, and Practice store loading
+5. consider separating league parsing/matching from recovery-note and summary-writing logic inside `PracticeStoreLeagueHelpers.swift`
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeTypes.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeVideoComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeVideoLoggingHelpers.swift`
+- `Pinball App 2/Pinball App 2/practice/ResolvedLeagueMachineMappings.swift`
+- `Pinball App 2/Pinball App 2/practice/ResolvedLeagueTargets.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreConfirmationSheet.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreOCRService.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreParsingService.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerCameraTestView.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerModels.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerView.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerViewModel.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreStabilityService.swift`
+
+## Pass 016: standings, stats, targets, and shared UI primitives
+
+### `StandingsScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the season standings screen, loads hosted standings CSV data through cache, and projects ranked bank totals into a horizontally scalable table
+
+Line map:
+- `11-109`: root screen shell, width scaling, toolbar/season selector, refresh row, and load lifecycle
+- `111-227`: toolbar summary, refresh/filter controls, and table header
+- `230-291`: row rendering, podium coloring, and privacy-aware player-name display
+- `293-419`: standings view model, refresh flow, and remote-update indicator
+- `421-507`: standings models, CSV loader, parse errors, and rounded-number formatting
+
+Primary interactions:
+- `data/PinballDataCache.swift`
+- `ui/AppFilterControls.swift`
+- `ui/SharedTableUi.swift`
+- `settings/SettingsHomeSections.swift`
+- league preview refresh notification path via `notifyLeaguePreviewNeedsRefresh()`
+
+Findings:
+- dead code found and removed: `Standing.displayPlayer` was unused
+- `follow-up`: rank ordering is all-or-nothing. If any row in a season is missing `rank`, `standings` ignores every CSV rank and falls back to sorting only by `seasonTotal`
+- `follow-up`: `displayLPLPlayerName(_:)` still uses the `_ = showFullLPLLastNames` invalidation trick, which keeps the privacy toggle reactive but remains a hidden dependency seam
+
+Changes made in this pass:
+- removed dead `Standing.displayPlayer`
+
+### `StatsScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the filterable league stats screen, adapts between split and stacked layouts, loads the hosted stats CSV, and computes scoped machine/bank stats in memory
+
+Line map:
+- `11-195`: root screen shell, adaptive layout, and initial load
+- `197-315`: filter controls and toolbar filter menu
+- `317-453`: stats table, refresh row, height measurement helper, and local formatting helpers
+- `469-644`: table row rendering and machine-stats panel/table
+- `646-928`: stats view model, filter reconciliation, refresh flow, and stat computation
+- `930-1046`: row/stat models, CSV loader, and score/points formatting
+
+Primary interactions:
+- `data/PinballDataCache.swift`
+- `ui/AppFilterControls.swift`
+- `ui/SharedTableUi.swift`
+- `settings/SettingsHomeSections.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: filter reconciliation silently clears other filters. Changing season, player, or bank can reset player, bank, or machine inside `reconcile*Selections()` with no explicit UI explanation
+- `follow-up`: `CSVScoreLoader.parse` returns `[]` when required columns are missing instead of surfacing a schema error, so malformed stats CSVs can collapse into a blank table without a parse-specific message
+- `follow-up`: privacy-name formatting is duplicated twice here and both call sites still depend on the `_ = showFullLPLLastNames` invalidation trick
+
+Changes made in this pass:
+- none
+
+### `TargetsScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the LPL benchmark targets screen, loads resolved league targets when available, falls back to bundled targets, and supports sort/bank filtering with responsive table sizing
+
+Line map:
+- `11-130`: root screen shell, table sizing, and initial load
+- `132-250`: explanatory header, toolbar filter menu, and dropdown controls
+- `252-316`: table host, footer copy, and height resolution
+- `318-408`: row/header rendering and sort-mode definition
+- `410-549`: targets view model, resolved-target loading, fallback behavior, sorting, and bank filtering
+- `551-610`: bundled fallback target dataset and number formatting
+
+Primary interactions:
+- `data/PinballDataCache.swift`
+- `practice/PracticeStore.swift`
+- `practice/ResolvedLeagueTargets.swift`
+- `ui/AppFilterControls.swift`
+- `ui/SharedTableUi.swift`
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: missing or empty resolved-target data falls back to bundled targets with `errorMessage = nil`, so stale fallback benchmarks can present as a successful load with no freshness signal
+- `follow-up`: `LPLTarget.rows` is a second embedded target dataset, so bundled fallback numbers can drift quietly from resolved league-target content over time
+- `follow-up`: default `.location` sorting loses most of its meaning in fallback mode because bundled rows have no `areaOrder`, `group`, or `position`
+
+Changes made in this pass:
+- collapsed duplicate `sortDropdown` and `bankDropdown` branches that returned identical views in both navigation modes
+
+### `SharedFullscreenChrome.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- provides the shared fullscreen stage container, transient fullscreen-chrome controller, and reusable fullscreen back-button/status-overlay components
+
+Line map:
+- `4-25`: fullscreen stage container
+- `27-103`: chrome visibility controller and auto-hide timer logic
+- `105-123`: fullscreen back button
+- `126-157`: centered fullscreen status overlay
+
+Primary interactions:
+- `library/PlayfieldScreen.swift`
+- `library/RulesheetScreen.swift`
+- `practice/ScoreScannerView.swift`
+- `practice/ScoreScannerCameraTestView.swift`
+- `gameroom/GameRoomPresentationComponents.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: fullscreen chrome timing is stateful here, so callers have to keep pairing `resetOnAppear()` and `cleanupOnDisappear()` correctly if they reuse the controller across fullscreen surfaces
+
+Changes made in this pass:
+- none
+
+### `SharedGestures.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the shared edge-back gesture enabler and custom shake-motion detection/modifier used across app-level shake and fullscreen navigation surfaces
+
+Line map:
+- `6-13`: shake tuning constants
+- `15-44`: interactive-pop enabler bridge
+- `46-114`: shake observer and motion processing
+- `116-149`: shake modifier and `View` extensions
+
+Primary interactions:
+- `app/ContentView.swift`
+- `library/LibraryDetailScreen.swift`
+- `library/PlayfieldScreen.swift`
+- `library/RulesheetScreen.swift`
+- `practice/PracticeGameSection.swift`
+- `gameroom/GameRoomMachineView.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: `AppInteractivePopEnabler` forcibly sets `interactivePopGestureRecognizer.delegate = nil` on update/layout, which is a hidden navigation contract that will override any future custom delegate owner
+- `follow-up`: shake detection samples `CMMotionManager` on the main queue at 30 Hz with hard-coded thresholds, so tuning and power/perf behavior are centralized here rather than obvious at the call sites
+
+Changes made in this pass:
+- none
+
+### `SharedTableUi.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- houses the shared table/header/divider primitives, inline and panel status cards, simple metric grids, and the UIKit-backed clear-text field bridge used across the app
+
+Line map:
+- `4-53`: table layout helpers, divider styles, and header cell
+- `55-130`: section title, card text, and metric grid primitives
+- `133-235`: inline status messaging plus panel status/empty cards
+- `237-304`: clear-text-field public surface and enum configuration
+- `306-418`: `UITextField` bridge, configuration, and delegate wiring
+
+Primary interactions:
+- `library/LibraryListScreen.swift`
+- `settings/SettingsHomeSections.swift`
+- `settings/SettingsImportScreens.swift`
+- `practice/PracticeGameSearchSheet.swift`
+- `practice/PracticeIFPAProfileScreen.swift`
+- `gameroom/GameRoomHomeComponents.swift`
+- `gameroom/GameRoomSettingsComponents.swift`
+
+Findings:
+- no dead code found
+- healthy shared primitive seam overall
+- `follow-up`: `AppMetricItem.id = label` assumes labels stay unique within a grid, so duplicate labels would collide silently if this primitive gets reused more generically
+- `follow-up`: `AppNativeClearTextFieldBridge.textFieldShouldReturn` delegates submit behavior entirely to callers and does not explicitly resign first responder, so keyboard-dismiss semantics are a hidden caller contract
+
+Changes made in this pass:
+- none
+
+## Pass 016 summary
+
+Safe cleanup changes made:
+- removed dead `Standing.displayPlayer` from `StandingsScreen.swift`
+- collapsed duplicate navigation/non-navigation dropdown branches in `TargetsScreen.swift`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. replace the duplicated `_ = showFullLPLLastNames` invalidation trick with a more explicit privacy-display dependency in standings and stats surfaces
+2. decide whether partial ranking data in `StandingsScreen.swift` should really discard all CSV rank ordering instead of surfacing a degraded-data state
+3. make `CSVScoreLoader.parse` report schema failures explicitly so malformed stats CSVs do not silently render as an empty table
+4. make bundled-target fallback state explicit in `TargetsScreen.swift` so missing resolved targets do not look like a clean fresh load
+5. audit `AppInteractivePopEnabler` before adding any custom interactive-pop delegate logic elsewhere in the app
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogLoader.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogSearchSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomHomeComponents.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomModels.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPinsideImport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPresentationComponents.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomScreen.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStateCodec.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
+
+### `GameRoomCatalogLoader.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- loads the GameRoom machine catalog, normalizes grouped and variant machine identities, resolves slug imports, and builds fallback image candidate lists for owned machines
+
+Line map:
+- `4-24`: GameRoom catalog models
+- `26-63`: loader lifecycle and reload entry points
+- `65-181`: catalog lookup, variant resolution, slug lookup, and OPDB normalization for owned machines
+- `188-240`: image candidate resolution
+- `246-end`: catalog mapping, dedupe, variant/slug normalization, and helper utilities
+
+Primary interactions:
+- `gameroom/GameRoomScreen.swift`
+- `gameroom/GameRoomHomeComponents.swift`
+- `gameroom/GameRoomMachineView.swift`
+- `gameroom/GameRoomSettingsComponents.swift`
+- `gameroom/GameRoomStore.swift`
+
+Findings:
+- removed dead `gameRoomCatalogMatchesSearch(...)`
+- removed unused manufacturer preload state and `loadManufacturers()` path; no GameRoom caller was reading `manufacturerOptions`, so that dead dependency could surface a catalog error even when the actual machine catalog loaded successfully
+- `follow-up`: `variantOptionsByNormalizedCatalogGameID` silently overwrites later entries when multiple raw catalog IDs normalize to the same key
+- `follow-up`: `slugMatches(from:)` is first-wins for every generated slug key, so later collisions are dropped silently
+- `follow-up`: `dedupedGames(from:)` plus `preferredGame(in:)` is a major hidden contract: add/search surfaces only expose one preferred machine per catalog group, and that preference currently chooses earliest year before variant preference or image quality
+
+Changes made in this pass:
+- removed dead `gameRoomCatalogMatchesSearch(...)`
+- removed unused manufacturer preload state and `loadManufacturers()` from `GameRoomCatalogLoader`
+
+### `GameRoomCatalogSearchSupport.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- provides the shared tokenized search index, manufacturer suggestion helper, and machine-type filtering used by GameRoom add-machine flows
+
+Line map:
+- `3-19`: add-machine type filter enum
+- `22-28`: indexed search entry model
+- `30-39`: manufacturer suggestions
+- `41-64`: catalog search indexing
+- `66-99`: combined filtering and type classification
+
+Primary interactions:
+- `gameroom/GameRoomSettingsComponents.swift`
+- shared search helpers from `library/`
+
+Findings:
+- no dead code found
+- healthy shared search seam overall
+- `follow-up`: `gameRoomSearchCategory(for:)` uses `opdbDisplay` for LCD but `opdbType` for EM and SS, so machine-type classification is asymmetric and hidden here rather than obvious at the UI layer
+
+Changes made in this pass:
+- none
+
+### `GameRoomHomeComponents.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- renders the GameRoom home surface, selected-machine summary card, collection layouts, list/card machine tiles, and the shared GameRoom variant pill
+
+Line map:
+- `3-24`: home layout enum and top-level view state
+- `26-99`: home screen composition and selection/navigation behavior
+- `101-163`: selected machine summary card
+- `165-239`: collection card and layout switch
+- `241-439`: card/list machine rows
+- `441-end`: variant pill and badge-label inference
+
+Primary interactions:
+- `gameroom/GameRoomScreen.swift`
+- `gameroom/GameRoomCatalogLoader.swift`
+- `gameroom/GameRoomStore.swift`
+- `gameroom/GameRoomMachineView.swift`
+
+Findings:
+- no dead code found
+- `follow-up`: home selection uses a hidden two-step tap contract, where the first tap selects a machine and only tapping the already-selected machine opens detail
+- `follow-up`: the "Current Snapshot" metric grid is duplicated almost verbatim in `GameRoomMachineView.swift`, so summary drift risk is already real
+- `follow-up`: `GameRoomVariantPill` truncates any longer variant label to seven characters, which is a display-only rule hidden in the shared pill itself
+
+Changes made in this pass:
+- none
+
+### `GameRoomMachineView.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- owns the per-machine GameRoom detail surface, including summary, service/input sheets, media preview/edit flows, and embedded event log browsing
+
+Line map:
+- `3-60`: machine-local enums and view state
+- `61-431`: main screen composition, sheet routing, media preview, and destructive actions
+- `433-513`: summary section and recent media strip
+- `515-610`: input section and button-to-sheet mapping
+- `612-647`: attachment/event linking helpers
+- `649-end`: embedded log section and selected log detail flow
+
+Primary interactions:
+- `gameroom/GameRoomStore.swift`
+- `gameroom/GameRoomCatalogLoader.swift`
+- `gameroom/GameRoomPresentationComponents.swift`
+- `ui/SharedFullscreenChrome.swift`
+- `ui/SharedGestures.swift`
+
+Findings:
+- no dead code found
+- growth hotspot at 700+ lines with routing, event semantics, media behavior, and log presentation all mixed together
+- `follow-up`: summary media silently caps at the most recent 12 attachments
+- `follow-up`: the embedded log silently caps at 40 events and has no affordance to reach older history
+- `follow-up`: media log rows open the attachment directly instead of selecting the log row, so the selected-log-detail interaction model changes based on event type
+
+Changes made in this pass:
+- none
+
+### `GameRoomModels.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the full persisted GameRoom domain schema: machine ownership, events, issues, attachments, reminder configs, import records, and top-level persisted state
+
+Line map:
+- `3-154`: GameRoom enums and persisted value domains
+- `156-322`: area and owned-machine schema
+- `324-347`: snapshot schema
+- `349-519`: event, issue, attachment, and reminder config schema
+- `521-end`: import record and top-level persisted state schema
+
+Primary interactions:
+- `gameroom/GameRoomStore.swift`
+- `gameroom/GameRoomPresentationComponents.swift`
+- `gameroom/GameRoomSettingsComponents.swift`
+- `gameroom/GameRoomMachineView.swift`
+
+Findings:
+- no dead code safely removed because this file is the persistence/schema seam
+- `follow-up`: several schema fields and enum cases are currently dormant from reachable UI flows: `purchasePrice`, `manufactureDate`, `thumbnailURI`, `MachineIssueStatus.monitoring`, `MachineIssueStatus.deferred`, `MachineEventType.ballsCleaned`, `MachineEventType.rubbersReplaced`, `MachineEventType.flipperServiced`, `MachineEventType.modRemoved`, and `MachineEventCategory.inspection`
+- `follow-up`: `soldOrTradedDate` is modeled and shown in archive metadata, but current GameRoom mutation paths never stamp it
+- `follow-up`: permissive decode defaults keep old or malformed saved data loading, but they also hide schema drift because missing data silently self-heals
+
+Changes made in this pass:
+- none
+
+### `GameRoomPinsideImport.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- fetches and parses public Pinside collections, normalizes imported machine titles and variants, applies bundled slug/title corrections, and returns import-ready machine rows
+
+Line map:
+- `3-63`: title and variant normalization helpers
+- `65-107`: imported machine model and public error domain
+- `109-204`: import service, URL construction, HTML fetch, and page validation
+- `214-360`: direct HTML parsing and Jina-based detailed parsing
+- `363-442`: bundled group map loading and machine merge logic
+- `445-end`: slug/title/date normalization helpers
+
+Primary interactions:
+- `gameroom/GameRoomSettingsComponents.swift`
+- `SharedAppSupport/pinside_group_map.json`
+
+Findings:
+- no dead code found
+- `follow-up`: import robustness depends on brittle HTML regexes plus the external `r.jina.ai` fallback path, so upstream markup or proxy changes can break matching unexpectedly
+- `follow-up`: `loadGroupMap()` silently falls back to an empty map when the bundled JSON is missing or invalid, which degrades title quality without surfacing configuration drift
+- `follow-up`: month/date normalization logic is duplicated again in the import review UI instead of being shared from this service
+
+Changes made in this pass:
+- none
+
+### `GameRoomPresentationComponents.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- contains the GameRoom entry sheets, media import/edit surfaces, thumbnail and preview components, log detail card, and GameRoom-specific presentation helpers
+
+Line map:
+- `7-116`: service and play-count sheets
+- `118-355`: issue logging sheet and issue media import/storage helpers
+- `357-484`: issue resolution and ownership update sheets
+- `486-695`: generic media entry sheet and duplicate media import/storage helpers
+- `697-870`: transferable, thumbnail tiles, and media preview sheet
+- `872-1042`: media edit sheet and log detail card
+- `1044-end`: display-title helpers, sheet-style helpers, and event edit sheet
+
+Primary interactions:
+- `gameroom/GameRoomMachineView.swift`
+- `ui/AppToolbarActions.swift`
+- `ui/AppPresentationChrome.swift`
+- `ui/AppTheme.swift`
+
+Findings:
+- no dead code found
+- growth hotspot at 1100+ lines with repeated form, import, preview, and edit responsibilities
+- `follow-up`: `GameRoomLogIssueSheet` and `GameRoomMediaEntrySheet` duplicate the same local photo/video import and `GameRoomMedia` storage logic
+- `follow-up`: `GameRoomAttachmentPreviewSheet` constructs `AVPlayer(url:)` inside `body`, so playback state resets on view re-render
+- `follow-up`: `gameRoomEntrySheetStyle()` and `gameRoomMediaSheetStyle()` are currently separate naming seams with identical behavior, which is fine for now but easy to let drift accidentally later
+
+Changes made in this pass:
+- none
+
+### `GameRoomScreen.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the top-level GameRoom navigation shell, owns the GameRoom store/catalog loader lifetimes, and boots data loading plus owned-machine OPDB migration
+
+Line map:
+- `3-26`: GameRoom navigation and settings enums
+- `28-75`: top-level navigation shell and bootstrap task
+- `77-end`: machine-view navigation helper
+
+Primary interactions:
+- `gameroom/GameRoomHomeComponents.swift`
+- `gameroom/GameRoomSettingsComponents.swift`
+- `gameroom/GameRoomMachineView.swift`
+- `gameroom/GameRoomStore.swift`
+- `gameroom/GameRoomCatalogLoader.swift`
+
+Findings:
+- no dead code found after cleanup
+- `follow-up`: bootstrap still couples store load, catalog load, and OPDB migration to the screen `.task`, so data normalization runs from view presentation instead of a deeper lifecycle owner
+
+Changes made in this pass:
+- removed unused `PhotosUI`, `AVKit`, `UniformTypeIdentifiers`, and `UIKit` imports
+
+### `GameRoomSettingsComponents.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- houses the full GameRoom settings workspace: section shell, Pinside import review, add/edit machine flows, venue and area editing, archive browsing, adaptive popover placement, and save-feedback overlay
+
+Line map:
+- `3-99`: settings shell and section routing
+- `101-647`: Pinside import fetch, review, scoring, duplicate detection, and import commit flow
+- `649-1343`: venue naming, add-machine search, area management, machine editing, variant selection, and archive filtering
+- `1345-1460`: adaptive popover placement helper and viewport math
+- `1462-end`: archive surface and floating save-feedback overlay
+
+Primary interactions:
+- `gameroom/GameRoomScreen.swift`
+- `gameroom/GameRoomCatalogLoader.swift`
+- `gameroom/GameRoomCatalogSearchSupport.swift`
+- `gameroom/GameRoomPinsideImport.swift`
+- `gameroom/GameRoomStore.swift`
+- `gameroom/GameRoomMachineView.swift`
+
+Findings:
+- no dead code found
+- major growth hotspot at 1600+ lines mixing settings shell, importer, search/indexing, edit forms, archive presentation, UIKit popover geometry, and transient feedback animation
+- `follow-up`: import review re-implements `normalizedFirstOfMonth` locally, so purchase-date parsing rules can drift from `GameRoomPinsideImportService`
+- `follow-up`: archive metadata reads `soldOrTradedDate`, but current edit/store write paths never stamp or clear that field
+- `follow-up`: `GameRoomAdaptivePopoverModifier` depends on global `UIApplication` window geometry and safe-area math, so variant-picker behavior is coupled to UIKit/window assumptions rather than the SwiftUI call site
+
+Changes made in this pass:
+- none
+
+### `GameRoomStateCodec.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the canonical GameRoom JSON encoder/decoder settings and the load-from-defaults bridge for current and legacy storage keys
+
+Line map:
+- `3-14`: canonical encoder/decoder factories
+- `16-25`: defaults loading and legacy key fallback
+
+Primary interactions:
+- `gameroom/GameRoomStore.swift`
+- `UserDefaults`
+
+Findings:
+- no dead code found
+- `follow-up`: `loadFromDefaults(...)` uses `try?` and returns `nil` on any decode failure, so corrupted or schema-broken saved state is treated the same as "no saved state" and the store silently resets to empty
+
+Changes made in this pass:
+- none
+
+### `GameRoomStore.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- owns persisted GameRoom state, all GameRoom mutations, derived machine snapshots, due-task calculations, import dedupe checks, and the global save/recompute notification path
+
+Line map:
+- `5-40`: store bootstrap, save, and active/archive slices
+- `42-166`: machine CRUD and event CRUD
+- `221-346`: issue, attachment, area, and venue mutations
+- `354-454`: import dedupe, import commit, and OPDB migration
+- `457-end`: sort order, derived snapshots, reminder logic, save pipeline, and normalization helpers
+
+Primary interactions:
+- `gameroom/GameRoomScreen.swift`
+- `gameroom/GameRoomHomeComponents.swift`
+- `gameroom/GameRoomMachineView.swift`
+- `gameroom/GameRoomSettingsComponents.swift`
+- `gameroom/GameRoomStateCodec.swift`
+- shared library-source notification plumbing
+
+Findings:
+- no dead code found
+- `follow-up`: play-count and reminder logic depends on hidden store contracts: only `.custom` + `.custom` events with `playCountAtEvent` contribute to current plays, and date-based reminder configs with no history are considered immediately due
+- `follow-up`: `effectiveReminderConfigs(for:)` injects implicit default reminder configs when none are stored, so due-task behavior depends on hidden defaults rather than persisted user state
+- `follow-up`: every mutation funnels through `saveAndRecompute()`, which also calls `postPinballLibrarySourcesDidChange()`, making GameRoom a global library-source side-effect seam
+- `follow-up`: `updateMachine(...)` can move a machine into `.sold` or `.traded`, but never stamps `soldOrTradedDate`, so archive metadata is structurally supported but functionally unwired
+
+Changes made in this pass:
+- none
+
+## Pass 017 summary
+
+Safe cleanup changes made:
+- removed dead `gameRoomCatalogMatchesSearch(...)` from `GameRoomCatalogLoader.swift`
+- removed unused manufacturer preload state and `loadManufacturers()` from `GameRoomCatalogLoader.swift`
+- removed unused framework imports from `GameRoomScreen.swift`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. decide whether GameRoom should keep implicit default reminder configs or persist explicit reminder state so due-task behavior is not hidden inside `GameRoomStore.swift`
+2. unify Pinside purchase-date normalization so `GameRoomPinsideImport.swift` and `GameRoomSettingsComponents.swift` cannot drift
+3. define sold/traded/archive lifecycle behavior, including whether `soldOrTradedDate` should be stamped automatically when status changes
+4. decide whether silent caps in `GameRoomMachineView.swift` for media (`12`) and log entries (`40`) are intentional enough to keep hidden
+5. guard `GameRoomStateCodec.loadFromDefaults(...)` against silent state reset on decode failure
+6. review whether GameRoom catalog dedupe should prefer earliest-year entries or a variant/image-first representative for parity with future Android behavior
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/SharedAppSupport/pinside_group_map.json`
+- `Pinball App 2/Pinball App 2/SharedAppSupport/app-intro/*.webp`
+- `Pinball App 2/Pinball App 2/SharedAppSupport/shake-warnings/*.webp`
+- `Pinball App 2/Pinball App 2/PinballPreload.bundle/preload-manifest.json`
+
+### `SharedAppSupport/pinside_group_map.json`
+
+Status: `reviewed`
+
+Responsibility summary:
+- provides the bundled slug-to-title correction map used during GameRoom Pinside import when direct collection parsing only yields slugs
+
+Line map:
+- `1`: root object start
+- `2-338`: slug override entries
+- `339`: object end
+
+Primary interactions:
+- `gameroom/GameRoomPinsideImport.swift`
+- built app bundle root fallback and `SharedAppSupport/` source tree
+
+Findings:
+- no dead entries safely removed in this pass
+- hidden data contract: the value `"~"` is a sentinel meaning "do not override, fall back to slug humanization", but that convention lives only in `resolvedTitle(for:groupMap:)` rather than in the JSON itself
+- this is a hand-curated import quality seam, not just static data; mismapped or stale slugs will directly change import suggestions and duplicate-detection behavior
+- bundle packaging currently flattens this file into the app bundle root, and the loader intentionally supports both root lookup and `SharedAppSupport/` source-tree lookup
+
+Changes made in this pass:
+- none
+
+### `SharedAppSupport/app-intro/*.webp`
+
+Status: `reviewed`
+
+Responsibility summary:
+- bundled intro-overlay artwork for the welcome deck, per-surface screenshots, and the professor spotlight avatar
+
+Asset inventory:
+- `launch-logo.webp`: welcome artwork, `2046x2046`
+- `league-screenshot.webp`: intro screenshot, `1206x1809`
+- `library-screenshot.webp`: intro screenshot, `1206x1809`
+- `practice-screenshot.webp`: intro screenshot, `1206x1809`
+- `gameroom-screenshot.webp`: intro screenshot, `1206x1809`
+- `settings-screenshot.webp`: intro screenshot, `1206x1809`
+- `professor-headshot.webp`: spotlight portrait, `512x512`
+
+Primary interactions:
+- `app/AppIntroOverlay.swift`
+- `app/ContentView.swift`
+- `settings/SettingsScreen.swift`
+
+Findings:
+- no unused intro assets found; all seven files are live
+- hidden contract: `AppIntroCard.bundledArtworkFileName` and `artworkAspectRatio` hard-code both the filenames and the expected geometry, so replacing art with different aspect ratios will change layout behavior without any code diff
+- hidden packaging contract: these assets are currently copied into the built app bundle root, and `AppIntroBundledArtProvider` supports both root lookup and `SharedAppSupport/app-intro` fallback
+- `follow-up`: intro art is synchronously loaded from disk via `Data(contentsOf:)` and decoded with `UIImage(data:)` on first use; the in-memory cache avoids repeated work, but first presentation still pays a main-thread decode path
+
+Changes made in this pass:
+- none
+
+### `SharedAppSupport/shake-warnings/*.webp`
+
+Status: `reviewed`
+
+Responsibility summary:
+- bundled warning art for the professor shake/danger overlay states
+
+Asset inventory:
+- `professor-danger_1024.webp`: warning artwork, `1024x1024`
+- `professor-danger-danger_1024.webp`: double-danger artwork, `1024x1024`
+- `professor-tilt_1024.webp`: tilt artwork, `1024x1024`
+
+Primary interactions:
+- `app/AppShakeCoordinator.swift`
+- shared bundle resource packaging
+
+Findings:
+- no unused shake-warning assets found; all three files are live
+- hidden contract: warning level enums and filenames are tightly coupled in `AppShakeWarningLevel.bundledArtFileName`, so any rename becomes a runtime asset miss
+- hidden packaging contract: like intro art, these files currently ship flattened at the app bundle root, with a secondary fallback to `SharedAppSupport/shake-warnings`
+- `follow-up`: shake artwork is also loaded synchronously on demand, so large image replacement would directly affect first-warning presentation latency
+
+Changes made in this pass:
+- none
+
+### `PinballPreload.bundle/preload-manifest.json`
+
+Status: `reviewed`
+
+Responsibility summary:
+- declares the bundled preload resource list that `PinballDataCache` seeds into the on-device cache before remote refresh
+
+Line map:
+- `2`: preload schema version
+- `3`: manifest generation timestamp (`2026-03-26T21:27:47Z`)
+- `4-26`: bundled preload paths
+
+Primary interactions:
+- `data/PinballDataCache.swift`
+- `PinballPreload.bundle/pinball/**`
+
+Bundled payload coverage verified in this pass:
+- `14` `data/` files
+- `1` `rulesheets/` file
+- `1` `gameinfo/` file
+- `5` `images/` files
+- bundle size on disk: about `8.6 MB`
+
+Findings:
+- no path drift found; every manifest path currently matches a real file in `PinballPreload.bundle/pinball/**`
+- hidden contract: `seedBundledPreloadIntoCacheIfNeeded()` only consumes `paths`; `schemaVersion` and `generatedAt` are decoded but not used to gate or validate preload seeding today
+- hidden failure mode: if any manifest-listed file is missing, preload seeding throws during `ensureLoaded()`, so manifest and bundle contents must stay perfectly in sync
+- hidden freshness contract: the preload bundle is only a bootstrap subset, not a full offline mirror, but nothing in the manifest itself explains that scope
+
+Changes made in this pass:
+- none
+
+## Pass 018 summary
+
+Safe cleanup changes made:
+- none
+
+Verification:
+- no additional build run; this pass was read-only apart from the review log, and the last code-affecting pass already built successfully
+
+Open follow-up items from this pass:
+1. document the `pinside_group_map.json` `"~"` sentinel explicitly somewhere near the source data or import code so future edits do not treat it like a literal title
+2. decide whether app-intro and shake-warning art should keep relying on synchronous first-load decode paths
+3. consider whether root-bundle resource flattening is intentional enough to document, since the loaders explicitly support both flattened and subdirectory packaging modes
+4. decide whether `preload-manifest.json` should actively validate `schemaVersion` or use `generatedAt` for preload freshness/debugging
+5. decide whether the preload manifest should describe its bootstrap-only scope so future parity work does not mistake it for a complete offline dataset
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/Assets.xcassets/**`
+- `Pinball App 2/Pinball App 2.xcodeproj/project.pbxproj`
+- `Pinball App 2/Pinball App 2.xcodeproj/xcshareddata/xcschemes/**`
+
+### `Assets.xcassets/Contents.json`
+
+Status: `reviewed`
+
+Responsibility summary:
+- top-level asset catalog metadata for the iOS app asset namespace
+
+Line map:
+- `1-6`: catalog metadata
+
+Primary interactions:
+- Xcode asset catalog compilation
+- `project.pbxproj`
+
+Findings:
+- no dead asset-catalog root metadata found
+- healthy minimal root catalog
+
+Changes made in this pass:
+- none
+
+### `Assets.xcassets/AccentColor.colorset/Contents.json`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the project-wide accent asset color used by the Xcode build setting `ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME`
+
+Line map:
+- `2-15`: universal sRGB accent color
+- `16-20`: metadata
+
+Primary interactions:
+- `Pinball App 2.xcodeproj/project.pbxproj`
+- system accent surfaces generated from the asset catalog
+
+Findings:
+- no dead color asset found
+- hidden contract: this accent color affects the project-level asset setting, but most runtime UI branding comes from `ui/AppTheme.swift`, so changing `AccentColor` will not restyle the app the way a teammate might assume
+
+Changes made in this pass:
+- none
+
+### `Assets.xcassets/LaunchBackground.colorset/Contents.json`
+
+Status: `reviewed`
+
+Responsibility summary:
+- provides the generated launch-screen background color asset
+
+Line map:
+- `2-15`: universal sRGB launch background color
+- `16-20`: metadata
+
+Primary interactions:
+- `Pinball App 2.xcodeproj/project.pbxproj`
+- generated launch screen (`INFOPLIST_KEY_UILaunchScreen_UIColorName`)
+
+Findings:
+- no dead launch background asset found
+- this asset is only tied to the generated launch screen, not the runtime app shell, so launch styling and in-app styling already have separate sources of truth
+
+Changes made in this pass:
+- none
+
+### `Assets.xcassets/AppIcon.appiconset/Contents.json`
+
+Status: `reviewed`
+
+Responsibility summary:
+- declares the primary, dark, and tinted app icon variants for iOS asset compilation
+
+Line map:
+- `2-32`: icon variant declarations
+- `34-38`: metadata
+
+Asset inventory:
+- `AppIcon-1024.png`: `1024x1024`
+- `AppIcon-1024-dark.png`: `1024x1024`
+- `AppIcon-1024-tinted.png`: `1024x1024`
+
+Primary interactions:
+- `Pinball App 2.xcodeproj/project.pbxproj`
+- iOS app icon compilation
+
+Findings:
+- no unused app icon variants found; all three are declared in the asset metadata
+- hidden contract: icon appearance support now lives in asset metadata, not in any Swift code path, so icon regressions will bypass code review unless this asset set is reviewed directly
+
+Changes made in this pass:
+- none
+
+### `Assets.xcassets/LaunchLogo.imageset/Contents.json`
+
+Status: `reviewed`
+
+Responsibility summary:
+- provides the generated launch-screen logo image set in `1x`, `2x`, and `3x` PNG variants
+
+Line map:
+- `2-17`: image declarations
+- `19-25`: metadata and rendering intent
+
+Asset inventory:
+- `LaunchLogo.png`: `682x682`
+- `LaunchLogo@2x.png`: `1364x1364`
+- `LaunchLogo@3x.png`: `2046x2046`
+
+Primary interactions:
+- `Pinball App 2.xcodeproj/project.pbxproj`
+- generated launch screen (`INFOPLIST_KEY_UILaunchScreen_UIImageName`)
+
+Findings:
+- no unused launch logo scales found
+- hidden duplication seam: this launch logo asset family appears to be the same branding source as `SharedAppSupport/app-intro/launch-logo.webp`, but the app now carries separate PNG and WebP pipelines for launch versus intro surfaces
+- hidden contract: the launch screen uses this imageset only through generated Info.plist build settings, so there is no direct Swift call site to remind reviewers that changing launch art requires updating the asset catalog rather than `SharedAppSupport`
+
+Changes made in this pass:
+- none
+
+### `Pinball App 2.xcodeproj/project.pbxproj`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the app and test targets, project-wide build settings, generated Info.plist keys, launch-screen asset wiring, and the Xcode filesystem-synchronized project structure
+
+Line map:
+- `1-35`: project headers and filesystem-synchronized root groups
+- `37-121`: app/test target definitions and build phases
+- `123-200`: project object and target dependency wiring
+- `202-323`: project-level debug/release defaults
+- `326-410`: app target debug/release settings
+- `413-end`: test target settings and configuration lists
+
+Primary interactions:
+- `Assets.xcassets/**`
+- `Pinball App 2/`
+- `Pinball App 2Tests/`
+- Xcode build system and generated Info.plist
+
+Findings:
+- no dead project configuration blocks found
+- major hidden build-system contract: the project uses `PBXFileSystemSynchronizedRootGroup`, so source and resource inclusion is driven by on-disk folders while the sources/resources build phases stay visually empty in the pbxproj
+- hidden configuration contract: launch screen, privacy strings, bundle display name, app icon, and accent color are all generated from build settings instead of a checked-in Info.plist
+- `follow-up`: `ENABLE_PREVIEWS = YES` is enabled for both Debug and Release app configurations, which may be intentional but is not obvious without reading the project file
+- `follow-up`: project-wide runtime assumptions such as `IPHONEOS_DEPLOYMENT_TARGET = 26.2`, `SWIFT_APPROACHABLE_CONCURRENCY = YES`, and `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` live here rather than near feature code
+
+Changes made in this pass:
+- none
+
+### `Pinball App 2.xcodeproj/project.xcworkspace/contents.xcworkspacedata`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the minimal workspace shell pointing Xcode at the current project
+
+Line map:
+- `1-7`: workspace metadata and self reference
+
+Primary interactions:
+- Xcode workspace loading
+
+Findings:
+- no dead workspace metadata found
+- healthy minimal workspace file
+
+Changes made in this pass:
+- none
+
+### Local Xcode User State
+
+Status: `context only`
+
+Files observed:
+- `Pinball App 2.xcodeproj/project.xcworkspace/xcuserdata/pillyliu.xcuserdatad/UserInterfaceState.xcuserstate`
+- `Pinball App 2.xcodeproj/project.xcworkspace/xcuserdata/pillyliu.xcuserdatad/WorkspaceSettings.xcsettings`
+- `Pinball App 2.xcodeproj/xcuserdata/pillyliu.xcuserdatad/xcschemes/xcschememanagement.plist`
+
+Notes:
+- these are local Xcode user-state files, not repo-tracked project artifacts in the current git view
+- there are no shared scheme files under `xcshareddata/xcschemes/**` in this project
+- the local `xcschememanagement.plist` still mentions `Pinball App Vision.xcscheme`, which does not appear in the project file; because this is local-only state, it is a context finding rather than a repo change target
+
+Changes made in this pass:
+- none
+
+## Pass 019 summary
+
+Safe cleanup changes made:
+- none
+
+Verification:
+- no additional build run; this pass was read-only and project metadata findings did not change compiled code
+
+Open follow-up items from this pass:
+1. decide whether `AccentColor.colorset` should stay as-is or be documented as a system-only accent, since runtime branding mainly comes from `AppTheme.swift`
+2. decide whether the duplicated launch-logo asset pipelines (`LaunchLogo.imageset` PNGs and `SharedAppSupport/app-intro/launch-logo.webp`) need a documented single source of truth
+3. document the filesystem-synchronized Xcode project structure so empty build phases in `project.pbxproj` do not mislead future audits
+4. confirm whether `ENABLE_PREVIEWS = YES` in Release is intentional
+5. decide whether the absence of shared scheme files is fine for the team workflow or whether a shared scheme should be committed explicitly
+
+Next files queued:
+- `Pinball App 2Tests/**`
+- repo-level iOS support docs that still influence the app runtime contract
+
+### `Pinball App 2Tests/AppShakeCoordinatorTests.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- regression tests for shake motion constants, warning timing/art wiring, native-undo suppression, fallback escalation, and escalating haptics
+
+Line map:
+- `4-13`: motion tuning parity constants
+- `15-37`: warning duration, haptic delay, and art-file-name assertions
+- `39-48`: native-undo suppression path
+- `50-64`: fallback escalation across repeated shakes
+- `66-82`: native undo does not reset escalation progress
+- `84-96`: haptic escalation sequence
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/app/AppShakeCoordinator.swift`
+- `Pinball App 2/Pinball App 2/app/AppShakeCoordinator.swift` warning-level constants and resource names
+- `Pinball App 2/Pinball App 2/SharedAppSupport/shake-warnings/*`
+
+Findings:
+- no dead tests found
+- good parity guard: this file protects several of the hard-coded shake constants and warning-art filenames that would otherwise drift silently from Android
+- coverage gap: the test target does not exercise bundled-art loading or the flattened-bundle versus `SharedAppSupport/shake-warnings` fallback lookup path, so packaging regressions would currently slip past XCTest
+
+Changes made in this pass:
+- none
+
+### `Pinball App 2Tests/GameRoomPinsideImportTests.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- targeted regression coverage for canonical Pinside displayed-title normalization
+
+Line map:
+- `5-13`: anniversary variant should win over generic premium suffix
+- `15-23`: normal premium variant should remain intact
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPinsideImport.swift`
+- `Pinball App 2/Pinball App 2/SharedAppSupport/pinside_group_map.json`
+
+Findings:
+- no dead tests found
+- real coverage gap: this file only protects two title-normalization cases even though the import path also depends on `pinside_group_map.json`, slug humanization, fallback variant inference, and multi-source scrape behavior
+- hidden seam left unguarded: the `"~"` sentinel behavior in `pinside_group_map.json` still has no direct test coverage
+
+Changes made in this pass:
+- none
+
+### `Pinball App 2Tests/PracticeQuickEntryDefaultsTests.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- regression coverage for quick-entry source defaults, video input defaults, rulesheet short-title labels, and merged video ordering
+
+Line map:
+- `5-16`: selected-game source should beat Avenue fallback
+- `18-29`: mechanics entry should start from the all-games library filter
+- `31-37`: video-entry default mode and option order
+- `39-55`: rulesheet short-title labeling
+- `57-113`: resolved catalog video ordering
+- `115-132`: merged curated/catalog video reordering
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/practice/PracticeQuickEntryDefaults.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeVideo*` helpers
+- `Pinball App 2/Pinball App 2/library/LibraryTypes.swift`
+
+Findings:
+- no dead tests found
+- healthy targeted protection around quick-entry defaults and shared video ordering seams
+- no direct test coverage yet for source-removal or import-refresh edge cases after an initial quick-entry source has already been persisted
+
+Changes made in this pass:
+- none
+
+### `Pinball App 2Tests/PracticeStateCodecTests.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- migration-gate coverage for canonical millisecond timestamps and legacy reference-date timestamp fallback decoding
+
+Line map:
+- `5-15`: canonical `v4` millisecond fixture decode
+- `17-28`: legacy reference-date fixture decode and unix-time sanity check
+- `30-35`: source-tree-relative fixture loading helper
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/practice/PracticeStateCodec.swift`
+- `Pinball App 2Tests/Fixtures/canonical_millis_v4.json`
+- `Pinball App 2Tests/Fixtures/legacy_reference_date_v4.json`
+
+Findings:
+- no dead tests found
+- this remains the key persisted-state migration gate for iOS
+- hidden contract: fixture loading is tied to the source-tree layout via `#filePath`, so moving the test file or `Fixtures/` folder breaks coverage without any build-setting reminder
+- follow-up: migration coverage is intentionally narrow and does not try to exercise every persisted field variant; future schema growth should keep regenerating representative fixtures rather than hand-waving compatibility
+
+Changes made in this pass:
+- none
+
+### `Pinball App 2Tests/Fixtures/canonical_millis_v4.json`
+
+Status: `reviewed`
+
+Responsibility summary:
+- canonical persisted-practice fixture using millisecond unix timestamps
+
+Line map:
+- `2`: schema version anchor
+- `3-80`: representative persisted domains including study, video, score, journal, custom groups, sync, analytics, rulesheet/video resume, and summary notes
+- `81-85`: practice settings sample
+
+Primary interactions:
+- `Pinball App 2Tests/PracticeStateCodecTests.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStateCodec.swift`
+
+Findings:
+- no dead fixture fields found
+- healthy representative sample for the current `v4` millisecond strategy
+- hidden limitation: the fixture intentionally covers only a small slice of the full Practice state shape, so newly added optional domains can drift unless the canonical fixture is refreshed when the schema evolves
+
+Changes made in this pass:
+- none
+
+### `Pinball App 2Tests/Fixtures/legacy_reference_date_v4.json`
+
+Status: `reviewed`
+
+Responsibility summary:
+- legacy persisted-practice fixture that keeps the fallback date-decoding path alive
+
+Line map:
+- `2`: schema version anchor
+- `3-51`: legacy reference-date timestamps across study, score, journal, league, sync, analytics, and resume hints
+- `52-55`: legacy practice settings sample
+
+Primary interactions:
+- `Pinball App 2Tests/PracticeStateCodecTests.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStateCodec.swift`
+
+Findings:
+- no dead fixture fields found
+- valuable compatibility anchor for older saved data
+- hidden limitation: like the canonical fixture, this one covers only a focused subset of Practice fields, so future fallback-decoding regressions outside these domains could still pass unnoticed
+
+Changes made in this pass:
+- none
+
+### `Pinball App 2Tests/RulesheetLinkResolutionTests.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- regression coverage for local rulesheet-path preservation, PinProf chip labeling, and the bundled-only `Final Exam` exception
+
+Line map:
+- `5-44`: local rulesheet path should survive external-link sort order
+- `46-57`: hosted PinProf resources should show `PinProf` chips
+- `59-76`: bundled-only `G900001` resources should stay `Local`
+- `78-99`: minimal `PinballGame` test-payload builder
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/library/RulesheetResourceResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryTypes.swift`
+- `Pinball App 2/Pinball App 2/PinballPreload.bundle/pinball/**`
+
+Findings:
+- no dead tests found
+- strong protection for the `PinProf: The Final Exam` bundled-only exception, which is one of the app’s easiest hidden resource-label seams to regress
+- remaining gap: there is still no direct override-path test for rulesheet link resolution when explicit overrides and live hosted status interact at the same time
+
+Changes made in this pass:
+- none
+
+### `Pinball App 2Tests/ScoreScannerServicesTests.swift`
+
+Status: `reviewed`
+
+Responsibility summary:
+- service-level regression coverage for OCR normalization, candidate ranking, manual score formatting, stability locking, and preview-frame crop mapping
+
+Line map:
+- `5-192`: OCR parsing heuristics and manual score formatting
+- `194-242`: stability service behavior and dominant-reading selection
+- `244-270`: preview-to-frame crop mapping
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/practice/ScoreParsingService.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreStabilityService.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerFrameMapper.swift`
+
+Findings:
+- no dead tests found
+- this is currently the strongest score-scanner regression surface in the repo; the low-level OCR/service heuristics are much better protected than the surrounding camera/view-model flow
+- coverage gap: there are still no tests for `ScoreScannerViewModel` freeze, retake, throttling, or mixed queue/actor coordination, so the highest-risk scanner behavior remains largely unguarded by the test target
+
+Changes made in this pass:
+- none
+
+### `README.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- top-level repo contract for the current release line, shared support ownership, hosted runtime source, and release/test anchors
+
+Line map:
+- `1-8`: repo identity and platform roots
+- `10-19`: current product shape and release line
+- `21-33`: runtime/source-of-truth notes and shared support ownership
+- `35-46`: release versioning and migration test gates
+
+Primary interactions:
+- `RELEASE_NOTES_3.4.9.md`
+- `Pinball_App_Architecture_Blueprint_latest.md`
+- `scripts/sync_shared_app_assets.sh`
+
+Findings:
+- no dead top-level contract notes found
+- change made: clarified that `./scripts/sync_shared_app_assets.sh` refreshes the iOS launch-logo asset catalog files and Android intro drawables, not the full iOS intro-overlay image path
+- hidden contract: this file is still acting as live runtime documentation, so version, hosted-source, and shared-support wording here can drift from project metadata if it is not reviewed alongside the code
+
+Changes made in this pass:
+- clarified the shared intro-asset sync note so it matches the actual script behavior
+
+### `RELEASE_NOTES_3.4.9.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- release-facing summary of the current product shape, hosted runtime model, shared support assets, and shipping workflow
+
+Line map:
+- `1-11`: release anchors
+- `13-29`: product shape and core release state
+- `31-44`: data/runtime model summary
+- `46-63`: release workflow and doc pointers
+
+Primary interactions:
+- `README.md`
+- `Pinball_App_Architecture_Blueprint_latest.md`
+- `Pinball App 2/Pinball App 2/SharedAppSupport/*`
+
+Findings:
+- no dead release-note blocks found
+- this document is more than marketing copy; it is also a live summary of the hosted runtime contract and app-owned bundled support assets
+- follow-up: the iOS validation note still highlights `PracticeStateCodecTests` only, which understates the broader regression coverage now present in `Pinball App 2Tests`
+
+Changes made in this pass:
+- none
+
+### `Pinball_App_Architecture_Blueprint_latest.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- main architecture reference describing release scope, runtime contracts, feature inventory, data flow, testing/release gates, and parity expectations for both mobile apps
+
+Line map:
+- `1-40`: release snapshot, purpose, current product shape, and goals
+- `52-167`: system overview, technology stack, runtime contracts, and source-of-truth posture
+- `171-465`: C4 diagrams and shared-service structure
+- `513-871`: screen and feature inventory
+- `881-965`: interaction diagrams
+- `969-1060`: data model, storage, and identity rules
+- `1077-1169`: background behavior and navigation relationships
+- `1173-1222`: testing, release, and hosted-data publication path
+- `1226-1259`: platform adaptations and final architecture summary
+
+Primary interactions:
+- `README.md`
+- `RELEASE_NOTES_3.4.9.md`
+- `Pinball App 2/Pinball App 2/**`
+- `Pinball App Android/app/src/main/**`
+
+Findings:
+- no dead major architecture sections found; this is still the repo’s most complete written runtime-contract reference
+- change made: corrected stale footer release-version drift from `3.4.7` to `3.4.9`
+- hidden drift: the testing section still frames iOS validation around `PracticeStateCodecTests` even though the current XCTest target now also covers shake handling, GameRoom Pinside parsing, quick-entry defaults, rulesheet resource resolution, and score-scanner services
+
+Changes made in this pass:
+- updated the final-summary release references from `3.4.7` to `3.4.9`
+
+### `docs/ios_rulesheet_rotation_preservation.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- deep implementation note explaining why the iOS `WKWebView` rulesheet reader preserves semantic reading position across rotation the way it does today
+
+Line map:
+- `1-35`: summary, scope, user-facing problem, and why the bug was difficult
+- `37-83`: debugging findings that shaped the final fix
+- `84-116`: failed and rejected approaches
+- `117-198`: final restore strategy and implementation details
+- `199-243`: validation expectations and unrelated console noise
+- `244-261`: cleanup status and practical takeaway
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/library/RulesheetScreen.swift`
+- rulesheet rotation/reflow behavior in `WKWebView`
+
+Findings:
+- no dead explanatory sections found; this doc still matters because it explains why the current `RulesheetScreen` restore machinery exists
+- change made: updated the cleanup section to reflect that the temporary named debug channels from the investigation are already gone from the current codebase
+- hidden contract: this doc is still effectively the only human-readable explanation for the current anchor-freeze/layout-settle generation-guard approach, so refactors to rulesheet rotation risk losing important intent if this note drifts again
+
+Changes made in this pass:
+- replaced the stale “remove debug logs later” note with current-state wording
+
+### `scripts/sync_shared_app_assets.sh`
+
+Status: `reviewed`
+
+Responsibility summary:
+- syncs `SharedAppSupport/app-intro/*` source assets into Android intro drawables and the iOS launch-logo asset catalog outputs
+
+Line map:
+- `1-58`: repo paths and small file/command helpers
+- `60-69`: Android WebP conversion/copy path
+- `71-85`: iOS PNG rendering helpers
+- `87-118`: source intro-asset resolution and Android output refresh
+- `120-128`: iOS `LaunchLogo.imageset` refresh and completion message
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/SharedAppSupport/app-intro/*`
+- `Pinball App Android/app/src/main/res/drawable-nodpi/*`
+- `Pinball App 2/Pinball App 2/Assets.xcassets/LaunchLogo.imageset/*`
+- `README.md`
+
+Findings:
+- hidden scope contract: despite the broader name, this script only syncs `app-intro` assets, and on iOS it only regenerates `LaunchLogo.imageset`; the runtime intro overlay still loads bundled `SharedAppSupport/app-intro/*.webp` directly
+- change made: moved the `cwebp` dependency check into the conversion branch so the script no longer hard-fails on machines where every current source asset is already `.webp`
+- legacy-cleanup note: the Android output reset still deletes both historical `.png` and current `.webp` filenames before rewriting the current `.webp` outputs, which is intentional but easy to misread as an active dual-format pipeline
+
+Changes made in this pass:
+- made `cwebp` a lazy requirement instead of an unconditional startup dependency
+
+## Pass 020 summary
+
+Safe cleanup changes made:
+- clarified `README.md` so the shared intro-asset sync note matches the actual iOS launch-logo plus Android drawable behavior
+- corrected the stale `3.4.7` footer references in `Pinball_App_Architecture_Blueprint_latest.md`
+- updated `docs/ios_rulesheet_rotation_preservation.md` so its cleanup note matches the current codebase
+- made `scripts/sync_shared_app_assets.sh` require `cwebp` only when it actually needs to convert a non-WebP source asset
+
+Verification:
+- `bash -n '/Users/pillyliu/Documents/Codex/Pinball App/scripts/sync_shared_app_assets.sh'`
+- no additional Xcode build run; this pass only changed docs plus a maintenance script and did not touch compiled app code
+
+Open follow-up items from this pass:
+1. add `AppShakeCoordinator` resource-loading tests so bundle-packaging regressions are not invisible to XCTest
+2. expand `GameRoomPinsideImportTests` to cover `pinside_group_map.json` sentinel behavior, slug humanization, and other import fallbacks
+3. add `ScoreScannerViewModel` freeze/retake/throttling tests to cover the mixed queue/actor scanner behavior that the service tests do not reach
+4. decide whether `PracticeStateCodec` fixtures should be expanded as the schema evolves so more persisted fields are protected by migration tests
+5. decide whether `RELEASE_NOTES_3.4.9.md` and `Pinball_App_Architecture_Blueprint_latest.md` should describe the broader current iOS test surface instead of highlighting only `PracticeStateCodecTests`
+6. decide whether the stale `Pinball App 2Tests` target `MARKETING_VERSION = 3.0.0` in `project.pbxproj` should be normalized with the `3.4.9` release line
+7. consider renaming or splitting `scripts/sync_shared_app_assets.sh` if the team wants its current app-intro-only scope to be more obvious
+
+Next files queued:
+- non-runtime repo docs under `docs/modernization/**`
+- historical/local archive material under `archive/**`
+- remaining maintenance scripts outside the active iOS runtime/support path
+
+### `docs/modernization/README.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- top-level contract for how the modernization docs are organized and how teams are supposed to use them
+
+Line map:
+- `1-5`: folder purpose and current framing
+- `7-17`: document hierarchy
+- `19-25`: workflow rules
+- `27-33`: feature-folder inventory
+
+Primary interactions:
+- `docs/modernization/00_program_overview.md`
+- `docs/modernization/01_workflow.md`
+- `docs/modernization/features/**`
+
+Findings:
+- no dead top-level doc-index entries found
+- this file explicitly says the modernization docs are no longer tied to the old `3.2` branch framing, which made it a useful drift detector for older feature/program docs that still used that language
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/00_program_overview.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- program-level overview for the modernization/parity effort, including goals, product map, work order, and current phase notes
+
+Line map:
+- `3-8`: program naming and framing
+- `9-38`: goals, definitions, and what the effort is or is not
+- `39-63`: work order, priorities, and canonical baseline references
+- `64-107`: product map and structural realities
+- `108-122`: modernization work order and current phase shift
+
+Primary interactions:
+- `docs/modernization/README.md`
+- `docs/modernization/04_audit_matrix.md`
+- `docs/modernization/features/**`
+
+Findings:
+- change made: updated the stale `3.2 Modernization` naming block so the file now matches the newer “living modernization/parity maintenance” framing described in `README.md`
+- hidden contract: this file still points teams at the historical GameRoom `3.1` source docs as the strongest written baseline, so those references still shape current cleanup decisions even though the broader program framing has moved on
+
+Changes made in this pass:
+- replaced the stale branch-era program naming block with current wording plus explicit historical references
+
+### `docs/modernization/01_workflow.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- defines the expected doc-first modernization workflow, change categories, and completion checks
+
+Line map:
+- `3-14`: mandatory sequence
+- `15-20`: canonical implementation rule
+- `21-31`: preferred task size and anti-patterns
+- `32-42`: change categories
+- `44-67`: parity-start, completion, and commit guidance
+
+Primary interactions:
+- `docs/modernization/features/*/{spec,parity,checklist,ledger}.md`
+
+Findings:
+- no dead workflow rules found
+- this file still describes a clean doc-first discipline that matches the user’s requested review-first approach better than the current repo history often does
+- hidden tension: the workflow discourages broad “cleanup,” but several other modernization docs have grown into broad append-only ledgers and audit matrices anyway
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/02_design_system.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- shared design-system intent and a large dated progress log of cross-platform token/chrome adoption work
+
+Line map:
+- `3-39`: design intent, token families, component families, and platform-adaptation rules
+- `56-82`: brand direction, near-term outputs, and current gap framing
+- `84-223`: dated baseline-progress ledger across Android and iOS shared chrome adoption
+- `224-229`: next design-system steps
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/ui/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/**`
+- `docs/modernization/04_audit_matrix.md`
+
+Findings:
+- change made: updated the “current gap” section so it no longer contradicts the same file’s later claim that Android already has an explicit semantic token layer
+- major doc growth hotspot: this file now mixes enduring design-system contract language with a very long dated implementation ledger, which makes it harder to tell current guidance from historical progress notes
+- hidden contract: many cross-platform chrome decisions are documented here before they are visible anywhere else, so drift in this file can mislead future cleanup work even when the code itself is healthy
+
+Changes made in this pass:
+- refreshed the “current gap to close” wording so it matches the current token-layer reality on both platforms
+
+### `docs/modernization/03_parity_rules.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- high-level definition of parity, allowed differences, required docs, and drift-handling language
+
+Line map:
+- `3-13`: parity definition
+- `14-29`: allowed and disallowed differences
+- `30-45`: parity-checklist and canonical-source rules
+- `46-65`: drift handling and completion language
+
+Primary interactions:
+- `docs/modernization/features/*/parity.md`
+- `docs/modernization/features/*/ledger.md`
+
+Findings:
+- no dead parity-rule language found
+- healthy concise guardrail file
+- the GameRoom `3.1` reference remains intentional historical baseline context here, not stale current-state wording
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/04_audit_matrix.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- high-level audit tracker covering feature status, shell/theme hotspots, file-level hotspots, and current work order
+
+Line map:
+- `3-13`: status vocabulary
+- `14-23`: feature-summary table
+- `24-33`: shell and theme hotspots
+- `34-224`: large cross-platform file-level hotspot table
+- `225-238`: current work order and audit-matrix maintenance notes
+
+Primary interactions:
+- `docs/modernization/00_program_overview.md`
+- `docs/modernization/features/**`
+- `Pinball App 2/Pinball App 2/**`
+- `Pinball App Android/app/src/main/**`
+
+Findings:
+- no dead matrix sections found, but this is now a major maintenance hotspot: the file has become a very large mixed-status registry that can drift from both the codebase and the newer sequential review doc
+- hidden overlap: several “in audit” or “stable” judgments here now coexist with deeper findings from the new iOS sequential review, so this matrix is better as a coarse planning map than as a precise current-health ledger
+- follow-up: the current work order still reads like a modernization-program roadmap, not a true reflection of the current review-first cleanup campaign
+
+Changes made in this pass:
+- none
+
+## Pass 021 summary
+
+Safe cleanup changes made:
+- updated `00_program_overview.md` so its name/framing block matches the newer modernization/parity-maintenance language instead of pretending the whole doc set is still branch-bound to `3.2`
+- updated `02_design_system.md` so its “current gap” section matches the actual Android token-layer state documented later in the file
+
+Verification:
+- `rg -n "## 3\\.2 focus|during 3\\.2|codex/3\\.2-modernization|light custom semantic layer|Material color-scheme defaults" '/Users/pillyliu/Documents/Codex/Pinball App/docs/modernization'`
+- result after the edits: only intentional historical references remained
+
+Open follow-up items from this pass:
+1. decide whether `02_design_system.md` should be split into a stable contract file plus a dated progress ledger
+2. decide whether `04_audit_matrix.md` should be trimmed or regenerated from fresher review sources, because it is now large enough to drift silently
+3. consider whether the modernization docs should explicitly reference the newer sequential iOS review doc so the two audit systems do not diverge
+
+Next files queued:
+- `docs/modernization/features/gameroom/*`
+- `docs/modernization/features/league/*`
+- `docs/modernization/features/library/*`
+- `docs/modernization/features/practice/*`
+- `docs/modernization/features/settings/*`
+
+### `docs/modernization/features/gameroom/checklist.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- concise completion checklist for GameRoom parity and modernization verification
+
+Line map:
+- `1-15`: checklist items
+
+Primary interactions:
+- `docs/modernization/features/gameroom/spec.md`
+- `docs/modernization/features/gameroom/parity.md`
+- `docs/modernization/features/gameroom/ledger.md`
+
+Findings:
+- no dead checklist items found
+- checklist is still compact and aligned with the shipped GameRoom behavior surface
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/gameroom/ledger.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- dated change ledger for GameRoom cleanup/parity work
+
+Line map:
+- `3-8`: historical branch/baseline notes
+- `9-63`: dated structural, shared-chrome, and parity-cleanup log
+- `65-69`: next audit targets
+
+Primary interactions:
+- `docs/modernization/features/gameroom/spec.md`
+- `docs/modernization/features/gameroom/parity.md`
+- `Pinball App 2/Pinball App 2/gameroom/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/**`
+
+Findings:
+- no dead historical entries found
+- still useful as a dated record, but it is clearly historical/change-log oriented rather than a current-state contract
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/gameroom/parity.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- declares the baseline GameRoom parity contract and allowed native differences
+
+Line map:
+- `3-5`: baseline statement
+- `7-18`: must-match behaviors
+- `19-24`: allowed native differences
+- `26-30`: drift rule
+
+Primary interactions:
+- `docs/modernization/features/gameroom/spec.md`
+- `docs/modernization/features/gameroom/ledger.md`
+
+Findings:
+- change made: replaced stale “during 3.2” wording in the drift rule with current modernization/parity-maintenance language
+
+Changes made in this pass:
+- normalized stale branch-phase wording in the drift rule
+
+### `docs/modernization/features/gameroom/spec.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- current GameRoom feature scope, structural baseline, and cleanup focus
+
+Line map:
+- `3-12`: status and canonical references
+- `14-24`: scope summary
+- `26-31`: focus area
+- `33-43`: structural baseline
+
+Primary interactions:
+- `docs/modernization/features/gameroom/{parity,ledger,checklist}.md`
+- `Pinball App 2/Pinball App 2/gameroom/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/**`
+
+Findings:
+- change made: replaced stale `3.2 focus` wording with `Current focus`
+- change made: updated the closing baseline sentence so it refers to the current modernization phase instead of implying the doc is still bound to a `3.2` milestone
+
+Changes made in this pass:
+- normalized stale milestone wording in the active spec
+
+### `docs/modernization/features/league/checklist.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- concise parity checklist for League routes and nested About behavior
+
+Line map:
+- `1-8`: checklist items
+
+Primary interactions:
+- `docs/modernization/features/league/spec.md`
+- `docs/modernization/features/league/parity.md`
+- `docs/modernization/features/league/ledger.md`
+
+Findings:
+- no dead checklist items found
+- healthy compact checklist
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/league/ledger.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- dated League cleanup/parity ledger
+
+Line map:
+- `3-5`: shipped-baseline note
+- `7-24`: route, preview, shared-chrome, and About-flow cleanup log
+- `25-29`: next audit targets
+
+Primary interactions:
+- `docs/modernization/features/league/spec.md`
+- `Pinball App 2/Pinball App 2/league/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/**`
+
+Findings:
+- no dead historical entries found
+- ledger is still coherent and materially shorter than the Practice/Library ledgers, so it remains readable as a dated implementation record
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/league/parity.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- minimal parity contract for League destination order and routing behavior
+
+Line map:
+- `3-8`: must-match items
+- `10-13`: allowed native differences
+
+Primary interactions:
+- `docs/modernization/features/league/spec.md`
+
+Findings:
+- no dead parity rules found
+- concise but very light; this file assumes the spec and ledger carry most of the real detail
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/league/spec.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- League feature scope, current focus, and structural baseline across both platforms
+
+Line map:
+- `3-7`: status
+- `8-15`: scope summary
+- `17-24`: focus area
+- `25-46`: structural baseline
+
+Primary interactions:
+- `docs/modernization/features/league/{parity,ledger,checklist}.md`
+- `Pinball App 2/Pinball App 2/league/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/**`
+
+Findings:
+- change made: replaced stale `3.2 focus` wording with `Current focus`
+- otherwise the written contract is still aligned with the current League structure we saw in code
+
+Changes made in this pass:
+- normalized the active focus heading
+
+### `docs/modernization/features/library/checklist.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- parity checklist for Library source behavior, resource fallback, V3 local asset naming, and GameRoom overlay behavior
+
+Line map:
+- `1-10`: checklist items
+
+Primary interactions:
+- `docs/modernization/features/library/spec.md`
+- `docs/modernization/features/library/parity.md`
+- `docs/modernization/features/library/ledger.md`
+
+Findings:
+- no dead checklist items found
+- still reflects the resource-fallback and overlay seams we confirmed during code review
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/library/ledger.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- dated Library modernization ledger covering CAF runtime contract shifts, seam extraction, and shared-chrome cleanup
+
+Line map:
+- `3-5`: early shared-integration note
+- `7-87`: long dated cleanup/parity ledger
+- `88-91`: next audit targets
+
+Primary interactions:
+- `docs/modernization/features/library/spec.md`
+- `Pinball App 2/Pinball App 2/library/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/**`
+
+Findings:
+- no dead historical entries found
+- major growth hotspot: this file now serves as an extensive change log and is much better at preserving implementation history than at surfacing current unresolved risks
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/library/parity.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- parity contract for Library data loading, fallback behavior, GameRoom overlay integration, and CAF resource rules
+
+Line map:
+- `3-12`: must-match behaviors
+- `13-18`: allowed native differences
+- `19-30`: current parity baseline
+
+Primary interactions:
+- `docs/modernization/features/library/spec.md`
+- `docs/modernization/features/library/ledger.md`
+
+Findings:
+- no dead parity sections found
+- the file still captures the important CAF and fallback ladders accurately, but it under-describes newer secondary behavior like hosted live-status handling and fullscreen presentation chrome
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/library/spec.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- current Library scope, CAF runtime contract, fallback rules, and hosted playfield behavior
+
+Line map:
+- `3-18`: status and scope summary
+- `20-26`: focus area
+- `27-47`: structural baseline and active CAF contract
+- `48-70`: resource and hosted playfield contract
+
+Primary interactions:
+- `docs/modernization/features/library/{parity,ledger,checklist}.md`
+- `Pinball App 2/Pinball App 2/library/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/**`
+
+Findings:
+- change made: replaced stale `3.2 focus` wording with `Current focus`
+- the CAF contract and fallback ladders here still align well with the Library/runtime review findings
+
+Changes made in this pass:
+- normalized the active focus heading
+
+### `docs/modernization/features/practice/checklist.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- detailed parity checklist for Practice routes, route-vs-sheet modeling, workspace behavior, and cross-platform feature coverage
+
+Line map:
+- `1-25`: checklist items
+
+Primary interactions:
+- `docs/modernization/features/practice/spec.md`
+- `docs/modernization/features/practice/parity.md`
+- `docs/modernization/features/practice/ledger.md`
+
+Findings:
+- no dead checklist items found
+- this is the strongest feature checklist in the modernization docs and still tracks the highest-risk Practice surface areas well
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/practice/ledger.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- large dated ledger for Practice audit, route/state extraction, shared-chrome cleanup, and parity work
+
+Line map:
+- `3-5`: initial audit-priority note
+- `7-244`: long dated doc/code progress ledger
+- `245-253`: next audit targets
+
+Primary interactions:
+- `docs/modernization/features/practice/spec.md`
+- `Pinball App 2/Pinball App 2/practice/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/**`
+
+Findings:
+- no dead historical entries found
+- this is the biggest doc growth hotspot in the modernization folder; it preserves useful history, but it is now much closer to an append-only engineering diary than a quick source of current unresolved Practice risk
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/practice/parity.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- current Practice parity contract for route inventory, high-risk areas, game-route behavior, and ownership-model goals
+
+Line map:
+- `3-12`: must-match behaviors
+- `13-32`: required route inventory and route-model notes
+- `33-60`: high-risk areas and game-route contract
+- `61-81`: ownership parity target, risk note, and allowed native differences
+
+Primary interactions:
+- `docs/modernization/features/practice/spec.md`
+- `docs/modernization/features/practice/ledger.md`
+
+Findings:
+- no dead parity sections found
+- this file already reflected the newer pushed-route normalization better than the older spec did, which helped identify where the spec had gone stale
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/practice/spec.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- main Practice modernization spec covering route inventory, architecture snapshot, route contract, ownership model, refactor sequence, and current findings
+
+Line map:
+- `3-21`: status and scope summary
+- `23-90`: current route inventory and architecture snapshot
+- `92-249`: route-by-route product contract
+- `251-300`: structural divergence and ownership snapshot
+- `301-406`: file-responsibility map
+- `407-487`: target ownership model, implementation sequence, and refactor seams
+- `488-509`: focus area and initial findings
+
+Primary interactions:
+- `docs/modernization/features/practice/{checklist,parity,ledger}.md`
+- `Pinball App 2/Pinball App 2/practice/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/**`
+
+Findings:
+- change made: replaced stale `3.2 focus` wording with `Current focus`
+- change made: corrected the stale `GroupEditor` contract so it now reflects the current pushed-route model on both platforms instead of claiming iOS still presents it as `PracticeSheet.groupEditor`
+- change made: updated the structural-divergence and ownership-goal sections so they describe the current route-model reality instead of a pre-refactor state where iOS still lacked an explicit route seam
+- despite those corrections, this remains the biggest single feature-spec maintenance hotspot in the repo because it mixes living contract, refactor roadmap, and landed-history notes in one large file
+
+Changes made in this pass:
+- normalized stale route-model and phase wording so the active Practice spec matches the current codebase better
+
+### `docs/modernization/features/settings/checklist.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- concise Settings parity checklist
+
+Line map:
+- `1-7`: checklist items
+
+Primary interactions:
+- `docs/modernization/features/settings/spec.md`
+- `docs/modernization/features/settings/parity.md`
+- `docs/modernization/features/settings/ledger.md`
+
+Findings:
+- no dead checklist items found
+- compact and still aligned with the current Settings feature surface
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/settings/ledger.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- dated Settings cleanup/parity ledger
+
+Line map:
+- `3-5`: initial audit note
+- `7-42`: dated extraction/shared-chrome ledger
+- `43-47`: next audit targets
+
+Primary interactions:
+- `docs/modernization/features/settings/spec.md`
+- `Pinball App 2/Pinball App 2/settings/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/**`
+
+Findings:
+- no dead historical entries found
+- still readable and materially smaller than the Practice/Library ledgers
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/settings/parity.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- minimal Settings parity contract
+
+Line map:
+- `3-8`: must-match items
+- `10-12`: allowed native differences
+
+Primary interactions:
+- `docs/modernization/features/settings/spec.md`
+
+Findings:
+- no dead parity sections found
+- concise but sparse; it depends on the spec/ledger for almost all real behavior detail
+
+Changes made in this pass:
+- none
+
+### `docs/modernization/features/settings/spec.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- Settings feature scope and current cleanup focus
+
+Line map:
+- `3-13`: status and scope summary
+- `15-20`: focus area
+
+Primary interactions:
+- `docs/modernization/features/settings/{parity,ledger,checklist}.md`
+- `Pinball App 2/Pinball App 2/settings/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/**`
+
+Findings:
+- change made: replaced stale `3.2 focus` wording with `Current focus`
+- otherwise the file remains a small, current summary rather than a bloated hotspot
+
+Changes made in this pass:
+- normalized the active focus heading
+
+## Pass 022 summary
+
+Safe cleanup changes made:
+- normalized stale branch/milestone wording in the active GameRoom, League, Library, Settings, and Practice feature specs so they use `Current focus` instead of `3.2 focus`
+- updated `features/gameroom/parity.md` so its drift rule refers to active modernization/parity maintenance instead of “during 3.2”
+- corrected `features/practice/spec.md` so it matches the current pushed-route `GroupEditor` model and the newer explicit iOS route-state seam
+
+Verification:
+- `rg -n "## 3\\.2 focus|during 3\\.2|PracticeSheet\\.groupEditor|iOS still differs from Android because Android models more of the full product surface as one unified route layer|iOS should gain an explicit route-state seam" '/Users/pillyliu/Documents/Codex/Pinball App/docs/modernization'`
+- result after the edits: no remaining matches
+
+Open follow-up items from this pass:
+1. decide whether the large feature ledgers, especially `features/practice/ledger.md` and `features/library/ledger.md`, should be split into dated history versus current unresolved-risk sections
+2. revisit `04_audit_matrix.md` statuses against the richer per-feature findings now captured in this sequential review
+3. decide whether the sparse parity/checklist files for League and Settings need a little more behavioral detail so they do not rely so heavily on companion ledgers/specs
+
+Next files queued:
+- historical/local archive material under `archive/**`
+- remaining maintenance scripts outside the active iOS runtime/support path
+
+## Pass 023: archive snapshots and remaining active root scripts
+
+### `archive/README.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- declares the archive as local-only historical context and explains why retired docs/scripts were moved out of the active workflow
+
+Line map:
+- `1-10`: archive scope and guardrails
+- `11-31`: retired-doc archive rationale
+- `32-52`: retired-script archive rationale
+- `53-68`: doc-refresh snapshot rationale
+- `70-83`: historical release-notes rationale
+
+Primary interactions:
+- `README.md`
+- `Pinball_App_Architecture_Blueprint_latest.md`
+- `docs/**`
+- `archive/2026-03-25-retired-docs/**`
+- `archive/2026-03-25-retired-scripts/**`
+
+Findings:
+- clearly establishes that archive material must not be treated as runtime, preload, or build input
+- change prompted elsewhere in this pass: archive review exposed dead root-level GameRoom baseline references still pointing at pre-archive locations from active modernization docs
+
+Changes made in this pass:
+- none directly in this file
+
+### `archive/2026-03-25-doc-refresh/modernization/features/library/spec.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- preserved pre-refresh snapshot of the Library modernization spec
+
+Line map:
+- `1-18`: status and scope summary
+- `20-25`: older milestone-specific focus language
+- `27-45`: pre-refresh structural baseline
+- `46-68`: older resource and hosted-playfield contract wording
+
+Primary interactions:
+- `docs/modernization/features/library/spec.md`
+- `Pinball App 2/Pinball App 2/library/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/**`
+
+Findings:
+- intentionally stale snapshot: still uses `3.2 focus` wording and starter-bundle/v3-only framing that the live spec has since replaced
+- useful historical context, but it should remain archive-only and not be referenced as the current library contract
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-doc-refresh/modernization/features/library/parity.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- preserved pre-refresh Library parity snapshot
+
+Line map:
+- `1-12`: must-match and native-difference bullets
+- `19-30`: pre-refresh parity baseline
+
+Primary interactions:
+- `docs/modernization/features/library/parity.md`
+
+Findings:
+- intentionally stale snapshot: it still codifies the `v3 starter-pack resource naming contract`
+- still useful as a history marker for the older local-asset contract, but not a live parity rule
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-doc-refresh/modernization/features/library/ledger.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- append-only historical ledger for an earlier Library refactor/parity phase
+
+Line map:
+- `3-82`: dated extraction and UI-shared-chrome history
+- `83-85`: next-audit targets from that older checkpoint
+
+Primary interactions:
+- `docs/modernization/features/library/ledger.md`
+- `Pinball App 2/Pinball App 2/library/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/**`
+
+Findings:
+- intentionally stale snapshot: it preserves older starter-pack and v3-only local-asset wording that no longer matches the active CAF preload/hosted path
+- still valuable as landed-history reference, but it is not a reliable current-state ledger anymore
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/docs/android_intro_overlay_parity_spec.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- retired Android parity target for the earlier intro overlay design
+
+Line map:
+- `1-50`: purpose, source-of-truth file list, and older design decisions
+- `51-89`: runtime launch/dismiss behavior contract
+- `90-160`: card content and asset inventory for the earlier intro deck
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/app/AppIntroOverlay.swift`
+- `Pinball App 2/Pinball App 2/app/ContentView.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsHomeSections.swift`
+
+Findings:
+- intentionally stale snapshot: it documents old asset-catalog names like `LaunchLogo`, `IntroStudyScreenshot`, and `IntroAssessmentScreenshot` instead of the current bundled `app-intro` webp contract
+- still useful because it records the intentional next-launch hidden shortcut behavior that remains in the shipped app
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/docs/ios_onboarding_tipkit_version_overlays.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- retired iOS guidance note for onboarding, TipKit, and version overlays
+
+Line map:
+- `1-21`: purpose and recommendation summary
+- `22-69`: three-layer onboarding model
+- `70-160`: recommended startup intro rules and older card-count guidance
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/app/ContentView.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeSection.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeHomeRootView.swift`
+
+Findings:
+- intentionally stale snapshot: it still recommends `Skip`, `Back`, `Next`, and a five-card default, which no longer matches the shipped six-card intro overlay
+- it also references `Pinball_App_Feature_Guide_3.4.7_2026-03-22.md`, which is now archived history rather than an active product contract
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/docs/ios_shake_warning_parity_spec.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- retired detailed parity baseline for the earlier shake-warning feature packaging
+
+Line map:
+- `1-35`: feature summary and user-facing copy
+- `36-84`: file ownership and older packaging assumptions
+- `85-160`: app wiring, undo gating, and shake-detection baseline
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/app/AppShakeCoordinator.swift`
+- `Pinball App 2/Pinball App 2/app/ContentView.swift`
+- `Pinball App 2/Pinball App 2/ui/SharedGestures.swift`
+
+Findings:
+- intentionally stale snapshot: it still assumes a separate website/data repo, `shared/pinball`, and `PinballStarter.bundle` starter-pack copies as the active asset path
+- archive placement is correct because the shipped app now owns these assets locally through `SharedAppSupport` and bundle-root lookups instead
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/ANDROID_OPDB_V3_ADAPTATION.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- retired Android parity kickoff note for the older OPDB v3 adaptation phase
+
+Line map:
+- `1-20`: older iOS data-contract assumptions
+- `22-39`: implemented behavior snapshot from that phase
+- `40-66`: then-pending Android/shared follow-up
+- `68-79`: shared UI notes
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/library/**`
+- `Pinball App 2/Pinball App 2/settings/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/**`
+
+Findings:
+- intentionally stale snapshot: it still treats adding the Settings tab and porting imported-source persistence as future Android work
+- useful only as historical parity context for the older OPDB/starter-pack transition
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/Legacy_Path_Retirement_Checklist_2026-02-27.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- retired checklist of legacy migration branches that were candidates for later deletion
+
+Line map:
+- `1-24`: iOS deletion candidates
+- `25-44`: Android deletion candidates
+- `45-65`: keep rules and exit criteria
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/practice/**`
+- `Pinball App 2/Pinball App 2/library/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/**`
+
+Findings:
+- still useful as a historical shortlist because several items line up with the current review, including legacy date decoding, practice-key aliasing, and `*_local_legacy` compatibility
+- intentionally stale pathing: it still references older Android package paths under `com/pillyliu/pinballandroid/**`
+
+Changes made in this pass:
+- none
+
+### `scripts/export_bob_rulesheet_urls.py`
+
+Status: `reviewed`
+
+Responsibility summary:
+- standalone utility that fetches the Silverball Mania sitemap and emits a JSON rulesheet-URL snapshot
+
+Line map:
+- `13-31`: sitemap fetch and rulesheet URL extraction
+- `34-41`: JSON payload shaping
+- `44-63`: CLI entrypoint and optional file output
+
+Primary interactions:
+- `https://rules.silverballmania.com/sitemap.xml`
+- optional local JSON output path passed by the operator
+
+Findings:
+- no in-repo call sites found, so this behaves like a manual/offline utility rather than an active app build dependency
+- compact and self-contained; no dead branches stood out
+
+Changes made in this pass:
+- none
+
+### `scripts/pinball_api_auth.py`
+
+Status: `reviewed`
+
+Responsibility summary:
+- minimal helper for loading local `.env` style key/value pairs into process environment
+
+Line map:
+- `8-26`: path iteration, comment/blank filtering, and env injection rules
+
+Primary interactions:
+- local env files supplied by the operator
+- `os.environ`
+
+Findings:
+- no in-repo call sites found, so this also behaves like a manual helper instead of a wired build/runtime dependency
+- tiny and focused; no dead branches found
+
+Changes made in this pass:
+- none
+
+### `scripts/pinball_api_clients.py`
+
+Status: `reviewed`
+
+Responsibility summary:
+- standalone OPDB export client with retry logic for manual snapshot/export workflows
+
+Line map:
+- `12-19`: environment-backed client bootstrap
+- `20-48`: export request, payload-shape validation, and retry behavior
+
+Primary interactions:
+- `os.environ`
+- `https://opdb.org/api/export` or `OPDB_EXPORT_URL`
+
+Findings:
+- no in-repo call sites found, so this appears to be a manual utility rather than live app plumbing
+- the constructor carried an unused `autoload_local_env` compatibility argument
+
+Changes made in this pass:
+- renamed the unused constructor argument to `_autoload_local_env` so the compatibility surface remains intact while making the non-use explicit
+
+### `scripts/render_mermaid_blocks.py`
+
+Status: `reviewed`
+
+Responsibility summary:
+- manual utility that renders Mermaid code fences from markdown into sequential PNG files
+
+Line map:
+- `12-17`: Mermaid fence extraction
+- `19-38`: per-block `.mmd` staging and `mermaid-cli` rendering
+- `41-66`: CLI entrypoint
+
+Primary interactions:
+- local markdown input files
+- local rendered diagram output directory
+- `npx @mermaid-js/mermaid-cli`
+
+Findings:
+- no in-repo call sites found, so this is manual documentation tooling, not an active build step
+- tightly coupled with `render_architecture_pdf_upgraded.py` through the `diagram_XX.png` naming convention, even though that coupling is only implicit
+
+Changes made in this pass:
+- none
+
+### `scripts/render_architecture_pdf.py`
+
+Status: `reviewed`
+
+Responsibility summary:
+- older ReportLab-only markdown-to-PDF renderer for architecture docs
+
+Line map:
+- `23-107`: PDF typography/style setup
+- `110-214`: simple markdown parsing into report elements
+- `217-248`: footer rendering and PDF build
+- `251-265`: CLI entrypoint
+
+Primary interactions:
+- local markdown source files
+- local PDF output path
+- `reportlab`
+
+Findings:
+- no in-repo call sites found, so this appears to be a manual documentation utility
+- overlaps heavily with `render_architecture_pdf_upgraded.py`, which suggests maintained duplication until one renderer is explicitly retired
+
+Changes made in this pass:
+- none
+
+### `scripts/render_architecture_pdf_upgraded.py`
+
+Status: `reviewed`
+
+Responsibility summary:
+- more polished markdown-to-PDF renderer with inline markdown formatting, custom fonts, and Mermaid diagram image embedding
+
+Line map:
+- `24-53`: inline markdown rendering rules
+- `56-216`: font registration and style setup
+- `219-358`: markdown parsing plus Mermaid image placement
+- `361-429`: header/footer rendering and PDF build
+- `432-469`: CLI entrypoint
+
+Primary interactions:
+- local markdown source files
+- diagram images produced by `scripts/render_mermaid_blocks.py`
+- local PDF output path
+- `reportlab`
+
+Findings:
+- no in-repo call sites found, so this is also manual documentation tooling
+- likely supersedes the older renderer, but both remain live side-by-side with overlapping responsibility
+
+Changes made in this pass:
+- none
+
+### `scripts/mermaid_print_theme.json`
+
+Status: `reviewed`
+
+Responsibility summary:
+- Mermaid theme configuration for printable diagram rendering
+
+Line map:
+- `1-23`: theme variables
+- `24-39`: diagram-type spacing/layout tweaks
+
+Primary interactions:
+- `scripts/render_mermaid_blocks.py`
+- `npx @mermaid-js/mermaid-cli`
+
+Findings:
+- no in-repo call sites found beyond manual script usage, so this is supporting documentation tooling rather than app/runtime configuration
+- the file is still logically live because it provides the visual contract for the Mermaid-render path
+
+Changes made in this pass:
+- none
+
+## Pass 023 summary
+
+Safe cleanup changes made:
+- renamed the unused compatibility argument in `scripts/pinball_api_clients.py` to `_autoload_local_env` so the parameter remains backwards-compatible while no longer pretending to be active logic
+- updated dead root-level GameRoom baseline references discovered during archive review so active docs now point at the archived locations:
+  - `docs/modernization/00_program_overview.md`
+  - `docs/modernization/features/gameroom/spec.md`
+
+Verification:
+- `python3 -m py_compile '/Users/pillyliu/Documents/Codex/Pinball App/scripts/pinball_api_clients.py'`
+- `rg -n "GameRoom_3\\.1_Master_Plan|GameRoom_3\\.1_Parity_Journal|GameRoom_3\\.1_Android_Parity_Kickoff" '/Users/pillyliu/Documents/Codex/Pinball App/docs/modernization'`
+- result after the doc cleanup: only archived-path references remain
+
+Open follow-up items from this pass:
+1. decide whether `scripts/render_architecture_pdf.py` should now be retired in favor of `scripts/render_architecture_pdf_upgraded.py`, since both are manual utilities with overlapping ownership
+2. decide whether the remaining root `scripts/**` utilities should move under a clearer `tools/docs` or `tools/data` home so they are not mistaken for build/runtime wiring
+3. continue the archive sweep through the larger retired root markdown documents and the archived retired helper scripts so the full archive inventory is reviewed sequentially
+
+Next files queued:
+- larger retired root documents under `archive/2026-03-25-retired-docs/root/*.md`
+- archived retired helper scripts under `archive/2026-03-25-retired-scripts/scripts/*.py`
+
+## Pass 024: larger archived GameRoom planning and parity docs
+
+### `archive/2026-03-25-retired-docs/root/GameRoom_3.1_Android_Parity_Kickoff.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- archived Android execution guide for porting the original iOS-first `GameRoom 3.1` feature set
+
+Line map:
+- `1-12`: source-of-truth references, branch, and goal
+- `13-35`: parity contract for routes, tabs, and settings labels
+- `36-48`: then-current Android status snapshot
+- `49-235`: milestone-by-milestone Android rollout status and acceptance details
+- `236-260`: iOS-to-Android file mapping
+- `262-275`: QA-oriented immediate next steps
+
+Primary interactions:
+- `archive/2026-03-25-retired-docs/root/GameRoom_3.1_Master_Plan.md`
+- `archive/2026-03-25-retired-docs/root/GameRoom_3.1_Parity_Journal.md`
+- `Pinball App 2/Pinball App 2/gameroom/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/**`
+
+Findings:
+- intentionally stale snapshot: its source-of-truth pointers still reference the old root-level `GameRoom_3.1_*` paths because the document is preserved exactly as captured
+- useful historical handoff because it records the specific Android milestone acceptance criteria and parity checkpoints that later collapsed into much smaller active GameRoom modernization docs
+- strong sign that the old GameRoom parity work relied on a trio of living root docs rather than today’s slimmer `docs/modernization/features/gameroom/**` set
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/GameRoom_3.1_Master_Plan.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- archived comprehensive planning contract for the original iOS-first GameRoom 3.1 rollout
+
+Line map:
+- `1-18`: document purpose, branch, and platform strategy
+- `21-129`: version goal, IA, domain rules, home spec, and settings spec
+- `133-260`: detailed edit-machines, machine-view, and logging scope
+- `262-338`: import/data-model/performance contracts
+- `341-460`: milestone roadmap, status snapshot, micro-decisions, Android parity rule, and deferred backlog
+
+Primary interactions:
+- `archive/2026-03-25-retired-docs/root/GameRoom_3.1_Parity_Journal.md`
+- `Pinball App 2/Pinball App 2/gameroom/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/**`
+- `Pinball App 2/Pinball App 2/library/**`
+
+Findings:
+- this is an archive-only master plan now, but it still explains many hidden GameRoom contracts that survived into the shipped feature: machine-instance archive semantics, area-level ordering, first-tap-select/second-tap-open, and input-sheet ownership
+- it mixes durable product rules with point-in-time roadmap status, so it was inherently prone to staleness even before archiving
+- the plan explicitly deferred variant-fidelity questions across GameRoom, Library, and Practice; that same unresolved seam still appears in the current review as a parity-risk area rather than a closed decision
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/GameRoom_3.1_Parity_Journal.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- archived authoritative ledger for accepted iOS-first GameRoom behavior and later Android parity follow-up notes
+
+Line map:
+- `1-23`: purpose, branch, and parity rule
+- `24-129`: canonical naming and confirmed product rules
+- `130-210`: schema/data-model contract
+- `211-498`: milestone outcomes for implemented iOS GameRoom behavior
+- `499-551`: Android parity targets, guardrails, and open TODOs
+- `553-735`: rolling Android parity notes and follow-up polish history
+
+Primary interactions:
+- `archive/2026-03-25-retired-docs/root/GameRoom_3.1_Master_Plan.md`
+- `Pinball App 2/Pinball App 2/gameroom/**`
+- `Pinball App 2/Pinball App 2/library/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/**`
+
+Findings:
+- highest-signal archive finding: this one file became both the accepted iOS contract and a rolling Android parity changelog, so it is extremely informative historically but also a textbook documentation growth hotspot
+- it captures many cross-feature GameRoom/Library contracts that the current smaller GameRoom docs only summarize, especially GameRoom-backed Library hydration, source visibility, variant-aware media resolution, and Pinside import behavior
+- the long `Android 3.1 Parity Notes (Latest)` tail shows why the old parity workflow was hard to keep tidy: final contract and iterative implementation drift notes were mixed together in one artifact
+
+Changes made in this pass:
+- none
+
+## Pass 024 summary
+
+Safe cleanup changes made:
+- none
+
+Verification:
+- none; this slice was archival review and review-log updates only
+
+Open follow-up items from this pass:
+1. decide at the end of the full audit whether the active GameRoom modernization docs should borrow a compact “historical context” appendix so they do not need to rely on archived root docs for background
+2. keep variant-fidelity and GameRoom-to-Library hydration behavior on the final triage list, because those seams were deferred in the archived master plan and still surface in current runtime code
+3. continue the archive sweep with the remaining retired root docs and then the archived retired helper scripts
+
+Next files queued:
+- remaining retired root documents under `archive/2026-03-25-retired-docs/root/*.md`
+- archived retired helper scripts under `archive/2026-03-25-retired-scripts/scripts/*.py`
+
+## Pass 025: remaining archived root docs and generated print snapshots
+
+### `archive/2026-03-25-retired-docs/root/PinProf_Guidance_Inventory_and_Strategy_2026-03-22.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- archived strategy note for onboarding overlays, version callouts, and contextual tips across iOS and Android
+
+Line map:
+- `1-156`: current app inventory, guidance-relevant surfaces, and reusable behavior signals
+- `197-269`: proposed three-layer guidance architecture and central coordinator
+- `272-401`: overlay-worthiness rules and candidate overlay concepts
+- `405-643`: TipKit candidates, Android guidance mapping, copy prompts, and next steps
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/app/ContentView.swift`
+- `Pinball App 2/Pinball App 2/app/AppShakeCoordinator.swift`
+- `Pinball App 2/Pinball App 2/practice/**`
+- `Pinball App 2/Pinball App 2/library/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/**`
+
+Findings:
+- useful historical planning doc, but intentionally stale now that the shipped intro overlay and hidden next-launch shortcut have already been implemented
+- it still recommends a centralized multi-layer guidance coordinator and TipKit rollout that the current app does not fully ship, so it should stay archive-only rather than be mistaken for current architecture
+- it captures a valuable design principle that still holds: derive learning state from real behavior before adding more explicit booleans
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/Pinball_API_Compliance_Checklist_2026-02-27.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- archived governance checklist for third-party data/API usage across OPDB, Pinball Map, Match Play, and IFPA
+
+Line map:
+- `1-18`: core provider-agnostic compliance rules
+- `19-65`: provider-specific checklists
+- `67-91`: data-model, rights, security, and operational checklist
+- `93-107`: pre-launch and ongoing governance items
+
+Primary interactions:
+- upstream provider integrations and publish pipeline assumptions rather than app runtime files directly
+
+Findings:
+- this is not runtime behavior documentation; it is policy and operational guidance for the old publish/integration workflow
+- intentionally stale in places because it still frames the app-facing contract around `pinball_library_v3.json` or a “versioned successor,” whereas current active docs now describe CAF-hosted layers more explicitly
+- still useful as a compliance/governance baseline if provider integrations are revisited later
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/Pinball_App_Architecture_Blueprint.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- archived February 27 architecture blueprint from the earlier four-domain/four-tab era
+
+Line map:
+- `1-44`: purpose, goals, and repo/runtime boundaries
+- `45-111`: compact C4 views and high-level component map
+- `112-210`: feature inventory, persistence model, and cache architecture
+- `212-333`: interaction flows, cleanup plan, risks, and architecture decisions
+
+Primary interactions:
+- historical references to iOS and Android app structure
+- historical references to older root-level architecture docs and print-layout PDFs
+
+Findings:
+- intentionally stale snapshot: it still describes the product as `League / Library / Practice / About`, references the older Android package path `com/pillyliu/pinballandroid`, and treats `pinball_library_v3.json` as the main remote library contract
+- highest-signal archive note: this file is byte-for-byte identical to `Pinball_App_Architecture_Blueprint_2026-02-27.md`, so the archive preserves two exact copies of the same blueprint revision
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/Pinball_App_Architecture_Blueprint_2026-02-27.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- dated copy of the same February 27 architecture blueprint revision
+
+Line map:
+- identical to `Pinball_App_Architecture_Blueprint.md`
+
+Primary interactions:
+- same as the sibling blueprint file above
+
+Findings:
+- exact duplicate of `Pinball_App_Architecture_Blueprint.md`
+- archive duplication is harmless, but it is a good reminder that root-doc history had already started to sprawl before the archive cleanup
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/Pinball_App_Architecture_Blueprint_3.4.7_2026-03-22.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- archived large release-era architecture blueprint for PinProf `3.4.7`
+
+Line map:
+- `1-126`: release snapshot, product summary, stack, and version anchors
+- `128-405`: detailed C4 diagrams across features and shared services
+- `407-1075`: screen inventory, interaction diagrams, data/storage model, navigation map, and testing/release flow
+- `1083-1105`: intentional platform adaptations and architecture direction
+- `1105-1114`: final summary
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/**`
+- historical hosted data/runtime contract docs
+
+Findings:
+- archived transitional snapshot: it already reflects the five-tab product and GameRoom baseline, but it still describes the hosted contract in older pre-CAF terms compared with the next day’s revision
+- superseded by the March 23 revision, which expanded the publish-chain and CAF runtime-contract details materially
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/Pinball_App_Architecture_Blueprint_3.4.7_2026-03-23.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- archived expanded release-era architecture blueprint that captured the newer CAF/runtime-publish-chain framing
+
+Line map:
+- `1-160`: release snapshot, product goals, stack, CAF contract, and version anchors
+- `164-504`: expanded C4 diagrams and shared-service views
+- `505-1202`: screen inventory, interactions, data flow, navigation, and release operations
+- `1212-1236`: platform adaptations and final architecture summary
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/**`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/**`
+- historical publish-chain documentation around PinProf Admin and the website deploy bridge
+
+Findings:
+- this is effectively the last major archived blueprint before the active `Pinball_App_Architecture_Blueprint_latest.md`, and it is much closer to the current architecture language than the older March 22 version
+- compared with the March 22 blueprint, it adds explicit CAF layer contracts, PinProf Admin publish-chain context, and newer hosted/runtime ownership language
+- still intentionally stale now because it is frozen at `3.4.7` and older operational assumptions, but it remains one of the most informative archive references
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/Pinball_App_Feature_Guide_3.4.7_2026-03-22.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- archived feature-and-experience guide used for guidance planning and video scripting
+
+Line map:
+- `1-94`: guide purpose, release scope, app story, and product-wide guidance implications
+- `97-809`: feature-by-feature user-facing guide across League, Library, Practice, GameRoom, and Settings
+- `829-978`: cross-tab journeys plus guidance and walkthrough-planning lens
+
+Primary interactions:
+- user-facing feature surfaces across all major app tabs
+- the archived guidance/video-planning docs that were derived from this guide
+
+Findings:
+- intentionally stale snapshot: it is frozen to `3.4.7`, but it still does a good job describing the user-facing story that later intro/guidance planning built on
+- useful because it separates product experience from implementation detail better than many of the older architecture docs
+- it still references some now-evolved surfaces, like score-scanner discovery and earlier Group Editor affordances, so it should remain archive-only rather than be treated as exact current behavior
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/Pinball_App_Video_Walkthrough_Planning_2026-02-27.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- archived walkthrough-planning document with feature ranking, screen order, and word-for-word narration scripts
+
+Line map:
+- `1-40`: core app story and feature-priority ranking
+- `43-127`: detailed screen walkthrough order
+- `131-330`: 1-, 3-, 5-, and 10-minute outline structures
+- `331-485`: narration scripts
+- `486-520`: recording plan and visual emphasis suggestions
+
+Primary interactions:
+- historical user-facing flow across the older app surface
+
+Findings:
+- intentionally stale snapshot: it still describes the root tabs as `League / Library / Practice / About`, which predates the GameRoom + Settings expansion
+- useful historical artifact for product-story framing, but not a current walkthrough source
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/Practice_Journal_iOS_Canonical_Format.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- archived iOS-first reference spec for canonical Practice persistence and journal semantics
+
+Line map:
+- `1-80`: scope, storage keys, serialization format, canonical game IDs, and top-level persisted state
+- `81-243`: journal-linked models, enums, and write-path semantics
+- `245-293`: summary rendering and edit/delete reconciliation rules
+- `294-406`: example JSON plus Android parity recommendation
+
+Primary interactions:
+- `Pinball App 2/Pinball App 2/practice/PracticeStore.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStorePersistence.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStateCodec.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeIdentityKeying.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreEntryMutations.swift`
+
+Findings:
+- historically important because it explains why string-rendered journal summaries were never meant to be the canonical stored form
+- intentionally stale snapshot: it says Android was not yet identical and recommends migrating Android toward the iOS schema, which has since changed materially with later parity work
+- still aligns with one current review theme: render-time summary strings are derived view data, not a safe schema boundary
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/RELEASE_NOTES_2.0.md`
+
+Status: `reviewed`
+
+Responsibility summary:
+- archived release notes for the older iOS `2.0` milestone
+
+Line map:
+- `1-35`: league mini-view and rulesheet improvements
+- `55-113`: Practice 2.0 structure/behavior summary
+- `114-125`: stability/data-handling improvements and intended outcome
+
+Primary interactions:
+- historical iOS-only feature baseline for league mini-views, rulesheets, and Practice
+
+Findings:
+- intentionally stale release artifact from the pre-cross-platform `3.x` era
+- still useful as a compact history marker for some older Practice and rulesheet behavior work, but not relevant to current active product contract
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-docs/root/*.pdf` generated print snapshots
+
+Status: `reviewed`
+
+Responsibility summary:
+- archived print-layout PDF snapshots of older architecture, feature-guide, and walkthrough documents
+
+Line map:
+- generated artifact group rather than hand-maintained source files
+
+Primary interactions:
+- the retired markdown docs in the same folder
+- the old render scripts under `scripts/render_architecture_pdf.py`, `scripts/render_architecture_pdf_upgraded.py`, and `scripts/render_mermaid_blocks.py`
+
+Findings:
+- these PDFs are generated historical snapshots, not source-of-truth docs
+- archive placement is correct because they preserve presentation-ready copies without reintroducing stale root-level docs into the active workflow
+
+Changes made in this pass:
+- none
+
+## Pass 025 summary
+
+Safe cleanup changes made:
+- none
+
+Verification:
+- `cmp -s '/Users/pillyliu/Documents/Codex/Pinball App/archive/2026-03-25-retired-docs/root/Pinball_App_Architecture_Blueprint.md' '/Users/pillyliu/Documents/Codex/Pinball App/archive/2026-03-25-retired-docs/root/Pinball_App_Architecture_Blueprint_2026-02-27.md'`
+- result: exact duplicate archive copies
+
+Open follow-up items from this pass:
+1. if we ever want to reduce archive noise, the exact duplicate February 27 architecture blueprints are a clean archive-prune candidate
+2. the archived Practice journal spec reinforces a current cleanup rule: summary strings should stay derived presentation, not turn into hidden persistence schema
+3. continue with the archived retired helper scripts, which appear to be the last major unreviewed archive slice
+
+Next files queued:
+- archived retired helper scripts under `archive/2026-03-25-retired-scripts/scripts/*.py`
+
+## Pass 026: archived retired helper scripts
+
+### `archive/2026-03-25-retired-scripts/scripts/audit_rulesheet_links.py`
+
+Status: `reviewed`
+
+Responsibility summary:
+- retired auditing utility that checked external rulesheet URLs for reachability/parse quality and preserved failure history by normalized URL
+
+Line map:
+- `22-157`: inventory shaping and URL normalization helpers
+- `160-470`: provider-specific fetch and parse auditing logic
+- `473-547`: history merge and summary shaping
+- `550-675`: threaded audit execution and CLI entrypoint
+
+Primary interactions:
+- `archive/2026-03-25-retired-scripts/scripts/fetch_opdb_snapshot.py`
+- starter-pack `opdb_catalog_v1.json` outputs for both iOS and Android
+- external rulesheet providers such as Tilt Forums, Pinball Primer, Bob/Silverball Mania, and PAPA
+
+Findings:
+- clearly retired pipeline tooling: the only current in-repo references are in [archive/README.md](/Users/pillyliu/Documents/Codex/Pinball%20App/archive/README.md)
+- hidden contract: it imports `normalize_rulesheet_url` from the sibling `fetch_opdb_snapshot.py`, so the old publish pipeline depended on shared URL-normalization heuristics across separate scripts
+- the script preserves nuanced provider-specific parse heuristics and failure history, which is useful historical context if rulesheet auditing ever moves into a new upstream pipeline
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-scripts/scripts/build_external_rulesheet_resources.py`
+
+Status: `reviewed`
+
+Responsibility summary:
+- retired build step that produced OPDB-group-keyed external rulesheet resources from a reference catalog plus live Bob sitemap data
+
+Line map:
+- `15-30`: workstation-specific roots and provider/source mapping
+- `56-71`: reference-catalog resolution logic
+- `74-139`: extraction of existing rulesheets plus optional live Bob sitemap enrichment
+- `142-164`: CLI build/write flow
+
+Primary interactions:
+- `/Users/pillyliu/Documents/Codex/Pinball Scraper`
+- `/Users/pillyliu/Documents/Codex/Pillyliu Pinball Website/shared/pinball/data/opdb_catalog_v1.json`
+- iOS and Android starter-pack `opdb_catalog_v1.json`
+- `https://rules.silverballmania.com/sitemap.xml`
+
+Findings:
+- strong evidence of the old workstation-local generation pipeline: it hardcodes absolute local paths to `Pinball Scraper`, the website repo, and starter-pack catalogs
+- hidden contract: provider keys like `tf`, `pp`, `papa`, and `bob` were remapped into older source keys such as `tiltforums`, `pinball_primer`, `pinball_org`, and `bobs_guide`
+- archive placement is correct because this logic belongs to upstream content generation, not the app repo runtime
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-scripts/scripts/build_library_seed_db.py`
+
+Status: `reviewed`
+
+Responsibility summary:
+- retired generator that built the old SQLite seed database for iOS and Android starter packs from `pinball_library_v3.json` plus `opdb_catalog_v1.json`
+
+Line map:
+- `11-17`: starter-pack input/output paths
+- `32-121`: catalog indexing and curated-override extraction
+- `124-248`: built-in row/rulesheet/video resolution
+- `251-391`: SQLite schema creation
+- `394-538`: database write flow and dual-platform output
+
+Primary interactions:
+- iOS `PinballStarter.bundle/pinball/data`
+- Android `assets/starter-pack/pinball/data`
+- `pinball_library_v3.json`
+- `opdb_catalog_v1.json`
+
+Findings:
+- highest-signal retired-script finding: this script is a concrete snapshot of the old app-owned starter-pack/seed-db generation pipeline that the archive README says has moved out of the app repo
+- hidden contract: duplicate `library_entry_id` collisions were silently preserved by suffixing `--dupN`, which explains one historical path for deterministic but implicit duplicate handling
+- it also preserved older override/resource rules around local rulesheets, local game info, and local playfield precedence that later became runtime seams in the app
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-scripts/scripts/build_local_asset_intake.py`
+
+Status: `reviewed`
+
+Responsibility summary:
+- retired inventory/audit generator for website-shared versus starter-pack local rulesheet/playfield assets
+
+Line map:
+- `14-21`: website and starter-pack roots plus output locations
+- `56-130`: path resolution, variant derivation, hashing, and bucket classification
+- `133-225`: v3 inventory row aggregation and conflict detection
+- `228-430`: coverage report generation across website, iOS, and Android asset pools
+- `433-546`: markdown summary rendering and CLI flow
+
+Primary interactions:
+- `Pillyliu Pinball Website/shared/pinball`
+- iOS `PinballStarter.bundle/pinball`
+- Android `assets/starter-pack/pinball`
+- `pinball_library_v3.json`
+
+Findings:
+- this script captures the older shared-website plus starter-pack asset parity workflow very explicitly
+- hidden contract: it still audits both `*_local_practice` and `*_local_legacy` asset fields, which lines up with the current review’s remaining legacy-compatibility seams
+- another strong sign of retired status: it writes mirrored reports back into website/iOS/Android data folders rather than feeding any live in-app path
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-scripts/scripts/build_matchplay_tutorial_enrichment.py`
+
+Status: `reviewed`
+
+Responsibility summary:
+- retired generator that extracted Match Play tutorial videos from a reference catalog into an enrichment payload keyed by OPDB group
+
+Line map:
+- `13-20`: workstation-specific roots and reference catalogs
+- `46-61`: best-reference-catalog resolution
+- `64-103`: tutorial extraction and row shaping
+- `106-127`: CLI flow
+
+Primary interactions:
+- `/Users/pillyliu/Documents/Codex/Pinball Scraper`
+- website/shared and starter-pack `opdb_catalog_v1.json` sources
+
+Findings:
+- another small but clear upstream-generation helper rather than app runtime code
+- hidden contract: it emits rows in the old `payload.entry.machineGroup.opdbId` shape, which ties it directly to the earlier Match Play enrichment pipeline consumed by `fetch_opdb_snapshot.py`
+
+Changes made in this pass:
+- none
+
+### `archive/2026-03-25-retired-scripts/scripts/fetch_opdb_snapshot.py`
+
+Status: `reviewed`
+
+Responsibility summary:
+- retired main catalog-generation script that fetched/normalized OPDB data, merged Match Play tutorial enrichment and external rulesheet resources, and wrote `opdb_catalog_v1.json` into both starter packs
+
+Line map:
+- `18-63`: roots, defaults, and provider/manufacturer constants
+- `65-260`: normalization, provider labeling, rulesheet filtering, env loading, and OPDB fetch helpers
+- `270-431`: manufacturer normalization, payload-shape handling, and manufacturer sort logic
+- `450-687`: Match Play/external rulesheet enrichment plus catalog assembly
+- `697-765`: CLI flow, recent-catalog reuse, fetch/build/write path
+
+Primary interactions:
+- `/Users/pillyliu/Documents/Codex/Pinball Scraper`
+- retired sibling scripts and enrichment outputs
+- iOS and Android starter-pack `opdb_catalog_v1.json`
+- OPDB export API and groups export
+- Match Play enrichment output
+- external rulesheet enrichment output
+
+Findings:
+- this was the central retired app-side bridge helper in the old content pipeline
+- highest-signal hidden contract: it encoded a large amount of provider-specific normalization and precedence logic, including manufacturer bucketing, rulesheet provider inference, manual rulesheet overrides, Match Play tutorial stitching, and recent-catalog reuse to avoid frequent exports
+- it still carries a deprecated `--skip-bob-sitemap` flag, which is a good example of historical CLI drift that no longer matters because the script is archived
+
+Changes made in this pass:
+- none
+
+## Pass 026 summary
+
+Safe cleanup changes made:
+- none
+
+Verification:
+- `rg -n "audit_rulesheet_links.py|build_external_rulesheet_resources.py|build_library_seed_db.py|build_local_asset_intake.py|build_matchplay_tutorial_enrichment.py|fetch_opdb_snapshot.py" '/Users/pillyliu/Documents/Codex/Pinball App'`
+- result: these retired scripts are only referenced by [archive/README.md](/Users/pillyliu/Documents/Codex/Pinball%20App/archive/README.md)
+
+Open follow-up items from this pass:
+1. the archive review now confirms that the old app repo once owned content-generation, asset-parity, and starter-pack build logic locally; that history is useful context but should stay isolated from active app/runtime docs
+2. if we ever rebuild an upstream content pipeline locally again, the most reusable historical pieces are the provider-normalization heuristics and audit logic from `fetch_opdb_snapshot.py` and `audit_rulesheet_links.py`
+3. after this pass, the major archive inventory has been reviewed; the next cleanup focus can return to triaging the highest-signal runtime findings already accumulated in the main iOS audit
+
+Next files queued:
+- final end-of-audit triage and prioritization pass once the sequential review sweep is considered complete
+
+## Pass 027: end-of-sweep triage board
+
+### Fix now
+
+1. `PinballDataCache` clear-cache race and checkpoint drift
+   - iOS detached revalidation work can repopulate disk after a user clears cache, and the update-log checkpoint path is less defensive than Android when event ordering is not newest-first
+   - primary files:
+     - `Pinball App 2/Pinball App 2/data/PinballDataCache.swift`
+     - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCache.kt`
+
+2. Practice scanner concurrency ownership
+   - `ScoreScannerViewModel` mixes queue-owned and actor-owned gating state around freeze/retake/throttling, which is the clearest current hidden-behavior risk in active runtime code
+   - primary files:
+     - `Pinball App 2/Pinball App 2/practice/ScoreScannerViewModel.swift`
+     - `Pinball App 2Tests/ScoreScanner*`
+
+3. GameRoom persisted-state corruption handling
+   - `GameRoomStateCodec` currently treats decode failure like “no saved state,” so bad JSON would silently reset GameRoom to empty instead of surfacing corruption or fallback intent
+   - primary files:
+     - `Pinball App 2/Pinball App 2/gameroom/GameRoomStateCodec.swift`
+     - `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
+
+4. Practice dashboard staleness
+   - `PracticeGroupDashboardSection` can preserve stale detail because the reload key tracks group metadata more than live practice/journal/score changes
+   - primary files:
+     - `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+     - `Pinball App 2/Pinball App 2/practice/PracticeStore.swift`
+
+5. League/About copy and loading cleanup
+   - `AboutScreen` has stale league logistics copy and sync image loading on the main thread, so it is both a correctness and polish cleanup target
+   - primary files:
+     - `Pinball App 2/Pinball App 2/info/AboutScreen.swift`
+
+### Ask first
+
+1. GameRoom play-count and reminder semantics
+   - current behavior is deterministic but hidden: only certain custom events affect play totals, default reminder configs are implicit, and every mutation emits a library-source change
+   - primary files:
+     - `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
+
+2. Duplicate-resolution policy
+   - `ResolvedLeagueMachineMappings`, `ResolvedLeagueTargets`, and some GameRoom/import paths silently overwrite duplicates; this may be acceptable or may need surfaced conflict handling depending on your preference
+   - primary files:
+     - `Pinball App 2/Pinball App 2/practice/ResolvedLeagueMachineMappings.swift`
+     - `Pinball App 2/Pinball App 2/practice/ResolvedLeagueTargets.swift`
+     - `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogLoader.swift`
+
+3. Variant-fidelity boundaries
+   - GameRoom, Library, and Practice still carry deferred variant-fidelity tradeoffs, especially where group identity collapses strategy/media onto non-exact variants
+   - primary files:
+     - `Pinball App 2/Pinball App 2/library/**`
+     - `Pinball App 2/Pinball App 2/gameroom/**`
+     - `Pinball App 2/Pinball App 2/practice/**`
+
+4. IFPA scraping durability
+   - `PracticeIFPAProfileScreen` uses brittle HTML scraping with regexes; fixing it may require product/API decisions rather than a pure cleanup
+   - primary files:
+     - `Pinball App 2/Pinball App 2/practice/PracticeIFPAProfileScreen.swift`
+
+### Safe cleanup later
+
+1. File-size and ownership hotspots
+   - `PracticeGroupEditorComponents.swift`, `PracticeJournalSettingsSections.swift`, `GameRoomSettingsComponents.swift`, `GameRoomPresentationComponents.swift`, and several modernization ledgers are now concentration hotspots and should be split when we want maintainability wins
+
+2. Hidden invalidation hacks
+   - the duplicated `_ = showFullLPLLastNames` invalidation trick should become an explicit formatting dependency instead of a hidden refresh poke
+   - primary files:
+     - `Pinball App 2/Pinball App 2/league/**`
+     - `Pinball App 2/Pinball App 2/practice/**`
+
+3. Orphan/manual tooling cleanup
+   - `ScoreScannerCameraTestView.swift` looks orphaned, and the root/archive PDF/render scripts contain overlapping manual tooling that could be reduced without touching runtime behavior
+
+4. Doc growth cleanup
+   - the active modernization ledgers/specs now mix current contract and long history; they should eventually split “current contract” from “historical log”
+
+### Intentional keep
+
+1. Hidden about-logo double tap
+   - keep the hidden Settings double-tap that arms the next-launch intro overlay
+   - primary file:
+     - `Pinball App 2/Pinball App 2/settings/SettingsHomeSections.swift`
+
+2. Archive history
+   - keep the archived root docs and retired scripts as historical context, even though some are duplicate or stale, unless you explicitly want a second archive-prune pass later
+
+## Pass 027 summary
+
+Safe cleanup changes made:
+- none
+
+Verification:
+- none; this pass is a synthesis/triage layer over the existing sequential review
+
+Outcome:
+- the sequential iOS-first sweep now has a prioritized endgame board without losing the underlying file-by-file audit history
+
+Next files queued:
+- targeted cleanup pass starting with the `Fix now` list above, or Android-side parity review if we want to begin the second half of the parity audit
+
+## Pass 028: `PinballDataCache` fix-now cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/data/PinballDataCache.swift`
+- `Pinball App 2/Pinball App 2Tests/PinballDataCacheTests.swift`
+- Android reference only:
+  - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCache.kt`
+
+Changes made in this pass:
+- added a `cacheGeneration` guard inside iOS `PinballDataCache` so detached manifest-resource revalidations and detached remote-image revalidations cannot write back to disk or index state after `clearAllCachedData()` or the legacy destructive reset path has advanced the cache generation
+- upgraded in-flight revalidation bookkeeping from path-only/image-key-only sets to generation-tagged dictionaries so an old detached task cannot clear the in-flight marker for a newer revalidation of the same resource after a cache reset
+- changed iOS update-log checkpointing to compute the newest `generatedAt` across the full event list instead of assuming `events.first` is newest
+- added focused unit coverage for the checkpoint helper in `PinballDataCacheTests.swift` so the iOS behavior and Android parity contract are pinned to an explicit expectation
+
+Behavioral outcome:
+- clearing cache on iOS now prevents older detached revalidation work from silently repopulating `resources/` or `remote-images/` afterward
+- iOS update-log scan progress now matches Android’s more defensive “newest event wins” behavior even if the server ever returns events out of order
+- the fix intentionally covers both hosted manifest resources and remote image disk cache because both shared the same post-clear stale-write risk
+
+Android parity notes:
+1. Android already had the desired checkpoint behavior conceptually; no Android change is needed for the `events.first` drift because the Kotlin cache computes the newest timestamp defensively today.
+2. Android still does not have the iOS-style cache-generation/write guard around stale detached revalidation writes after a clear/reset.
+3. When Android cleanup starts, mirror the iOS `cacheGeneration` plus generation-tagged in-flight marker pattern unless there is a deliberate reason to keep Android’s current semantics.
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 072: GameRoom machine shell and sheet-router cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineView.swift`
+
+Changes made in this pass:
+- extracted the machine screen body into named sections for the hero image, machine header, subview picker, subview content, unavailable-state message, and delete-alert bindings
+- moved the large `activeInputSheet` switch into a dedicated `inputSheetContent(for:machine:)` helper so the root body no longer mixes navigation chrome, alerts, and input-sheet routing inline
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the machine screen now reads as a route shell with explicit seams for screen chrome, subview routing, and sheet routing instead of one large inline body
+
+Hidden contract surfaced in this pass:
+1. `GameRoomMachineView` was acting as both the screen shell and the full machine-input sheet router
+2. the sheet switch itself is still large because it owns many GameRoom event-entry contracts, but those contracts are now isolated behind one explicit helper instead of being visually buried in the root body
+3. this was iOS-only structural cleanup, so there was no Android parity change in this pass
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 073: GameRoom machine summary/input panel cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineView.swift`
+
+Changes made in this pass:
+- extracted the machine summary view into named `snapshotSummaryPanel`, `recentMediaPanel`, and `mediaAttachmentTile` helpers
+- extracted the machine input button groups into a shared `inputCategoryPanel` plus named grid-column helpers
+- resolved a compile-only refactor slip during this pass by correcting the snapshot panel type to `OwnedMachineSnapshot` before final verification
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the summary and input subviews are easier to audit because the metrics panel, media panel, media tile behavior, and repeated input-grid scaffolding are now separated instead of interleaved
+
+Hidden contract surfaced in this pass:
+1. the summary tab is really two distinct concerns: current machine health snapshot and recent attached media
+2. the input tab was using the same grid/button presentation contract for service, issue, and ownership/media actions even though that shared structure was hidden by repetition
+3. this was iOS-only structural cleanup, so there was no Android parity change in this pass
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 074: Cross-platform GameRoom reminder-contract hardening
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomModels.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomStore.kt`
+
+Changes made in this pass:
+- moved the hidden “active inventory machine” rule into model-owned helpers on both platforms instead of repeating `active || loaned` checks inline in the GameRoom store
+- moved the hidden play-log rule into model-owned event helpers on both platforms so the “only custom/custom events with a non-negative total count toward current plays” contract is explicit instead of being buried in store-private helpers
+- moved reminder task-to-event mapping into model-owned task helpers on both platforms instead of keeping those switches inside the store
+- changed effective reminder resolution on both platforms to merge persisted machine-specific reminder configs over the default reminder set instead of using an all-or-nothing fallback, so partial persisted config state no longer silently disables the missing default tasks
+
+Behavioral outcome:
+- no intended front-facing behavior changed for normal current app usage
+- GameRoom still shows the same current-play and due-task values for machines that rely on the default reminder set
+- if any machine ever has partial persisted reminder config state, the app now behaves defensively by preserving the missing default reminder tasks instead of silently dropping them
+
+Hidden contract surfaced in this pass:
+1. GameRoom’s play-count and reminder semantics were still real runtime rules, but they were spread across store-private helpers instead of living with the relevant model types
+2. the old reminder resolution path treated “any saved config exists” as “the full reminder contract exists,” which meant partial config state could silently erase defaults even though there is no current UI that intentionally writes a complete custom reminder set
+3. this was the cleanest remaining must-fix-adjacent hidden behavior seam after the earlier cache, scanner, restore-failure, and dashboard passes were closed
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 075: Cross-platform duplicate-collision warning policy
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/ResolvedLeagueMachineMappings.swift`
+- `Pinball App 2/Pinball App 2/practice/ResolvedLeagueTargets.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogLoader.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ResolvedLeagueMachineMappings.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ResolvedLeagueTargets.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomCatalogLoader.kt`
+
+Changes made in this pass:
+- added developer-visible duplicate warnings to the league machine-mapping parsers on both platforms when the same normalized machine key appears more than once
+- added developer-visible duplicate warnings to the resolved league-target score maps on both platforms when the same `practiceIdentity` appears more than once
+- added developer-visible duplicate warnings to the GameRoom slug-match loaders on both platforms when multiple catalog records claim the same normalized slug key
+- preserved the existing deterministic fallback behavior for each path instead of changing winner selection rules in this pass:
+  - league machine mappings still use later-row replacement
+  - resolved league target scores still use later-row replacement
+  - GameRoom slug matches still keep the first-seen slug owner
+
+Behavioral outcome:
+- no intended front-facing UI change
+- ambiguous upstream data is no longer completely silent during development and QA
+- runtime behavior stays stable because the existing winners are still used while the collisions are now surfaced in logs
+
+Hidden contract surfaced in this pass:
+1. duplicate-resolution was not one policy; it was several different silent policies spread across league and GameRoom loaders
+2. the approved cleanup direction here is “warn and keep deterministic fallback,” not “hard fail the feature” and not “change every path to one new winner rule”
+3. the catalog-group representative collapse inside `preferredGame(in:)` remains intentionally unchanged in this pass because it is tied to a broader variant-fidelity decision rather than a pure duplicate-key collision
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 076: Cross-platform Practice key fallback parity
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeIdentityKeying.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeIdentityKeying.kt`
+
+Changes made in this pass:
+- aligned the iOS Practice-side `canonicalPracticeKey` fallback with the existing library model contract so it now uses `practiceIdentity`, then `opdbGroupID`, then `slug`
+- aligned the Android Practice-side `practiceKey` helper with the same fallback order so Practice state migration, dropdown dedupe, and lookup paths no longer skip `opdbGroupId`
+- left the broader variant-grouping policy unchanged; this pass only fixes an internal parity mismatch in how existing grouped identities are derived
+
+Behavioral outcome:
+- no intended front-facing UI change for normal current data
+- Practice is now more defensive when older or partially-enriched library rows rely on OPDB group identity instead of an explicit `practiceIdentity`
+- iOS and Android now derive grouped Practice identities from the same fallback chain before any future variant-policy decision is made
+
+Hidden contract surfaced in this pass:
+1. both platforms already had a stronger library-level grouped-identity fallback, but the Practice feature layer was still using a weaker `practiceIdentity -> slug` shortcut in one of its main canonicalization paths
+2. that meant Practice dropdown dedupe, state migration, and legacy-key recovery could disagree with the rest of the library model about which rows belong to the same grouped machine family
+3. this is a safe parity correction, not the broader product decision about whether Practice history should remain grouped across nearby variants or eventually split them
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 077: Variant-fidelity policy decision recorded
+
+Primary files:
+- review only:
+  - `docs/review/ios-sequential-code-review.md`
+
+Decision recorded in this pass:
+- Practice should continue grouping progress/history/dropdowns by machine family identity rather than splitting by exact variant
+- Library and GameRoom should continue preserving more exact variant fidelity where that detail exists for ownership, import, media, and resource matching
+- future cleanup work should treat this as an intentional cross-feature policy, not an accidental inconsistency
+
+Behavioral outcome:
+- no code change was required because the current app already mostly behaves this way
+- the earlier `canonicalPracticeKey` fallback parity fix remains in place so both platforms group families consistently when `practiceIdentity` is absent
+- variant-aware GameRoom and Library behavior remains intentionally unchanged
+
+Hidden contract surfaced in this pass:
+1. Practice, Library, and GameRoom do not share one universal variant rule; they have different roles, and the grouped Practice rule is now an explicit product decision rather than an unresolved cleanup question
+2. future parity work should avoid “helpfully” splitting Practice stats/history by exact variant unless that migration is intentionally approved
+3. the remaining work in this area is mostly naming, documentation, and future UI clarity, not a must-fix runtime bug
+
+## Pass 078: Cross-platform IFPA last-good snapshot fallback
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeIFPAProfileScreen.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeIfpaProfileScreen.kt`
+
+Changes made in this pass:
+- added lightweight per-player last-good IFPA profile snapshot caching on both platforms, stored locally in app preferences rather than mixed into broader Practice persistence
+- changed both screens to load any cached snapshot immediately for the current player before attempting the live IFPA HTML scrape
+- changed both screens to keep showing the cached snapshot when a refresh fails, with an explicit “may be outdated” warning plus retry action instead of dropping straight to an empty error state
+- kept the live scrape as the source of truth; successful refreshes still replace the cached snapshot
+- fixed an adjacent iOS state-ownership bug in the same screen where the previous player’s loaded profile could survive an IFPA ID change because the screen state was not reset per-player
+
+Behavioral outcome:
+- front-facing IFPA content is unchanged when the live scrape succeeds
+- when IFPA is temporarily unavailable or changes markup, the app now degrades more gracefully by showing the most recent saved public snapshot for that player instead of only an error card
+- the fallback warning is intentionally explicit so stale data is not mistaken for a live refresh
+
+Hidden contract surfaced in this pass:
+1. both platforms were already relying on brittle live HTML scraping, but neither one had a last-good cache or soft-degradation path despite the feature being user-facing and network-dependent
+2. the approved durability policy here is “live scrape first, cached snapshot fallback on failure,” not “treat cached data as authoritative forever” and not “remove the feature”
+3. iOS and Android now share the same persistence boundary for this feature: local, screen-owned cache keyed by IFPA player ID
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 079: Cross-platform GameRoom hydration asset-policy split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryDataLoader.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+
+Changes made in this pass:
+- split the old one-size-fits-all GameRoom template matcher into two explicit paths on both platforms:
+  - visual template matching for playfield/backglass-style assets and display-name fallback
+  - content template matching for rulesheets, videos, and game-info-style assets
+- removed the permissive title-only fallback from GameRoom overlay template hydration so borrowed assets stay anchored to OPDB identity/group matches instead of jumping across unrelated same-title rows
+- kept image fallback permissive within the same group by continuing to prefer exact/nearby variant art when available, while still allowing group-level image fallback and keeping curated/template image overrides ahead of generic OPDB art
+- changed rulesheet and video hydration to come only from OPDB-group / practice-identity scoped content matches rather than whichever visual template happened to win
+- aligned `gameinfo` with the same group-scoped content template path so rules/content assets stay together instead of drifting with alias-specific imagery
+
+Behavioral outcome:
+- GameRoom-backed Library rows still get rich image fallback, including alias-specific overrides when available
+- rulesheets and videos now follow the group-level machine identity rule you approved instead of piggybacking on the image matcher
+- future alias mismatches should be limited to visuals within the same OPDB group, not strategy/content assets
+
+Hidden contract surfaced in this pass:
+1. the old shared matcher was quietly making one decision serve two different product needs: “which image looks best for this machine?” and “which rules/content belongs to this machine?”
+2. your approved policy is now explicit in code and in the audit: visuals may be alias-sensitive within a group, but rulesheets/videos belong to the OPDB group / practice identity
+3. the remaining cleanup in this seam is mostly naming and documentation, not another runtime parity bug
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 080: Live duplicate-conflict snapshot
+
+Primary files:
+- `docs/review/live-duplicate-conflict-report-2026-03-27.md`
+- review only:
+  - `Pinball App 2/Pinball App 2/practice/ResolvedLeagueMachineMappings.swift`
+  - `Pinball App 2/Pinball App 2/practice/ResolvedLeagueTargets.swift`
+  - `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogLoader.swift`
+  - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ResolvedLeagueMachineMappings.kt`
+  - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ResolvedLeagueTargets.kt`
+  - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomCatalogLoader.kt`
+
+Changes made in this pass:
+- pulled the live hosted `lpl_machine_mappings_v1.json`, `lpl_targets_resolved_v1.json`, and `opdb_export.json` payloads on `2026-03-27`
+- checked them against the app's current duplicate-warning rules instead of a looser “looks similar” heuristic
+- recorded the concrete result in a dedicated report so duplicate cleanup can use real examples rather than guesses
+
+Behavioral outcome:
+- no runtime code changed
+- the current live hosted data does not trigger any of the three duplicate-warning paths
+- the only notable duplicate-like case in current live data is an intentional alias cluster in league mappings: `TMNT` plus `Teenage Mutant Ninja Turtles` both resolve to practice identity `Gd2Xb`
+- that alias pair is extra-interesting because `LibraryGameLookup.machineAliases` already carries the same equivalence app-side, but the adjacent admin source repo still contains both raw machine-name forms across seasons, so the dual-row mapping is not an obvious delete
+
+Hidden contract surfaced in this pass:
+1. there is now a real distinction between duplicate conflicts and intentional alias coverage; current live data has the latter but not the former
+2. the duplicate developer warnings are still worth keeping because they protect future data publishes even though the current snapshot is clean
+3. if we decide to collapse intentional alias rows later, the `TMNT` / `Teenage Mutant Ninja Turtles` mapping pair is the first concrete case to review rather than an abstract policy discussion, but that choice belongs with the admin/source-data workflow because the raw league CSV still uses both names
+
+Verification:
+- live hosted data snapshot fetched successfully from `https://pillyliu.com/pinball/data/...` with browser-style request headers
+
+## Pass 081: Architecture doc generation path cleanup
+
+Primary files:
+- `scripts/generate_architecture_blueprint.sh`
+- `scripts/render_mermaid_blocks.py`
+- `scripts/render_architecture_pdf_upgraded.py`
+- `README.md`
+- `archive/README.md`
+- `archive/2026-03-27-retired-scripts/scripts/render_architecture_pdf.py`
+- `.gitignore`
+
+Changes made in this pass:
+- archived the older `scripts/render_architecture_pdf.py` helper because it no longer supports the current Mermaid-heavy blueprint path and had no active references outside historical notes
+- added one active wrapper script, `scripts/generate_architecture_blueprint.sh`, so the current blueprint export flow is explicit instead of spread across two manual Python steps
+- made that wrapper self-bootstrap a local ignored virtualenv for `reportlab` so the PDF export no longer depends on whatever the machine Python happens to have installed
+- documented the active blueprint source and generation command in `README.md`
+- logged the newly archived renderer in `archive/README.md`
+- removed the stale ignore entry for the older rendered-mermaid PDF filename that no longer matches the active output path
+
+Behavioral outcome:
+- repo docs now have one explicit active print-layout generation path for the architecture blueprint
+- that path now works from a clean shell without requiring a manual global `reportlab` install first
+- the old non-Mermaid renderer is preserved for local history under `archive/` instead of lingering beside the active tooling
+- future blueprint refreshes can target `Pinball_App_Architecture_Blueprint_latest_print_layout.pdf` consistently from one command
+
+Hidden contract surfaced in this pass:
+1. the upgraded renderer and Mermaid block renderer were already the real active path, but the repo was still carrying an older alternate renderer without any explicit retirement step
+2. that overlap made the doc-tooling contract look optional when it had effectively already converged on one path
+3. this is repo maintenance only, not app runtime behavior, so there is no Android parity implementation to mirror
+
+Verification:
+- `bash -n '/Users/pillyliu/Documents/Codex/Pinball App/scripts/generate_architecture_blueprint.sh'`
+- result: syntax check passed
+- `./scripts/generate_architecture_blueprint.sh`
+- result: generated `/Users/pillyliu/Documents/Codex/Pinball App/Pinball_App_Architecture_Blueprint_latest_print_layout.pdf`
+
+## Pass 082: Source-side TMNT normalization decision
+
+Primary files:
+- admin source/workflow follow-up:
+  - `../PinProf Admin/workspace/data/source/LPL_Stats.csv`
+  - `../PinProf Admin/workspace/data/source/LPL_Targets.csv`
+  - `../PinProf Admin/workspace/data/source/lpl_machine_mappings_v1.json`
+  - `../PinProf Admin/workspace/data/published/lpl_targets_resolved_v1.json`
+  - `../PinProf Admin/docs/LPL_LEAGUE_DATA_WORKFLOW.md`
+- app-review record:
+  - `docs/review/live-duplicate-conflict-report-2026-03-27.md`
+
+Changes made in this pass:
+- normalized all historical `TMNT` machine-name rows in the admin `LPL_Stats.csv` source to `Teenage Mutant Ninja Turtles`
+- normalized the single `TMNT` row in admin `LPL_Targets.csv`
+- removed the now-redundant `TMNT` row from admin `lpl_machine_mappings_v1.json`
+- regenerated admin `lpl_targets_resolved_v1.json` so the published derived targets data matches the normalized source
+- updated the admin `LPL_LEAGUE_DATA_WORKFLOW.md` machine-normalization rules so future stats intake must keep using `Teenage Mutant Ninja Turtles`
+- updated the duplicate report to note that the source-side alias case has now been resolved locally and is only pending publish/deploy
+
+Behavioral outcome:
+- no app-runtime code changed in this repo
+- the concrete duplicate-like league alias case is now resolved in the admin source data rather than left as an open cleanup question
+- once the admin data is published, the live hosted duplicate snapshot should stop needing the `TMNT` alias row entirely
+
+Hidden contract surfaced in this pass:
+1. the earlier duplicate-like `TMNT` pair was not arbitrary noise; it existed because historical league source CSVs had never been fully backfilled to the full machine name
+2. the right long-term fix was source normalization plus an intake rule, not just app-side alias tolerance
+3. the app duplicate warnings remain valuable because they still guard future publishes even after this concrete alias case is cleaned up at the source
+4. `../PinProf Admin/workspace/data/source/lpl_machine_mappings_v1.json` is currently a local untracked workspace source file, so its cleanup is real in the admin workspace but not yet backed by tracked repo history there
+
+Verification:
+- admin source counts after normalization:
+  - `LPL_Stats.csv`: `TMNT=0`, `Teenage Mutant Ninja Turtles=466`
+  - `LPL_Targets.csv`: `TMNT=0`, `Teenage Mutant Ninja Turtles=1`
+  - `lpl_machine_mappings_v1.json`: `TMNT=0`, `Teenage Mutant Ninja Turtles=1`
+- `python3 scripts/publish/build_lpl_targets_resolved.py`
+- result: wrote updated `../PinProf Admin/workspace/data/published/lpl_targets_resolved_v1.json` with `39/39 matched`
+
+## Pass 083: Publish and live TMNT verification
+
+Primary files:
+- admin publish path:
+  - `../PinProf Admin/scripts/publish/rebuild-shared-pinball-payload.sh`
+  - `../Pillyliu Pinball Website/deploy.sh`
+- review record:
+  - `docs/review/live-duplicate-conflict-report-2026-03-27.md`
+
+Changes made in this pass:
+- ran the real website deploy path so the normalized league source data and regenerated resolved targets were published to `pillyliu.com`
+- rechecked the hosted league payloads directly after deploy and updated the duplicate report to reflect the live post-publish state
+
+Behavioral outcome:
+- the hosted league payloads now use `Teenage Mutant Ninja Turtles` consistently across stats, targets, machine mappings, and resolved targets
+- the concrete duplicate-like alias case found earlier in the review is no longer present in the live hosted app data
+
+Hidden contract surfaced in this pass:
+1. the actual publish entrypoint is still the legacy website repo deploy script, which rebuilds from `PinProf Admin` first and only then syncs the live site
+2. duplicate cleanup at the source is not really “done” until the hosted payloads are verified after deploy, because the apps read `pillyliu.com`, not the local admin workspace
+
+Verification:
+- hosted payload check on `2026-03-27` after deploy:
+  - `LPL_Stats.csv`: `TMNT=0`, `Teenage Mutant Ninja Turtles=466`
+  - `LPL_Targets.csv`: `TMNT=0`, `Teenage Mutant Ninja Turtles=1`
+  - `lpl_machine_mappings_v1.json`: `TMNT=0`, `Teenage Mutant Ninja Turtles=1`
+  - `lpl_targets_resolved_v1.json`: `TMNT=0`, `Teenage Mutant Ninja Turtles=1`
+- deploy result: `Deploy complete.`
+
+## Pass 071: GameRoom edit/archive chrome cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+Changes made in this pass:
+- extracted the `GameRoomEditMachinesView` panel stack into a named `panelStack` section
+- centralized the initial editor bootstrap work behind `handleAppear()`
+- named the selected-machine variant list with `selectedMachineVariantOptions`
+- extracted the archive screen row list and footer into `archiveListContent` and `archiveSummaryFooter`
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the remaining GameRoom settings root flow is easier to audit because disclosure layout, bootstrap behavior, selected-machine support data, archive rows, and archive summary are now explicit seams instead of inline body logic
+
+Hidden contract surfaced in this pass:
+1. the edit-machines screen was already doing two independent bootstrap tasks on appear: selection normalization and catalog-search indexing
+2. the archive screen was simpler than it looked; most of the complexity was presentation glue, not archival business logic
+3. this was iOS-only structural cleanup, so there was no Android parity change in this pass
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 069: GameRoom screen routing cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomScreen.swift`
+
+Changes made in this pass:
+- extracted the `NavigationStack` destination switch into a named `destination(for:)` helper
+- extracted the initial GameRoom bootstrap task into `loadDataIfNeeded()`
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the GameRoom screen now reads more clearly as route wiring plus bootstrap flow instead of mixing both concerns inline
+
+Hidden contract surfaced in this pass:
+1. the screen itself is just the route shell; the real work is still delegated to the store, loader, and destination views
+2. making the route/dataload seams explicit reduces the chance of subtle drift when GameRoom navigation evolves later
+3. this was iOS-only structural cleanup, so there was no Android parity change in this pass
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 070: Practice settings card-stack cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+
+Changes made in this pass:
+- extracted the Practice settings card stack in `PracticeSettingsSectionView` into a named `settingsCards` section
+- kept the two destructive alert flows attached at the root, but separated them from the card layout so the settings body no longer mixes layout and alert definitions inline
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the Practice settings screen is easier to audit because the card stack and destructive recovery prompts are now clearly separated concerns
+
+Hidden contract surfaced in this pass:
+1. the user-facing settings cards were already stable, but the destructive prompts were visually buried inside the same long body definition
+2. the actual sensitive contract here is still the recovery/reset confirmation flow, which remains unchanged and explicitly isolated
+3. this was iOS-only structural cleanup, so there was no Android parity change in this pass
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'platform=iOS Simulator,id=BC731628-5C08-40EB-8B42-A565A19086D9' -only-testing:'Pinball App 2Tests/PinballDataCacheTests' test`
+- result: blocked by an unrelated pre-existing test-target compile failure in `Pinball App 2Tests/ScoreScannerServicesTests.swift` because those tests still call `ScoreParsingService.bestCandidate`, which no longer exists on the current app code
+
+Open follow-up items from this pass:
+1. if you want fully reproducible coverage for the clear-cache race itself, iOS still needs a test harness that can inject a stubbed `URLSession`/`URLProtocol` into `PinballDataCache`; today the new test coverage only locks down the checkpoint behavior
+2. Android parity work should revisit the same clear-cache race, not just the update-log checkpoint logic
+3. the next `Fix now` item remains `ScoreScannerViewModel` queue/actor ownership cleanup
+
+## Pass 028 summary
+
+Safe cleanup changes made:
+- none; this pass was behavior-focused runtime cleanup
+
+Verification:
+- app build passed
+- new targeted test intent was blocked by unrelated existing test-target API drift in `ScoreScannerServicesTests`
+
+Outcome:
+- the iOS half of `Fix now` item 1 is now implemented and logged with explicit Android follow-up guidance
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerViewModel.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerView.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerServices.swift`
+
+## Pass 029: scanner queue-ownership cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerViewModel.swift`
+- Android reference reviewed for parity direction:
+  - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerController.kt`
+
+Changes made in this pass:
+- made `captureQueue` the explicit owner for iOS live-scanner gate state that had been mixed across direct access and queued access, especially `processingPaused`, `isProcessingFrame`, `lastOCRTime`, and `latestSnapshot`
+- changed `retake()` to synchronously reset capture-owned gating state before the main-thread UI reset so retake no longer leaves a timing window where one more OCR callback can observe partially reset state
+- changed `freeze(...)` to mark `processingPaused` on `captureQueue` before continuing with crop/preview work so the live frame gate sees the pause immediately
+- collapsed `handleCapturedFrame(...)` into a single capture-queue gate entry point (`beginLiveProcessing`) plus a matching completion path (`finishLiveProcessing`) so live throttling, pause checks, and “one OCR at a time” decisions all share one serialization seam
+- updated `preferredFreezeReading()` to read `latestSnapshot` through `captureQueue` instead of reaching across that state directly
+
+Behavioral outcome:
+- iOS freeze/retake/live-OCR transitions now have one clear owner for the control flags that decide whether another frame should process
+- the most likely “weird one-off” outcomes from the old mixed access pattern are reduced: a frame slipping through right after freeze, retake racing one last OCR pass, or stale snapshot state participating in preferred-freeze selection
+- this is intentionally a structural ownership cleanup, not a scanner UX rewrite
+
+Android parity notes:
+1. Android does have a live scanner counterpart in `ScoreScannerController.kt`, so this is not hypothetical future parity work.
+2. The Android controller still spreads scanner gate state across `@Volatile` fields, Compose state, and coroutine callbacks, so the right parity direction is “single owner for gating state,” not “copy the old iOS mixed-access pattern.”
+3. When Android cleanup starts, use the same principle as this iOS pass: one serialization seam should own pause/throttle/in-flight gating for freeze and retake.
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Open follow-up items from this pass:
+1. the scanner test target is still blocked by unrelated pre-existing API drift in `ScoreScannerServicesTests.swift`, so this ownership cleanup does not yet have direct automated regression coverage
+2. Android scanner parity should get its own focused audit pass before implementation because its current controller also carries mixed-state risk
+3. the next `Fix now` items remain `GameRoomStateCodec` corruption handling, Practice dashboard staleness, and `AboutScreen` cleanup
+
+## Pass 029 summary
+
+Safe cleanup changes made:
+- none; this pass was concurrency-ownership cleanup in active runtime code
+
+Verification:
+- app build passed
+
+Outcome:
+- iOS `ScoreScannerViewModel` now has a clearer single-owner state seam for live OCR gating, with explicit Android parity guidance recorded
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStateCodec.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+
+## Pass 067: GameRoom import helper extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+Changes made in this pass:
+- extracted the Pinside import match/review heuristics inside `GameRoomImportSettingsView` into a dedicated local `ImportMatcher` helper
+- moved hidden helper rules for duplicate detection, review gating, variant option merging, date normalization, display-label generation, and suggestion scoring out of the view body / free-floating method cluster
+- updated the review section wiring and fetch path to call the matcher explicitly instead of relying on a long tail of same-file private methods
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the import review flow still computes the same suggestions, duplicate warnings, review filtering, and normalized purchase dates, but the contracts are now easier to follow and safer to mirror on Android later if needed
+
+Hidden contract surfaced in this pass:
+1. `GameRoomImportSettingsView` had already grown into a mini import engine, but the matching rules were buried between UI helpers and fetch/import control flow
+2. the important import contracts are now grouped behind one explicit local owner instead of being spread across the view file as unrelated-looking methods
+3. this was structural cleanup only, so there was no Android patch in this pass
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 068: GameRoom settings chrome cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+
+Changes made in this pass:
+- extracted the root GameRoom settings picker/error/save-feedback chrome in `GameRoomSettingsView` into named internal sections and helpers
+- extracted the section switch in `GameRoomSettingsSectionCard` into explicit `sectionContent`
+- removed the unnecessary `nonisolated(unsafe)` marker from the dashboard date formatter in `PracticeGroupDashboardSection`
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the GameRoom settings root is easier to audit because the picker bar, error banner, section content, and floating save overlay are now clearly separated
+- the dashboard formatter cleanup removes an avoidable compiler warning without changing formatting behavior
+
+Hidden contract surfaced in this pass:
+1. the root GameRoom settings screen was still carrying UI chrome and section-routing behavior inline, which made the file look more coupled than it really was
+2. the `nonisolated(unsafe)` formatter marker had become stale after the earlier dashboard refactor; the current isolation model no longer needed the unsafe escape hatch
+3. this was iOS-only structural cleanup, so there was no Android parity change in this pass
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 057: Journal editor and GameRoom sync decomposition
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+Changes made in this pass:
+- split the `PracticeJournalEntryEditorSheet` form into named internal sections so game selection, entry-specific fields, validation, and shared editor structure are no longer buried in one large body
+- replaced the journal-entry save switch with per-entry helper builders plus a shared `persist` path, so score, note, study, and video entry mutation rules are easier to audit without changing editor behavior
+- separated `GameRoomSettingsComponents` selection sync into explicit venue-name draft syncing versus selected-machine validation, which removes another hidden side-effect seam from the settings screen lifecycle
+- kept this pass intentionally internal-only; no copy, routing, feature flags, or visible product behavior were intentionally changed
+
+Behavioral outcome:
+- the two largest remaining iOS hotspot files are easier to audit line by line because the hidden save/update rules now have names and isolated seams
+- future Android parity work is less likely to drift because the journal editor and GameRoom selection contracts are no longer embedded in long inline closures
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+
+## Pass 058: Practice group dashboard view decomposition
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+
+Changes made in this pass:
+- extracted the selected-group dashboard panel into dedicated private views for the group card and snapshot rows instead of keeping the full detail layout inline in the parent body
+- centralized the inline date-editor presentation contract with named `present`, `dismiss`, and `Binding` helpers so the start/end popover state is no longer duplicated inline in the group list rows
+- moved date and task-progress formatting into a small shared formatting helper so dashboard rows and headers use the same explicit formatting path
+
+Behavioral outcome:
+- no intended front-facing change; this was a structural SwiftUI cleanup so the dashboard view reads as layout plus named seams instead of nested imperative branching
+- the old “dashboard reload looks stale” finding still does not reproduce from static review; this pass only made the current reload and date-popover ownership easier to inspect
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Notes surfaced during the pass:
+- the project’s default `MainActor` isolation means shared non-view format helpers need explicit `nonisolated` annotations when they are used from synchronous view contexts outside the owning view
+- the dashboard snapshot model type is `GroupProgressSnapshot`; the refactor briefly exposed that hidden type-name contract during build validation and then corrected it
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+## Pass 059: Practice settings card extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+
+Changes made in this pass:
+- replaced the remaining large computed settings-card fragments with dedicated private card views for profile, IFPA, league import, and recovery settings
+- introduced a shared `PracticeSettingsCard` wrapper so panel chrome is explicit and not re-declared across each section
+- pulled destructive-prompt triggers into named methods in the owning view, keeping the alert presentation state in one place while moving the visible card content into smaller view types
+
+Behavioral outcome:
+- no intended front-facing change; this pass only clarified settings ownership and reduced the amount of inline UI/business wiring in the Practice settings screen
+- the gated LPL full-last-name display behavior, league import button enablement, and destructive reset prompts are unchanged; they are simply expressed through smaller dedicated views now
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+
+## Pass 060: GameRoom import review decomposition
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+Changes made in this pass:
+- split the `GameRoomImportSettingsView` body into nested source, review, and row-editor subviews so the Pinside import flow no longer keeps fetch controls, review filtering, and per-row matching logic inline in one large body
+- moved the per-row purchase-date normalization, match selection, and variant selection behavior into a dedicated row view with named helpers instead of anonymous inline closures
+- added an explicit `canFetchCollection` gate and `fetchCollectionIfPossible()` helper so the source-entry contract is named once and reused by both submit and button actions
+
+Behavioral outcome:
+- no intended front-facing change; this pass only made the import review flow easier to audit and reduced the amount of hidden mutable row logic embedded directly in the parent view body
+- the duplicate-warning, suggestion ranking, match selection, and import execution rules are unchanged
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Notes surfaced during the pass:
+- the import review row only ever selects from the current suggestion set, so extracting a dedicated row editor made that “selected match comes from suggestions” contract much more obvious
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+
+## Pass 061: GameRoom name and area panel extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+Changes made in this pass:
+- extracted the GameRoom name editor into a dedicated nested panel view instead of leaving the venue-name form inline in `GameRoomEditMachinesView`
+- extracted the area-management form and area rows into dedicated nested views, and moved save/delete feedback into named helper methods on the owning view
+- kept the existing save/delete behavior intact while removing another layer of inline mutation and feedback wiring from the large edit-machines screen
+
+Behavioral outcome:
+- no intended front-facing change; the GameRoom edit screen still saves names, edits areas, and deletes areas the same way, but the write paths are now easier to inspect and mirror later if Android cleanup reaches the same seam
+- the large `GameRoomEditMachinesView` remains a hotspot, but this pass reduced the amount of nested imperative logic inside the area-management section
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+
+## Pass 062: GameRoom machine editor decomposition
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+Changes made in this pass:
+- extracted the remaining machine-edit section into dedicated nested views for machine-management, machine selection, and machine editor fields instead of keeping selection menus, draft bindings, and destructive actions inline in `GameRoomEditMachinesView`
+- moved machine save/archive actions behind named helper methods on the owning view so the feedback side effects are explicit and not duplicated in button closures
+- kept the machine draft bindings in the owner while making the editor UI consume those bindings through smaller dedicated views
+
+Behavioral outcome:
+- no intended front-facing change; the edit-machines panel still selects machines, edits area/status/metadata, saves, archives, and deletes exactly as before
+- the hidden contract around “selected machine drives all current draft fields” is now easier to inspect because the machine editor is isolated from the rest of the GameRoom settings panels
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+
+## Pass 063: GameRoom add-machine search decomposition
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+Changes made in this pass:
+- extracted the add-machine search flow into dedicated nested views for the main search panel, advanced filters, result rows, and the variant-picker popover
+- named the add-machine filter-clearing and manufacturer-suggestion visibility rules so those search-state contracts are no longer embedded in long inline branches
+- kept the pending variant picker wired through explicit callbacks instead of ad hoc inline closures in each catalog result row
+
+Behavioral outcome:
+- no intended front-facing change; the add-machine panel still searches the indexed catalog, shows manufacturer suggestions, applies advanced filters, and prompts for a variant when needed
+- the hidden contract around “only the currently pending catalog row owns the variant popover” is much clearer after the extraction
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Notes surfaced during the pass:
+- the refactor briefly exposed a missing type-selection callback in the advanced-filter subview; that was corrected immediately and verified in the final green build
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+## Pass 064: Practice journal list decomposition
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+
+Changes made in this pass:
+- extracted the Practice journal bulk-edit action bar, list panel, day header, and row rendering into dedicated private views instead of keeping all list behavior inline in `PracticeJournalSectionView`
+- moved journal row tap/selection behavior into a named row helper so the edit-mode selection contract is explicit and isolated from the parent view
+- kept the swipe-to-edit/delete behavior attached only to editable entries while making that rule easier to see from the new dedicated row view
+
+Behavioral outcome:
+- no intended front-facing change; journal filtering, selection, edit/delete actions, row transitions, and swipe actions should behave exactly as before
+- the hidden contract around “editing mode turns taps into selection toggles only for editable entries” is now expressed directly in the row helper rather than in a long inline gesture block
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+## Pass 065: GameRoom archive row decomposition
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+Changes made in this pass:
+- extracted the archive filter control and archive machine row into dedicated nested views instead of keeping the archive picker and row-open behavior inline in `GameRoomArchiveSettingsView`
+- moved the archive row open action into a named helper on the row view so the transition-source contract is easier to trace
+
+Behavioral outcome:
+- no intended front-facing change; archive filtering, archive-row transition sources, and machine opening behavior are unchanged
+- this pass mainly reduced one more untouched section of the large GameRoom settings file and made the archive-row metadata contract more explicit
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+## Pass 066: Practice journal editor section extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+
+Changes made in this pass:
+- extracted the journal entry editor form into dedicated private section views for game selection, score editing, note editing, study progress, video progress, unsupported-entry messaging, and validation display
+- introduced shared private views for the note editor and progress controls so those editor widgets are no longer embedded as computed fragments inside the sheet
+- kept the actual save/normalization logic in the owning sheet, but moved the visible editor form layout into smaller explicit view types
+
+Behavioral outcome:
+- no intended front-facing change; the journal entry editor should still present the same fields, validation states, and action-specific layouts as before
+- the separation between editor UI sections and save/mutation logic is now much clearer, which should help future parity work if Android ever needs the same cleanup
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+## Pass 056: Hotspot section decomposition round
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+Changes made in this pass:
+- split the iOS Practice settings card into named internal sections (`profileSettingsCard`, `ifpaSettingsCard`, `leagueImportSettingsCard`, `recoverySettingsCard`) plus a shared `settingsCard` wrapper so the file no longer hides four distinct settings surfaces inside one long body
+- split the iOS GameRoom machine editor into named internal sections (`machineSelectionRow`, `machineEditorFields`, `machineAreaAndStatusRow`, `machineNumericFields`, `machineMetadataFields`, `machineActionRow`) so the active machine-edit path is easier to follow and compare against Android
+- kept the new helpers strictly structural; they reuse the same actions and bindings instead of changing field meaning, copy, or user flow
+
+Behavioral outcome:
+- no intended front-facing behavior change; this pass is about making the two largest remaining SwiftUI hotspots easier to audit and safer to keep in parity
+- the next cleanup passes can now target smaller named seams instead of re-entering giant view bodies every time
+
+Notes surfaced in this pass:
+1. `PracticeJournalSettingsSections.swift` is still doing multiple jobs, but the settings half is now much easier to scan separately from the journal-entry editor half
+2. `GameRoomSettingsComponents.swift` still owns too much overall, but the machine editor now has explicit subregions instead of one monolithic inline form block
+3. this pass was iOS-only internal refactoring, so no Android parity patch was needed
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 056 summary
+
+Safe cleanup changes made:
+- decomposed the remaining large Practice settings and GameRoom machine-editor bodies into named internal sections
+
+Verification:
+- iOS build passed
+
+Outcome:
+- the hottest remaining iOS cleanup files are more reviewable now without changing what the user sees
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+
+## Pass 055: Android scanner analyzer-state ownership cleanup
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerController.kt`
+
+Changes made in this pass:
+- replaced the loose lock-protected analyzer gate fields in `ScoreScannerController` with an explicit `AnalyzerState` owner object plus small helper methods for requesting freeze, beginning frame analysis, finishing frame analysis, and updating the latest snapshot
+- moved the OCR throttle, pending-freeze, processing, fallback-timestamp, and snapshot bookkeeping onto those helpers so the Android scanner no longer spreads the gate-state contract across many direct field reads and writes
+- kept the visible scanner behavior the same while making the parity intent explicit: one owned analyzer-state seam now governs freeze/retake/throttle flow just like the iOS cleanup aimed for
+
+Behavioral outcome:
+- Android scanner state ownership is now easier to reason about, because the freeze/throttle/snapshot gate rules are centralized instead of scattered through the controller
+- this closes the most important Android follow-through from the earlier iOS `ScoreScannerViewModel` cleanup and reduces the chance of future one-off race regressions during scanner maintenance
+
+Notes surfaced in this pass:
+1. this was primarily a parity-and-maintainability cleanup; it is designed to preserve current runtime behavior while making the hidden gating contract explicit
+2. the remaining scanner validation should still be manual in emulator/device, since your real workflow is interaction-based rather than test-driven
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 055 summary
+
+Safe cleanup changes made:
+- centralized Android scanner analyzer gate state behind explicit helper methods and one owned state object
+
+Verification:
+- Android Kotlin compile passed
+
+Outcome:
+- the active scanner runtime seam now reads much closer across iOS and Android, which should help keep future parity cleanup from drifting
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+
+## Pass 054: Explicit settings action guards
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+
+Changes made in this pass:
+- extracted `saveVenueNameDraft()` and `deleteMachine(_:)` in the iOS GameRoom settings editor so those actions stop carrying their full write/update behavior inline inside button closures
+- removed the old manual post-delete machine reselection from the iOS delete button and let the newer selection-normalization path own that responsibility instead
+- added explicit `hasSelectedLeaguePlayer` and `canConfirmResetPracticeLog` helpers in the iOS Practice settings card so the import/reset gating rules are named instead of being hidden inside long `.disabled(...)` expressions
+
+Behavioral outcome:
+- no intended feature change; the same settings actions still work, but the remaining guard logic is easier to audit because the inline button bodies no longer hide state-reset rules
+- the iOS GameRoom delete path now leans on the same centralized selection-state normalization introduced in Pass 052 instead of manually poking selection from the button action itself
+
+Notes surfaced in this pass:
+1. this was iOS-only internal cleanup; no Android parity patch was needed because it did not change the user-facing contract
+2. `PracticeJournalSettingsSections.swift` and `GameRoomSettingsComponents.swift` are still growth hotspots, but more of their behavior is now named and centralized instead of being spread across view modifiers and inline closures
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 054 summary
+
+Safe cleanup changes made:
+- named the remaining inline import/reset/settings guard rules in Practice
+- centralized one more venue/delete action path in iOS GameRoom settings
+
+Verification:
+- iOS build passed
+
+Outcome:
+- the remaining hotspot settings code is a little less “hidden in closures,” which should help keep the Android follow-through honest later
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+
+## Pass 051: Practice journal save normalization helpers
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+
+Changes made in this pass:
+- added shared text-normalization helpers inside `PracticeJournalEntryEditorSheet` so score, tournament, note, and video-entry save paths stop repeating their own trim and newline-cleanup logic
+- added a shared `currentStudyProgressPercent` helper so the study/video editor branches derive their saved progress value from one source of truth instead of duplicating the rounded-percent calculation
+- updated the journal editor save branches to use those helpers for validation and persisted values without changing the supported entry types or the visible UI
+
+Behavioral outcome:
+- Practice journal edit saves now normalize single-line and multiline draft text consistently across score, note, study, and video entries
+- this reduces drift risk inside a growth hotspot without changing what entry types are editable or how the editor looks
+
+Notes surfaced in this pass:
+1. this was an internal iOS save-path cleanup only; no Android parity patch was needed because it did not change the feature contract
+2. `PracticeJournalSettingsSections.swift` still remains a hotspot because it owns editor UI, validation, settings, and part of the LPL privacy formatting path in one file
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 051 summary
+
+Safe cleanup changes made:
+- centralized repeated journal-entry save normalization and progress-percent derivation in the Practice journal editor
+
+Verification:
+- iOS build passed
+
+Outcome:
+- Practice journal edits now follow one normalization path instead of several copy-pasted ones
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeSettingsSection.kt`
+
+## Pass 052: GameRoom selection-state normalization
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+Changes made in this pass:
+- replaced the old `seedSelectionIfNeeded()` flow with `syncMachineSelectionState()` so the edit panel now normalizes invalid machine selections instead of only filling in an empty one
+- taught `syncDraftFromSelection()` to clear the edit draft when no selected machine remains, instead of silently keeping the last machine's area/group/variant/ownership values alive in state
+- added a dedicated `clearMachineDraft()` helper so empty-state cleanup is explicit and reusable
+
+Behavioral outcome:
+- if the selected GameRoom machine disappears because it was deleted or the machine list changes underneath the editor, the iOS edit panel now resets cleanly instead of leaving stale machine details in the draft fields
+- iOS now matches the Android edit-screen contract more closely here; Android already had a selection-reset effect when the chosen machine ID stopped existing
+
+Notes surfaced in this pass:
+1. this was a real hidden-behavior seam: the old iOS path only healed `nil` selections, not stale selections pointing at removed machines
+2. no Android patch was needed for this pass because `GameRoomScreen.kt` already resets `selectedEditMachineID` when the backing machine list no longer contains it
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 052 summary
+
+Safe cleanup changes made:
+- normalized invalid GameRoom machine selections and explicit empty-state draft clearing in the iOS editor panel
+
+Verification:
+- iOS build passed
+
+Outcome:
+- deleting or otherwise losing the selected GameRoom machine no longer leaves stale editor values parked in memory on iOS
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+
+## Pass 053: Android GameRoom empty-selection parity follow-through
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt`
+
+Changes made in this pass:
+- updated the Android edit-machine draft sync effect so it now clears area/group/position/status/variant/ownership draft state when no selected edit machine remains
+- kept the existing Android invalid-selection reset behavior in place, but closed the last gap so the empty-state contract now matches the iOS cleanup from Pass 052 instead of leaving stale draft text parked in memory
+
+Behavioral outcome:
+- Android and iOS now both fully clear GameRoom edit drafts when the selected machine disappears and no replacement machine is available
+- this removes one more hidden parity seam from the GameRoom settings editor path
+
+Notes surfaced in this pass:
+1. while checking the next Practice dashboard fix item, the current iOS dashboard route appears to already key reloads off `store.derivedDataRevision`, which means the older “dashboard detail can stay stale after live progress changes” finding is likely no longer active in the current code
+2. that dashboard item should still be validated in simulator/emulator if it behaves strangely, but it no longer looks like a clear code-path bug from static review alone
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 053 summary
+
+Safe cleanup changes made:
+- aligned Android GameRoom edit-draft clearing with the new iOS empty-selection behavior
+
+Verification:
+- Android Kotlin compile passed
+
+Outcome:
+- the GameRoom edit panel now converges across platforms when the selected machine vanishes
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+
+## Pass 046: Practice journal cache trim and GameRoom machine-save dedup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreJournalHelpers.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+Changes made in this pass:
+- removed the unused `items` field from `CachedPracticeJournalPayload`; the current Practice journal cache path only reads grouped `sections`
+- removed the old unused `journalItems`, `recentJournalEntries`, `allJournalEntries`, and `clearJournalLog` helper surface from the same Practice journal helper file
+- consolidated the duplicated Save/Archive `store.updateMachine(...)` argument list in `GameRoomEditMachinesView` behind a single `persistMachineEdits(for:status:)` helper
+
+Behavioral outcome:
+- no user-facing behavior changed; this was dead Practice journal cache surface plus internal deduplication of the GameRoom machine-edit write path
+- the GameRoom settings screen now has one authoritative place for machine field persistence, which reduces the chance that Save and Archive drift apart during later edits
+
+Notes surfaced in this pass:
+1. the dead Practice journal helper surface appears to be leftover from an older “raw journal item list” flow; current routing and rendering only consume grouped day sections
+2. Android did not need a parity patch here: there is no matching cached-journal payload object on Android, and the GameRoom change was internal iOS helper dedup rather than a product-behavior change
+3. `PracticeJournalSettingsSections.swift` and `GameRoomSettingsComponents.swift` are still legitimate growth hotspots even after this trim; this pass only removed one dead seam and one duplicated write seam
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 046 summary
+
+Safe cleanup changes made:
+- removed dead cached Practice journal payload surface on iOS
+- centralized duplicated GameRoom machine Save/Archive persistence on iOS
+
+Verification:
+- iOS build passed
+
+Outcome:
+- the Practice journal cache carries only live data now, and the GameRoom settings editor has a single persistence seam for machine field updates
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeSettingsSection.kt`
+
+## Pass 047: Practice journal editor shared control cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+
+Changes made in this pass:
+- extracted the repeated study-progress UI block in `PracticeJournalEntryEditorSheet` into a shared `progressTrackingFields` helper
+- extracted the repeated optional note editor styling into a shared `styledNoteEditor(text:)` helper and reused it for both note entries and study/video entries
+- moved the draft-state initialization logic out of the `.onAppear` closure into a dedicated `seedDraftState()` helper
+
+Behavioral outcome:
+- no user-facing behavior changed; the editor still shows the same controls for score, note, study, and video journal actions
+- the journal editor now has one shared styling seam for note editors and one shared seam for progress controls, which reduces the chance of accidental drift across supported entry types
+
+Notes surfaced in this pass:
+1. this file still mixes multiple responsibilities: journal list rendering, settings/profile panels, and entry editing live together
+2. Android did not need a parity patch for this pass because the cleanup was internal SwiftUI deduplication within the iOS journal editor sheet
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 047 summary
+
+Safe cleanup changes made:
+- shared repeated progress controls and note-editor styling inside the iOS Practice journal editor
+
+Verification:
+- iOS build passed
+
+Outcome:
+- the journal editor is a little less brittle, with fewer duplicated UI/styling blocks to keep in sync
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeSettingsSection.kt`
+
+## Pass 050: Cross-platform GameRoom area-order contract alignment
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt`
+
+Changes made in this pass:
+- changed iOS `GameRoomStore.upsertArea` to clamp `areaOrder` to `>= 1` instead of `>= 0`
+- changed Android `GameRoomStore.upsertArea` to clamp `areaOrder` to `>= 1` instead of `>= 0`
+- changed Android GameRoom settings area-order draft defaults and reset/save fallbacks from `"0"` / `0` to `"1"` / `1`
+
+Behavioral outcome:
+- new and edited GameRoom areas now use the same minimum valid order on both platforms
+- the UI and store contract now agree that area order starts at `1`, removing the earlier mismatch where the iOS settings UI prevented `0` but the underlying stores still allowed it
+
+Notes surfaced in this pass:
+1. this is a real parity cleanup, not just internal deduplication; both platforms previously carried the same hidden store-level `0` allowance
+2. legacy persisted area records with `0` can still exist until they are edited or otherwise rewritten; this pass fixes new writes and edits going forward
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 050 summary
+
+Safe cleanup changes made:
+- aligned the GameRoom area-order minimum contract across iOS and Android
+
+Verification:
+- iOS build passed
+- Android Kotlin compile passed
+
+Outcome:
+- GameRoom area ordering now has a cleaner parity-safe rule: `1` is the minimum everywhere in the active edit/write path
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeSettingsSection.kt`
+
+## Pass 049: Practice journal editability rule centralization
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeModels.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreEntryMutations.swift`
+
+Changes made in this pass:
+- added `JournalActionType.supportsEditing` as the single source of truth for whether a Practice journal action is editable
+- updated `PracticeJournalItem.isEditablePracticeEntry` to use that shared enum property
+- updated `PracticeStore.canEditJournalEntry(_:)` to use the same shared enum property instead of carrying its own duplicate switch
+
+Behavioral outcome:
+- no user-facing behavior changed; the same Practice journal actions remain editable
+- the journal list UI and the store/editor gate now share one editability rule, so those paths cannot silently diverge during future cleanup
+
+Notes surfaced in this pass:
+1. Android already has the cleaner ownership split here through `PracticeJournalIntegration.canEdit(...)` and `PracticeStore.canEditJournalEntry(...)`, so this was iOS parity catch-up rather than a new Android change
+2. this is the kind of low-visibility contract that can create “row looks editable but editor refuses” style bugs if duplicated across multiple layers
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 049 summary
+
+Safe cleanup changes made:
+- centralized the Practice journal editability rule on iOS
+
+Verification:
+- iOS build passed
+
+Outcome:
+- Practice journal editability now has one source of truth on iOS, matching the cleaner Android ownership pattern
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeSettingsSection.kt`
+
+## Pass 048: GameRoom area-editor state dedup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+Changes made in this pass:
+- extracted the area save/reset flow into `saveAreaDraft()` and `clearAreaDraft()`
+- extracted the area edit-seeding flow into `editArea(_:)`
+- extracted the area delete-side-effects flow into `deleteArea(_:)`
+
+Behavioral outcome:
+- no user-facing behavior changed; the GameRoom area editor still supports add, edit, and delete in the same places
+- the area editor now has one shared draft-state contract instead of resetting/seeding those fields inline across multiple button handlers
+
+Notes surfaced in this pass:
+1. this is iOS-only internal cleanup; Android did not need a parity patch because there is no matching SwiftUI area-draft state machine there
+2. there is still a small hidden contract mismatch worth keeping in the review log: the GameRoom settings UI clamps area order to `>= 1`, while `GameRoomStore.upsertArea` still technically accepts `0`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 048 summary
+
+Safe cleanup changes made:
+- centralized GameRoom area-editor draft state handling on iOS
+
+Verification:
+- iOS build passed
+
+Outcome:
+- GameRoom area editing is a little easier to reason about, with fewer inline state-reset branches
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeSettingsSection.kt`
+
+## Pass 044: dead Practice insights name-formatting plumbing
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeInsightsSection.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeInsightsContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeScreenContexts.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeScreenRouteContent.swift`
+
+Changes made in this pass:
+- removed the unused `redactName` closure from the Practice insights view/context plumbing
+- removed the matching pass-through closures from the route-content and screen-context builders
+
+Behavioral outcome:
+- no runtime behavior changed; this was dead wiring that was never read by the rendered insights UI
+- the Practice insights context is slightly smaller and easier to reason about because it no longer advertises a formatting dependency the view does not use
+
+Notes surfaced in this pass:
+1. this was pure iOS cleanup; the Android insights implementation does not have an equivalent dead `redactName` plumbing chain
+2. the unused closure likely survived an earlier refactor where player-name formatting moved into the view itself
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 044 summary
+
+Safe cleanup changes made:
+- removed dead Practice insights name-formatting closure plumbing on iOS
+
+Verification:
+- iOS build passed
+
+Outcome:
+- Practice insights routing/context code no longer carries an unused formatting dependency
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/stats/StatsScreen.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/stats/StatsScreen.kt`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+
+## Pass 045: cross-platform stats-card player label normalization
+
+Primary files:
+- `Pinball App 2/Pinball App 2/stats/StatsScreen.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/stats/StatsScreen.kt`
+
+Changes made in this pass:
+- replaced the stats card’s preformatted `highPlayer` / `lowPlayer` strings with raw player-plus-optional-season structs on both platforms
+- moved the final display formatting into the rendered stats-card views so the active privacy toggle is applied at the last step instead of being baked into the computed stat result
+- removed the old “store a string like `Player (S24)` and then substring/format it again in the UI” pattern on both iOS and Android
+
+Behavioral outcome:
+- the machine stats card now has a cleaner contract: stat computation owns score math and raw source identity, while the UI owns display formatting
+- this keeps iOS and Android aligned on the same structure and removes one more hidden/defaults-driven formatting seam from the stats feature
+
+Notes surfaced in this pass:
+1. Android had the same conceptual debt as iOS here, even though it already passed the privacy flag explicitly in more places
+2. this is a structural cleanup, not a user-facing feature change; high/low labels still show the same names and season suffixes as before
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 045 summary
+
+Safe cleanup changes made:
+- normalized stats-card player label data on iOS and Android so display formatting happens in the UI instead of the stat result model
+
+Verification:
+- iOS build passed
+- Android Kotlin compile passed
+
+Outcome:
+- stats-card name formatting now has a cleaner parity-safe ownership split across both platforms
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeSettingsSection.kt`
+
+## Pass 041: Cross-platform performance trace prefix cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/app/PinballPerformanceTrace.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/PinballPerformanceTrace.kt`
+
+Changes made in this pass:
+- renamed the human-readable performance log prefix from `practice_perf` to `pinball_perf` on both iOS and Android
+- kept the signpost/trace section names unchanged; this pass only corrected the emitted log text so it matches the helper’s actual usage outside the Practice feature
+
+Behavioral outcome:
+- hosted library warmup and other non-Practice timing points no longer emit misleading `practice_perf` log lines
+- Android observability now stays aligned with iOS instead of carrying the same misleading prefix drift
+
+Notes surfaced in this pass:
+1. this was a cross-platform observability debt item, not a runtime feature bug; the value is making future profiling and parity review easier to read correctly
+2. the shared helper is now semantically named for the app shell instead of one feature area, which reduces the chance that Android-specific cleanup later assumes these logs are Practice-only
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 041 summary
+
+Safe cleanup changes made:
+- aligned the generic performance trace helper’s log prefix across iOS and Android
+
+Verification:
+- iOS build passed
+- Android Kotlin compile passed
+
+Outcome:
+- profiling output is clearer and no longer falsely labeled as Practice-only work
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/app/AppShakeCoordinator.swift`
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewSections.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeInsightsSection.swift`
+
+## Pass 042: iOS shake-warning art loading cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/app/AppShakeCoordinator.swift`
+
+Changes made in this pass:
+- replaced the shake-warning art view’s eager bundled image read with a memory-backed async loader so the overlay no longer does `Data(contentsOf:)` on the main path
+- removed the duplicate “read once in init, then read again in `.task`” behavior by letting the view seed from memory cache only and perform a single async load when needed
+- moved the fallback image path onto the same async loading flow and cached its bytes as well, so the placeholder fallback does not re-read disk repeatedly
+
+Behavioral outcome:
+- the shake overlay still presents the same images and fallback behavior, but it now avoids hidden main-thread file I/O and repeated bundle reads when warning levels are shown
+- Android did not need a code mirror for this pass because `AppShakeWarning.kt` already loads the bundled warning art via `produceState` on `Dispatchers.IO`
+
+Notes surfaced in this pass:
+1. the earlier review note about “loads warning artwork twice per presentation path and does sync image reads on the main actor” is now resolved on iOS
+2. this stays intentionally scoped to asset loading only; warning level timing, haptics, and overlay semantics are unchanged
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 042 summary
+
+Safe cleanup changes made:
+- made iOS shake-warning art loading async and memory-aware without changing visible warning behavior
+
+Verification:
+- iOS build passed
+- Android Kotlin compile passed
+
+Outcome:
+- the iOS shake overlay no longer hides duplicate synchronous asset reads behind view initialization
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewSections.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeInsightsSection.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+
+## Pass 043: explicit LPL name-privacy dependency cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/data/SharedCSV.swift`
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewSections.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueCardPreviews.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeInsightsSection.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/standings/StandingsScreen.swift`
+- `Pinball App 2/Pinball App 2/stats/StatsScreen.swift`
+
+Changes made in this pass:
+- extended `formatLPLPlayerNameForDisplay` so views can pass `showFullLastNames` explicitly instead of relying on the formatter to read `UserDefaults` behind the scenes
+- removed every current `_ = showFullLPLLastNames` invalidation poke and replaced those call sites with explicit `showFullLastNames: showFullLPLLastNames`
+- kept the formatter’s `UserDefaults` fallback for non-view and legacy call sites that do not currently thread the privacy flag explicitly
+
+Behavioral outcome:
+- the LPL full-last-name toggle now participates in SwiftUI view updates as a real input instead of a hidden “touch this state so the body refreshes” dependency
+- Android did not need a matching code change because its `formatLplPlayerNameForDisplay` already takes `showFullLastName` explicitly and Compose already observes the preference state
+
+Notes surfaced in this pass:
+1. this resolves one of the review’s “hidden invalidation hacks” items in the active league/practice/stats surfaces without changing the actual privacy rules
+2. keeping the formatter fallback in place avoids forcing a huge signature-threading refactor through store/viewmodel code that does not need live UI invalidation today
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- Android parity review:
+  - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/LplNamePrivacy.kt`
+  - result: no code change needed because Android already uses explicit `showFullLastName`
+
+## Pass 043 summary
+
+Safe cleanup changes made:
+- replaced hidden LPL name-privacy refresh pokes with explicit formatting inputs on iOS
+
+Verification:
+- iOS build passed
+- Android source review confirmed parity already existed
+
+Outcome:
+- league, standings, stats, and practice views no longer rely on dummy state reads to refresh redacted-name formatting
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/stats/StatsScreen.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+
+## Pass 035: Android parity mirror for GameRoom restore failures
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomStateCodec.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomRouteContent.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt`
+
+Changes made in this pass:
+- added Android-side `GameRoomStateCodec.LoadResult` so GameRoom restore now distinguishes missing save data, successfully loaded save data, and unreadable/corrupt save data instead of collapsing all decode failures into `empty`
+- made Android GameRoom restore fall back from unreadable current save data to readable legacy save data, with the same “needs resave” / recovery-notice behavior used on iOS
+- stopped the Android library overlay loader from silently decoding partial GameRoom overlay state from unreadable raw JSON; it now follows the same restore contract as the GameRoom store
+- surfaced `store.lastErrorMessage` in the Android GameRoom home and settings routes so restore failures and recovery notices are visible instead of staying hidden in store state
+- cleared stale GameRoom error banners on successful Android save, matching the iOS behavior
+
+Behavioral outcome:
+- Android no longer silently resets GameRoom to an empty state when the saved JSON is unreadable
+- if the current Android save is bad but the legacy save still decodes, GameRoom recovers from legacy and tells the user that it did so
+- the Android library overlay now stays aligned with the same persisted-state restore rules as the Android GameRoom feature itself
+
+Hidden contract surfaced in this pass:
+1. Android had already grown a `lastErrorMessage` state on `GameRoomStore`, but before this pass only save failures ever set it and no GameRoom route actually rendered it
+2. Android library extraction was still operating on the old nullable `decode(raw)` contract, so fixing the store alone would have left the public library overlay on a different restore path
+3. this is the direct Android parity mirror of the iOS GameRoom restore fix, and it keeps the platform behavior aligned before deeper Android cleanup starts
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+Manual validation note:
+1. I did not run the Android emulator through a corrupted-save scenario in this pass; verification here is compile success plus the code-path alignment with the iOS fix.
+
+## Pass 035 summary
+
+Safe cleanup changes made:
+- removed the now-unused partial GameRoom overlay raw-decoder path from Android library loading
+
+Verification:
+- Android debug Kotlin compile passed
+
+Outcome:
+- Android GameRoom now follows the same explicit restore/failure semantics as iOS instead of quietly treating unreadable saved state like a normal empty room
+
+Next files queued:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/info/AboutScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCache.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerController.kt`
+
+## Pass 036: Android mirror for refreshed LPL About copy
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/info/AboutScreen.kt`
+
+Changes made in this pass:
+- mirrored the iOS About-screen wording refresh onto Android so the Android LPL page no longer hard-codes `Season 24` or the old top-8 Smackdown finals description
+- kept the existing Android layout and local drawable path unchanged, since Android was already using a bundled drawable resource rather than doing synchronous file I/O in the composable body
+- added the same “check the website or Facebook group for schedule changes” guidance used on iOS
+
+Behavioral outcome:
+- Android now presents the same evergreen, source-backed league description as iOS
+- the cross-platform league info surfaces are back in sync on the content that had visibly drifted
+
+Hidden contract surfaced in this pass:
+1. the stale LPL About copy was a true cross-platform drift issue, not an iOS-only artifact
+2. Android’s About screen was structurally healthier than iOS on the image-loading side because it already used `painterResource`, so only the copy needed mirroring here
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+Manual validation note:
+1. I did not run the Android emulator through the About screen in this pass; verification here is copy review plus clean Kotlin compile.
+
+## Pass 036 summary
+
+Safe cleanup changes made:
+- refreshed stale Android LPL logistics copy to match the corrected iOS wording
+
+Verification:
+- Android debug Kotlin compile passed
+
+Outcome:
+- iOS and Android now match again on the LPL About-page content that had drifted over time
+
+Next files queued:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCache.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerController.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/info/AboutScreen.kt` note complete; no further Android image-loading parity work needed there right now
+
+## Pass 037: Android parity mirror for cache-clear stale revalidation writes
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCache.kt`
+
+Changes made in this pass:
+- added an Android cache-generation token so in-flight fetches started before a cache clear can no longer write files or missing markers back into the cache after the clear finishes
+- wrapped Android `clearAllCachedData()` in the cache mutex and advanced the generation inside that critical section so cache reset and revalidation write paths now coordinate explicitly
+- kept Android’s existing “newest event wins” update-log checkpoint logic intact, since that part was already more defensive than the old iOS implementation
+
+Behavioral outcome:
+- Android cache clears are now protected against the same stale background revalidation write-back issue that iOS had
+- the Android cache no longer has a hidden path where a background refresh can repopulate disk immediately after the user clears cached data
+
+Hidden contract surfaced in this pass:
+1. Android’s cache checkpointing was already using the newest update-log event, so the real parity gap was the stale write-after-clear race rather than timestamp ordering
+2. background revalidation and explicit clear were previously coordinated only by convention, not by a shared generation boundary
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+Manual validation note:
+1. I did not run a device/emulator cache-clear race manually in this pass; verification here is compile success plus the explicit generation guard in the write path.
+
+## Pass 037 summary
+
+Safe cleanup changes made:
+- none; this was a targeted cache behavior fix
+
+Verification:
+- Android debug Kotlin compile passed
+
+Outcome:
+- Android cache clear behavior now matches the guarded iOS behavior instead of leaving a stale background write path behind
+
+Next files queued:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerController.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGroupDashboardSection.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+
+## Pass 039: Android parity mirror for scanner gate-state ownership
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerController.kt`
+
+Changes made in this pass:
+- introduced a dedicated analyzer-state lock in the Android scanner controller so frame-gating fields now have one explicit synchronization boundary across the camera executor and main-coroutine OCR/freeze flow
+- moved Android access for `processingPaused`, `isProcessingFrame`, `lastOcrTimeMs`, `lastLiveBitmapFallbackTimeMs`, pending freeze requests, and `latestSnapshot` behind that shared lock instead of relying on mixed ad hoc cross-thread reads and writes
+- added a separate internal frozen gate so the camera analyzer no longer depends on reading Compose UI state directly to know whether frame processing should stop
+
+Behavioral outcome:
+- Android scanner freeze/retake/live-OCR gating is less likely to race between the analyzer thread and the main coroutine path
+- the Android scanner now follows the same “single coordinated owner for gate state” direction as the iOS scanner fix, without rewriting the whole controller architecture
+
+Hidden contract surfaced in this pass:
+1. Android did not have the same exact queue structure as iOS, but it did have the same class of hidden risk: analyzer gating fields were split across camera-executor access and main-coroutine mutation
+2. Android’s group dashboard does not need the iOS reload-token patch because `PracticeGroupDashboardSection.kt` computes directly from `PracticeStore` during Compose recomposition instead of storing a separate async-loaded dashboard detail snapshot
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+Manual validation note:
+1. I did not run an emulator freeze/retake interaction pass in this step; verification here is compile success plus the state-ownership cleanup above.
+
+## Pass 039 summary
+
+Safe cleanup changes made:
+- none; this was a targeted scanner concurrency fix
+
+Verification:
+- Android debug Kotlin compile passed
+
+Outcome:
+- Android scanner gate-state ownership is now tighter, and Android dashboard parity is confirmed without needing an extra dashboard patch
+
+Next files queued:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGroupDashboardSection.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeSelectedGroupDashboardCard.kt`
+
+## Pass 040: Android dashboard parity confirmation
+
+Primary files reviewed:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeGroupDashboardSection.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeSelectedGroupDashboardCard.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeHomeSection.kt`
+
+Changes made in this pass:
+- none
+
+Behavioral outcome:
+- confirmed that Android does not need the iOS `derivedDataRevision` / reload-token fix for group dashboard refresh
+
+Hidden contract surfaced in this pass:
+1. Android group dashboard values are computed directly from `PracticeStore` inside Compose recomposition (`groupDashboardScore`, `groupProgress`, `selectedGroup`) rather than loaded into a separate remembered async dashboard-detail state
+2. because there is no Android equivalent of iOS `loadedDashboardDetail`, the stale-dashboard bug fixed on iOS does not currently exist in the same form on Android
+
+Verification:
+- no code changes in this pass
+
+Outcome:
+- Android dashboard behavior is intentionally kept as-is, and the parity log now records why there was no mirror patch here
+
+## Pass 038: About copy rollback per user direction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/info/AboutScreen.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/info/AboutScreen.kt`
+
+Changes made in this pass:
+- reverted the LPL About-page body copy on both iOS and Android back to the prior user-authored wording
+- kept the non-copy iOS logo-loading cleanup in place, since that change was about bundled image I/O rather than league messaging
+
+Behavioral outcome:
+- both platforms are back to the original About-page text the user intentionally wrote
+- iOS still retains the async bundled-logo loading fix from the earlier cleanup pass
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+Outcome:
+- the About-copy refresh is no longer active; only the non-copy technical cleanup remains
+
+## Pass 034: About screen copy drift and bundled logo loading
+
+Primary files:
+- `Pinball App 2/Pinball App 2/info/AboutScreen.swift`
+
+Changes made in this pass:
+- replaced the synchronous `Data(contentsOf:)` logo decode in `LPLLogoView` with an async bundled-art loader that resolves the bundled WebP off the main thread and then updates the view state
+- kept the bundled-logo contract flexible by supporting both flattened bundle lookup and `info/` subdirectory lookup
+- rewrote the most time-sensitive LPL copy to remove the hard-coded current-season sentence and the stale Smackdown finals description, while keeping the same overall layout and link structure
+- added an explicit “check the website or Facebook group for current schedule changes” note so the screen stays useful even when the season calendar changes
+
+Behavioral outcome:
+- the About screen no longer does synchronous bundled image file I/O from the view body
+- the LPL description is now more evergreen while still reflecting the current public league rules and Smackdown format as of March 27, 2026
+
+Hidden contract surfaced in this pass:
+1. both iOS and Android had drifted in the same way: they hard-coded `Season 24` plus the old “top 8 around 9:30 pm” Smackdown copy directly in the app UI
+2. that kind of date-specific league copy ages faster than normal feature text, so parity is better served by evergreen wording plus a live-source pointer than by baking the current season number into shipped UI
+3. Android has a matching stale page in `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/info/AboutScreen.kt`, so this is now an explicit parity follow-up rather than an iOS-only cleanup
+
+Source verification:
+- verified against `https://www.lansingpinleague.com/` on March 27, 2026
+- the public site still lists Season 24 beginning January 13, 2026 and describes Tuesday Night Smackdown as two qualifying attempts on a random game with a top-4 playoff after league play
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Manual validation note:
+1. I did not run the simulator through the About screen manually in this pass; verification here is source review plus clean build.
+
+## Pass 034 summary
+
+Safe cleanup changes made:
+- removed main-thread bundled logo loading from the About screen
+- replaced time-sensitive league copy with source-backed evergreen wording
+
+Verification:
+- iOS simulator build passed
+
+Outcome:
+- the iOS About screen is no longer carrying known stale LPL logistics copy, and the Android mirror target is explicitly identified
+
+Next files queued:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomStateCodec.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/info/AboutScreen.kt`
+
+## Pass 033: Practice group dashboard reload invalidation
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeStore.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeScreenContexts.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeScreenRouteContent.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+
+Changes made in this pass:
+- added a lightweight `derivedDataRevision` counter to `PracticeStore` and advanced it from `invalidateDerivedCaches()` so store-driven derived-data invalidation has an explicit revision token instead of being invisible to route-level task keys
+- threaded that revision through the group-dashboard route context into `PracticeGroupDashboardSectionView`
+- expanded the selected-group dashboard task key so the async dashboard-detail reload reruns when derived practice data changes, not just when the selected group metadata changes
+
+Behavioral outcome:
+- the selected group dashboard no longer keeps stale locally cached detail after score-entry, journal, or rulesheet-progress changes that do not alter the group id or date metadata
+- iOS now keeps the dashboard detail view aligned with the same store invalidation events that already clear the backing cached dashboard-detail store data
+
+Hidden contract surfaced in this pass:
+1. the dashboard screen was already invalidating `cachedGroupDashboardDetails`, but the view kept its own `loadedDashboardDetail` state behind a `.task(id:)` key that only changed for group metadata edits
+2. that meant normal practice activity could invalidate the store cache without ever causing the view task to rerun, so the UI quietly displayed stale dashboard detail until some unrelated navigation or group edit happened
+3. Android does not currently have the same hidden seam because `PracticeGroupDashboardSection.kt` computes directly from `PracticeStore` during Compose recomposition instead of holding a separate async-loaded dashboard snapshot; parity guidance is to preserve that direct-store model or add an equivalent revision-trigger if Android later introduces local dashboard caching
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Manual validation note:
+1. I did not run a simulator interaction pass for this change; verification here is compile/build plus the code-path review above.
+
+## Pass 033 summary
+
+Safe cleanup changes made:
+- none; this was a targeted behavior fix
+
+Verification:
+- iOS simulator build passed
+
+Outcome:
+- selected-group dashboard detail now refreshes when underlying practice progress changes instead of waiting for a separate group-metadata change
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/info/AboutScreen.swift`
+
+## Pass 032: GameRoom persisted-state corruption handling
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStateCodec.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomHomeComponents.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- compatibility call-site updated because it shared the same old contract:
+  - `Pinball App 2/Pinball App 2/library/LibraryDataLoader.swift`
+- Android reference reviewed for parity:
+  - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomStore.kt`
+  - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+
+Changes made in this pass:
+- replaced the old optional-return GameRoom restore helper with an explicit `LoadResult` that distinguishes missing state, successful restore, recoverable restore from legacy state, and unreadable persisted data
+- taught iOS GameRoom restore to fall back to the legacy save if the current save blob is unreadable and the legacy blob still decodes
+- changed `GameRoomStore.loadState()` so unreadable persisted data is no longer treated as “no save existed”; the store now surfaces a restore error message instead of silently resetting
+- cleared stale GameRoom error state on successful save so a previous restore/save error does not linger after a later good write
+- exposed the restore error banner in both the GameRoom home surface and GameRoom settings surface so the persistence problem is visible without needing logs
+- updated `LibraryDataLoader` because it also consumed the old optional GameRoom restore contract when building the GameRoom-backed library source
+
+Behavioral outcome:
+- unreadable iOS GameRoom saved JSON no longer silently masquerades as an empty collection
+- if the current save is bad but the legacy save is still readable, iOS now recovers from the legacy blob and migrates forward instead of dropping straight to empty state
+- the GameRoom-backed library source now follows the same explicit missing-vs-failed-vs-loaded contract as the main GameRoom store
+
+Hidden contract surfaced in this pass:
+1. `LibraryDataLoader` was depending on the same silent optional restore behavior as `GameRoomStore`, so changing the codec immediately exposed a second hidden consumer of the old contract.
+2. iOS had no visible UI seam for `GameRoomStore.lastErrorMessage`, which is why save/load persistence problems could exist without any in-app signal.
+
+Android parity notes:
+1. Android GameRoom still has the old behavior today: `GameRoomStore.loadState()` treats `GameRoomStateCodec.decode(raw)` returning `null` the same as “no saved state,” then proceeds with `GameRoomPersistedState.empty`.
+2. Android `LibraryDataLoader.kt` also reads GameRoom state directly, so the same hidden-contract cleanup will be needed there when Android parity work starts.
+3. The right parity target is the iOS behavior after this pass: explicit missing vs unreadable state, plus visible restore failure instead of silent empty reset.
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 032 summary
+
+Safe cleanup changes made:
+- none; this pass was active persistence-behavior cleanup plus visible error surfacing
+
+Verification:
+- app build passed
+
+Outcome:
+- iOS GameRoom no longer silently hides persisted-state corruption, and the library integration now matches the new explicit restore contract
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardContext.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStore.swift`
+
+## Pass 031: App Store release-history helper
+
+Primary files:
+- `Pinball App 2/fastlane/Fastfile`
+- `Pinball App 2/fastlane/README.md`
+
+Changes made in this pass:
+- added a read-only `release_history` fastlane lane so recent App Store Connect `What's New` text and promotional text can be fetched on demand before drafting the next release
+- added reusable App Store Connect helpers for bundle-id resolution, Spaceship app lookup, and client-side release-history collection so future metadata tooling does not need to duplicate the same ASC setup logic
+- kept the new history lane explicitly separate from `upload_build` and `submit_review`; it does not upload, mutate metadata, or submit anything
+- documented the new lane in the auto-generated fastlane README
+
+Behavioral outcome:
+- iOS release-prep can now pull prior release copy from App Store Connect without going through the web UI
+- this gives a concrete source for “what did we say last time?” when drafting new release notes and promo text for review
+
+Notes surfaced in this pass:
+1. App Store Connect accepted the API-key read path for version localizations, but not a server-side `sort` parameter on that request shape; the helper now sorts version strings client-side instead.
+2. the lane defaults to `locale:en-US` and `limit:8`, with optional `version_number` filtering when we only want one release.
+3. this is a drafting helper only; it does not change runtime app behavior and does not have an Android parity equivalent.
+
+Verification:
+- `bundle exec ruby -c 'fastlane/Fastfile'`
+- result: `Syntax OK`
+- `bundle exec fastlane lanes`
+- result: fastlane listed the new `release_history` lane
+- `bundle exec fastlane ios release_history limit:5 locale:en-US`
+- result: `fastlane.tools finished successfully` and printed the recent `What's New` plus promotional text entries for versions including `3.4.9`, `3.4.8`, and `3.4.7`
+
+Operational notes for future use:
+1. use `bundle exec fastlane ios release_history` to see the recent release-copy baseline before drafting a new release
+2. use `bundle exec fastlane ios release_history version_number:3.4.9` when we only want one specific version
+3. after reviewing that history, I can draft new copy into `fastlane/metadata/en-US/release_notes.txt` and `fastlane/metadata/en-US/promotional_text.txt` for your approval before any submission step
+
+## Pass 031 summary
+
+Safe cleanup changes made:
+- added a read-only App Store Connect history helper to the iOS fastlane layer
+
+Verification:
+- fastlane syntax passed
+- lane discovery passed
+- live App Store Connect history lookup passed
+
+Outcome:
+- release-note drafting can now start from real App Store Connect history instead of memory or manual web lookup
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStateCodec.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+
+## Pass 030: iOS fastlane release-flow alignment
+
+Primary files:
+- `Pinball App 2/fastlane/Fastfile`
+- `Pinball App 2/fastlane/README.md`
+- `Pinball App 2/Pinball App 2.xcodeproj/xcshareddata/xcschemes/PinProf.xcscheme`
+- local machine only:
+  - `Pinball App 2/fastlane/.env.default`
+
+Changes made in this pass:
+- reshaped iOS fastlane around the actual manual iOS release workflow instead of the stale “always run the narrow test lane, then beta/release” flow
+- kept the old `beta` and `release` lane names as compatibility aliases, but made the intended paths explicit with new `upload_build` and `submit_review` lanes
+- changed `build` to be a local archive/export lane that does not mutate build numbers unless explicitly asked, while `upload_build` defaults to incrementing the build number unless `increment_build:false` is passed
+- added fastlane helpers for current project version/build lookup, optional version/build mutation, optional test execution, and App Store Connect API key reuse so the lane behavior is centralized instead of repeated
+- added metadata helpers so `submit_review` can use either passed-in `release_notes` / `promotional_text` text or persisted files under `fastlane/metadata/<locale>/...`, with `en-US` as the default locale
+- made `submit_review` pick the latest uploaded TestFlight/App Store Connect build for the requested version when `build_number` is omitted, instead of forcing manual build-number lookup every time
+- regenerated the auto-generated fastlane README so the public lane list now documents `upload_build` and `submit_review`
+- restored a shared `PinProf.xcscheme` to the repo under `xcshareddata/xcschemes`; before this pass, fastlane/gym archive behavior depended on local user scheme state even though plain `xcodebuild` still worked
+- hardened the local fastlane secret env file permissions from world-readable to owner-only so the existing App Store Connect credentials stay local but are not casually readable by other users on the machine
+
+Behavioral outcome:
+- iOS now has a repeatable fastlane path for “archive and upload a build” and a separate repeatable path for “update promo text / release notes, select a build, and submit for review”
+- the fastlane archive path no longer relies on hidden local Xcode scheme state; the missing shared scheme was a real hidden release-tooling contract that would have broken on another machine or a clean environment
+- release metadata submission is now explicit and scriptable instead of being limited to a binary-only upload path that skipped metadata entirely
+
+Hidden contract surfaced in this pass:
+1. the project already behaved as if `PinProf` were a shared scheme, but the actual `.xcscheme` file was missing from source control while `xcschememanagement.plist` still referenced it as shared
+2. that mismatch is why plain local `xcodebuild` continued to work but `gym` initially failed; the fastlane path exposed tooling drift that manual organizer uploads had been masking
+3. this is iOS delivery tooling only, not runtime parity logic, so there is no Android feature-parity implementation to mirror here; the parity note is simply to keep release automation concerns separate from product behavior cleanup
+
+Verification:
+- `bundle exec ruby -c 'fastlane/Fastfile'`
+- result: `Syntax OK`
+- `bundle exec fastlane lanes`
+- result: fastlane listed the new `upload_build` and `submit_review` lanes plus the compatibility aliases
+- `bundle exec fastlane ios build increment_build:false run_tests:false`
+- result: `fastlane.tools finished successfully` and exported `/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/PinProf.ipa`
+
+Operational notes for future use:
+1. `upload_build` is the closest match to the current manual “update build, archive, upload” flow.
+2. `submit_review` is the closest match to the current App Store Connect “set promo text/release notes, choose build, submit for review” flow.
+3. if you want manual control over the release text, use `fastlane/metadata/en-US/release_notes.txt` and `fastlane/metadata/en-US/promotional_text.txt`; if you want me to drive it conversationally, I can pass those values directly when running `submit_review`.
+4. optional test execution still exists via `run_tests:true`, but it is no longer a forced prerequisite for every archive/upload lane because that did not match the real workflow.
+
+## Pass 030 summary
+
+Safe cleanup changes made:
+- added repo-owned shared scheme metadata for `PinProf`
+- aligned iOS fastlane lanes to the real manual release process without changing app runtime behavior
+
+Verification:
+- fastlane syntax passed
+- lane discovery passed
+- local archive/export via fastlane passed
+
+Outcome:
+- iOS release automation is now in a usable state for future Codex-driven uploads and review submission, and the hidden scheme-state dependency is explicitly logged
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStateCodec.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
