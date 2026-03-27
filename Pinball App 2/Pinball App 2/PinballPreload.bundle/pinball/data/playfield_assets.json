@@ -1,6 +1,46 @@
 {
-  "generatedAt": "2026-03-26T19:33:28Z",
+  "generatedAt": "2026-03-27T16:35:19Z",
   "records": [
+    {
+      "playfieldAssetId": 4346,
+      "practiceIdentity": "G0l8P",
+      "sourceOpdbMachineId": "G0l8P-M85d9",
+      "coveredAliasIds": [
+        "G0l8P-M85d9"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/G0l8P-M85d9-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/G0l8P-M85d9-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/G0l8P-M85d9-playfield_1400.webp",
+      "playfieldSourceUrl": "https://sternpinball.com/wp-content/uploads/2018/11/Beatles-Platinum-Playfield-sm.png",
+      "playfieldSourceNote": "Manufacturer page candidate",
+      "playfieldSourcePageUrl": "https://sternpinball.com/game/beatles/",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T11:22:22.881Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4367,
+      "practiceIdentity": "G2Ld3",
+      "sourceOpdbMachineId": "G2Ld3-MnKE5",
+      "coveredAliasIds": [
+        "G2Ld3-MnKE5"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/G2Ld3-MnKE5-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/G2Ld3-MnKE5-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/G2Ld3-MnKE5-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/b/71/13/b7113ad5346757ebdc60b1987e688418baf77b04.jpg",
+      "playfieldSourceNote": "https://o.pinside.com/b/71/13/b7113ad5346757ebdc60b1987e688418baf77b04.jpg",
+      "playfieldSourcePageUrl": null,
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.22395571877724643,\"y\":0.10984840978896265},{\"x\":0,\"y\":0.8270434954919251},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.6385762409590805},{\"x\":0.8008930222727153,\"y\":0.10859506588724858}]",
+      "createdAt": "2026-03-27T14:56:51.924Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
     {
       "playfieldAssetId": 15,
       "practiceIdentity": "G2Lkd",
@@ -19,7 +59,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4349,
+      "practiceIdentity": "G2LWd",
+      "sourceOpdbMachineId": "G2LWd-M4o3Y",
+      "coveredAliasIds": [
+        "G2LWd-M4o3Y"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/G2LWd-M4o3Y-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/G2LWd-M4o3Y-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/G2LWd-M4o3Y-playfield_1400.webp",
+      "playfieldSourceUrl": "https://jerseyjackpinball.com/cdn/shop/files/playfield_elton_john.webp",
+      "playfieldSourceNote": "https://jerseyjackpinball.com/cdn/shop/files/playfield_elton_john.webp",
+      "playfieldSourcePageUrl": "https://jerseyjackpinball.com/collections/elton-john-pinball-game",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T11:46:08.108Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 39,
@@ -39,7 +99,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4365,
+      "practiceIdentity": "G3EnZ",
+      "sourceOpdbMachineId": "G3EnZ-MePOV",
+      "coveredAliasIds": [
+        "G3EnZ-MePOV"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/G3EnZ-MePOV-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/G3EnZ-MePOV-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/G3EnZ-MePOV-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/4/a9/52/4a952c0758e99268efced9f9e354ddc260d1d086.jpeg",
+      "playfieldSourceNote": "https://o.pinside.com/4/a9/52/4a952c0758e99268efced9f9e354ddc260d1d086.jpeg",
+      "playfieldSourcePageUrl": null,
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.21631350894343312,\"y\":0},{\"x\":0,\"y\":0.8320530864686992},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.8609974031637792},{\"x\":0.7929403683056355,\"y\":0}]",
+      "createdAt": "2026-03-27T14:05:44.529Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 110,
@@ -59,7 +139,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.22284604613067716,\"y\":0.006023977013771921},{\"x\":0.09489022167032155,\"y\":1},{\"x\":0.9843588998388333,\"y\":1},{\"x\":0.8144931173875135,\"y\":0}]",
       "createdAt": "2026-03-15T15:39:31.416Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 35,
@@ -79,7 +159,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 79,
@@ -99,7 +179,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.20436902932727638,\"y\":0},{\"x\":0,\"y\":0.8247923201026124},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.6243223472588257},{\"x\":0.8115505377780747,\"y\":0}]",
       "createdAt": "2026-03-15T02:02:45.597Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 17,
@@ -119,7 +199,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 12,
@@ -139,7 +219,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 68,
@@ -159,7 +239,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.13638185583539314,\"y\":0},{\"x\":0.046262275369096134,\"y\":1},{\"x\":0.9303627496826775,\"y\":1},{\"x\":0.8289331284654953,\"y\":0}]",
       "createdAt": "2026-03-08T15:17:25.322Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 36,
@@ -179,7 +259,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 3,
@@ -199,7 +279,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 117,
@@ -219,7 +299,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.20518404703052975,\"y\":0},{\"x\":0.07624423809205692,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.983781427555039},{\"x\":0.8158260404836662,\"y\":0}]",
       "createdAt": "2026-03-15T17:08:46.961Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 56,
@@ -239,7 +319,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 80,
@@ -259,7 +339,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.1712940076157392,\"y\":0},{\"x\":0,\"y\":0.7406331105388153},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.8064543605262894},{\"x\":0.7854632908009888,\"y\":0}]",
       "createdAt": "2026-03-15T02:29:15.337Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 13,
@@ -279,7 +359,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 14,
@@ -299,7 +379,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 45,
@@ -319,7 +399,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 93,
@@ -339,7 +419,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.13698309840336695,\"y\":0},{\"x\":0,\"y\":0.7207018528353692},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.8569088012185223},{\"x\":0.8384594829313915,\"y\":0}]",
       "createdAt": "2026-03-15T12:08:32.360Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 18,
@@ -359,7 +439,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4357,
+      "practiceIdentity": "G4X2l",
+      "sourceOpdbMachineId": "G4X2l-MYepl",
+      "coveredAliasIds": [
+        "G4X2l-MYepl"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/G4X2l-MYepl-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/G4X2l-MYepl-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/G4X2l-MYepl-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/4/ee/6c/4ee6cee3fc844eba2fed5e9c4094893ef6b8435a.jpeg",
+      "playfieldSourceNote": "IMG_7986.JPEG",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/205304",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.16622632037834553,\"y\":0},{\"x\":0,\"y\":0.5766273655008421},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.6540275438422669},{\"x\":0.8513434965256678,\"y\":0}]",
+      "createdAt": "2026-03-27T12:47:22.031Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 25,
@@ -379,7 +479,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 11,
@@ -399,7 +499,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 365,
@@ -419,7 +519,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-20T12:46:58Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 112,
@@ -439,7 +539,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.257993185917563,\"y\":0.036505566522701996},{\"x\":0.02384260805665041,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.7575882075897107},{\"x\":0.8333422406306367,\"y\":0.01792209874440091}]",
       "createdAt": "2026-03-15T16:21:21.352Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 66,
@@ -459,7 +559,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-08T15:08:54.817Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 301,
@@ -479,7 +579,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-20T12:46:58Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4369,
+      "practiceIdentity": "G5D94",
+      "sourceOpdbMachineId": "G5D94-M3d5w",
+      "coveredAliasIds": [
+        "G5D94-M3d5w"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/G5D94-M3d5w-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/G5D94-M3d5w-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/G5D94-M3d5w-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/8/7b/2d/87b2ddda1a4c184fec242bf88d61740ad0c3d070.jpeg",
+      "playfieldSourceNote": "IMG_5268.jpeg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/193533",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.21526988824011203,\"y\":0},{\"x\":0,\"y\":0.9614138511839889},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.7392499752303576},{\"x\":0.7975111627784089,\"y\":0}]",
+      "createdAt": "2026-03-27T15:13:16.413Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 47,
@@ -499,7 +619,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 38,
@@ -519,7 +639,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 108,
@@ -539,7 +659,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.2718169568548707,\"y\":0.06944416922619637},{\"x\":0.7743005099210019,\"y\":0.07291687308035272},{\"x\":0.8708090042009036,\"y\":0.8786832458139304},{\"x\":0.18505112420407407,\"y\":0.8796492618646586}]",
       "createdAt": "2026-03-15T15:28:36.512Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 6,
@@ -559,7 +679,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 101,
@@ -579,7 +699,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.13789832320128265,\"y\":0},{\"x\":0,\"y\":0.5867794266475616},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.9026142546518502},{\"x\":0.7703453804529361,\"y\":0}]",
       "createdAt": "2026-03-15T13:35:08.436Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 55,
@@ -600,7 +720,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 97,
@@ -620,7 +740,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.23455808671253925,\"y\":0.07489252753199122},{\"x\":0,\"y\":0.6805211788401991},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.6590141593097713},{\"x\":0.8141191796379184,\"y\":0.06184552022686962}]",
       "createdAt": "2026-03-15T13:19:11.213Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 20,
@@ -640,7 +760,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 5,
@@ -660,7 +780,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 1428,
@@ -680,7 +800,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-24T06:53:19Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 8,
@@ -700,7 +820,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 21,
@@ -720,7 +840,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4348,
+      "practiceIdentity": "GbPxB",
+      "sourceOpdbMachineId": "GbPxB-MkPol",
+      "coveredAliasIds": [
+        "GbPxB-MkPol"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GbPxB-MkPol-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GbPxB-MkPol-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GbPxB-MkPol-playfield_1400.webp",
+      "playfieldSourceUrl": "https://jerseyjackpinball.com/cdn/shop/files/playfield_avatar_cc78ec49-a270-4442-bf7f-fbc9c01c67d6.webp",
+      "playfieldSourceNote": "https://jerseyjackpinball.com/cdn/shop/files/playfield_avatar_cc78ec49-a270-4442-bf7f-fbc9c01c67d6.webp",
+      "playfieldSourcePageUrl": "https://jerseyjackpinball.com/collections/avatar-pinball-game",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T11:44:22.733Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 42,
@@ -740,7 +880,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4350,
+      "practiceIdentity": "Gd2ox",
+      "sourceOpdbMachineId": "Gd2ox-MW9qj",
+      "coveredAliasIds": [
+        "Gd2ox-MW9qj"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/Gd2ox-MW9qj-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/Gd2ox-MW9qj-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/Gd2ox-MW9qj-playfield_1400.webp",
+      "playfieldSourceUrl": "https://jerseyjackpinball.com/cdn/shop/files/playfield_godfather.webp?v=1753794179",
+      "playfieldSourceNote": "Manufacturer page candidate (stripped resize query params)",
+      "playfieldSourcePageUrl": "https://jerseyjackpinball.com/collections/the-godfather-pinball-game",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T11:49:06.418Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 24,
@@ -760,7 +920,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 37,
@@ -780,7 +940,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4342,
+      "practiceIdentity": "Ge1Dy",
+      "sourceOpdbMachineId": "Ge1Dy-M9Rrp",
+      "coveredAliasIds": [
+        "Ge1Dy-M9Rrp"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/Ge1Dy-M9Rrp-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/Ge1Dy-M9Rrp-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/Ge1Dy-M9Rrp-playfield_1400.webp",
+      "playfieldSourceUrl": "https://sternpinball.com/wp-content/uploads/2023/01/JamesBond-60th-Playfield-daf34fadf.jpg",
+      "playfieldSourceNote": "https://sternpinball.com/wp-content/uploads/2023/01/JamesBond-60th-Playfield-daf34fadf.jpg",
+      "playfieldSourcePageUrl": null,
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T11:05:13.977Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 31,
@@ -800,7 +980,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4351,
+      "practiceIdentity": "GJ2o0",
+      "sourceOpdbMachineId": "GJ2o0-MrRye",
+      "coveredAliasIds": [
+        "GJ2o0-MrRye"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GJ2o0-MrRye-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GJ2o0-MrRye-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GJ2o0-MrRye-playfield_1400.webp",
+      "playfieldSourceUrl": "https://jerseyjackpinball.com/cdn/shop/files/playfield_ts4.webp?v=1753794507",
+      "playfieldSourceNote": "Manufacturer page candidate (stripped resize query params)",
+      "playfieldSourcePageUrl": "https://jerseyjackpinball.com/collections/toy-story-4-pinball-game",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T11:50:34.068Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 1,
@@ -820,7 +1020,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4341,
+      "practiceIdentity": "Gj6DE",
+      "sourceOpdbMachineId": "Gj6DE-MePEz",
+      "coveredAliasIds": [
+        "Gj6DE-MePEz"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/Gj6DE-MePEz-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/Gj6DE-MePEz-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/Gj6DE-MePEz-playfield_1400.webp",
+      "playfieldSourceUrl": "https://sternpinball.com/wp-content/uploads/2025/11/TopViewLE-1.jpg",
+      "playfieldSourceNote": "Manufacturer page candidate (removed WordPress -scaled suffix)",
+      "playfieldSourcePageUrl": "https://sternpinball.com/game/the-walking-dead-remastered/",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T11:02:51.939Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 34,
@@ -840,7 +1060,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 26,
@@ -860,7 +1080,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 33,
@@ -880,7 +1100,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 49,
@@ -900,7 +1120,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4361,
+      "practiceIdentity": "GoEej",
+      "sourceOpdbMachineId": "GoEej-Mo1q0",
+      "coveredAliasIds": [
+        "GoEej-Mo1q0"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GoEej-Mo1q0-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GoEej-Mo1q0-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GoEej-Mo1q0-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/d/39/c5/d39c5a8430137321a05ca6d2b86593db086188cc.jpg",
+      "playfieldSourceNote": "IMG_2085 (1) (resized).jpg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/148267",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.22244973447118815,\"y\":0.01346477756861191},{\"x\":0,\"y\":0.8518973546021995},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.7637471514911325},{\"x\":0.7957211551163835,\"y\":0.008144258396908749}]",
+      "createdAt": "2026-03-27T13:47:52.300Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 22,
@@ -920,7 +1160,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 16,
@@ -940,7 +1180,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4363,
+      "practiceIdentity": "GpePX",
+      "sourceOpdbMachineId": "GpePX-MnKq5",
+      "coveredAliasIds": [
+        "GpePX-MnKq5"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GpePX-MnKq5-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GpePX-MnKq5-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GpePX-MnKq5-playfield_1400.webp",
+      "playfieldSourceUrl": "https://api-runner.a-ok.app/static/images/aokO5x3TnOhcd_twreSs9CpEYzQQbRcs5rUNDiongEKY8lJaUDQ4PF6y3Qlh739OGQhOmimbeNhXBdCHlIy7rbHLrI6e6uYCnVTIZZ-_ztDYq97mHHS4auSOdKiQIdFB0kVzB_DoZngABBfecEcL3cgMMiLSrVT9e8QOMns3eFh9Nb389vEB8ZhLzo=",
+      "playfieldSourceNote": "https://api-runner.a-ok.app/static/images/aokO5x3TnOhcd_twreSs9CpEYzQQbRcs5rUNDiongEKY8lJaUDQ4PF6y3Qlh739OGQhOmimbeNhXBdCHlIy7rbHLrI6e6uYCnVTIZZ-_ztDYq97mHHS4auSOdKiQIdFB0kVzB_DoZngABBfecEcL3cgMMiLSrVT9e8QOMns3eFh9Nb389vEB8ZhLzo=",
+      "playfieldSourcePageUrl": null,
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.29118338661523424,\"y\":0.051936642976036354},{\"x\":0.2855425506618405,\"y\":0.9337961372823589},{\"x\":0.7116634521387619,\"y\":0.9330860788924411},{\"x\":0.7046487357658062,\"y\":0.052108378028481596}]",
+      "createdAt": "2026-03-27T13:56:47.535Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 28,
@@ -960,7 +1220,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 30,
@@ -980,7 +1240,47 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4352,
+      "practiceIdentity": "GqZZ1",
+      "sourceOpdbMachineId": "GqZZ1-M1r5Y",
+      "coveredAliasIds": [
+        "GqZZ1-M1r5Y"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GqZZ1-M1r5Y-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GqZZ1-M1r5Y-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GqZZ1-M1r5Y-playfield_1400.webp",
+      "playfieldSourceUrl": "https://jerseyjackpinball.com/cdn/shop/files/playfield_gnr.webp?v=1753794937",
+      "playfieldSourceNote": "Manufacturer page candidate (stripped resize query params)",
+      "playfieldSourcePageUrl": "https://jerseyjackpinball.com/collections/guns-and-roses-pinball",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T11:53:31.309Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4343,
+      "practiceIdentity": "Gr16e",
+      "sourceOpdbMachineId": "Gr16e-M5Rbv",
+      "coveredAliasIds": [
+        "Gr16e-M5Rbv"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/Gr16e-M5Rbv-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/Gr16e-M5Rbv-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/Gr16e-M5Rbv-playfield_1400.webp",
+      "playfieldSourceUrl": "https://sternpinball.com/wp-content/uploads/2018/10/Aerosmith-LE-Playfield-001.png",
+      "playfieldSourceNote": "Manufacturer page candidate",
+      "playfieldSourcePageUrl": "https://sternpinball.com/game/aerosmith/",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T11:08:20.027Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 59,
@@ -1000,7 +1300,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 10,
@@ -1020,7 +1320,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4371,
+      "practiceIdentity": "GR6Or",
+      "sourceOpdbMachineId": "GR6Or-MKNYR",
+      "coveredAliasIds": [
+        "GR6Or-MKNYR"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GR6Or-MKNYR-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GR6Or-MKNYR-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GR6Or-MKNYR-playfield_1400.webp",
+      "playfieldSourceUrl": "https://cdn.arstechnica.net/wp-content/uploads/2015/01/Stern-WWE-LE-Playfield1.jpg",
+      "playfieldSourceNote": "https://cdn.arstechnica.net/wp-content/uploads/2015/01/Stern-WWE-LE-Playfield1.jpg",
+      "playfieldSourcePageUrl": null,
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T15:25:27.213Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 46,
@@ -1040,7 +1360,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 103,
@@ -1060,7 +1380,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.04854031665441913,\"y\":0},{\"x\":0.033729708063330886,\"y\":0.44217964247696656},{\"x\":0.00604582804462556,\"y\":0.9335352200565283},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":0.9990647337831519,\"y\":0.9602429982013728},{\"x\":0.9774333622820496,\"y\":0.6204125830488566},{\"x\":0.9681875876812078,\"y\":0.22653525676320524},{\"x\":0.9603714342975482,\"y\":0}]",
       "createdAt": "2026-03-15T14:48:07.290Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 50,
@@ -1080,7 +1400,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 91,
@@ -1100,7 +1420,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.2018772129066738,\"y\":0},{\"x\":0.8028392010154319,\"y\":0},{\"x\":1,\"y\":0.810868931661888},{\"x\":1,\"y\":1},{\"x\":0,\"y\":1},{\"x\":0,\"y\":0.797105007365246}]",
       "createdAt": "2026-03-15T03:52:50.403Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 32,
@@ -1120,7 +1440,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 2,
@@ -1140,7 +1460,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4354,
+      "practiceIdentity": "GRbPY",
+      "sourceOpdbMachineId": "GRbPY-MBR24",
+      "coveredAliasIds": [
+        "GRbPY-MBR24"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GRbPY-MBR24-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GRbPY-MBR24-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GRbPY-MBR24-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/5/32/c9/532c9e539fa44c6316fa992a0d0e2a7e55346c34.jpg",
+      "playfieldSourceNote": "20230606_195155.jpg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/158722",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.22191471373087795,\"y\":0.052050926384623004},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.7801149311403943},{\"x\":0.8873748315675447,\"y\":0.37772713762013277},{\"x\":0.8000211366218394,\"y\":0.04891508966610522}]",
+      "createdAt": "2026-03-27T12:20:23.665Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 52,
@@ -1160,7 +1500,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 23,
@@ -1180,7 +1520,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 54,
@@ -1200,7 +1540,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 114,
@@ -1220,7 +1560,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.24127864252789097,\"y\":0.023213051015602296},{\"x\":0.039307902999532365,\"y\":0.9197889631537283},{\"x\":1,\"y\":0.9202900003006222},{\"x\":1,\"y\":0.9011102983175172},{\"x\":0.7768388001870532,\"y\":0.01891415229525117}]",
       "createdAt": "2026-03-15T16:59:48.241Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4347,
+      "practiceIdentity": "GRoz4",
+      "sourceOpdbMachineId": "GRoz4-MjBV6",
+      "coveredAliasIds": [
+        "GRoz4-MjBV6"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GRoz4-MjBV6-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GRoz4-MjBV6-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GRoz4-MjBV6-playfield_1400.webp",
+      "playfieldSourceUrl": "https://sternpinball.com/wp-content/uploads/2018/10/Batman66SLE-PF-001.png",
+      "playfieldSourceNote": "Manufacturer page candidate",
+      "playfieldSourcePageUrl": "https://sternpinball.com/game/batman-66/",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T11:24:09.018Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 48,
@@ -1240,7 +1600,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 57,
@@ -1260,7 +1620,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 70,
@@ -1280,7 +1640,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.1982229941879885,\"y\":0.029521108694998646},{\"x\":0,\"y\":0.8900924914573166},{\"x\":0,\"y\":1},{\"x\":0.9760438239027324,\"y\":1},{\"x\":0.7434163938806867,\"y\":0.023628911847524376}]",
       "createdAt": "2026-03-08T15:23:32.173Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4377,
+      "practiceIdentity": "GrPOR",
+      "sourceOpdbMachineId": "GrPOR-M61Pw",
+      "coveredAliasIds": [
+        "GrPOR-M61Pw"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GrPOR-M61Pw-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GrPOR-M61Pw-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GrPOR-M61Pw-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/3/a0/e7/3a0e7eb79eada122c43d2f519b6be8a267d4a8b0.jpg",
+      "playfieldSourceNote": "MVIMG_20190701_210034 (resized).jpg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/81503",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.22748289254669873,\"y\":0.06746755176855246},{\"x\":0.0429998150545589,\"y\":1},{\"x\":0.9809704351502021,\"y\":1},{\"x\":0.7547887658854924,\"y\":0.05476072525512732}]",
+      "createdAt": "2026-03-27T15:58:55.004Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 72,
@@ -1300,7 +1680,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.1738487146291844,\"y\":0.015129297532943625},{\"x\":0.06553673809083463,\"y\":1},{\"x\":0.9809770403445269,\"y\":1},{\"x\":0.825774789294301,\"y\":0.012568116516397504}]",
       "createdAt": "2026-03-08T15:30:54.306Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 7,
@@ -1320,7 +1700,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 69,
@@ -1340,7 +1720,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.16721223862649476,\"y\":0.007395308288156484},{\"x\":0,\"y\":0.9634343090196708},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.7701492088623451},{\"x\":0.8063063664907475,\"y\":0.0031865962542462897}]",
       "createdAt": "2026-03-08T15:19:41.428Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 43,
@@ -1362,7 +1742,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4375,
+      "practiceIdentity": "GRVq4",
+      "sourceOpdbMachineId": "GRVq4-M4oNp",
+      "coveredAliasIds": [
+        "GRVq4-M4oNp"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GRVq4-M4oNp-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GRVq4-M4oNp-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GRVq4-M4oNp-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/0/6c/56/06c56fcc4f4b0d40618e9a4cb5f1a53076911e89.jpeg",
+      "playfieldSourceNote": "IMG_2627.jpeg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/199472",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.25350735818647785,\"y\":0.10269989101357377},{\"x\":0.07881317868371687,\"y\":1},{\"x\":0.9609699067346561,\"y\":1},{\"x\":0.769313588205765,\"y\":0.0982413553948281}]",
+      "createdAt": "2026-03-27T15:55:03.122Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 67,
@@ -1382,7 +1782,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.22462422339501636,\"y\":0},{\"x\":0,\"y\":0.8567133967312337},{\"x\":0,\"y\":1},{\"x\":0.9996325739862382,\"y\":1},{\"x\":1,\"y\":0.6693705971360717},{\"x\":0.8330416193466498,\"y\":0}]",
       "createdAt": "2026-03-08T15:16:32.953Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4344,
+      "practiceIdentity": "GRWvz",
+      "sourceOpdbMachineId": "GRWvz-MP37P",
+      "coveredAliasIds": [
+        "GRWvz-MP37P"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GRWvz-MP37P-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GRWvz-MP37P-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GRWvz-MP37P-playfield_1400.webp",
+      "playfieldSourceUrl": "https://sternpinball.com/wp-content/uploads/2018/09/GOTG-LE-Playfield_smcf.png",
+      "playfieldSourceNote": "Manufacturer page candidate",
+      "playfieldSourcePageUrl": "https://sternpinball.com/game/guardians-of-the-galaxy/",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T11:09:01.660Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 95,
@@ -1402,7 +1822,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.2480760237824838,\"y\":0.019783451745112382},{\"x\":0.048693967532901325,\"y\":0.8585321615744592},{\"x\":0.9059322600040083,\"y\":0.8660527291493392},{\"x\":0.7678802859242434,\"y\":0.024761255799504975}]",
       "createdAt": "2026-03-15T13:03:17.854Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 9,
@@ -1422,7 +1842,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 53,
@@ -1442,7 +1862,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 71,
@@ -1462,7 +1882,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": "[{\"x\":0.1412785014135116,\"y\":0},{\"x\":0,\"y\":0.6124368374120678},{\"x\":0,\"y\":1},{\"x\":1,\"y\":1},{\"x\":1,\"y\":0.6960566729416428},{\"x\":0.8291632539829322,\"y\":0}]",
       "createdAt": "2026-03-08T15:26:38.261Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 60,
@@ -1482,7 +1902,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 4,
@@ -1502,7 +1922,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4372,
+      "practiceIdentity": "GRYX4",
+      "sourceOpdbMachineId": "GRYX4-MLqqx",
+      "coveredAliasIds": [
+        "GRYX4-MLqqx"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GRYX4-MLqqx-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GRYX4-MLqqx-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GRYX4-MLqqx-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/9/cc/74/9cc74dc5ba57b2074b81054ba5d3e979824f83da.jpg",
+      "playfieldSourceNote": "1000000702.jpg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/199918",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.1633398504584005,\"y\":0.03827900525116417},{\"x\":0,\"y\":0.8586668978499951},{\"x\":0,\"y\":1},{\"x\":0.9482813284366826,\"y\":1},{\"x\":0.7941689344500515,\"y\":0.019711681363321115}]",
+      "createdAt": "2026-03-27T15:42:39.786Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 73,
@@ -1522,7 +1962,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-09T02:08:56.425Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 61,
@@ -1542,7 +1982,27 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4345,
+      "practiceIdentity": "Gweel",
+      "sourceOpdbMachineId": "Gweel-M9Rk0",
+      "coveredAliasIds": [
+        "Gweel-M9Rk0"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/Gweel-M9Rk0-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/Gweel-M9Rk0-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/Gweel-M9Rk0-playfield_1400.webp",
+      "playfieldSourceUrl": "https://sternpinball.com/wp-content/uploads/2020/12/LedZeppelin-LE-Playfield2-3fknajdf.jpg",
+      "playfieldSourceNote": "Manufacturer page candidate (removed WordPress -scaled suffix)",
+      "playfieldSourcePageUrl": "https://sternpinball.com/game/led-zeppelin/",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T11:15:58.856Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 62,
@@ -1562,7 +2022,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T23:23:42.077Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 41,
@@ -1582,7 +2042,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 27,
@@ -1602,7 +2062,47 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4359,
+      "practiceIdentity": "GxvvB",
+      "sourceOpdbMachineId": "GxvvB-MOEKX",
+      "coveredAliasIds": [
+        "GxvvB-MOEKX"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GxvvB-MOEKX-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GxvvB-MOEKX-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GxvvB-MOEKX-playfield_1400.webp",
+      "playfieldSourceUrl": "https://o.pinside.com/b/d2/34/bd23479260e6342361c856dd149fc8d06a4536bd.jpeg",
+      "playfieldSourceNote": "IMG_4040.jpeg",
+      "playfieldSourcePageUrl": "https://pinside.com/pinball/market/classifieds/archive/205404",
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": "[{\"x\":0.16649052815133822,\"y\":0.010675715842663231},{\"x\":0.03073396919337367,\"y\":1},{\"x\":0.9606594626013897,\"y\":1},{\"x\":0.8062762556474411,\"y\":0}]",
+      "createdAt": "2026-03-27T13:38:04.009Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
+    },
+    {
+      "playfieldAssetId": 4353,
+      "practiceIdentity": "GYWBZ",
+      "sourceOpdbMachineId": "GYWBZ-MkPrr",
+      "coveredAliasIds": [
+        "GYWBZ-MkPrr"
+      ],
+      "playfieldLocalPath": "/pinball/images/playfields/GYWBZ-MkPrr-playfield.webp",
+      "playfieldOriginalLocalPath": null,
+      "playfieldReferenceLocalPath": null,
+      "playfieldWebLocalPath700": "/pinball/images/playfields/GYWBZ-MkPrr-playfield_700.webp",
+      "playfieldWebLocalPath1400": "/pinball/images/playfields/GYWBZ-MkPrr-playfield_1400.webp",
+      "playfieldSourceUrl": "https://pinballpro.net/wp-content/uploads/2019/04/Wonka-LE-Playfield.png",
+      "playfieldSourceNote": "https://pinballpro.net/wp-content/uploads/2019/04/Wonka-LE-Playfield.png",
+      "playfieldSourcePageUrl": null,
+      "playfieldSourcePageSnapshotPath": null,
+      "playfieldMaskPolygonJson": null,
+      "createdAt": "2026-03-27T11:53:42.412Z",
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 44,
@@ -1622,7 +2122,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 29,
@@ -1642,7 +2142,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     },
     {
       "playfieldAssetId": 40,
@@ -1662,7 +2162,7 @@
       "playfieldSourcePageSnapshotPath": null,
       "playfieldMaskPolygonJson": null,
       "createdAt": "2026-03-07T08:13:07.792Z",
-      "updatedAt": "2026-03-26T19:33:28Z"
+      "updatedAt": "2026-03-27T16:35:18Z"
     }
   ]
 }
