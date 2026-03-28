@@ -7596,6 +7596,69 @@ Next files queued:
 - `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
 - `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
 
+## Pass 084: Manual QA checkpoint after cleanup/publish
+
+Primary surfaces exercised:
+- Android emulator runtime
+  - `GameRoom`
+  - `Practice`
+  - `PracticeIfpaProfileScreen`
+  - `Settings`
+- iOS simulator runtime
+  - app launch / current-root sanity check
+
+Changes made in this pass:
+- no code changes; this was a manual validation pass
+
+Android QA performed:
+- installed the current debug build with `./gradlew :app:installDebug`
+- launched `com.pillyliu.pinballandroid/com.pillyliu.pinprofandroid.MainActivity`
+- captured UI trees and screenshots for:
+  - League home
+  - GameRoom home
+  - GameRoom settings
+  - Practice home
+  - IFPA profile
+  - IFPA profile after forced offline relaunch
+  - Settings
+
+Results:
+1. GameRoom home loaded existing collection data successfully.
+2. switching the selected tracked machine from `Godzilla` to `King Kong: Myth of Terror Island LE` updated the summary card correctly without stale snapshot text carrying over from the previous machine.
+3. entering `GameRoom Settings > Edit` and expanding `Edit Machines` showed a machine editor bound to `Godzilla` even though `King Kong` was the selected machine on the GameRoom home screen.
+4. that looked suspicious at first, but code review confirmed it is currently intentional, not stale-draft leakage:
+   - Android keeps a separate `selectedEditMachineID` state in `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt`
+   - iOS keeps a separate `selectedMachineID` inside `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+   - both settings editors default to the first available machine when their local editor selection is empty, rather than mirroring the home-screen selected machine
+5. Practice home loaded normally and the clickable player-name entry still opens the IFPA profile.
+6. the IFPA live profile loaded successfully while online.
+7. after disabling network, force-stopping the app, relaunching, and reopening the same player profile, the app showed the cached last-good IFPA snapshot with explicit stale-state copy and the refresh failure reason:
+   - the warning message included the cached timestamp (`Mar 28, 2026 9:41 AM` in this run)
+   - the stale snapshot content remained visible below the warning
+   - this validates the intended offline fallback behavior from the IFPA durability pass
+8. the first Settings viewport loaded normally after network re-enable; the LPL last-name privacy toggle was not revalidated in this pass because it was not in the initial visible viewport and I stopped before doing deeper scroll traversal there.
+
+iOS QA performed:
+- launched `com.pillyliu.Pinball-App-2` on the booted simulator with `xcrun simctl launch booted`
+- captured a simulator screenshot after launch
+- checked the recent process log for app-specific launch errors
+
+iOS results:
+1. the app launched successfully on the booted simulator.
+2. the captured screen reopened into the existing Library/GameRoom-style state instead of crashing on launch.
+3. the short recent `PinProf` log sample did not show an app-specific error or crash during this launch.
+4. deep interactive iOS flow QA was not attempted in this pass because this environment does not expose the richer simulator interaction tooling that would make that reliable.
+
+Behavioral takeaway:
+- the highest-confidence runtime validation from this pass is the IFPA cached-fallback path on Android; it behaved exactly as intended
+- the GameRoom editor-selection mismatch is currently a product/design choice, not a regression from the stale-selection cleanup
+- no new crash or obvious broken-flow regression was surfaced in the exercised Android or iOS launch paths
+
+Open follow-up from this pass:
+1. if we want the GameRoom settings editor to mirror the currently selected home-screen machine, that is now a separate product decision rather than a bug fix
+2. the LPL privacy-toggle visibility path in Settings still deserves one explicit manual pass later
+3. score-scanner freeze/retake still needs hands-on device/simulator QA with camera input; I did not validate that flow here
+
 ## Pass 067: GameRoom import helper extraction
 
 Primary files:
