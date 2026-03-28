@@ -10,6 +10,7 @@ import Combine
 
 struct StandingsScreen: View {
     let embeddedInNavigation: Bool
+    @State private var preferredLeaguePlayerName = PracticeStore.loadPreferredLeaguePlayerNameFromDefaults() ?? ""
 
     init(embeddedInNavigation: Bool = false) {
         self.embeddedInNavigation = embeddedInNavigation
@@ -180,7 +181,8 @@ struct StandingsScreen: View {
                                         eligibleWidth: eligibleWidth,
                                         nightsWidth: nightsWidth,
                                         bankWidth: bankWidth,
-                                        largeText: isLargeTablet
+                                        largeText: isLargeTablet,
+                                        isHighlighted: isPreferredLeaguePlayer(standing.rawPlayer)
                                     )
                                     .background(index.isMultiple(of: 2) ? AppTheme.rowEven : AppTheme.rowOdd)
                                     AppTableRowDivider()
@@ -204,6 +206,9 @@ struct StandingsScreen: View {
             }
         )
         .appPanelStyle()
+        .onReceive(NotificationCenter.default.publisher(for: .pinballLeaguePreviewNeedsRefresh)) { _ in
+            preferredLeaguePlayerName = PracticeStore.loadPreferredLeaguePlayerNameFromDefaults() ?? ""
+        }
     }
 
     private var tableHeader: some View {
@@ -225,6 +230,10 @@ struct StandingsScreen: View {
         .frame(height: isLargeTablet ? 46 : 42)
         .background(.thinMaterial)
     }
+
+    private func isPreferredLeaguePlayer(_ rawPlayer: String) -> Bool {
+        leaguePlayerNamesMatch(rawPlayer, preferredLeaguePlayerName)
+    }
 }
 
 private struct StandingsRowView: View {
@@ -237,21 +246,57 @@ private struct StandingsRowView: View {
     let nightsWidth: CGFloat
     let bankWidth: CGFloat
     let largeText: Bool
+    let isHighlighted: Bool
     @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
 
     var body: some View {
+        let highlightedTextColor: Color = AppTheme.statsMeanMedian
+        let playerColor: Color = isHighlighted ? highlightedTextColor : .primary
+        let dataColor: Color = isHighlighted ? highlightedTextColor : .primary
+        let dataWeight: Font.Weight = isHighlighted ? .semibold : .regular
+
         HStack(spacing: 0) {
-            rowCell(rank.formatted(), width: rankWidth, color: rankColor, monospaced: true, weight: rank <= 3 ? .bold : .regular)
-            rowCell(displayLPLPlayerName(standing.rawPlayer), width: playerWidth, weight: rank <= 8 ? .semibold : .regular)
-            rowCell(formatRounded(standing.seasonTotal), width: pointsWidth, monospaced: true)
-            rowCell(standing.eligible, width: eligibleWidth)
-            rowCell(standing.nights, width: nightsWidth, monospaced: true)
+            rowCell(
+                rank.formatted(),
+                width: rankWidth,
+                color: resolvedRankColor,
+                monospaced: true,
+                weight: isHighlighted ? .bold : (rank <= 3 ? .bold : .regular)
+            )
+            rowCell(
+                displayLPLPlayerName(standing.rawPlayer),
+                width: playerWidth,
+                color: playerColor,
+                weight: isHighlighted ? .semibold : (rank <= 8 ? .semibold : .regular)
+            )
+            rowCell(
+                formatRounded(standing.seasonTotal),
+                width: pointsWidth,
+                color: dataColor,
+                monospaced: true,
+                weight: isHighlighted ? .bold : .regular
+            )
+            rowCell(standing.eligible, width: eligibleWidth, color: dataColor, weight: dataWeight)
+            rowCell(standing.nights, width: nightsWidth, color: dataColor, monospaced: true, weight: dataWeight)
 
             ForEach(standing.banks.indices, id: \.self) { index in
-                rowCell(formatRounded(standing.banks[index]), width: bankWidth, monospaced: true)
+                rowCell(
+                    formatRounded(standing.banks[index]),
+                    width: bankWidth,
+                    color: dataColor,
+                    monospaced: true,
+                    weight: dataWeight
+                )
             }
         }
         .frame(height: largeText ? 40 : 36)
+    }
+
+    private var resolvedRankColor: Color {
+        if isHighlighted && rank > 3 {
+            return AppTheme.statsMeanMedian
+        }
+        return rankColor
     }
 
     private func displayLPLPlayerName(_ raw: String) -> String {

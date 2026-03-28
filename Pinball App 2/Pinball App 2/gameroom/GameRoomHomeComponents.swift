@@ -111,15 +111,11 @@ private struct GameRoomSelectedSummaryCard: View {
             AppCardTitle(text: "Selected Machine")
 
             if let selectedMachine {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    AppCardTitle(text: selectedMachine.displayTitle, lineLimit: 2)
-
-                    Spacer(minLength: 8)
-
-                    if let label = variantBadgeLabel(for: selectedMachine) {
-                        GameRoomVariantPill(label: label, style: .standard)
-                    }
-                }
+                AppCardTitleWithVariant(
+                    text: selectedMachine.displayTitle,
+                    variant: variantBadgeLabel(for: selectedMachine),
+                    lineLimit: 2
+                )
 
                 Text(locationLine(for: selectedMachine))
                     .font(.footnote)
@@ -140,10 +136,11 @@ private struct GameRoomSelectedSummaryCard: View {
     }
 
     private func locationLine(for machine: OwnedMachine) -> String {
-        let areaName = store.area(for: machine.gameRoomAreaID)?.name ?? "No area"
-        let group = machine.groupNumber.map(String.init) ?? "—"
-        let position = machine.position.map(String.init) ?? "—"
-        return "Location: \(areaName) • Group \(group) • Position \(position)"
+        gameRoomLocationText(
+            areaName: store.area(for: machine.gameRoomAreaID)?.name,
+            groupNumber: machine.groupNumber,
+            position: machine.position
+        )
     }
 
     private func snapshotMetrics(for machine: OwnedMachine) -> [AppMetricItem] {
@@ -431,14 +428,68 @@ private struct GameRoomListRow: View {
     }
 
     private var metaLine: String {
-        let area = areaName ?? "No area"
-        let group = machine.groupNumber.map(String.init) ?? "—"
-        let position = machine.position.map(String.init) ?? "—"
-        return "\(area) • G\(group) • P\(position)"
+        gameRoomLocationText(
+            areaName: areaName,
+            groupNumber: machine.groupNumber,
+            position: machine.position
+        )
     }
 
     private var variantBadgeLabel: String? {
         gameRoomVariantBadgeLabel(variant: machine.displayVariant, title: machine.displayTitle)
+    }
+}
+
+func gameRoomLocationText(
+    areaName: String?,
+    groupNumber: Int?,
+    position: Int?
+) -> String {
+    let group = groupNumber.map(String.init) ?? "—"
+    let pos = position.map(String.init) ?? "—"
+    if let areaName {
+        let trimmed = areaName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty,
+           trimmed.lowercased() != "null",
+           trimmed.lowercased() != "no area" {
+            return "📍 \(trimmed):\(group):\(pos)"
+        }
+    }
+    return "📍 \(group):\(pos)"
+}
+
+func gameRoomMachineMetaLine(_ machine: OwnedMachine, areaName: String?) -> String {
+    var parts: [String] = []
+    if let manufacturer = machine.manufacturer?.trimmingCharacters(in: .whitespacesAndNewlines),
+       !manufacturer.isEmpty,
+       manufacturer.lowercased() != "null" {
+        parts.append(manufacturer)
+    }
+    if let year = machine.year {
+        parts.append(String(year))
+    }
+    parts.append(
+        gameRoomLocationText(
+            areaName: areaName,
+            groupNumber: machine.groupNumber,
+            position: machine.position
+        )
+    )
+    return parts.joined(separator: " • ")
+}
+
+func gameRoomStatusLabel(_ status: OwnedMachineStatus) -> String {
+    status.rawValue.capitalized
+}
+
+func gameRoomStatusColor(_ status: OwnedMachineStatus) -> Color {
+    switch status {
+    case .active:
+        return AppTheme.statsHigh
+    case .loaned:
+        return AppTheme.brandGold
+    case .archived, .sold, .traded:
+        return AppTheme.brandChalk
     }
 }
 
@@ -481,6 +532,7 @@ struct GameRoomVariantPill: View {
                     Capsule()
                         .stroke(AppTheme.brandGold.opacity(0.42), lineWidth: 0.8)
                 )
+                .offset(y: style.sharedStyle.verticalOffset)
         } else {
             AppVariantPill(
                 title: compactLabel,
@@ -502,7 +554,12 @@ struct GameRoomVariantPill: View {
 func gameRoomVariantBadgeLabel(variant: String?, title: String) -> String? {
     if let variant {
         let cleanedVariant = variant.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !cleanedVariant.isEmpty, cleanedVariant.lowercased() != "null" {
+        if !cleanedVariant.isEmpty,
+           cleanedVariant.lowercased() != "null",
+           cleanedVariant.lowercased() != "none",
+           cleanedVariant.lowercased() != "premium/le",
+           cleanedVariant.lowercased() != "premium le",
+           cleanedVariant.lowercased() != "premium-le" {
             return cleanedVariant
         }
     }

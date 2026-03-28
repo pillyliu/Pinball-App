@@ -53,7 +53,6 @@ struct LeagueCard: View {
                 aroundRows: previewModel.standingsAroundRows,
                 currentPlayerRow: previewModel.currentPlayerStanding
             )
-            .id("standings-mode-\(mode.rawValue)")
             .transition(.opacity)
 
         case .stats:

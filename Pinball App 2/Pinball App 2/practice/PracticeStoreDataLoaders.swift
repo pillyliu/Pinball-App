@@ -288,8 +288,7 @@ extension PracticeStore {
         let parsed = parseSourceScopedPracticeGameID(raw)
         let trimmed = parsed.gameID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, parsed.sourceID == nil else { return false }
-        if gameForAnyID(trimmed) != nil { return false }
-        return legacyPracticeKeyMatch(for: trimmed) == nil
+        return gameForAnyID(trimmed) == nil
     }
 
     private func needsBankTemplateGamesForStoredReference(_ raw: String) -> Bool {
@@ -323,6 +322,10 @@ private struct PracticeVenueLayoutAssetRecord: Decodable {
 }
 
 private func loadPracticeAvenueBankTemplateGames() async throws -> [PinballGame] {
+    let practiceIdentityCurationsData = try await loadHostedOrCachedPinballJSONData(
+        path: hostedPracticeIdentityCurationsPath,
+        allowMissing: true
+    )
     guard let opdbExportData = try await loadHostedOrCachedPinballJSONData(
         path: hostedOPDBExportPath,
         allowMissing: true
@@ -336,7 +339,10 @@ private func loadPracticeAvenueBankTemplateGames() async throws -> [PinballGame]
         return []
     }
 
-    let machines = try decodeOPDBExportCatalogMachines(data: opdbExportData)
+    let machines = try decodeOPDBExportCatalogMachines(
+        data: opdbExportData,
+        practiceIdentityCurationsData: practiceIdentityCurationsData
+    )
     let layoutRoot = try JSONDecoder().decode(PracticeVenueLayoutAssetsRoot.self, from: venueLayoutData)
 
     let avenueRecords = layoutRoot.records

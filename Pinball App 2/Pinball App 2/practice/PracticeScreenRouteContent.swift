@@ -22,7 +22,7 @@ extension PracticeScreen {
                     ExternalRulesheetWebScreen(title: game.name, url: externalURL)
                 } else {
                     RulesheetScreen(
-                        slug: game.practiceKey,
+                        gameID: game.practiceKey,
                         gameName: game.name,
                         pathCandidates: uiState.selectedRulesheetSource == nil ? game.rulesheetPathCandidates : [],
                         externalSource: uiState.selectedRulesheetSource

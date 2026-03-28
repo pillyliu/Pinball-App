@@ -7596,6 +7596,37 @@ Next files queued:
 - `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
 - `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
 
+## Pass 080: shared practice-identity model review before commit
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeIdentityKeying.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeIdentityKeying.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStoreLeagueOps.kt`
+- `Pinball App Android/app/src/test/java/com/pillyliu/pinprofandroid/practice/PracticeLeagueImportTest.kt`
+
+Changes reviewed in this pass:
+- verified the new shared practice-identity structure is intentionally moving canonical Practice keys to `practiceIdentity -> opdbId -> ""` instead of the old `practiceIdentity -> opdbGroup -> slug` fallback
+- confirmed the concrete Android regression was not runtime behavior but a stale unit test that still expected league-imported scores to store under the old slug for exact `opdbId` matches
+- updated the Android unit expectation so an exact `opdbId` match now records under the canonical Practice key `GYWBZ-MW9B0`, matching the current model
+- explicitly did not keep or reintroduce backward-compatibility slug/group fallback in app code after user confirmation that old local Practice/GameRoom state can be updated separately if needed
+
+Behavioral outcome:
+- the current branch now treats the new canonical Practice key model as authoritative
+- exact `opdbId` league-import matches continue to work, but they now persist against the canonical Practice key rather than an old slug alias
+- no compatibility shim remains for old slug-based or shared-group-based Practice keys; any required migration for local saved state should be handled as data maintenance, not runtime lookup behavior
+
+Review finding resolved in this pass:
+1. Android unit coverage still encoded the pre-curation slug assumption for exact `opdbId` league imports, which made the suite fail even though the runtime behavior matched the new canonical identity design
+
+Verification:
+- `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest`
+- result: `BUILD SUCCESSFUL`
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Operational note:
+1. if old local Practice or GameRoom state still holds slug/group keys from before the current curation model, update or regenerate that local data rather than broadening runtime lookup behavior again.
+
 ## Pass 084: Manual QA checkpoint after cleanup/publish
 
 Primary surfaces exercised:

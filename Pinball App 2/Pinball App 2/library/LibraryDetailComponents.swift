@@ -21,13 +21,11 @@ struct LibraryDetailSummaryCard: View {
     var body: some View {
         let playfieldOptions = game.resolvedPlayfieldOptions(liveStatus: livePlayfieldStatus)
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                AppCardTitle(text: game.name, lineLimit: 2)
-                if let variant = game.variant?.trimmingCharacters(in: .whitespacesAndNewlines), !variant.isEmpty {
-                    PinballVariantBadge(variant)
-                }
-                Spacer(minLength: 0)
-            }
+            AppCardTitleWithVariant(
+                text: game.name,
+                variant: game.variant,
+                lineLimit: 2
+            )
 
             AppCardSubheading(text: game.metaLine)
 
@@ -301,7 +299,7 @@ private struct LibraryYouTubeThumbnailView: View {
 private func libraryRulesheetLinkButton(title: String, game: PinballGame, source: RulesheetRemoteSource?) -> some View {
     NavigationLink(title) {
         RulesheetScreen(
-            slug: game.practiceKey,
+            gameID: game.practiceKey,
             gameName: game.name,
             pathCandidates: source == nil ? game.rulesheetPathCandidates : [],
             externalSource: source
@@ -320,7 +318,7 @@ private func libraryRulesheetLinkButton(link: PinballGame.ReferenceLink, game: P
     if let embeddedSource = link.embeddedRulesheetSource {
         NavigationLink(title) {
             RulesheetScreen(
-                slug: game.practiceKey,
+                gameID: game.practiceKey,
                 gameName: game.name,
                 pathCandidates: [],
                 externalSource: embeddedSource

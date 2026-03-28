@@ -109,7 +109,7 @@ internal fun PracticeScreen(
                 } else {
                     RulesheetScreen(
                         contentPadding = contentPadding,
-                        slug = game.practiceKey,
+                        gameId = game.practiceKey,
                         pathCandidates = game.rulesheetPathCandidates.distinct(),
                         externalSource = uiState.navigation.selectedRulesheetSource,
                         onBack = uiState::goBack,

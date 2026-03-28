@@ -1,0 +1,111 @@
+{
+  "splits": [
+    {
+      "opdbGroupId": "G5LW9",
+      "practiceEntries": [
+        {
+          "practiceIdentity": "G5LW9-MQ6N5",
+          "title": "Family Guy",
+          "memberOpdbIds": ["G5LW9-MQ6N5"]
+        },
+        {
+          "practiceIdentity": "G5LW9-ML371",
+          "title": "Shrek",
+          "memberOpdbIds": ["G5LW9-ML371"]
+        }
+      ],
+      "groupAssetTargets": {
+        "rulesheet": "G5LW9-ML371",
+        "video": "G5LW9-MQ6N5"
+      }
+    },
+    {
+      "opdbGroupId": "GRYX4",
+      "practiceEntries": [
+        {
+          "practiceIdentity": "GRYX4-MLqqx",
+          "title": "Whoa Nellie! Big Juicy Melons",
+          "memberOpdbIds": ["GRYX4-MLqqx", "GRYX4-MLRe3"]
+        },
+        {
+          "practiceIdentity": "GRYX4-MRjVP",
+          "title": "Pabst Can Crusher",
+          "memberOpdbIds": ["GRYX4-MRjVP"]
+        },
+        {
+          "practiceIdentity": "GRYX4-MvBpz",
+          "title": "Primus",
+          "memberOpdbIds": ["GRYX4-MvBpz"]
+        }
+      ]
+    },
+    {
+      "opdbGroupId": "G5YWX",
+      "practiceEntries": [
+        {
+          "practiceIdentity": "G5YWX-MDxXX",
+          "title": "Grand Prix",
+          "memberOpdbIds": ["G5YWX-MDxXX"]
+        },
+        {
+          "practiceIdentity": "G5YWX-MQ4VW",
+          "title": "Nascar",
+          "memberOpdbIds": ["G5YWX-MQ4VW"]
+        },
+        {
+          "practiceIdentity": "G5YWX-MQj9k",
+          "title": "Dale Jr.",
+          "memberOpdbIds": ["G5YWX-MQj9k"]
+        }
+      ]
+    },
+    {
+      "opdbGroupId": "GRVjq",
+      "practiceEntries": [
+        {
+          "practiceIdentity": "GRVjq-MD0z2",
+          "title": "NFL",
+          "memberOpdbIds": ["GRVjq-MD0z2"]
+        },
+        {
+          "practiceIdentity": "GRVjq-MDbxp",
+          "title": "Striker Xtreme",
+          "memberOpdbIds": ["GRVjq-MDbxp"]
+        }
+      ],
+      "groupAssetTargets": {
+        "rulesheet": "GRVjq-MDbxp"
+      }
+    },
+    {
+      "opdbGroupId": "G7Zjz",
+      "practiceEntries": [
+        {
+          "practiceIdentity": "G7Zjz-Mx0jK",
+          "title": "Super Panic Ball",
+          "memberOpdbIds": ["G7Zjz-Mx0jK"]
+        },
+        {
+          "practiceIdentity": "G7Zjz-Mx0jK-A1nq7",
+          "title": "Pac-Man Panic",
+          "memberOpdbIds": ["G7Zjz-Mx0jK-A1nq7"]
+        }
+      ]
+    },
+    {
+      "opdbGroupId": "GLWLl",
+      "practiceEntries": [
+        {
+          "practiceIdentity": "GLWLl-MRjee",
+          "title": "Super Canasta",
+          "memberOpdbIds": ["GLWLl-MRjee"]
+        },
+        {
+          "practiceIdentity": "GLWLl-MRjee-A1BYb",
+          "title": "Super Hoop",
+          "memberOpdbIds": ["GLWLl-MRjee-A1BYb"]
+        }
+      ]
+    }
+  ]
+}

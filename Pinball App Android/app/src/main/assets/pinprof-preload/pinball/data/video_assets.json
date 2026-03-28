@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-27T19:09:13Z",
+  "generatedAt": "2026-03-28T12:30:18Z",
   "records": [
     {
       "videoAssetId": 9377,
@@ -1976,18 +1976,18 @@
       "updatedAt": "2026-03-24T18:03:36Z"
     },
     {
-      "videoAssetId": 9476,
-      "opdbId": "G5LW9",
+      "videoAssetId": 9714,
+      "opdbId": "G5LW9-MQ6N5",
       "provider": "matchplay",
       "kind": "tutorial",
-      "label": "Tutorial 1",
+      "label": "Tutorial (Bowen Kerins / PAPApinball)",
       "url": "https://www.youtube.com/watch?v=wx82w1SJN18",
       "priority": 0,
       "isHidden": false,
       "isActive": true,
-      "note": null,
-      "createdAt": "2026-03-24T18:03:36Z",
-      "updatedAt": "2026-03-24T18:03:36Z"
+      "note": "channel=PAPApinball; players=Bowen Kerins; source=https://app.matchplay.events/videos/tutorials",
+      "createdAt": "2026-03-28T09:43:37Z",
+      "updatedAt": "2026-03-28T09:43:37Z"
     },
     {
       "videoAssetId": 9494,

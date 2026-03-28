@@ -61,6 +61,7 @@ internal suspend fun loadLeaguePreviewState(context: Context): LeaguePreviewStat
             standingsSeasonLabel = standingsPreview.seasonLabel,
             standingsTopRows = standingsPreview.topRows,
             standingsAroundRows = standingsPreview.aroundRows,
+            currentPlayerStanding = standingsPreview.currentPlayerStanding,
             statsRecentRows = statsPreview.rows,
             statsRecentBankLabel = statsPreview.bankLabel,
             statsPlayerRawName = statsPreview.playerRawName,

@@ -109,6 +109,21 @@ func normalizeSeasonToken(_ raw: String) -> String {
     return digits.isEmpty ? trimmed : digits
 }
 
+func normalizeLeaguePlayerNameForComparison(_ raw: String) -> String {
+    raw
+        .lowercased()
+        .components(separatedBy: .whitespacesAndNewlines)
+        .filter { !$0.isEmpty }
+        .joined(separator: " ")
+}
+
+func leaguePlayerNamesMatch(_ left: String, _ right: String) -> Bool {
+    let normalizedLeft = normalizeLeaguePlayerNameForComparison(left)
+    let normalizedRight = normalizeLeaguePlayerNameForComparison(right)
+    guard !normalizedLeft.isEmpty, !normalizedRight.isEmpty else { return false }
+    return normalizedLeft == normalizedRight
+}
+
 func formatLPLPlayerNameForDisplay(
     _ raw: String,
     showFullLastNames: Bool? = nil,

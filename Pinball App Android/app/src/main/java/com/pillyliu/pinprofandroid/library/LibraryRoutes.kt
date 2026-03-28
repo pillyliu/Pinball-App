@@ -5,18 +5,18 @@ import androidx.compose.runtime.saveable.listSaver
 
 internal sealed interface LibraryRoute {
     data object List : LibraryRoute
-    data class Detail(val slug: String) : LibraryRoute
+    data class Detail(val gameId: String) : LibraryRoute
     data class Rulesheet(
-        val slug: String,
+        val gameId: String,
         val sourceProvider: String?,
         val sourceUrl: String?,
     ) : LibraryRoute
     data class ExternalRulesheet(
-        val slug: String,
+        val gameId: String,
         val url: String,
     ) : LibraryRoute
     data class Playfield(
-        val slug: String,
+        val gameId: String,
         val imageUrls: kotlin.collections.List<String>,
     ) : LibraryRoute
 }
@@ -25,32 +25,32 @@ internal val LibraryRouteSaver: Saver<LibraryRoute, Any> = listSaver(
     save = { route ->
         when (route) {
             LibraryRoute.List -> listOf("list")
-            is LibraryRoute.Detail -> listOf("detail", route.slug)
-            is LibraryRoute.Rulesheet -> listOf("rulesheet", route.slug, route.sourceProvider.orEmpty(), route.sourceUrl.orEmpty())
-            is LibraryRoute.ExternalRulesheet -> listOf("external_rulesheet", route.slug, route.url)
-            is LibraryRoute.Playfield -> listOf("playfield", route.slug) + route.imageUrls
+            is LibraryRoute.Detail -> listOf("detail", route.gameId)
+            is LibraryRoute.Rulesheet -> listOf("rulesheet", route.gameId, route.sourceProvider.orEmpty(), route.sourceUrl.orEmpty())
+            is LibraryRoute.ExternalRulesheet -> listOf("external_rulesheet", route.gameId, route.url)
+            is LibraryRoute.Playfield -> listOf("playfield", route.gameId) + route.imageUrls
         }
     },
     restore = { values ->
         when (values.firstOrNull() as? String) {
             "detail" -> (values.getOrNull(1) as? String)?.let(LibraryRoute::Detail)
             "rulesheet" -> {
-                val slug = values.getOrNull(1) as? String
-                if (slug == null) null else LibraryRoute.Rulesheet(
-                    slug = slug,
+                val gameId = values.getOrNull(1) as? String
+                if (gameId == null) null else LibraryRoute.Rulesheet(
+                    gameId = gameId,
                     sourceProvider = (values.getOrNull(2) as? String)?.ifBlank { null },
                     sourceUrl = (values.getOrNull(3) as? String)?.ifBlank { null },
                 )
             }
             "external_rulesheet" -> {
-                val slug = values.getOrNull(1) as? String
+                val gameId = values.getOrNull(1) as? String
                 val url = values.getOrNull(2) as? String
-                if (slug == null || url.isNullOrBlank()) null else LibraryRoute.ExternalRulesheet(slug, url)
+                if (gameId == null || url.isNullOrBlank()) null else LibraryRoute.ExternalRulesheet(gameId, url)
             }
             "playfield" -> {
-                val slug = values.getOrNull(1) as? String
-                if (slug == null) null else LibraryRoute.Playfield(
-                    slug = slug,
+                val gameId = values.getOrNull(1) as? String
+                if (gameId == null) null else LibraryRoute.Playfield(
+                    gameId = gameId,
                     imageUrls = values.drop(2).mapNotNull { (it as? String)?.ifBlank { null } },
                 )
             }
@@ -59,13 +59,13 @@ internal val LibraryRouteSaver: Saver<LibraryRoute, Any> = listSaver(
     },
 )
 
-internal val LibraryRoute.slug: String?
+internal val LibraryRoute.gameId: String?
     get() = when (this) {
         LibraryRoute.List -> null
-        is LibraryRoute.Detail -> slug
-        is LibraryRoute.Rulesheet -> slug
-        is LibraryRoute.ExternalRulesheet -> slug
-        is LibraryRoute.Playfield -> slug
+        is LibraryRoute.Detail -> gameId
+        is LibraryRoute.Rulesheet -> gameId
+        is LibraryRoute.ExternalRulesheet -> gameId
+        is LibraryRoute.Playfield -> gameId
     }
 
 internal fun LibraryRoute.rulesheetSource(): RulesheetRemoteSource? = when (this) {

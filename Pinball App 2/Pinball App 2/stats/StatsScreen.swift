@@ -11,6 +11,7 @@ import Combine
 struct StatsScreen: View {
     let embeddedInNavigation: Bool
     @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
+    @State private var preferredLeaguePlayerName = PracticeStore.loadPreferredLeaguePlayerNameFromDefaults() ?? ""
 
     init(embeddedInNavigation: Bool = false) {
         self.embeddedInNavigation = embeddedInNavigation
@@ -338,7 +339,8 @@ struct StatsScreen: View {
                                         scoreColWidth: scoreColWidth,
                                         pointsColWidth: pointsColWidth,
                                         rowHeight: tableRowHeight,
-                                        largeText: isLargeTablet
+                                        largeText: isLargeTablet,
+                                        isHighlighted: isPreferredLeaguePlayer(row.player)
                                     )
                                         .background(idx.isMultiple(of: 2) ? AppTheme.rowEven : AppTheme.rowOdd)
                                     AppTableRowDivider()
@@ -363,6 +365,9 @@ struct StatsScreen: View {
             }
         )
         .appPanelStyle()
+        .onReceive(NotificationCenter.default.publisher(for: .pinballLeaguePreviewNeedsRefresh)) { _ in
+            preferredLeaguePlayerName = PracticeStore.loadPreferredLeaguePlayerNameFromDefaults() ?? ""
+        }
     }
 
     private var tableHeader: some View {
@@ -449,6 +454,10 @@ struct StatsScreen: View {
     private func resolvedTableHeight(maxHeight: CGFloat) -> CGFloat {
         return min(maxHeight, compactTableContentHeight)
     }
+
+    private func isPreferredLeaguePlayer(_ rawPlayer: String) -> Bool {
+        leaguePlayerNamesMatch(rawPlayer, preferredLeaguePlayerName)
+    }
 }
 
 private extension View {
@@ -475,16 +484,33 @@ private struct TableRowView: View {
     let pointsColWidth: CGFloat
     let rowHeight: CGFloat
     let largeText: Bool
+    let isHighlighted: Bool
     @AppStorage(LPLNamePrivacySettings.showFullLastNameDefaultsKey) private var showFullLPLLastNames = false
 
     var body: some View {
+        let emphasizedColor: Color = AppTheme.statsMeanMedian
+        let accentColor: Color = isHighlighted ? emphasizedColor : .primary
+        let baseWeight: Font.Weight = isHighlighted ? .semibold : .regular
+
         HStack(spacing: 0) {
-            rowCell(row.season, width: seasonColWidth)
-            rowCell(String(row.bankNumber), width: bankNumColWidth)
-            rowCell(displayLPLPlayerName(row.player), width: playerColWidth)
-            rowCell(row.machine, width: machineColWidth)
-            rowCell(formatScore(row.rawScore), width: scoreColWidth, monospaced: true)
-            rowCell(formatPoints(row.points), width: pointsColWidth, monospaced: true)
+            rowCell(row.season, width: seasonColWidth, weight: baseWeight)
+            rowCell(String(row.bankNumber), width: bankNumColWidth, weight: baseWeight)
+            rowCell(displayLPLPlayerName(row.player), width: playerColWidth, color: accentColor, weight: baseWeight)
+            rowCell(row.machine, width: machineColWidth, weight: baseWeight)
+            rowCell(
+                formatScore(row.rawScore),
+                width: scoreColWidth,
+                color: accentColor,
+                monospaced: true,
+                weight: isHighlighted ? .semibold : .regular
+            )
+            rowCell(
+                formatPoints(row.points),
+                width: pointsColWidth,
+                color: accentColor,
+                monospaced: true,
+                weight: isHighlighted ? .semibold : .regular
+            )
         }
         .frame(height: rowHeight)
     }
@@ -493,14 +519,21 @@ private struct TableRowView: View {
         formatLPLPlayerNameForDisplay(raw, showFullLastNames: showFullLPLLastNames)
     }
 
-    private func rowCell(_ text: String, width: CGFloat, alignment: Alignment = .leading, monospaced: Bool = false) -> some View {
+    private func rowCell(
+        _ text: String,
+        width: CGFloat,
+        alignment: Alignment = .leading,
+        color: Color = .primary,
+        monospaced: Bool = false,
+        weight: Font.Weight = .regular
+    ) -> some View {
         let horizontalPadding: CGFloat = 4
         let adjustedWidth = AppTableLayout.adjustedCellWidth(width, horizontalPadding: horizontalPadding)
         return Text(text)
             .font(monospaced
-                ? (largeText ? Font.callout.monospacedDigit() : Font.footnote.monospacedDigit())
-                : (largeText ? .callout : .footnote))
-            .foregroundStyle(.primary)
+                ? (largeText ? Font.callout.monospacedDigit().weight(weight) : Font.footnote.monospacedDigit().weight(weight))
+                : (largeText ? Font.callout.weight(weight) : Font.footnote.weight(weight)))
+            .foregroundStyle(color)
             .lineLimit(1)
             .frame(width: adjustedWidth, alignment: alignment)
             .padding(.horizontal, horizontalPadding)

@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppCardTitle
+import com.pillyliu.pinprofandroid.ui.AppCardTitleWithVariant
 import com.pillyliu.pinprofandroid.ui.AppCardSubheading
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppMetricGrid
@@ -117,23 +118,18 @@ internal fun GameRoomHomeRoute(
                 AppPanelEmptyCard(text = "Select a machine from the collection below.")
             } else {
                 val snapshot = store.snapshot(selectedMachine.id)
-                val areaName = store.area(selectedMachine.gameRoomAreaID)?.name ?: "No area"
-                Row(
+                AppCardTitleWithVariant(
+                    text = selectedMachine.displayTitle,
+                    variant = gameRoomVariantBadgeLabel(selectedMachine.displayVariant, selectedMachine.displayTitle),
+                    maxLines = 2,
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AppCardTitle(
-                        text = selectedMachine.displayTitle,
-                        maxLines = 1,
-                        modifier = Modifier.weight(1f),
-                    )
-                    val variantLabel = gameRoomVariantBadgeLabel(selectedMachine.displayVariant, selectedMachine.displayTitle)
-                    if (variantLabel != null) {
-                        GameRoomVariantPill(label = variantLabel, style = VariantPillStyle.Standard)
-                    }
-                }
+                )
                 Text(
-                    text = "Location: $areaName • Group ${selectedMachine.groupNumber ?: "—"} • Position ${selectedMachine.position ?: "—"}",
+                    text = gameRoomLocationText(
+                        areaName = store.area(selectedMachine.gameRoomAreaID)?.name,
+                        groupNumber = selectedMachine.groupNumber,
+                        position = selectedMachine.position,
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )

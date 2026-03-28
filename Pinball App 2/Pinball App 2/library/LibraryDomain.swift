@@ -645,8 +645,8 @@ nonisolated struct PinballGame: Identifiable, Decodable {
         videos = record.videos
     }
 
-    var id: String { libraryEntryID ?? opdbID ?? practiceIdentity ?? slug }
-    var practiceKey: String { practiceIdentity ?? opdbGroupID ?? slug }
+    var id: String { libraryEntryID ?? opdbID ?? practiceIdentity ?? "" }
+    var practiceKey: String { practiceIdentity ?? opdbID ?? "" }
 
     var metaLine: String {
         var parts: [String] = []

@@ -3,8 +3,8 @@ import Foundation
 extension PinballGame {
     var canonicalPracticeKey: String {
         practiceIdentity?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ??
-            opdbGroupID?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ??
-            slug
+            opdbID?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ??
+            ""
     }
 }
 
@@ -43,7 +43,7 @@ func preferredPracticeRepresentative(_ games: [PinballGame], preferredSourceID: 
         let lhsScore = practiceRepresentativeScore($0)
         let rhsScore = practiceRepresentativeScore($1)
         if lhsScore != rhsScore { return lhsScore < rhsScore }
-        return $0.slug.localizedCaseInsensitiveCompare($1.slug) == .orderedDescending
+        return $0.canonicalPracticeKey.localizedCaseInsensitiveCompare($1.canonicalPracticeKey) == .orderedDescending
     }
 }
 
@@ -98,9 +98,6 @@ extension PracticeStore {
         if let match = gameForAnyID(lookupID) {
             return match.canonicalPracticeKey
         }
-        if let match = legacyPracticeKeyMatch(for: trimmed) {
-            return match.canonicalPracticeKey
-        }
         return trimmed
     }
 
@@ -115,12 +112,6 @@ extension PracticeStore {
         }) {
             return exactID
         }
-        if let exactSlug = pool.first(where: {
-            $0.slug == trimmed &&
-            (parsed.sourceID == nil || canonicalLibrarySourceID($0.sourceId) == parsed.sourceID)
-        }) {
-            return exactSlug
-        }
         let practiceMatches = pool.filter { $0.canonicalPracticeKey == trimmed }
         if !practiceMatches.isEmpty {
             return preferredPracticeRepresentative(
@@ -129,7 +120,7 @@ extension PracticeStore {
             )
         }
         if parsed.sourceID == nil, !leagueCatalogGames.isEmpty {
-            let fallbackMatches = leagueLookupGamesPool.filter { $0.canonicalPracticeKey == trimmed || $0.id == trimmed || $0.slug == trimmed }
+            let fallbackMatches = leagueLookupGamesPool.filter { $0.canonicalPracticeKey == trimmed || $0.id == trimmed }
             if !fallbackMatches.isEmpty {
                 return preferredPracticeRepresentative(
                     fallbackMatches,
@@ -146,7 +137,7 @@ extension PracticeStore {
             .sorted {
                 let nameCompare = $0.name.localizedCaseInsensitiveCompare($1.name)
                 if nameCompare != .orderedSame { return nameCompare == .orderedAscending }
-                return $0.slug.localizedCaseInsensitiveCompare($1.slug) == .orderedAscending
+                return $0.canonicalPracticeKey.localizedCaseInsensitiveCompare($1.canonicalPracticeKey) == .orderedAscending
             }
     }
 
@@ -212,26 +203,6 @@ extension PracticeStore {
         }
     }
 
-    func legacyPracticeKeyMatch(for raw: String) -> PinballGame? {
-        let pool = primaryPracticeLookupGamesPool
-        if let opdbGroup = extractLikelyOPDBGroupID(from: raw) {
-            if let byGroup = pool.first(where: { $0.canonicalPracticeKey.caseInsensitiveCompare(opdbGroup) == .orderedSame }) {
-                return byGroup
-            }
-        }
-
-        let normalized = normalizedLegacyGameKey(raw)
-        guard !normalized.isEmpty else { return nil }
-        if let slugMatch = pool.first(where: { normalizedLegacyGameKey($0.slug) == normalized }) {
-            return slugMatch
-        }
-        let canonicalMatches = pool.filter { normalizedLegacyGameKey($0.canonicalPracticeKey) == normalized }
-        if !canonicalMatches.isEmpty {
-            return preferredPracticeRepresentative(canonicalMatches, preferredSourceID: defaultPracticeSourceID)
-        }
-        return nil
-    }
-
     private func stateNeedsCanonicalMigration(_ current: PracticePersistedState) -> Bool {
         func mapsDiffer(_ value: String) -> Bool {
             let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -251,25 +222,6 @@ extension PracticeStore {
         return false
     }
 
-    private func extractLikelyOPDBGroupID(from raw: String) -> String? {
-        let pattern = #"(?i)\bG[0-9A-Z]{4,}\b"#
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-        let range = NSRange(raw.startIndex..<raw.endIndex, in: raw)
-        guard let match = regex.firstMatch(in: raw, options: [], range: range),
-              let tokenRange = Range(match.range, in: raw) else {
-            return nil
-        }
-        return String(raw[tokenRange])
-    }
-
-    private func normalizedLegacyGameKey(_ raw: String) -> String {
-        raw
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-            .replacingOccurrences(of: "&", with: "and")
-            .replacingOccurrences(of: #"[^a-z0-9]+"#, with: "-", options: .regularExpression)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-    }
 }
 
 private extension String {

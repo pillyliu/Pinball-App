@@ -48,9 +48,8 @@ func buildLeagueStandingsPreview(standingsCSV: String, selectedPlayer: String?) 
         )
     }
 
-    let normalizedSelected = normalizeLeagueHumanName(selectedPlayer)
     guard let selectedIndex = previewRows.firstIndex(where: {
-        normalizeLeagueHumanName($0.rawPlayer) == normalizedSelected
+        leaguePlayerNamesMatch($0.rawPlayer, selectedPlayer)
     }) else {
         return LeagueStandingsPreviewPayload(
             seasonLabel: seasonLabel,
@@ -58,11 +57,20 @@ func buildLeagueStandingsPreview(standingsCSV: String, selectedPlayer: String?) 
         )
     }
 
+    let currentPlayerStanding = previewRows[selectedIndex]
+    let aroundRowsWindowSize = currentPlayerStanding.rank > 5 ? 6 : 5
+
     return LeagueStandingsPreviewPayload(
         seasonLabel: seasonLabel,
         topRows: Array(previewRows.prefix(5)),
-        aroundRows: Array(leagueAroundRowsWindow(rows: previewRows, selectedIndex: selectedIndex)),
-        currentPlayerStanding: previewRows[selectedIndex]
+        aroundRows: Array(
+            leagueAroundRowsWindow(
+                rows: previewRows,
+                selectedIndex: selectedIndex,
+                windowSize: aroundRowsWindowSize
+            )
+        ),
+        currentPlayerStanding: currentPlayerStanding
     )
 }
 
@@ -73,8 +81,7 @@ func buildLeagueStatsPreview(statsCSV: String, preferredPlayer: String?) -> Leag
     }
 
     let selectedPlayer = resolveLeaguePlayerForStats(preferredPlayer: preferredPlayer, rows: rows)
-    let normalizedSelected = normalizeLeagueHumanName(selectedPlayer)
-    let selectedRows = rows.filter { normalizeLeagueHumanName($0.player) == normalizedSelected }
+    let selectedRows = rows.filter { leaguePlayerNamesMatch($0.player, selectedPlayer) }
 
     guard !selectedRows.isEmpty else {
         return LeagueStatsPreviewPayload()
@@ -235,8 +242,7 @@ func resolveLeagueNextBank(statsCSV: String?, availableBanks: Set<Int>, preferre
 
 private func resolveLeaguePlayerForStats(preferredPlayer: String?, rows: [LeagueParsedStatsRow]) -> String {
     if let preferredPlayer, !preferredPlayer.isEmpty {
-        let normalized = normalizeLeagueHumanName(preferredPlayer)
-        if rows.contains(where: { normalizeLeagueHumanName($0.player) == normalized }) {
+        if rows.contains(where: { leaguePlayerNamesMatch($0.player, preferredPlayer) }) {
             return preferredPlayer
         }
     }
@@ -259,17 +265,8 @@ private func latestLeagueSortValue(_ rows: [LeagueParsedStatsRow]) -> Double {
 
 private func scopedLeagueStatsRows(_ rows: [LeagueParsedStatsRow], preferredPlayer: String?) -> [LeagueParsedStatsRow] {
     guard let preferredPlayer, !preferredPlayer.isEmpty else { return rows }
-    let normalizedPreferred = normalizeLeagueHumanName(preferredPlayer)
-    let selectedRows = rows.filter { normalizeLeagueHumanName($0.player) == normalizedPreferred }
+    let selectedRows = rows.filter { leaguePlayerNamesMatch($0.player, preferredPlayer) }
     return selectedRows.isEmpty ? rows : selectedRows
-}
-
-private func normalizeLeagueHumanName(_ raw: String) -> String {
-    raw
-        .lowercased()
-        .components(separatedBy: .whitespacesAndNewlines)
-        .filter { !$0.isEmpty }
-        .joined(separator: " ")
 }
 
 private func leagueAroundRowsWindow(

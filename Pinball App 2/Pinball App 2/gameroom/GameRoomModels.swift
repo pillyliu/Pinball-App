@@ -178,6 +178,38 @@ enum MachineImportMatchConfidence: String, CaseIterable, Codable, Identifiable {
     var id: String { rawValue }
 }
 
+private extension String {
+    var nilIfBlank: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private extension KeyedDecodingContainer {
+    func decodeTrimmedStringIfPresent(forKey key: Key) -> String? {
+        ((try? decodeIfPresent(String.self, forKey: key)) ?? nil)?.nilIfBlank
+    }
+
+    func decodeUUIDIfPresent(forKey key: Key) -> UUID? {
+        guard let raw = decodeTrimmedStringIfPresent(forKey: key) else { return nil }
+        return UUID(uuidString: raw)
+    }
+
+    func decodeUUID(forKey key: Key, default fallback: @autoclosure () -> UUID) -> UUID {
+        decodeUUIDIfPresent(forKey: key) ?? fallback()
+    }
+
+    func decodeDateIfPresent(forKey key: Key) -> Date? {
+        try? decodeIfPresent(Date.self, forKey: key)
+    }
+
+    func decodeEnum<T>(forKey key: Key, default fallback: T) -> T
+    where T: RawRepresentable & CaseIterable, T.RawValue == String {
+        guard let raw = decodeTrimmedStringIfPresent(forKey: key) else { return fallback }
+        return T.allCases.first(where: { $0.rawValue.caseInsensitiveCompare(raw) == .orderedSame }) ?? fallback
+    }
+}
+
 struct GameRoomArea: Identifiable, Codable {
     let id: UUID
     var name: String
@@ -209,11 +241,11 @@ struct GameRoomArea: Identifiable, Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
-        name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Area"
-        areaOrder = try container.decodeIfPresent(Int.self, forKey: .areaOrder) ?? 0
-        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
-        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
+        id = container.decodeUUID(forKey: .id, default: UUID())
+        name = container.decodeTrimmedStringIfPresent(forKey: .name) ?? "Area"
+        areaOrder = (try? container.decodeIfPresent(Int.self, forKey: .areaOrder)) ?? 0
+        createdAt = container.decodeDateIfPresent(forKey: .createdAt) ?? Date()
+        updatedAt = container.decodeDateIfPresent(forKey: .updatedAt) ?? createdAt
     }
 }
 
@@ -320,29 +352,29 @@ struct OwnedMachine: Identifiable, Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
-        catalogGameID = try container.decodeIfPresent(String.self, forKey: .catalogGameID) ?? ""
-        opdbID = try container.decodeIfPresent(String.self, forKey: .opdbID)
-        canonicalPracticeIdentity = try container.decodeIfPresent(String.self, forKey: .canonicalPracticeIdentity) ?? ""
-        displayTitle = try container.decodeIfPresent(String.self, forKey: .displayTitle) ?? "Machine"
-        displayVariant = try container.decodeIfPresent(String.self, forKey: .displayVariant)
-        importedSourceTitle = try container.decodeIfPresent(String.self, forKey: .importedSourceTitle)
-        manufacturer = try container.decodeIfPresent(String.self, forKey: .manufacturer)
-        year = try container.decodeIfPresent(Int.self, forKey: .year)
-        status = try container.decodeIfPresent(OwnedMachineStatus.self, forKey: .status) ?? .active
-        gameRoomAreaID = try container.decodeIfPresent(UUID.self, forKey: .gameRoomAreaID)
-        groupNumber = try container.decodeIfPresent(Int.self, forKey: .groupNumber)
-        position = try container.decodeIfPresent(Int.self, forKey: .position)
-        purchaseDate = try container.decodeIfPresent(Date.self, forKey: .purchaseDate)
-        purchaseDateRawText = try container.decodeIfPresent(String.self, forKey: .purchaseDateRawText)
-        purchaseSource = try container.decodeIfPresent(String.self, forKey: .purchaseSource)
-        purchasePrice = try container.decodeIfPresent(Double.self, forKey: .purchasePrice)
-        serialNumber = try container.decodeIfPresent(String.self, forKey: .serialNumber)
-        manufactureDate = try container.decodeIfPresent(Date.self, forKey: .manufactureDate)
-        soldOrTradedDate = try container.decodeIfPresent(Date.self, forKey: .soldOrTradedDate)
-        ownershipNotes = try container.decodeIfPresent(String.self, forKey: .ownershipNotes)
-        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
-        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
+        id = container.decodeUUID(forKey: .id, default: UUID())
+        catalogGameID = container.decodeTrimmedStringIfPresent(forKey: .catalogGameID) ?? ""
+        opdbID = container.decodeTrimmedStringIfPresent(forKey: .opdbID)
+        canonicalPracticeIdentity = container.decodeTrimmedStringIfPresent(forKey: .canonicalPracticeIdentity) ?? ""
+        displayTitle = container.decodeTrimmedStringIfPresent(forKey: .displayTitle) ?? "Machine"
+        displayVariant = container.decodeTrimmedStringIfPresent(forKey: .displayVariant)
+        importedSourceTitle = container.decodeTrimmedStringIfPresent(forKey: .importedSourceTitle)
+        manufacturer = container.decodeTrimmedStringIfPresent(forKey: .manufacturer)
+        year = try? container.decodeIfPresent(Int.self, forKey: .year)
+        status = container.decodeEnum(forKey: .status, default: .active)
+        gameRoomAreaID = container.decodeUUIDIfPresent(forKey: .gameRoomAreaID)
+        groupNumber = try? container.decodeIfPresent(Int.self, forKey: .groupNumber)
+        position = try? container.decodeIfPresent(Int.self, forKey: .position)
+        purchaseDate = container.decodeDateIfPresent(forKey: .purchaseDate)
+        purchaseDateRawText = container.decodeTrimmedStringIfPresent(forKey: .purchaseDateRawText)
+        purchaseSource = container.decodeTrimmedStringIfPresent(forKey: .purchaseSource)
+        purchasePrice = try? container.decodeIfPresent(Double.self, forKey: .purchasePrice)
+        serialNumber = container.decodeTrimmedStringIfPresent(forKey: .serialNumber)
+        manufactureDate = container.decodeDateIfPresent(forKey: .manufactureDate)
+        soldOrTradedDate = container.decodeDateIfPresent(forKey: .soldOrTradedDate)
+        ownershipNotes = container.decodeTrimmedStringIfPresent(forKey: .ownershipNotes)
+        createdAt = container.decodeDateIfPresent(forKey: .createdAt) ?? Date()
+        updatedAt = container.decodeDateIfPresent(forKey: .updatedAt) ?? createdAt
     }
 }
 
@@ -440,6 +472,48 @@ struct MachineEvent: Identifiable, Codable {
         }
         return playCountAtEvent
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case ownedMachineID
+        case type
+        case category
+        case occurredAt
+        case playCountAtEvent
+        case summary
+        case notes
+        case performedBy
+        case cost
+        case partsUsed
+        case consumablesUsed
+        case pitchValue
+        case pitchMeasurementPoint
+        case linkedIssueID
+        case createdAt
+        case updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let now = Date()
+        id = container.decodeUUID(forKey: .id, default: UUID())
+        ownedMachineID = container.decodeUUID(forKey: .ownedMachineID, default: UUID())
+        type = container.decodeEnum(forKey: .type, default: .custom)
+        category = container.decodeEnum(forKey: .category, default: .custom)
+        occurredAt = container.decodeDateIfPresent(forKey: .occurredAt) ?? now
+        playCountAtEvent = try? container.decodeIfPresent(Int.self, forKey: .playCountAtEvent)
+        summary = container.decodeTrimmedStringIfPresent(forKey: .summary) ?? "Event"
+        notes = container.decodeTrimmedStringIfPresent(forKey: .notes)
+        performedBy = container.decodeTrimmedStringIfPresent(forKey: .performedBy)
+        cost = try? container.decodeIfPresent(Double.self, forKey: .cost)
+        partsUsed = container.decodeTrimmedStringIfPresent(forKey: .partsUsed)
+        consumablesUsed = container.decodeTrimmedStringIfPresent(forKey: .consumablesUsed)
+        pitchValue = try? container.decodeIfPresent(Double.self, forKey: .pitchValue)
+        pitchMeasurementPoint = container.decodeTrimmedStringIfPresent(forKey: .pitchMeasurementPoint)
+        linkedIssueID = container.decodeUUIDIfPresent(forKey: .linkedIssueID)
+        createdAt = container.decodeDateIfPresent(forKey: .createdAt) ?? now
+        updatedAt = container.decodeDateIfPresent(forKey: .updatedAt) ?? createdAt
+    }
 }
 
 struct MachineIssue: Identifiable, Codable {
@@ -486,6 +560,40 @@ struct MachineIssue: Identifiable, Codable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case ownedMachineID
+        case status
+        case severity
+        case subsystem
+        case symptom
+        case reproSteps
+        case diagnosis
+        case resolution
+        case openedAt
+        case resolvedAt
+        case createdAt
+        case updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let now = Date()
+        id = container.decodeUUID(forKey: .id, default: UUID())
+        ownedMachineID = container.decodeUUID(forKey: .ownedMachineID, default: UUID())
+        status = container.decodeEnum(forKey: .status, default: .open)
+        severity = container.decodeEnum(forKey: .severity, default: .medium)
+        subsystem = container.decodeEnum(forKey: .subsystem, default: .other)
+        symptom = container.decodeTrimmedStringIfPresent(forKey: .symptom) ?? "Issue"
+        reproSteps = container.decodeTrimmedStringIfPresent(forKey: .reproSteps)
+        diagnosis = container.decodeTrimmedStringIfPresent(forKey: .diagnosis)
+        resolution = container.decodeTrimmedStringIfPresent(forKey: .resolution)
+        openedAt = container.decodeDateIfPresent(forKey: .openedAt) ?? now
+        resolvedAt = container.decodeDateIfPresent(forKey: .resolvedAt)
+        createdAt = container.decodeDateIfPresent(forKey: .createdAt) ?? now
+        updatedAt = container.decodeDateIfPresent(forKey: .updatedAt) ?? createdAt
+    }
 }
 
 struct MachineAttachment: Identifiable, Codable {
@@ -519,6 +627,31 @@ struct MachineAttachment: Identifiable, Codable {
         self.thumbnailURI = thumbnailURI
         self.caption = caption
         self.createdAt = createdAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case ownedMachineID
+        case ownerType
+        case ownerID
+        case kind
+        case uri
+        case thumbnailURI
+        case caption
+        case createdAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = container.decodeUUID(forKey: .id, default: UUID())
+        ownedMachineID = container.decodeUUID(forKey: .ownedMachineID, default: UUID())
+        ownerType = container.decodeEnum(forKey: .ownerType, default: .event)
+        ownerID = container.decodeUUID(forKey: .ownerID, default: UUID())
+        kind = container.decodeEnum(forKey: .kind, default: .photo)
+        uri = container.decodeTrimmedStringIfPresent(forKey: .uri) ?? ""
+        thumbnailURI = container.decodeTrimmedStringIfPresent(forKey: .thumbnailURI)
+        caption = container.decodeTrimmedStringIfPresent(forKey: .caption)
+        createdAt = container.decodeDateIfPresent(forKey: .createdAt) ?? Date()
     }
 }
 
@@ -591,6 +724,32 @@ struct MachineReminderConfig: Identifiable, Codable {
             )
         ]
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case ownedMachineID
+        case taskType
+        case mode
+        case intervalDays
+        case intervalPlays
+        case enabled
+        case createdAt
+        case updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let now = Date()
+        id = container.decodeUUID(forKey: .id, default: UUID())
+        ownedMachineID = container.decodeUUID(forKey: .ownedMachineID, default: UUID())
+        taskType = container.decodeEnum(forKey: .taskType, default: .glassCleaned)
+        mode = container.decodeEnum(forKey: .mode, default: .dateBased)
+        intervalDays = try? container.decodeIfPresent(Int.self, forKey: .intervalDays)
+        intervalPlays = try? container.decodeIfPresent(Int.self, forKey: .intervalPlays)
+        enabled = (try? container.decodeIfPresent(Bool.self, forKey: .enabled)) ?? true
+        createdAt = container.decodeDateIfPresent(forKey: .createdAt) ?? now
+        updatedAt = container.decodeDateIfPresent(forKey: .updatedAt) ?? createdAt
+    }
 }
 
 struct MachineImportRecord: Identifiable, Codable {
@@ -636,6 +795,39 @@ struct MachineImportRecord: Identifiable, Codable {
         self.createdOwnedMachineID = createdOwnedMachineID
         self.importedAt = importedAt
         self.fingerprint = fingerprint
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case source
+        case sourceUserOrURL
+        case sourceItemKey
+        case rawTitle
+        case rawVariant
+        case rawPurchaseDateText
+        case normalizedPurchaseDate
+        case matchedCatalogGameID
+        case matchConfidence
+        case createdOwnedMachineID
+        case importedAt
+        case fingerprint
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = container.decodeUUID(forKey: .id, default: UUID())
+        source = container.decodeEnum(forKey: .source, default: .pinside)
+        sourceUserOrURL = container.decodeTrimmedStringIfPresent(forKey: .sourceUserOrURL) ?? "pinside"
+        sourceItemKey = container.decodeTrimmedStringIfPresent(forKey: .sourceItemKey)
+        rawTitle = container.decodeTrimmedStringIfPresent(forKey: .rawTitle) ?? "Imported Machine"
+        rawVariant = container.decodeTrimmedStringIfPresent(forKey: .rawVariant)
+        rawPurchaseDateText = container.decodeTrimmedStringIfPresent(forKey: .rawPurchaseDateText)
+        normalizedPurchaseDate = container.decodeDateIfPresent(forKey: .normalizedPurchaseDate)
+        matchedCatalogGameID = container.decodeTrimmedStringIfPresent(forKey: .matchedCatalogGameID)
+        matchConfidence = container.decodeEnum(forKey: .matchConfidence, default: .manual)
+        createdOwnedMachineID = container.decodeUUIDIfPresent(forKey: .createdOwnedMachineID)
+        importedAt = container.decodeDateIfPresent(forKey: .importedAt) ?? Date()
+        fingerprint = container.decodeTrimmedStringIfPresent(forKey: .fingerprint)
     }
 }
 

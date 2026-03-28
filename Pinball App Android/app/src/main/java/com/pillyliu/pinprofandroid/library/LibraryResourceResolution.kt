@@ -189,8 +189,15 @@ internal val PinballGame.localRulesheetChipLabel: String
 internal val PinballGame.localPlayfieldChipLabel: String
     get() = if (usesBundledOnlyAppAssetException) "Local" else "PinProf"
 
+private val PinballGame.hasSplitPracticeIdentity: Boolean
+    get() {
+        val normalizedPracticeIdentity = practiceIdentity?.trim()?.takeIf { it.isNotEmpty() } ?: return false
+        val normalizedOpdbGroupId = opdbGroupId?.trim()?.takeIf { it.isNotEmpty() } ?: return false
+        return !normalizedPracticeIdentity.equals(normalizedOpdbGroupId, ignoreCase = true)
+    }
+
 internal val PinballGame.localAssetKey: String?
-    get() = practiceIdentity?.ifBlank { null } ?: opdbGroupId?.ifBlank { null }
+    get() = practiceIdentity?.ifBlank { null }
 
 private val PinballGame.playfieldAssetKeys: List<String>
     get() {
@@ -201,18 +208,11 @@ private val PinballGame.playfieldAssetKeys: List<String>
             keys += trimmed
         }
 
-        opdbId
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-            ?.split("-")
-            ?.let { components ->
-                for (count in components.size downTo 1) {
-                    append(components.take(count).joinToString("-"))
-                }
-            }
-
+        append(opdbId)
         append(localAssetKey)
-        append(opdbGroupId)
+        if (!hasSplitPracticeIdentity) {
+            append(opdbGroupId)
+        }
         return keys.toList()
     }
 

@@ -4,7 +4,7 @@ import WebKit
 import CryptoKit
 
 struct RulesheetScreen: View {
-    let slug: String
+    let gameID: String
     let gameName: String
     @StateObject private var viewModel: RulesheetScreenModel
     @State private var scrollProgress: CGFloat = 0
@@ -19,16 +19,16 @@ struct RulesheetScreen: View {
     @State private var showsBackButton = false
 
     init(
-        slug: String,
+        gameID: String,
         gameName: String? = nil,
         pathCandidates: [String]? = nil,
         externalSource: RulesheetRemoteSource? = nil
     ) {
-        self.slug = slug
-        self.gameName = gameName ?? slug.replacingOccurrences(of: "-", with: " ").capitalized
+        self.gameID = gameID
+        self.gameName = gameName ?? gameID.replacingOccurrences(of: "-", with: " ").capitalized
         _viewModel = StateObject(
             wrappedValue: RulesheetScreenModel(
-                pathCandidates: pathCandidates ?? ["/pinball/rulesheets/\(slug).md"],
+                pathCandidates: pathCandidates ?? ["/pinball/rulesheets/\(gameID).md"],
                 externalSource: externalSource
             )
         )
@@ -201,7 +201,7 @@ struct RulesheetScreen: View {
     }
 
     private var progressStorageKey: String {
-        "rulesheet-last-progress-\(slug)"
+        "rulesheet-last-progress-\(gameID)"
     }
 
     private func loadSavedProgress() -> CGFloat? {

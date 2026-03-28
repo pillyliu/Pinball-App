@@ -91,7 +91,7 @@ enum AppVariantPillStyle {
         case .mini:
             return .system(size: 10, weight: .semibold)
         case .standard:
-            return .caption2.weight(.semibold)
+            return .footnote.weight(.semibold)
         case .machineTitle:
             return .footnote.weight(.semibold)
         case .editSelector:
@@ -112,8 +112,19 @@ enum AppVariantPillStyle {
         switch self {
         case .resource:
             return 4
-        case .mini, .standard, .machineTitle, .editSelector:
+        case .mini, .machineTitle, .editSelector:
             return 3
+        case .standard:
+            return 2
+        }
+    }
+
+    var verticalOffset: CGFloat {
+        switch self {
+        case .resource, .editSelector:
+            return 0
+        case .mini, .standard, .machineTitle:
+            return -1
         }
     }
 }
@@ -321,6 +332,30 @@ func AppVariantPill(
             Capsule()
                 .stroke(AppTheme.brandGold.opacity(0.34), lineWidth: 0.8)
         )
+        .offset(y: style.verticalOffset)
+}
+
+@ViewBuilder
+func AppTintedPill(
+    title: String,
+    foreground: Color,
+    style: AppVariantPillStyle = .resource,
+    maxWidth: CGFloat? = nil
+) -> some View {
+    Text(title)
+        .font(style.font)
+        .foregroundStyle(foreground)
+        .lineLimit(1)
+        .truncationMode(.tail)
+        .padding(.horizontal, style.horizontalPadding)
+        .padding(.vertical, style.verticalPadding)
+        .frame(maxWidth: maxWidth)
+        .background(foreground.opacity(0.16), in: Capsule())
+        .overlay(
+            Capsule()
+                .stroke(foreground.opacity(0.34), lineWidth: 0.8)
+        )
+        .offset(y: style.verticalOffset)
 }
 
 @ViewBuilder

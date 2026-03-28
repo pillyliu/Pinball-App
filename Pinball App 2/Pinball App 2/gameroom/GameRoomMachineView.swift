@@ -1,5 +1,13 @@
 import SwiftUI
 
+private struct GameRoomLogRowHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: [UUID: CGFloat] = [:]
+
+    static func reduce(value: inout [UUID: CGFloat], nextValue: () -> [UUID: CGFloat]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
 struct GameRoomMachineView: View {
     private struct FullscreenPhotoItem: Identifiable, Hashable {
         let id = UUID()
@@ -53,6 +61,7 @@ struct GameRoomMachineView: View {
     @State private var editingAttachment: MachineAttachment?
     @State private var pendingDeleteAttachment: MachineAttachment?
     @State private var fullscreenPhotoItem: FullscreenPhotoItem?
+    @State private var logRowHeights: [UUID: CGFloat] = [:]
 
     private var machine: OwnedMachine? {
         (store.activeMachines + store.archivedMachines).first(where: { $0.id == machineID })
@@ -161,17 +170,28 @@ struct GameRoomMachineView: View {
     }
 
     private func machineHeaderSection(for machine: OwnedMachine) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .center, spacing: 8) {
-                AppCardTitle(text: machine.displayTitle, lineLimit: 2)
-                if let label = gameRoomVariantBadgeLabel(variant: machine.displayVariant, title: machine.displayTitle) {
-                    GameRoomVariantPill(label: label, style: .machineTitle)
-                }
-            }
+        let statusColor = gameRoomStatusColor(machine.status)
+        return VStack(alignment: .leading, spacing: 6) {
+            AppCardTitleWithVariant(
+                text: machine.displayTitle,
+                variant: gameRoomVariantBadgeLabel(variant: machine.displayVariant, title: machine.displayTitle),
+                lineLimit: 2
+            )
 
-            Text(machineHeaderLine(machine))
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(machineMetaLine(machine))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .layoutPriority(1)
+
+                AppTintedPill(
+                    title: gameRoomStatusLabel(machine.status),
+                    foreground: statusColor,
+                    style: .machineTitle
+                )
+            }
         }
     }
 
@@ -469,11 +489,8 @@ struct GameRoomMachineView: View {
         }
     }
 
-    private func machineHeaderLine(_ machine: OwnedMachine) -> String {
-        let area = store.area(for: machine.gameRoomAreaID)?.name ?? "No area"
-        let group = machine.groupNumber.map(String.init) ?? "—"
-        let position = machine.position.map(String.init) ?? "—"
-        return "\(area) • Group \(group) • Position \(position) • \(machine.status.rawValue.capitalized)"
+    private func machineMetaLine(_ machine: OwnedMachine) -> String {
+        gameRoomMachineMetaLine(machine, areaName: store.area(for: machine.gameRoomAreaID)?.name)
     }
 
     private func summarySection(for machine: OwnedMachine) -> some View {
@@ -693,6 +710,7 @@ struct GameRoomMachineView: View {
         let events = store.state.events
             .filter { $0.ownedMachineID == machine.id }
             .sorted { $0.occurredAt > $1.occurredAt }
+        let visibleEvents = Array(events.prefix(40))
         return VStack(alignment: .leading, spacing: 10) {
             if events.isEmpty {
                 AppPanelEmptyCard(text: "No log entries yet.")
@@ -701,16 +719,22 @@ struct GameRoomMachineView: View {
                     GameRoomLogDetailCard(event: selected)
                 }
 
-                List {
-                    ForEach(Array(events.prefix(40))) { event in
-                        gameRoomLogRow(event)
-                            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(visibleEvents.enumerated()), id: \.element.id) { index, event in
+                            gameRoomLogRow(event)
+                            if index != visibleEvents.indices.last {
+                                Divider()
+                                    .overlay(Color.secondary.opacity(0.18))
+                            }
+                        }
                     }
                 }
-                .frame(height: embeddedLogListHeight(for: min(events.count, 40)))
-                .appEmbeddedListStyle()
+                .onPreferenceChange(GameRoomLogRowHeightPreferenceKey.self) { heights in
+                    let visibleIDs = Set(visibleEvents.map(\.id))
+                    logRowHeights = heights.filter { visibleIDs.contains($0.key) }
+                }
+                .frame(height: embeddedLogListHeight(for: visibleEvents))
             }
         }
         .onAppear {
@@ -719,6 +743,8 @@ struct GameRoomMachineView: View {
             }
         }
         .onChange(of: events.map(\.id)) { _, _ in
+            let visibleIDs = Set(visibleEvents.map(\.id))
+            logRowHeights = logRowHeights.filter { visibleIDs.contains($0.key) }
             guard let selectedLogEventID else {
                 self.selectedLogEventID = events.first?.id
                 return
@@ -732,11 +758,15 @@ struct GameRoomMachineView: View {
         .appPanelStyle()
     }
 
-    private func embeddedLogListHeight(for count: Int) -> CGFloat {
-        let visibleCount = max(count, 1)
+    private func embeddedLogListHeight(for events: [MachineEvent]) -> CGFloat {
+        let visibleEvents = Array(events.prefix(40))
+        guard !visibleEvents.isEmpty else { return 60 }
         let estimatedRowHeight: CGFloat = 58
         let contentPadding: CGFloat = 4
-        return min(280, max(60, CGFloat(visibleCount) * estimatedRowHeight + contentPadding))
+        let measuredContentHeight = visibleEvents.reduce(CGFloat.zero) { partialResult, event in
+            partialResult + (logRowHeights[event.id] ?? estimatedRowHeight)
+        }
+        return min(280, max(60, measuredContentHeight + contentPadding))
     }
 
     @ViewBuilder
@@ -781,6 +811,14 @@ struct GameRoomMachineView: View {
             }
             .tint(AppTheme.statsMeanMedian)
         }
+        .background(
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: GameRoomLogRowHeightPreferenceKey.self,
+                    value: [event.id: max(proxy.size.height, 1)]
+                )
+            }
+        )
     }
 
     private func gameRoomEventSummary(_ event: MachineEvent) -> String {

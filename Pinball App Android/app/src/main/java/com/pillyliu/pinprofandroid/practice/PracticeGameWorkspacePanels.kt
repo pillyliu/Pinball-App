@@ -28,13 +28,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.normalizedVariant
 import com.pillyliu.pinprofandroid.ui.AppVariantBadge
 import com.pillyliu.pinprofandroid.library.practiceKey
 import com.pillyliu.pinprofandroid.ui.AppCardSubheading
+import com.pillyliu.pinprofandroid.ui.AppCardTitleWithVariant
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.CardContainer
 import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
@@ -55,23 +55,12 @@ internal fun PracticeGameWorkspaceCard(
     onOpenPlayfield: (List<String>) -> Unit,
 ) {
     CardContainer {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        AppCardTitleWithVariant(
+            text = game.name,
+            variant = game.normalizedVariant,
+            maxLines = 2,
             modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(
-                text = game.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            game.normalizedVariant?.let { variant ->
-                AppVariantBadge(variant)
-            }
-        }
+        )
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             PracticeGameSubview.entries.forEachIndexed { index, option ->
                 SegmentedButton(

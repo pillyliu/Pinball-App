@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.edit
 import com.pillyliu.pinprofandroid.practice.PRACTICE_PREFS
+import java.util.Locale
 
 private const val LPL_FULL_NAME_ACCESS_UNLOCKED_KEY = "lpl-name-privacy.full-access-unlocked"
 private const val LPL_SHOW_FULL_LAST_NAME_KEY = "lpl-name-privacy.show-full-last-name"
@@ -40,6 +41,21 @@ fun formatLplPlayerNameForDisplay(raw: String, showFullLastName: Boolean): Strin
     val first = parts.first()
     val initial = parts.last().firstOrNull() ?: return first
     return "$first $initial$suffix"
+}
+
+fun normalizeLeaguePlayerNameForComparison(raw: String): String {
+    return raw
+        .lowercase(Locale.US)
+        .split(Regex("\\s+"))
+        .filter { it.isNotBlank() }
+        .joinToString(" ")
+}
+
+fun leaguePlayerNamesMatch(left: String, right: String): Boolean {
+    val normalizedLeft = normalizeLeaguePlayerNameForComparison(left)
+    val normalizedRight = normalizeLeaguePlayerNameForComparison(right)
+    if (normalizedLeft.isEmpty() || normalizedRight.isEmpty()) return false
+    return normalizedLeft == normalizedRight
 }
 
 fun isLplFullNameAccessUnlocked(context: Context): Boolean {

@@ -1,13 +1,16 @@
 package com.pillyliu.pinprofandroid.gameroom
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.HorizontalDivider
@@ -21,23 +24,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.library.ConstrainedAsyncImagePreview
 import com.pillyliu.pinprofandroid.practice.StyledPracticeJournalSummaryText
 import com.pillyliu.pinprofandroid.practice.formatTimestamp
-import com.pillyliu.pinprofandroid.ui.AppCardTitle
 import com.pillyliu.pinprofandroid.ui.AppCardSubheading
+import com.pillyliu.pinprofandroid.ui.AppCardTitleWithVariant
+import com.pillyliu.pinprofandroid.ui.AppInlineTintedMetaWithPill
 import com.pillyliu.pinprofandroid.ui.AppMetricGrid
 import com.pillyliu.pinprofandroid.ui.AppMetricItem
 import com.pillyliu.pinprofandroid.ui.AppConfirmDialog
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.CardContainer
+import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 internal fun GameRoomMachineRoute(
     store: GameRoomStore,
@@ -86,23 +91,18 @@ internal fun GameRoomMachineRoute(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 val variantLabel = gameRoomVariantBadgeLabel(selectedMachine.displayVariant, selectedMachine.displayTitle)
-                Row(
+                val statusColor = gameRoomStatusColor(selectedMachine.status)
+                AppCardTitleWithVariant(
+                    text = selectedMachine.displayTitle,
+                    variant = variantLabel,
+                    maxLines = 2,
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    AppCardTitle(
-                        text = selectedMachine.displayTitle,
-                        maxLines = 1,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    if (variantLabel != null) {
-                        GameRoomVariantPill(label = variantLabel, style = VariantPillStyle.MachineTitle)
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-                AppCardSubheading(
-                    text = machineLocationLine(selectedMachine, store),
+                )
+                AppInlineTintedMetaWithPill(
+                    text = gameRoomMachineMetaLine(selectedMachine, store),
+                    pillLabel = gameRoomStatusLabel(selectedMachine.status),
+                    pillForeground = statusColor,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         } else {
@@ -160,6 +160,18 @@ internal fun GameRoomMachineRoute(
                 onDeleteEvent = onDeleteEvent,
             )
         }
+    }
+}
+
+@Composable
+private fun gameRoomStatusColor(status: OwnedMachineStatus): Color {
+    val colors = PinballThemeTokens.colors
+    return when (status) {
+        OwnedMachineStatus.active -> colors.statsHigh
+        OwnedMachineStatus.loaned -> colors.brandGold
+        OwnedMachineStatus.archived,
+        OwnedMachineStatus.sold,
+        OwnedMachineStatus.traded -> colors.brandChalk
     }
 }
 
@@ -314,36 +326,45 @@ private fun GameRoomMachineLogPanel(
         if (machineEvents.isEmpty()) {
             AppPanelEmptyCard(text = "No log entries yet.")
         } else {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(0.dp),
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 280.dp),
             ) {
-                machineEvents.forEachIndexed { index, event ->
-                    val mediaCount = store.attachmentsForEvent(event.id).size
-                    GameRoomLogRow(
-                        event = event,
-                        mediaCount = mediaCount,
-                        selected = selectedLogEventID == event.id,
-                        onSelect = {
-                            val mediaAttachment = if (
-                                event.type == MachineEventType.photoAdded ||
-                                    event.type == MachineEventType.videoAdded
-                            ) {
-                                store.attachmentsForEvent(event.id).firstOrNull()
-                            } else {
-                                null
-                            }
-                            if (mediaAttachment != null) {
-                                onPreviewAttachment(mediaAttachment)
-                            } else {
-                                onSelectedLogEventIDChange(event.id)
-                            }
-                        },
-                        onEdit = { onEditEvent(event) },
-                        onDelete = { pendingDeleteEvent = event },
-                    )
-                    if (index != machineEvents.lastIndex) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                ) {
+                    itemsIndexed(
+                        items = machineEvents,
+                        key = { _, event -> event.id },
+                    ) { index, event ->
+                        val mediaCount = store.attachmentsForEvent(event.id).size
+                        GameRoomLogRow(
+                            event = event,
+                            mediaCount = mediaCount,
+                            selected = selectedLogEventID == event.id,
+                            onSelect = {
+                                val mediaAttachment = if (
+                                    event.type == MachineEventType.photoAdded ||
+                                        event.type == MachineEventType.videoAdded
+                                ) {
+                                    store.attachmentsForEvent(event.id).firstOrNull()
+                                } else {
+                                    null
+                                }
+                                if (mediaAttachment != null) {
+                                    onPreviewAttachment(mediaAttachment)
+                                } else {
+                                    onSelectedLogEventIDChange(event.id)
+                                }
+                            },
+                            onEdit = { onEditEvent(event) },
+                            onDelete = { pendingDeleteEvent = event },
+                        )
+                        if (index != machineEvents.lastIndex) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        }
                     }
                 }
             }

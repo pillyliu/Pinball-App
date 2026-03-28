@@ -130,15 +130,16 @@ internal fun LibraryDetailScreen(
 ) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
-    val detailScroll = rememberSaveable(game.slug, saver = androidx.compose.foundation.ScrollState.Saver) {
+    val routeId = game.libraryRouteId
+    val detailScroll = rememberSaveable(routeId, saver = androidx.compose.foundation.ScrollState.Saver) {
         androidx.compose.foundation.ScrollState(0)
     }
-    var markdown by rememberSaveable(game.slug) { mutableStateOf<String?>(null) }
-    var infoStatus by rememberSaveable(game.slug) { mutableStateOf("loading") }
-    var activeVideoId by rememberSaveable(game.slug) {
+    var markdown by rememberSaveable(routeId) { mutableStateOf<String?>(null) }
+    var infoStatus by rememberSaveable(routeId) { mutableStateOf("loading") }
+    var activeVideoId by rememberSaveable(routeId) {
         mutableStateOf<String?>(null)
     }
-    LaunchedEffect(game.slug) {
+    LaunchedEffect(routeId) {
         if (infoStatus == "loaded" || infoStatus == "missing") return@LaunchedEffect
         val candidates = game.gameinfoPathCandidates.mapNotNull { candidate -> game.resolve(candidate) }.distinct()
         var loaded = false

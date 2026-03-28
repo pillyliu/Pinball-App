@@ -83,7 +83,7 @@ internal fun LibraryRouteContent(
             } else {
                 RulesheetScreen(
                     contentPadding = contentPadding,
-                    slug = routeGame.practiceKey,
+                    gameId = routeGame.practiceKey,
                     title = routeGame.name,
                     pathCandidates = routeGame.rulesheetPathCandidates.distinct(),
                     externalSource = route.rulesheetSource(),

@@ -25,8 +25,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -73,12 +71,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -506,56 +499,22 @@ fun AppCardTitleWithVariant(
         return
     }
 
-    val titleStyle = MaterialTheme.typography.titleMedium.copy(
-        fontWeight = FontWeight.SemiBold,
-    )
-    val pillTextStyle = MaterialTheme.typography.labelMedium
-    val density = LocalDensity.current
-    val textMeasurer = rememberTextMeasurer()
-    val measuredVariant = textMeasurer.measure(
-        text = AnnotatedString(resolvedVariant),
-        style = pillTextStyle,
-        maxLines = 1,
-    )
-    val horizontalPadding = 16.dp
-    val verticalPadding = 6.dp
-    val placeholderWidth = with(density) {
-        ((measuredVariant.size.width / this.density / this.fontScale) +
-            (horizontalPadding.value / this.fontScale)).sp
-    }
-    val placeholderHeight = with(density) {
-        ((measuredVariant.size.height / this.density / this.fontScale) +
-            (verticalPadding.value / this.fontScale)).sp
-    }
-    val inlineId = "variant-pill"
-
-    Text(
-        text = buildAnnotatedString {
-            append(text)
-            append(" ")
-            appendInlineContent(inlineId, resolvedVariant)
-        },
-        inlineContent = mapOf(
-            inlineId to InlineTextContent(
-                Placeholder(
-                    width = placeholderWidth,
-                    height = placeholderHeight,
-                    placeholderVerticalAlign = PlaceholderVerticalAlign.TextTop,
-                ),
-            ) {
-                AppVariantPill(
-                    label = resolvedVariant,
-                    style = AppVariantPillStyle.MachineTitle,
-                )
-            },
-        ),
-        color = PinballThemeTokens.colors.brandInk,
-        style = titleStyle,
-        fontWeight = FontWeight.SemiBold,
+    AppInlineTextWithPill(
+        text = text,
+        pillLabel = resolvedVariant,
         maxLines = maxLines,
-        overflow = TextOverflow.Ellipsis,
+        textColor = PinballThemeTokens.colors.brandInk,
+        textStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+        pillTextStyle = MaterialTheme.typography.labelMedium,
+        pillHorizontalPadding = 8.dp,
+        pillVerticalPadding = 3.dp,
         modifier = modifier,
-    )
+    ) { label ->
+        AppVariantPill(
+            label = label,
+            style = AppVariantPillStyle.MachineTitle,
+        )
+    }
 }
 
 data class AppMetricItem(

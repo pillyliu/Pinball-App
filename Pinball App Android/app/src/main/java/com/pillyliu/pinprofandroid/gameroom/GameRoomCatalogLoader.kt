@@ -9,6 +9,9 @@ import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.library.decodeCatalogManufacturerOptionsFromOPDBExport
 import com.pillyliu.pinprofandroid.library.decodeOPDBExportCatalogMachines
 import com.pillyliu.pinprofandroid.library.hostedOPDBExportPath
+import com.pillyliu.pinprofandroid.library.hostedPracticeIdentityCurationsPath
+import com.pillyliu.pinprofandroid.library.resolvedCatalogDisplayTitle
+import com.pillyliu.pinprofandroid.library.resolvedCatalogVariantLabel
 import kotlinx.coroutines.runBlocking
 
 private const val GAME_ROOM_CATALOG_TAG = "PinballDataIntegrity"
@@ -123,12 +126,18 @@ internal class GameRoomCatalogLoader(private val context: Context) {
                 allowMissing = false,
             ).text
         } ?: throw IllegalStateException("Catalog data is missing.")
-        val machines = decodeOPDBExportCatalogMachines(raw)
+        val practiceIdentityCurationsRaw = runBlocking {
+            PinballDataCache.loadText(
+                url = hostedPracticeIdentityCurationsPath,
+                allowMissing = true,
+            ).text
+        }?.takeIf { it.isNotBlank() }
+        val machines = decodeOPDBExportCatalogMachines(raw, practiceIdentityCurationsRaw)
         if (machines.isEmpty()) {
             throw IllegalStateException("Catalog data is missing machines.")
         }
 
-        manufacturerOptions = decodeCatalogManufacturerOptionsFromOPDBExport(raw)
+        manufacturerOptions = decodeCatalogManufacturerOptionsFromOPDBExport(raw, practiceIdentityCurationsRaw)
             .map { option ->
                 GameRoomCatalogManufacturerOption(
                     id = option.id,
@@ -150,7 +159,7 @@ internal class GameRoomCatalogLoader(private val context: Context) {
         val manufacturerBucket = linkedSetOf<String>()
 
         machines.forEach { machine ->
-            val groupID = machine.opdbGroupId ?: machine.practiceIdentity
+            val groupID = machine.practiceIdentity
             if (groupID.isBlank()) return@forEach
             val opdbID = machine.opdbMachineId ?: groupID
             val rawTitle = machine.name.ifBlank { "Machine" }
@@ -269,8 +278,16 @@ internal class GameRoomCatalogLoader(private val context: Context) {
     }
 
     fun game(catalogGameID: String, variant: String?): GameRoomCatalogGame? {
-        if (normalizeVariantLabel(variant) != null) {
-            val matches = games(catalogGameID).filter {
+        val normalizedVariant = normalizeVariantLabel(variant)
+        if (normalizedVariant != null) {
+            val grouped = games(catalogGameID)
+            val exactMatches = grouped.filter {
+                exactVariantMatchesSelection(it.displayVariant, normalizedVariant)
+            }
+            if (exactMatches.isNotEmpty()) {
+                return preferredCatalogGame(exactMatches)
+            }
+            val matches = grouped.filter {
                 variantMatchesSelection(it.displayVariant, variant)
             }
             if (matches.isNotEmpty()) {
@@ -305,6 +322,12 @@ internal class GameRoomCatalogLoader(private val context: Context) {
             grouped.firstOrNull {
                 it.displayTitle.trim().lowercase() == normalizedTitle &&
                     normalizeVariantLabel(it.displayVariant) == normalizedVariant
+            }?.let { return it.opdbID }
+        }
+
+        if (normalizedVariant != null) {
+            grouped.firstOrNull {
+                exactVariantMatchesSelection(it.displayVariant, normalizedVariant)
             }?.let { return it.opdbID }
         }
 
@@ -350,6 +373,13 @@ internal class GameRoomCatalogLoader(private val context: Context) {
         }
 
         if (grouped.isEmpty() && rawCandidates.isEmpty()) return emptyList()
+
+        if (normalizedVariant != null) {
+            val exactVariantMatches = grouped.filter {
+                exactVariantMatchesSelection(it.displayVariant, normalizedVariant)
+            }
+            rawCandidates.addAll(exactVariantMatches.mapNotNull { it.primaryImageUrl })
+        }
 
         if (normalizedVariant != null) {
             val variantMatches = grouped.filter {
@@ -546,46 +576,16 @@ internal class GameRoomCatalogLoader(private val context: Context) {
 
     private fun parseCatalogName(title: String, explicitVariant: String?): ParsedCatalogName {
         val trimmedTitle = title.trim()
-        val normalizedExplicitVariant = normalizeVariantLabel(explicitVariant)
-        if (!normalizedExplicitVariant.isNullOrBlank()) {
-            return ParsedCatalogName(displayTitle = trimmedTitle, displayVariant = normalizedExplicitVariant)
-        }
-        if (!trimmedTitle.endsWith(")")) {
-            return ParsedCatalogName(displayTitle = trimmedTitle, displayVariant = null)
-        }
-
-        val openParenIndex = trimmedTitle.lastIndexOf('(')
-        if (openParenIndex <= 0) {
-            return ParsedCatalogName(displayTitle = trimmedTitle, displayVariant = null)
-        }
-
-        val baseTitle = trimmedTitle.substring(0, openParenIndex).trim()
-        val rawSuffix = trimmedTitle.substring(openParenIndex + 1, trimmedTitle.length - 1).trim()
-        val derivedVariant = deriveVariantFromTitleSuffix(rawSuffix)
-        return if (baseTitle.isNotBlank() && !derivedVariant.isNullOrBlank()) {
-            ParsedCatalogName(displayTitle = baseTitle, displayVariant = derivedVariant)
-        } else {
-            ParsedCatalogName(displayTitle = trimmedTitle, displayVariant = null)
-        }
-    }
-
-    private fun deriveVariantFromTitleSuffix(value: String): String? {
-        val lowered = value.trim().lowercase()
-        if (lowered.isBlank()) return null
-        val looksLikeVariant = lowered == "premium" ||
-            lowered == "pro" ||
-            lowered == "le" ||
-            lowered == "ce" ||
-            lowered == "se" ||
-            lowered == "home" ||
-            lowered.contains("anniversary") ||
-            lowered.contains("limited edition") ||
-            lowered.contains("special edition") ||
-            lowered.contains("collector") ||
-            lowered == "premium/le" ||
-            lowered == "premium le" ||
-            lowered == "premium-le"
-        return if (looksLikeVariant) normalizeVariantLabel(value) else null
+        return ParsedCatalogName(
+            displayTitle = resolvedCatalogDisplayTitle(
+                title = trimmedTitle,
+                explicitVariant = explicitVariant,
+            ),
+            displayVariant = resolvedCatalogVariantLabel(
+                title = trimmedTitle,
+                explicitVariant = explicitVariant,
+            ),
+        )
     }
 
     private fun normalizeVariantLabel(value: String?): String? {
@@ -631,6 +631,12 @@ internal class GameRoomCatalogLoader(private val context: Context) {
             return normalizedSelected == "premium" || normalizedSelected == "le"
         }
         return false
+    }
+
+    private fun exactVariantMatchesSelection(candidate: String?, selected: String?): Boolean {
+        val normalizedCandidate = normalizeVariantLabel(candidate)?.lowercase() ?: return false
+        val normalizedSelected = normalizeVariantLabel(selected)?.lowercase() ?: return false
+        return normalizedCandidate == normalizedSelected
     }
 
     private data class ParsedCatalogName(

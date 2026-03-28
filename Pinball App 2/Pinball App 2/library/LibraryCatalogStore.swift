@@ -669,6 +669,50 @@ nonisolated func opdbGroupID(from opdbID: String?) -> String? {
     return group.isEmpty ? nil : group
 }
 
+private struct PracticeIdentityCurationsRoot: Decodable {
+    let splits: [PracticeIdentityCurationsSplit]?
+}
+
+private struct PracticeIdentityCurationsSplit: Decodable {
+    let practiceEntries: [PracticeIdentityCurationsEntry]?
+}
+
+private struct PracticeIdentityCurationsEntry: Decodable {
+    let practiceIdentity: String?
+    let memberOpdbIds: [String]?
+}
+
+private struct PracticeIdentityCurations {
+    let practiceIdentityByOpdbID: [String: String]
+
+    static let empty = PracticeIdentityCurations(practiceIdentityByOpdbID: [:])
+}
+
+private func decodePracticeIdentityCurations(data: Data?) -> PracticeIdentityCurations {
+    guard let data,
+          !data.isEmpty,
+          let root = try? JSONDecoder().decode(PracticeIdentityCurationsRoot.self, from: data) else {
+        return .empty
+    }
+
+    var resolved: [String: String] = [:]
+    for split in root.splits ?? [] {
+        for entry in split.practiceEntries ?? [] {
+            guard let practiceIdentity = catalogNormalizedOptionalString(entry.practiceIdentity) else { continue }
+            for memberID in entry.memberOpdbIds ?? [] {
+                guard let opdbID = catalogNormalizedOptionalString(memberID) else { continue }
+                resolved[opdbID] = practiceIdentity
+            }
+        }
+    }
+    return PracticeIdentityCurations(practiceIdentityByOpdbID: resolved)
+}
+
+private func resolvePracticeIdentity(opdbID: String?, curations: PracticeIdentityCurations) -> String? {
+    guard let normalized = catalogNormalizedOptionalString(opdbID) else { return nil }
+    return curations.practiceIdentityByOpdbID[normalized] ?? opdbGroupID(from: normalized) ?? normalized
+}
+
 private func rawOPDBYear(from manufactureDate: String?) -> Int? {
     guard let prefix = manufactureDate?.prefix(4), prefix.count == 4 else { return nil }
     return Int(prefix)
@@ -711,17 +755,23 @@ private func rawOPDBFallbackSlug(title: String, shortname: String?, fallback: St
     return titleSlug.isEmpty ? fallback : titleSlug
 }
 
-private func rawOPDBCatalogMachineRecord(from machine: RawOPDBExportMachineRecord) -> CatalogMachineRecord? {
+private func rawOPDBCatalogMachineRecord(
+    from machine: RawOPDBExportMachineRecord,
+    curations: PracticeIdentityCurations
+) -> CatalogMachineRecord? {
     if machine.isMachine == false {
         return nil
     }
 
-    let practiceIdentity = opdbGroupID(from: machine.opdbID) ?? machine.opdbID
+    guard let practiceIdentity = resolvePracticeIdentity(opdbID: machine.opdbID, curations: curations) else {
+        return nil
+    }
+    let opdbGroupID = opdbGroupID(from: machine.opdbID) ?? practiceIdentity
     return CatalogMachineRecord(
         practiceIdentity: practiceIdentity,
         opdbMachineID: catalogNormalizedOptionalString(machine.opdbID),
-        opdbGroupID: catalogNormalizedOptionalString(practiceIdentity),
-        slug: rawOPDBFallbackSlug(title: machine.name, shortname: machine.shortname, fallback: practiceIdentity),
+        opdbGroupID: catalogNormalizedOptionalString(opdbGroupID),
+        slug: practiceIdentity,
         name: machine.name,
         variant: nil,
         manufacturerID: machine.manufacturer?.manufacturerID.map { "manufacturer-\($0)" },
@@ -743,15 +793,19 @@ private func rawOPDBCatalogMachineRecord(from machine: RawOPDBExportMachineRecor
     )
 }
 
-func decodeOPDBExportCatalogMachines(data: Data) throws -> [CatalogMachineRecord] {
+func decodeOPDBExportCatalogMachines(data: Data, practiceIdentityCurationsData: Data? = nil) throws -> [CatalogMachineRecord] {
     let machines = try JSONDecoder().decode([RawOPDBExportMachineRecord].self, from: data)
+    let curations = decodePracticeIdentityCurations(data: practiceIdentityCurationsData)
     return catalogResolvedMachines(
-        appendingSyntheticPinProfLabsMachine(to: machines.compactMap(rawOPDBCatalogMachineRecord))
+        appendingSyntheticPinProfLabsMachine(to: machines.compactMap { rawOPDBCatalogMachineRecord(from: $0, curations: curations) })
     )
 }
 
-func decodeCatalogManufacturerOptionsFromOPDBExport(data: Data) throws -> [PinballCatalogManufacturerOption] {
-    let machines = try decodeOPDBExportCatalogMachines(data: data)
+func decodeCatalogManufacturerOptionsFromOPDBExport(
+    data: Data,
+    practiceIdentityCurationsData: Data? = nil
+) throws -> [PinballCatalogManufacturerOption] {
+    let machines = try decodeOPDBExportCatalogMachines(data: data, practiceIdentityCurationsData: practiceIdentityCurationsData)
     let modernLookup = Dictionary(uniqueKeysWithValues: curatedModernManufacturerNames.enumerated().map { ($1, $0 + 1) })
     let groupedMachines = Dictionary(grouping: machines.compactMap { machine -> (manufacturerID: String, manufacturerName: String, machine: CatalogMachineRecord)? in
         guard let manufacturerID = catalogNormalizedOptionalString(machine.manufacturerID),
@@ -763,7 +817,7 @@ func decodeCatalogManufacturerOptionsFromOPDBExport(data: Data) throws -> [Pinba
 
     return groupedMachines.compactMap { manufacturerID, entries -> PinballCatalogManufacturerOption? in
         guard let manufacturerName = entries.first?.manufacturerName else { return nil }
-        let gameCount = Set(entries.map { $0.machine.opdbGroupID ?? $0.machine.practiceIdentity }).count
+        let gameCount = Set(entries.map { $0.machine.practiceIdentity }).count
         let normalizedName = manufacturerName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let modernRank = modernLookup[normalizedName]
         let isModern = modernRank != nil
@@ -1186,8 +1240,7 @@ private func catalogCuratedOverride(
 ) -> LegacyCuratedOverride? {
     let candidateKeys = [
         catalogNormalizedOptionalString(opdbID),
-        catalogNormalizedOptionalString(practiceIdentity),
-        catalogNormalizedOptionalString(opdbGroupID)
+        catalogNormalizedOptionalString(practiceIdentity)
     ].compactMap { $0 }
 
     for key in candidateKeys {
@@ -1542,7 +1595,7 @@ private func resolveMergedCatalog(
         switch importedSource.type {
         case .manufacturer:
             let groupedMachines = Dictionary(grouping: machines.filter { $0.manufacturerID == importedSource.providerSourceID }) {
-                $0.opdbGroupID ?? $0.practiceIdentity
+                $0.practiceIdentity
             }
             let sourceMachines = groupedMachines.values.compactMap { group in
                 group.min(by: catalogPreferredManufacturerMachine)
@@ -1960,8 +2013,11 @@ private func resolveNormalizedCatalog(root: NormalizedLibraryRoot, machines: [Ca
     return PinballLibraryPayload(games: resolvedGames, sources: sources)
 }
 
-func decodePracticeCatalogGamesFromOPDBExport(data: Data) throws -> [PinballGame] {
-    let machines = try decodeOPDBExportCatalogMachines(data: data)
+func decodePracticeCatalogGamesFromOPDBExport(
+    data: Data,
+    practiceIdentityCurationsData: Data? = nil
+) throws -> [PinballGame] {
+    let machines = try decodeOPDBExportCatalogMachines(data: data, practiceIdentityCurationsData: practiceIdentityCurationsData)
     guard !machines.isEmpty else { return [] }
 
     let source = PinballImportedSourceRecord(
@@ -1976,7 +2032,7 @@ func decodePracticeCatalogGamesFromOPDBExport(data: Data) throws -> [PinballGame
         distanceMiles: nil
     )
 
-    return Dictionary(grouping: machines, by: { $0.opdbGroupID ?? $0.practiceIdentity })
+    return Dictionary(grouping: machines, by: \.practiceIdentity)
         .values
         .compactMap { group -> PinballGame? in
             guard let machine = group.min(by: catalogPreferredGroupDefaultMachine) else { return nil }
@@ -2076,12 +2132,9 @@ private func buildCAFOverrides(
             Set(
                 [
                     catalogNormalizedOptionalString(asset.practiceIdentity),
-                    catalogNormalizedOptionalString(asset.sourceOpdbMachineId),
-                    opdbGroupID(from: asset.sourceOpdbMachineId)
+                    catalogNormalizedOptionalString(asset.sourceOpdbMachineId)
                 ]
-                .compactMap { $0 } + (asset.coveredAliasIds ?? []).flatMap { aliasID in
-                    [catalogNormalizedOptionalString(aliasID), opdbGroupID(from: aliasID)].compactMap { $0 }
-                }
+                .compactMap { $0 } + (asset.coveredAliasIds ?? []).compactMap(catalogNormalizedOptionalString)
             )
         )
 
@@ -2095,7 +2148,7 @@ private func buildCAFOverrides(
 
     for asset in decodeCAFRecords(CAFGameinfoAssetRecord.self, data: gameinfoData) where asset.isActive && !asset.isHidden {
         guard let localPath = catalogNormalizedOptionalString(asset.localPath) else { continue }
-        let keys = [catalogNormalizedOptionalString(asset.opdbId), opdbGroupID(from: asset.opdbId)].compactMap { $0 }
+        let keys = [catalogNormalizedOptionalString(asset.opdbId)].compactMap { $0 }
         for key in keys {
             upsertOverride(for: key) { current in
                 current.gameinfoLocalPath = current.gameinfoLocalPath ?? localPath
@@ -2110,7 +2163,7 @@ private func buildCAFGroupedRulesheetLinks(data: Data?) -> [String: [CatalogRule
     let records = decodeCAFRecords(CAFRulesheetAssetRecord.self, data: data)
         .filter { $0.isActive && !$0.isHidden }
         .compactMap { asset -> CatalogRulesheetLinkRecord? in
-            let practiceIdentity = opdbGroupID(from: asset.opdbId) ?? catalogNormalizedOptionalString(asset.opdbId)
+            let practiceIdentity = catalogNormalizedOptionalString(asset.opdbId)
             guard let practiceIdentity else { return nil }
             return CatalogRulesheetLinkRecord(
                 practiceIdentity: practiceIdentity,
@@ -2128,7 +2181,7 @@ private func buildCAFGroupedVideoLinks(data: Data?) -> [String: [CatalogVideoLin
     let records = decodeCAFRecords(CAFVideoAssetRecord.self, data: data)
         .filter { $0.isActive && !$0.isHidden }
         .compactMap { asset -> CatalogVideoLinkRecord? in
-            let practiceIdentity = opdbGroupID(from: asset.opdbId) ?? catalogNormalizedOptionalString(asset.opdbId)
+            let practiceIdentity = catalogNormalizedOptionalString(asset.opdbId)
             guard let practiceIdentity else { return nil }
             return CatalogVideoLinkRecord(
                 practiceIdentity: practiceIdentity,
@@ -2212,7 +2265,7 @@ private func buildCAFLibraryPayload(
         case .manufacturer:
             let groupedMachines = Dictionary(
                 grouping: machines.filter { $0.manufacturerID == importedSource.providerSourceID },
-                by: { $0.opdbGroupID ?? $0.practiceIdentity }
+                by: \.practiceIdentity
             )
             let sourceMachines = groupedMachines.values.compactMap { group in
                 group.min(by: catalogPreferredManufacturerMachine)
@@ -2288,6 +2341,7 @@ private func buildCAFLibraryPayload(
 
 func buildCAFLibraryExtraction(
     opdbExportData: Data,
+    practiceIdentityCurationsData: Data?,
     rulesheetAssetsData: Data?,
     videoAssetsData: Data?,
     playfieldAssetsData: Data?,
@@ -2296,7 +2350,7 @@ func buildCAFLibraryExtraction(
     importedSources: [PinballImportedSourceRecord],
     filterBySourceState: Bool
 ) throws -> LegacyCatalogExtraction {
-    let machines = try decodeOPDBExportCatalogMachines(data: opdbExportData)
+    let machines = try decodeOPDBExportCatalogMachines(data: opdbExportData, practiceIdentityCurationsData: practiceIdentityCurationsData)
     let payload = buildCAFLibraryPayload(
         machines: machines,
         importedSources: importedSources,

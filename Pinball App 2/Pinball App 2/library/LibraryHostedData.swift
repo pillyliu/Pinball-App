@@ -1,6 +1,7 @@
 import Foundation
 
 nonisolated let hostedOPDBExportPath = "/pinball/data/opdb_export.json"
+nonisolated let hostedPracticeIdentityCurationsPath = "/pinball/data/practice_identity_curations_v1.json"
 nonisolated let hostedRulesheetAssetsPath = "/pinball/data/rulesheet_assets.json"
 nonisolated let hostedVideoAssetsPath = "/pinball/data/video_assets.json"
 nonisolated let hostedPlayfieldAssetsPath = "/pinball/data/playfield_assets.json"
@@ -16,6 +17,7 @@ nonisolated let hostedResolvedLeagueTargetsPath = "/pinball/data/lpl_targets_res
 nonisolated let hostedLeagueMachineMappingsPath = "/pinball/data/lpl_machine_mappings_v1.json"
 nonisolated let hostedCAFDataPaths = [
     hostedOPDBExportPath,
+    hostedPracticeIdentityCurationsPath,
     hostedRulesheetAssetsPath,
     hostedVideoAssetsPath,
     hostedPlayfieldAssetsPath,
@@ -25,6 +27,7 @@ nonisolated let hostedCAFDataPaths = [
 ]
 nonisolated let hostedPinballRefreshTargets: [(path: String, allowMissing: Bool)] = [
     (hostedOPDBExportPath, false),
+    (hostedPracticeIdentityCurationsPath, true),
     (hostedRulesheetAssetsPath, true),
     (hostedVideoAssetsPath, true),
     (hostedPlayfieldAssetsPath, true),
@@ -48,7 +51,14 @@ func loadHostedCatalogManufacturerOptions() async throws -> [PinballCatalogManuf
         allowMissing: true
     ),
        !rawData.isEmpty {
-        return try decodeCatalogManufacturerOptionsFromOPDBExport(data: rawData)
+        let practiceIdentityCurationsData = try await loadHostedOrCachedPinballJSONData(
+            path: hostedPracticeIdentityCurationsPath,
+            allowMissing: true
+        )
+        return try decodeCatalogManufacturerOptionsFromOPDBExport(
+            data: rawData,
+            practiceIdentityCurationsData: practiceIdentityCurationsData
+        )
     }
     return []
 }

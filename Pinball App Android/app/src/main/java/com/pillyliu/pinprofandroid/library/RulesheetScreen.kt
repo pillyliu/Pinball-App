@@ -123,7 +123,7 @@ private fun ExternalRulesheetWebView(url: String, modifier: Modifier = Modifier)
 @Composable
 internal fun RulesheetScreen(
     contentPadding: PaddingValues,
-    slug: String,
+    gameId: String,
     title: String? = null,
     pathCandidates: List<String>? = null,
     externalSource: RulesheetRemoteSource? = null,
@@ -133,23 +133,23 @@ internal fun RulesheetScreen(
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("rulesheet-progress-v1", android.content.Context.MODE_PRIVATE) }
-    var status by rememberSaveable(slug) { mutableStateOf("loading") }
-    var content by rememberSaveable(slug) { mutableStateOf<RulesheetRenderContent?>(null) }
-    var chromeVisible by rememberSaveable(slug) { mutableStateOf(false) }
-    var progressRatio by rememberSaveable(slug) { mutableFloatStateOf(0f) }
-    var savedRatio by rememberSaveable(slug) { mutableFloatStateOf(0f) }
-    var showResumePrompt by rememberSaveable(slug) { mutableStateOf(false) }
-    var evaluatedResumePrompt by rememberSaveable(slug) { mutableStateOf(false) }
-    var resumeTargetRatio by rememberSaveable(slug) { mutableStateOf<Float?>(null) }
-    var resumeRequestId by rememberSaveable(slug) { mutableIntStateOf(0) }
+    var status by rememberSaveable(gameId) { mutableStateOf("loading") }
+    var content by rememberSaveable(gameId) { mutableStateOf<RulesheetRenderContent?>(null) }
+    var chromeVisible by rememberSaveable(gameId) { mutableStateOf(false) }
+    var progressRatio by rememberSaveable(gameId) { mutableFloatStateOf(0f) }
+    var savedRatio by rememberSaveable(gameId) { mutableFloatStateOf(0f) }
+    var showResumePrompt by rememberSaveable(gameId) { mutableStateOf(false) }
+    var evaluatedResumePrompt by rememberSaveable(gameId) { mutableStateOf(false) }
+    var resumeTargetRatio by rememberSaveable(gameId) { mutableStateOf<Float?>(null) }
+    var resumeRequestId by rememberSaveable(gameId) { mutableIntStateOf(0) }
 
-    androidx.compose.runtime.LaunchedEffect(slug, practiceSavedRatio) {
-        val key = "rulesheet-last-progress-$slug"
+    androidx.compose.runtime.LaunchedEffect(gameId, practiceSavedRatio) {
+        val key = "rulesheet-last-progress-$gameId"
         val stored = prefs.getFloat(key, 0f).coerceIn(0f, 1f)
         savedRatio = (practiceSavedRatio ?: stored).coerceIn(0f, 1f)
     }
 
-    androidx.compose.runtime.LaunchedEffect(slug, externalSource?.url) {
+    androidx.compose.runtime.LaunchedEffect(gameId, externalSource?.url) {
         if (status == "loaded" || status == "missing") return@LaunchedEffect
         externalSource?.let { source ->
             runCatching { withContext(Dispatchers.IO) { RemoteRulesheetLoader.load(source) } }
@@ -163,7 +163,7 @@ internal fun RulesheetScreen(
             return@LaunchedEffect
         }
         val candidates = (pathCandidates?.filter { it.isNotBlank() } ?: emptyList())
-            .ifEmpty { listOf("/pinball/rulesheets/$slug.md") }
+            .ifEmpty { listOf("/pinball/rulesheets/$gameId.md") }
         var sawMissing = false
         for (candidate in candidates) {
             val cached = PinballDataCache.loadText(candidate, allowMissing = true)
@@ -202,7 +202,7 @@ internal fun RulesheetScreen(
                     RulesheetContentWebView(
                         content = it,
                         modifier = Modifier.fillMaxSize(),
-                        stateKey = "rulesheet-$slug-${externalSource?.url.orEmpty()}",
+                        stateKey = "rulesheet-$gameId-${externalSource?.url.orEmpty()}",
                         resumeRequestId = resumeRequestId,
                         resumeTargetRatio = resumeTargetRatio,
                         onTap = { chromeVisible = !chromeVisible },
@@ -237,7 +237,7 @@ internal fun RulesheetScreen(
                         .clickable {
                             val clamped = progressRatio.coerceIn(0f, 1f)
                             savedRatio = clamped
-                            prefs.edit { putFloat("rulesheet-last-progress-$slug", clamped) }
+                            prefs.edit { putFloat("rulesheet-last-progress-$gameId", clamped) }
                             onSavePracticeRatio?.invoke(clamped)
                         },
                 ) {
@@ -276,7 +276,7 @@ internal fun RulesheetScreen(
                             .padding(horizontal = 6.dp, vertical = 4.dp),
                     ) {
                         AppScreenHeader(
-                            title = title ?: slug.replace('-', ' ').replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },
+                            title = title ?: gameId.replace('-', ' ').replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() },
                             onBack = onBack,
                             titleColor = Color.White,
                         )

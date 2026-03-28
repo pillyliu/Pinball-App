@@ -231,6 +231,7 @@ extension PracticeStore {
         state.leagueSettings.playerName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
         state.leagueSettings.csvAutoFillEnabled = true
         saveState()
+        notifyLeaguePreviewNeedsRefresh()
     }
 
     func rulesheetResumeOffset(for gameID: String) -> Double {

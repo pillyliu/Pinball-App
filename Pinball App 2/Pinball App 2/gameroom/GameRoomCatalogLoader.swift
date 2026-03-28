@@ -64,11 +64,18 @@ final class GameRoomCatalogLoader: ObservableObject {
     }
 
     private func loadCatalogGames() async throws -> [GameRoomCatalogGame] {
+        let practiceIdentityCurationsData = try await loadHostedOrCachedPinballJSONData(
+            path: hostedPracticeIdentityCurationsPath,
+            allowMissing: true
+        )
         guard let rawData = try await loadHostedOrCachedPinballJSONData(
             path: hostedOPDBExportPath,
             allowMissing: true
         ),
-        let rawMachines = try? decodeOPDBExportCatalogMachines(data: rawData),
+        let rawMachines = try? decodeOPDBExportCatalogMachines(
+            data: rawData,
+            practiceIdentityCurationsData: practiceIdentityCurationsData
+        ),
         !rawMachines.isEmpty else {
             throw URLError(.resourceUnavailable)
         }
@@ -112,8 +119,15 @@ final class GameRoomCatalogLoader: ObservableObject {
     }
 
     func game(for catalogGameID: String, variant: String?) -> GameRoomCatalogGame? {
-        if Self.normalizedVariant(variant) != nil {
-            let matches = games(for: catalogGameID).filter {
+        if let normalizedVariant = Self.normalizedVariant(variant) {
+            let grouped = games(for: catalogGameID)
+            let exactMatches = grouped.filter {
+                Self.exactVariantMatchesSelection(candidate: $0.displayVariant, selected: normalizedVariant)
+            }
+            if !exactMatches.isEmpty {
+                return Self.preferredGame(in: exactMatches)
+            }
+            let matches = grouped.filter {
                 Self.variantMatchesSelection(candidate: $0.displayVariant, selected: variant)
             }
             if !matches.isEmpty {
@@ -146,6 +160,13 @@ final class GameRoomCatalogLoader: ObservableObject {
                Self.normalizedVariant($0.displayVariant) == normalizedVariant
            }) {
             return exact.opdbID
+        }
+
+        if let normalizedVariant,
+           let exactVariantMatch = grouped.first(where: {
+               Self.exactVariantMatchesSelection(candidate: $0.displayVariant, selected: normalizedVariant)
+           }) {
+            return exactVariantMatch.opdbID
         }
 
         if let normalizedVariant,
@@ -204,6 +225,13 @@ final class GameRoomCatalogLoader: ObservableObject {
         }
 
         if let normalizedVariant {
+            let exactVariantMatches = grouped.filter {
+                Self.exactVariantMatchesSelection(candidate: $0.displayVariant, selected: normalizedVariant)
+            }
+            rawCandidates.append(contentsOf: exactVariantMatches.compactMap(\.primaryImageURL))
+        }
+
+        if let normalizedVariant {
             let variantMatches = grouped.filter {
                 Self.variantMatchesSelection(candidate: $0.displayVariant, selected: normalizedVariant)
             }
@@ -235,7 +263,7 @@ final class GameRoomCatalogLoader: ObservableObject {
         let opdbID = machine.opdbMachineID ?? machine.opdbGroupID ?? machine.practiceIdentity
         return GameRoomCatalogGame(
             id: opdbID,
-            catalogGameID: machine.opdbGroupID ?? machine.opdbMachineID ?? machine.practiceIdentity,
+            catalogGameID: machine.practiceIdentity,
             opdbID: opdbID,
             canonicalPracticeIdentity: machine.practiceIdentity,
             displayTitle: parsedName.title,
@@ -262,7 +290,7 @@ final class GameRoomCatalogLoader: ObservableObject {
         var buckets: [String: Set<String>] = [:]
 
         for machine in machines {
-            let catalogGameID = machine.opdbGroupID ?? machine.opdbMachineID ?? machine.practiceIdentity
+            let catalogGameID = machine.practiceIdentity
             guard let variant = parsedCatalogName(title: machine.name, explicitVariant: machine.variant).variant else { continue }
             buckets[catalogGameID, default: []].insert(variant)
         }
@@ -283,7 +311,7 @@ final class GameRoomCatalogLoader: ObservableObject {
         var matches: [String: GameRoomCatalogSlugMatch] = [:]
 
         for machine in machines {
-            let catalogGameID = machine.opdbGroupID ?? machine.opdbMachineID ?? machine.practiceIdentity
+            let catalogGameID = machine.practiceIdentity
             let parsedName = parsedCatalogName(title: machine.name, explicitVariant: machine.variant)
             let match = GameRoomCatalogSlugMatch(
                 catalogGameID: catalogGameID,
@@ -332,6 +360,7 @@ final class GameRoomCatalogLoader: ObservableObject {
         guard let normalized = normalizedVariant(value)?.localizedLowercase else {
             return 80
         }
+        if normalized == "premium/le" || normalized == "premium le" || normalized == "premium-le" { return 30 }
         if normalized == "premium" || normalized.contains("premium") { return 0 }
         if normalized == "le" || normalized.contains("limited") { return 1 }
         if normalized == "pro" || normalized.contains("pro") { return 2 }
@@ -419,48 +448,20 @@ final class GameRoomCatalogLoader: ObservableObject {
         return false
     }
 
-    private static func parsedCatalogName(title: String, explicitVariant: String?) -> (title: String, variant: String?) {
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalizedExplicitVariant = normalizedVariant(explicitVariant)
-        guard normalizedExplicitVariant == nil else {
-            return (trimmedTitle, normalizedExplicitVariant)
+    private static func exactVariantMatchesSelection(candidate: String?, selected: String?) -> Bool {
+        guard let candidate = normalizedVariant(candidate)?.localizedLowercase,
+              let selected = normalizedVariant(selected)?.localizedLowercase else {
+            return false
         }
-
-        guard trimmedTitle.hasSuffix(")"),
-              let openParenIndex = trimmedTitle.lastIndex(of: "(") else {
-            return (trimmedTitle, nil)
-        }
-
-        let baseTitle = trimmedTitle[..<openParenIndex].trimmingCharacters(in: .whitespacesAndNewlines)
-        let rawVariant = trimmedTitle[
-            trimmedTitle.index(after: openParenIndex)..<trimmedTitle.index(before: trimmedTitle.endIndex)
-        ].trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !baseTitle.isEmpty, let derivedVariant = derivedVariant(fromTitleSuffix: rawVariant) else {
-            return (trimmedTitle, nil)
-        }
-        return (baseTitle, derivedVariant)
+        return candidate == selected
     }
 
-    private static func derivedVariant(fromTitleSuffix value: String) -> String? {
-        let lowered = value.trimmingCharacters(in: .whitespacesAndNewlines).localizedLowercase
-        guard !lowered.isEmpty else { return nil }
-        guard lowered == "premium" ||
-                lowered == "pro" ||
-                lowered == "le" ||
-                lowered == "ce" ||
-                lowered == "se" ||
-                lowered.contains("anniversary") ||
-                lowered.contains("limited edition") ||
-                lowered.contains("special edition") ||
-                lowered.contains("collector") ||
-                lowered == "premium/le" ||
-                lowered == "premium le" ||
-                lowered == "premium-le" ||
-                lowered == "home" else {
-            return nil
-        }
-        return normalizedVariant(value)
+    private static func parsedCatalogName(title: String, explicitVariant: String?) -> (title: String, variant: String?) {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (
+            catalogResolvedDisplayTitle(title: trimmedTitle, explicitVariant: explicitVariant),
+            catalogResolvedVariantLabel(title: trimmedTitle, explicitVariant: explicitVariant)
+        )
     }
 
     private static func normalizedCatalogGameID(_ value: String) -> String {

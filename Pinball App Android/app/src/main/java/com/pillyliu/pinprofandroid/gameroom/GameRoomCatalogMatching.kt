@@ -98,6 +98,7 @@ internal fun compareSortedCatalogGames(
 internal fun gameRoomVariantPreferenceRank(value: String?): Int {
     val normalized = value?.trim()?.takeIf { it.isNotEmpty() }?.lowercase(Locale.getDefault()) ?: return 80
     return when {
+        normalized == "premium/le" || normalized == "premium le" || normalized == "premium-le" -> 30
         normalized == "premium" || normalized.contains("premium") -> 0
         normalized == "le" || normalized.contains("limited") -> 1
         normalized == "pro" || normalized.contains("pro") -> 2

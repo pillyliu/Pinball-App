@@ -2,6 +2,13 @@ package com.pillyliu.pinprofandroid.practice
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.edit
 
 internal data class LoadedPracticeStatePayload(
@@ -70,4 +77,27 @@ internal fun loadPreferredLeaguePlayerName(prefs: SharedPreferences): String? {
     if (canonicalName.isNotEmpty()) return canonicalName
     val runtimeName = payload.runtime.leaguePlayerName.trim()
     return runtimeName.ifEmpty { null }
+}
+
+@Composable
+internal fun rememberPreferredLeaguePlayerName(): String {
+    val context = LocalContext.current
+    val prefs = remember(context) { practiceSharedPreferences(context) }
+    var preferredLeaguePlayerName by remember(context) {
+        mutableStateOf(loadPreferredLeaguePlayerName(prefs).orEmpty())
+    }
+
+    DisposableEffect(prefs) {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == PRACTICE_STATE_KEY || key == LEGACY_PRACTICE_STATE_KEY) {
+                preferredLeaguePlayerName = loadPreferredLeaguePlayerName(prefs).orEmpty()
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            prefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+
+    return preferredLeaguePlayerName
 }

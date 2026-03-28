@@ -280,8 +280,8 @@ extension View {
         self
             .listStyle(.plain)
             .listSectionSpacing(0)
-            .contentMargins(.top, 0, for: .scrollContent)
-            .contentMargins(.top, 0, for: .scrollIndicators)
+            .contentMargins(.vertical, 0, for: .scrollContent)
+            .contentMargins(.vertical, 0, for: .scrollIndicators)
             .scrollContentBackground(.hidden)
             .environment(\.defaultMinListRowHeight, 1)
             .environment(\.defaultMinListHeaderHeight, 1)

@@ -89,18 +89,12 @@ internal fun LibraryDetailSummaryCard(
     }
     val displayedRulesheetLinks = game.displayedRulesheetLinks
     CardContainer {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        AppCardTitleWithVariant(
+            text = game.name,
+            variant = game.normalizedVariant,
+            maxLines = 2,
             modifier = Modifier.fillMaxWidth(),
-        ) {
-            AppCardTitleWithVariant(
-                text = game.name,
-                variant = game.normalizedVariant,
-                maxLines = 2,
-                modifier = Modifier.weight(1f),
-            )
-        }
+        )
         AppCardSubheading(game.metaLine())
         Column(
             verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -187,7 +181,7 @@ internal fun LibraryDetailVideosCard(
                                     width = tileWidth,
                                     onSelect = {
                                         onActiveVideoIdChange(video.id)
-                                        LibraryActivityLog.log(context, game.slug, game.name, LibraryActivityKind.TapVideo, video.label)
+                                        LibraryActivityLog.log(context, game.libraryRouteId, game.name, LibraryActivityKind.TapVideo, video.label)
                                     },
                                 )
                             }

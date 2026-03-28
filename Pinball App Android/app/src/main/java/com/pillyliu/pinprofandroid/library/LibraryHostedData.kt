@@ -6,6 +6,7 @@ import com.pillyliu.pinprofandroid.data.PinballDataCache
 
 internal const val HOSTED_LIBRARY_REFRESH_INTERVAL_MS = 24L * 60L * 60L * 1000L
 internal const val hostedOPDBExportPath = "/pinball/data/opdb_export.json"
+internal const val hostedPracticeIdentityCurationsPath = "/pinball/data/practice_identity_curations_v1.json"
 internal const val hostedRulesheetAssetsPath = "/pinball/data/rulesheet_assets.json"
 internal const val hostedVideoAssetsPath = "/pinball/data/video_assets.json"
 internal const val hostedPlayfieldAssetsPath = "/pinball/data/playfield_assets.json"
@@ -21,6 +22,7 @@ internal const val hostedResolvedLeagueTargetsPath = "/pinball/data/lpl_targets_
 internal const val hostedLeagueMachineMappingsPath = "/pinball/data/lpl_machine_mappings_v1.json"
 internal val HOSTED_LIBRARY_PATHS = listOf(
     hostedOPDBExportPath,
+    hostedPracticeIdentityCurationsPath,
     hostedRulesheetAssetsPath,
     hostedVideoAssetsPath,
     hostedPlayfieldAssetsPath,
@@ -35,6 +37,7 @@ internal data class HostedPinballRefreshTarget(
 
 internal val HOSTED_PINBALL_REFRESH_TARGETS = listOf(
     HostedPinballRefreshTarget(path = hostedOPDBExportPath, allowMissing = false),
+    HostedPinballRefreshTarget(path = hostedPracticeIdentityCurationsPath, allowMissing = true),
     HostedPinballRefreshTarget(path = hostedRulesheetAssetsPath, allowMissing = true),
     HostedPinballRefreshTarget(path = hostedVideoAssetsPath, allowMissing = true),
     HostedPinballRefreshTarget(path = hostedPlayfieldAssetsPath, allowMissing = true),
@@ -56,6 +59,7 @@ internal suspend fun loadHostedLibraryExtraction(
 ): LegacyCatalogExtraction {
     val opdbExportText = loadHostedOrCachedPinballText(hostedOPDBExportPath, allowMissing = false)
         ?: error("Missing OPDB export")
+    val practiceIdentityCurationsText = loadHostedOrCachedPinballText(hostedPracticeIdentityCurationsPath, allowMissing = true)
     val rulesheetAssetsText = loadHostedOrCachedPinballText(hostedRulesheetAssetsPath, allowMissing = true)
     val videoAssetsText = loadHostedOrCachedPinballText(hostedVideoAssetsPath, allowMissing = true)
     val playfieldAssetsText = loadHostedOrCachedPinballText(hostedPlayfieldAssetsPath, allowMissing = true)
@@ -65,6 +69,7 @@ internal suspend fun loadHostedLibraryExtraction(
     return buildCAFLibraryExtraction(
         context = context,
         opdbExportRaw = opdbExportText,
+        practiceIdentityCurationsRaw = practiceIdentityCurationsText,
         rulesheetAssetsRaw = rulesheetAssetsText,
         videoAssetsRaw = videoAssetsText,
         playfieldAssetsRaw = playfieldAssetsText,
@@ -112,5 +117,9 @@ internal suspend fun loadHostedCatalogManufacturerOptions(context: Context): Lis
         path = hostedOPDBExportPath,
         allowMissing = true,
     ) ?: return emptyList()
-    return decodeCatalogManufacturerOptionsFromOPDBExport(hostedText)
+    val practiceIdentityCurationsText = loadHostedOrCachedPinballText(
+        path = hostedPracticeIdentityCurationsPath,
+        allowMissing = true,
+    )
+    return decodeCatalogManufacturerOptionsFromOPDBExport(hostedText, practiceIdentityCurationsText)
 }

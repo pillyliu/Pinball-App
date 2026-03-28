@@ -232,7 +232,7 @@ class PracticeLeagueImportTest {
         assertEquals(0, result.duplicatesSkipped)
         assertEquals(0, result.unmatchedRows)
         assertEquals(
-            listOf(Triple("willy-wonka-and-the-chocolate-factory-le", 12_345_678.0, eventDateMs)),
+            listOf(Triple("GYWBZ-MW9B0", 12_345_678.0, eventDateMs)),
             captured,
         )
     }

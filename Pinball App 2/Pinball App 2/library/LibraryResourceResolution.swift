@@ -200,6 +200,16 @@ extension PinballGame {
         usesBundledOnlyAppAssetException ? "Local" : "PinProf"
     }
 
+    private var hasSplitPracticeIdentity: Bool {
+        guard let practiceIdentity = practiceIdentity?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !practiceIdentity.isEmpty,
+              let opdbGroupID = opdbGroupID?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !opdbGroupID.isEmpty else {
+            return false
+        }
+        return practiceIdentity.caseInsensitiveCompare(opdbGroupID) != .orderedSame
+    }
+
     nonisolated var opdbGroupID: String? {
         guard let opdbID else { return nil }
         let trimmed = opdbID.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -401,15 +411,9 @@ extension PinballGame {
     }
 
     var localAssetKey: String? {
-        if let practiceIdentity {
-            let trimmed = practiceIdentity.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { return trimmed }
-        }
-        if let opdbGroupID {
-            let trimmed = opdbGroupID.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { return trimmed }
-        }
-        return nil
+        guard let practiceIdentity else { return nil }
+        let trimmed = practiceIdentity.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private var playfieldAssetKeys: [String] {
@@ -422,20 +426,11 @@ extension PinballGame {
             keys.append(trimmed)
         }
 
-        if let opdbID {
-            let components = opdbID
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .split(separator: "-")
-                .map(String.init)
-            if !components.isEmpty {
-                for count in stride(from: components.count, through: 1, by: -1) {
-                    append(components.prefix(count).joined(separator: "-"))
-                }
-            }
-        }
-
+        append(opdbID)
         append(localAssetKey)
-        append(opdbGroupID)
+        if !hasSplitPracticeIdentity {
+            append(opdbGroupID)
+        }
         return keys
     }
 

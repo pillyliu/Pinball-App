@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -271,7 +272,11 @@ internal fun MachineListRow(
                     }
                 }
                 Text(
-                    text = "$areaName • G${machine.groupNumber ?: "—"} • P${machine.position ?: "—"}",
+                    text = gameRoomLocationText(
+                        areaName = areaName,
+                        groupNumber = machine.groupNumber,
+                        position = machine.position,
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = if (imageUrl.isNullOrBlank()) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.86f),
                     maxLines = 1,
@@ -373,7 +378,8 @@ internal fun GameRoomVariantPill(
                     RoundedCornerShape(999.dp),
                 )
                 .border(1.dp, colors.brandGold.copy(alpha = 0.42f), RoundedCornerShape(999.dp))
-                .padding(horizontal = if (style == VariantPillStyle.Mini) 6.dp else 8.dp, vertical = 3.dp),
+                .padding(horizontal = if (style == VariantPillStyle.Mini) 6.dp else 8.dp, vertical = 3.dp)
+                .offset(y = (-1).dp),
         )
         return
     }
@@ -393,7 +399,12 @@ internal fun GameRoomVariantPill(
 
 internal fun gameRoomVariantBadgeLabel(variant: String?, title: String): String? {
     val explicit = variant?.trim().orEmpty()
-    if (explicit.isNotBlank() && !explicit.equals("null", ignoreCase = true) && !explicit.equals("none", ignoreCase = true)) {
+    if (explicit.isNotBlank() &&
+        !explicit.equals("null", ignoreCase = true) &&
+        !explicit.equals("none", ignoreCase = true) &&
+        !explicit.equals("premium/le", ignoreCase = true) &&
+        !explicit.equals("premium le", ignoreCase = true) &&
+        !explicit.equals("premium-le", ignoreCase = true)) {
         return explicit
     }
 
@@ -413,10 +424,45 @@ private fun compactVariantLabel(label: String): String {
     return "${trimmed.take((maxAllowed - 1).coerceAtLeast(0))}…"
 }
 
+internal fun gameRoomLocationText(
+    areaName: String?,
+    groupNumber: Int?,
+    position: Int?,
+): String {
+    val group = groupNumber?.toString() ?: "—"
+    val pos = position?.toString() ?: "—"
+    val normalizedArea = areaName
+        ?.trim()
+        ?.takeUnless {
+            it.isBlank() ||
+                it.equals("null", ignoreCase = true) ||
+                it.equals("no area", ignoreCase = true)
+        }
+    return if (normalizedArea != null) {
+        "📍 $normalizedArea:$group:$pos"
+    } else {
+        "📍 $group:$pos"
+    }
+}
+
 internal fun machineLocationLine(machine: OwnedMachine, store: GameRoomStore): String {
-    val areaName = store.area(machine.gameRoomAreaID)?.name ?: "No area"
-    val statusLabel = machine.status.name.replaceFirstChar { it.uppercase() }
-    return "Location: $areaName • Group ${machine.groupNumber ?: "—"} • Position ${machine.position ?: "—"} • $statusLabel"
+    return gameRoomLocationText(
+        areaName = store.area(machine.gameRoomAreaID)?.name,
+        groupNumber = machine.groupNumber,
+        position = machine.position,
+    )
+}
+
+internal fun gameRoomMachineMetaLine(machine: OwnedMachine, store: GameRoomStore): String {
+    val parts = mutableListOf<String>()
+    machine.manufacturer?.trim()?.takeUnless { it.isBlank() || it.equals("null", ignoreCase = true) }?.let { parts += it }
+    machine.year?.let { parts += it.toString() }
+    parts += machineLocationLine(machine, store)
+    return parts.joinToString(" • ")
+}
+
+internal fun gameRoomStatusLabel(status: OwnedMachineStatus): String {
+    return status.name.replaceFirstChar { it.uppercase() }
 }
 
 internal fun displayMachineEventType(type: MachineEventType): String {

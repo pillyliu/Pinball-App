@@ -47,9 +47,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
+import com.pillyliu.pinprofandroid.data.leaguePlayerNamesMatch
 import com.pillyliu.pinprofandroid.data.parseCsv
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinprofandroid.league.LeaguePreviewRefreshEvents
+import com.pillyliu.pinprofandroid.practice.rememberPreferredLeaguePlayerName
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
 import com.pillyliu.pinprofandroid.ui.AppScreen
@@ -60,6 +62,7 @@ import com.pillyliu.pinprofandroid.ui.AppRefreshStatusRow
 import com.pillyliu.pinprofandroid.ui.DropdownOption
 import com.pillyliu.pinprofandroid.ui.FixedWidthTableCell
 import com.pillyliu.pinprofandroid.ui.InsetFilterHeader
+import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -115,6 +118,7 @@ fun StatsScreen(
     onBack: (() -> Unit)? = null,
 ) {
     val showFullLplLastName = rememberShowFullLplLastName()
+    val preferredLeaguePlayerName = rememberPreferredLeaguePlayerName()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -320,6 +324,7 @@ fun StatsScreen(
                         StatsTable(
                             filtered = filtered,
                             showFullLplLastName = showFullLplLastName,
+                            preferredLeaguePlayerName = preferredLeaguePlayerName,
                             isRefreshing = isRefreshing,
                             initialLoadComplete = initialLoadComplete,
                             modifier = Modifier.fillMaxSize(),
@@ -348,6 +353,7 @@ fun StatsScreen(
                         StatsTable(
                             filtered = filtered,
                             showFullLplLastName = showFullLplLastName,
+                            preferredLeaguePlayerName = preferredLeaguePlayerName,
                             isRefreshing = isRefreshing,
                             initialLoadComplete = initialLoadComplete,
                             modifier = Modifier.fillMaxSize(),
@@ -405,6 +411,7 @@ fun StatsScreen(
 private fun StatsTable(
     filtered: List<ScoreRow>,
     showFullLplLastName: Boolean,
+    preferredLeaguePlayerName: String,
     isRefreshing: Boolean,
     initialLoadComplete: Boolean,
     modifier: Modifier = Modifier,
@@ -450,18 +457,25 @@ private fun StatsTable(
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f, fill = true)) {
                         itemsIndexed(filtered, key = { _, row -> row.id }) { _, row ->
+                            val isHighlighted = leaguePlayerNamesMatch(row.player, preferredLeaguePlayerName)
+                            val accentColor = if (isHighlighted) PinballThemeTokens.colors.statsMeanMedian else Color.Unspecified
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(if (row.id % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerHigh)
                                     .padding(vertical = 6.dp),
                             ) {
-                                FixedWidthTableCell(row.season, widths.season)
-                                FixedWidthTableCell(row.bankNumber.toString(), widths.bank)
-                                FixedWidthTableCell(formatLplPlayerNameForDisplay(row.player, showFullLplLastName), widths.player)
-                                FixedWidthTableCell(row.machine, widths.machine)
-                                FixedWidthTableCell(formatInt(row.rawScore), widths.score)
-                                FixedWidthTableCell(formatInt(row.points), widths.points)
+                                FixedWidthTableCell(row.season, widths.season, bold = isHighlighted)
+                                FixedWidthTableCell(row.bankNumber.toString(), widths.bank, bold = isHighlighted)
+                                FixedWidthTableCell(
+                                    formatLplPlayerNameForDisplay(row.player, showFullLplLastName),
+                                    widths.player,
+                                    bold = isHighlighted,
+                                    color = accentColor,
+                                )
+                                FixedWidthTableCell(row.machine, widths.machine, bold = isHighlighted)
+                                FixedWidthTableCell(formatInt(row.rawScore), widths.score, bold = isHighlighted, color = accentColor)
+                                FixedWidthTableCell(formatInt(row.points), widths.points, bold = isHighlighted, color = accentColor)
                             }
                         }
                     }

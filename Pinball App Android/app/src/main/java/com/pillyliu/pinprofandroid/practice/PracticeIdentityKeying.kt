@@ -11,8 +11,8 @@ import java.util.Locale
 
 internal val PinballGame.practiceKey: String
     get() = practiceIdentity?.trim()?.takeIf { it.isNotBlank() }
-        ?: opdbGroupId?.trim()?.takeIf { it.isNotBlank() }
-        ?: slug
+        ?: opdbId?.trim()?.takeIf { it.isNotBlank() }
+        ?: ""
 
 private val PinballGame.lookupId: String
     get() = libraryEntryId?.trim()?.takeIf { it.isNotBlank() }
@@ -54,7 +54,7 @@ internal fun PinballGame.matchesPracticeLookupKey(value: String?): Boolean {
     val key = parsed.gameID.trim()
     if (key.isBlank()) return false
     if (parsed.sourceID != null && canonicalLibrarySourceId(sourceId) != parsed.sourceID) return false
-    return key == lookupId || key == practiceKey || key == slug
+    return key == lookupId || key == practiceKey
 }
 
 internal fun findGameByPracticeLookupKey(games: List<PinballGame>, value: String?): PinballGame? {
@@ -65,11 +65,6 @@ internal fun findGameByPracticeLookupKey(games: List<PinballGame>, value: String
         it.lookupId == key && (parsed.sourceID == null || canonicalLibrarySourceId(it.sourceId) == parsed.sourceID)
     }
     if (exactIdMatch != null) return exactIdMatch
-
-    val exactSlugMatch = games.firstOrNull {
-        it.slug == key && (parsed.sourceID == null || canonicalLibrarySourceId(it.sourceId) == parsed.sourceID)
-    }
-    if (exactSlugMatch != null) return exactSlugMatch
 
     val practiceMatches = games.filter { it.practiceKey == key }
     if (practiceMatches.isNotEmpty()) {
@@ -89,7 +84,6 @@ internal fun gamesByPracticeLookupKey(games: List<PinballGame>): Map<String, Pin
             }
         }
     games.forEach { game ->
-        out.putIfAbsent(game.slug, game)
         out[sourceScopedPracticeGameID(game.sourceId, game.practiceKey)] = game
     }
     return out
@@ -100,7 +94,7 @@ internal fun distinctGamesByPracticeIdentity(games: List<PinballGame>): List<Pin
         .groupBy { it.practiceKey }
         .values
         .mapNotNull(::preferredPracticeRepresentative)
-        .sortedWith(compareBy<PinballGame> { it.name.lowercase(Locale.US) }.thenBy { it.slug.lowercase(Locale.US) })
+        .sortedWith(compareBy<PinballGame> { it.name.lowercase(Locale.US) }.thenBy { it.practiceKey.lowercase(Locale.US) })
 }
 
 private val PRACTICE_IDENTITY_ALIASES: Map<String, String> = emptyMap()
@@ -116,14 +110,12 @@ internal fun canonicalPracticeKey(value: String?, games: List<PinballGame>): Str
         aliased
     }
     return findGameByPracticeLookupKey(games, resolvedLookup)?.practiceKey
-        ?: legacyPracticeKeyMatch(games, aliased)?.practiceKey
         ?: aliased
 }
 
 internal fun canonicalizeGroupSelectionKey(value: String?, games: List<PinballGame>): String {
     val parsed = parseSourceScopedPracticeGameID(value.orEmpty())
     val resolved = findGameByPracticeLookupKey(games, value)
-        ?: legacyPracticeKeyMatch(games, parsed.gameID)
         ?: return canonicalPracticeKey(value, games)
     return parsed.sourceID?.let { sourceScopedPracticeGameID(it, resolved.practiceKey) } ?: resolved.practiceKey
 }
@@ -208,28 +200,6 @@ internal fun migrateCanonicalPracticeStateKeys(
     )
 }
 
-internal fun legacyPracticeKeyMatch(games: List<PinballGame>, raw: String): PinballGame? {
-    extractLikelyOpdbGroup(raw)?.let { token ->
-        games.firstOrNull { it.practiceKey.equals(token, ignoreCase = true) }?.let { return it }
-    }
-    val normalized = normalizedLegacyGameKey(raw)
-    if (normalized.isBlank()) return null
-    return games.firstOrNull { normalizedLegacyGameKey(it.slug) == normalized }
-        ?: games.firstOrNull { normalizedLegacyGameKey(it.practiceKey) == normalized }
-}
-
-private fun extractLikelyOpdbGroup(raw: String): String? {
-    val match = Regex("\\bG[0-9A-Za-z]{4,}\\b", RegexOption.IGNORE_CASE).find(raw) ?: return null
-    return match.value
-}
-
-private fun normalizedLegacyGameKey(raw: String): String =
-    raw.trim()
-        .lowercase(Locale.US)
-        .replace("&", "and")
-        .replace(Regex("[^a-z0-9]+"), "-")
-        .trim('-')
-
 private fun preferredPracticeRepresentative(
     games: List<PinballGame>,
     preferredSourceId: String? = null,
@@ -241,7 +211,7 @@ private fun preferredPracticeRepresentative(
                 .ifEmpty { games }
         }
         ?: games
-    return candidateGames.maxWithOrNull(compareBy<PinballGame>(::practiceRepresentativeScore).thenBy { it.slug })
+    return candidateGames.maxWithOrNull(compareBy<PinballGame>(::practiceRepresentativeScore).thenBy { it.practiceKey })
 }
 
 private fun practiceRepresentativeScore(game: PinballGame): Int {

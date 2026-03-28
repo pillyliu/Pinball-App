@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -40,9 +39,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
+import com.pillyliu.pinprofandroid.data.leaguePlayerNamesMatch
 import com.pillyliu.pinprofandroid.data.parseCsv
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinprofandroid.league.LeaguePreviewRefreshEvents
+import com.pillyliu.pinprofandroid.practice.rememberPreferredLeaguePlayerName
 import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
 import com.pillyliu.pinprofandroid.ui.AppRefreshStatusRow
@@ -52,6 +53,7 @@ import com.pillyliu.pinprofandroid.ui.CompactDropdownFilter
 import com.pillyliu.pinprofandroid.ui.EmptyLabel
 import com.pillyliu.pinprofandroid.ui.FixedWidthTableCell
 import com.pillyliu.pinprofandroid.ui.InsetFilterHeader
+import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -94,6 +96,7 @@ fun StandingsScreen(
     onBack: (() -> Unit)? = null,
 ) {
     val showFullLplLastName = rememberShowFullLplLastName()
+    val preferredLeaguePlayerName = rememberPreferredLeaguePlayerName()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -219,7 +222,13 @@ fun StandingsScreen(
                                         .verticalScroll(rememberScrollState()),
                                 ) {
                                     standingRows.forEachIndexed { index, standing ->
-                                        StandingRow(rank = index + 1, standing = standing, widths = widths, showFullLplLastName = showFullLplLastName)
+                                        StandingRow(
+                                            rank = index + 1,
+                                            standing = standing,
+                                            widths = widths,
+                                            showFullLplLastName = showFullLplLastName,
+                                            isHighlighted = leaguePlayerNamesMatch(standing.rawPlayer, preferredLeaguePlayerName),
+                                        )
                                     }
                                 }
                             }
@@ -264,29 +273,44 @@ private fun HeaderRow(widths: StandingsWidths) {
 }
 
 @Composable
-private fun StandingRow(rank: Int, standing: Standing, widths: StandingsWidths, showFullLplLastName: Boolean) {
-    val rankColor = podiumRankColor(rank)
+private fun StandingRow(
+    rank: Int,
+    standing: Standing,
+    widths: StandingsWidths,
+    showFullLplLastName: Boolean,
+    isHighlighted: Boolean,
+) {
+    val colors = PinballThemeTokens.colors
+    val highlightedTextColor = colors.statsMeanMedian
+    val rankColor = if (isHighlighted && rank > 3) highlightedTextColor else podiumRankColor(rank)
+    val playerColor = if (isHighlighted) highlightedTextColor else Color.Unspecified
+    val dataColor = if (isHighlighted) highlightedTextColor else Color.Unspecified
     Row(
         modifier = Modifier
             .background(if (rank % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(vertical = 6.dp),
     ) {
-        FixedWidthTableCell(rank.toString(), widths.rank, color = rankColor, bold = rank <= 3)
-        FixedWidthTableCell(formatLplPlayerNameForDisplay(standing.rawPlayer, showFullLplLastName), widths.player, bold = rank <= 8)
-        FixedWidthTableCell(fmt(standing.seasonTotal), widths.points)
-        FixedWidthTableCell(standing.eligible, widths.eligible)
-        FixedWidthTableCell(standing.nights, widths.nights)
-        standing.banks.forEach { FixedWidthTableCell(fmt(it), widths.bank) }
+        FixedWidthTableCell(rank.toString(), widths.rank, color = rankColor, bold = isHighlighted || rank <= 3)
+        FixedWidthTableCell(
+            formatLplPlayerNameForDisplay(standing.rawPlayer, showFullLplLastName),
+            widths.player,
+            bold = isHighlighted || rank <= 8,
+            color = playerColor,
+        )
+        FixedWidthTableCell(fmt(standing.seasonTotal), widths.points, bold = isHighlighted, color = dataColor)
+        FixedWidthTableCell(standing.eligible, widths.eligible, bold = isHighlighted, color = dataColor)
+        FixedWidthTableCell(standing.nights, widths.nights, bold = isHighlighted, color = dataColor)
+        standing.banks.forEach { FixedWidthTableCell(fmt(it), widths.bank, bold = isHighlighted, color = dataColor) }
     }
 }
 
 @Composable
 private fun podiumRankColor(rank: Int): Color {
-    val darkMode = isSystemInDarkTheme()
+    val colors = PinballThemeTokens.colors
     return when (rank) {
-        1 -> if (darkMode) Color(0xFFFFD83D) else Color(0xFF8A5A00)
-        2 -> Color(0xFF98A3B3)
-        3 -> Color(0xFFC1845B)
+        1 -> colors.podiumGold
+        2 -> colors.podiumSilver
+        3 -> colors.podiumBronze
         else -> MaterialTheme.colorScheme.onSurface
     }
 }

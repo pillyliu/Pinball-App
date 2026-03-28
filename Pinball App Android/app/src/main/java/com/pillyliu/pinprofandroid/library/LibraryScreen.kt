@@ -74,9 +74,9 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
         route = when (val current = route) {
             LibraryRoute.List -> LibraryRoute.List
             is LibraryRoute.Detail -> LibraryRoute.List
-            is LibraryRoute.Rulesheet -> LibraryRoute.Detail(current.slug)
-            is LibraryRoute.ExternalRulesheet -> LibraryRoute.Detail(current.slug)
-            is LibraryRoute.Playfield -> LibraryRoute.Detail(current.slug)
+            is LibraryRoute.Rulesheet -> LibraryRoute.Detail(current.gameId)
+            is LibraryRoute.ExternalRulesheet -> LibraryRoute.Detail(current.gameId)
+            is LibraryRoute.Playfield -> LibraryRoute.Detail(current.gameId)
         }
     }
     BackHandler(enabled = route != LibraryRoute.List) {
@@ -135,7 +135,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
         }
     }
 
-    val routeGame = route.slug?.let { slug -> games.firstOrNull { it.slug == slug } }
+    val routeGame = route.gameId?.let { gameId -> games.firstOrNull { it.libraryRouteId == gameId } }
 
     androidx.compose.foundation.layout.Box(
         modifier = Modifier.iosEdgeSwipeBack(enabled = route != LibraryRoute.List, onBack = goBack),
@@ -192,10 +192,10 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                 resetListBrowsePosition()
             },
             onOpenGame = {
-                route = LibraryRoute.Detail(it.slug)
-                LibraryActivityLog.log(context, it.slug, it.name, LibraryActivityKind.BrowseGame)
+                route = LibraryRoute.Detail(it.libraryRouteId)
+                LibraryActivityLog.log(context, it.libraryRouteId, it.name, LibraryActivityKind.BrowseGame)
                 prefs.edit {
-                    putString(KEY_LIBRARY_LAST_VIEWED_SLUG, it.slug)
+                    putString(KEY_LIBRARY_LAST_VIEWED_SLUG, it.libraryRouteId)
                     putLong(KEY_LIBRARY_LAST_VIEWED_TS, System.currentTimeMillis())
                 }
             },
@@ -206,7 +206,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                 val game = routeGame ?: return@LibraryRouteContent
                 LibraryActivityLog.log(
                     context,
-                    game.slug,
+                    game.libraryRouteId,
                     game.name,
                     LibraryActivityKind.OpenRulesheet,
                     detail ?: source?.sourceName,
@@ -219,7 +219,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                     null -> null
                 }
                 route = LibraryRoute.Rulesheet(
-                    slug = game.slug,
+                    gameId = game.libraryRouteId,
                     sourceProvider = provider,
                     sourceUrl = source?.url,
                 )
@@ -228,21 +228,21 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                 val game = routeGame ?: return@LibraryRouteContent
                 LibraryActivityLog.log(
                     context,
-                    game.slug,
+                    game.libraryRouteId,
                     game.name,
                     LibraryActivityKind.OpenRulesheet,
                     detail,
                 )
-                route = LibraryRoute.ExternalRulesheet(game.slug, url)
+                route = LibraryRoute.ExternalRulesheet(game.libraryRouteId, url)
             },
             onShowPlayfield = { imageUrls ->
                 val game = routeGame ?: return@LibraryRouteContent
-                LibraryActivityLog.log(context, game.slug, game.name, LibraryActivityKind.OpenPlayfield)
-                route = LibraryRoute.Playfield(game.slug, imageUrls)
+                LibraryActivityLog.log(context, game.libraryRouteId, game.name, LibraryActivityKind.OpenPlayfield)
+                route = LibraryRoute.Playfield(game.libraryRouteId, imageUrls)
             },
             onBackToDetail = {
                 val game = routeGame ?: return@LibraryRouteContent
-                route = LibraryRoute.Detail(game.slug)
+                route = LibraryRoute.Detail(game.libraryRouteId)
             },
         )
     }

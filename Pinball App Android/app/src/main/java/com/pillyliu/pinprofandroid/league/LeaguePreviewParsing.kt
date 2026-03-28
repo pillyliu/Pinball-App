@@ -1,5 +1,6 @@
 package com.pillyliu.pinprofandroid.league
 
+import com.pillyliu.pinprofandroid.data.leaguePlayerNamesMatch
 import com.pillyliu.pinprofandroid.data.parseCsv
 import com.pillyliu.pinprofandroid.library.LibraryGameLookup
 import com.pillyliu.pinprofandroid.library.LibraryGameLookupEntry
@@ -39,10 +40,10 @@ internal fun buildStatsPreview(rows: List<StatsCsvRow>, preferredPlayer: String?
 }
 
 internal fun buildStandingsPreview(rows: List<StandingCsvRow>, selectedPlayer: String?): StandingsPreviewPayload {
-    if (rows.isEmpty()) return StandingsPreviewPayload("Season", emptyList(), emptyList())
-    val latestSeason = rows.maxOfOrNull { it.season } ?: return StandingsPreviewPayload("Season", emptyList(), emptyList())
+    if (rows.isEmpty()) return StandingsPreviewPayload("Season", emptyList(), emptyList(), null)
+    val latestSeason = rows.maxOfOrNull { it.season } ?: return StandingsPreviewPayload("Season", emptyList(), emptyList(), null)
     val seasonRows = rows.filter { it.season == latestSeason }
-    if (seasonRows.isEmpty()) return StandingsPreviewPayload("Season $latestSeason", emptyList(), emptyList())
+    if (seasonRows.isEmpty()) return StandingsPreviewPayload("Season $latestSeason", emptyList(), emptyList(), null)
 
     val sorted = if (seasonRows.all { it.rank != null }) {
         seasonRows.sortedBy { it.rank ?: Int.MAX_VALUE }
@@ -57,11 +58,18 @@ internal fun buildStandingsPreview(rows: List<StandingCsvRow>, selectedPlayer: S
     if (!selectedPlayer.isNullOrBlank()) {
         val selectedIndex = previewRows.indexOfFirst { matchesLeaguePreferredPlayer(it.rawPlayer, selectedPlayer) }
         if (selectedIndex >= 0) {
-            return StandingsPreviewPayload("Season $latestSeason", topRows, leagueAroundRowsWindow(previewRows, selectedIndex))
+            val currentPlayerStanding = previewRows[selectedIndex]
+            val aroundWindowSize = if (currentPlayerStanding.rank > 5) 6 else 5
+            return StandingsPreviewPayload(
+                seasonLabel = "Season $latestSeason",
+                topRows = topRows,
+                aroundRows = leagueAroundRowsWindow(previewRows, selectedIndex, aroundWindowSize),
+                currentPlayerStanding = currentPlayerStanding,
+            )
         }
     }
 
-    return StandingsPreviewPayload("Season $latestSeason", topRows, emptyList())
+    return StandingsPreviewPayload("Season $latestSeason", topRows, emptyList(), null)
 }
 
 internal fun parseStatsRows(text: String): List<StatsCsvRow> {
@@ -177,7 +185,7 @@ internal fun resolveNextBank(statsRows: List<StatsCsvRow>, availableBanks: Set<I
 }
 
 internal fun matchesLeaguePreferredPlayer(candidate: String, preferred: String): Boolean {
-    return normalizeLeagueHumanName(candidate) == normalizeLeagueHumanName(preferred)
+    return leaguePlayerNamesMatch(candidate, preferred)
 }
 
 private fun resolveLeaguePlayerForStats(rows: List<StatsCsvRow>, preferredPlayer: String?): String {
@@ -206,13 +214,6 @@ private fun coerceLeagueSeason(raw: String): Int {
     val trimmed = raw.trim()
     val digits = trimmed.filter { it.isDigit() }
     return digits.toIntOrNull() ?: trimmed.toIntOrNull() ?: 0
-}
-
-private fun normalizeLeagueHumanName(raw: String): String {
-    val normalized = raw.lowercase(Locale.US)
-        .map { ch -> if (ch.isLetterOrDigit() || ch.isWhitespace()) ch else ' ' }
-        .joinToString(separator = "")
-    return normalized.trim().split(Regex("\\s+")).filter { it.isNotBlank() }.joinToString(" ")
 }
 
 private fun leagueAroundRowsWindow(

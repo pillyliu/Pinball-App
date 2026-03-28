@@ -115,7 +115,7 @@ internal fun LibraryList(
                                     games = section.games,
                                     onOpenGame = onOpenGame,
                                     onGameAppear = { game ->
-                                        if (hasMoreGames && visibleGames.lastOrNull()?.slug == game.slug) {
+                                        if (hasMoreGames && visibleGames.lastOrNull()?.libraryRouteId == game.libraryRouteId) {
                                             onVisibleCountChange(visibleCount + 36)
                                         }
                                     },
@@ -126,7 +126,7 @@ internal fun LibraryList(
                                 games = visibleGames,
                                 onOpenGame = onOpenGame,
                                 onGameAppear = { game ->
-                                    if (hasMoreGames && visibleGames.lastOrNull()?.slug == game.slug) {
+                                    if (hasMoreGames && visibleGames.lastOrNull()?.libraryRouteId == game.libraryRouteId) {
                                         onVisibleCountChange(visibleCount + 36)
                                     }
                                 },
@@ -273,7 +273,7 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
             .clickable(onClick = onClick)
             .aspectRatio(4f / 3f),
     ) {
-        androidx.compose.runtime.LaunchedEffect(game.slug) {
+        androidx.compose.runtime.LaunchedEffect(game.libraryRouteId) {
             onAppear()
         }
         Box(modifier = Modifier.fillMaxSize()) {
@@ -336,13 +336,14 @@ private fun LibraryGameCard(game: PinballGame, onClick: () -> Unit, onAppear: ()
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(42.dp),
+                    .height(44.dp),
                 contentAlignment = Alignment.TopStart,
             ) {
                 AppOverlayTitleWithVariant(
                     text = game.name,
                     variant = game.normalizedVariant,
                     modifier = Modifier.fillMaxWidth(),
+                    lineHeight = 20.sp,
                 )
             }
             AppOverlaySubtitle(

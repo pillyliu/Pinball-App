@@ -20,6 +20,7 @@ internal data class LeaguePreviewState(
     val standingsSeasonLabel: String = "Season",
     val standingsTopRows: List<StandingsPreviewRow> = emptyList(),
     val standingsAroundRows: List<StandingsPreviewRow> = emptyList(),
+    val currentPlayerStanding: StandingsPreviewRow? = null,
     val statsRecentRows: List<StatsPreviewRow> = emptyList(),
     val statsRecentBankLabel: String = "Most Recent Bank",
     val statsPlayerRawName: String = "",
@@ -74,4 +75,5 @@ internal data class StandingsPreviewPayload(
     val seasonLabel: String,
     val topRows: List<StandingsPreviewRow>,
     val aroundRows: List<StandingsPreviewRow>,
+    val currentPlayerStanding: StandingsPreviewRow? = null,
 )

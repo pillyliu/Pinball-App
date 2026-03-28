@@ -91,13 +91,13 @@ internal class PracticeScreenState(initialJournalFilter: JournalFilter) {
     }
 
     fun navigateTo(target: PracticeRoute) {
+        if (target == navigation.route) return
         if (target == PracticeRoute.Game) {
             game.subview = PracticeGameSubview.Summary
         }
         if (target != PracticeRoute.Journal) {
             journal.resetSelection()
         }
-        if (target == navigation.route) return
         navigation.routeHistory.add(navigation.route)
         navigation.route = target
     }

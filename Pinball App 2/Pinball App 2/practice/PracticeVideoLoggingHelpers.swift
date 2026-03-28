@@ -67,7 +67,7 @@ func practiceVideoSourceOptions(
     let pool = store.allLibraryGames.isEmpty ? store.games : store.allLibraryGames
 
     let candidates = pool.filter { game in
-        game.canonicalPracticeKey == canonicalID || game.id == gameID || game.slug == gameID
+        game.canonicalPracticeKey == canonicalID || game.id == gameID
     }
 
     if candidates.isEmpty {

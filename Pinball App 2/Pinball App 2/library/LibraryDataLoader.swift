@@ -58,7 +58,14 @@ func loadPracticeCatalogGames() async throws -> [PinballGame] {
         path: hostedOPDBExportPath,
         allowMissing: true
     ) {
-        return try decodePracticeCatalogGamesFromOPDBExport(data: hostedExport)
+        let practiceIdentityCurationsData = try await loadHostedOrCachedPinballJSONData(
+            path: hostedPracticeIdentityCurationsPath,
+            allowMissing: true
+        )
+        return try decodePracticeCatalogGamesFromOPDBExport(
+            data: hostedExport,
+            practiceIdentityCurationsData: practiceIdentityCurationsData
+        )
     }
     return []
 }
@@ -81,6 +88,10 @@ private func loadCAFLibraryExtraction(filterBySourceState: Bool) async throws ->
         path: hostedRulesheetAssetsPath,
         allowMissing: true
     )
+    async let practiceIdentityCurationsTask = loadHostedOrCachedPinballJSONData(
+        path: hostedPracticeIdentityCurationsPath,
+        allowMissing: true
+    )
     async let videoAssetsTask = loadHostedOrCachedPinballJSONData(
         path: hostedVideoAssetsPath,
         allowMissing: true
@@ -100,6 +111,7 @@ private func loadCAFLibraryExtraction(filterBySourceState: Bool) async throws ->
 
     return try buildCAFLibraryExtraction(
         opdbExportData: opdbExportData,
+        practiceIdentityCurationsData: try await practiceIdentityCurationsTask,
         rulesheetAssetsData: try await rulesheetAssetsTask,
         videoAssetsData: try await videoAssetsTask,
         playfieldAssetsData: try await playfieldAssetsTask,
@@ -122,20 +134,14 @@ private func augmentExtractionWithGameRoom(_ extraction: LegacyCatalogExtraction
     var sources = extraction.payload.sources.filter { $0.id != gameRoomSource.id }
     var games = extraction.payload.games.filter { $0.sourceId != gameRoomSource.id }
 
-    guard !gameRoomGames.isEmpty else {
-        return LegacyCatalogExtraction(
-            payload: PinballLibraryPayload(games: games, sources: sources),
-            state: extraction.state
-        )
+    if !gameRoomGames.isEmpty {
+        sources.append(gameRoomSource)
+        games.append(contentsOf: gameRoomGames)
     }
 
-    sources.append(gameRoomSource)
-    games.append(contentsOf: gameRoomGames)
-
-    return LegacyCatalogExtraction(
-        payload: PinballLibraryPayload(games: games, sources: sources),
-        state: extraction.state
-    )
+    let payload = PinballLibraryPayload(games: games, sources: sources)
+    let state = PinballLibrarySourceStateStore.synchronize(with: payload.sources)
+    return LegacyCatalogExtraction(payload: payload, state: state)
 }
 
 private func loadGameRoomLibraryData(extractionGames: [PinballGame]) -> (venueName: String, games: [PinballGame]) {
@@ -334,9 +340,13 @@ private func normalizedGameRoomVenueName(_ raw: String) -> String {
 }
 
 private func loadGameRoomOPDBMediaIndex() -> [String: [GameRoomOPDBMediaRecord]] {
+    let practiceIdentityCurationsData = try? loadCachedPinballData(path: hostedPracticeIdentityCurationsPath)
     if let rawData = try? loadCachedPinballData(path: hostedOPDBExportPath),
        !rawData.isEmpty,
-       let machines = try? decodeOPDBExportCatalogMachines(data: rawData),
+       let machines = try? decodeOPDBExportCatalogMachines(
+        data: rawData,
+        practiceIdentityCurationsData: practiceIdentityCurationsData
+       ),
        !machines.isEmpty {
         var index: [String: [GameRoomOPDBMediaRecord]] = [:]
         for machine in machines {
@@ -372,14 +382,22 @@ private func bestOPDBMediaRecord(
     for machine: OwnedMachine,
     from mediaIndex: [String: [GameRoomOPDBMediaRecord]]
 ) -> GameRoomOPDBMediaRecord? {
+    let normalizedCatalogID = normalizedGameRoomID(machine.catalogGameID)
+    let normalizedCatalogGroup = normalizedGroupFromOpdbID(machine.catalogGameID)
+    let normalizedPracticeIdentity = normalizedGameRoomID(machine.canonicalPracticeIdentity)
+    let allowGroupFallback = allowsSharedGameRoomGroupFallback(
+        catalogID: normalizedCatalogID,
+        catalogGroupID: normalizedCatalogGroup,
+        canonicalPracticeIdentity: normalizedPracticeIdentity
+    )
     let resolvedMachineTitle = catalogResolvedDisplayTitle(title: machine.displayTitle, explicitVariant: machine.displayVariant)
     let resolvedMachineVariant = catalogResolvedVariantLabel(title: machine.displayTitle, explicitVariant: machine.displayVariant)
     let keys = Set(
         [
             normalizedGameRoomID(machine.opdbID),
-            normalizedGameRoomID(machine.catalogGameID),
-            normalizedGroupFromOpdbID(machine.catalogGameID),
-            normalizedGameRoomID(machine.canonicalPracticeIdentity)
+            normalizedCatalogID,
+            normalizedPracticeIdentity,
+            allowGroupFallback ? normalizedCatalogGroup : nil
         ]
         .compactMap { $0 }
     )
@@ -644,6 +662,11 @@ private func templateMatchScore(
     let gameOPDBID = normalizedGameRoomID(game.opdbID)
     let gameOPDBGroupID = normalizedGameRoomID(game.opdbGroupID)
     let gamePracticeIdentity = normalizedGameRoomID(game.practiceIdentity)
+    let allowGroupFallback = allowsSharedGameRoomGroupFallback(
+        catalogID: catalogID,
+        catalogGroupID: catalogGroupID,
+        canonicalPracticeIdentity: canonicalPracticeIdentity
+    )
 
     var score = 0
 
@@ -657,7 +680,7 @@ private func templateMatchScore(
         if gamePracticeIdentity == catalogID { score = max(score, 1100) }
     }
 
-    if let catalogGroupID {
+    if allowGroupFallback, let catalogGroupID {
         if gameOPDBGroupID == catalogGroupID { score = max(score, 1125) }
         if gameOPDBID == catalogGroupID { score = max(score, 1075) }
     }
@@ -694,6 +717,22 @@ private func normalizedGroupFromOpdbID(_ raw: String?) -> String? {
     }
     let group = String(normalized[..<dashIndex])
     return group.isEmpty ? nil : group
+}
+
+private func allowsSharedGameRoomGroupFallback(
+    catalogID: String?,
+    catalogGroupID: String?,
+    canonicalPracticeIdentity: String?
+) -> Bool {
+    if let catalogID, let catalogGroupID, catalogID != catalogGroupID {
+        return false
+    }
+    if let canonicalPracticeIdentity,
+       let canonicalGroup = normalizedGroupFromOpdbID(canonicalPracticeIdentity),
+       canonicalPracticeIdentity != canonicalGroup {
+        return false
+    }
+    return true
 }
 
 private func slugForLibraryGame(title: String, fallback: String) -> String {

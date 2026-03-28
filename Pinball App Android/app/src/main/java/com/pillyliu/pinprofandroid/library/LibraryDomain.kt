@@ -380,7 +380,10 @@ internal val PinballGame.practiceKey: String
     get() = canonicalPracticeKey
 
 internal val PinballGame.canonicalPracticeKey: String
-    get() = practiceIdentity?.ifBlank { null } ?: opdbGroupId?.ifBlank { null } ?: slug
+    get() = practiceIdentity?.ifBlank { null } ?: opdbId?.ifBlank { null } ?: ""
+
+internal val PinballGame.libraryRouteId: String
+    get() = libraryEntryId?.ifBlank { null } ?: opdbId?.ifBlank { null } ?: practiceKey
 
 sealed interface RulesheetRemoteSource {
     val url: String

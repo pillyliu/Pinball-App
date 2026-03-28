@@ -81,8 +81,9 @@ internal fun LeagueShellContent(
                         StandingsMiniPreview(
                             seasonLabel = previewState.standingsSeasonLabel,
                             showAround = showAround,
-                            topRows = previewState.standingsTopRows.take(maxRows),
-                            aroundRows = previewState.standingsAroundRows.take(maxRows),
+                            topRows = previewState.standingsTopRows,
+                            aroundRows = previewState.standingsAroundRows,
+                            currentPlayerRow = previewState.currentPlayerStanding,
                             showFullLplLastName = showFullLplLastName,
                             labelSize = miniLabelSize,
                             headerSize = miniHeaderSize,

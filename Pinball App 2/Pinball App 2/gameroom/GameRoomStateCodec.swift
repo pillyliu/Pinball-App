@@ -55,8 +55,8 @@ enum GameRoomStateCodec {
                         let decoded = try decode(legacyRaw)
                         return .loaded(
                             decoded,
-                            needsResave: true,
-                            noticeMessage: "GameRoom recovered from the legacy save because the current saved data could not be read."
+                            needsResave: false,
+                            noticeMessage: "GameRoom recovered from the legacy save because the current saved data could not be read. The unreadable current save was left untouched."
                         )
                     } catch {
                         return .failed(

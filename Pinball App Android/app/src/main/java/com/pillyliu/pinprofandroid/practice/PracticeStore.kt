@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.pillyliu.pinprofandroid.PinballPerformanceTrace
+import com.pillyliu.pinprofandroid.league.LeaguePreviewRefreshEvents
 import com.pillyliu.pinprofandroid.library.LibraryActivityLog
 import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
@@ -280,6 +281,7 @@ internal class PracticeStore(private val context: Context) {
             ),
         )
         saveState()
+        LeaguePreviewRefreshEvents.notifyChanged()
     }
 
     suspend fun selectLeaguePlayerAndSyncIfpa(name: String): LeagueIdentityMatch? {
@@ -731,10 +733,7 @@ internal class PracticeStore(private val context: Context) {
     }
 
     fun markPracticeViewedGame(slug: String) {
-        val exactSlug = slug.trim().takeIf { raw ->
-            raw.isNotEmpty() && primaryPracticeLookupGames().any { it.slug == raw }
-        }
-        val persistedKey = exactSlug ?: canonicalGameID(slug)
+        val persistedKey = canonicalGameID(slug)
         if (persistedKey.isBlank()) return
         persistenceIntegration.markViewedGame(persistedKey, System.currentTimeMillis())
         saveHomeBootstrapSnapshotIfNeeded()
@@ -1051,8 +1050,7 @@ internal class PracticeStore(private val context: Context) {
             if (trimmed.isBlank()) return@any false
             val parsed = parseSourceScopedPracticeGameID(trimmed)
             if (parsed.sourceID != null) return@any false
-            if (gameForAnyID(trimmed) != null) return@any false
-            legacyPracticeKeyMatch(primaryPracticeLookupGames(), parsed.gameID) == null
+            gameForAnyID(trimmed) == null
         }
     }
 
