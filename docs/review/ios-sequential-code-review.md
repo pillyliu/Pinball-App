@@ -7627,6 +7627,42 @@ Verification:
 Operational note:
 1. if old local Practice or GameRoom state still holds slug/group keys from before the current curation model, update or regenerate that local data rather than broadening runtime lookup behavior again.
 
+## Pass 081: Library list view decomposition
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryListScreen.swift`
+
+Changes made in this pass:
+- replaced the large computed menu-section fragments with dedicated private view types for source, sort, and bank filters
+- replaced the large inline content/grid/card rendering chain with dedicated private views for the empty state, grouped/flat content, grid, card, overlay, and load-more footer
+- kept the screen’s data flow inside `LibraryScreen`, but made the visual sections explicit so future cleanup can touch one area at a time without reopening the full file
+
+Behavioral outcome:
+- no intended UI or copy change
+- the Library list screen now reads more like a view tree and less like a sequence of computed `some View` fragments
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 082: Library detail resource section decomposition
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryDetailComponents.swift`
+
+Changes made in this pass:
+- extracted the summary card’s inline rulesheet and playfield routing into dedicated private resource-row/chip views
+- centralized rulesheet chip routing/logging so local, embedded, and external rulesheet destinations no longer duplicate their `NavigationLink` and activity-log wiring
+- corrected a compile-only type reference slip during the refactor by using `LibraryPlayfieldOption` instead of a non-existent nested `PinballGame.PlayfieldOption`
+
+Behavioral outcome:
+- no intended UI or copy change
+- the Library detail summary card’s resource behavior is now easier to audit because rulesheet/playfield resource decisions are isolated in named view types
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
 ## Pass 084: Manual QA checkpoint after cleanup/publish
 
 Primary surfaces exercised:

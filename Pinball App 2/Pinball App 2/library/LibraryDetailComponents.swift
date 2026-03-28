@@ -18,8 +18,11 @@ struct LibraryDetailSummaryCard: View {
     let game: PinballGame
     @State private var livePlayfieldStatus: LibraryLivePlayfieldStatus?
 
+    private var playfieldOptions: [LibraryPlayfieldOption] {
+        game.resolvedPlayfieldOptions(liveStatus: livePlayfieldStatus)
+    }
+
     var body: some View {
-        let playfieldOptions = game.resolvedPlayfieldOptions(liveStatus: livePlayfieldStatus)
         VStack(alignment: .leading, spacing: 8) {
             AppCardTitleWithVariant(
                 text: game.name,
@@ -30,40 +33,11 @@ struct LibraryDetailSummaryCard: View {
             AppCardSubheading(text: game.metaLine)
 
             VStack(alignment: .leading, spacing: 10) {
-                PinballResourceRow("Rulesheet") {
-                    if game.hasLocalRulesheetResource {
-                        libraryRulesheetLinkButton(title: game.localRulesheetChipTitle, game: game, source: nil)
-                    }
-                    if game.rulesheetLinks.isEmpty {
-                        if !game.hasLocalRulesheetResource {
-                            PinballUnavailableResourceChip("Unavailable")
-                        }
-                    } else {
-                        ForEach(game.orderedRulesheetLinks) { link in
-                            libraryRulesheetLinkButton(link: link, game: game, title: PinballShortRulesheetTitle(for: link))
-                        }
-                    }
-                }
-
-                if !playfieldOptions.isEmpty {
-                    PinballResourceRow("Playfield") {
-                        ForEach(playfieldOptions) { option in
-                            NavigationLink(option.title) {
-                                HostedImageView(imageCandidates: option.candidates)
-                            }
-                            .buttonStyle(PinballResourceChipButtonStyle())
-                            .simultaneousGesture(
-                                TapGesture().onEnded {
-                                    LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openPlayfield)
-                                }
-                            )
-                        }
-                    }
-                } else {
-                    PinballResourceRow("Playfield") {
-                        PinballUnavailableResourceChip("Unavailable")
-                    }
-                }
+                LibraryRulesheetResourcesRow(game: game)
+                LibraryPlayfieldResourcesRow(
+                    game: game,
+                    playfieldOptions: playfieldOptions
+                )
             }
             .font(.caption)
         }
@@ -295,49 +269,114 @@ private struct LibraryYouTubeThumbnailView: View {
     }
 }
 
-@ViewBuilder
-private func libraryRulesheetLinkButton(title: String, game: PinballGame, source: RulesheetRemoteSource?) -> some View {
-    NavigationLink(title) {
-        RulesheetScreen(
-            gameID: game.practiceKey,
-            gameName: game.name,
-            pathCandidates: source == nil ? game.rulesheetPathCandidates : [],
-            externalSource: source
-        )
-    }
-    .buttonStyle(PinballResourceChipButtonStyle())
-    .simultaneousGesture(
-        TapGesture().onEnded {
-            LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: title)
+private struct LibraryRulesheetResourcesRow: View {
+    let game: PinballGame
+
+    var body: some View {
+        PinballResourceRow("Rulesheet") {
+            if game.hasLocalRulesheetResource {
+                LibraryRulesheetChip(
+                    game: game,
+                    title: game.localRulesheetChipTitle,
+                    detailLabel: game.localRulesheetChipTitle,
+                    destination: .embedded(source: nil)
+                )
+            }
+            if game.rulesheetLinks.isEmpty {
+                if !game.hasLocalRulesheetResource {
+                    PinballUnavailableResourceChip("Unavailable")
+                }
+            } else {
+                ForEach(game.orderedRulesheetLinks) { link in
+                    LibraryRulesheetLinkChip(
+                        game: game,
+                        link: link,
+                        title: PinballShortRulesheetTitle(for: link)
+                    )
+                }
+            }
         }
-    )
+    }
 }
 
-@ViewBuilder
-private func libraryRulesheetLinkButton(link: PinballGame.ReferenceLink, game: PinballGame, title: String) -> some View {
-    if let embeddedSource = link.embeddedRulesheetSource {
-        NavigationLink(title) {
-            RulesheetScreen(
-                gameID: game.practiceKey,
-                gameName: game.name,
-                pathCandidates: [],
-                externalSource: embeddedSource
+private struct LibraryPlayfieldResourcesRow: View {
+    let game: PinballGame
+    let playfieldOptions: [LibraryPlayfieldOption]
+
+    var body: some View {
+        PinballResourceRow("Playfield") {
+            if playfieldOptions.isEmpty {
+                PinballUnavailableResourceChip("Unavailable")
+            } else {
+                ForEach(playfieldOptions) { option in
+                    NavigationLink(option.title) {
+                        HostedImageView(imageCandidates: option.candidates)
+                    }
+                    .buttonStyle(PinballResourceChipButtonStyle())
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openPlayfield)
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct LibraryRulesheetLinkChip: View {
+    let game: PinballGame
+    let link: PinballGame.ReferenceLink
+    let title: String
+
+    var body: some View {
+        if let embeddedSource = link.embeddedRulesheetSource {
+            LibraryRulesheetChip(
+                game: game,
+                title: title,
+                detailLabel: link.label,
+                destination: .embedded(source: embeddedSource)
+            )
+        } else if let destination = link.destinationURL {
+            LibraryRulesheetChip(
+                game: game,
+                title: title,
+                detailLabel: link.label,
+                destination: .external(url: destination)
             )
         }
-        .buttonStyle(PinballResourceChipButtonStyle())
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: link.label)
-            }
-        )
-    } else if let destination = link.destinationURL {
+    }
+}
+
+private struct LibraryRulesheetChip: View {
+    enum Destination {
+        case embedded(source: RulesheetRemoteSource?)
+        case external(url: URL)
+    }
+
+    let game: PinballGame
+    let title: String
+    let detailLabel: String
+    let destination: Destination
+
+    var body: some View {
         NavigationLink(title) {
-            ExternalRulesheetWebScreen(title: game.name, url: destination)
+            switch destination {
+            case .embedded(let source):
+                RulesheetScreen(
+                    gameID: game.practiceKey,
+                    gameName: game.name,
+                    pathCandidates: source == nil ? game.rulesheetPathCandidates : [],
+                    externalSource: source
+                )
+            case .external(let url):
+                ExternalRulesheetWebScreen(title: game.name, url: url)
+            }
         }
         .buttonStyle(PinballResourceChipButtonStyle())
         .simultaneousGesture(
             TapGesture().onEnded {
-                LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: link.label)
+                LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: detailLabel)
             }
         )
     }

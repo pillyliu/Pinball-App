@@ -5,126 +5,298 @@ extension LibraryScreen {
         4 - contentHorizontalPadding
     }
 
-    var sourceMenuSection: some View {
-        Group {
-            if !viewModel.sources.isEmpty {
-                Section("Library") {
-                    ForEach(viewModel.visibleSources) { source in
-                        Button {
-                            viewModel.selectSource(source.id)
-                        } label: {
-                            AppSelectableMenuRow(text: source.name, isSelected: viewModel.selectedSource?.id == source.id)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    var sortMenuSection: some View {
-        Section("Sort") {
-            ForEach(viewModel.sortOptions) { option in
-                Button {
-                    viewModel.selectSortOption(option)
-                } label: {
-                    AppSelectableMenuRow(text: viewModel.menuLabel(for: option), isSelected: viewModel.sortOption == option)
-                }
-            }
-        }
-    }
-
-    var bankMenuSection: some View {
-        Group {
-            if viewModel.supportsBankFilter {
-                Section("Bank") {
-                    Button {
-                        viewModel.selectedBank = nil
-                    } label: {
-                        AppSelectableMenuRow(text: "All banks", isSelected: viewModel.selectedBank == nil)
-                    }
-
-                    ForEach(viewModel.bankOptions, id: \.self) { bank in
-                        Button {
-                            viewModel.selectedBank = bank
-                        } label: {
-                            AppSelectableMenuRow(text: "Bank \(bank)", isSelected: viewModel.selectedBank == bank)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     var filterMenuSections: some View {
-        Group {
-            sourceMenuSection
-            sortMenuSection
-            bankMenuSection
-        }
+        LibraryFilterMenuSections(
+            sources: viewModel.sources,
+            visibleSources: viewModel.visibleSources,
+            selectedSourceID: viewModel.selectedSource?.id,
+            sortOptions: viewModel.sortOptions,
+            selectedSortOption: viewModel.sortOption,
+            menuLabel: viewModel.menuLabel(for:),
+            supportsBankFilter: viewModel.supportsBankFilter,
+            bankOptions: viewModel.bankOptions,
+            selectedBank: viewModel.selectedBank,
+            onSelectSource: viewModel.selectSource,
+            onSelectSort: viewModel.selectSortOption,
+            onSelectBank: { bank in
+                viewModel.selectedBank = bank
+            }
+        )
     }
 
     @ViewBuilder
     var content: some View {
-        if viewModel.games.isEmpty {
-            if viewModel.isLoading {
+        LibraryListContent(
+            games: viewModel.games,
+            isLoading: viewModel.isLoading,
+            errorMessage: viewModel.errorMessage,
+            showGroupedView: viewModel.showGroupedView,
+            sections: viewModel.sections,
+            visibleGames: viewModel.visibleSortedFilteredGames,
+            hasMoreVisibleGames: viewModel.hasMoreVisibleGames,
+            gridColumns: gridColumns,
+            gridSpacing: gridSpacing,
+            cardTotalHeight: cardTotalHeight,
+            cardInfoHeight: cardInfoHeight,
+            scrollIndicatorTrailingInset: scrollIndicatorTrailingInset,
+            reduceMotion: reduceMotion,
+            cardTransition: cardTransition,
+            onLoadMore: viewModel.loadMoreGamesIfNeeded(currentGameID:)
+        )
+    }
+
+    func consumeLibraryDeepLink() {
+        guard let gameID = appNavigation.libraryGameIDToOpen else { return }
+        guard viewModel.games.contains(where: { $0.id == gameID }) else { return }
+        navigationPath = [gameID]
+        appNavigation.libraryGameIDToOpen = nil
+    }
+}
+
+private struct LibraryFilterMenuSections: View {
+    let sources: [PinballLibrarySource]
+    let visibleSources: [PinballLibrarySource]
+    let selectedSourceID: String?
+    let sortOptions: [PinballLibrarySortOption]
+    let selectedSortOption: PinballLibrarySortOption
+    let menuLabel: (PinballLibrarySortOption) -> String
+    let supportsBankFilter: Bool
+    let bankOptions: [Int]
+    let selectedBank: Int?
+    let onSelectSource: (String) -> Void
+    let onSelectSort: (PinballLibrarySortOption) -> Void
+    let onSelectBank: (Int?) -> Void
+
+    var body: some View {
+        Group {
+            LibrarySourceMenuSection(
+                sources: sources,
+                visibleSources: visibleSources,
+                selectedSourceID: selectedSourceID,
+                onSelectSource: onSelectSource
+            )
+            LibrarySortMenuSection(
+                sortOptions: sortOptions,
+                selectedSortOption: selectedSortOption,
+                menuLabel: menuLabel,
+                onSelectSort: onSelectSort
+            )
+            LibraryBankMenuSection(
+                supportsBankFilter: supportsBankFilter,
+                bankOptions: bankOptions,
+                selectedBank: selectedBank,
+                onSelectBank: onSelectBank
+            )
+        }
+    }
+}
+
+private struct LibrarySourceMenuSection: View {
+    let sources: [PinballLibrarySource]
+    let visibleSources: [PinballLibrarySource]
+    let selectedSourceID: String?
+    let onSelectSource: (String) -> Void
+
+    var body: some View {
+        Group {
+            if !sources.isEmpty {
+                Section("Library") {
+                    ForEach(visibleSources) { source in
+                        Button {
+                            onSelectSource(source.id)
+                        } label: {
+                            AppSelectableMenuRow(text: source.name, isSelected: selectedSourceID == source.id)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct LibrarySortMenuSection: View {
+    let sortOptions: [PinballLibrarySortOption]
+    let selectedSortOption: PinballLibrarySortOption
+    let menuLabel: (PinballLibrarySortOption) -> String
+    let onSelectSort: (PinballLibrarySortOption) -> Void
+
+    var body: some View {
+        Section("Sort") {
+            ForEach(sortOptions) { option in
+                Button {
+                    onSelectSort(option)
+                } label: {
+                    AppSelectableMenuRow(text: menuLabel(option), isSelected: selectedSortOption == option)
+                }
+            }
+        }
+    }
+}
+
+private struct LibraryBankMenuSection: View {
+    let supportsBankFilter: Bool
+    let bankOptions: [Int]
+    let selectedBank: Int?
+    let onSelectBank: (Int?) -> Void
+
+    var body: some View {
+        Group {
+            if supportsBankFilter {
+                Section("Bank") {
+                    Button {
+                        onSelectBank(nil)
+                    } label: {
+                        AppSelectableMenuRow(text: "All banks", isSelected: selectedBank == nil)
+                    }
+
+                    ForEach(bankOptions, id: \.self) { bank in
+                        Button {
+                            onSelectBank(bank)
+                        } label: {
+                            AppSelectableMenuRow(text: "Bank \(bank)", isSelected: selectedBank == bank)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct LibraryListContent: View {
+    let games: [PinballGame]
+    let isLoading: Bool
+    let errorMessage: String?
+    let showGroupedView: Bool
+    let sections: [PinballGroupSection]
+    let visibleGames: [PinballGame]
+    let hasMoreVisibleGames: Bool
+    let gridColumns: [GridItem]
+    let gridSpacing: CGFloat
+    let cardTotalHeight: CGFloat
+    let cardInfoHeight: CGFloat
+    let scrollIndicatorTrailingInset: CGFloat
+    let reduceMotion: Bool
+    let cardTransition: Namespace.ID
+    let onLoadMore: (String?) -> Void
+
+    var body: some View {
+        Group {
+            if games.isEmpty {
+                LibraryEmptyState(
+                    isLoading: isLoading,
+                    errorMessage: errorMessage
+                )
+            } else if showGroupedView {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(sections.enumerated()), id: \.offset) { index, section in
+                            if index > 0 {
+                                AppSectionDivider()
+                            }
+
+                            LibraryGameGrid(
+                                games: section.games,
+                                gridColumns: gridColumns,
+                                gridSpacing: gridSpacing,
+                                cardTotalHeight: cardTotalHeight,
+                                cardInfoHeight: cardInfoHeight,
+                                reduceMotion: reduceMotion,
+                                cardTransition: cardTransition,
+                                onLoadMore: onLoadMore
+                            )
+                        }
+
+                        LibraryLoadMoreFooter(
+                            hasMoreVisibleGames: hasMoreVisibleGames,
+                            onLoadMore: onLoadMore
+                        )
+                    }
+                }
+                .contentMargins(.trailing, scrollIndicatorTrailingInset, for: .scrollIndicators)
+            } else {
+                ScrollView {
+                    LibraryGameGrid(
+                        games: visibleGames,
+                        gridColumns: gridColumns,
+                        gridSpacing: gridSpacing,
+                        cardTotalHeight: cardTotalHeight,
+                        cardInfoHeight: cardInfoHeight,
+                        reduceMotion: reduceMotion,
+                        cardTransition: cardTransition,
+                        onLoadMore: onLoadMore
+                    )
+
+                    LibraryLoadMoreFooter(
+                        hasMoreVisibleGames: hasMoreVisibleGames,
+                        onLoadMore: onLoadMore
+                    )
+                }
+                .contentMargins(.trailing, scrollIndicatorTrailingInset, for: .scrollIndicators)
+            }
+        }
+    }
+}
+
+private struct LibraryEmptyState: View {
+    let isLoading: Bool
+    let errorMessage: String?
+
+    var body: some View {
+        Group {
+            if isLoading {
                 AppFullscreenStatusOverlay(
                     text: "Loading library…",
                     showsProgress: true
                 )
-            } else {
-                Group {
-                    if let errorMessage = viewModel.errorMessage, !errorMessage.isEmpty {
-                        AppPanelStatusCard(
-                            text: errorMessage,
-                            isError: true
-                        )
-                    } else {
-                        AppPanelEmptyCard(text: "No data loaded.")
-                    }
-                }
+            } else if let errorMessage, !errorMessage.isEmpty {
+                AppPanelStatusCard(
+                    text: errorMessage,
+                    isError: true
+                )
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            } else {
+                AppPanelEmptyCard(text: "No data loaded.")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
-        } else {
-            scrollableContent
         }
     }
+}
 
-    @ViewBuilder
-    var scrollableContent: some View {
-        if viewModel.showGroupedView {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(viewModel.sections.enumerated()), id: \.offset) { idx, section in
-                        if idx > 0 {
-                            AppSectionDivider()
-                        }
+private struct LibraryGameGrid: View {
+    let games: [PinballGame]
+    let gridColumns: [GridItem]
+    let gridSpacing: CGFloat
+    let cardTotalHeight: CGFloat
+    let cardInfoHeight: CGFloat
+    let reduceMotion: Bool
+    let cardTransition: Namespace.ID
+    let onLoadMore: (String?) -> Void
 
-                        LazyVGrid(columns: gridColumns, alignment: .leading, spacing: gridSpacing) {
-                            ForEach(section.games) { game in
-                                gameCard(for: game)
-                            }
-                        }
-                    }
-
-                    loadMoreFooter
-                }
+    var body: some View {
+        LazyVGrid(columns: gridColumns, alignment: .leading, spacing: gridSpacing) {
+            ForEach(games) { game in
+                LibraryGameCard(
+                    game: game,
+                    cardTotalHeight: cardTotalHeight,
+                    cardInfoHeight: cardInfoHeight,
+                    reduceMotion: reduceMotion,
+                    cardTransition: cardTransition,
+                    onLoadMore: onLoadMore
+                )
             }
-            .contentMargins(.trailing, scrollIndicatorTrailingInset, for: .scrollIndicators)
-        } else {
-            ScrollView {
-                LazyVGrid(columns: gridColumns, alignment: .leading, spacing: gridSpacing) {
-                    ForEach(viewModel.visibleSortedFilteredGames) { game in
-                        gameCard(for: game)
-                    }
-                }
-
-                loadMoreFooter
-            }
-            .contentMargins(.trailing, scrollIndicatorTrailingInset, for: .scrollIndicators)
         }
     }
+}
 
-    func gameCard(for game: PinballGame) -> some View {
+private struct LibraryGameCard: View {
+    let game: PinballGame
+    let cardTotalHeight: CGFloat
+    let cardInfoHeight: CGFloat
+    let reduceMotion: Bool
+    let cardTransition: Namespace.ID
+    let onLoadMore: (String?) -> Void
+
+    var body: some View {
         NavigationLink(value: game.id) {
             let card = GeometryReader { proxy in
                 ZStack(alignment: .bottomLeading) {
@@ -153,8 +325,11 @@ extension LibraryScreen {
                     )
                     .frame(width: proxy.size.width, height: proxy.size.height)
 
-                    libraryCardOverlay(for: game)
-                        .frame(width: proxy.size.width, alignment: .leading)
+                    LibraryCardOverlay(
+                        game: game,
+                        cardInfoHeight: cardInfoHeight
+                    )
+                    .frame(width: proxy.size.width, alignment: .leading)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -170,12 +345,17 @@ extension LibraryScreen {
             }
         }
         .onAppear {
-            viewModel.loadMoreGamesIfNeeded(currentGameID: game.id)
+            onLoadMore(game.id)
         }
         .buttonStyle(.plain)
     }
+}
 
-    private func libraryCardOverlay(for game: PinballGame) -> some View {
+private struct LibraryCardOverlay: View {
+    let game: PinballGame
+    let cardInfoHeight: CGFloat
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             LibraryCardInlineTitleLabel(
                 title: game.name,
@@ -197,23 +377,22 @@ extension LibraryScreen {
         .padding(.bottom, 8)
         .frame(maxWidth: .infinity, minHeight: cardInfoHeight, maxHeight: cardInfoHeight, alignment: .topLeading)
     }
+}
 
-    @ViewBuilder
-    private var loadMoreFooter: some View {
-        if viewModel.hasMoreVisibleGames {
-            Color.clear
-                .frame(height: 1)
-                .onAppear {
-                    viewModel.loadMoreGamesIfNeeded(currentGameID: nil)
-                }
+private struct LibraryLoadMoreFooter: View {
+    let hasMoreVisibleGames: Bool
+    let onLoadMore: (String?) -> Void
+
+    var body: some View {
+        Group {
+            if hasMoreVisibleGames {
+                Color.clear
+                    .frame(height: 1)
+                    .onAppear {
+                        onLoadMore(nil)
+                    }
+            }
         }
-    }
-
-    func consumeLibraryDeepLink() {
-        guard let gameID = appNavigation.libraryGameIDToOpen else { return }
-        guard viewModel.games.contains(where: { $0.id == gameID }) else { return }
-        navigationPath = [gameID]
-        appNavigation.libraryGameIDToOpen = nil
     }
 }
 
