@@ -147,6 +147,10 @@ internal fun AppVariantPill(
     maxWidth: Dp? = null,
 ) {
     val colors = PinballThemeTokens.colors
+    val foreground = when (style) {
+        AppVariantPillStyle.Overlay -> Color.White.copy(alpha = 0.96f)
+        else -> colors.brandInk
+    }
     val textStyle = when (style) {
         AppVariantPillStyle.Resource -> MaterialTheme.typography.labelSmall
         AppVariantPillStyle.Mini -> MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
@@ -166,7 +170,7 @@ internal fun AppVariantPill(
     Text(
         text = label,
         style = textStyle,
-        color = colors.brandInk,
+        color = foreground,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier

@@ -10202,6 +10202,86 @@ Verification:
 - `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
 - result: passed
 
+## Pass 128: Fresh-install default-source QA
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryImportedSourcesStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibrarySourceStateStore.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryImportedSourcesStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySourceStateStore.kt`
+
+QA steps exercised in this pass:
+- uninstalled the iOS app from the booted simulator and reinstalled/launched it clean
+- uninstalled the Android app from the booted emulator, reinstalled it with `installDebug`, and launched it clean
+- inspected the fresh app sandboxes directly:
+  - iOS `com.pillyliu.Pinball-App-2.plist`
+  - Android `shared_prefs/practice-upgrade-state-v2.xml`
+- relaunched both apps once more to verify the default imported-source list was not duplicated on subsequent launches
+
+Verified outcome:
+1. both platforms seed exactly 5 default imported Library sources on a clean install:
+   - `The Avenue Cafe`
+   - `Electric Bat Arcade`
+   - `Stern`
+   - `Jersey Jack Pinball`
+   - `Spooky Pinball`
+2. both platforms had no persisted `gameroom-state-json` on the clean pass, so the synthetic `GameRoom` source had no backing data
+3. relaunching after the clean install kept the imported-source count at `5` on both platforms, so the default-source seeding did not duplicate itself once sources already existed
+
+Hidden seam surfaced in this pass:
+1. fresh launch alone does not yet materialize `pinball-library-source-state-v1` on either platform because the app starts on the `League` tab and Library source-state is still created lazily on first actual Library open
+2. that means the clean sandbox inspection fully verified default imported-source seeding and empty-GameRoom behavior, but not the first-Library-open persisted pinned/selected source snapshot
+
+Behavioral outcome:
+- no code changed in this pass
+- QA confirmed the default imported-source contract is correct on both platforms
+
+## Pass 129: Align imported-source normalization order on Android
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryImportedSourcesStore.kt`
+
+Changes made in this pass:
+- brought Android imported-source normalization in line with iOS by normalizing records before save/load/upsert
+- Android now sorts imported sources the same way iOS already does:
+  - `type`
+  - then `name`
+  - then `id`
+- kept the existing seeded source set the same; this pass only changes the deterministic persisted ordering and normalization path
+
+Why this changed:
+1. iOS was already normalizing imported sources to a stable sorted order
+2. Android had been preserving insertion order instead, so the same default source set could appear in a different stored/manageable order across platforms
+
+Behavioral outcome:
+- both platforms now share the same imported-source ordering rule
+- existing Android installs will migrate onto the normalized order the next time the imported-source store is loaded/saved
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 130: Lighten Android overlay variant-badge text on image cards
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppResourceChrome.kt`
+
+Changes made in this pass:
+- updated `AppVariantPill` so the `Overlay` style uses a light foreground instead of `brandInk`
+- left the non-overlay pill styles unchanged, so this only affects image-backed card/title overlays that use `AppVariantPillStyle.Overlay`
+
+Why this changed:
+1. Android Library card badges sit over backglass/playfield art through `AppOverlayTitleWithVariant(...)`
+2. the shared overlay pill was still using a dark foreground, which could become unreadable against brighter artwork
+
+Behavioral outcome:
+- Android image-card variant badges now use a light foreground for better contrast
+- this is an intentional front-facing readability improvement requested during QA
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
 ## Pass 126: Restore GameRoom source visibility when rows exist
 
 Primary files:
