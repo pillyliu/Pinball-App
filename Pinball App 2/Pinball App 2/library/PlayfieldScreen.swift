@@ -97,11 +97,13 @@ struct FallbackAsyncImageView: View {
     @State private var index = 0
     @State private var image: UIImage?
     @State private var loadedURL: URL?
+    @State private var lastPrimaryURL: URL?
     @State private var didFailCurrent = false
 
     var body: some View {
         let candidateKey = candidates.map(\.absoluteString).joined(separator: "|")
         let currentURL = candidates.indices.contains(index) ? candidates[index] : nil
+        let primaryURL = candidates.first
 
         ZStack {
             if let image {
@@ -122,8 +124,13 @@ struct FallbackAsyncImageView: View {
             }
         }
         .task(id: candidateKey) {
+            defer {
+                lastPrimaryURL = primaryURL
+            }
+
             if let loadedURL,
                let preservedIndex = candidates.firstIndex(of: loadedURL),
+               lastPrimaryURL == primaryURL,
                image != nil {
                 index = preservedIndex
                 didFailCurrent = false

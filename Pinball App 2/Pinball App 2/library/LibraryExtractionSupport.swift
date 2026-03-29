@@ -2,7 +2,10 @@ import Foundation
 
 private func filterPayload(_ payload: PinballLibraryPayload, using state: PinballLibrarySourceState) -> PinballLibraryPayload {
     let enabled = Set(state.enabledSourceIDs)
-    let filteredSources = payload.sources.filter { enabled.contains($0.id) }
+    let hasGameRoomGames = payload.games.contains { $0.sourceId == gameRoomLibrarySourceID }
+    let filteredSources = payload.sources.filter { source in
+        enabled.contains(source.id) || (source.id == gameRoomLibrarySourceID && hasGameRoomGames)
+    }
     let sourceIDs = Set(filteredSources.map(\.id))
     let filteredGames = payload.games.filter { sourceIDs.contains($0.sourceId) }
     return PinballLibraryPayload(games: filteredGames, sources: filteredSources)

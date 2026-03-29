@@ -10179,6 +10179,54 @@ Verification:
 - `./gradlew :app:compileDebugKotlin`
 - result: both passed
 
+## Pass 127: Fix stale GameRoom home-card art after variant changes
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/PlayfieldScreen.swift`
+
+Changes made in this pass:
+- tightened the shared `FallbackAsyncImageView` reset rule so it only preserves an already loaded image when the primary candidate URL is unchanged
+- kept the existing fallback/retry behavior when the candidate list changes but still starts from the same preferred image
+
+Issue surfaced during manual QA:
+1. on iOS only, changing the GameRoom variant for `Godzilla` could leave the GameRoom tab/home card showing Data East `Godzilla` artwork even though:
+   - the GameRoom machine detail view showed the correct art
+   - the Library entry showed the correct art
+2. the shared fallback image view was preserving a previously loaded later-candidate URL across candidate-list changes, even when the new first-choice image had changed after the variant update
+
+Behavioral outcome:
+- GameRoom home/tab cards now reload when the primary image candidate changes after a machine edit
+- no Android change was needed in this pass because Android was already behaving correctly
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 126: Restore GameRoom source visibility when rows exist
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryExtractionSupport.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+
+Changes made in this pass:
+- restored the special-case Library filter behavior that keeps the `GameRoom` source visible whenever payload rows exist for that source, even if it is not part of the persisted enabled-source list
+- kept the new synthetic GameRoom contract intact:
+  - no source when GameRoom is empty or missing
+  - source appears when GameRoom contributes Library rows
+
+Issue surfaced during manual QA:
+1. after the synthetic venue-import refactor, the `GameRoom` source could still disappear from Library because it was being filtered out by normal source-state rules before the source-state store had ever enabled it
+2. this regression affected the expected UX on both platforms: add a GameRoom machine, but still see no GameRoom source in Library
+
+Behavioral outcome:
+- `GameRoom` now appears in Library as soon as it has resolved rows
+- `GameRoom` still disappears when it has no Library rows
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
 ## Pass 125: GameRoom synthetic venue import contract
 
 Primary files:

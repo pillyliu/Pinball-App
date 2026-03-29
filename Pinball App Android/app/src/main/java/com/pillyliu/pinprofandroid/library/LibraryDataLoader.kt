@@ -658,7 +658,10 @@ private fun libraryExtraction(
 
 private fun filterPayload(payload: ParsedLibraryData, state: LibrarySourceState): ParsedLibraryData {
     val enabled = state.enabledSourceIds.toSet()
-    val filteredSources = payload.sources.filter { source -> source.id in enabled }
+    val hasGameRoomGames = payload.games.any { it.sourceId == GAME_ROOM_LIBRARY_SOURCE_ID }
+    val filteredSources = payload.sources.filter { source ->
+        source.id in enabled || (source.id == GAME_ROOM_LIBRARY_SOURCE_ID && hasGameRoomGames)
+    }
     if (filteredSources.isEmpty()) return payload
     val sourceIds = filteredSources.map { it.id }.toSet()
     val filteredGames = payload.games.filter { it.sourceId in sourceIds }
