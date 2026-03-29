@@ -24,7 +24,6 @@ import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 
-
 @Composable
 internal fun LibraryScreen(contentPadding: PaddingValues) {
     val context = LocalContext.current
@@ -33,6 +32,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     val sourceVersion by LibrarySourceEvents.version.collectAsState()
     var games by remember { mutableStateOf(emptyList<PinballGame>()) }
     var sources by remember { mutableStateOf(emptyList<LibrarySource>()) }
+    var sourceState by remember { mutableStateOf(LibrarySourceState()) }
     var selectedSourceId by rememberSaveable { mutableStateOf("") }
     var query by rememberSaveable { mutableStateOf("") }
     var sortOptionName by rememberSaveable { mutableStateOf(LibrarySortOption.AREA.name) }
@@ -44,9 +44,7 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
     var listVisibleCount by rememberSaveable { mutableIntStateOf(48) }
     val listScrollState = rememberSaveable(saver = ScrollState.Saver) { ScrollState(0) }
     val scope = rememberCoroutineScope()
-    val pinnedSourceIds = remember(sources, selectedSourceId, sourceVersion) {
-        LibrarySourceStateStore.load(context).pinnedSourceIds
-    }
+    val pinnedSourceIds = sourceState.pinnedSourceIds
     val browseState = remember(
         games,
         sources,
@@ -86,25 +84,28 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
         isLoading = true
         errorMessage = null
         try {
-            val extraction = loadLibraryExtraction(context)
-            val payload = extraction.payload
-            val sourceState = extraction.state
-            games = payload.games
-            sources = payload.sources
-            resolveLibrarySelection(
-                payload = payload,
-                sourceState = sourceState,
+            val loadedState = loadLibraryScreenState(
+                context = context,
                 currentSelectedSourceId = selectedSourceId,
-            )?.let { resolution ->
+            )
+            games = loadedState.games
+            sources = loadedState.sources
+            sourceState = loadedState.sourceState
+            loadedState.selection?.let { resolution ->
                 selectedSourceId = resolution.selectedSourceId
                 sortOptionName = resolution.sortOptionName
                 yearSortDescending = resolution.yearSortDescending
                 selectedBank = resolution.selectedBank
-                LibrarySourceStateStore.setSelectedSource(context, resolution.selectedSourceId)
+                sourceState = persistLibraryScreenSelection(
+                    context = context,
+                    sourceState = loadedState.sourceState,
+                    selection = resolution,
+                )
             }
         } catch (t: Throwable) {
             games = emptyList()
             sources = emptyList()
+            sourceState = LibrarySourceState()
             errorMessage = t.message ?: "Failed to load pinball library."
         } finally {
             isLoading = false
@@ -149,18 +150,21 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
             route = route,
             routeGame = routeGame,
             onSourceChange = { sourceId ->
-                val source = sources.firstOrNull { it.id == sourceId }
-                if (source != null) {
-                    val resolution = resolveLibrarySelectionForSource(
-                        source = source,
-                        games = games,
-                        sourceState = LibrarySourceStateStore.load(context),
-                    )
+                resolveLibraryScreenSourceSelection(
+                    sourceId = sourceId,
+                    sources = sources,
+                    games = games,
+                    sourceState = sourceState,
+                )?.let { resolution ->
                     selectedSourceId = resolution.selectedSourceId
                     sortOptionName = resolution.sortOptionName
                     yearSortDescending = resolution.yearSortDescending
                     selectedBank = resolution.selectedBank
-                    LibrarySourceStateStore.setSelectedSource(context, resolution.selectedSourceId)
+                    sourceState = persistLibraryScreenSelection(
+                        context = context,
+                        sourceState = sourceState,
+                        selection = resolution,
+                    )
                     resetListBrowsePosition()
                 }
             },
@@ -176,14 +180,27 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                     sortOptionName = sortName
                     yearSortDescending = false
                 }
-                val persisted = if (sortOptionName == LibrarySortOption.YEAR.name && yearSortDescending) "YEAR_DESC" else sortOptionName
-                LibrarySourceStateStore.setSelectedSort(context, selectedSourceId, persisted)
+                val persistedSelection = persistLibraryScreenSortSelection(
+                    context = context,
+                    sourceState = sourceState,
+                    sourceId = selectedSourceId,
+                    sortOptionName = sortOptionName,
+                    yearSortDescending = yearSortDescending,
+                )
+                sortOptionName = persistedSelection.sortOptionName
+                yearSortDescending = persistedSelection.yearSortDescending
+                sourceState = persistedSelection.sourceState
                 resetListBrowsePosition()
             },
             onBankChange = {
                 selectedBank = it
                 if (selectedSourceId.isNotBlank()) {
-                    LibrarySourceStateStore.setSelectedBank(context, selectedSourceId, it)
+                    sourceState = persistLibraryScreenBankSelection(
+                        context = context,
+                        sourceState = sourceState,
+                        sourceId = selectedSourceId,
+                        selectedBank = it,
+                    )
                 }
                 resetListBrowsePosition()
             },

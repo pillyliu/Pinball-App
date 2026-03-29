@@ -9468,6 +9468,109 @@ Verification:
 - `./gradlew :app:compileDebugKotlin`
 - result: `BUILD SUCCESSFUL`
 
+## Pass 188: Android catalog variant and media support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryCatalogResolution.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryCatalogVariantLabelSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryCatalogVariantSelectionSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryMediaResolutionSupport.kt`
+
+Changes made in this pass:
+- split Android catalog variant labeling out of `LibraryCatalogResolution.kt` into `LibraryCatalogVariantLabelSupport.kt`
+- split preferred-machine and variant-selection policy out of `LibraryCatalogResolution.kt` into `LibraryCatalogVariantSelectionSupport.kt`
+- split rulesheet/video merge, dedupe, and sort helpers out of `LibraryCatalogResolution.kt` into `LibraryMediaResolutionSupport.kt`
+- left `LibraryCatalogResolution.kt` focused on imported-game assembly instead of also carrying variant heuristics and media merge policy
+
+Hidden seam surfaced and reduced:
+1. Android catalog resolution was still combining three distinct responsibilities in one file:
+   - imported game construction
+   - variant/title heuristics
+   - rulesheet/video link merge and sort policy
+2. the split now mirrors the cleaned iOS Library structure more closely and makes the remaining Android hotspots easier to reason about
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 185: Android Library domain support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDomain.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySearchSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryRulesheetSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryGamePresentationSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryYouTubeSupport.kt`
+
+Changes made in this pass:
+- split the old Android `LibraryDomain.kt` catch-all into narrower support files for:
+  - search tokenization and query matching
+  - rulesheet links, remote-source typing, and video reference models
+  - `PinballGame` presentation helpers, grouping, and sort rules
+  - YouTube launch and metadata loading
+- left `LibraryDomain.kt` focused on the actual shared Library domain models instead of also owning generic helper behavior
+
+Hidden seam surfaced and reduced:
+1. `LibraryDomain.kt` had become Android Library’s generic utility bucket, mixing models with search, rulesheet metadata, UI-facing game helpers, and remote video loading
+2. after the split, the remaining hotspots are the real runtime files rather than a broad “domain” catch-all
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 186: Android imported-source store split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryImportedSourcesStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryImportedSourceModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryImportedSourceNormalizationSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySeededImportedSources.kt`
+
+Changes made in this pass:
+- moved imported-source record and provider models out of the store file
+- moved imported-source normalization and duplicate-merge policy out of the store file
+- moved seeded default imported-source payloads and bundled venue machine IDs out of the store file
+- left `LibraryImportedSourcesStore.kt` focused on persistence, load/save/upsert/remove, and first-run default seeding
+
+Hidden seam surfaced and reduced:
+1. the Android imported-source store was still mixing persistence, normalization policy, and large seeded data payloads in one file
+2. the split now mirrors the iOS cleanup shape more closely and makes future default-source or normalization changes easier to audit in isolation
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 187: Android Library selection policy split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryBrowsingState.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySelectionSupport.kt`
+
+Changes made in this pass:
+- moved preferred-source and source-selection resolution policy out of `LibraryBrowsingState.kt`
+- moved default-sort and default-year-direction rules into `LibrarySelectionSupport.kt`
+- left `LibraryBrowsingState.kt` focused on derived browse-state data for the current source/query/sort/bank combination
+
+Hidden seam surfaced and reduced:
+1. `LibraryBrowsingState.kt` still mixed derived visible-state computation with selected-source resolution policy
+2. separating those concerns makes the Android Library browse-state file closer to the iOS cleanup shape and reduces the risk of selection-policy changes quietly affecting unrelated derived list behavior
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
 ## Pass 055 summary
 
 Safe cleanup changes made:
@@ -10745,6 +10848,639 @@ Verification:
 - `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
 - `./gradlew :app:compileDebugKotlin`
 - result: both passed
+
+## Pass 189: Android loader model and OPDB decode support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryCatalogModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryOPDBCatalogDecodingSupport.kt`
+
+Changes made in this pass:
+- moved Android catalog payload model types out of `LibraryDataLoader.kt`
+- moved OPDB machine decode, practice-identity curation, synthetic PinProf Labs insertion, manufacturer record building, and Practice catalog decode/load helpers out of `LibraryDataLoader.kt`
+- removed the stale unused `rawOpdbFallbackSlug` helper while shrinking the loader around actual orchestration work
+
+Hidden seam surfaced and reduced:
+1. `LibraryDataLoader.kt` was still serving as Android Library’s generic bucket for catalog models and OPDB decode policy, which made the hosted extraction path harder to audit than the already-cleaned iOS version
+2. the loader now depends on explicit support files instead of also being the place where the raw catalog contract is defined
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 190: Android CAF asset and venue overlay support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryCAFAssetSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryVenueMetadataOverlaySupport.kt`
+
+Changes made in this pass:
+- moved curated playfield/gameinfo/rulesheet/video asset parsing out of `LibraryDataLoader.kt`
+- moved venue overlay record types, overlay parsing, overlay merge, and resolved venue metadata lookup out of `LibraryDataLoader.kt`
+- left the loader focused on composing the hosted extraction instead of also owning low-level asset parsing and overlay lookup policy
+
+Hidden seam surfaced and reduced:
+1. Android CAF data loading was still mixing hosted extraction, overlay models, and per-record JSON parsing in one file
+2. the split now mirrors the iOS Library venue-overlay cleanup more closely and makes later venue-policy review much easier
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 191: Android GameRoom synthetic import support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryGameRoomSyntheticImportSupport.kt`
+
+Changes made in this pass:
+- moved the GameRoom synthetic venue-import model, merge helper, saved-state load, and machine ordering helpers out of `LibraryDataLoader.kt`
+- left the loader responsible only for threading the synthetic GameRoom import into hosted Library extraction
+
+Hidden seam surfaced and reduced:
+1. the new GameRoom-as-venue contract was already behaviorally correct, but it was still embedded inside the generic loader file
+2. after the split, the GameRoom library contract lives in one explicit Android support file just like the cleaned iOS side
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 192: Android resource-path and playfield support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryResourceResolution.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryResourcePathSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryPlayfieldResolutionSupport.kt`
+
+Changes made in this pass:
+- moved hosted URL normalization, PinProf host checks, live playfield status fetch, and library cache/path normalization out of `LibraryResourceResolution.kt`
+- moved playfield candidate assembly, playfield source labels, bundled-only asset exceptions, and artwork fallback policy out of `LibraryResourceResolution.kt`
+- left `LibraryResourceResolution.kt` focused on rulesheet and gameinfo resource accessors instead of also owning the whole media stack
+
+Hidden seam surfaced and reduced:
+1. Android `LibraryResourceResolution.kt` was still carrying the same three-layer mix the iOS cleanup had already split:
+   - generic hosted path helpers
+   - live playfield network status
+   - `PinballGame`-specific playfield and rulesheet behavior
+2. the Android file boundaries now match those responsibilities much more closely
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 193: Android hosted-image and rulesheet screen support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/PlayfieldScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RemoteImageSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/HostedImageScreenSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetContentWebViewSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetHtmlTemplateSupport.kt`
+
+Changes made in this pass:
+- moved shared cached-image and constrained preview helpers out of `PlayfieldScreen.kt`
+- moved fullscreen image title-color sampling and zoom/pan interaction support out of `PlayfieldScreen.kt`
+- moved the embedded rulesheet webview content host and HTML template assembly out of `RulesheetScreen.kt`
+- left both Android screen files focused on screen routing/state instead of also serving as support buckets
+
+Hidden seams surfaced and reduced:
+1. `PlayfieldScreen.kt` had become a shared image utility file used by Library, Practice, and GameRoom in addition to being a screen
+2. `RulesheetScreen.kt` was still mixing route state, webview state restore, and a large HTML template string in one file
+3. one compile-only split seam surfaced during extraction:
+   - moved Compose imports and a stale header parameter had to be corrected after the first build
+   - this was fixed immediately without broadening behavior or ownership
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 194: Android playfield candidate and display policy split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryPlayfieldResolutionSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryPlayfieldCandidateSupport.kt`
+
+Changes made in this pass:
+- moved Android playfield candidate assembly, asset-key derivation, and bundled-only asset exception handling out of `LibraryPlayfieldResolutionSupport.kt`
+- left `LibraryPlayfieldResolutionSupport.kt` focused on labels, options, and public-facing playfield display policy instead of also owning every candidate-builder helper
+
+Hidden seam surfaced and reduced:
+1. `LibraryPlayfieldResolutionSupport.kt` had grown into another mixed bucket, combining low-level candidate generation with higher-level “what label should the UI show?” policy
+2. one subtle cleanup risk surfaced during the split:
+   - the PinProf option list must preserve the old precedence even when live playfield status is null
+   - this was corrected immediately by exposing the exact internal candidate helper needed rather than rewriting the option logic
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 195: Android external rulesheet web support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetExternalWebSupport.kt`
+
+Changes made in this pass:
+- moved the external web rulesheet route and backing webview out of `RulesheetScreen.kt`
+- left `RulesheetScreen.kt` focused on in-app rulesheet loading, resume/save progress behavior, and the overlay chrome
+
+Hidden seam surfaced and reduced:
+1. Android `RulesheetScreen.kt` was still carrying two screens:
+   - the in-app rendered rulesheet route
+   - the external web route
+2. after the split, the in-app screen no longer also acts as the owner of unrelated external-webview setup
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 196: Android rulesheet HTML style and script support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetHtmlTemplateSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetHtmlStyleSupport.kt`
+
+Changes made in this pass:
+- split the large inline CSS block out of `RulesheetHtmlTemplateSupport.kt`
+- split the table-wrapper enhancement script out of `RulesheetHtmlTemplateSupport.kt`
+- left the HTML template file focused on document assembly instead of also being one large string blob
+
+Hidden seam surfaced and reduced:
+1. the Android rulesheet HTML support file had become hard to scan because document shell, CSS policy, and DOM enhancement script all lived inside one template string
+2. a tiny compile-only typo surfaced in the new external-web support file during this batch and was fixed immediately before the final build
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 197: Android list-grid support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryListScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryListGridSupport.kt`
+
+Changes made in this pass:
+- moved the Library grid layout and Library card rendering out of `LibraryListScreen.kt`
+- left `LibraryListScreen.kt` focused on route-level loading/empty/filter-sheet logic instead of also owning the leaf card view hierarchy
+
+Hidden seam surfaced and reduced:
+1. the Android list screen was still mixing route chrome and infinite-scroll handling with the actual grid/card leaf rendering
+2. one compile-only cleanup seam surfaced when the moved code took some route-file imports with it
+3. that was fixed immediately by restoring only the route imports still actually used
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 198: Android detail media support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDetailScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDetailMediaSupport.kt`
+
+Changes made in this pass:
+- moved fallback screenshot image handling and the video thumbnail/tile leaf views out of `LibraryDetailScreen.kt`
+- left `LibraryDetailScreen.kt` focused on route-level data loading and section composition instead of also owning those reusable media leaves
+
+Hidden seam surfaced and reduced:
+1. `LibraryDetailScreen.kt` had become both the route shell and the place where reusable video tile / image fallback components lived
+2. this split makes the Android detail route closer to the already-cleaned iOS Library detail structure
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 199: Android detail video and game-info support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDetailComponents.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDetailVideoSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDetailGameInfoSupport.kt`
+
+Changes made in this pass:
+- moved the detail route's video-reference card and launch panel out of `LibraryDetailComponents.kt`
+- moved the markdown-backed Game Info card out of `LibraryDetailComponents.kt`
+- left `LibraryDetailComponents.kt` focused on the screenshot section and the summary/resource card instead of also owning video and markdown presentation
+
+Hidden seam surfaced and reduced:
+1. the Android detail component bucket was still mixing summary/resource chrome with video-launch flow and rich-text markdown rendering
+2. the initial extraction surfaced only compile-only cleanup seams:
+   - one missing `clip` import in the moved video panel
+   - one malformed `20.dp` reference in the moved Game Info card
+3. both were fixed immediately before the final build, without changing runtime behavior
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 200: Android rulesheet screen support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetScreenSupport.kt`
+
+Changes made in this pass:
+- moved rulesheet content loading into `loadRulesheetRenderContent(...)`
+- moved the progress-pill save UI into `RulesheetProgressPill(...)`
+- moved the fullscreen chrome overlay into `RulesheetChromeOverlay(...)`
+- moved the resume-position dialog into `RulesheetResumePrompt(...)`
+- left `RulesheetScreen.kt` focused on route-level state, content status routing, and webview wiring
+
+Hidden seam surfaced and reduced:
+1. `RulesheetScreen.kt` was still carrying route state, load policy, progress-save chrome, and resume prompt UI in one file even after the earlier web/template splits
+2. the extraction exposed only compile-only Kotlin/Compose wiring seams:
+   - missing `getValue` delegate import in `RulesheetScreen.kt`
+   - missing `animateFloat` extension import in `RulesheetScreenSupport.kt`
+3. those were fixed immediately and the final build stayed green
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 201: Android OPDB practice-identity support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryOPDBCatalogDecodingSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryOPDBPracticeIdentitySupport.kt`
+
+Changes made in this pass:
+- moved OPDB group-id derivation and practice-identity curation parsing out of `LibraryOPDBCatalogDecodingSupport.kt`
+- left the main decode file focused on raw machine extraction, manufacturer derivation, and practice-catalog game building instead of also owning the practice-identity fallback policy
+
+Hidden seam surfaced and reduced:
+1. the Android OPDB decode file still mixed raw export parsing with the separate practice-identity curation contract
+2. the new support file now owns that identity policy directly, making it easier to review alongside the hosted `practice_identity_curations_v1.json` path without reopening the whole decode stack
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 202: Android synthetic PinProf Labs machine support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryOPDBCatalogDecodingSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryOPDBSyntheticMachineSupport.kt`
+
+Changes made in this pass:
+- moved the synthetic PinProf Labs machine constants and append helper out of the main OPDB decode file
+- left the decode file focused on turning OPDB export records into catalog machines instead of also carrying the one synthetic record policy inline
+
+Hidden seam surfaced and reduced:
+1. the synthetic PinProf Labs record is intentional product policy, but it had been buried inside the generic OPDB decode bucket
+2. extracting it makes that intentional override explicit and easier to keep aligned with the iOS cleanup path later
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 203: Android rulesheet HTML script support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetHtmlStyleSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetHtmlScriptSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetHtmlTemplateSupport.kt`
+
+Changes made in this pass:
+- moved the DOM table-wrapper enhancement script out of `RulesheetHtmlStyleSupport.kt`
+- left the style file focused on CSS policy and the template file focused on final HTML document assembly
+
+Hidden seam surfaced and reduced:
+1. the Android rulesheet HTML path had already split document assembly away from the screen, but one file still mixed CSS and DOM enhancement script
+2. separating the script keeps future rulesheet styling cleanup from reopening the JavaScript helper at the same time
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 204: Android media-resolution and hosted-image color support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryRulesheetLinkResolutionSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryVideoResolutionSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/HostedImageColorSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/HostedImageScreenSupport.kt`
+
+Changes made in this pass:
+- replaced the old mixed `LibraryMediaResolutionSupport.kt` bucket with separate rulesheet-link and video-resolution support files
+- moved hosted-image title-color sampling out of `HostedImageScreenSupport.kt`
+- left the hosted-image screen support file focused on zoom, gesture handling, and image fallback behavior
+
+Hidden seam surfaced and reduced:
+1. Android media resolution was still mixing two different policy families:
+   - rulesheet link labeling / dedupe
+   - video identity / dedupe / ordering
+2. the hosted-image screen support file still mixed presentation-time color sampling with actual gesture and zoom behavior
+3. both seams are now split cleanly, bringing Android closer to the already-finished iOS Library structure
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 205: Android remote rulesheet document support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetRemoteLoader.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetRemoteDocumentSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/TiltForumsRulesheetSupport.kt`
+
+Changes made in this pass:
+- moved remote fetch/document cleanup helpers out of `RulesheetRemoteLoader.kt`
+- moved Tilt Forums API URL and payload parsing out of the loader object
+- left `RulesheetRemoteLoader.kt` focused on source-type routing and final `RulesheetRenderContent` assembly
+
+Hidden seam surfaced and reduced:
+1. the Android remote rulesheet loader still mixed three layers:
+   - remote fetch transport
+   - provider-specific HTML/API cleanup
+   - final rendered-content assembly
+2. those responsibilities now live in narrower support files, which makes the source-policy surface easier to audit without reopening HTTP and HTML cleanup code at the same time
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 206: Android playfield asset-path support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryPlayfieldCandidateSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryPlayfieldAssetPathSupport.kt`
+
+Changes made in this pass:
+- moved local asset keys, local/sourced playfield path generation, and fullscreen candidate assembly helpers out of `LibraryPlayfieldCandidateSupport.kt`
+- left `LibraryPlayfieldCandidateSupport.kt` focused on candidate precedence and final fallback policy
+
+Hidden seam surfaced and reduced:
+1. the Android playfield candidate file still mixed path-generation infrastructure with the higher-level “which source wins?” policy
+2. separating those layers makes the precedence logic easier to review without reopening all the raw path assembly helpers
+3. one helper visibility seam surfaced during the move: `isOpdbPlayfieldUrl(...)` needed to be widened for cross-file reuse
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 207: Android OPDB machine decoding support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryOPDBCatalogDecodingSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryOPDBMachineDecodingSupport.kt`
+
+Changes made in this pass:
+- moved raw OPDB machine decoding, image extraction, and JSON field helpers out of `LibraryOPDBCatalogDecodingSupport.kt`
+- left the main decode file focused on orchestrating export decode, practice-catalog game building, and hosted load flow
+
+Hidden seam surfaced and reduced:
+1. the Android OPDB decode file still mixed low-level JSON extraction with higher-level catalog assembly
+2. the new support file now owns the raw machine-record translation directly, which brings Android closer to the already-cleaned iOS structure
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 208: Android manufacturer option support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryOPDBCatalogDecodingSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryCatalogManufacturerSupport.kt`
+
+Changes made in this pass:
+- moved curated modern-manufacturer ranking and catalog manufacturer option derivation out of the OPDB decode file
+- left the OPDB decode path focused on machine decode and practice-catalog projection instead of also owning manufacturer option policy
+
+Hidden seam surfaced and reduced:
+1. manufacturer ranking/featured-order policy is Library catalog behavior, not raw OPDB decode infrastructure
+2. extracting it makes that product policy explicit and easier to keep aligned with future iOS/Android parity cleanup
+3. the first extraction left duplicate helpers behind in the old file; that compile-only seam was fixed immediately before the final green build
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 209: Android rulesheet HTML typography and table style split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetHtmlStyleSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetHtmlTypographyStyleSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetHtmlTableStyleSupport.kt`
+
+Changes made in this pass:
+- split the large Android rulesheet CSS block into typography/base styles and table-specific styles
+- left `RulesheetHtmlStyleSupport.kt` as the small coordinator that assembles the final CSS plus responsive overrides
+
+Hidden seam surfaced and reduced:
+1. the Android rulesheet style file had become one large CSS blob even after the HTML template and script had already moved out
+2. splitting typography from table styling makes future rulesheet visual cleanup easier without reopening unrelated CSS sections
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 210: Android route-missing screen support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryRouteContent.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryRouteMissingSupport.kt`
+
+Changes made in this pass:
+- moved the missing-route screen helper out of `LibraryRouteContent.kt`
+- left `LibraryRouteContent.kt` focused on route switching and destination composition instead of also owning the fallback error surface
+
+Hidden seam surfaced and reduced:
+1. `LibraryRouteContent.kt` was already mostly route switching, but it still carried an embedded fallback screen implementation that made the file broader than necessary
+2. this split keeps the route coordinator narrow without changing any routing behavior
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 211: Android list content and filter-sheet split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryListScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryListContentSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryFilterSheetSupport.kt`
+
+Changes made in this pass:
+- moved list-body rendering out of `LibraryListScreen.kt`
+- moved filter-sheet UI out of `LibraryListScreen.kt`
+- left `LibraryListScreen.kt` focused on route-level state and wiring instead of also owning the body and filter-sheet view trees
+
+Hidden seam surfaced and reduced:
+1. the Android list screen still mixed route state with two distinct UI surfaces:
+   - the main results/content body
+   - the filter sheet
+2. the first extraction surfaced only compile-only import cleanup around `verticalScroll` and stale leftover screen-local constants
+3. those were fixed immediately before the final green build
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 212: Android source-state persistence support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySourceStateStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySourceStatePersistenceSupport.kt`
+
+Changes made in this pass:
+- moved JSON encode/decode and normalization helpers out of `LibrarySourceStateStore.kt`
+- left the store file focused on state mutations, synchronization, and preference writes instead of also owning raw persistence translation
+
+Hidden seam surfaced and reduced:
+1. the Android source-state store still mixed persistence shape translation with the store’s actual mutation API
+2. separating persistence support makes the state contract clearer and keeps the store file aligned with the earlier source-store cleanup
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 213: Android hosted-image request and gesture support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/HostedImageScreenSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/HostedImageRequestSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/HostedImageGestureSupport.kt`
+
+Changes made in this pass:
+- moved hosted-image request construction and loading overlay support out of `HostedImageScreenSupport.kt`
+- moved gesture state and gesture handling into a dedicated `ZoomablePlayfieldGestureState` support file
+- left `HostedImageScreenSupport.kt` focused on the zoomable image shell and async image rendering
+
+Hidden seam surfaced and reduced:
+1. the Android hosted-image screen still mixed:
+   - async image request creation
+   - gesture state and gesture handling
+   - the actual zoomable image shell
+2. the first gesture extraction used awkward state adapters; that was intentionally revisited and replaced with a dedicated gesture state object before calling the pass complete
+3. the remaining file is now a clean coordinator for one cohesive image-viewing surface
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 214: Android Library cleanup end-state checkpoint
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDetailVideoSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetContentWebViewSupport.kt`
+
+Result of this pass:
+- no further decomposition required for the remaining medium files
+- the remaining larger files each now represent one cohesive responsibility:
+  - `LibraryScreen.kt`: top-level route coordinator
+  - `LibraryDataLoader.kt`: hosted extraction coordinator
+  - `LibraryDetailVideoSupport.kt`: single detail video card/panel surface
+  - `RulesheetContentWebViewSupport.kt`: actual WebView integration layer
+- Android Library is now in the same “polish only” state as the completed iOS Library cleanup
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 184: Android Library screen state ownership cleanup
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryScreenStateSupport.kt`
+
+Changes made in this pass:
+- moved Android Library screen loading and selection-persistence helpers out of the composable body into `LibraryScreenStateSupport.kt`
+- introduced a dedicated `LibraryScreenLoadedState` result so reload logic returns one explicit snapshot instead of mutating several state buckets inline
+- centralized selected-source, sort, and bank persistence helpers so `LibraryScreen.kt` no longer rewrites the same `LibrarySourceState` map-update logic in multiple callbacks
+- kept `LibraryScreen.kt` focused on Compose state wiring, route transitions, and UI event handling
+
+Hidden seam surfaced and reduced:
+1. `LibraryScreen.kt` still mixed one-shot data loading, store writes, and route/UI composition in the same composable body
+2. the new support file makes the data-loading and persistence contract explicit and reduces the chance that future source-state changes update one callback path but not the others
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
 
 ## Pass 177: Catalog variant label and selection split
 
