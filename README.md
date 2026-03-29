@@ -1,6 +1,6 @@
 # Pinball App
 
-Current mobile release: `3.4.9`
+Current mobile release: `3.5.0`
 
 This repository contains both mobile apps:
 
@@ -9,7 +9,7 @@ This repository contains both mobile apps:
 
 ## Current Product
 
-- Version `3.4.9` is the current iOS and Android release line.
+- Version `3.5.0` is the current iOS and Android release line.
 - The app now ships as the full five-tab PinProf product:
   - `League`
   - `Library`
@@ -29,7 +29,7 @@ This repository contains both mobile apps:
 - The mobile apps no longer rely on bundled `starter-pack` / `PinballStarter.bundle` pinball payloads at runtime.
 - Historical planning docs and superseded blueprint revisions now live under the local-only `archive/` folder so the repo root stays focused on current docs.
 - Build output, local machine files, and signing artifacts are ignored via `.gitignore`.
-- Current release snapshot: `RELEASE_NOTES_3.4.9.md`
+- Current release snapshot: `RELEASE_NOTES_3.5.0.md`
 - Historical iOS 2.0 milestone notes are archived locally under `archive/`
 
 ## Documentation
@@ -42,8 +42,8 @@ This repository contains both mobile apps:
 
 - Android release version is defined in `Pinball App Android/app/build.gradle.kts`.
 - Android production uploads use the existing Gradle version through Fastlane.
-- Current Android marketing version: `3.4.9`
-- Current Android version code: `55`
+- Current Android marketing version: `3.5.0`
+- Current Android version code: `56`
 
 ## Migration Test Gates
 

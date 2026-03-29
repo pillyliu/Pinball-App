@@ -2,7 +2,7 @@
 
 Android app for PinProf.
 
-Current release: `3.4.9`
+Current release: `3.5.0`
 
 ## Open in Android Studio
 - File -> Open -> select this folder.
@@ -28,9 +28,9 @@ Current release: `3.4.9`
 
 ## Release versioning
 
-- Current `versionName`: `3.4.9`
-- Current `versionCode`: `55`
-- Current release snapshot: `../RELEASE_NOTES_3.4.9.md`
+- Current `versionName`: `3.5.0`
+- Current `versionCode`: `56`
+- Current release snapshot: `../RELEASE_NOTES_3.5.0.md`
 - Production upload lane:
   ```bash
   bundle exec fastlane android production

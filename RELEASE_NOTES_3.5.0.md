@@ -1,14 +1,14 @@
-# PinProf 3.4.9 Release Snapshot
+# PinProf 3.5.0 Release Snapshot
 
-This document is the current release-facing summary for PinProf version `3.4.9`.
+This document is the current release-facing summary for PinProf version `3.5.0`.
 
 It describes what ships today across both mobile apps rather than preserving the older milestone history from earlier app phases.
 
 ## Release anchors
 
-- iOS marketing version: `3.4.9`
-- Android marketing version: `3.4.9`
-- Android version code: `55`
+- iOS marketing version: `3.5.0`
+- Android marketing version: `3.5.0`
+- Android version code: `56`
 
 ## Product shape
 
@@ -59,5 +59,5 @@ bundle exec fastlane android production
 The old `2.0` milestone writeup is preserved only as historical local archive material. The current release-facing docs are:
 
 - `README.md`
-- `RELEASE_NOTES_3.4.9.md`
+- `RELEASE_NOTES_3.5.0.md`
 - `Pinball_App_Architecture_Blueprint_latest.md`

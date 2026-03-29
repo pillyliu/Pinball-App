@@ -1,7 +1,7 @@
 # 1. Release Snapshot
 
 ## Document purpose
-This blueprint is the current-state architecture reference for PinProf version `3.4.9`.
+This blueprint is the current-state architecture reference for PinProf version `3.5.0`.
 
 It is intended to describe what ships today across both mobile apps:
 - iOS app: `Pinball App 2`
@@ -17,7 +17,7 @@ PinProf is a dual-platform pinball companion app for league players and home col
 - personal machine ownership and maintenance logging
 - settings, imports, and hosted data management
 
-## What ships in 3.4.9
+## What ships in 3.5.0
 - Five root tabs on both platforms: `League`, `Library`, `Practice`, `GameRoom`, `Settings`
 - A CAF runtime data contract on both platforms built around:
   - `opdb_export.json`
@@ -160,8 +160,8 @@ PinProf is a dual-platform pinball companion app for league players and home col
   - external rulesheet discovery sources used upstream in publish scripts
 
 ## Current version anchors
-- iOS marketing version: `3.4.9`
-- Android target version for this release: `3.4.9`
+- iOS marketing version: `3.5.0`
+- Android target version for this release: `3.5.0`
 - Practice canonical persisted schema: `v4`
 - Primary runtime content contract: CAF hosted layers over OPDB identities
 - App-owned support artifacts: bundled `pinside_group_map.json`, shake-warning art, and intro overlay source images
@@ -1249,11 +1249,11 @@ flowchart TB
 
 # 12. Final Architecture Summary
 
-PinProf `3.4.9` is a five-tab, dual-platform pinball app with one shared product model and two native implementations. The current runtime centers on three strong foundations:
+PinProf `3.5.0` is a five-tab, dual-platform pinball app with one shared product model and two native implementations. The current runtime centers on three strong foundations:
 - a hosted-content system built around `PinballDataCache`, manifest-driven refresh, OPDB export, and asset-database JSON layers
 - local-first user domains led by `PracticeStore` and `GameRoomStore`
 - shared presentation and resource seams that reduce parity drift without flattening away native platform behavior
 
 The most important architectural relationship is that `Library` is not just a tab. It is the runtime assembly substrate for `Practice`, `GameRoom`, manufacturer browsing, and imported venue sources. The most important user-data relationship is that `Practice` remains group-identity compatible while `GameRoom` preserves exact machine `opdb_id`. The most important publish relationship is that PinProf Admin now owns the clean data-and-asset model, while the legacy website repo still stages the current deploy path the apps consume.
 
-This is the corrected reference architecture for the `3.4.9` release line based on the current app code and the current PinProf Admin publish model.
+This is the corrected reference architecture for the `3.5.0` release line based on the current app code and the current PinProf Admin publish model.
