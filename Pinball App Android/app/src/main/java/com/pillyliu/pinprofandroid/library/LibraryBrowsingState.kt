@@ -113,15 +113,27 @@ internal data class LibrarySelectionResolution(
     val selectedBank: Int?,
 )
 
+internal fun resolvePreferredLibrarySource(
+    sources: List<LibrarySource>,
+    selectedSourceId: String?,
+    currentSelectedSourceId: String? = null,
+): LibrarySource? {
+    val preferredSourceId = listOfNotNull(selectedSourceId, currentSelectedSourceId)
+        .mapNotNull(::canonicalLibrarySourceId)
+        .firstOrNull { candidate -> sources.any { it.id == candidate } }
+    return sources.firstOrNull { it.id == preferredSourceId } ?: sources.firstOrNull()
+}
+
 internal fun resolveLibrarySelection(
     payload: ParsedLibraryData,
     sourceState: LibrarySourceState,
-    savedSourceId: String?,
     currentSelectedSourceId: String,
 ): LibrarySelectionResolution? {
-    val preferredSourceId = listOfNotNull(sourceState.selectedSourceId, savedSourceId, currentSelectedSourceId)
-        .firstOrNull { candidate -> payload.sources.any { it.id == candidate } }
-    val chosenSource = payload.sources.firstOrNull { it.id == preferredSourceId } ?: payload.sources.firstOrNull()
+    val chosenSource = resolvePreferredLibrarySource(
+        sources = payload.sources,
+        selectedSourceId = sourceState.selectedSourceId,
+        currentSelectedSourceId = currentSelectedSourceId,
+    )
     return chosenSource?.let { source ->
         resolveLibrarySelectionForSource(
             source = source,

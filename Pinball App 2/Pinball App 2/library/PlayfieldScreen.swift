@@ -40,6 +40,54 @@ final class RemoteUIImageMemoryCache {
     }
 }
 
+private enum RemoteUIImageRepository {
+    static func cachedImage(for url: URL) -> UIImage? {
+        RemoteUIImageMemoryCache.shared.image(for: url)
+    }
+
+    static func loadImage(url: URL) async throws -> UIImage {
+        if let cachedImage = cachedImage(for: url) {
+            return cachedImage
+        }
+
+        let data = try await PinballDataCache.shared.loadData(url: url)
+        guard let image = UIImage(data: data) else {
+            throw URLError(.cannotDecodeContentData)
+        }
+
+        RemoteUIImageMemoryCache.shared.insert(image, for: url)
+        return image
+    }
+
+    static func loadImageWithRetry(url: URL) async throws -> UIImage {
+        var lastError: Error?
+        for attempt in 0..<3 {
+            do {
+                return try await loadImage(url: url)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                lastError = error
+                if !shouldRetry(error: error) || attempt == 2 {
+                    throw error
+                }
+                try await Task.sleep(nanoseconds: UInt64(250_000_000 * (attempt + 1)))
+            }
+        }
+        throw lastError ?? URLError(.unknown)
+    }
+
+    private static func shouldRetry(error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        switch urlError.code {
+        case .timedOut, .networkConnectionLost, .notConnectedToInternet, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
 struct FallbackAsyncImageView: View {
     let candidates: [URL]
     let emptyMessage: String?
@@ -94,18 +142,8 @@ struct FallbackAsyncImageView: View {
                 didFailCurrent = true
                 return
             }
-            if let cachedImage = RemoteUIImageMemoryCache.shared.image(for: currentURL) {
-                image = cachedImage
-                loadedURL = currentURL
-                didFailCurrent = false
-                return
-            }
             do {
-                let data = try await loadDataWithRetry(url: currentURL)
-                guard let loaded = UIImage(data: data) else {
-                    throw URLError(.cannotDecodeContentData)
-                }
-                RemoteUIImageMemoryCache.shared.insert(loaded, for: currentURL)
+                let loaded = try await RemoteUIImageRepository.loadImageWithRetry(url: currentURL)
                 image = loaded
                 loadedURL = currentURL
                 didFailCurrent = false
@@ -120,34 +158,6 @@ struct FallbackAsyncImageView: View {
                     index += 1
                 }
             }
-        }
-    }
-
-    private func loadDataWithRetry(url: URL) async throws -> Data {
-        var lastError: Error?
-        for attempt in 0..<3 {
-            do {
-                return try await PinballDataCache.shared.loadData(url: url)
-            } catch is CancellationError {
-                throw CancellationError()
-            } catch {
-                lastError = error
-                if !shouldRetry(error: error) || attempt == 2 {
-                    throw error
-                }
-                try await Task.sleep(nanoseconds: UInt64(250_000_000 * (attempt + 1)))
-            }
-        }
-        throw lastError ?? URLError(.unknown)
-    }
-
-    private func shouldRetry(error: Error) -> Bool {
-        guard let urlError = error as? URLError else { return false }
-        switch urlError.code {
-        case .timedOut, .networkConnectionLost, .notConnectedToInternet, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
-            return true
-        default:
-            return false
         }
     }
 }
@@ -277,18 +287,8 @@ final class RemoteUIImageLoader: ObservableObject {
         failed = false
 
         for url in urls {
-            if let cachedImage = RemoteUIImageMemoryCache.shared.image(for: url) {
-                image = cachedImage
-                failed = false
-                return
-            }
             do {
-                let data = try await PinballDataCache.shared.loadData(url: url)
-                guard let uiImage = UIImage(data: data) else {
-                    continue
-                }
-
-                RemoteUIImageMemoryCache.shared.insert(uiImage, for: url)
+                let uiImage = try await RemoteUIImageRepository.loadImage(url: url)
                 image = uiImage
                 failed = false
                 return

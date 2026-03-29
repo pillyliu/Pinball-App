@@ -18,7 +18,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.pillyliu.pinprofandroid.practice.KEY_LIBRARY_LAST_VIEWED_SLUG
 import com.pillyliu.pinprofandroid.practice.KEY_LIBRARY_LAST_VIEWED_TS
-import com.pillyliu.pinprofandroid.practice.KEY_PREFERRED_LIBRARY_SOURCE_ID
 import com.pillyliu.pinprofandroid.practice.practiceSharedPreferences
 import com.pillyliu.pinprofandroid.ui.LocalBottomBarVisible
 import com.pillyliu.pinprofandroid.ui.iosEdgeSwipeBack
@@ -95,14 +94,12 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
             resolveLibrarySelection(
                 payload = payload,
                 sourceState = sourceState,
-                savedSourceId = prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null),
                 currentSelectedSourceId = selectedSourceId,
             )?.let { resolution ->
                 selectedSourceId = resolution.selectedSourceId
                 sortOptionName = resolution.sortOptionName
                 yearSortDescending = resolution.yearSortDescending
                 selectedBank = resolution.selectedBank
-                prefs.edit { putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, resolution.selectedSourceId) }
                 LibrarySourceStateStore.setSelectedSource(context, resolution.selectedSourceId)
             }
         } catch (t: Throwable) {
@@ -163,7 +160,6 @@ internal fun LibraryScreen(contentPadding: PaddingValues) {
                     sortOptionName = resolution.sortOptionName
                     yearSortDescending = resolution.yearSortDescending
                     selectedBank = resolution.selectedBank
-                    prefs.edit { putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, resolution.selectedSourceId) }
                     LibrarySourceStateStore.setSelectedSource(context, resolution.selectedSourceId)
                     resetListBrowsePosition()
                 }

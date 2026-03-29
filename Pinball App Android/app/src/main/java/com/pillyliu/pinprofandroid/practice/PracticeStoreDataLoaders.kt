@@ -6,6 +6,7 @@ import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.PM_AVENUE_LIBRARY_SOURCE_ID
+import com.pillyliu.pinprofandroid.library.PM_AVENUE_LIBRARY_SOURCE_NAME
 import com.pillyliu.pinprofandroid.library.canonicalLibrarySourceId
 import com.pillyliu.pinprofandroid.library.hostedOPDBExportPath
 import com.pillyliu.pinprofandroid.library.hostedVenueLayoutAssetsPath
@@ -120,7 +121,7 @@ internal suspend fun loadPracticeAvenueBankTemplateGames(): List<PinballGame> = 
                         opdbMachineId = machine.opdbId,
                         variant = machine.variant,
                         sourceId = PM_AVENUE_LIBRARY_SOURCE_ID,
-                        sourceName = "The Avenue Cafe",
+                        sourceName = PM_AVENUE_LIBRARY_SOURCE_NAME,
                         sourceType = LibrarySourceType.VENUE,
                         area = record.area,
                         areaOrder = record.areaOrder,

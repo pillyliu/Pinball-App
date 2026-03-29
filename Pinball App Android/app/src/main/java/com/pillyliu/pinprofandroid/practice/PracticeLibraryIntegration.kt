@@ -17,8 +17,6 @@ internal data class PracticeLibraryStoreState(
 
 internal class PracticeLibraryIntegration(
     private val context: Context,
-    private val preferredSourceId: () -> String?,
-    private val savePreferredSourceId: (String?) -> Unit,
 ) {
     fun applySelectedSource(
         sourceId: String?,
@@ -33,7 +31,6 @@ internal class PracticeLibraryIntegration(
     }
 
     fun persistSelectedSource(sourceId: String?) {
-        savePreferredSourceId(sourceId)
         LibrarySourceStateStore.setSelectedSource(context, sourceId)
     }
 
@@ -51,7 +48,7 @@ internal class PracticeLibraryIntegration(
 
     private suspend fun loadLibraryState(fullLibraryScope: Boolean): PracticeLibraryStoreState {
         val loaded = loadPracticeGamesFromLibrary(context, fullLibraryScope = fullLibraryScope)
-        val preferredSource = resolvePreferredPracticeSource(loaded, preferredSourceId())
+        val preferredSource = resolvePreferredPracticeSource(loaded, LibrarySourceStateStore.load(context).selectedSourceId)
         val selection = applyPracticeLibrarySourceSelection(
             sourceId = preferredSource?.id,
             sources = loaded.sources,

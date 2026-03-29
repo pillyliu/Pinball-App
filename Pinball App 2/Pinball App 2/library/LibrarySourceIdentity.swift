@@ -1,24 +1,33 @@
 import Foundation
 
 nonisolated let pmAvenueLibrarySourceID = "venue--pm-8760"
+nonisolated let pmElectricBatLibrarySourceID = "venue--pm-10819"
 nonisolated let pmRLMLibrarySourceID = "venue--pm-16470"
 nonisolated let gameRoomLibrarySourceID = "venue--gameroom"
+nonisolated let sternManufacturerLibrarySourceID = "manufacturer-12"
+nonisolated let jerseyJackManufacturerLibrarySourceID = "manufacturer-74"
+nonisolated let spookyManufacturerLibrarySourceID = "manufacturer-95"
+nonisolated let pmAvenueLibrarySourceName = "The Avenue Cafe"
+nonisolated let pmElectricBatLibrarySourceName = "Electric Bat Arcade"
+nonisolated let pmRLMLibrarySourceName = "RLM Amusements"
+nonisolated let sternManufacturerLibrarySourceName = "Stern"
+nonisolated let jerseyJackManufacturerLibrarySourceName = "Jersey Jack Pinball"
+nonisolated let spookyManufacturerLibrarySourceName = "Spooky Pinball"
+nonisolated let defaultSeededLibrarySourceIDs: [String] = [
+    pmAvenueLibrarySourceID,
+    pmElectricBatLibrarySourceID,
+    sternManufacturerLibrarySourceID,
+    jerseyJackManufacturerLibrarySourceID,
+    spookyManufacturerLibrarySourceID,
+]
 
-nonisolated private let builtinVenueSourceIDAliases: [String: String] = [
+nonisolated private let legacyLibrarySourceIDAliases: [String: String] = [
     "the-avenue": pmAvenueLibrarySourceID,
     "the-avenue-cafe": pmAvenueLibrarySourceID,
     "venue--the-avenue-cafe": pmAvenueLibrarySourceID,
     "rlm-amusements": pmRLMLibrarySourceID,
     "venue--rlm-amusements": pmRLMLibrarySourceID
 ]
-
-nonisolated private let builtinVenueSourceNames: [String: String] = [
-    pmRLMLibrarySourceID: "RLM Amusements",
-    pmAvenueLibrarySourceID: "The Avenue Cafe",
-    gameRoomLibrarySourceID: "GameRoom"
-]
-
-nonisolated let defaultBuiltinVenueSourceIDs: [String] = []
 
 private struct LegacyPinballMapVenueMigrationTarget {
     let id: String
@@ -29,39 +38,28 @@ private struct LegacyPinballMapVenueMigrationTarget {
 nonisolated private let legacyPinballMapVenueMigrationTargets: [LegacyPinballMapVenueMigrationTarget] = [
     LegacyPinballMapVenueMigrationTarget(
         id: pmAvenueLibrarySourceID,
-        name: "The Avenue Cafe",
+        name: pmAvenueLibrarySourceName,
         providerSourceID: "8760"
     ),
     LegacyPinballMapVenueMigrationTarget(
         id: pmRLMLibrarySourceID,
-        name: "RLM Amusements",
+        name: pmRLMLibrarySourceName,
         providerSourceID: "16470"
     )
 ]
 
-nonisolated func canonicalBuiltinVenueLibrarySourceID(_ rawID: String?) -> String? {
+nonisolated func canonicalLegacyLibrarySourceAliasID(_ rawID: String?) -> String? {
     guard let trimmed = rawID?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
         return nil
     }
-    return builtinVenueSourceIDAliases[trimmed]
+    return legacyLibrarySourceIDAliases[trimmed]
 }
 
 nonisolated func canonicalLibrarySourceID(_ rawID: String?) -> String? {
     guard let trimmed = rawID?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
         return nil
     }
-    return canonicalBuiltinVenueLibrarySourceID(trimmed) ?? trimmed
-}
-
-nonisolated func builtinVenueSources(includeGameRoom: Bool = false) -> [PinballLibrarySource] {
-    var sourceIDs = defaultBuiltinVenueSourceIDs
-    if includeGameRoom {
-        sourceIDs.append(gameRoomLibrarySourceID)
-    }
-    return sourceIDs.compactMap { sourceID in
-        guard let name = builtinVenueSourceNames[sourceID] else { return nil }
-        return PinballLibrarySource(id: sourceID, name: name, type: .venue)
-    }
+    return canonicalLegacyLibrarySourceAliasID(trimmed) ?? trimmed
 }
 
 nonisolated func isAvenueLibrarySourceID(_ rawID: String?) -> Bool {

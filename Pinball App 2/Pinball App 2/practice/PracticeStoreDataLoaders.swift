@@ -9,8 +9,6 @@ struct PracticeLibraryLoadResult {
 }
 
 extension PracticeStore {
-    private static let preferredLibrarySourceDefaultsKey = "preferred-library-source-id"
-
     func loadGames() async {
         let initialLibraryState = await loadInitialLibraryState()
         applyLibraryState(initialLibraryState)
@@ -203,17 +201,11 @@ extension PracticeStore {
         if let selectedSource {
             games = pool.filter { $0.sourceId == selectedSource.id }
             defaultPracticeSourceID = selectedSource.id
-            UserDefaults.standard.set(selectedSource.id, forKey: Self.preferredLibrarySourceDefaultsKey)
-            var state = PinballLibrarySourceStateStore.load()
-            state.selectedSourceID = selectedSource.id
-            PinballLibrarySourceStateStore.save(state)
+            PinballLibrarySourceStateStore.setSelectedSourceID(selectedSource.id)
         } else {
             games = pool
             defaultPracticeSourceID = nil
-            UserDefaults.standard.removeObject(forKey: Self.preferredLibrarySourceDefaultsKey)
-            var state = PinballLibrarySourceStateStore.load()
-            state.selectedSourceID = nil
-            PinballLibrarySourceStateStore.save(state)
+            PinballLibrarySourceStateStore.setSelectedSourceID(nil)
         }
         saveHomeBootstrapSnapshotIfNeeded()
     }
@@ -225,22 +217,17 @@ extension PracticeStore {
         defaultPracticeSourceID = state.defaultSourceID
         didLoadAllLibraryGames = state.isFullLibraryScope
         if let selectedSourceID = state.defaultSourceID {
-            UserDefaults.standard.set(selectedSourceID, forKey: Self.preferredLibrarySourceDefaultsKey)
-            var sourceState = PinballLibrarySourceStateStore.load()
-            sourceState.selectedSourceID = selectedSourceID
-            PinballLibrarySourceStateStore.save(sourceState)
+            PinballLibrarySourceStateStore.setSelectedSourceID(selectedSourceID)
         }
     }
 
     private func loadPracticeLibraryState(fullLibraryScope: Bool) async throws -> PracticeLibraryLoadResult {
         let extraction = try await (fullLibraryScope ? loadFullLibraryExtraction() : loadLibraryExtraction())
         let payload = extraction.payload
-        let savedSourceID = UserDefaults.standard.string(forKey: Self.preferredLibrarySourceDefaultsKey)
-        let preferredCandidates = [savedSourceID, extraction.state.selectedSourceID]
-        let selectedSource =
-            preferredCandidates.compactMap { $0 }.first(where: { id in payload.sources.contains(where: { $0.id == id }) })
-                .flatMap { id in payload.sources.first(where: { $0.id == id }) }
-            ?? payload.sources.first
+        let selectedSource = resolvePreferredLibrarySource(
+            sources: payload.sources,
+            selectedSourceID: extraction.state.selectedSourceID
+        )
 
         return PracticeLibraryLoadResult(
             games: selectedSource.map { source in
@@ -384,7 +371,7 @@ private func loadPracticeAvenueBankTemplateGames() async throws -> [PinballGame]
         )
         let resolved = ResolvedCatalogRecord(
             sourceID: pmAvenueLibrarySourceID,
-            sourceName: "The Avenue Cafe",
+            sourceName: pmAvenueLibrarySourceName,
             sourceType: .venue,
             area: catalogNormalizedOptionalString(record.area),
             areaOrder: record.areaOrder,

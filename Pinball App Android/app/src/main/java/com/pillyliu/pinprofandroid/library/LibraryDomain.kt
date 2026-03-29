@@ -55,7 +55,7 @@ internal data class ParsedLibraryData(
     val sources: List<LibrarySource>,
 )
 
-internal data class LegacyCatalogExtraction(
+internal data class LibraryExtraction(
     val payload: ParsedLibraryData,
     val state: LibrarySourceState,
 )

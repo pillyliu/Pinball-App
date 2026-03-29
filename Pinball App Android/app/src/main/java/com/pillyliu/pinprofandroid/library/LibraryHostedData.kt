@@ -56,7 +56,7 @@ internal val HOSTED_PINBALL_REFRESH_TARGETS = listOf(
 internal suspend fun loadHostedLibraryExtraction(
     context: Context,
     filterBySourceState: Boolean = true,
-): LegacyCatalogExtraction {
+): LibraryExtraction {
     val opdbExportText = loadHostedOrCachedPinballText(hostedOPDBExportPath, allowMissing = false)
         ?: error("Missing OPDB export")
     val practiceIdentityCurationsText = loadHostedOrCachedPinballText(hostedPracticeIdentityCurationsPath, allowMissing = true)

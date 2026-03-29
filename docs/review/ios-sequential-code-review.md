@@ -7596,6 +7596,769 @@ Next files queued:
 - `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
 - `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
 
+## Pass 108: Settings import/search and source-persistence cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/settings/SettingsImportScreens.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsDataIntegration.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsImportScreens.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsDataIntegration.kt`
+
+Changes made in this pass:
+- centralized iOS venue-search state transitions behind `performVenueSearch(...)` so text-query search and current-location search no longer duplicate `hasSearched`, `lastSearchContext`, `searchResults`, `errorMessage`, and `isSearching` updates
+- added shared iOS helpers for venue-provider ID normalization and imported-source persistence/update so manufacturer, venue, tournament, and refresh flows no longer each reimplement the same upsert/snapshot boilerplate
+- mirrored the same structural cleanup on Android with `performVenueSearch(...)`, `persistSettingsSource(...)`, `updateSettingsSource(...)`, `publishSettingsSourceMutation(...)`, and a shared venue provider-ID helper
+- normalized Settings venue import to use one effective search-context rule on both platforms instead of repeating inline `lastSearchContext` fallback logic
+
+Behavioral outcome:
+- no intended front-facing behavior change
+- Settings search/import results, source creation, and refresh behavior stay the same on iOS and Android
+
+Outdated or conflicting code resolved in this pass:
+1. the venue-import/search path had grown two parallel search-state machines per platform; that duplication is now collapsed into one owner per platform
+2. Settings source persistence had near-identical manufacturer/venue/tournament/add/refresh logic, which made provider-ID normalization and future source-state changes easy to drift
+
+Outdated or conflicting code surfaced but intentionally left for review:
+1. venue import still does not have a dedicated importing state on iOS
+2. Android venue import still reuses the generic `searching` state for import progress
+3. those are front-facing loading-state changes, so they are logged for a separate UX decision instead of being silently changed during cleanup
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 108 summary
+
+Safe cleanup changes made:
+- removed duplicated Settings search/import state handling
+- removed duplicated Settings source upsert/update plumbing
+
+Outcome:
+- the Settings import flow now has clearer internal ownership and less hidden parity drift risk, while the visible import-progress UX seam is explicitly logged for later review instead of being changed implicitly
+
+## Pass 109: Settings refresh and tournament-import helper cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/settings/SettingsScreen.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsImportScreens.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreenState.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsImportScreens.kt`
+
+Changes made in this pass:
+- centralized iOS Settings source refresh error handling behind `performSourceRefresh(...)` so venue/tournament refresh paths no longer duplicate the same guard, publish, and error plumbing
+- centralized Android Settings source mutation completion and refresh handling behind `completeSourceMutation(...)` and `refreshImportedSource(...)`
+- pulled tournament import fetch/validation/error mapping behind dedicated helpers on iOS and Android instead of leaving the “fetch, reject empty OPDB machine list, map error message” flow inline inside each button action
+- added explicit `canImportTournament` state on iOS and Android so the tournament-import button uses one named enablement rule instead of repeating the raw expression
+
+Behavioral outcome:
+- no intended front-facing behavior change
+- tournament import still behaves the same: invalid IDs stay blocked, empty Match Play arena lists still show the same error, and successful imports still return to Settings home
+
+Outdated or conflicting code resolved in this pass:
+1. Settings refresh paths had started drifting into venue-specific and tournament-specific controller copies on both platforms; the shared helpers now keep that logic in one place per platform
+2. tournament import validation for “no OPDB-linked arenas” was an inline hidden contract in each screen; it is now named and explicit
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 109 summary
+
+Safe cleanup changes made:
+- removed duplicated Settings refresh plumbing
+- removed duplicated tournament import fetch/validation plumbing
+
+Outcome:
+- the remaining Settings import flow reads more like explicit state ownership and less like repeated controller glue, with current UX behavior preserved
+
+## Pass 100: Library file-ownership rename cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryExtractionSupport.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySourceStores.kt`
+
+Changes made in this pass:
+- renamed the stale iOS extraction helper file from `LibraryCatalogStore.swift` to `LibraryExtractionSupport.swift` so the filename matches its current job after the earlier Library extraction work
+- renamed the stale Android source/import persistence file from `LibraryCatalogStore.kt` to `LibrarySourceStores.kt` because it no longer owns catalog storage and had become a misleading file anchor during review
+
+Behavioral outcome:
+- no runtime behavior change
+- the Library architecture is easier to audit because file names now match current ownership boundaries instead of earlier pre-extraction responsibilities
+
+Hidden contract surfaced in this pass:
+1. Xcode was still compiling the renamed iOS file cleanly without a visible `project.pbxproj` edit, which confirms this project is currently relying on filesystem-synced group behavior for many Library file moves
+2. the old `LibraryCatalogStore` name had become actively misleading on both platforms: on iOS it only wrapped extraction/filtering, while on Android it owned source-state and imported-source persistence
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 101: iOS Library domain/view-model ownership split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryViewModel.swift`
+- `Pinball App 2/Pinball App 2/library/LibrarySourceModels.swift`
+- `Pinball App 2/Pinball App 2/library/LibrarySearchSupport.swift`
+
+Changes made in this pass:
+- renamed `LibraryDomain.swift` to `LibraryViewModel.swift` because the surviving file content was entirely the `PinballLibraryViewModel`
+- moved `PinballLibrarySourceType`, `PinballLibrarySource`, and `PinballLibrarySortOption` into `LibrarySourceModels.swift`
+- moved the shared search-token/search-match helpers into `LibrarySearchSupport.swift`
+
+Behavioral outcome:
+- no intended runtime behavior change
+- the remaining iOS Library domain layer now has clearer ownership boundaries: source models, search helpers, and the view model no longer hide inside one vaguely named file
+
+Outdated or conflicting code surfaced:
+1. `LibraryViewModel.swift` still persists preferred source selection in two places: the raw `preferred-library-source-id` `UserDefaults` key and `PinballLibrarySourceStateStore.selectedSourceID`
+2. that duplicate persistence is a stale contract from the older Library state model. It is currently harmless, but it is hidden duplication and a future cleanup candidate once we decide whether the raw defaults key should be retired entirely
+3. the raw `preferred-library-source-id` key is not Library-local yet; `PracticeQuickEntrySheet.swift` and `PracticeStoreDataLoaders.swift` still read it, so retiring it will need a coordinated Library/Practice cleanup instead of a one-file change
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 102: Android Library source-store split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySourceStateStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryImportedSourcesStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySourceStoreSupport.kt`
+
+Changes made in this pass:
+- split `LibrarySourceStores.kt` into dedicated files for source-state persistence, imported-source persistence, and shared store-support helpers/events
+- kept the seeded default source data with `ImportedSourcesStore`, since those defaults are only used when imported sources are first bootstrapped
+- moved the shared `LibrarySourceEvents` flow plus JSON/map normalization helpers into `LibrarySourceStoreSupport.kt`
+
+Behavioral outcome:
+- no intended Android runtime behavior change
+- Android now mirrors the iOS Library ownership shape more closely: source-state persistence and imported-source persistence are no longer hidden inside the same broad file
+
+Outdated or conflicting code surfaced:
+1. Android still keeps both the seeded-default source lists and imported-source persistence in one file, which is acceptable now but still a minor ownership hotspot if the seeded-source catalog grows further
+2. the bigger stale seam is no longer hidden: the old combined `LibrarySourceStores.kt` file had become a catch-all for unrelated responsibilities
+
+Verification:
+- `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 102 summary
+
+Safe cleanup changes made:
+- renamed stale Library support files to match current responsibilities
+- split the iOS Library domain/view-model layer into dedicated source-model, search-support, and view-model files
+- split Android Library source persistence into dedicated state-store, imported-source-store, and shared-support files
+
+Verification:
+- iOS app build passed
+- Android compile plus unit tests passed
+
+Outcome:
+- the Library cleanup now has much clearer file ownership on both platforms, and the remaining outdated seam worth fixing next is the duplicate preferred-source persistence in `LibraryViewModel.swift`
+
+## Pass 103: Shared preferred Library source ownership cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibrarySourceStateStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryViewModel.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreDataLoaders.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeQuickEntrySheet.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryBrowsingState.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibraryIntegration.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeQuickEntrySheet.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeKeys.kt`
+
+Changes made in this pass:
+- made the Library source-state store the single live owner of the preferred Library source on iOS
+- added `PinballLibrarySourceStateStore.setSelectedSourceID(_:)` so iOS Library and Practice stop hand-editing `selectedSourceID`
+- removed iOS reads and writes to the old raw `preferred-library-source-id` key from `LibraryViewModel.swift`, `PracticeStoreDataLoaders.swift`, and `PracticeQuickEntrySheet.swift`
+- made the Android Library source-state store the single live owner of preferred Library source selection as well
+- removed Android Library/Practice reads and writes of `KEY_PREFERRED_LIBRARY_SOURCE_ID`
+- simplified Android `PracticeLibraryIntegration` so it no longer needs injected raw preference closures just to mirror source selection state
+- simplified Android `resolveLibrarySelection(...)` so it now resolves from source-state plus in-memory current selection, not a second saved-source channel
+
+Behavioral outcome:
+- no intended front-facing behavior change
+- Library and Practice still remember the last chosen Library source across the same flows as before
+- the hidden split-brain contract is gone: Library and Practice no longer keep a second raw preference key in parallel with source-state selection
+
+Outdated or conflicting code resolved in this pass:
+1. the older `preferred-library-source-id` raw key path is no longer part of live selection flow
+2. repo-wide search after the change found no remaining live references to `preferred-library-source-id`, `KEY_PREFERRED_LIBRARY_SOURCE_ID`, or the old iOS defaults-key constants
+3. that means any future reappearance of this key would now be a fresh stale seam, not a tolerated legacy contract
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 103 summary
+
+Safe cleanup changes made:
+- removed the shared raw preferred-source key path and made Library source-state the only live owner of preferred source selection on both platforms
+
+Verification:
+- iOS app build passed
+- Android compile plus unit tests passed
+
+Outcome:
+- the preferred Library source seam is now explicit and single-owned, and the next cleanup work can move on to other stale Library/Practice contracts instead of carrying this duplicate persistence path
+
+## Pass 104: Shared preferred Library source resolution cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibrarySelectionSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryViewModel.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreDataLoaders.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryBrowsingState.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibrarySourceSelection.kt`
+
+Changes made in this pass:
+- added a shared iOS `resolvePreferredLibrarySource(...)` helper so Library and Practice stop carrying separate “pick saved source else current source else first source” logic
+- updated iOS `LibraryViewModel` and `PracticeStoreDataLoaders` to use the shared resolver instead of duplicating the fallback chain locally
+- updated Android `PracticeLibrarySourceSelection.kt` to delegate its preferred-source resolution to the shared Library browsing helper instead of keeping a parallel Practice-specific copy
+- kept the resolution order the same on both platforms: saved source first, then current/default source, then first available source
+
+Behavioral outcome:
+- no intended front-facing behavior change
+- Library and Practice now stay aligned by construction when deciding which source should be active after a load
+
+Outdated or conflicting code resolved in this pass:
+1. preferred-source choice no longer depends on near-duplicate resolver copies in Library and Practice
+2. any future change to preferred-source fallback order now has one obvious place per platform instead of hidden drift between features
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 104 summary
+
+Safe cleanup changes made:
+- centralized preferred Library source resolution so Library and Practice share one rule on both platforms
+
+Verification:
+- iOS app build passed
+- Android compile plus unit tests passed
+
+Outcome:
+- preferred source persistence and preferred source resolution are now separate but both explicit, which removes another hidden Library/Practice state seam
+
+## Pass 105: Library source identity and removal-state parity cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibrarySourceIdentity.swift`
+- `Pinball App 2/Pinball App 2/library/LibrarySourceStateStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryImportedSourcesStore.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySourceIdentity.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySourceStateStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryImportedSourcesStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+
+Changes made in this pass:
+- renamed the stale internal “built-in venue alias” naming on both platforms to “legacy Library source alias” so the code matches the new seeded-imported-source model
+- renamed Android’s `BUILTIN_GAME_ROOM_LIBRARY_SOURCE_ID` to `GAME_ROOM_LIBRARY_SOURCE_ID` so the GameRoom synthetic source no longer pretends to be part of a retired built-in-source system
+- added `removeSourcePreferences(...)` helpers to both source-state stores
+- switched imported-source removal to use those helpers instead of each store manually editing part of the state payload
+- tightened Android source-state mutation helpers so `setSelectedSort(...)` and `setSelectedBank(...)` stop loading state twice before saving
+
+Behavioral outcome:
+- no intended front-facing behavior change
+- removing a Library source now clears all associated selection/sort/bank preference state consistently on both platforms
+
+Outdated or conflicting code resolved in this pass:
+1. iOS source removal had been leaving behind stale `selectedSortBySource` and `selectedBankBySource` entries for deleted sources, while Android already cleared them; that parity mismatch is now gone
+2. the remaining “built-in source” wording in live code is reduced to actual seed-db schema fields and historical docs, not active source-identity helpers
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 105 summary
+
+Safe cleanup changes made:
+- renamed stale source-identity helpers to match the post-built-in-source model
+- aligned deleted-source preference cleanup between iOS and Android
+- simplified Android source-state writes to use one loaded snapshot per mutation
+
+Outcome:
+- source identity and source removal behavior now read like the model the app actually uses today, and stale deleted-source preferences no longer linger on iOS
+
+## Pass 106: Android Settings source-management ownership cleanup
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreenState.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreen.kt`
+
+Changes made in this pass:
+- moved Android Settings source-management actions out of `SettingsScreen.kt` inline closures and into `SettingsScreenState`
+- gave the state object explicit methods for enable/pin, add manufacturer/venue/tournament, delete source, and refresh source
+- kept route transitions and error handling in one owner instead of scattering them across the screen composable
+
+Behavioral outcome:
+- no intended front-facing behavior change
+- Android Settings source management is now much closer to the iOS `SettingsViewModel` ownership model
+
+Outdated or conflicting code resolved in this pass:
+1. Android Settings had turned into a mixed screen/controller file with source mutation logic inline in the composable tree
+2. that made it easier for route changes, error messages, and source-change notifications to drift across action paths; centralizing them in `SettingsScreenState` removes that hidden maintenance seam
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 106 summary
+
+Safe cleanup changes made:
+- moved Android Settings source-mutation logic behind named state methods instead of inline composable closures
+
+Outcome:
+- the Android Settings screen now reads more like UI and less like a controller bucket, which makes future parity cleanup with iOS much safer
+
+## Pass 107: iOS Settings source-management ownership cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/settings/SettingsScreen.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsHomeSections.swift`
+
+Changes made in this pass:
+- centralized iOS Settings source-mutation success handling behind shared `publishSourceSnapshot(...)` and `reloadSourceState(...)` helpers in `SettingsViewModel`
+- added a unified iOS `refreshSource(...)` entrypoint so the Settings UI no longer branches between venue/tournament refresh logic inline
+- replaced the old Settings source-row display model with `SettingsManagedSourceItem`, which keeps the underlying `PinballImportedSourceRecord` attached to the row instead of forcing the row to look the record back up by ID later
+- extracted dedicated private Settings views for the Library add-button strip and managed source table/rows so `SettingsHomeSections.swift` reads more like layout plus explicit actions
+- added `syncSourceStateWithoutNotification()` so a failed “pin source” attempt now updates local toggle state without broadcasting a fake source-change notification
+
+Behavioral outcome:
+- no intended front-facing behavior change
+- the Settings source table still shows the same rows, actions, and toggles as before
+
+Outdated or conflicting code resolved in this pass:
+1. iOS Settings source rows used to build a display-only row model, then re-query `viewModel.importedSources` by ID just to refresh the source; that hidden lookup seam is gone
+2. a failed iOS pin attempt used to post `pinballLibrarySourcesDidChange` even though no source state changed, which could trigger unnecessary Settings/Library refresh churn; that false notification is now gone
+3. iOS Settings now matches the Android direction more closely: source mutations are owned by state/model methods rather than scattered through view closures
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 107 summary
+
+Safe cleanup changes made:
+- cleaned up iOS Settings source-management ownership and removed a stale source-row relookup path
+- stopped failed iOS pin attempts from emitting a false source-change notification
+
+Verification:
+- iOS app build passed
+
+Outcome:
+- iOS Settings source-management now has clearer ownership, fewer hidden lookups, and less accidental refresh churn
+
+## Pass 096: Seeded default Library sources and built-in-source retirement
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryBuiltInSources.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryImportedSourcesStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibrarySourceStateStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryGame.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsScreen.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsHomeSections.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryBuiltInSources.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryCatalogStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsHomeSections.kt`
+
+Changes made in this pass:
+- retired the active built-in-source default path on both platforms; fresh installs now seed imported Library sources instead of pretending venues are special built-ins
+- added five first-run default sources on both platforms:
+  - `The Avenue Cafe` (`venue--pm-8760`)
+  - `Electric Bat Arcade` (`venue--pm-10819`)
+  - `Stern` (`manufacturer-12`)
+  - `Jersey Jack Pinball` (`manufacturer-74`)
+  - `Spooky Pinball` (`manufacturer-95`)
+- made those seeded defaults persist the first time they materialize, instead of disappearing on the next launch once source-state storage exists
+- set fresh-install source state to `enabled + pinned + selected` in the requested order, with Avenue first, so Library is not empty and the visible Library source filter shows the intended starting set
+- kept the seeding gate strict: if a user already has persisted imported sources or persisted Library source state, the new defaults do not get injected into that existing setup
+- removed the Settings “Built-in venue” table split on both platforms; the Library settings UI now manages all sources through the imported-source model
+- replaced the stale iOS `PinballGame` decode fallback from `"The Avenue Cafe"` to `"Unknown Source"` so malformed payloads no longer inherit an old single-venue assumption
+- bundled the Avenue and Electric Bat machine-id snapshots directly into the first-run seed data so both default venues populate immediately without needing a first-refresh network round trip
+
+Behavioral outcome:
+- a truly fresh install now starts with a populated Library instead of an empty source list
+- the initial visible Library source strip now opens on the user’s home venue first, then Electric Bat Arcade, then the three requested manufacturer sources
+- existing users keep their current Library source setup untouched
+
+Concrete data snapshot used:
+- Avenue machine IDs were seeded from Pinball Map venue `8760`
+- Electric Bat machine IDs were seeded from Pinball Map venue `10819`
+- both venue snapshots were pulled on March 28, 2026 so the first-run defaults reflect current known machine lists at implementation time
+
+Outdated/conflicting code surfaced in this pass:
+1. `LibraryBuiltInSources.swift` and `LibraryBuiltInSources.kt` are now stale internal names. The active behavior is no longer “built-in sources”; the files mainly hold canonical source IDs, legacy alias migration, and GameRoom/Avenue shared IDs.
+2. legacy Avenue/RLM migration helpers still exist for old saved-state repair, which is fine operationally, but the internal naming is now ahead-of-time cleanup debt rather than a live product model.
+
+Recommended follow-up:
+1. rename the `LibraryBuiltInSources` files to something neutral like `LibrarySourceIDs` once the current cleanup batch settles
+2. if Electric Bat should display the full Pinball Map venue name (`Electric Bat Arcade / Yucca Tap Room`) instead of the shorter `Electric Bat Arcade`, make that a deliberate label choice later rather than inheriting it accidentally from provider data
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDataLoader.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+
+## Pass 097: Rename built-in-source support file to source-identity support
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibrarySourceIdentity.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySourceIdentity.kt`
+
+Changes made in this pass:
+- renamed the stale `LibraryBuiltInSources.*` support files to `LibrarySourceIdentity.*` on both platforms
+- kept behavior unchanged; this was a naming cleanup only
+
+Why this rename:
+- the files no longer define active built-in Library sources
+- they now mainly hold canonical source IDs, legacy alias migration, and source-ID helper logic
+- `LibrarySourceIdentity` matches the current responsibility much better than `LibraryBuiltInSources`
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 090: Library source/import store extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibrarySourceStateStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryImportedSourcesStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogModels.swift`
+
+Changes made in this pass:
+- moved library source-state persistence, migration, notification posting, and shared dictionary normalization helpers out of `LibraryCatalogStore.swift` into `LibrarySourceStateStore.swift`
+- moved imported-source persistence, normalization, merge behavior, and provider inference out of `LibraryCatalogStore.swift` into `LibraryImportedSourcesStore.swift`
+- moved the catalog-facing payload/model types into `LibraryCatalogModels.swift` so `LibraryCatalogStore.swift` no longer has to own both storage infrastructure and domain models in the same file
+- kept the runtime behavior unchanged; this pass only changed file ownership and helper placement
+
+Behavioral outcome:
+- no intended UI or data-contract changes
+- `LibraryCatalogStore.swift` is now more focused on legacy payload decode plus merge/resolution flow instead of also owning unrelated persistence infrastructure
+
+Notes surfaced in this pass:
+1. the earlier monolithic file had become the hidden owner for source-state storage, imported-source storage, normalized payload models, OPDB decode support, CAF support, and merge logic all at once
+2. splitting out the storage seams makes later Android follow-through much safer because the iOS log now shows which concerns were runtime behavior and which were only local organization
+3. this was iOS-only structural cleanup; no Android parity patch was needed because no product behavior changed
+
+## Pass 091: Library catalog decoder and venue-support extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogOPDBDecoding.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogVenueSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogModels.swift`
+
+Changes made in this pass:
+- moved the OPDB export decode path, synthetic PinProf Labs machine support, practice-identity curation decode, manufacturer option decode, and practice-catalog game decode into `LibraryCatalogOPDBDecoding.swift`
+- moved public playfield override parsing, venue metadata overlay parsing, imported venue metadata resolution, CAF asset decode/grouping, and CAF library payload/extraction builders into `LibraryCatalogVenueSupport.swift`
+- removed the duplicated type and helper blocks from `LibraryCatalogStore.swift`, leaving it focused on legacy payload decode plus merged and normalized catalog resolution
+- replaced the local duplicate legacy source parsing helpers with the shared `libraryParseSourceType(...)` and `libraryInferSources(...)` helpers already used elsewhere in the Library layer
+- surfaced one real file-split seam during rebuild: `buildCAFLibraryExtraction(...)` still depended on `legacyCatalogExtraction(...)` being file-private, so that helper was promoted to shared module scope to preserve behavior after the extraction
+
+Behavioral outcome:
+- no intended front-facing changes
+- the Library catalog pipeline is now split by responsibility:
+  - `LibraryCatalogStore.swift`: legacy payload decode and merge orchestration
+  - `LibraryCatalogOPDBDecoding.swift`: OPDB/source-derived catalog decode support
+  - `LibraryCatalogVenueSupport.swift`: public override, venue overlay, and CAF support
+
+Notes surfaced in this pass:
+1. the old store file had dead drift risk because shared helpers like source parsing and optional-string normalization were being duplicated in parallel with the rest of the Library layer
+2. the first rebuild failure after the extraction was a useful hidden-contract find, not a logic regression: CAF extraction was still coupled to a private helper only because everything used to live in one file
+3. this remains iOS-only structural cleanup; Android cleanup can mirror the file-boundary ideas later, but there was no parity behavior change to apply immediately
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDomain.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDataLoader.swift`
+
+## Pass 092: Library GameRoom augmentation extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryDataLoader.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryGameRoomAugmentation.swift`
+
+Changes made in this pass:
+- moved the full GameRoom-to-Library augmentation path out of `LibraryDataLoader.swift` into `LibraryGameRoomAugmentation.swift`, including:
+  - persisted GameRoom venue/machine load
+  - GameRoom machine sorting
+  - OPDB media index build and media preference scoring
+  - content/visual template matching
+  - GameRoom row synthesis back into `PinballGame`
+- removed the unused `GameRoomOPDBCatalogRoot` decode shell that was still sitting at the top of `LibraryDataLoader.swift` with no call sites
+- left the async hosted-data loading entrypoints in `LibraryDataLoader.swift`, so that file now focuses more clearly on “load hosted payloads, then augment” instead of also owning the entire GameRoom augmentation implementation
+
+Behavioral outcome:
+- no intended front-facing behavior changes
+- GameRoom augmentation is now isolated behind its own file boundary, which makes later parity review and manual QA much easier
+
+Notes surfaced in this pass:
+1. `LibraryDataLoader.swift` had become a second monolith after `LibraryCatalogStore.swift`, with hosted CAF loading and GameRoom augmentation logic mixed together even though they are different concerns
+2. the unused `GameRoomOPDBCatalogRoot` type was safe dead code; all active augmentation logic uses the decoded OPDB catalog machine records instead
+3. this was still iOS-only structural cleanup, so there was no Android parity patch to apply immediately
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/library/LibraryDomain.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDataLoader.swift`
+
+## Pass 093: Library grouped-identity stale-contract fixes
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogVenueSupport.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+
+Changes made in this pass:
+- fixed iOS curated-override lookup so `catalogCuratedOverride(...)` now checks candidate keys in explicit fallback order `opdbID -> practiceIdentity -> opdbGroupID` instead of silently ignoring the `opdbGroupID` parameter it already accepted
+- fixed iOS normalized catalog resolution so grouped OPDB/practice-identity machines are resolved via `Dictionary(grouping: ...)` plus `catalogPreferredGroupDefaultMachine`, instead of assuming a single machine per `practiceIdentity`
+- hardened iOS normalized override lookup by replacing `Dictionary(uniqueKeysWithValues: ...)` with `dictionaryPreservingLastValue(...)`, so duplicate override keys no longer carry a hidden crash seam
+- mirrored the override fallback-order fix on Android in `LibraryDataLoader.kt`, including the merged-library helper path so Android now also honors exact `opdbId`, then `practiceIdentity`, then `opdbGroupId`
+
+Behavioral outcome:
+- Library image/playfield override fallback now matches the intended grouped-data model more closely on both platforms: exact machine override first, then canonical practice identity, then shared OPDB group
+- normalized catalog payloads no longer rely on the stale “one machine forever per practice identity” assumption when choosing the default machine representative for source memberships
+- no intended front-facing UI flow changed, but this was a real runtime data-resolution correction rather than pure file cleanup
+
+Outdated/conflicting code surfaced in this pass:
+1. `LibraryCatalogVenueSupport.swift` had an obviously stale signature/body mismatch: `catalogCuratedOverride(...)` already accepted `opdbGroupID`, but the function never actually used it.
+2. `LibraryCatalogStore.swift` still used `Dictionary(uniqueKeysWithValues: machines.map { ($0.practiceIdentity, $0) })`, which conflicts with the newer grouped OPDB model where many variants can share one practice identity.
+3. the Android Library loader had already drifted from the iOS fallback order by not considering `opdbGroupId` in one override path and by skipping exact `opdbId` in another merged-library path.
+
+What still needs attention later if this area changes again:
+1. if normalized catalog payloads ever begin shipping duplicate override rows intentionally, we may want warning logs here instead of silent last-write preservation
+2. Android Library cleanup can still mirror the iOS file-boundary refactors later, but the runtime fallback behavior is now back in sync
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 094: PinballGame model extraction and stale fallback note
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryDomain.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryGame.swift`
+
+Changes made in this pass:
+- moved the full `PinballGame` model, nested rulesheet/video helpers, and manufacturer-card abbreviation helper out of `LibraryDomain.swift` into a dedicated `LibraryGame.swift`
+- removed the now-unused `SwiftUI` import from `LibraryDomain.swift`, leaving that file more focused on Library browsing/view-model concerns instead of also owning the entire Library row model
+- kept the moved code behaviorally identical; this was file-boundary cleanup only
+
+Behavioral outcome:
+- no intended front-facing behavior changes
+- the Library layer now has a clearer separation between the browsing/view-model surface and the decoded game model surface, which makes later cleanup in `LibraryDomain.swift` less risky
+
+Outdated/conflicting code surfaced in this pass:
+1. `LibraryGame.swift` still defaults a missing decoded source name to `"The Avenue Cafe"`, which looks like a stale single-venue-era fallback rather than a generic Library-safe default.
+2. I did not change that fallback in this pass because it can affect visible source naming when malformed or partial payloads are decoded, so it should be treated as an explicit follow-up decision instead of an invisible cleanup.
+
+What needs fixing later:
+1. decide whether missing decoded source names should fall back to a neutral value like the canonical source ID, a generic `"Library"` label, or some other non-Avenue placeholder
+2. once that policy is chosen, mirror the same fallback rule in Android `LibraryDomain.kt` / `LibraryDataLoader.kt` so malformed-payload behavior stays aligned
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 099: Active Library extraction rename
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogModels.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogVenueSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDataLoader.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryGameRoomAugmentation.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDomain.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryHostedData.kt`
+
+Changes made in this pass:
+- renamed the active extracted Library result model from `LegacyCatalogExtraction` to `LibraryExtraction` on both platforms
+- renamed the small extraction helper from `legacyCatalogExtraction(...)` to `libraryExtraction(...)`
+- updated the active iOS and Android Library loading / CAF build / GameRoom augmentation paths to use the new name consistently
+
+Behavioral outcome:
+- no intended front-facing behavior changes
+- the active Library architecture now reads closer to reality in code: current extraction helpers no longer carry a `Legacy` label after the runtime legacy merge path was removed in Pass 098
+
+Outdated/conflicting code surfaced in this pass:
+1. `LibraryCatalogStore.swift` is now doubly stale in naming: it is neither a catalog store nor a legacy pipeline owner. It is effectively just a tiny extraction/filter helper file.
+2. Android still has a broader stale naming seam in `LibraryCatalogStore.kt`, which now mostly owns source-state and imported-source persistence rather than catalog storage. I left that for a later structural cleanup pass because it is file-organization cleanup, not behavior risk.
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 098: Dead legacy Library merge-path removal
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogVenueSupport.swift`
+- removed `Pinball App 2/Pinball App 2/library/LibraryCatalogMergeResolution.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+- `Pinball App Android/app/src/test/java/com/pillyliu/pinprofandroid/library/LibraryDataLoaderParityTest.kt`
+
+Changes made in this pass:
+- removed the now-unused iOS legacy decode wrappers from `LibraryCatalogStore.swift`, including:
+  - `decodeLibraryPayloadWithState(...)`
+  - `decodeMergedLibraryPayloadWithState(...)`
+  - `decodeLegacyLibraryPayload(...)`
+  - the private legacy payload structs that only fed those wrappers
+- removed the fully dead iOS merge-resolution file `LibraryCatalogMergeResolution.swift`; the active Library runtime already goes through the CAF/OPDB path in `LibraryDataLoader.swift` and `LibraryCatalogVenueSupport.swift`
+- removed the now-unused iOS venue-support leftovers that only existed for the dead merged path:
+  - `PublicLibraryOverridesRoot`
+  - `PublicLibraryPlayfieldOverrideRecord`
+  - `parsePublicLibraryOverrides(...)`
+  - `parseVenueMetadataOverlays(...)`
+  - `applyPublicPlayfieldOverrides(...)`
+  - `emptyVenueMetadataOverlayIndex()`
+- removed the Android pre-CAF merged-catalog leftovers from `LibraryDataLoader.kt`, including the dead normalized-root parser path, dead legacy merge helpers, dead public-override parsing, and dead JSON array decoders that only existed to support that path
+- removed the stale Android parity test that was still directly exercising `resolveLegacyGame(...)`; after the CAF-only cleanup, that test was the only remaining caller keeping dead production code alive
+
+Behavioral outcome:
+- no intended front-facing behavior changes
+- both platforms are now more honest about the active Library architecture: hosted CAF/OPDB data plus imported sources, rather than a mixed live/runtime path plus a second dead legacy merge engine
+
+Outdated/conflicting code surfaced in this pass:
+1. `LibraryCatalogStore.swift` is now only a very small extraction/filter helper file, so its filename no longer matches its remaining job. It should likely be renamed in a later cleanup pass.
+2. the Android stale legacy merge path had already become “test-only code.” Keeping it would have meant preserving dead runtime behavior just to satisfy a unit test, which is exactly the kind of hidden cleanup drag this review is meant to remove.
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest`
+- result: `BUILD SUCCESSFUL`
+
+## Pass 095: Library catalog merge-resolution extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogMergeResolution.swift`
+
+Changes made in this pass:
+- moved the merged-library and normalized-catalog runtime resolution helpers out of `LibraryCatalogStore.swift` into `LibraryCatalogMergeResolution.swift`
+- moved the legacy-game resolution helpers with them, including:
+  - legacy curated-override synthesis
+  - preferred legacy playfield/name inference
+  - legacy machine matching against grouped OPDB data
+  - normalized source-membership game synthesis
+- left `LibraryCatalogStore.swift` with the decode/orchestration entrypoints plus legacy payload parsing, which is a much closer match to the file’s actual role
+
+Behavioral outcome:
+- no intended front-facing behavior changes
+- the Library catalog pipeline is now easier to reason about in three layers:
+  - decode/orchestration in `LibraryCatalogStore.swift`
+  - merge and normalized resolution in `LibraryCatalogMergeResolution.swift`
+  - OPDB / venue / CAF support in the already-extracted support files
+
+Outdated/conflicting code surfaced in this pass:
+1. `LibraryCatalogStore.swift` had effectively become a second monolithic merge engine even after the earlier file splits, which made it harder to see where decode stopped and data policy began.
+2. the still-active stale follow-up from Pass 094 remains relevant here: `PinballGame` decode fallback still hard-codes `"The Avenue Cafe"` for missing source names, which is old single-venue behavior living inside the broader Library pipeline.
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 088: Library markdown/image parsing helper cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdown.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownParsing.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownRegex.swift`
+
+Changes made in this pass:
+- kept the earlier shared regex helper extraction and extended it with a shared `MarkdownImageParsing.firstImage(...)` path so the native markdown renderer and the markdown parser stop maintaining separate regex patterns for markdown/html image detection
+- updated `MarkdownImageDescriptor.first(...)` and `NativeMarkdownParser.parseStandaloneImage(...)` to consume that shared image parser instead of carrying duplicate inline regex handling
+- kept the earlier catalog rulesheet source-kind centralization in `LibraryCatalogResolution` as part of the same Library support cleanup wave, so rulesheet-source label/rank mapping and markdown image parsing now both have explicit single owners instead of nearby duplicated logic
+
+Behavioral outcome:
+- no intended UI, parser, or Library rulesheet-resolution behavior changed
+- Library markdown support is easier to audit because the renderer and parser now derive image matches from the same helper instead of relying on duplicated regex branches that could drift
+
+Hidden contract surfaced in this pass:
+1. markdown image detection was already effectively a shared contract between the renderer and parser, but the contract only existed as duplicated regex snippets in two files
+2. the rulesheet-source label/rank mapping and markdown image detection were both “small duplicated seams” that were easy to overlook individually but together represented the same long-term drift risk inside Library support code
+3. this remains iOS-only structural cleanup inside Library support files; there was no Android parity patch in this pass
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 089: Rulesheet pipeline decomposition
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetScreen.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetHTMLDocument.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetModels.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetRemoteLoading.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetWebViewSupport.swift`
+
+Changes made in this pass:
+- moved rulesheet render models and remote-source/provider mapping out of `RulesheetScreen.swift` into `RulesheetModels.swift`
+- moved the remote rulesheet fetch/cache/source-cleanup stack out of `RulesheetScreen.swift` into `RulesheetRemoteLoading.swift`, including Tilt Forums payload handling, legacy HTML cleanup, attribution generation, and the application-support cache actor
+- moved the shared web-view bridge/configuration layer out of `RulesheetScreen.swift` into `RulesheetWebViewSupport.swift`, including the custom tracking web view, message-handler configuration, transparent appearance helper, and the large fragment/viewport JavaScript bridge
+- moved the large HTML document builder out of `RulesheetScreen.swift` into `RulesheetHTMLDocument.swift` so the screen/renderer file no longer owns the HTML/CSS/JS template itself
+
+Behavioral outcome:
+- no intended rulesheet UI, source-selection, remote-loading, or viewport-restore behavior changed
+- `RulesheetScreen.swift` is materially less monolithic: the screen/renderer layer now reads as screen orchestration, while models, remote loading, HTML document generation, and web bridge support each have their own files
+
+Hidden contract surfaced in this pass:
+1. `RulesheetScreen.swift` had grown into four different subsystems at once: SwiftUI screen chrome, renderer lifecycle, remote content loading, and JS/web-view bridge support
+2. that coupling made it harder to reason about which edits were “UI cleanup” versus “content pipeline” versus “web bridge” changes, increasing the chance of accidental behavior drift during future cleanup
+3. this is still iOS-only structural decomposition; there was no Android parity patch in this pass because Android does not share this WebKit-based rulesheet pipeline
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDomain.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetScreen.swift`
+
 ## Pass 080: shared practice-identity model review before commit
 
 Primary files:
@@ -7725,6 +8488,76 @@ Open follow-up from this pass:
 1. if we want the GameRoom settings editor to mirror the currently selected home-screen machine, that is now a separate product decision rather than a bug fix
 2. the LPL privacy-toggle visibility path in Settings still deserves one explicit manual pass later
 3. score-scanner freeze/retake still needs hands-on device/simulator QA with camera input; I did not validate that flow here
+
+## Pass 085: Rulesheet screen shell and viewport-restore cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetScreen.swift`
+
+Changes made in this pass:
+- extracted the top-level rulesheet fullscreen shell into dedicated private views for status routing, progress-pill chrome, portrait top gradient, and fullscreen back-button chrome instead of keeping those branches inline in `RulesheetScreen.body`
+- centralized the repeated “viewport restore is finished, clear tracking state and resume capture” logic inside `RulesheetRenderer.Coordinator` behind named helpers so the success and timeout branches no longer duplicate the same reset sequence inline
+- centralized shared rulesheet `WKWebViewConfiguration` setup so the embedded renderer and external fallback path no longer rebuild the same chrome/message-bridge wiring separately
+- centralized shared transparent web-view appearance setup behind a small `WKWebView` helper so the embedded renderer and external fallback path no longer hand-apply the same background styling separately
+
+Behavioral outcome:
+- no intended UI, copy, or rulesheet-navigation behavior changed
+- `RulesheetScreen` now reads more like a composed screen shell with explicit chrome pieces, and the riskiest viewport-restore path is easier to audit because its completion/reset behavior has a named owner
+
+Hidden contract surfaced in this pass:
+1. the viewport-restore logic already relied on two subtly different “restore is done” branches, but that contract was buried inside long nested scheduling code instead of being visible as one explicit cleanup step
+2. the rulesheet screen is still a major file, but the top-level chrome and restore-finish behavior are now better isolated for future cleanup without touching the deeper HTML/JS bridge logic
+3. this is iOS-only structural cleanup inside the local rulesheet screen; there is no Android parity patch for this pass
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 086: Library hydration and remote-image helper cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryDataLoader.swift`
+- `Pinball App 2/Pinball App 2/library/PlayfieldScreen.swift`
+
+Changes made in this pass:
+- introduced a shared `GameRoomMatchContext` in `LibraryDataLoader` so Library hydration no longer recalculates the same normalized GameRoom identity inputs separately for OPDB media, visual templates, and content templates
+- updated the visual/content/media template-selection helpers to consume that shared match context instead of each rebuilding their own `catalogID` / `catalogGroupID` / `canonicalPracticeIdentity` fallback ladder
+- introduced a shared `RemoteUIImageRepository` in `PlayfieldScreen` so the fallback image view and fullscreen hosted-image loader now share one cache-aware image decode path and one retry policy instead of duplicating remote fetch/decode/cache wiring
+
+Behavioral outcome:
+- no intended UI, copy, or hydration-policy changes
+- Library GameRoom hydration is easier to audit because the identity inputs are now explicit in one helper type
+- Library image loading is easier to reason about because the fallback preview and fullscreen image flow now share one fetch/cache contract
+
+Hidden contract surfaced in this pass:
+1. `LibraryDataLoader` was already relying on one implicit normalized identity bundle for GameRoom hydration, but that bundle was being recomputed ad hoc in each helper instead of carried explicitly as one match context
+2. `PlayfieldScreen` had two separate remote-image loading paths with the same cache/decode responsibilities, which made later loader cleanup harder than it needed to be
+3. this was iOS-only structural cleanup inside Library support code; there was no Android parity patch in this pass
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 087: Library playfield candidate-group cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryResourceResolution.swift`
+
+Changes made in this pass:
+- introduced a shared `LibraryPlayfieldCandidateGroup` helper so `resolvedPlayfieldCandidates(...)` and `resolvedPlayfieldOptions(...)` no longer rebuild the same playfield-source grouping and deduplication logic separately
+- centralized the “PinProf first, otherwise local fallback, then OPDB” grouping contract behind one helper instead of keeping that fallback order duplicated between the button-target path and the option-list path
+
+Behavioral outcome:
+- no intended UI or resource-resolution change
+- the playfield resolution path is easier to audit because the primary candidate list and the presented option list now derive from the same grouped source data
+
+Hidden contract surfaced in this pass:
+1. playfield resolution already had one implicit grouped-source order, but it was duplicated in two nearby functions instead of being expressed as one explicit helper
+2. this is still iOS-only Library support cleanup, so there was no Android parity patch in this pass
+
+Verification:
+- `xcodebuild -project '/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
 
 ## Pass 067: GameRoom import helper extraction
 
@@ -9129,3 +9962,469 @@ Next files queued:
 - `Pinball App 2/Pinball App 2/gameroom/GameRoomStateCodec.swift`
 - `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
 - `Pinball App 2/Pinball App 2/practice/PracticeGroupDashboardSection.swift`
+
+## Pass 110: iOS Library selection/state parity extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibrarySourceStateStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibrarySelectionSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryPayloadParsing.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryViewModel.swift`
+
+Changes made in this pass:
+- added iOS source-state store setters for selected Library sort and selected bank so the selection-persistence contract now matches Android's cleaner store surface
+- extracted Library selection restoration and default-sort resolution into `LibrarySelectionSupport.swift` instead of leaving that logic inline in `PinballLibraryViewModel`
+- switched `PinballLibraryBrowsingState.sortOptions` to the new shared `librarySortOptions(...)` helper instead of keeping a duplicated switch
+
+Hidden seams surfaced and fixed:
+1. the first extraction pass still carried Android leftovers (`ParsedLibraryData`, `sourceID`, and an assumed free `sortOptionsForSource` helper); those stale names were corrected immediately during the pass
+2. before this pass, iOS had a cleaner runtime result but a worse ownership story than Android because view-model selection restore, default sort selection, and persistence fallback were still split across multiple files
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- iOS now uses the same overall ownership shape as Android for preferred-source restore, sort selection, and bank restore
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 111: iOS Library screen/layout and state-ownership cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryScreen.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryListScreen.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryViewModel.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryPayloadParsing.swift`
+
+Changes made in this pass:
+- extracted Library grid sizing into `LibraryScreenLayoutMetrics` so the screen no longer spreads viewport math across a long run of inline computed properties
+- pulled Library initial-load, source-refresh, viewport update, and deep-link consumption behind named helpers instead of leaving them as duplicated inline closures
+- removed the last dead default-sort wrapper methods from `PinballLibraryBrowsingState` after the shared selection helpers landed
+- changed `PinballLibraryViewModel` to keep one live `PinballLibrarySourceState` snapshot instead of rereading `PinballLibrarySourceStateStore.load()` every time browsing state is computed
+
+Hidden seams surfaced and fixed:
+1. iOS Library browsing was still hitting persisted source state from computed view state, which was a stale ownership pattern after the newer selection-support split
+2. Library deep-link handling was still duplicated across `LibraryScreen.swift` and `LibraryListScreen.swift`; the list extension no longer owns that navigation mutation path
+3. the first layout extraction briefly failed the build because the new metrics type was scoped too narrowly for the list extension; that compile-only slip was corrected during the pass
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- Library screen layout, source refresh, and selection persistence now have clearer ownership boundaries on iOS
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 112: iOS Settings import-screen ownership cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/settings/SettingsImportScreens.swift`
+
+Changes made in this pass:
+- split the venue import screen into dedicated controls/status/results cards instead of keeping all search UI, status rendering, and result rows inline inside `AddVenueScreen`
+- split the tournament import screen into a dedicated import card so the view body no longer mixes route shell, provider chrome, form controls, and status rendering in one block
+- introduced a tiny `SettingsImportStatusContent` value type so venue import status routing is explicit rather than embedded in a long `if / else if / else if` chain
+
+Hidden seams surfaced and kept in view:
+1. venue import still has no dedicated importing state on iOS; only search and locate states are explicit. That is still logged as a visible UX decision and was not silently changed here
+2. manufacturer bucketing still relies on the hard-coded top-20 classic heuristic from earlier review passes. This pass did not change that product rule
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the Settings import screens are easier to audit and less likely to hide future behavior changes inside giant inline SwiftUI bodies
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 112 summary
+
+Safe cleanup changes made:
+- aligned iOS Library selection/state ownership with the newer Android shape
+- removed stale dead Library browsing helpers
+- decomposed the large iOS Settings import screens into clearer private cards and status helpers
+
+Key findings surfaced:
+1. iOS Library browsing had one outdated store-ownership seam left; it is now fixed
+2. venue import still lacks a dedicated importing state on iOS, but that remains an intentional visible-behavior decision to discuss before changing
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/settings/SettingsHomeSections.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsScreen.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDetailComponents.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryListScreen.swift`
+
+## Pass 113: Settings self-refresh suppression parity fix
+
+Primary files:
+- `Pinball App 2/Pinball App 2/settings/SettingsScreen.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsScreenState.kt`
+
+Changes made in this pass:
+- added local source-change refresh suppression on both platforms so the Settings screen no longer does a full reload immediately after its own source mutation already applied a fresh local snapshot
+- kept the global source-change notifications/events in place so Library, Practice, and other screens still react normally
+- extended the same suppression to the hosted-data refresh path because Settings already applies the refreshed snapshot locally before broadcasting the cross-screen update event
+
+Hidden seam surfaced and fixed:
+1. Settings was carrying a redundant self-refresh loop on both iOS and Android: local add/remove/toggle/refresh actions updated state, then the screen reloaded itself again when its own global source-change event came back through
+2. on iOS that meant unnecessary `loadSettingsDataSnapshot()` churn after local source edits; on Android it meant unnecessary `reload()` work after `LibrarySourceEvents.notifyChanged()`
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- other screens still receive the global Library source-change event
+- the active Settings screen simply stops refetching itself when it already has the up-to-date local snapshot
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest`
+- result: both passed
+
+## Pass 114: iOS Settings home-section cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/settings/SettingsHomeSections.swift`
+
+Changes made in this pass:
+- extracted shared section-status content for the top loading/error card plus the hosted refresh and cache inline statuses
+- collapsed repeated game-count subtitle formatting for manufacturer, venue, and tournament source rows behind one helper
+
+Hidden seams surfaced:
+1. the Settings home screen was still repeating near-identical status-routing logic in three places
+2. this was not a behavior bug, but it was a maintenance hotspot because tiny copy or loading-state changes had to be kept in sync manually
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 115: iOS Library detail/list cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryDetailComponents.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryListScreen.swift`
+
+Changes made in this pass:
+- extracted the Library detail video grid and video tile into dedicated private views so `LibraryDetailVideosCard` no longer mixes launch-panel selection, grid-column routing, tile rendering, and tap logging inline
+- extracted `LibraryGameScrollContent` so grouped and ungrouped Library list layouts stop duplicating the same `ScrollView`, grid, and load-more footer wiring
+
+Hidden seams surfaced:
+1. Library detail video rendering had become another small inline SwiftUI hotspot; layout selection, logging, and tile styling were all packed into one body block
+2. Library list grouped and ungrouped modes were sharing almost all of their structure but still duplicating the scroll container and footer plumbing
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 115 summary
+
+Safe cleanup changes made:
+- removed a real cross-platform redundant Settings self-refresh loop
+- cleaned up repeated Settings status-routing helpers
+- decomposed Library detail video rendering and Library list scroll content
+
+Key findings surfaced:
+1. the Settings self-refresh loop was a real hidden behavior issue and is now fixed on both platforms
+2. no new front-facing behavior changes were made in this batch
+
+Next files queued:
+- `Pinball App 2/Pinball App 2/settings/SettingsHomeSections.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDetailComponents.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryResourceResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogResolution.swift`
+
+## Pass 116: Library rulesheet parity cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryResourceResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDetailComponents.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetModels.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeVideoComponents.swift`
+
+Changes made in this pass:
+- fixed the iOS imported-rulesheet merge path so it now matches Android when a local curated rulesheet exists:
+  - local/PinProf markdown-style rulesheet links are suppressed from the merged external link list
+  - a local rulesheet path is suppressed if the merged external links include a Tilt Forums rulesheet
+- fixed the iOS runtime Library/Practice rulesheet display path so it now suppresses local/PinProf duplicate links the same way Android already did when a local rulesheet resource exists
+- split iOS rulesheet link ownership into:
+  - `orderedRulesheetLinks` for raw sorted link ordering
+  - `displayedRulesheetLinks` for the filtered links actually surfaced in Library/Practice UI and preferred external rulesheet resolution
+- cleaned up the actor-isolation seams introduced by the new iOS rulesheet helpers so the final iOS build is warning-free again
+
+Hidden seams surfaced and fixed:
+1. iOS and Android had drifted on rulesheet suppression behavior:
+   - Android already hid local/PinProf markdown links when a bundled/local rulesheet existed
+   - Android also dropped the local rulesheet file path when a Tilt Forums rulesheet link was present
+   - iOS was still surfacing both paths at once in some cases
+2. iOS was overloading `orderedRulesheetLinks` to mean both "sorted raw links" and "links we actually display", which made the suppression behavior hard to reason about
+
+Behavioral outcome:
+- intended cross-platform parity is improved
+- users should no longer see duplicate local/PinProf rulesheet chips alongside the local rulesheet resource on iOS
+- no Android behavior change was needed in this pass because Android already matched the desired behavior
+
+Stale-source sweep notes:
+1. no additional live built-in-source loading path was found in Library after the default-source seeding change
+2. `LibraryCatalogModels.swift` still decodes `is_builtin` for payload/schema compatibility only
+3. `LibraryGame.swift` still falls back malformed/missing source names to `"Unknown Source"`; that is now the only visible old-source fallback left in the Library model path from this sweep
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
+## Pass 125: GameRoom synthetic venue import contract
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryGameRoomSyntheticImport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDataLoader.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogVenueSupport.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+
+Changes made in this pass:
+- replaced the old iOS GameRoom -> Library custom row-synthesis path with a synthetic imported venue contract:
+  - exact active `opdb_id` list from saved GameRoom state
+  - generated venue overlay metadata for `area`, `areaOrder`, `group`, and `position`
+  - reuse of the existing venue import resolution path instead of direct `PinballGame` synthesis
+- added `LibraryGameRoomSyntheticImport.swift` on iOS to hold that translation layer
+- updated iOS Library loading to merge:
+  - persisted imported sources
+  - optional synthetic GameRoom source
+  - hosted venue-layout overlays plus optional GameRoom overlays
+- mirrored the same contract on Android by removing the old custom `buildGameRoomOverlay(...)` path and feeding GameRoom into the existing venue import payload builder instead
+- removed the Android special-case filter that treated GameRoom as an always-visible source when it had rows; it now follows the same normal source-state filtering path as iOS
+
+Hidden seams surfaced and fixed:
+1. GameRoom had been behaving like a private second import pipeline, with its own matching/media/template rules and direct `PinballGame` construction instead of the shared venue import contract
+2. that meant GameRoom could drift separately from Pinball Map / venue overlay behavior even though the data shape was conceptually the same
+3. the new contract makes GameRoom a synthetic venue import, so Library now resolves it the same way it resolves venue machine lists from other sources
+
+Important contract notes now logged:
+1. if GameRoom state is missing, unreadable, or has no active/loaned machines, there is no GameRoom Library source
+2. active GameRoom machines without an exact `opdb_id` are skipped and emit a developer log warning instead of falling back to broader identity/template matching
+3. duplicate active GameRoom machines with the exact same `opdb_id` now collide under the synthetic venue-overlay model; the current deterministic fallback is first-wins plus a developer log warning
+4. no backward-compatibility shim was added for the removed custom GameRoom row builder
+
+Behavioral outcome:
+- intended Library behavior now matches the user-approved contract:
+  - GameRoom behaves like a venue import built from exact `opdb_id`s plus overlay metadata
+  - empty or nonexistent GameRoom state produces no source
+- no front-facing copy changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
+## Pass 118: Hosted local rulesheet keep note
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogResolution.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryCatalogResolution.kt`
+
+Decision recorded in this pass:
+- hosted PinProf local rulesheets on `pillyliu.com` are intentional keep content and should not be revisited for deletion just because other rulesheet providers also exist
+- the current value in those hosted local rulesheets is the curated TOC/mobile-formatting work, so they are not treated as redundant with `papa`, `pp`, `bob`, or other external providers
+- cleanup/suppression logic should only hide the local rulesheet path when there is a direct Tilt Forums duplicate for the same rulesheet entry
+
+Audit result captured here:
+1. the current live/published rulesheet asset set has no direct `provider=tf` duplicates for the same `opdbId` as the hosted local PinProf rulesheet rows
+2. `Cactus Canyon Continued` (`G4835`) is the only current local hosted rulesheet that still clearly references Tilt Forums source content, and it is explicitly intentional to keep
+3. `G900001` is the PinProf Labs guide and only references Tilt Forums as a house-style note, not as an imported TF rulesheet
+
+Follow-up policy:
+1. future cleanup passes should not reopen the hosted local rulesheet set as a generic dedupe/deletion target
+2. if a future deletion pass is considered, it should be based on a concrete product/content decision rather than provider overlap alone
+
+## Pass 119: Library media-resolution extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMediaResolutionSupport.swift`
+
+Changes made in this pass:
+- extracted the iOS Library rulesheet/video merge and sort helpers out of `LibraryCatalogResolution.swift` into the new `LibraryMediaResolutionSupport.swift`
+- kept the hosted local-rulesheet intent comment at the actual suppression seam in the extracted support file so future cleanup passes do not reopen that question by accident
+- left Android untouched in this pass because this was iOS-only structural cleanup, not a parity or behavior change
+
+Why this split was worth doing:
+1. `LibraryCatalogResolution.swift` had drifted into a mixed responsibility file that was assembling records and also owning low-level rulesheet/video merge heuristics
+2. the media-resolution helpers now live together as one seam, which makes future cleanup around rulesheet/video behavior easier to audit without dragging the whole catalog resolver with it
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- iOS build stayed green after the extraction and the new support file was picked up by the project automatically
+
+Still-open visible seam after this batch:
+1. `LibraryGame.swift` still falls back malformed or missing payload source names to `"Unknown Source"`
+2. that fallback can become user-visible, so it remains a product-policy change rather than a silent cleanup item
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
+## Pass 120: Intentional keep notes
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryGame.swift`
+
+Decisions recorded in this pass:
+- keep the `"Unknown Source"` fallback for malformed legacy/source payloads
+- keep the hosted local PinProf rulesheet set as intentional content, not redundancy
+
+Clarifications captured here:
+1. the current published rulesheet asset set has `0` direct local-plus-Tilt-Forums duplicate cases for the same `opdbId`
+2. current rulesheet counts at this checkpoint:
+   - iOS bundled local rulesheet markdown files: `1`
+   - Android bundled local rulesheet markdown files: `1`
+   - Admin workspace local rulesheet markdown files: `27` plus `.gitkeep`
+   - published active local-path rulesheet asset rows: `27`
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- these notes are here so future cleanup passes do not reopen either fallback/keep decision by mistake
+
+## Pass 121: Remove dormant TF local-rulesheet suppression
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryMediaResolutionSupport.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryCatalogResolution.kt`
+
+Changes made in this pass:
+- removed the direct Tilt Forums-based local rulesheet suppression on both platforms
+- local rulesheet paths now remain attached whenever a curated/local rulesheet exists
+- kept the existing local/PinProf markdown-link dedupe path, so duplicate local-style links still stay out of the external link list
+
+Why this changed:
+1. the current published rulesheet asset set has no direct local-plus-TF duplicate rows
+2. product policy is now that hosted local rulesheets should remain available and there will no longer be TF markdown files to justify hiding them
+
+Behavioral outcome:
+- if a TF external link reappears later for the same game, the hosted local rulesheet will still remain available instead of being suppressed
+
+## Pass 122: GameRoom augmentation row-builder cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryGameRoomAugmentation.swift`
+
+Changes made in this pass:
+- extracted the inline GameRoom machine sort into `sortedGameRoomMachines(...)`
+- extracted GameRoom-to-Library row assembly into:
+  - `buildGameRoomLibraryGame(...)`
+  - `resolvedGameRoomPracticeIdentity(...)`
+  - `makeGameRoomLibraryRow(...)`
+  - `makeGameRoomAssetPayload(...)`
+- kept the JSON round-trip decode path the same, but moved the hidden mutation out of the long `compactMap` body
+
+Hidden seam surfaced and reduced:
+1. `loadGameRoomLibraryData(...)` was still mixing persisted-state loading, sort policy, template/media matching, row assembly, and decode fallback in one large function
+2. the row-builder path is now explicit enough to review without re-reading the whole GameRoom augmentation flow every time
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the emitted Library rows for GameRoom machines still follow the same source/asset/template rules
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 123: GameRoom matching/media support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryGameRoomAugmentation.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryGameRoomMatchingSupport.swift`
+
+Changes made in this pass:
+- moved the GameRoom-only OPDB media indexing, media ranking, template matching, and shared identity normalization helpers out of `LibraryGameRoomAugmentation.swift`
+- left `LibraryGameRoomAugmentation.swift` focused on:
+  - loading persisted GameRoom state
+  - sorting active machines
+  - building GameRoom-backed Library rows
+  - assigning visual/content assets to those rows
+
+Hidden seam surfaced and reduced:
+1. `LibraryGameRoomAugmentation.swift` had become a second policy bucket for OPDB identity matching and variant scoring, on top of already assembling the final Library records
+2. the match/media rules now live in one dedicated support file, so future parity work can review that policy without re-reading row construction and JSON decode plumbing
+
+Still intentionally unchanged:
+1. the GameRoom augmentation path still uses the JSONSerialization -> JSONDecoder round-trip to materialize `PinballGame`
+2. that is a stale internal seam worth revisiting later, but changing it now would be a larger behavior-sensitive cleanup than this batch
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 124: Library resource-path and rulesheet support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryResourceResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryResourcePathSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryRulesheetSupport.swift`
+
+Changes made in this pass:
+- moved shared hosted-path and live-playfield-status infrastructure out of `LibraryResourceResolution.swift`:
+  - PinProf host constants
+  - missing-artwork path
+  - hosted/local path normalization
+  - shared URL resolution
+  - live playfield status fetch/store
+- moved rulesheet source classification and markdown-path heuristics out of `LibraryResourceResolution.swift` into `LibraryRulesheetSupport.swift`
+- left `LibraryResourceResolution.swift` focused on `PinballGame` resource accessors, candidate assembly, and display filtering
+
+Hidden seam surfaced and reduced:
+1. `LibraryResourceResolution.swift` was mixing three layers at once:
+   - generic hosted resource path helpers
+   - network-backed live playfield status
+   - `PinballGame`-specific playfield and rulesheet resolution
+2. the file boundary now matches those responsibilities more closely, so future cleanup passes can touch one layer without reopening the other two
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 117: Source-identity name cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibrarySourceIdentity.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryImportedSourcesStore.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreDataLoaders.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibrarySourceIdentity.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryImportedSourcesStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStoreDataLoaders.kt`
+
+Changes made in this pass:
+- centralized seeded Library source names in the source-identity files on both platforms instead of repeating literal strings in:
+  - seeded imported-source defaults
+  - legacy Pinball Map migration targets
+  - the Practice Avenue venue-layout hydration path
+- updated Practice venue-layout hydration to read the Avenue source name from the canonical source-identity constant instead of hardcoding `"The Avenue Cafe"`
+
+Hidden seams surfaced and fixed:
+1. Library seeding and Practice venue-layout hydration were sharing source IDs but not sharing source names, so `"The Avenue Cafe"` and the seeded manufacturer names could drift silently across platforms
+2. this was not a current user-visible bug, but it was a stale contract because the app now treats imported/default Library sources as canonical source identities rather than one-off literals
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the default-source setup and the Practice Avenue-derived records now share one source-name definition on each platform
+
+Stale-source sweep result after this pass:
+1. the remaining `"The Avenue Cafe"` references are intentional:
+   - manual About copy
+   - seeded source names
+   - venue layout asset payload data
+2. `LibraryCatalogModels.swift` still decodes `is_builtin` only for payload/schema compatibility
+3. `LibraryGame.swift` still falls back to `"Unknown Source"` when incoming payload source naming is malformed or missing
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed

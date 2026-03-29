@@ -20,8 +20,7 @@ internal fun resolveImportedGame(
             primaryLinks,
             resolvedCatalogRulesheet.links,
         )
-        normalizedOptionalString(curatedOverride?.rulesheetLocalPath)
-            ?.takeUnless { shouldSuppressLocalRulesheetPath(mergedLinks) } to mergedLinks
+        normalizedOptionalString(curatedOverride?.rulesheetLocalPath) to mergedLinks
     } else if (!curatedOverride?.rulesheetLinks.isNullOrEmpty()) {
         null to mergeRulesheetLinks(curatedOverride!!.rulesheetLinks, resolvedCatalogRulesheet.links)
     } else {
@@ -274,15 +273,11 @@ internal fun resolveRulesheetLinks(rulesheetLinks: List<CatalogRulesheetLinkReco
         .asSequence()
         .mapNotNull { normalizedOptionalString(it.localPath) }
         .firstOrNull()
-        ?.takeUnless { shouldSuppressLocalRulesheetPath(links) }
     return ResolvedRulesheetLinks(
         localPath = localPath,
         links = links,
     )
 }
-
-internal fun shouldSuppressLocalRulesheetPath(links: List<ReferenceLink>): Boolean =
-    links.any { it.rulesheetSourceKind == RulesheetSourceKind.TF }
 
 internal fun shouldSuppressLocalMarkdownRulesheetLink(link: ReferenceLink): Boolean {
     val destination = resolveLibraryUrl(link.destinationUrl)

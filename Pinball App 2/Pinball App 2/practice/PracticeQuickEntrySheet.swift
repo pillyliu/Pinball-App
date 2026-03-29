@@ -1,7 +1,6 @@
 import SwiftUI
 
 let quickEntryAllGamesLibraryID = "__all_games__"
-private let preferredLibrarySourceDefaultsKey = "preferred-library-source-id"
 
 func resolveInitialQuickEntryLibraryFilterID(
     kind: QuickEntrySheet,
@@ -420,7 +419,7 @@ struct PracticeQuickEntrySheet: View {
                     selectedLibraryFilterID = resolveInitialQuickEntryLibraryFilterID(
                         kind: kind,
                         currentSelectedGameSourceID: selectedGameSourceIDForQuickEntry,
-                        preferredLibrarySourceID: UserDefaults.standard.string(forKey: preferredLibrarySourceDefaultsKey) ?? "",
+                        preferredLibrarySourceID: PinballLibrarySourceStateStore.load().selectedSourceID ?? "",
                         avenueLibrarySourceID: avenueLibrarySourceIDForQuickEntry ?? "",
                         defaultPracticeSourceID: store.defaultPracticeSourceID ?? "",
                         availableLibrarySourceIDs: availableLibrarySources.map(\.id)
@@ -450,7 +449,7 @@ struct PracticeQuickEntrySheet: View {
             }
             .onChange(of: selectedLibraryFilterID) { _, _ in
                 if !selectedLibraryFilterID.isEmpty, selectedLibraryFilterID != quickEntryAllGamesLibraryID {
-                    UserDefaults.standard.set(selectedLibraryFilterID, forKey: preferredLibrarySourceDefaultsKey)
+                    PinballLibrarySourceStateStore.setSelectedSourceID(selectedLibraryFilterID)
                 }
                 guard kind != .mechanics else { return }
                 let filtered = orderedGamesForDropdown(filteredGamesForPicker, collapseByPracticeIdentity: true)

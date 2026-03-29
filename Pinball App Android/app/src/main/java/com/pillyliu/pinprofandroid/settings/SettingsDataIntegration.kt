@@ -74,18 +74,18 @@ internal fun addManufacturerSource(
     context: Context,
     manufacturer: CatalogManufacturerOption,
 ): SettingsSourceSnapshot {
-    val record = ImportedSourceRecord(
-        id = "manufacturer--${manufacturer.id}",
-        name = manufacturer.name,
-        type = LibrarySourceType.MANUFACTURER,
-        provider = ImportedSourceProvider.OPDB,
-        providerSourceId = manufacturer.id,
-        machineIds = emptyList(),
-        lastSyncedAtMs = System.currentTimeMillis(),
+    return persistSettingsSource(
+        context = context,
+        record = ImportedSourceRecord(
+            id = "manufacturer--${manufacturer.id}",
+            name = manufacturer.name,
+            type = LibrarySourceType.MANUFACTURER,
+            provider = ImportedSourceProvider.OPDB,
+            providerSourceId = manufacturer.id,
+            machineIds = emptyList(),
+            lastSyncedAtMs = System.currentTimeMillis(),
+        ),
     )
-    ImportedSourcesStore.upsert(context, record)
-    LibrarySourceStateStore.upsertSource(context, record.id, enable = true, pinIfPossible = true)
-    return notifySettingsSourceMutation(context)
 }
 
 internal fun addVenueSource(
@@ -95,38 +95,38 @@ internal fun addVenueSource(
     query: String,
     radiusMiles: Int,
 ): SettingsSourceSnapshot {
-    val record = ImportedSourceRecord(
-        id = result.id,
-        name = result.name,
-        type = LibrarySourceType.VENUE,
-        provider = ImportedSourceProvider.PINBALL_MAP,
-        providerSourceId = result.id.removePrefix("venue--pm-"),
-        machineIds = machineIds,
-        lastSyncedAtMs = System.currentTimeMillis(),
-        searchQuery = query,
-        distanceMiles = radiusMiles,
+    return persistSettingsSource(
+        context = context,
+        record = ImportedSourceRecord(
+            id = result.id,
+            name = result.name,
+            type = LibrarySourceType.VENUE,
+            provider = ImportedSourceProvider.PINBALL_MAP,
+            providerSourceId = venueProviderSourceId(result.id),
+            machineIds = machineIds,
+            lastSyncedAtMs = System.currentTimeMillis(),
+            searchQuery = query,
+            distanceMiles = radiusMiles,
+        ),
     )
-    ImportedSourcesStore.upsert(context, record)
-    LibrarySourceStateStore.upsertSource(context, record.id, enable = true, pinIfPossible = true)
-    return notifySettingsSourceMutation(context)
 }
 
 internal fun addTournamentSource(
     context: Context,
     result: MatchPlayTournamentImportResult,
 ): SettingsSourceSnapshot {
-    val record = ImportedSourceRecord(
-        id = "tournament--mp-${result.id}",
-        name = result.name,
-        type = LibrarySourceType.TOURNAMENT,
-        provider = ImportedSourceProvider.MATCH_PLAY,
-        providerSourceId = result.id,
-        machineIds = result.machineIds,
-        lastSyncedAtMs = System.currentTimeMillis(),
+    return persistSettingsSource(
+        context = context,
+        record = ImportedSourceRecord(
+            id = "tournament--mp-${result.id}",
+            name = result.name,
+            type = LibrarySourceType.TOURNAMENT,
+            provider = ImportedSourceProvider.MATCH_PLAY,
+            providerSourceId = result.id,
+            machineIds = result.machineIds,
+            lastSyncedAtMs = System.currentTimeMillis(),
+        ),
     )
-    ImportedSourcesStore.upsert(context, record)
-    LibrarySourceStateStore.upsertSource(context, record.id, enable = true, pinIfPossible = true)
-    return notifySettingsSourceMutation(context)
 }
 
 internal fun removeSettingsSource(
@@ -134,7 +134,7 @@ internal fun removeSettingsSource(
     sourceId: String,
 ): SettingsSourceSnapshot {
     ImportedSourcesStore.remove(context, sourceId)
-    return notifySettingsSourceMutation(context)
+    return publishSettingsSourceMutation(context)
 }
 
 internal suspend fun refreshVenueSource(
@@ -144,11 +144,9 @@ internal suspend fun refreshVenueSource(
     val machineIds = withContext(Dispatchers.IO) {
         PinballMapClient.fetchVenueMachineIds(source.providerSourceId)
     }
-    ImportedSourcesStore.upsert(
-        context,
-        source.copy(machineIds = machineIds, lastSyncedAtMs = System.currentTimeMillis()),
-    )
-    return notifySettingsSourceMutation(context)
+    return updateSettingsSource(context, source) {
+        it.copy(machineIds = machineIds, lastSyncedAtMs = System.currentTimeMillis())
+    }
 }
 
 internal suspend fun refreshTournamentSource(
@@ -158,19 +156,44 @@ internal suspend fun refreshTournamentSource(
     val tournament = withContext(Dispatchers.IO) {
         MatchPlayClient.fetchTournament(source.providerSourceId)
     }
-    ImportedSourcesStore.upsert(
-        context,
-        source.copy(
+    return updateSettingsSource(context, source) {
+        it.copy(
             name = tournament.name,
             machineIds = tournament.machineIds,
             lastSyncedAtMs = System.currentTimeMillis(),
-        ),
-    )
-    return notifySettingsSourceMutation(context)
+        )
+    }
 }
 
-private fun notifySettingsSourceMutation(context: Context): SettingsSourceSnapshot {
+private fun persistSettingsSource(
+    context: Context,
+    record: ImportedSourceRecord,
+    enableAndPin: Boolean = true,
+): SettingsSourceSnapshot {
+    ImportedSourcesStore.upsert(context, record)
+    if (enableAndPin) {
+        LibrarySourceStateStore.upsertSource(context, record.id, enable = true, pinIfPossible = true)
+    }
+    return publishSettingsSourceMutation(context)
+}
+
+private fun updateSettingsSource(
+    context: Context,
+    source: ImportedSourceRecord,
+    update: (ImportedSourceRecord) -> ImportedSourceRecord,
+): SettingsSourceSnapshot {
+    ImportedSourcesStore.upsert(context, update(source))
+    return publishSettingsSourceMutation(context)
+}
+
+private fun venueProviderSourceId(sourceId: String): String = sourceId.removePrefix("venue--pm-")
+
+private fun publishSettingsSourceMutation(context: Context): SettingsSourceSnapshot {
     LibrarySourceEvents.notifyChanged()
+    return settingsSourceSnapshot(context)
+}
+
+private fun settingsSourceSnapshot(context: Context): SettingsSourceSnapshot {
     return SettingsSourceSnapshot(
         importedSources = ImportedSourcesStore.load(context),
         sourceState = LibrarySourceStateStore.load(context),

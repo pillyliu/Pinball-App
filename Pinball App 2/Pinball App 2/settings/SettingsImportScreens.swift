@@ -164,120 +164,58 @@ struct AddVenueScreen: View {
         return nil
     }
 
+    private var trimmedQuery: String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var effectiveSearchContext: String {
+        lastSearchContext.isEmpty ? trimmedQuery : lastSearchContext
+    }
+
+    private var venueSearchStatus: SettingsImportStatusContent? {
+        if isLocating {
+            return SettingsImportStatusContent(text: "Getting current location…", showsProgress: true)
+        }
+        if isSearching {
+            return SettingsImportStatusContent(text: "Searching Pinball Map…", showsProgress: true)
+        }
+        if let errorMessage {
+            return SettingsImportStatusContent(text: errorMessage, isError: true)
+        }
+        return nil
+    }
+
     var body: some View {
         AppScreen {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        SettingsProviderCaption(prefix: "Search powered by ", linkText: "Pinball Map", urlString: "https://www.pinballmap.com")
-
-                        HStack(alignment: .center, spacing: 8) {
-                            AppNativeClearTextField(
-                                placeholder: "City or ZIP code",
-                                text: $query,
-                                submitLabel: .search,
-                                onSubmit: {
-                                    Task { await runSearch() }
-                                }
-                            )
-                            .frame(maxWidth: .infinity)
-
-                            Button {
-                                Task { await runCurrentLocationSearch() }
-                            } label: {
-                                Group {
-                                    if isLocating {
-                                        ProgressView()
-                                            .controlSize(.small)
-                                    } else {
-                                        Image(systemName: "scope")
-                                            .font(.title3)
-                                    }
-                                }
-                                .frame(width: 36, height: 36)
-                            }
-                            .buttonStyle(AppCompactIconActionButtonStyle())
-                            .disabled(isSearching || isLocating)
-                            .accessibilityLabel("Use current location")
-                        }
-
-                        Menu {
-                            ForEach([10, 25, 50, 100], id: \.self) { miles in
-                                Button {
-                                    radiusMiles = miles
-                                } label: {
-                                    AppSelectableMenuRow(
-                                        text: "\(miles) miles",
-                                        isSelected: radiusMiles == miles
-                                    )
-                                }
-                            }
-                        } label: {
-                            AppCompactStackedMenuLabel(
-                                title: "Distance",
-                                value: "\(radiusMiles) miles"
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        Stepper(value: $minimumGameCount, in: 0 ... 50) {
-                            HStack {
-                                AppCardSubheading(text: "Minimum games")
-                                Spacer()
-                                Text(minimumGameCount == 0 ? "Any" : "\(minimumGameCount)")
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .appControlStyle()
-
-                        Button(isSearching ? "Searching..." : "Search Pinball Map") {
+                    SettingsVenueSearchControlsCard(
+                        query: $query,
+                        radiusMiles: $radiusMiles,
+                        minimumGameCount: $minimumGameCount,
+                        isSearching: isSearching,
+                        isLocating: isLocating,
+                        status: venueSearchStatus,
+                        onSearch: {
                             Task { await runSearch() }
+                        },
+                        onUseCurrentLocation: {
+                            Task { await runCurrentLocationSearch() }
                         }
-                        .buttonStyle(AppPrimaryActionButtonStyle())
-                        .disabled(isSearching || isLocating || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                        if isLocating {
-                            AppInlineTaskStatus(text: "Getting current location…", showsProgress: true)
-                        } else if isSearching {
-                            AppInlineTaskStatus(text: "Searching Pinball Map…", showsProgress: true)
-                        } else if let errorMessage {
-                            AppInlineTaskStatus(text: errorMessage, isError: true)
-                        }
-                    }
-                    .padding(12)
-                    .appPanelStyle()
+                    )
 
                     if let emptyResultsMessage {
                         AppPanelEmptyCard(text: emptyResultsMessage)
                     }
 
                     if !filteredResults.isEmpty {
-                        VStack(alignment: .leading, spacing: 10) {
-                            AppCardSubheading(text: "Results")
-
-                            VStack(spacing: 0) {
-                                ForEach(Array(filteredResults.enumerated()), id: \.element.id) { index, venue in
-                                    Button {
-                                        Task { await importVenue(venue) }
-                                    } label: {
-                                        SettingsImportResultRow(
-                                            title: venue.name,
-                                            subtitle: venueSubtitle(venue),
-                                            accessorySystemName: "plus.circle.fill"
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
-
-                                    if index < filteredResults.count - 1 {
-                                        AppTableRowDivider()
-                                    }
-                                }
+                        SettingsVenueSearchResultsPanel(
+                            results: filteredResults,
+                            subtitle: venueSubtitle,
+                            onImport: { venue in
+                                Task { await importVenue(venue) }
                             }
-                        }
-                        .padding(12)
-                        .appPanelStyle()
+                        )
                     }
                 }
                 .padding(.horizontal, 14)
@@ -289,18 +227,9 @@ struct AddVenueScreen: View {
     }
 
     private func runSearch() async {
-        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedQuery.isEmpty else { return }
-        isSearching = true
-        defer { isSearching = false }
-        do {
-            hasSearched = true
-            lastSearchContext = trimmedQuery
-            searchResults = try await PinballMapClient.searchVenues(query: trimmedQuery, radiusMiles: radiusMiles)
-            errorMessage = nil
-        } catch {
-            searchResults = []
-            errorMessage = error.localizedDescription
+        await performVenueSearch(context: trimmedQuery) {
+            try await PinballMapClient.searchVenues(query: trimmedQuery, radiusMiles: radiusMiles)
         }
     }
 
@@ -309,35 +238,54 @@ struct AddVenueScreen: View {
         do {
             let coordinate = try await locationRequester.requestCurrentLocation()
             isLocating = false
-            isSearching = true
-            defer { isSearching = false }
-            hasSearched = true
-            lastSearchContext = "Current location"
-            searchResults = try await PinballMapClient.searchVenues(
-                latitude: coordinate.latitude,
-                longitude: coordinate.longitude,
-                radiusMiles: radiusMiles
-            )
-            errorMessage = nil
+            await performVenueSearch(context: "Current location") {
+                try await PinballMapClient.searchVenues(
+                    latitude: coordinate.latitude,
+                    longitude: coordinate.longitude,
+                    radiusMiles: radiusMiles
+                )
+            }
         } catch {
             isLocating = false
             errorMessage = error.localizedDescription
         }
     }
 
+    private func performVenueSearch(
+        context: String,
+        action: () async throws -> [PinballLibraryVenueSearchResult]
+    ) async {
+        hasSearched = true
+        lastSearchContext = context
+        isSearching = true
+        defer { isSearching = false }
+
+        do {
+            searchResults = try await action()
+            errorMessage = nil
+        } catch {
+            searchResults = []
+            errorMessage = error.localizedDescription
+        }
+    }
+
     private func importVenue(_ venue: PinballLibraryVenueSearchResult) async {
         do {
-            let machineIDs = try await PinballMapClient.fetchVenueMachineIDs(locationID: venue.id.replacingOccurrences(of: "venue--pm-", with: ""))
+            let machineIDs = try await PinballMapClient.fetchVenueMachineIDs(locationID: venueLocationID(venue))
             viewModel.importVenue(
                 result: venue,
                 machineIDs: machineIDs,
-                searchQuery: lastSearchContext.isEmpty ? query : lastSearchContext,
+                searchQuery: effectiveSearchContext,
                 radiusMiles: radiusMiles
             )
             dismiss()
         } catch {
             errorMessage = "Venue import failed: \(error.localizedDescription)"
         }
+    }
+
+    private func venueLocationID(_ venue: PinballLibraryVenueSearchResult) -> String {
+        venue.id.replacingOccurrences(of: "venue--pm-", with: "")
     }
 
     private func venueSubtitle(_ venue: PinballLibraryVenueSearchResult) -> String {
@@ -460,37 +408,23 @@ struct AddTournamentScreen: View {
         extractTournamentID(from: rawTournamentID)
     }
 
+    private var canImportTournament: Bool {
+        !isImporting && tournamentID != nil
+    }
+
     var body: some View {
         AppScreen {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        SettingsProviderCaption(prefix: "Import powered by ", linkText: "Match Play", urlString: "https://matchplay.events")
-
-                        TextField("Tournament ID or URL", text: $rawTournamentID)
-                            .submitLabel(.done)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .appControlStyle()
-
-                        Text("Enter a Match Play tournament ID or URL to import its arena list into Library and Practice.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        Button(isImporting ? "Importing..." : "Import Tournament") {
+                    SettingsTournamentImportCard(
+                        rawTournamentID: $rawTournamentID,
+                        isImporting: isImporting,
+                        errorMessage: errorMessage,
+                        canImportTournament: canImportTournament,
+                        onImport: {
                             Task { await importTournament() }
                         }
-                        .buttonStyle(AppPrimaryActionButtonStyle())
-                        .disabled(isImporting || tournamentID == nil)
-
-                        if isImporting {
-                            AppInlineTaskStatus(text: "Importing tournament…", showsProgress: true)
-                        } else if let errorMessage {
-                            AppInlineTaskStatus(text: errorMessage, isError: true)
-                        }
-                    }
-                    .padding(12)
-                    .appPanelStyle()
+                    )
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
@@ -504,18 +438,216 @@ struct AddTournamentScreen: View {
         guard let tournamentID else { return }
         isImporting = true
         defer { isImporting = false }
+        errorMessage = nil
 
         do {
-            let tournament = try await MatchPlayClient.fetchTournament(id: tournamentID)
-            guard !tournament.machineIDs.isEmpty else {
-                errorMessage = "No OPDB-linked arenas were found for that tournament."
-                return
-            }
+            let tournament = try await loadTournament(id: tournamentID)
             viewModel.importTournament(result: tournament)
             dismiss()
         } catch {
-            errorMessage = "Tournament import failed: \(error.localizedDescription)"
+            errorMessage = tournamentImportError(for: error)
         }
+    }
+
+    private func loadTournament(id: String) async throws -> MatchPlayTournamentImportResult {
+        let tournament = try await MatchPlayClient.fetchTournament(id: id)
+        guard !tournament.machineIDs.isEmpty else {
+            throw TournamentImportError.noLinkedArenas
+        }
+        return tournament
+    }
+
+    private func tournamentImportError(for error: Error) -> String {
+        if let tournamentImportError = error as? TournamentImportError {
+            return tournamentImportError.errorDescription ?? "Tournament import failed."
+        }
+        return "Tournament import failed: \(error.localizedDescription)"
+    }
+}
+
+private enum TournamentImportError: LocalizedError {
+    case noLinkedArenas
+
+    var errorDescription: String? {
+        switch self {
+        case .noLinkedArenas:
+            return "No OPDB-linked arenas were found for that tournament."
+        }
+    }
+}
+
+private struct SettingsImportStatusContent {
+    let text: String
+    var showsProgress = false
+    var isError = false
+}
+
+private struct SettingsVenueSearchControlsCard: View {
+    @Binding var query: String
+    @Binding var radiusMiles: Int
+    @Binding var minimumGameCount: Int
+    let isSearching: Bool
+    let isLocating: Bool
+    let status: SettingsImportStatusContent?
+    let onSearch: () -> Void
+    let onUseCurrentLocation: () -> Void
+
+    private var trimmedQuery: String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var canSearch: Bool {
+        !isSearching && !isLocating && !trimmedQuery.isEmpty
+    }
+
+    private var searchButtonTitle: String {
+        isSearching ? "Searching..." : "Search Pinball Map"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SettingsProviderCaption(prefix: "Search powered by ", linkText: "Pinball Map", urlString: "https://www.pinballmap.com")
+
+            HStack(alignment: .center, spacing: 8) {
+                AppNativeClearTextField(
+                    placeholder: "City or ZIP code",
+                    text: $query,
+                    submitLabel: .search,
+                    onSubmit: onSearch
+                )
+                .frame(maxWidth: .infinity)
+
+                Button(action: onUseCurrentLocation) {
+                    Group {
+                        if isLocating {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "scope")
+                                .font(.title3)
+                        }
+                    }
+                    .frame(width: 36, height: 36)
+                }
+                .buttonStyle(AppCompactIconActionButtonStyle())
+                .disabled(isSearching || isLocating)
+                .accessibilityLabel("Use current location")
+            }
+
+            Menu {
+                ForEach([10, 25, 50, 100], id: \.self) { miles in
+                    Button {
+                        radiusMiles = miles
+                    } label: {
+                        AppSelectableMenuRow(
+                            text: "\(miles) miles",
+                            isSelected: radiusMiles == miles
+                        )
+                    }
+                }
+            } label: {
+                AppCompactStackedMenuLabel(
+                    title: "Distance",
+                    value: "\(radiusMiles) miles"
+                )
+            }
+            .buttonStyle(.plain)
+
+            Stepper(value: $minimumGameCount, in: 0 ... 50) {
+                HStack {
+                    AppCardSubheading(text: "Minimum games")
+                    Spacer()
+                    Text(minimumGameCount == 0 ? "Any" : "\(minimumGameCount)")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .appControlStyle()
+
+            Button(searchButtonTitle, action: onSearch)
+                .buttonStyle(AppPrimaryActionButtonStyle())
+                .disabled(!canSearch)
+
+            if let status {
+                AppInlineTaskStatus(
+                    text: status.text,
+                    showsProgress: status.showsProgress,
+                    isError: status.isError
+                )
+            }
+        }
+        .padding(12)
+        .appPanelStyle()
+    }
+}
+
+private struct SettingsVenueSearchResultsPanel: View {
+    let results: [PinballLibraryVenueSearchResult]
+    let subtitle: (PinballLibraryVenueSearchResult) -> String
+    let onImport: (PinballLibraryVenueSearchResult) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            AppCardSubheading(text: "Results")
+
+            VStack(spacing: 0) {
+                ForEach(Array(results.enumerated()), id: \.element.id) { index, venue in
+                    Button {
+                        onImport(venue)
+                    } label: {
+                        SettingsImportResultRow(
+                            title: venue.name,
+                            subtitle: subtitle(venue),
+                            accessorySystemName: "plus.circle.fill"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    if index < results.count - 1 {
+                        AppTableRowDivider()
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .appPanelStyle()
+    }
+}
+
+private struct SettingsTournamentImportCard: View {
+    @Binding var rawTournamentID: String
+    let isImporting: Bool
+    let errorMessage: String?
+    let canImportTournament: Bool
+    let onImport: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SettingsProviderCaption(prefix: "Import powered by ", linkText: "Match Play", urlString: "https://matchplay.events")
+
+            TextField("Tournament ID or URL", text: $rawTournamentID)
+                .submitLabel(.done)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .appControlStyle()
+
+            Text("Enter a Match Play tournament ID or URL to import its arena list into Library and Practice.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Button(isImporting ? "Importing..." : "Import Tournament", action: onImport)
+                .buttonStyle(AppPrimaryActionButtonStyle())
+                .disabled(!canImportTournament)
+
+            if isImporting {
+                AppInlineTaskStatus(text: "Importing tournament…", showsProgress: true)
+            } else if let errorMessage {
+                AppInlineTaskStatus(text: errorMessage, isError: true)
+            }
+        }
+        .padding(12)
+        .appPanelStyle()
     }
 }
 

@@ -22,7 +22,33 @@ final class SettingsViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private var didLoad = false
-    let builtinSources: [PinballLibrarySource] = builtinVenueSources()
+    private var pendingLocalSourceChangeRefreshSuppressions = 0
+
+    private func markLocalSourceChangeRefreshSuppression() {
+        pendingLocalSourceChangeRefreshSuppressions += 1
+    }
+
+    private func publishSourceSnapshot(_ snapshot: SettingsSourceSnapshot, clearError: Bool = true) {
+        applySourceSnapshot(snapshot)
+        if clearError {
+            errorMessage = nil
+        }
+        markLocalSourceChangeRefreshSuppression()
+        postPinballLibrarySourcesDidChange()
+    }
+
+    private func reloadSourceState(clearError: Bool) {
+        sourceState = PinballLibrarySourceStateStore.load()
+        if clearError {
+            errorMessage = nil
+        }
+        markLocalSourceChangeRefreshSuppression()
+        postPinballLibrarySourcesDidChange()
+    }
+
+    private func syncSourceStateWithoutNotification() {
+        sourceState = PinballLibrarySourceStateStore.load()
+    }
 
     private func applySnapshot(_ snapshot: SettingsDataSnapshot) {
         manufacturers = snapshot.manufacturers
@@ -33,6 +59,20 @@ final class SettingsViewModel: ObservableObject {
     private func applySourceSnapshot(_ snapshot: SettingsSourceSnapshot) {
         importedSources = snapshot.importedSources
         sourceState = snapshot.sourceState
+    }
+
+    private func performSourceRefresh(
+        _ source: PinballImportedSourceRecord,
+        expectedType: PinballLibrarySourceType,
+        failurePrefix: String,
+        refresh: (PinballImportedSourceRecord) async throws -> SettingsSourceSnapshot
+    ) async {
+        guard source.type == expectedType else { return }
+        do {
+            publishSourceSnapshot(try await refresh(source))
+        } catch {
+            errorMessage = "\(failurePrefix): \(error.localizedDescription)"
+        }
     }
 
     func loadIfNeeded() async {
@@ -64,6 +104,7 @@ final class SettingsViewModel: ObservableObject {
             applySnapshot(try await forceRefreshHostedSettingsData())
             hostedDataStatusMessage = "Pinball data refreshed from pillyliu.com."
             hostedDataStatusIsError = false
+            markLocalSourceChangeRefreshSuppression()
             postPinballLibrarySourcesDidChange()
         } catch {
             hostedDataStatusMessage = "Hosted data refresh failed: \(error.localizedDescription)"
@@ -88,42 +129,35 @@ final class SettingsViewModel: ObservableObject {
         }
     }
 
-    func isEnabled(_ sourceID: String, builtin: Bool) -> Bool {
-        builtin || sourceState.enabledSourceIDs.contains(sourceID)
+    func isEnabled(_ sourceID: String) -> Bool {
+        sourceState.enabledSourceIDs.contains(sourceID)
     }
 
     func isPinned(_ sourceID: String) -> Bool {
         sourceState.pinnedSourceIDs.contains(sourceID)
     }
 
-    func toggleEnabled(_ sourceID: String, builtin: Bool, isOn: Bool) {
-        guard !builtin else { return }
+    func toggleEnabled(_ sourceID: String, isOn: Bool) {
         PinballLibrarySourceStateStore.setEnabled(sourceID: sourceID, isEnabled: isOn)
-        sourceState = PinballLibrarySourceStateStore.load()
-        errorMessage = nil
-        postPinballLibrarySourcesDidChange()
+        reloadSourceState(clearError: true)
     }
 
     func togglePinned(_ sourceID: String, isOn: Bool) {
         let success = PinballLibrarySourceStateStore.setPinned(sourceID: sourceID, isPinned: isOn)
         if !success {
             errorMessage = "Pinned sources are limited to \(PinballLibrarySourceStateStore.maxPinnedSources)."
+            syncSourceStateWithoutNotification()
+            return
         }
-        sourceState = PinballLibrarySourceStateStore.load()
-        if success {
-            errorMessage = nil
-        }
-        postPinballLibrarySourcesDidChange()
+        reloadSourceState(clearError: true)
     }
 
     func addManufacturer(_ manufacturer: PinballCatalogManufacturerOption) {
-        applySourceSnapshot(addManufacturerSource(manufacturer))
-        errorMessage = nil
-        postPinballLibrarySourcesDidChange()
+        publishSourceSnapshot(addManufacturerSource(manufacturer))
     }
 
     func importVenue(result: PinballLibraryVenueSearchResult, machineIDs: [String], searchQuery: String, radiusMiles: Int) {
-        applySourceSnapshot(
+        publishSourceSnapshot(
             addVenueSource(
                 result: result,
                 machineIDs: machineIDs,
@@ -131,42 +165,49 @@ final class SettingsViewModel: ObservableObject {
                 radiusMiles: radiusMiles
             )
         )
-        errorMessage = nil
-        postPinballLibrarySourcesDidChange()
     }
 
     func importTournament(result: MatchPlayTournamentImportResult) {
-        applySourceSnapshot(addTournamentSource(result))
-        errorMessage = nil
-        postPinballLibrarySourcesDidChange()
+        publishSourceSnapshot(addTournamentSource(result))
     }
 
     func removeImportedSource(_ sourceID: String) {
-        applySourceSnapshot(removeSettingsSource(sourceID))
-        errorMessage = nil
-        postPinballLibrarySourcesDidChange()
+        publishSourceSnapshot(removeSettingsSource(sourceID))
     }
 
     func refreshVenue(_ source: PinballImportedSourceRecord) async {
-        guard source.type == .venue else { return }
-        do {
-            applySourceSnapshot(try await refreshVenueSource(source))
-            errorMessage = nil
-            postPinballLibrarySourcesDidChange()
-        } catch {
-            errorMessage = "Venue refresh failed: \(error.localizedDescription)"
-        }
+        await performSourceRefresh(
+            source,
+            expectedType: .venue,
+            failurePrefix: "Venue refresh failed",
+            refresh: refreshVenueSource
+        )
     }
 
     func refreshTournament(_ source: PinballImportedSourceRecord) async {
-        guard source.type == .tournament else { return }
-        do {
-            applySourceSnapshot(try await refreshTournamentSource(source))
-            errorMessage = nil
-            postPinballLibrarySourcesDidChange()
-        } catch {
-            errorMessage = "Tournament refresh failed: \(error.localizedDescription)"
+        await performSourceRefresh(
+            source,
+            expectedType: .tournament,
+            failurePrefix: "Tournament refresh failed",
+            refresh: refreshTournamentSource
+        )
+    }
+
+    func refreshSource(_ source: PinballImportedSourceRecord) async {
+        switch source.type {
+        case .venue:
+            await refreshVenue(source)
+        case .tournament:
+            await refreshTournament(source)
+        case .manufacturer, .category:
+            break
         }
+    }
+
+    func consumePendingSourceChangeRefreshSuppression() -> Bool {
+        guard pendingLocalSourceChangeRefreshSuppressions > 0 else { return false }
+        pendingLocalSourceChangeRefreshSuppressions -= 1
+        return true
     }
 }
 
@@ -212,6 +253,9 @@ struct SettingsScreen: View {
                 await viewModel.loadIfNeeded()
             }
             .onReceive(NotificationCenter.default.publisher(for: .pinballLibrarySourcesDidChange)) { _ in
+                if viewModel.consumePendingSourceChangeRefreshSuppression() {
+                    return
+                }
                 Task { await viewModel.refresh() }
             }
             .onDisappear {

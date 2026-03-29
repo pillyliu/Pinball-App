@@ -33,21 +33,19 @@ func clearAppRuntimeCaches() async throws {
 }
 
 func addManufacturerSource(_ manufacturer: PinballCatalogManufacturerOption) -> SettingsSourceSnapshot {
-    let sourceID = "manufacturer--\(manufacturer.id)"
-    let record = PinballImportedSourceRecord(
-        id: sourceID,
-        name: manufacturer.name,
-        type: .manufacturer,
-        provider: .opdb,
-        providerSourceID: manufacturer.id,
-        machineIDs: [],
-        lastSyncedAt: Date(),
-        searchQuery: nil,
-        distanceMiles: nil
+    persistSettingsSource(
+        PinballImportedSourceRecord(
+            id: "manufacturer--\(manufacturer.id)",
+            name: manufacturer.name,
+            type: .manufacturer,
+            provider: .opdb,
+            providerSourceID: manufacturer.id,
+            machineIDs: [],
+            lastSyncedAt: Date(),
+            searchQuery: nil,
+            distanceMiles: nil
+        )
     )
-    PinballImportedSourcesStore.upsert(record)
-    PinballLibrarySourceStateStore.upsertSource(id: sourceID, enable: true, pinIfPossible: true)
-    return settingsSourceSnapshot()
 }
 
 func addVenueSource(
@@ -56,39 +54,35 @@ func addVenueSource(
     searchQuery: String,
     radiusMiles: Int
 ) -> SettingsSourceSnapshot {
-    let locationID = result.id.replacingOccurrences(of: "venue--pm-", with: "")
-    let record = PinballImportedSourceRecord(
-        id: result.id,
-        name: result.name,
-        type: .venue,
-        provider: .pinballMap,
-        providerSourceID: locationID,
-        machineIDs: machineIDs,
-        lastSyncedAt: Date(),
-        searchQuery: searchQuery,
-        distanceMiles: radiusMiles
+    persistSettingsSource(
+        PinballImportedSourceRecord(
+            id: result.id,
+            name: result.name,
+            type: .venue,
+            provider: .pinballMap,
+            providerSourceID: venueProviderSourceID(result.id),
+            machineIDs: machineIDs,
+            lastSyncedAt: Date(),
+            searchQuery: searchQuery,
+            distanceMiles: radiusMiles
+        )
     )
-    PinballImportedSourcesStore.upsert(record)
-    PinballLibrarySourceStateStore.upsertSource(id: result.id, enable: true, pinIfPossible: true)
-    return settingsSourceSnapshot()
 }
 
 func addTournamentSource(_ result: MatchPlayTournamentImportResult) -> SettingsSourceSnapshot {
-    let sourceID = "tournament--mp-\(result.id)"
-    let record = PinballImportedSourceRecord(
-        id: sourceID,
-        name: result.name,
-        type: .tournament,
-        provider: .matchPlay,
-        providerSourceID: result.id,
-        machineIDs: result.machineIDs,
-        lastSyncedAt: Date(),
-        searchQuery: nil,
-        distanceMiles: nil
+    persistSettingsSource(
+        PinballImportedSourceRecord(
+            id: "tournament--mp-\(result.id)",
+            name: result.name,
+            type: .tournament,
+            provider: .matchPlay,
+            providerSourceID: result.id,
+            machineIDs: result.machineIDs,
+            lastSyncedAt: Date(),
+            searchQuery: nil,
+            distanceMiles: nil
+        )
     )
-    PinballImportedSourcesStore.upsert(record)
-    PinballLibrarySourceStateStore.upsertSource(id: sourceID, enable: true, pinIfPossible: true)
-    return settingsSourceSnapshot()
 }
 
 func removeSettingsSource(_ sourceID: String) -> SettingsSourceSnapshot {
@@ -98,21 +92,44 @@ func removeSettingsSource(_ sourceID: String) -> SettingsSourceSnapshot {
 
 func refreshVenueSource(_ source: PinballImportedSourceRecord) async throws -> SettingsSourceSnapshot {
     let machineIDs = try await PinballMapClient.fetchVenueMachineIDs(locationID: source.providerSourceID)
-    var updated = source
-    updated.machineIDs = machineIDs
-    updated.lastSyncedAt = Date()
-    PinballImportedSourcesStore.upsert(updated)
-    return settingsSourceSnapshot()
+    return updateSettingsSource(source) { updated in
+        updated.machineIDs = machineIDs
+        updated.lastSyncedAt = Date()
+    }
 }
 
 func refreshTournamentSource(_ source: PinballImportedSourceRecord) async throws -> SettingsSourceSnapshot {
     let tournament = try await MatchPlayClient.fetchTournament(id: source.providerSourceID)
+    return updateSettingsSource(source) { updated in
+        updated.name = tournament.name
+        updated.machineIDs = tournament.machineIDs
+        updated.lastSyncedAt = Date()
+    }
+}
+
+private func persistSettingsSource(
+    _ record: PinballImportedSourceRecord,
+    enableAndPin: Bool = true
+) -> SettingsSourceSnapshot {
+    PinballImportedSourcesStore.upsert(record)
+    if enableAndPin {
+        PinballLibrarySourceStateStore.upsertSource(id: record.id, enable: true, pinIfPossible: true)
+    }
+    return settingsSourceSnapshot()
+}
+
+private func updateSettingsSource(
+    _ source: PinballImportedSourceRecord,
+    update: (inout PinballImportedSourceRecord) -> Void
+) -> SettingsSourceSnapshot {
     var updated = source
-    updated.name = tournament.name
-    updated.machineIDs = tournament.machineIDs
-    updated.lastSyncedAt = Date()
+    update(&updated)
     PinballImportedSourcesStore.upsert(updated)
     return settingsSourceSnapshot()
+}
+
+private func venueProviderSourceID(_ sourceID: String) -> String {
+    sourceID.replacingOccurrences(of: "venue--pm-", with: "")
 }
 
 private func settingsSourceSnapshot() -> SettingsSourceSnapshot {

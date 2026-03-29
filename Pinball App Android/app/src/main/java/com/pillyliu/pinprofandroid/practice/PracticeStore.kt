@@ -120,16 +120,6 @@ internal class PracticeStore(private val context: Context) {
     private val libraryIntegration by lazy {
         PracticeLibraryIntegration(
             context = context,
-            preferredSourceId = { prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null) },
-            savePreferredSourceId = { sourceId ->
-                prefs.edit {
-                    if (sourceId != null) {
-                        putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, sourceId)
-                    } else {
-                        remove(KEY_PREFERRED_LIBRARY_SOURCE_ID)
-                    }
-                }
-            },
         )
     }
     private val persistenceIntegration by lazy {

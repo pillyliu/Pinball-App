@@ -2,7 +2,7 @@ import SwiftUI
 
 extension LibraryScreen {
     private var scrollIndicatorTrailingInset: CGFloat {
-        4 - contentHorizontalPadding
+        4 - layoutMetrics.contentHorizontalPadding
     }
 
     var filterMenuSections: some View {
@@ -34,22 +34,15 @@ extension LibraryScreen {
             sections: viewModel.sections,
             visibleGames: viewModel.visibleSortedFilteredGames,
             hasMoreVisibleGames: viewModel.hasMoreVisibleGames,
-            gridColumns: gridColumns,
-            gridSpacing: gridSpacing,
-            cardTotalHeight: cardTotalHeight,
-            cardInfoHeight: cardInfoHeight,
+            gridColumns: layoutMetrics.gridColumns,
+            gridSpacing: layoutMetrics.gridSpacing,
+            cardTotalHeight: layoutMetrics.cardTotalHeight,
+            cardInfoHeight: layoutMetrics.cardInfoHeight,
             scrollIndicatorTrailingInset: scrollIndicatorTrailingInset,
             reduceMotion: reduceMotion,
             cardTransition: cardTransition,
             onLoadMore: viewModel.loadMoreGamesIfNeeded(currentGameID:)
         )
-    }
-
-    func consumeLibraryDeepLink() {
-        guard let gameID = appNavigation.libraryGameIDToOpen else { return }
-        guard viewModel.games.contains(where: { $0.id == gameID }) else { return }
-        navigationPath = [gameID]
-        appNavigation.libraryGameIDToOpen = nil
     }
 }
 
@@ -186,54 +179,90 @@ private struct LibraryListContent: View {
                     isLoading: isLoading,
                     errorMessage: errorMessage
                 )
-            } else if showGroupedView {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(sections.enumerated()), id: \.offset) { index, section in
-                            if index > 0 {
-                                AppSectionDivider()
-                            }
-
-                            LibraryGameGrid(
-                                games: section.games,
-                                gridColumns: gridColumns,
-                                gridSpacing: gridSpacing,
-                                cardTotalHeight: cardTotalHeight,
-                                cardInfoHeight: cardInfoHeight,
-                                reduceMotion: reduceMotion,
-                                cardTransition: cardTransition,
-                                onLoadMore: onLoadMore
-                            )
-                        }
-
-                        LibraryLoadMoreFooter(
-                            hasMoreVisibleGames: hasMoreVisibleGames,
-                            onLoadMore: onLoadMore
-                        )
-                    }
-                }
-                .contentMargins(.trailing, scrollIndicatorTrailingInset, for: .scrollIndicators)
             } else {
-                ScrollView {
-                    LibraryGameGrid(
-                        games: visibleGames,
-                        gridColumns: gridColumns,
-                        gridSpacing: gridSpacing,
-                        cardTotalHeight: cardTotalHeight,
-                        cardInfoHeight: cardInfoHeight,
-                        reduceMotion: reduceMotion,
-                        cardTransition: cardTransition,
-                        onLoadMore: onLoadMore
-                    )
-
-                    LibraryLoadMoreFooter(
-                        hasMoreVisibleGames: hasMoreVisibleGames,
-                        onLoadMore: onLoadMore
-                    )
-                }
-                .contentMargins(.trailing, scrollIndicatorTrailingInset, for: .scrollIndicators)
+                LibraryGameScrollContent(
+                    showGroupedView: showGroupedView,
+                    sections: sections,
+                    visibleGames: visibleGames,
+                    hasMoreVisibleGames: hasMoreVisibleGames,
+                    gridColumns: gridColumns,
+                    gridSpacing: gridSpacing,
+                    cardTotalHeight: cardTotalHeight,
+                    cardInfoHeight: cardInfoHeight,
+                    scrollIndicatorTrailingInset: scrollIndicatorTrailingInset,
+                    reduceMotion: reduceMotion,
+                    cardTransition: cardTransition,
+                    onLoadMore: onLoadMore
+                )
             }
         }
+    }
+}
+
+private struct LibraryGameScrollContent: View {
+    let showGroupedView: Bool
+    let sections: [PinballGroupSection]
+    let visibleGames: [PinballGame]
+    let hasMoreVisibleGames: Bool
+    let gridColumns: [GridItem]
+    let gridSpacing: CGFloat
+    let cardTotalHeight: CGFloat
+    let cardInfoHeight: CGFloat
+    let scrollIndicatorTrailingInset: CGFloat
+    let reduceMotion: Bool
+    let cardTransition: Namespace.ID
+    let onLoadMore: (String?) -> Void
+
+    var body: some View {
+        ScrollView {
+            if showGroupedView {
+                groupedContent
+            } else {
+                ungroupedContent
+            }
+        }
+        .contentMargins(.trailing, scrollIndicatorTrailingInset, for: .scrollIndicators)
+    }
+
+    private var groupedContent: some View {
+        LazyVStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(sections.enumerated()), id: \.offset) { index, section in
+                if index > 0 {
+                    AppSectionDivider()
+                }
+
+                gameGrid(for: section.games)
+            }
+
+            loadMoreFooter
+        }
+    }
+
+    private var ungroupedContent: some View {
+        Group {
+            gameGrid(for: visibleGames)
+            loadMoreFooter
+        }
+    }
+
+    private func gameGrid(for games: [PinballGame]) -> some View {
+        LibraryGameGrid(
+            games: games,
+            gridColumns: gridColumns,
+            gridSpacing: gridSpacing,
+            cardTotalHeight: cardTotalHeight,
+            cardInfoHeight: cardInfoHeight,
+            reduceMotion: reduceMotion,
+            cardTransition: cardTransition,
+            onLoadMore: onLoadMore
+        )
+    }
+
+    private var loadMoreFooter: some View {
+        LibraryLoadMoreFooter(
+            hasMoreVisibleGames: hasMoreVisibleGames,
+            onLoadMore: onLoadMore
+        )
     }
 }
 

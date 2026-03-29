@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.isAvenueLibrarySourceId
 import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.dismissKeyboardOnTapOutside
@@ -163,7 +164,7 @@ internal fun QuickEntrySheet(
         currentSelectedGameSourceId,
     ) {
         val saved = prefs.getString("$QUICK_LIBRARY_KEY_PREFIX${origin.keySuffix}", null)
-        val preferred = prefs.getString(KEY_PREFERRED_LIBRARY_SOURCE_ID, null)
+        val preferred = LibrarySourceStateStore.load(context).selectedSourceId
         val avenue = avenueLibraryOptionId()
         val initial = resolveInitialQuickEntryLibraryOption(
             origin = origin,
@@ -253,9 +254,9 @@ internal fun QuickEntrySheet(
         if (!showLibraryDropdown) return@LaunchedEffect
         prefs.edit {
             putString("$QUICK_LIBRARY_KEY_PREFIX${origin.keySuffix}", selectedLibraryOption)
-            if (selectedLibraryOption != ALL_GAMES_LIBRARY_OPTION) {
-                putString(KEY_PREFERRED_LIBRARY_SOURCE_ID, selectedLibraryOption)
-            }
+        }
+        if (selectedLibraryOption != ALL_GAMES_LIBRARY_OPTION) {
+            LibrarySourceStateStore.setSelectedSource(context, selectedLibraryOption)
         }
     }
     val selectedGame = findGameByPracticeLookupKey(allLibraryGames, gameSlug)

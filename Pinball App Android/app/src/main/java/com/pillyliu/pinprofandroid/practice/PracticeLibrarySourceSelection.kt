@@ -2,6 +2,7 @@ package com.pillyliu.pinprofandroid.practice
 
 import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.PinballGame
+import com.pillyliu.pinprofandroid.library.resolvePreferredLibrarySource
 
 internal const val PRACTICE_ALL_GAMES_SOURCE_ID = "__practice_all_games__"
 
@@ -18,10 +19,11 @@ internal fun resolvePreferredPracticeSource(
     loaded: PracticeLibraryLoadResult,
     savedSourceId: String?,
 ): LibrarySource? {
-    return listOfNotNull(savedSourceId, loaded.defaultSourceId)
-        .firstOrNull { id -> loaded.sources.any { it.id == id } }
-        ?.let { id -> loaded.sources.firstOrNull { it.id == id } }
-        ?: loaded.sources.firstOrNull()
+    return resolvePreferredLibrarySource(
+        sources = loaded.sources,
+        selectedSourceId = savedSourceId,
+        currentSelectedSourceId = loaded.defaultSourceId,
+    )
 }
 
 internal fun applyPracticeLibrarySourceSelection(

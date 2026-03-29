@@ -52,7 +52,6 @@ import com.pillyliu.pinprofandroid.data.setShowFullLplLastName
 import com.pillyliu.pinprofandroid.data.unlockLplFullNameAccess
 import com.pillyliu.pinprofandroid.library.CatalogManufacturerOption
 import com.pillyliu.pinprofandroid.library.ImportedSourceRecord
-import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.LibrarySourceState
 import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.LibrarySourceType
@@ -71,7 +70,6 @@ import com.pillyliu.pinprofandroid.ui.pinballSegmentedButtonColors
 
 @Composable
 internal fun SettingsHomeContent(
-    builtinSources: List<LibrarySource>,
     manufacturers: List<CatalogManufacturerOption>,
     importedSources: List<ImportedSourceRecord>,
     sourceState: LibrarySourceState,
@@ -114,7 +112,6 @@ internal fun SettingsHomeContent(
 
         item {
             SettingsLibrarySection(
-                builtinSources = builtinSources,
                 manufacturers = manufacturers,
                 importedSources = importedSources,
                 sourceState = sourceState,
@@ -192,7 +189,6 @@ private fun SettingsAppearanceSection() {
 
 @Composable
 private fun SettingsLibrarySection(
-    builtinSources: List<LibrarySource>,
     manufacturers: List<CatalogManufacturerOption>,
     importedSources: List<ImportedSourceRecord>,
     sourceState: LibrarySourceState,
@@ -232,20 +228,7 @@ private fun SettingsLibrarySection(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        builtinSources.forEach { source ->
-            ManagedSourceRow(
-                title = source.name,
-                subtitle = "Built-in venue",
-                enabled = true,
-                pinned = sourceState.pinnedSourceIds.contains(source.id),
-                canDisable = false,
-                onEnabledChange = {},
-                onPinnedChange = { isPinned -> onTogglePinned(source.id, isPinned) },
-                onRefresh = null,
-                onDelete = null,
-            )
-        }
-        importedSources.filterNot { source -> builtinSources.any { it.id == source.id } }.forEach { source ->
+        importedSources.forEach { source ->
             ManagedSourceRow(
                 title = source.name,
                 subtitle = importedSourceSubtitle(source, manufacturers),
@@ -263,7 +246,7 @@ private fun SettingsLibrarySection(
             )
         }
         if (importedSources.isEmpty()) {
-            AppPanelEmptyCard(text = "No additional sources added yet.")
+            AppPanelEmptyCard(text = "No sources added yet.")
         }
     }
 }

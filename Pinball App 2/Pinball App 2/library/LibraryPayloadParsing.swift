@@ -122,17 +122,7 @@ struct PinballLibraryBrowsingState {
         guard let selectedSource else {
             return [.area, .alphabetical]
         }
-        switch selectedSource.type {
-        case .category, .manufacturer, .tournament:
-            return [.year, .alphabetical]
-        case .venue:
-            let hasBank = sourceScopedGames.contains { ($0.bank ?? 0) > 0 }
-            var options: [PinballLibrarySortOption] = [.area]
-            if hasBank { options.append(.bank) }
-            options.append(.alphabetical)
-            options.append(.year)
-            return options
-        }
+        return librarySortOptions(for: selectedSource, games: sourceScopedGames)
     }
 
     var supportsBankFilter: Bool {
@@ -262,26 +252,6 @@ struct PinballLibraryBrowsingState {
             return yearSortDescending ? "Sort: Year (New-Old)" : "Sort: Year (Old-New)"
         }
         return option.menuLabel
-    }
-
-    func preferredDefaultSortOption(for source: PinballLibrarySource, games: [PinballGame]) -> PinballLibrarySortOption {
-        switch source.type {
-        case .manufacturer:
-            return .year
-        case .category, .tournament:
-            return .alphabetical
-        case .venue:
-            let hasArea = games.contains {
-                guard let area = $0.area?.trimmingCharacters(in: .whitespacesAndNewlines) else { return false }
-                return !area.isEmpty && area.lowercased() != "null"
-            }
-            let hasPosition = games.contains { ($0.group ?? 0) > 0 || ($0.pos ?? 0) > 0 }
-            return (hasArea || hasPosition) ? .area : .alphabetical
-        }
-    }
-
-    func preferredDefaultYearSortDescending(for source: PinballLibrarySource, games: [PinballGame]) -> Bool {
-        preferredDefaultSortOption(for: source, games: games) == .year && source.type == .manufacturer
     }
 
     private func byOptionalAscending<T: Comparable>(_ lhs: T?, _ rhs: T?) -> Bool? {

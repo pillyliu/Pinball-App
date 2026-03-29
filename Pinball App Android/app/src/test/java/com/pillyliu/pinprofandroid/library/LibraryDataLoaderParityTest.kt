@@ -238,65 +238,6 @@ class LibraryDataLoaderParityTest {
     }
 
     @Test
-    fun resolveLegacyGame_suppressesStaleLocalRulesheetWhenTfExists() {
-        val game = resolveLegacyGame(
-            legacyGame = PinballGame(
-                libraryEntryId = "legacy-gqkyp",
-                practiceIdentity = "GQKyP",
-                opdbId = "GQKyP-MPRO",
-                opdbGroupId = "GQKyP",
-                opdbMachineId = "GQKyP-MPRO",
-                variant = "Pro",
-                sourceId = "manufacturer--stern",
-                sourceName = "Stern",
-                sourceType = LibrarySourceType.CATEGORY,
-                area = null,
-                areaOrder = null,
-                group = null,
-                position = null,
-                bank = null,
-                name = "James Bond 007",
-                manufacturer = "Stern",
-                year = 2022,
-                slug = "james-bond-007",
-                primaryImageUrl = null,
-                primaryImageLargeUrl = null,
-                playfieldImageUrl = null,
-                alternatePlayfieldImageUrl = null,
-                playfieldLocalOriginal = null,
-                playfieldLocal = null,
-                playfieldSourceLabel = null,
-                gameinfoLocal = null,
-                rulesheetLocal = "/pinball/rulesheets/GQKyP-rulesheet.md",
-                rulesheetUrl = null,
-                rulesheetLinks = emptyList(),
-                videos = emptyList(),
-            ),
-            curatedOverridesByPracticeIdentity = emptyMap(),
-            machineByPracticeIdentity = mapOf("GQKyP" to listOf(catalogMachine())),
-            machineByOpdbId = mapOf("GQKyP-MPRO" to catalogMachine()),
-            manufacturerById = emptyMap(),
-            opdbRulesheetsByPracticeIdentity = mapOf(
-                "GQKyP" to listOf(
-                    CatalogRulesheetLinkRecord(
-                        practiceIdentity = "GQKyP",
-                        provider = "tf",
-                        label = "Rulesheet (TF)",
-                        url = "https://tiltforums.com/t/james-bond-007-rulesheet/7893",
-                        localPath = null,
-                        priority = 0,
-                    ),
-                ),
-            ),
-            opdbVideosByPracticeIdentity = emptyMap(),
-        )
-
-        assertNull(game.rulesheetLocal)
-        assertEquals(1, game.rulesheetLinks.size)
-        assertEquals("Rulesheet (TF)", game.rulesheetLinks.single().label)
-    }
-
-    @Test
     fun displayedRulesheetLinks_hidesActionlessPinProfEntriesWhenLocalMarkdownExists() {
         val game = PinballGame(
             libraryEntryId = "legacy-g5pe4",

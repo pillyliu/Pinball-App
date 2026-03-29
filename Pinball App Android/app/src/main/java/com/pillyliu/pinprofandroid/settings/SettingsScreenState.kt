@@ -9,7 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.pillyliu.pinprofandroid.library.CatalogManufacturerOption
 import com.pillyliu.pinprofandroid.library.ImportedSourceRecord
-import com.pillyliu.pinprofandroid.library.ImportedSourcesStore
+import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.library.LibrarySourceEvents
 import com.pillyliu.pinprofandroid.library.LibrarySourceState
 import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
@@ -30,6 +30,11 @@ internal class SettingsScreenState(
     var clearingCache by mutableStateOf(false)
     var cacheStatusMessage by mutableStateOf<String?>(null)
     var cacheStatusIsError by mutableStateOf(false)
+    private var pendingLocalSourceReloadSuppressions = 0
+
+    private fun markLocalSourceReloadSuppression() {
+        pendingLocalSourceReloadSuppressions += 1
+    }
 
     fun applySnapshot(snapshot: SettingsDataSnapshot) {
         manufacturers = snapshot.manufacturers
@@ -40,6 +45,32 @@ internal class SettingsScreenState(
     fun applySourceSnapshot(snapshot: SettingsSourceSnapshot) {
         importedSources = snapshot.importedSources
         sourceState = snapshot.sourceState
+    }
+
+    private fun completeSourceMutation(
+        snapshot: SettingsSourceSnapshot,
+        returnHome: Boolean = false,
+    ) {
+        applySourceSnapshot(snapshot)
+        markLocalSourceReloadSuppression()
+        if (returnHome) {
+            route = SettingsRoute.Home
+        }
+        error = null
+    }
+
+    private suspend fun refreshImportedSource(
+        source: ImportedSourceRecord,
+        expectedType: LibrarySourceType,
+        failurePrefix: String,
+        refresh: suspend (ImportedSourceRecord) -> SettingsSourceSnapshot,
+    ) {
+        if (source.type != expectedType) return
+        runCatching { refresh(source) }
+            .onSuccess { completeSourceMutation(it) }
+            .onFailure {
+                error = "$failurePrefix: ${it.message ?: "Unknown error"}"
+            }
     }
 
     suspend fun reload() {
@@ -54,11 +85,66 @@ internal class SettingsScreenState(
     fun afterSourceMutation() {
         applySourceSnapshot(
             SettingsSourceSnapshot(
-                importedSources = ImportedSourcesStore.load(context),
+                importedSources = com.pillyliu.pinprofandroid.library.ImportedSourcesStore.load(context),
                 sourceState = LibrarySourceStateStore.load(context),
             ),
         )
+        markLocalSourceReloadSuppression()
         LibrarySourceEvents.notifyChanged()
+    }
+
+    fun toggleEnabled(sourceId: String, isEnabled: Boolean) {
+        LibrarySourceStateStore.setEnabled(context, sourceId, isEnabled)
+        afterSourceMutation()
+        error = null
+    }
+
+    fun togglePinned(sourceId: String, isPinned: Boolean) {
+        if (LibrarySourceStateStore.setPinned(context, sourceId, isPinned)) {
+            afterSourceMutation()
+            error = null
+        } else {
+            error = "Pinned sources are limited to ${LibrarySourceStateStore.MAX_PINNED_SOURCES}."
+        }
+    }
+
+    fun addManufacturer(manufacturer: CatalogManufacturerOption) {
+        completeSourceMutation(addManufacturerSource(context, manufacturer), returnHome = true)
+    }
+
+    fun addVenue(
+        result: com.pillyliu.pinprofandroid.library.LibraryVenueSearchResult,
+        machineIds: List<String>,
+        query: String,
+        radiusMiles: Int,
+    ) {
+        completeSourceMutation(addVenueSource(context, result, machineIds, query, radiusMiles), returnHome = true)
+    }
+
+    fun addTournament(result: MatchPlayTournamentImportResult) {
+        completeSourceMutation(addTournamentSource(context, result), returnHome = true)
+    }
+
+    fun deleteSource(sourceId: String) {
+        completeSourceMutation(removeSettingsSource(context, sourceId))
+    }
+
+    suspend fun refreshSource(source: ImportedSourceRecord) {
+        when (source.type) {
+            LibrarySourceType.VENUE -> refreshImportedSource(
+                source = source,
+                expectedType = LibrarySourceType.VENUE,
+                failurePrefix = "Venue refresh failed",
+            ) { refreshVenueSource(context, it) }
+
+            LibrarySourceType.TOURNAMENT -> refreshImportedSource(
+                source = source,
+                expectedType = LibrarySourceType.TOURNAMENT,
+                failurePrefix = "Tournament refresh failed",
+            ) { refreshTournamentSource(context, it) }
+
+            else -> Unit
+        }
     }
 
     suspend fun refreshHostedLibraryData() {
@@ -68,6 +154,7 @@ internal class SettingsScreenState(
         hostedDataStatusIsError = false
         runCatching { forceRefreshHostedSettingsData(context) }
             .onSuccess { snapshot ->
+                markLocalSourceReloadSuppression()
                 applySnapshot(snapshot)
                 hostedDataStatusMessage = "Pinball data refreshed from pillyliu.com."
                 hostedDataStatusIsError = false
@@ -93,6 +180,12 @@ internal class SettingsScreenState(
             cacheStatusIsError = true
         }
         clearingCache = false
+    }
+
+    fun consumePendingSourceReloadSuppression(): Boolean {
+        if (pendingLocalSourceReloadSuppressions <= 0) return false
+        pendingLocalSourceReloadSuppressions -= 1
+        return true
     }
 }
 

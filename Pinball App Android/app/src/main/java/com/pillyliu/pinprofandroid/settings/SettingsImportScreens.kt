@@ -214,22 +214,33 @@ internal fun AddVenueScreen(
         results.filter { it.machineCount >= minimumGameCount }
     }
 
-    suspend fun runSearch() {
-        val trimmedQuery = query.trim()
-        if (trimmedQuery.isBlank()) return
+    fun effectiveSearchContext(): String = lastSearchContext.ifBlank { query.trim() }
+
+    suspend fun performVenueSearch(
+        contextLabel: String,
+        search: suspend () -> List<LibraryVenueSearchResult>,
+    ) {
         searching = true
         error = null
         hasSearched = true
-        lastSearchContext = trimmedQuery
-        runCatching {
-            withContext(Dispatchers.IO) { PinballMapClient.searchVenues(trimmedQuery, radiusMiles) }
-        }.onSuccess {
-            results = it
-        }.onFailure {
-            error = it.message ?: "Venue search failed."
-            results = emptyList()
-        }
+        lastSearchContext = contextLabel
+        runCatching { search() }
+            .onSuccess {
+                results = it
+                error = null
+            }.onFailure {
+                error = it.message ?: "Venue search failed."
+                results = emptyList()
+            }
         searching = false
+    }
+
+    suspend fun runSearch() {
+        val trimmedQuery = query.trim()
+        if (trimmedQuery.isBlank()) return
+        performVenueSearch(contextLabel = trimmedQuery) {
+            withContext(Dispatchers.IO) { PinballMapClient.searchVenues(trimmedQuery, radiusMiles) }
+        }
     }
 
     suspend fun runCurrentLocationSearch() {
@@ -243,11 +254,7 @@ internal fun AddVenueScreen(
         locating = false
         if (coordinate == null) return
 
-        searching = true
-        error = null
-        hasSearched = true
-        lastSearchContext = "Current location"
-        runCatching {
+        performVenueSearch(contextLabel = "Current location") {
             withContext(Dispatchers.IO) {
                 PinballMapClient.searchVenues(
                     latitude = coordinate.latitude,
@@ -255,13 +262,7 @@ internal fun AddVenueScreen(
                     radiusMiles = radiusMiles,
                 )
             }
-        }.onSuccess {
-            results = it
-        }.onFailure {
-            error = it.message ?: "Venue search failed."
-            results = emptyList()
         }
-        searching = false
     }
 
     fun launchCurrentLocationSearch() {
@@ -421,7 +422,7 @@ internal fun AddVenueScreen(
                                             onImport(
                                                 result,
                                                 machineIds,
-                                                lastSearchContext.ifBlank { query.trim() },
+                                                effectiveSearchContext(),
                                                 radiusMiles,
                                             )
                                         }.onFailure {
@@ -525,6 +526,36 @@ internal fun AddTournamentScreen(
     var importing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val tournamentId = remember(rawTournamentId) { extractTournamentId(rawTournamentId) }
+    val canImportTournament = !importing && tournamentId != null
+
+    suspend fun loadTournament(id: String): MatchPlayTournamentImportResult {
+        val result = withContext(Dispatchers.IO) { MatchPlayClient.fetchTournament(id) }
+        if (result.machineIds.isEmpty()) {
+            throw TournamentImportException.NoLinkedArenas
+        }
+        return result
+    }
+
+    fun tournamentImportErrorMessage(error: Throwable): String {
+        return when (error) {
+            TournamentImportException.NoLinkedArenas -> error.message ?: "Tournament import failed."
+            else -> error.message ?: "Tournament import failed."
+        }
+    }
+
+    suspend fun performTournamentImport() {
+        val resolvedId = tournamentId
+        if (resolvedId == null) {
+            error = "Enter a valid tournament ID."
+            return
+        }
+        importing = true
+        error = null
+        runCatching { loadTournament(resolvedId) }
+            .onSuccess(onImport)
+            .onFailure { error = tournamentImportErrorMessage(it) }
+        importing = false
+    }
 
     AppScreen(contentPadding) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
@@ -548,32 +579,9 @@ internal fun AddTournamentScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 AppPrimaryButton(
-                    onClick = {
-                        scope.launch {
-                            importing = true
-                            error = null
-                            val resolvedId = tournamentId
-                            if (resolvedId == null) {
-                                error = "Enter a valid tournament ID."
-                                importing = false
-                                return@launch
-                            }
-                            runCatching {
-                                withContext(Dispatchers.IO) { MatchPlayClient.fetchTournament(resolvedId) }
-                            }.onSuccess { result ->
-                                if (result.machineIds.isEmpty()) {
-                                    error = "No OPDB-linked arenas were found for that tournament."
-                                } else {
-                                    onImport(result)
-                                }
-                            }.onFailure {
-                                error = it.message ?: "Tournament import failed."
-                            }
-                            importing = false
-                        }
-                    },
+                    onClick = { scope.launch { performTournamentImport() } },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !importing && tournamentId != null,
+                    enabled = canImportTournament,
                 ) {
                     Text(if (importing) "Importing..." else "Import Tournament")
                 }
@@ -585,6 +593,10 @@ internal fun AddTournamentScreen(
             }
         }
     }
+}
+
+private sealed class TournamentImportException(message: String) : Exception(message) {
+    data object NoLinkedArenas : TournamentImportException("No OPDB-linked arenas were found for that tournament.")
 }
 
 @Composable

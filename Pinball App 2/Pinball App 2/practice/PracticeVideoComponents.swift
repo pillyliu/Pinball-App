@@ -28,7 +28,7 @@ struct PracticeGameResourceCard: View {
                             PinballUnavailableResourceChip("Unavailable")
                         }
                     } else {
-                        ForEach(game.orderedRulesheetLinks) { link in
+                        ForEach(game.displayedRulesheetLinks) { link in
                             practiceRulesheetLinkButton(link: link, game: game, title: PinballShortRulesheetTitle(for: link))
                         }
                     }

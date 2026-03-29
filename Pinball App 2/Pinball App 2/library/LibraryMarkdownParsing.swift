@@ -281,16 +281,8 @@ enum NativeMarkdownParser {
     }
 
     private static func parseStandaloneImage(_ line: String) -> (url: String, alt: String?)? {
-        if let markdownMatch = line.firstRegexCaptures(#"!\[([^\]]*)\]\(([^)]+)\)"#, options: .caseInsensitive),
-           let url = markdownMatch.1 {
-            return (url: url, alt: markdownMatch.0.isEmpty ? nil : markdownMatch.0)
-        }
-
-        if let imageMatch = line.firstRegexCaptures(#"<img\b[^>]*src=['"]([^'"]+)['"][^>]*?(?:alt=['"]([^'"]*)['"])?[^>]*?/?>"#, options: [.caseInsensitive, .dotMatchesLineSeparators]) {
-            return (url: imageMatch.0, alt: imageMatch.1?.isEmpty == true ? nil : imageMatch.1)
-        }
-
-        return nil
+        guard let image = MarkdownImageParsing.firstImage(in: line) else { return nil }
+        return (url: image.url, alt: image.alt)
     }
 
     private static func parseHTMLTable(
@@ -347,9 +339,8 @@ enum NativeMarkdownParser {
     }
 
     private static func parseHTMLTableHTML(_ html: String) -> MarkdownBlock? {
-        let rowHTML = regexMatches(
+        let rowHTML = html.regexMatches(
             pattern: #"<tr\b[^>]*>(.*?)</tr>"#,
-            in: html,
             options: [.caseInsensitive, .dotMatchesLineSeparators]
         )
         guard !rowHTML.isEmpty else { return nil }
@@ -358,9 +349,8 @@ enum NativeMarkdownParser {
         var rows: [[String]] = []
 
         for row in rowHTML {
-            let cells = regexMatches(
+            let cells = row.regexMatches(
                 pattern: #"<t[dh]\b[^>]*>(.*?)</t[dh]>"#,
-                in: row,
                 options: [.caseInsensitive, .dotMatchesLineSeparators]
             )
             guard !cells.isEmpty else { continue }
@@ -390,64 +380,10 @@ enum NativeMarkdownParser {
         guard cells.count < count else { return cells }
         return cells + Array(repeating: "", count: count - cells.count)
     }
-
-    private static func regexMatches(
-        pattern: String,
-        in text: String,
-        options: NSRegularExpression.Options = []
-    ) -> [String] {
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else {
-            return []
-        }
-
-        let range = NSRange(text.startIndex..<text.endIndex, in: text)
-        return regex.matches(in: text, options: [], range: range).compactMap { match in
-            guard match.numberOfRanges >= 2,
-                  let captureRange = Range(match.range(at: 1), in: text) else {
-                return nil
-            }
-            return String(text[captureRange])
-        }
-    }
 }
 
 extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
-    }
-}
-
-private extension String {
-    func firstRegexCapture(_ pattern: String, options: NSRegularExpression.Options = []) -> String? {
-        let range = NSRange(startIndex..<endIndex, in: self)
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: options),
-              let match = regex.firstMatch(in: self, options: [], range: range),
-              match.numberOfRanges >= 2,
-              let captureRange = Range(match.range(at: 1), in: self) else {
-            return nil
-        }
-        return String(self[captureRange])
-    }
-
-    func firstRegexCaptures(
-        _ pattern: String,
-        options: NSRegularExpression.Options = []
-    ) -> (String, String?)? {
-        let range = NSRange(startIndex..<endIndex, in: self)
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: options),
-              let match = regex.firstMatch(in: self, options: [], range: range),
-              match.numberOfRanges >= 2,
-              let firstRange = Range(match.range(at: 1), in: self) else {
-            return nil
-        }
-        let first = String(self[firstRange])
-        let second: String?
-        if match.numberOfRanges >= 3,
-           let secondRange = Range(match.range(at: 2), in: self) {
-            second = String(self[secondRange])
-        } else {
-            second = nil
-        }
-        return (first, second)
     }
 }

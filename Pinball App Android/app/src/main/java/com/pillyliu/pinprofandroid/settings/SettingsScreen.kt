@@ -21,12 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pillyliu.pinprofandroid.data.toggleShowAppIntroOverlayOnNextLaunch
-import com.pillyliu.pinprofandroid.library.CatalogManufacturerOption
-import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.LibrarySourceEvents
-import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
-import com.pillyliu.pinprofandroid.library.LibrarySourceType
-import com.pillyliu.pinprofandroid.library.builtinVenueSources
 import com.pillyliu.pinprofandroid.ui.AppSuccessBanner
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import kotlinx.coroutines.delay
@@ -45,9 +40,6 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
     val scope = rememberCoroutineScope()
     val state = rememberSettingsScreenState(context)
     var introOverlayToggleMessage by remember { mutableStateOf<String?>(null) }
-    val builtinSources = remember {
-        builtinVenueSources()
-    }
     val sourceVersion by LibrarySourceEvents.version.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -55,6 +47,9 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
     }
     LaunchedEffect(sourceVersion) {
         if (sourceVersion != 0L) {
+            if (state.consumePendingSourceReloadSuppression()) {
+                return@LaunchedEffect
+            }
             state.reload()
         }
     }
@@ -71,10 +66,7 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
                 contentPadding = contentPadding,
                 manufacturers = state.manufacturers,
                 onBack = { state.route = SettingsRoute.Home },
-                onAdd = { manufacturer ->
-                    state.applySourceSnapshot(addManufacturerSource(context, manufacturer))
-                    state.route = SettingsRoute.Home
-                },
+                onAdd = state::addManufacturer,
             )
             return
         }
@@ -83,10 +75,7 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
             AddVenueScreen(
                 contentPadding = contentPadding,
                 onBack = { state.route = SettingsRoute.Home },
-                onImport = { result, machineIds, query, radiusMiles ->
-                    state.applySourceSnapshot(addVenueSource(context, result, machineIds, query, radiusMiles))
-                    state.route = SettingsRoute.Home
-                },
+                onImport = state::addVenue,
             )
             return
         }
@@ -95,10 +84,7 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
             AddTournamentScreen(
                 contentPadding = contentPadding,
                 onBack = { state.route = SettingsRoute.Home },
-                onImport = { result ->
-                    state.applySourceSnapshot(addTournamentSource(context, result))
-                    state.route = SettingsRoute.Home
-                },
+                onImport = state::addTournament,
             )
             return
         }
@@ -109,7 +95,6 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
     AppScreen(contentPadding) {
         Box(modifier = Modifier.fillMaxSize()) {
             SettingsHomeContent(
-                builtinSources = builtinSources,
                 manufacturers = state.manufacturers,
                 importedSources = state.importedSources,
                 sourceState = state.sourceState,
@@ -124,43 +109,10 @@ internal fun SettingsScreen(contentPadding: PaddingValues) {
                 onOpenAddManufacturer = { state.route = SettingsRoute.AddManufacturer },
                 onOpenAddVenue = { state.route = SettingsRoute.AddVenue },
                 onOpenAddTournament = { state.route = SettingsRoute.AddTournament },
-                onToggleEnabled = { sourceId, isEnabled ->
-                    LibrarySourceStateStore.setEnabled(context, sourceId, isEnabled)
-                    state.afterSourceMutation()
-                },
-                onTogglePinned = { sourceId, isPinned ->
-                    if (LibrarySourceStateStore.setPinned(context, sourceId, isPinned)) {
-                        state.afterSourceMutation()
-                    } else {
-                        state.error = "Pinned sources are limited to ${LibrarySourceStateStore.MAX_PINNED_SOURCES}."
-                    }
-                },
-                onRefreshSource = { source ->
-                    scope.launch {
-                        when (source.type) {
-                            LibrarySourceType.VENUE -> {
-                                runCatching { refreshVenueSource(context, source) }
-                                    .onSuccess(state::applySourceSnapshot)
-                                    .onFailure {
-                                        state.error = "Venue refresh failed: ${it.message ?: "Unknown error"}"
-                                    }
-                            }
-
-                            LibrarySourceType.TOURNAMENT -> {
-                                runCatching { refreshTournamentSource(context, source) }
-                                    .onSuccess(state::applySourceSnapshot)
-                                    .onFailure {
-                                        state.error = "Tournament refresh failed: ${it.message ?: "Unknown error"}"
-                                    }
-                            }
-
-                            else -> Unit
-                        }
-                    }
-                },
-                onDeleteSource = { sourceId ->
-                    state.applySourceSnapshot(removeSettingsSource(context, sourceId))
-                },
+                onToggleEnabled = state::toggleEnabled,
+                onTogglePinned = state::togglePinned,
+                onRefreshSource = { source -> scope.launch { state.refreshSource(source) } },
+                onDeleteSource = state::deleteSource,
                 onRefreshHostedData = {
                     scope.launch { state.refreshHostedLibraryData() }
                 },

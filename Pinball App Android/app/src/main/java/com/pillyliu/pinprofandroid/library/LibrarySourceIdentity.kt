@@ -6,24 +6,33 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 internal const val PM_AVENUE_LIBRARY_SOURCE_ID = "venue--pm-8760"
+internal const val PM_ELECTRIC_BAT_LIBRARY_SOURCE_ID = "venue--pm-10819"
 internal const val PM_RLM_LIBRARY_SOURCE_ID = "venue--pm-16470"
-internal const val BUILTIN_GAME_ROOM_LIBRARY_SOURCE_ID = "venue--gameroom"
+internal const val GAME_ROOM_LIBRARY_SOURCE_ID = "venue--gameroom"
+internal const val STERN_MANUFACTURER_LIBRARY_SOURCE_ID = "manufacturer-12"
+internal const val JERSEY_JACK_MANUFACTURER_LIBRARY_SOURCE_ID = "manufacturer-74"
+internal const val SPOOKY_MANUFACTURER_LIBRARY_SOURCE_ID = "manufacturer-95"
+internal const val PM_AVENUE_LIBRARY_SOURCE_NAME = "The Avenue Cafe"
+internal const val PM_ELECTRIC_BAT_LIBRARY_SOURCE_NAME = "Electric Bat Arcade"
+internal const val PM_RLM_LIBRARY_SOURCE_NAME = "RLM Amusements"
+internal const val STERN_MANUFACTURER_LIBRARY_SOURCE_NAME = "Stern"
+internal const val JERSEY_JACK_MANUFACTURER_LIBRARY_SOURCE_NAME = "Jersey Jack Pinball"
+internal const val SPOOKY_MANUFACTURER_LIBRARY_SOURCE_NAME = "Spooky Pinball"
+internal val DEFAULT_SEEDED_LIBRARY_SOURCE_IDS = listOf(
+    PM_AVENUE_LIBRARY_SOURCE_ID,
+    PM_ELECTRIC_BAT_LIBRARY_SOURCE_ID,
+    STERN_MANUFACTURER_LIBRARY_SOURCE_ID,
+    JERSEY_JACK_MANUFACTURER_LIBRARY_SOURCE_ID,
+    SPOOKY_MANUFACTURER_LIBRARY_SOURCE_ID,
+)
 
-private val builtinVenueSourceIdAliases = mapOf(
+private val legacyLibrarySourceIdAliases = mapOf(
     "the-avenue" to PM_AVENUE_LIBRARY_SOURCE_ID,
     "the-avenue-cafe" to PM_AVENUE_LIBRARY_SOURCE_ID,
     "venue--the-avenue-cafe" to PM_AVENUE_LIBRARY_SOURCE_ID,
     "rlm-amusements" to PM_RLM_LIBRARY_SOURCE_ID,
     "venue--rlm-amusements" to PM_RLM_LIBRARY_SOURCE_ID,
 )
-
-private val builtinVenueSourceNames = mapOf(
-    PM_RLM_LIBRARY_SOURCE_ID to "RLM Amusements",
-    PM_AVENUE_LIBRARY_SOURCE_ID to "The Avenue Cafe",
-    BUILTIN_GAME_ROOM_LIBRARY_SOURCE_ID to "GameRoom",
-)
-
-internal val defaultBuiltinVenueSourceIds = emptyList<String>()
 
 private data class LegacyPinballMapVenueMigrationTarget(
     val id: String,
@@ -34,50 +43,33 @@ private data class LegacyPinballMapVenueMigrationTarget(
 private val legacyPinballMapVenueMigrationTargets = listOf(
     LegacyPinballMapVenueMigrationTarget(
         id = PM_AVENUE_LIBRARY_SOURCE_ID,
-        name = "The Avenue Cafe",
+        name = PM_AVENUE_LIBRARY_SOURCE_NAME,
         providerSourceId = "8760",
     ),
     LegacyPinballMapVenueMigrationTarget(
         id = PM_RLM_LIBRARY_SOURCE_ID,
-        name = "RLM Amusements",
+        name = PM_RLM_LIBRARY_SOURCE_NAME,
         providerSourceId = "16470",
     ),
 )
 
-internal fun canonicalBuiltinVenueLibrarySourceId(raw: String?): String? {
+internal fun canonicalLegacyLibrarySourceAliasId(raw: String?): String? {
     val trimmed = raw?.trim().orEmpty()
     if (trimmed.isEmpty()) return null
-    return builtinVenueSourceIdAliases[trimmed]
+    return legacyLibrarySourceIdAliases[trimmed]
 }
 
 internal fun canonicalLibrarySourceId(raw: String?): String? {
     val trimmed = raw?.trim().orEmpty()
     if (trimmed.isEmpty()) return null
-    return canonicalBuiltinVenueLibrarySourceId(trimmed) ?: trimmed
-}
-
-internal fun builtinVenueSourceName(sourceId: String?): String? {
-    val canonicalId = canonicalLibrarySourceId(sourceId) ?: return null
-    return builtinVenueSourceNames[canonicalId]
-}
-
-internal fun builtinVenueSources(includeGameRoom: Boolean = false): List<LibrarySource> {
-    val ids = buildList {
-        addAll(defaultBuiltinVenueSourceIds)
-        if (includeGameRoom) add(BUILTIN_GAME_ROOM_LIBRARY_SOURCE_ID)
-    }
-    return ids.mapNotNull { id ->
-        builtinVenueSourceNames[id]?.let { name ->
-            LibrarySource(id = id, name = name, type = LibrarySourceType.VENUE)
-        }
-    }
+    return canonicalLegacyLibrarySourceAliasId(trimmed) ?: trimmed
 }
 
 internal fun isAvenueLibrarySourceId(raw: String?): Boolean =
     canonicalLibrarySourceId(raw) == PM_AVENUE_LIBRARY_SOURCE_ID
 
 internal fun isGameRoomLibrarySourceId(raw: String?): Boolean =
-    canonicalLibrarySourceId(raw) == BUILTIN_GAME_ROOM_LIBRARY_SOURCE_ID
+    canonicalLibrarySourceId(raw) == GAME_ROOM_LIBRARY_SOURCE_ID
 
 internal fun isImportedPinballMapSourceId(raw: String?): Boolean =
     canonicalLibrarySourceId(raw)?.lowercase()?.startsWith("venue--pm-") == true
