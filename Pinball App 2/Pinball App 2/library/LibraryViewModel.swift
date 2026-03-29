@@ -40,149 +40,20 @@ final class PinballLibraryViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var isLoading: Bool = false
 
-    private var didLoad = false
-    private var sourceState: PinballLibrarySourceState = .empty
-    private let initialVisibleGameCount = 48
-    private let visibleGamePageSize = 36
+    var didLoad = false
+    var sourceState: PinballLibrarySourceState = .empty
+    let initialVisibleGameCount = 48
+    let visibleGamePageSize = 36
     @Published private(set) var visibleGameLimit = 48
-    private var browsingState: PinballLibraryBrowsingState {
-        PinballLibraryBrowsingState(
-            games: games,
-            sources: sources,
-            selectedSourceID: selectedSourceID,
-            query: query,
-            sortOption: sortOption,
-            yearSortDescending: yearSortDescending,
-            selectedBank: selectedBank,
-            visibleGameLimit: visibleGameLimit,
-            pinnedSourceIDs: sourceState.pinnedSourceIDs
-        )
-    }
 
-    var selectedSource: PinballLibrarySource? {
-        browsingState.selectedSource
-    }
-
-    var visibleSources: [PinballLibrarySource] {
-        browsingState.visibleSources
-    }
-
-    var sourceScopedGames: [PinballGame] {
-        browsingState.sourceScopedGames
-    }
-
-    var sortOptions: [PinballLibrarySortOption] {
-        browsingState.sortOptions
-    }
-
-    var supportsBankFilter: Bool {
-        browsingState.supportsBankFilter
-    }
-
-    var bankOptions: [Int] {
-        browsingState.bankOptions
-    }
-
-    var selectedBankLabel: String {
-        browsingState.selectedBankLabel
-    }
-
-    var selectedSortLabel: String {
-        browsingState.selectedSortLabel
-    }
-
-    var filteredGames: [PinballGame] {
-        browsingState.filteredGames
-    }
-
-    var sortedFilteredGames: [PinballGame] {
-        browsingState.sortedFilteredGames
-    }
-
-    var visibleSortedFilteredGames: [PinballGame] {
-        browsingState.visibleSortedFilteredGames
-    }
-
-    var hasMoreVisibleGames: Bool {
-        browsingState.hasMoreVisibleGames
-    }
-
-    var showGroupedView: Bool {
-        browsingState.showGroupedView
-    }
-
-    var sections: [PinballGroupSection] {
-        browsingState.sections
-    }
-
-    private func applySelection(_ selection: PinballLibrarySelectionResolution) {
+    func applySelection(_ selection: PinballLibrarySelectionResolution) {
         selectedSourceID = selection.selectedSourceID
         sortOption = selection.sortOption
         yearSortDescending = selection.yearSortDescending
         selectedBank = selection.selectedBank
     }
 
-    func loadIfNeeded() async {
-        guard !didLoad else { return }
-        didLoad = true
-        await loadGames()
-    }
-
-    func refresh() async {
-        await loadGames()
-    }
-
-    func selectSource(_ sourceID: String) {
-        PinballLibrarySourceStateStore.setSelectedSourceID(sourceID)
-        sourceState.selectedSourceID = canonicalLibrarySourceID(sourceID)
-        if let source = sources.first(where: { $0.id == sourceID }) {
-            let selection = resolveLibrarySelectionForSource(
-                source: source,
-                games: games,
-                sourceState: sourceState
-            )
-            applySelection(selection)
-        } else {
-            selectedSourceID = sourceID
-            selectedBank = nil
-        }
-        resetVisibleGameLimit()
-    }
-
-    func selectSortOption(_ option: PinballLibrarySortOption) {
-        if option == .year, sortOption == .year {
-            yearSortDescending.toggle()
-            return
-        }
-        sortOption = option
-        if option == .year {
-            yearSortDescending = false
-        }
-    }
-
-    func menuLabel(for option: PinballLibrarySortOption) -> String {
-        browsingState.menuLabel(for: option)
-    }
-
-    func loadMoreGamesIfNeeded(currentGameID: String?) {
-        guard hasMoreVisibleGames else { return }
-        guard let currentGameID else {
-            visibleGameLimit += visibleGamePageSize
-            return
-        }
-        let thresholdIndex = max(0, visibleSortedFilteredGames.count - 12)
-        guard let currentIndex = visibleSortedFilteredGames.firstIndex(where: { $0.id == currentGameID }),
-              currentIndex >= thresholdIndex else {
-            return
-        }
-        visibleGameLimit += visibleGamePageSize
-    }
-
-    private func resetVisibleGameLimit() {
-        visibleGameLimit = initialVisibleGameCount
-    }
-
-    private func loadGames() async {
+    func loadGames() async {
         isLoading = true
         defer { isLoading = false }
 
@@ -211,25 +82,21 @@ final class PinballLibraryViewModel: ObservableObject {
         }
     }
 
-    private func persistSelectedSort() {
-        guard let selectedSource else { return }
-        let persistedValue: String
-        if sortOption == .year && yearSortDescending {
-            persistedValue = "YEAR_DESC"
-        } else {
-            persistedValue = sortOption.rawValue
+    func loadMoreGamesIfNeeded(currentGameID: String?) {
+        guard hasMoreVisibleGames else { return }
+        guard let currentGameID else {
+            visibleGameLimit += visibleGamePageSize
+            return
         }
-        PinballLibrarySourceStateStore.setSelectedSort(sourceID: selectedSource.id, sortName: persistedValue)
-        sourceState.selectedSortBySource[selectedSource.id] = persistedValue
+        let thresholdIndex = max(0, visibleSortedFilteredGames.count - 12)
+        guard let currentIndex = visibleSortedFilteredGames.firstIndex(where: { $0.id == currentGameID }),
+              currentIndex >= thresholdIndex else {
+            return
+        }
+        visibleGameLimit += visibleGamePageSize
     }
 
-    private func persistSelectedBank() {
-        guard let selectedSource else { return }
-        PinballLibrarySourceStateStore.setSelectedBank(sourceID: selectedSource.id, bank: selectedBank)
-        if let selectedBank {
-            sourceState.selectedBankBySource[selectedSource.id] = selectedBank
-        } else {
-            sourceState.selectedBankBySource.removeValue(forKey: selectedSource.id)
-        }
+    func resetVisibleGameLimit() {
+        visibleGameLimit = initialVisibleGameCount
     }
 }

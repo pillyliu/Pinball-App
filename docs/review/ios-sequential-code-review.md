@@ -237,6 +237,503 @@ Verification:
 - `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
 - result: `BUILD SUCCEEDED`
 
+## Pass 155: Markdown image and HTML support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownRenderingSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownImageSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownHTMLSupport.swift`
+
+Changes made in this pass:
+- moved markdown image descriptor parsing and remote image rendering out of `LibraryMarkdownRenderingSupport.swift`
+- moved HTML/inline-markdown sanitizing out of `LibraryMarkdownRenderingSupport.swift`
+- left `LibraryMarkdownRenderingSupport.swift` focused on:
+  - block routing
+  - inline text rendering
+  - markdown table rendering
+
+Hidden seam surfaced and reduced:
+1. even after the earlier markdown file splits, the rendering file still mixed the block-view layer with two leaf buckets:
+   - image descriptor/render support
+   - HTML sanitizing/inline markdown cleanup
+2. those leaf concerns now live in dedicated support files, which makes future markdown UI changes less likely to reopen the low-level sanitizing code
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 156: Library source-state support helper split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibrarySourceStateStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibrarySourceStateSupport.swift`
+
+Changes made in this pass:
+- moved the generic Library source-state helper bucket out of `LibrarySourceStateStore.swift`:
+  - source-change notification posting
+  - legacy dictionary-map normalization
+  - pair deduping / dictionary-preserving-last-value helpers
+- left `LibrarySourceStateStore.swift` focused on:
+  - persisted state load/save
+  - normalization/migration
+  - synchronize/upsert/set/remove operations
+
+Hidden seam surfaced and reduced:
+1. `LibrarySourceStateStore.swift` was still carrying both the actual store behavior and a grab bag of support helpers used by other Library files
+2. the store file is now closer to one responsibility, and the helper bucket has a dedicated home that other Library support files can share without making the store look larger than it is
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 144: Catalog payload-model split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogModels.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogPayloadModels.swift`
+
+Changes made in this pass:
+- moved the decoded catalog payload records out of `LibraryCatalogModels.swift` into `LibraryCatalogPayloadModels.swift`:
+  - `NormalizedLibraryRoot`
+  - `RawOPDBExportMachineRecord`
+  - `CatalogManufacturerRecord`
+  - `CatalogMachineRecord`
+  - `CatalogSourceRecord`
+  - `CatalogMembershipRecord`
+  - `CatalogOverrideRecord`
+  - `CatalogRulesheetLinkRecord`
+  - `CatalogVideoLinkRecord`
+- left `LibraryCatalogModels.swift` focused on app-facing catalog support types and derived records:
+  - manufacturer search/display models
+  - `ResolvedCatalogRecord`
+  - provider enums
+  - `LibraryExtraction`
+  - `LegacyCuratedOverride`
+
+Hidden seam surfaced and reduced:
+1. `LibraryCatalogModels.swift` had become two different layers in one file:
+   - wire-format decoding records
+   - app-facing catalog/derived support models
+2. splitting those layers makes future cleanup safer, because payload-schema edits and app-model edits no longer share one monolithic file
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 145: Rulesheet renderer viewport-restore split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetRendererSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetRendererViewportRestoreSupport.swift`
+
+Changes made in this pass:
+- moved the `RulesheetRenderer.Coordinator` viewport-restore engine into `RulesheetRendererViewportRestoreSupport.swift`:
+  - restore scheduling
+  - viewport snapshot capture
+  - restore retry logic
+  - anchor capture/restore
+  - restore-state reset and release handling
+- left `RulesheetRendererSupport.swift` focused on:
+  - `UIViewRepresentable` wiring
+  - webview creation/update
+  - navigation decisions
+  - scroll progress updates
+  - fragment scrolling and simple resume behavior
+
+Hidden seam surfaced and fixed:
+1. the split exposed a Swift nested-type access-control seam: coordinator state that used to be `private` in one file could no longer be reached from the extracted support file
+2. I widened only the viewport-restore state and `currentScrollRatio` helper enough for the extracted support file to own that logic, then rebuilt successfully
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the viewport restore algorithm, retry thresholds, and fragment-scroll behavior were intentionally left unchanged
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 146: Native markdown document/rendering split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdown.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownDocumentSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownRenderingSupport.swift`
+
+Changes made in this pass:
+- moved markdown document-shaping support out of `LibraryMarkdown.swift`:
+  - `NativeMarkdownDocumentBlock`
+  - `NativeMarkdownDocumentBuilder`
+  - `MarkdownBlockFramePreferenceKey`
+- moved markdown block/image/rendering support out of `LibraryMarkdown.swift`:
+  - `NativeMarkdownBlockView`
+  - inline text rendering
+  - table rendering
+  - remote markdown images
+  - HTML sanitizing
+- left `LibraryMarkdown.swift` focused on the top-level `NativeMarkdownView` and `NativeMarkdownDocumentView`
+
+Hidden seam surfaced and reduced:
+1. `LibraryMarkdown.swift` was still acting as four layers at once:
+   - document block construction
+   - block rendering
+   - remote image plumbing
+   - HTML sanitizing
+2. the file boundary now matches those responsibilities, so future changes to markdown parsing/sanitizing do not require reopening the top-level view shell
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 147: PinballGame decode and presentation support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryGame.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryGameDecodingSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryGamePresentationSupport.swift`
+
+Changes made in this pass:
+- moved the `Decodable` initializer out of `LibraryGame.swift` into `LibraryGameDecodingSupport.swift`
+- moved `PinballGame` presentation helpers out of `LibraryGame.swift` into `LibraryGamePresentationSupport.swift`:
+  - metadata display lines
+  - location/bank formatting
+  - image source URL helpers
+  - YouTube ID extraction
+- left `LibraryGame.swift` focused on:
+  - stored model fields
+  - nested payload/value types
+  - the catalog-record initializer
+  - identity keys
+
+Hidden seam surfaced and fixed:
+1. moving the decoder into its own file exposed that `PinballGame`'s `Decodable` conformance was relying on implicit file-local isolation assumptions under the project's default `MainActor` isolation
+2. I fixed that by making the extracted decoder initializer explicitly `nonisolated`, which removed the stale concurrency warning from the build log
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the intentional `"Unknown Source"` malformed-payload fallback remains in place
+
+## Pass 148: Markdown parser helper split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownParsing.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownParsingSupport.swift`
+
+Changes made in this pass:
+- moved markdown block-classification helpers out of `LibraryMarkdownParsing.swift`:
+  - heading/list/hr parsing
+  - table header/alignment helpers
+  - anchor/image detection
+  - raw HTML wrapper skipping
+  - HTML table extraction/padding helpers
+- left `LibraryMarkdownParsing.swift` focused on the main line-by-line parser state machine and block accumulation
+
+Hidden seam surfaced and reduced:
+1. `LibraryMarkdownParsing.swift` was carrying both the parser control flow and every helper used to classify or normalize lines
+2. the parser loop is now easier to audit because the state machine reads top-to-bottom without the low-level HTML/table helper bucket embedded beneath it
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 149: Rulesheet renderer interaction support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetRendererSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetRendererInteractionSupport.swift`
+
+Changes made in this pass:
+- moved the remaining interaction/delegate layer out of `RulesheetRendererSupport.swift`:
+  - navigation finish handling
+  - link interception
+  - script-message handling
+  - scroll progress updates
+  - resume-ratio application
+  - fragment scroll behavior
+  - content reload reset
+  - rotation-triggered restore entrypoint
+- left `RulesheetRendererSupport.swift` focused on:
+  - the representable shell
+  - webview construction/update
+  - coordinator state
+
+Hidden seam surfaced and reduced:
+1. after the earlier viewport-restore split, `RulesheetRendererSupport.swift` still mixed three layers:
+   - representable shell wiring
+   - coordinator state
+   - delegate/interaction behavior
+2. the interaction behavior now lives in one dedicated support file, which makes the remaining coordinator state more explicit and keeps future rulesheet debugging from reopening the shell wiring again
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+- follow-up check: `rg -n "warning:|error:" /tmp/pinprof-build-2026-03-29.log`
+- result: no warnings or errors
+
+## Pass 150: Seeded imported-source support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryImportedSourcesStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibrarySeededImportedSources.swift`
+
+Changes made in this pass:
+- moved the seeded default imported-source payloads out of `LibraryImportedSourcesStore.swift`
+- left the store file focused on:
+  - loading/saving imported sources
+  - normalization
+  - upsert/remove operations
+  - first-run seeded-source injection
+
+Hidden seam surfaced and reduced:
+1. `LibraryImportedSourcesStore.swift` was carrying both persistence logic and the full seeded-source payload definition
+2. separating the seeded records makes it easier to review future first-run Library changes without reopening store plumbing
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the default seeded source set stayed the same
+
+## Pass 151: Library video-resolution support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryMediaResolutionSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryVideoResolutionSupport.swift`
+
+Changes made in this pass:
+- moved video ranking, deduping, and curated/video-link merge helpers out of `LibraryMediaResolutionSupport.swift`
+- left `LibraryMediaResolutionSupport.swift` focused on the top-level rulesheet/video resolution entrypoints and curated-link composition
+
+Hidden seam surfaced and reduced:
+1. the media-resolution layer was still mixing two different resource families:
+   - rulesheet merging/filtering
+   - video ranking/deduping
+2. the dedicated video support file now owns the video-specific policy without reopening rulesheet logic
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 152: Library source-parsing support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryPayloadParsing.swift`
+- `Pinball App 2/Pinball App 2/library/LibrarySourceParsingSupport.swift`
+
+Changes made in this pass:
+- moved the source-payload parsing bucket out of `LibraryPayloadParsing.swift`:
+  - `PinballLibraryRoot`
+  - `PinballLibrarySourcePayload`
+  - source-type parsing
+  - source-ID canonicalization/slugging
+  - source inference from payload games
+- left `LibraryPayloadParsing.swift` focused on full payload decode plus sort-state parsing/defaulting
+
+Hidden seam surfaced and reduced:
+1. `LibraryPayloadParsing.swift` was still mixing full payload decode with a separate source-model parsing bucket
+2. the parser now reads more like one responsibility, and source identity parsing has a single home
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 153: OPDB practice-identity support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogOPDBDecoding.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryOPDBPracticeIdentitySupport.swift`
+
+Changes made in this pass:
+- moved OPDB practice-identity support out of `LibraryCatalogOPDBDecoding.swift`:
+  - practice-identity curations decode
+  - practice-identity resolution from curated splits / OPDB group IDs
+  - synthetic PinProf Labs machine insertion
+- left `LibraryCatalogOPDBDecoding.swift` focused on:
+  - raw OPDB export decode
+  - `CatalogMachineRecord` construction
+  - practice-catalog game/manufacturer option building
+
+Hidden seam surfaced and fixed:
+1. the initial split exposed a file-boundary access-control seam because the extracted curation helpers and synthetic-machine helper were still `private`
+2. I widened only the extracted API surface needed by `LibraryCatalogOPDBDecoding.swift`, rebuilt, and kept the rest of the helper implementation private
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the synthetic PinProf Labs injection and curated practice-identity fallback order remained the same
+
+## Pass 154: Remote rulesheet cache, catalog-resolution model, and playfield candidate support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetRemoteLoading.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetRemoteCacheSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogModels.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogResolutionModels.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryPlayfieldResolutionSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryPlayfieldCandidateSupport.swift`
+
+Changes made in this pass:
+- moved remote rulesheet cache/document/HTML-escaping support out of `RulesheetRemoteLoading.swift`
+- moved `ResolvedCatalogRecord`, `LibraryExtraction`, and `LegacyCuratedOverride` out of `LibraryCatalogModels.swift`
+- moved low-level playfield candidate assembly out of `LibraryPlayfieldResolutionSupport.swift`:
+  - local asset-key inference
+  - hosted/local/OPDB candidate gathering
+  - playfield URL deduping
+  - local playfield URL generation
+- left the original files focused on higher-level orchestration:
+  - remote rulesheet fetch/load policy
+  - lightweight catalog enums/manufacturer metadata
+  - public `PinballGame` playfield-facing API and candidate-group resolution
+
+Hidden seams surfaced and fixed:
+1. `RulesheetRemoteLoading.swift` was still carrying both the remote fetch policy and its cache/storage implementation
+2. `LibraryCatalogModels.swift` had become a misleading mixed bucket of lightweight enums and the full resolved-record shape used during extraction
+3. `LibraryPlayfieldResolutionSupport.swift` was still mixing the public game-facing playfield API with the low-level candidate assembly helpers that feed it
+4. the catalog-model split briefly left a stale duplicate `ResolvedCatalogRecord` behind in the old file; I removed it and rebuilt successfully
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- remote rulesheet caching, catalog record assembly, and playfield precedence/fallback behavior were intentionally preserved
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 136: Rulesheet renderer extraction and file-boundary cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetScreen.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetRendererSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetWebFallbackSupport.swift`
+
+Changes made in this pass:
+- moved the remaining renderer/web-view layer out of `RulesheetScreen.swift` into `RulesheetRendererSupport.swift`:
+  - `RulesheetRenderer`
+  - the large renderer `Coordinator`
+- moved the fallback web rulesheet views into `RulesheetWebFallbackSupport.swift`:
+  - `RulesheetWebFallbackView`
+  - `ExternalRulesheetWebScreen`
+
+Hidden seam surfaced and reduced:
+1. `RulesheetScreen.swift` was still sharing one file with the full renderer/web-view engine even after the earlier shell cleanup
+2. the extraction made the file boundary match the real ownership split: screen shell vs. renderer/fallback web support
+3. the new support types cannot be `private`, because `RulesheetScreen.swift` intentionally composes them from sibling files
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 137: Rulesheet viewport-restore support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetRendererSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetViewportSupport.swift`
+
+Changes made in this pass:
+- moved viewport snapshot data models out of the renderer coordinator:
+  - `RulesheetViewportLayoutSnapshot`
+  - `RulesheetNativeViewportLayoutSnapshot`
+  - `RulesheetCombinedViewportLayoutSnapshot`
+- moved the pure viewport-restore comparison rules out of the coordinator into `RulesheetViewportRestoreSupport`:
+  - layout stability checks
+  - DOM/native coherence checks
+  - baseline-vs-current restore-state change checks
+
+Hidden seam surfaced and reduced:
+1. the renderer coordinator was carrying both mutable scroll/restore state and the pure comparison policy that decides when restore can safely finish
+2. the support split keeps the coordinator responsible for orchestration, while the pure restore heuristics now live in a reusable reviewable helper
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 138: Library list/menu support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryListScreen.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryFilterMenuSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryGridSupport.swift`
+
+Changes made in this pass:
+- moved the Library source/sort/bank filter menu views out of `LibraryListScreen.swift` into `LibraryFilterMenuSupport.swift`
+- moved the Library empty state, grouped/ungrouped grid flow, load-more footer, and image-card overlay views out of `LibraryListScreen.swift` into `LibraryGridSupport.swift`
+- left `LibraryListScreen.swift` focused on the `LibraryScreen` extension wiring between view model state, layout metrics, and the extracted support views
+
+Hidden seam surfaced and reduced:
+1. `LibraryListScreen.swift` was still a mixed file that owned both screen-extension wiring and all of the menu/grid leaf views
+2. the file boundary now matches the real split between:
+   - `LibraryScreen` extension wiring
+   - filter menu leaf views
+   - grid/list/card leaf views
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+
+## Pass 139: Library detail video/resource support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryDetailComponents.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDetailVideoSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDetailResourceSupport.swift`
+
+Changes made in this pass:
+- moved the Library detail video-card stack out of `LibraryDetailComponents.swift`:
+  - `LibraryDetailVideosCard`
+  - the video grid/tile views
+  - `PinballVideoLaunchPanel`
+  - the YouTube thumbnail helper
+- moved the rulesheet/playfield resource chip views out of `LibraryDetailComponents.swift`:
+  - `LibraryRulesheetResourcesRow`
+  - `LibraryPlayfieldResourcesRow`
+  - `LibraryRulesheetLinkChip`
+  - `LibraryRulesheetChip`
+- left `LibraryDetailComponents.swift` focused on:
+  - screenshot section
+  - summary card
+  - game-info card
+
+Hidden seam surfaced and reduced:
+1. `LibraryDetailComponents.swift` had become a second mini-screen bucket, mixing summary/layout cards with all of the video-launch and resource-chip leaf views
+2. the split makes the file boundary match the actual UI sections, so future cleanup can touch summary, media, or resource rows independently
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Deferred hotspot intentionally left alone:
+1. `RulesheetWebViewSupport.swift` still contains the large embedded JavaScript bridge
+2. that is still a good later cleanup target, but it is a higher-risk string-heavy split than the Swift-only view decomposition in this batch
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+
+## Pass 140: Rulesheet web bridge externalized as bundled JS resource
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetWebViewSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetWebBridge.js`
+
+Changes made in this pass:
+- moved the large embedded rulesheet web bridge out of `RulesheetWebViewSupport.swift` into the bundled `RulesheetWebBridge.js` resource
+- kept the public bridge contract the same:
+  - `__pinballSetAnchorScrollInset`
+  - `__pinballScrollToFragment`
+  - `__pinballCaptureViewportLayoutSnapshot`
+  - `__pinballCaptureViewportAnchor`
+  - `__pinballRestoreViewportAnchor`
+- updated Swift to load the JS template from the app bundle and inject only the dynamic values:
+  - chrome tap message name
+  - fragment scroll message name
+  - initial anchor inset
+
+Hidden seam surfaced and reduced:
+1. `RulesheetWebViewSupport.swift` was not just large, it was carrying a fragile 400-line JavaScript program inside one multiline Swift string
+2. externalizing the bridge into a bundled JS resource makes future cleanup passes review the script as script, instead of editing it through Swift string escaping
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the bookmark/restore math and fragment-scroll behavior were intentionally left unchanged in this pass
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- verified bundled resource copy at `DerivedData/.../PinProf.app/RulesheetWebBridge.js`
+
 Open follow-up items from this pass:
 1. reduce duplicate launch/foreground startup work in `Pinball_App_2App.swift`
 2. collapse and cache app-shake artwork loading in `AppShakeCoordinator.swift`
@@ -249,6 +746,76 @@ Next files queued:
 - `Pinball App 2/Pinball App 2/ui/AppResourceChrome.swift`
 - `Pinball App 2/Pinball App 2/ui/AppTheme.swift`
 - `Pinball App 2/Pinball App 2/ui/AppToolbarActions.swift`
+
+## Pass 141: Venue overlay and CAF asset support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogVenueSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryVenueMetadataOverlaySupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCAFAssetSupport.swift`
+
+Changes made in this pass:
+- moved venue overlay records, overlay key helpers, overlay parsing, and overlay merge behavior into `LibraryVenueMetadataOverlaySupport.swift`
+- moved CAF asset decode records plus grouped rulesheet/video/override builders into `LibraryCAFAssetSupport.swift`
+- left `LibraryCatalogVenueSupport.swift` focused on the curated-override lookup policy plus the CAF payload/extraction assembly path
+
+Hidden seam surfaced and reduced:
+1. `LibraryCatalogVenueSupport.swift` had become a mixed bucket for three different layers:
+   - overlay metadata models and parsing
+   - CAF asset decoding and grouped-link extraction
+   - final CAF Library payload assembly
+2. the split makes the file boundary match those responsibilities, so future venue/import cleanup can touch overlay or asset logic without reopening final payload assembly
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 142: Shared remote image support extracted from misnamed playfield file
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RemoteUIImageSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RemoteImageViews.swift`
+- `Pinball App 2/Pinball App 2/library/HostedImageScreen.swift`
+- removed: `Pinball App 2/Pinball App 2/library/PlayfieldScreen.swift`
+
+Changes made in this pass:
+- moved shared remote image cache/repository/loader support into `RemoteUIImageSupport.swift`
+- moved reusable async image card views into `RemoteImageViews.swift`
+- moved fullscreen hosted-image viewing into `HostedImageScreen.swift`
+- removed the old `PlayfieldScreen.swift` file, which no longer contained a `PlayfieldScreen` at all
+
+Hidden seam surfaced and reduced:
+1. `PlayfieldScreen.swift` had become misleadingly named shared infrastructure used across Library, Practice, GameRoom, and Settings
+2. the split fixes the file-ownership mismatch, so future image-loading cleanup is no longer trapped behind a playfield-specific filename
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- all existing shared image consumers continue to use the same cache/retry/fallback behavior
+
+## Pass 143: Remote rulesheet helper split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetRemoteLoading.swift`
+- `Pinball App 2/Pinball App 2/library/TiltForumsRulesheetSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetHTMLCleanupSupport.swift`
+
+Changes made in this pass:
+- moved Tilt Forums payload decoding, canonical URL helpers, and `.json` endpoint normalization into `TiltForumsRulesheetSupport.swift`
+- moved remote HTML cleanup helpers into `RulesheetHTMLCleanupSupport.swift`
+- left `RulesheetRemoteLoading.swift` focused on provider routing, remote fetch/cache behavior, and attribution markup
+
+Hidden seam surfaced and fixed:
+1. the initial split exposed two access-control seams:
+   - the Tilt Forums support types were too private for their extracted helpers
+   - `htmlEscaped` was too private for the extracted HTML cleanup helpers
+2. those were corrected without changing runtime behavior, and the follow-up build passed cleanly
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- remote rulesheet fetch, stale-cache fallback, and provider-specific rendering behavior were intentionally left unchanged
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
 
 ## Pass 002: Shared UI Seams
 
@@ -10179,6 +10746,550 @@ Verification:
 - `./gradlew :app:compileDebugKotlin`
 - result: both passed
 
+## Pass 177: Catalog variant label and selection split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogVariantLabelSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogVariantSelectionSupport.swift`
+
+Changes made in this pass:
+- replaced the old mixed `LibraryCatalogVariantSupport.swift` bucket with two narrower support files
+- moved variant-title formatting and label heuristics into `LibraryCatalogVariantLabelSupport.swift`
+- moved preferred-machine and variant-selection policy into `LibraryCatalogVariantSelectionSupport.swift`
+- left `LibraryCatalogResolution.swift` focused on resolved record assembly
+
+Hidden seam surfaced and reduced:
+1. the old variant support file was still carrying both presentation-oriented label rules and record-selection policy
+2. those responsibilities now live separately, so future cleanup can touch either variant labeling or machine selection without reopening the other
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 178: Venue overlay model, parsing, and resolution split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogVenueSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryVenueMetadataOverlayModels.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryVenueMetadataOverlayParsingSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryVenueMetadataOverlayResolutionSupport.swift`
+
+Changes made in this pass:
+- replaced the old single `LibraryVenueMetadataOverlaySupport.swift` file with separate model, parsing, and resolution support files
+- kept raw overlay payload shapes in `LibraryVenueMetadataOverlayModels.swift`
+- moved hosted-asset and JSON decoding helpers into `LibraryVenueMetadataOverlayParsingSupport.swift`
+- moved overlay lookup and imported-venue merge rules into `LibraryVenueMetadataOverlayResolutionSupport.swift`
+
+Hidden seam surfaced and reduced:
+1. venue-overlay support had become a mixed contract between payload definitions, decoding, and live overlay resolution
+2. the new split makes the overlay lifecycle explicit and easier to audit against future venue-import behavior
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 179: Hosted image zoom support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/HostedImageScreen.swift`
+- `Pinball App 2/Pinball App 2/library/HostedImageZoomSupport.swift`
+
+Changes made in this pass:
+- moved hosted-image pinch, pan, and double-tap zoom state helpers into `HostedImageZoomSupport.swift`
+- left `HostedImageScreen.swift` focused on screen composition, chrome, and image loading presentation
+
+Hidden seam surfaced and reduced:
+1. the hosted image screen was carrying both the full-screen media UI and the gesture-state math that supports zooming
+2. separating those concerns makes future image-view cleanup easier without disturbing gesture behavior
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 180: Rulesheet renderer delegate and scroll interaction split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetRendererSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetRendererDelegateSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetRendererScrollInteractionSupport.swift`
+
+Changes made in this pass:
+- replaced the old `RulesheetRendererInteractionSupport.swift` file with separate delegate and scroll-interaction support files
+- moved WKNavigationDelegate and message-handler behavior into `RulesheetRendererDelegateSupport.swift`
+- moved scroll-view progress tracking, chrome tap, and interaction-state handling into `RulesheetRendererScrollInteractionSupport.swift`
+- left `RulesheetRendererSupport.swift` focused on the representable shell and coordinator-owned state
+
+Hidden seam surfaced and reduced:
+1. renderer interaction support still mixed web delegate events and scroll interaction logic in one bucket
+2. the split now matches the UIKit/WebKit boundaries more closely and reduces the risk of reopening viewport restore logic when only interaction behavior needs review
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 181: Markdown block and HTML-table parsing split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownParsing.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownBlockParsingSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownHTMLTableParsingSupport.swift`
+
+Changes made in this pass:
+- replaced the old broad `LibraryMarkdownParsingSupport.swift` bucket with block parsing and HTML-table parsing support files
+- moved line/block-oriented markdown parsing helpers into `LibraryMarkdownBlockParsingSupport.swift`
+- moved HTML table detection and extraction helpers into `LibraryMarkdownHTMLTableParsingSupport.swift`
+- left `LibraryMarkdownParsing.swift` focused on the top-level parsing entry points
+
+Hidden seam surfaced and reduced:
+1. markdown parsing was still mixing generic block decomposition with the more specialized HTML table path
+2. the split makes it clearer which rules are true markdown parsing and which are HTML-table compatibility support
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 182: Rulesheet HTML document, style, and script split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetHTMLDocument.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetHTMLDocumentSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetHTMLStyleSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetHTMLScriptSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetWebBridge.js`
+
+Changes made in this pass:
+- replaced the old mixed `RulesheetHTMLTemplateSupport.swift` bucket with dedicated HTML document, style, and script support files
+- moved the HTML shell builder into `RulesheetHTMLDocumentSupport.swift`
+- moved the CSS bundle into `RulesheetHTMLStyleSupport.swift`
+- moved injected bridge-script assembly into `RulesheetHTMLScriptSupport.swift`
+- kept the large live bridge itself externalized in `RulesheetWebBridge.js`
+
+Hidden seam surfaced and reduced:
+1. rulesheet HTML generation still mixed document composition, raw style payloads, and script-template loading in one place
+2. the split now matches the real output layers of the generated rulesheet document and leaves only small, explicit composition code in the main document builder
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 183: iOS Library completion checkpoint
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetScreen.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetRendererSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryPlayfieldResolutionSupport.swift`
+- `Pinball App 2/Pinball App 2/library/HostedImageScreen.swift`
+
+Final sweep result:
+- the remaining iOS Library files are now cohesive support files rather than mixed-responsibility monoliths
+- the largest remaining files mostly represent normal single-purpose buckets:
+  - rulesheet CSS payload
+  - playfield candidate resolution
+  - rulesheet screen shell
+  - hosted image presentation
+- no new hidden runtime/parity issues surfaced during the final sweep
+
+Cleanup status after this pass:
+1. iOS Library is out of active decomposition territory and into polish-only territory
+2. future work here should be opportunistic naming or focused behavior work, not another broad structural breakup
+3. Android Library cleanup can now follow the iOS log as the parity map when we want to tackle the Android side more deeply
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 164: Library grid/card support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryGridSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryGameGridScrollSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryGameCardSupport.swift`
+
+Changes made in this pass:
+- moved list-level scroll and paging support out of `LibraryGridSupport.swift`
+- moved game-card and compact-grid leaf rendering out of `LibraryGridSupport.swift`
+- left `LibraryGridSupport.swift` focused on the top-level list content and empty-state routing
+
+Hidden seam surfaced and reduced:
+1. `LibraryGridSupport.swift` was still mixing parent list orchestration with the actual card and grid leaf views
+2. the list/content shell can now change without reopening the reusable card/grid presentation helpers
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 165: Rulesheet HTML template extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetHTMLDocument.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetHTMLTemplateSupport.swift`
+
+Changes made in this pass:
+- moved the large CSS/HTML template body out of `RulesheetHTMLDocument.swift`
+- left `RulesheetHTMLDocument.swift` as a thin builder that assembles the already-extracted template and runtime values
+
+Hidden seam surfaced and reduced:
+1. `RulesheetHTMLDocument.swift` had become a mixed template bucket instead of a small HTML document builder
+2. the full template can now be reviewed and edited without reopening the builder logic that injects content into it
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 166: Catalog payload-model family split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogPayloadModels.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryOPDBExportPayloadModels.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogMachinePayloadModels.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogSourcePayloadModels.swift`
+
+Changes made in this pass:
+- left `LibraryCatalogPayloadModels.swift` focused on the normalized catalog root model
+- moved raw OPDB export records into `LibraryOPDBExportPayloadModels.swift`
+- moved normalized machine payload records into `LibraryCatalogMachinePayloadModels.swift`
+- moved normalized source payload records into `LibraryCatalogSourcePayloadModels.swift`
+
+Hidden seam surfaced and reduced:
+1. one file was still mixing raw upstream export shapes with normalized app payload models
+2. the payload model families are now split by role, so upstream-decoding changes and normalized-catalog changes do not have to share the same file
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 167: Rulesheet viewport restore capture/scheduling split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetRendererViewportRestoreSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetViewportRestoreSchedulingSupport.swift`
+
+Changes made in this pass:
+- left low-level viewport-capture and layout-snapshot helpers in `RulesheetRendererViewportRestoreSupport.swift`
+- moved restore sequencing, retry scheduling, and release/reset orchestration into `RulesheetViewportRestoreSchedulingSupport.swift`
+
+Hidden seam surfaced and reduced:
+1. one support file was still mixing pure capture helpers with the restore state machine
+2. viewport bookkeeping and restore scheduling can now evolve independently
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 168: Library browsing-state source/filter support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryPayloadParsing.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryBrowsingStateSourceSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryBrowsingStateFilteringSupport.swift`
+
+Changes made in this pass:
+- left `LibraryPayloadParsing.swift` focused on the payload and browsing-state data structs
+- moved source-selection, visible-source, sort-label, and bank-filter helpers into `LibraryBrowsingStateSourceSupport.swift`
+- moved search filtering, sorting, grouping, and section assembly into `LibraryBrowsingStateFilteringSupport.swift`
+
+Hidden seam surfaced and reduced:
+1. `LibraryPayloadParsing.swift` was still acting like both a data-model file and a browsing-state behavior file
+2. the browsing-state helper surface now matches the actual responsibilities more closely: source routing vs filtering/sorting/grouping
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 169: Imported-source model and normalization split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryImportedSourcesStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryImportedSourceModels.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryImportedSourceNormalizationSupport.swift`
+
+Changes made in this pass:
+- moved imported-source record and provider models out of `LibraryImportedSourcesStore.swift`
+- moved normalization, merge, and provider-inference helpers out of `LibraryImportedSourcesStore.swift`
+- left the store focused on load/save/upsert/remove persistence entry points
+
+Hidden seam surfaced and reduced:
+1. `LibraryImportedSourcesStore.swift` was still owning three layers at once:
+   - data models
+   - normalization/merge policy
+   - persistence API
+2. the persistence entry points can now be reviewed without reopening the record-model and normalization helpers every time
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 170: PinballGame core-model ownership split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryGame.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryGameModels.swift`
+
+Changes made in this pass:
+- moved `PinballGame` nested helper models and coding keys into `LibraryGameModels.swift`
+- left `LibraryGame.swift` focused on the core stored properties, resolved-record initializer, and stable IDs
+
+Hidden seam surfaced and reduced:
+1. `LibraryGame.swift` was still carrying both the core model surface and the nested helper/coding model bucket
+2. the top-level Library game model is now much easier to scan because the coding-key and nested-link/video types no longer hide the stored-property contract
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 171: OPDB catalog machine-record support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogOPDBDecoding.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryOPDBMachineRecordSupport.swift`
+
+Changes made in this pass:
+- moved low-level OPDB machine-to-catalog-record extraction out of `LibraryCatalogOPDBDecoding.swift`
+- moved the catalog machine post-normalization pass out with the machine-record helpers
+- left `LibraryCatalogOPDBDecoding.swift` focused on the top-level OPDB catalog decode entry point
+
+Hidden seam surfaced and reduced:
+1. `LibraryCatalogOPDBDecoding.swift` was still mixing the public decode entry point with all of the low-level machine extraction policy
+2. the file boundary now separates "decode the upstream export" from "shape one raw OPDB machine into a catalog machine record"
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 172: OPDB manufacturer-option and practice-catalog decode split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogManufacturerOptionSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryPracticeCatalogDecodingSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogOPDBDecoding.swift`
+
+Changes made in this pass:
+- moved OPDB manufacturer-option assembly into `LibraryCatalogManufacturerOptionSupport.swift`
+- moved Practice catalog game synthesis into `LibraryPracticeCatalogDecodingSupport.swift`
+- kept the shared OPDB catalog decode path as the one common source of machine extraction
+
+Hidden seam surfaced and reduced:
+1. one file was still trying to own three separate consumers of the same OPDB export:
+   - catalog machines
+   - manufacturer options
+   - Practice catalog games
+2. those consumers now live in separate support files, so future changes to one consumer do not have to reopen the others
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 173: Seeded-source machine-ID data split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibrarySeededImportedSources.swift`
+- `Pinball App 2/Pinball App 2/library/LibrarySeededVenueMachineIDs.swift`
+
+Changes made in this pass:
+- moved the large default Avenue and Electric Bat machine-ID arrays out of `LibrarySeededImportedSources.swift`
+- left `LibrarySeededImportedSources.swift` focused on the first-run seeded source policy and record construction
+
+Hidden seam surfaced and reduced:
+1. the seeded-source policy file was still carrying both the default-source intent and all of the raw venue machine-ID data
+2. the seeded-source contract is now easier to review because the policy and the big venue payload constants no longer live in the same file
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 174: Markdown parsing model split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownParsing.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownParsingModels.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownParsingSupport.swift`
+
+Changes made in this pass:
+- moved markdown block/alignment/item model types out of `LibraryMarkdownParsing.swift`
+- moved the array `safe` subscript into `LibraryMarkdownParsingSupport.swift`
+- left `LibraryMarkdownParsing.swift` focused on the parser’s state machine
+
+Hidden seam surfaced and reduced:
+1. `LibraryMarkdownParsing.swift` was still carrying both the parser logic and its model type bucket
+2. the parser file is now easier to scan because the state machine and the block-model definitions no longer compete for the same space
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 175: Library detail video UI split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryDetailVideoSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryDetailVideoGridSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryVideoLaunchSupport.swift`
+
+Changes made in this pass:
+- left `LibraryDetailVideoSupport.swift` focused on the card-level video selection and routing
+- moved the detail video grid/tile leaf views into `LibraryDetailVideoGridSupport.swift`
+- moved the launch panel, YouTube metadata fetch, and shared thumbnail view into `LibraryVideoLaunchSupport.swift`
+
+Hidden seam surfaced and reduced:
+1. one file was still mixing three distinct layers:
+   - the card-level section shell
+   - the selectable video grid
+   - the full launch/metadata panel
+2. the detail video surface is now split so leaf view changes do not have to reopen the card-level selection logic
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 176: Video identity and sorting support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryVideoResolutionSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryVideoIdentitySupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryVideoSortingSupport.swift`
+
+Changes made in this pass:
+- moved canonical YouTube/video identity helpers out of `LibraryVideoResolutionSupport.swift`
+- moved video provider/kind ordering and natural-label sorting out of `LibraryVideoResolutionSupport.swift`
+- left `LibraryVideoResolutionSupport.swift` focused on merge/dedupe entry points
+
+Hidden seams surfaced and fixed:
+1. the extracted video identity/sorting helpers were initially too private, which showed that the old single-file layout had been hiding a cross-file ownership dependency
+2. the fix was to widen only the shared helper visibility needed by the resolution entry points and the extracted video leaf views, rather than loosening unrelated state or behavior
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 157: LibraryScreen support extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryScreen.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryScreenSupport.swift`
+
+Changes made in this pass:
+- moved Library screen shell helpers out of `LibraryScreen.swift` into `LibraryScreenSupport.swift`, including:
+  - viewport observation
+  - toolbar controls
+  - detail destination routing
+- left `LibraryScreen.swift` focused on navigation shell, task/onChange wiring, and top-level state ownership
+
+Hidden seam surfaced and reduced:
+1. `LibraryScreen.swift` had become a mixed screen shell plus support-file bucket, even though its extracted helpers were already meaningful views in their own right
+2. the shell now reads more like app navigation and less like a catch-all for every Library companion view
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 158: RulesheetScreen support extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetScreen.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetScreenSupport.swift`
+
+Changes made in this pass:
+- moved the Rulesheet screen surface and status-routing support out of `RulesheetScreen.swift`
+- left `RulesheetScreen.swift` focused on the screen’s state, tasks, and interaction handlers
+
+Hidden seam surfaced and reduced:
+1. `RulesheetScreen.swift` was mixing screen state ownership with large surface/chrome view definitions
+2. splitting those support views out makes the owner file easier to audit for behavior changes without re-reading static surface code
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 159: Library browsing-state support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryViewModel.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryViewModelBrowsingSupport.swift`
+
+Changes made in this pass:
+- moved computed browsing-state wrappers out of `LibraryViewModel.swift`, including:
+  - `browsingState`
+  - selected/visible source helpers
+  - filtered/sorted/visible game helpers
+  - section/grouping helpers
+  - sort-menu label formatting
+- left `LibraryViewModel.swift` focused on owned state and actual mutation/load work
+
+Hidden seam surfaced and reduced:
+1. the view model file was still mixing stored state ownership with a large derived-view facade
+2. the browsing-state facade now lives in one dedicated extension, which makes it much easier to trace actual mutation separately from derived presentation state
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 160: Library view-model loading and selection support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryViewModel.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryViewModelLoadingSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryViewModelSelectionSupport.swift`
+
+Changes made in this pass:
+- moved the view model’s load trigger methods into `LibraryViewModelLoadingSupport.swift`
+- moved source-selection, sort-selection, and persisted sort/bank helpers into `LibraryViewModelSelectionSupport.swift`
+- kept direct owned-state mutation for:
+  - `games`
+  - `sources`
+  - `errorMessage`
+  - `isLoading`
+  - `visibleGameLimit`
+  in the owner file, instead of widening those setters just to satisfy the split
+
+Compile-only ownership seam surfaced and fixed:
+1. the first draft of this split tried to mutate `@Published private(set)` owner state from cross-file extensions
+2. rather than loosening those protections, the load-state and visible-limit mutations were moved back to the owner file so the ownership boundary stayed explicit
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 161: Library source-state persistence and mutation support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibrarySourceStateStore.swift`
+- `Pinball App 2/Pinball App 2/library/LibrarySourceStatePersistenceSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibrarySourceStateMutationSupport.swift`
+
+Changes made in this pass:
+- moved persistence/load/synchronize logic into `LibrarySourceStatePersistenceSupport.swift`
+- moved source mutation helpers into `LibrarySourceStateMutationSupport.swift`
+- left `LibrarySourceStateStore.swift` focused on the state type, key constants, and normalization/filter helpers
+
+Compile-only seam surfaced and fixed:
+1. the extracted persistence helpers needed access to the canonical defaults key and normalization helpers
+2. those helpers were widened only to internal module scope so the split could compile without changing behavior
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 162: Native markdown leaf support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownRenderingSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownTextSupport.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryMarkdownTableSupport.swift`
+
+Changes made in this pass:
+- moved inline markdown text parsing/rendering into `LibraryMarkdownTextSupport.swift`
+- moved markdown table rendering into `LibraryMarkdownTableSupport.swift`
+- left `LibraryMarkdownRenderingSupport.swift` focused on block-level markdown routing
+
+Hidden seam surfaced and reduced:
+1. block rendering had become responsible for both block dispatch and the leaf implementations for inline text and full table presentation
+2. the file now reads as a block renderer instead of a full markdown UI stack in one place
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 163: Rulesheet layout and chrome support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetScreenSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetLayoutSupport.swift`
+- `Pinball App 2/Pinball App 2/library/RulesheetChromeSupport.swift`
+
+Changes made in this pass:
+- moved layout/progress persistence helpers into `RulesheetLayoutSupport.swift`
+- moved progress pill, top-gradient, and back-button chrome into `RulesheetChromeSupport.swift`
+- left `RulesheetScreenSupport.swift` focused on the screen surface and status/content routing
+
+Hidden seam surfaced and reduced:
+1. `RulesheetScreenSupport.swift` was still mixing geometry/progress infrastructure with the actual surface tree
+2. separating layout and chrome support makes future Rulesheet cleanup less likely to entangle viewport math with ornamental UI
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
 ## Pass 127: Fix stale GameRoom home-card art after variant changes
 
 Primary files:
@@ -10280,6 +11391,175 @@ Behavioral outcome:
 
 Verification:
 - `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 131: Android Library screen keeps one live source-state snapshot
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryScreen.kt`
+
+Changes made in this pass:
+- added a single in-memory `sourceState` snapshot to `LibraryScreen`
+- switched pinned-source derivation to use that live snapshot instead of rereading `LibrarySourceStateStore.load(context)` inside `remember(...)`
+- updated reload, source-selection, sort-selection, and bank-selection paths so the screen now mirrors persisted writes back into the same in-memory snapshot
+- kept the persisted store as the source of truth for reloads, but removed the repeated disk rereads from normal UI callbacks
+
+Hidden seam surfaced and fixed:
+1. Android Library browsing was already reloading a synchronized `LibrarySourceState` during `loadLibraryExtraction(context)`, but the screen itself still reread the store directly in several callbacks
+2. that meant Library had a split ownership model on Android:
+   - one source-state snapshot coming back from extraction
+   - separate store reads for pinned-source display and source-change resolution
+3. iOS had already converged on a cleaner single-owner pattern in `PinballLibraryViewModel`, so this pass brings Android closer to that lifecycle model without changing visible behavior
+
+Still intentionally unchanged:
+1. a bare app launch still does not materialize `pinball-library-source-state-v1` until Library data is actually loaded
+2. both platforms already synchronize and persist Library source-state on the first real Library extraction, so the remaining laziness is now an app-startup policy choice rather than a broken Library lifecycle path
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- Android Library now keeps one live source-state snapshot while the screen is active instead of mixing that with direct rereads from persistent storage
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 132: iOS Library playfield resolution split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryResourceResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryPlayfieldResolutionSupport.swift`
+
+Changes made in this pass:
+- moved the full `PinballGame` playfield/artwork resolution layer out of `LibraryResourceResolution.swift` into `LibraryPlayfieldResolutionSupport.swift`
+- moved the following playfield-specific pieces together:
+  - playfield URL derivation
+  - local/hosted OPDB/PinProf candidate assembly
+  - playfield button-label resolution
+  - live-status-aware playfield option grouping
+  - missing-artwork fallback handling
+- left `LibraryResourceResolution.swift` focused on the remaining rulesheet/resource responsibilities instead of also carrying the playfield stack
+
+Hidden seam surfaced and reduced:
+1. `LibraryResourceResolution.swift` still had a second major responsibility cluster even after the earlier path/rulesheet support split: all playfield candidate building and artwork fallback policy still lived beside rulesheet display filtering
+2. that made the file harder to audit because playfield and rulesheet behavior are now separate contracts:
+   - playfield resolution depends on local/hosted/OPDB candidate precedence and live cache status
+   - rulesheet resolution depends on local markdown presence and external-link filtering
+3. those layers now have a cleaner file boundary, so future playfield work can happen without reopening the rulesheet path and vice versa
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 133: iOS catalog variant and preferred-machine policy split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogResolution.swift`
+- `Pinball App 2/Pinball App 2/library/LibraryCatalogVariantSupport.swift`
+
+Changes made in this pass:
+- moved the catalog variant-label and machine-preference policy out of `LibraryCatalogResolution.swift` into `LibraryCatalogVariantSupport.swift`
+- grouped the following variant-specific rules together:
+  - normalized variant labels
+  - display-title stripping of recognized variant suffixes
+  - preferred manufacturer/group machine ordering
+  - requested-variant match scoring
+  - preferred exact machine selection for a requested variant
+- left `LibraryCatalogResolution.swift` focused on turning resolved machine/source inputs into `PinballGame` records and source lookups
+
+Hidden seam surfaced and reduced:
+1. `LibraryCatalogResolution.swift` was doing two different jobs:
+   - building final Library records for imported sources
+   - defining all the heuristics for what counts as a variant and which machine wins when variants compete
+2. the variant heuristics are a distinct policy layer that already influences multiple call sites, so isolating them makes future review easier and reduces the risk of mixing “record assembly” edits with “variant matching” edits
+
+Still intentionally unchanged:
+1. the actual variant-matching behavior and scoring rules did not change in this pass
+2. the remaining visible fallbacks in Library, including `"Unknown Source"`, are still intentional keeps
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 134: LibraryScreen shell and routing cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/LibraryScreen.swift`
+
+Changes made in this pass:
+- extracted dedicated private subviews for:
+  - viewport observation
+  - toolbar controls
+  - detail-route destination rendering
+- moved the detail-screen side effect into a named handler instead of leaving the activity log/update inline in the navigation destination
+- left `LibraryScreen` reading more like a shell:
+  - screen scaffold
+  - search / toolbar
+  - load / refresh / deep-link orchestration
+  - destination routing
+
+Hidden seam surfaced and reduced:
+1. `LibraryScreen.swift` was small enough to read, but it still mixed three different responsibilities directly in the body:
+   - viewport geometry tracking
+   - toolbar trigger composition
+   - detail-route rendering plus side effects
+2. those seams now have dedicated private views/handlers, which makes the top-level screen easier to scan without changing its public contract
+
+Build seam surfaced and corrected during this pass:
+1. `LibraryScreen` intentionally shares live screen state with companion files like `LibraryListScreen.swift`
+2. tightening `viewModel`, `layoutMetrics`, and `cardTransition` to `private` broke that file-level contract
+3. the fix was to keep those shared screen properties at the existing file-set visibility, which is now logged as an intentional Library screen organization rule
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 135: RulesheetScreen shell, layout, and progress-storage cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/RulesheetScreen.swift`
+
+Changes made in this pass:
+- introduced `RulesheetScreenLayoutMetrics` to own the top-level geometry-derived layout constants:
+  - portrait / landscape detection
+  - top inset
+  - anchor scroll inset
+  - fullscreen chrome row height
+  - progress-pill padding and trailing inset
+- introduced `RulesheetProgressStore` so the screen no longer reaches into `UserDefaults` directly for saved reading progress
+- introduced `RulesheetScreenSurface` so the main view now delegates the background/content/chrome shell instead of building that whole stack inline
+- moved screen-side actions into named handlers:
+  - appear
+  - status change
+  - resume saved progress
+  - progress updates
+  - chrome visibility toggle
+
+Hidden seam surfaced and reduced:
+1. `RulesheetScreen` was still mixing three layers in its top-level view:
+   - geometry-derived layout math
+   - screen lifecycle and alert orchestration
+   - saved-progress persistence
+2. the screen still owns those responsibilities, but they now have explicit helper types and named action methods instead of living inline in the view body
+
+Still intentionally unchanged:
+1. the HTML renderer / `WKWebView` coordinator behavior did not change
+2. the remaining major hotspot in `RulesheetScreen.swift` is the large embedded `RulesheetRenderer.Coordinator`, which is still a later cleanup target
+3. `RulesheetWebViewSupport.swift` already centralizes most shared `WKWebView` setup, so there was no additional safe duplication cleanup needed in this batch
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
 - result: passed
 
 ## Pass 126: Restore GameRoom source visibility when rows exist
