@@ -101,6 +101,60 @@ internal fun buildPracticeHomeBootstrapSnapshot(
     return snapshot.takeIf { it.isUsable() }
 }
 
+internal fun buildPracticeStoreHomeBootstrapSnapshot(
+    playerName: String,
+    selectedGroupID: String?,
+    groups: List<PracticeGroup>,
+    selectedLibrarySourceId: String?,
+    librarySources: List<LibrarySource>,
+    visibleGames: List<PinballGame>,
+    combinedLookupGames: List<PinballGame>,
+    resumeSlug: String?,
+    gameResolver: (String) -> PinballGame?,
+): PracticeHomeBootstrapSnapshot? {
+    val lookupGames = practiceHomeBootstrapLookupGames(
+        combinedGames = combinedLookupGames,
+        resumeCandidate = resumeSlug?.let(gameResolver),
+    )
+    return buildPracticeHomeBootstrapSnapshot(
+        playerName = playerName,
+        selectedGroupID = selectedGroupID,
+        groups = groups,
+        selectedLibrarySourceId = selectedLibrarySourceId,
+        librarySources = librarySources,
+        visibleGames = visibleGames,
+        lookupGames = lookupGames,
+    )
+}
+
+internal fun savePracticeStoreHomeBootstrapSnapshot(
+    context: Context,
+    playerName: String,
+    selectedGroupID: String?,
+    groups: List<PracticeGroup>,
+    selectedLibrarySourceId: String?,
+    librarySources: List<LibrarySource>,
+    visibleGames: List<PinballGame>,
+    combinedLookupGames: List<PinballGame>,
+    resumeSlug: String?,
+    gameResolver: (String) -> PinballGame?,
+) {
+    savePracticeHomeBootstrapSnapshot(
+        context,
+        buildPracticeStoreHomeBootstrapSnapshot(
+            playerName = playerName,
+            selectedGroupID = selectedGroupID,
+            groups = groups,
+            selectedLibrarySourceId = selectedLibrarySourceId,
+            librarySources = librarySources,
+            visibleGames = visibleGames,
+            combinedLookupGames = combinedLookupGames,
+            resumeSlug = resumeSlug,
+            gameResolver = gameResolver,
+        ),
+    )
+}
+
 internal fun practiceHomeBootstrapLookupGames(
     combinedGames: List<PinballGame>,
     resumeCandidate: PinballGame?,

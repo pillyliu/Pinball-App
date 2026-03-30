@@ -10963,6 +10963,609 @@ Verification:
 - `./gradlew :app:compileDebugKotlin`
 - result: both passed
 
+## Pass 334: Android PracticeStore load-coordinator cleanup
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStoreLoadCoordinatorSupport.kt`
+
+Changes made in this pass:
+- moved the remaining Android PracticeStore load-state flags and library/catalog hydration helpers out of `PracticeStore.kt` into `PracticeStoreLoadCoordinatorSupport.kt`
+- made `PracticeStore.kt` delegate:
+  - initial library load
+  - full-library hydration
+  - search-catalog hydration
+  - league-catalog hydration
+  - bank-template hydration
+  - league-target hydration
+  - bootstrap/home-snapshot visibility flags
+- kept `PracticeStore.kt` as the state host and mutation coordinator while the new support file owns the last mixed loading bucket
+
+Hidden seams surfaced and fixed:
+1. the final Android PracticeStore cleanup debt was no longer business logic; it was the remaining coupling between:
+   - load flags
+   - hydration side effects
+   - home-bootstrap snapshot refreshes
+2. that coupling made `PracticeStore.kt` read like both a state host and a loader implementation at the same time, even though the loading policy had already been narrowed by the earlier support files
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `PracticeStore.kt` dropped from `909` lines to `880`
+- the remaining file now reads much more clearly as a coordinator/state owner instead of a mixed lifecycle bucket
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 335: Cross-platform scanner controller cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerViewModel.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerCameraLifecycleSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerFreezeFlowSupport.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerController.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerCameraBindingSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerFrameAnalysisSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerAnalyzerStateSupport.kt`
+
+Changes made in this pass:
+- split the remaining iOS scanner camera lifecycle out of `ScoreScannerViewModel.swift` into `ScoreScannerCameraLifecycleSupport.swift`
+- split the remaining iOS freeze/final-pass/live-frame orchestration out of `ScoreScannerViewModel.swift` into `ScoreScannerFreezeFlowSupport.swift`
+- split the remaining Android scanner camera binding and teardown out of `ScoreScannerController.kt` into `ScoreScannerCameraBindingSupport.kt`
+- split the remaining Android frame analysis/freeze flow out of `ScoreScannerController.kt` into `ScoreScannerFrameAnalysisSupport.kt`
+- split Android analyzer lock-state helpers into `ScoreScannerAnalyzerStateSupport.kt`
+
+Hidden seams surfaced and fixed:
+1. both scanner coordinators were already heavily decomposed, but the final leftover buckets still mixed:
+   - camera lifecycle
+   - analyzer lock state
+   - live OCR processing
+   - freeze/final-pass handling
+2. the iOS split surfaced one stale access seam: `videoOutputDelegate` was still `private` from the single-file layout and had to be widened to the coordinator scope used by the new camera lifecycle support
+3. the Android split surfaced one compile-only support seam: `dispose()` moved with camera binding and needed the explicit coroutine `cancel` import in the new file
+
+Behavioral outcome:
+- no intended front-facing scanner behavior changed
+- `ScoreScannerViewModel.swift` dropped from `454` lines to `162`
+- `ScoreScannerController.kt` dropped from `563` lines to `158`
+- the remaining shell files now read like actual scanner coordinators instead of mixed camera/analyzer buckets
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
+## Pass 336: iOS league remote cache support cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreLeagueHelpers.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeLeagueRemoteLoadSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeLeagueImportedScoreRepairSupport.swift`
+
+Changes made in this pass:
+- moved the remote league payload cache/load helpers out of `PracticeStoreLeagueHelpers.swift` into `PracticeLeagueRemoteLoadSupport.swift`
+- moved duplicate imported-score detection and repair helpers out of `PracticeStoreLeagueHelpers.swift` into `PracticeLeagueImportedScoreRepairSupport.swift`
+
+Hidden seams surfaced and fixed:
+1. the remaining iOS league helper bucket was no longer one concern; it mixed:
+   - player/profile orchestration
+   - resume/note helpers
+   - remote payload cache loading
+   - imported score repair policy
+2. the score repair logic and remote cache logic were both real support layers, but leaving them together made the main helper file look much larger and less cohesive than it really was
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `PracticeStoreLeagueHelpers.swift` dropped from `383` lines to `226`
+- the remaining file is now primarily league/profile orchestration plus practice-facing note/resume helpers
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 316: iOS league helper support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreLeagueHelpers.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeLeagueNameSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeLeagueCSVSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeLeagueGameResolutionSupport.swift`
+
+Changes made in this pass:
+- split human-name normalization and approved IFPA matching helpers out of the main league helper file
+- split league CSV row / IFPA player parsing and player-list derivation into dedicated CSV support
+- split league game-resolution, OPDB-group extraction, and target-score matching into dedicated resolution support
+
+Hidden seams surfaced and fixed:
+1. `PracticeStoreLeagueHelpers.swift` was still mixing player identity policy, CSV payload parsing, cache-backed loading, and game-resolution heuristics in one file
+2. the extracted helpers still need to remain shared with `PracticeStoreLeagueOps.swift`, so `normalizeHumanName(...)` and approved-player matching stayed as shared module helpers rather than file-private closures
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- league import, head-to-head matching, and IFPA identity lookup kept the same behavior while the main helper file became much more focused on cache-backed load flows
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+
+## Pass 317: iOS score parsing normalization split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/ScoreParsingService.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreParsingOCRNormalizationSupport.swift`
+
+Changes made in this pass:
+- trimmed `ScoreParsingService.swift` back to its public score-formatting and candidate-entry points
+- moved OCR normalization, digit-like rescue logic, grouped zero-confusion rescue variants, and run-quality scoring into dedicated support
+
+Hidden seams surfaced and fixed:
+1. the extracted OCR helpers initially kept wider visibility than their moved private score structs allowed, which caused a compile-only access-control failure
+2. that seam was fixed by tightening the normalization helpers back to private support-level functions while leaving only the candidate-entry points shared
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the OCR candidate ranking and rescue heuristics stayed the same while the public service file became much smaller and easier to audit
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed after the visibility fix
+
+## Pass 318: Android score parsing normalization parity split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerParsingService.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerParsingNormalizationSupport.kt`
+
+Changes made in this pass:
+- mirrored the iOS score-parser cleanup by trimming the Android service file back to public formatting / candidate entry points
+- moved candidate construction, OCR normalization, grouped rescue variants, and run-quality heuristics into a Kotlin support file with top-level helpers
+
+Hidden seams surfaced and fixed:
+1. Android was already farther along on league helper cleanup, so the true 1:1 parity seam for this batch was the score-scanner parsing bucket rather than the league integration files
+2. the Android mirror used top-level support helpers instead of object extensions so the public API could stay unchanged without introducing artificial object state
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- Android score scanner parsing now has a cleaner ownership split that matches the iOS cleanup direction
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 319: iOS scanner reading and image support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerViewModel.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerReadingSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerImageSupport.swift`
+
+Changes made in this pass:
+- moved score-scanner reading shaping out of the main view-model file:
+  - locked-reading derivation from stability snapshots
+  - displayed-reading fallback selection
+  - candidate-to-reading conversion
+  - OCR candidate boundary filtering
+- moved preview/image helpers out of the main view-model file:
+  - target crop resolution
+  - CIImage -> preview UIImage rendering
+  - frozen-image OCR conversion
+
+Hidden seams surfaced and fixed:
+1. `ScoreScannerViewModel.swift` was still mixing camera/session state ownership with a set of fully pure score-display and image-prep helpers
+2. the split kept buffered freeze-frame policy in the main view model on purpose, because that logic still depends on local capture state and buffered image lifetime rules rather than just pure transforms
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `ScoreScannerViewModel.swift` dropped from `648` lines to `584` while keeping camera/session ownership intact
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 320: Android scanner controller reading and preview support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerController.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerReadingSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerPreviewSupport.kt`
+
+Changes made in this pass:
+- moved score-scanner reading helpers out of the controller:
+  - filtered candidate selection
+  - locked/displayed reading shaping
+  - candidate-to-reading conversion
+  - live bitmap fallback decision policy
+  - merged live-analysis ranking
+- moved preview capture / geometry helpers out of the controller:
+  - preview crop bitmap extraction
+  - oriented frame-size calculation
+
+Hidden seams surfaced and fixed:
+1. the first controller split left two stale helper references behind in the live-analysis and freeze-candidate paths, which caused a temporary compile-only seam
+2. those leftovers were cleaned immediately, and the controller now calls only the extracted support helpers for its pure preview and reading logic
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `ScoreScannerController.kt` dropped from `658` lines to `563` while staying the stateful camera/orchestration owner
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 321: iOS scanner view shell/support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerView.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerViewSupport.swift`
+
+Changes made in this pass:
+- rewrote `ScoreScannerView.swift` into a route/state shell that now mostly owns:
+  - `ScoreScannerViewModel` wiring
+  - viewport-size stabilization state
+  - keyboard-dismiss handling
+  - camera permission overlay routing
+- moved the scanner UI surfaces into dedicated support:
+  - close pill
+  - header
+  - live reading panel
+  - zoom/freeze controls
+  - camera overlay card
+  - frozen preview
+  - keyboard observer
+  - target overlay
+  - viewport-size helper functions
+
+Hidden seams surfaced and reduced:
+1. `ScoreScannerView.swift` was still mixing screen lifecycle and state with all of the scanner-specific UI leaf surfaces, which made every scanner tweak reopen one big file
+2. the shell rewrite kept `dismissKeyboard()` and `useReading()` in the route file intentionally, because those are still direct screen actions rather than reusable UI leaves
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `ScoreScannerView.swift` dropped from `491` lines to `156`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 322: Android scanner dialog shell/support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerDialog.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/ScoreScannerDialogSupport.kt`
+
+Changes made in this pass:
+- rewrote `ScoreScannerDialog.kt` into a dialog shell that now mostly owns:
+  - permission request and camera binding effects
+  - preview-mapping updates
+  - soft-input/window handling
+  - haptic transition handling
+  - fullscreen status overlay routing
+- moved scanner Compose surfaces into one support file:
+  - camera preview
+  - close pill
+  - target stage and candidate highlights
+  - header
+  - live reading panel
+  - zoom/freeze controls
+  - confirmation sheet
+  - manual entry field
+  - `Rect` -> `RectF` helper
+
+Hidden seams surfaced and fixed:
+1. the first shell rewrite left one predictable Compose seam behind in the target-stage height modifier path, which was fixed immediately before the rebuild
+2. the dialog shell now reads as route/effects code instead of a combined route, effects, and large-UI-surface bucket
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `ScoreScannerDialog.kt` dropped from `661` lines to `271`
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 323: iOS scanner freeze-buffer support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerViewModel.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerFreezeBufferSupport.swift`
+
+Changes made in this pass:
+- moved the buffered freeze-frame model and pure helper policy out of `ScoreScannerViewModel.swift` into `ScoreScannerFreezeBufferSupport.swift`
+- extracted dedicated helpers for:
+  - deciding whether a candidate should replace an existing buffered frame
+  - building a buffered freeze-frame from a preview image and candidate
+  - pruning stale buffered frames by lifetime
+  - updating the buffered-frame map with capped retention
+- trimmed `ScoreScannerViewModel.swift` so it now keeps the live scanner state/orchestration while delegating pure buffer retention rules to support helpers
+
+Hidden seams surfaced and fixed:
+1. the first extraction briefly rebuilt a synthetic candidate while updating buffered frames, which would have made the support layer harder to trust
+2. that was corrected immediately so the support file now compares buffered-frame values directly instead of manufacturing placeholder candidates
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `ScoreScannerViewModel.swift` dropped from `584` lines to `538`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 324: Android PracticeStore league state support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStoreLeagueStateSupport.kt`
+
+Changes made in this pass:
+- moved pure league-state helpers out of `PracticeStore.kt` into `PracticeStoreLeagueStateSupport.kt`
+- extracted dedicated support for:
+  - updating canonical state when the selected league player changes
+  - updating canonical state after a successful CSV import
+  - deciding whether auto-import should run based on throttle, remote freshness, and repair/version state
+  - purging imported league scores and related journal entries from canonical state
+- kept `PracticeStore.kt` responsible for store orchestration and side effects while the new support file owns the pure canonical-state transitions
+
+Hidden seams surfaced and fixed:
+1. the first pass left a duplicated tail from the old purge path in `PracticeStore.kt`, which would have caused dead repeated save/recompute code to linger in the store
+2. that duplicate tail was removed immediately, and the purge path now goes through a single pure state transformation before the normal refresh/save flow
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `PracticeStore.kt` remains the main Android Practice coordinator, but the league import/update rules are now isolated in one support file
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 325: iOS scanner session support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerViewModel.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerSessionSupport.swift`
+
+Changes made in this pass:
+- moved camera authorization routing and AVCapture session/device setup out of `ScoreScannerViewModel.swift` into `ScoreScannerSessionSupport.swift`
+- extracted dedicated support for:
+  - mapping authorization status to scanner routing/state
+  - configuring the AVCapture session input/output
+  - configuring autofocus, exposure, and initial zoom bounds
+  - returning the device/default zoom/max zoom bundle needed by the view model
+- trimmed `ScoreScannerViewModel.swift` so it now reads more like scanner state/orchestration, while the support file owns the camera setup plumbing
+
+Hidden seams surfaced and fixed:
+1. the first view-model rewrite briefly treated `.notDetermined` like a routed authorization case, which would have broken the existing request-access flow
+2. that mismatch was fixed immediately so the permission request remains in the view model, while the new support file only owns the already-known authorization and session setup paths
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `ScoreScannerViewModel.swift` dropped from `538` lines to `494`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 326: Android PracticeStore persisted-state support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStorePersistedStateSupport.kt`
+
+Changes made in this pass:
+- moved pure persisted-state application helpers out of `PracticeStore.kt` into `PracticeStorePersistedStateSupport.kt`
+- extracted dedicated support for:
+  - applying parsed persisted payloads to canonical/runtime store state
+  - projecting canonical state back into runtime state for refresh paths
+  - applying restored home-bootstrap snapshot payloads back into store-owned state
+- kept `PracticeStore.kt` responsible for orchestration, persistence side effects, and UI-facing mutation entry points while the new support file owns the pure state-shape transforms
+
+Hidden seams surfaced and reduced:
+1. the store still had the same canonical/runtime/application shape repeated in several places:
+   - parsed persisted state load
+   - migrated loaded state
+   - canonical refresh
+   - home bootstrap restore
+2. those repeated transforms now go through one support layer instead of drifting independently inside the store
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `PracticeStore.kt` remains the main Android Practice coordinator, but the persisted-state application path is now isolated in a dedicated support file
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 327: Android PracticeStore reference-load support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStoreReferenceLoadSupport.kt`
+
+Changes made in this pass:
+- moved stored-reference bootstrap/load decision support out of `PracticeStore.kt` into `PracticeStoreReferenceLoadSupport.kt`
+- extracted dedicated support for:
+  - computing whether stored references require bank-template games
+  - computing whether stored references require search-catalog games
+  - computing whether stored references require full-library scope
+  - deciding whether an initial load still needs a canonical-state rewrite/save
+- simplified `loadIfNeeded()` so it now reads more like a bootstrap coordinator instead of repeating three separate stored-reference wrapper paths
+
+Hidden seams surfaced and reduced:
+1. the store was recomputing stored reference IDs through three private wrapper methods just to answer one bootstrap question: what extra data still needs loading
+2. those decisions now share one support layer and one reference-ID assembly path, which makes the bootstrap contract easier to audit and less likely to drift
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `PracticeStore.kt` dropped from `937` lines to `914`
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 328: iOS scanner capture-plumbing support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerViewModel.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerSessionSupport.swift`
+
+Changes made in this pass:
+- moved the remaining capture-session plumbing out of `ScoreScannerViewModel.swift` into `ScoreScannerSessionSupport.swift`
+- extracted dedicated support for:
+  - applying portrait rotation to the preview connection
+  - converting captured pixel buffers into portrait-oriented `CIImage` frames
+  - the `AVCaptureVideoDataOutputSampleBufferDelegate` bridge used to hand frames back into the view model
+- left `ScoreScannerViewModel.swift` focused on scanner state, live OCR orchestration, and freeze/retake behavior
+
+Hidden seams surfaced and reduced:
+1. after the earlier session setup split, the view model still had a leftover pocket of low-level capture plumbing that belonged with the session helpers rather than the scanner state owner
+2. this pass finished that boundary so the session support file now owns both setup and frame-delivery plumbing instead of splitting those concerns between files
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `ScoreScannerViewModel.swift` dropped from `494` lines to `460`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 329: iOS scanner live-processing support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerViewModel.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerLiveProcessingSupport.swift`
+
+Changes made in this pass:
+- moved the remaining pure live-processing helpers out of `ScoreScannerViewModel.swift` into `ScoreScannerLiveProcessingSupport.swift`
+- extracted dedicated support for:
+  - preferred freeze-reading selection from live candidate vs snapshot state
+  - buffered freeze-frame pruning and replacement decisions
+  - buffered freeze preview lookup
+  - live-processing start state for OCR cadence, target cropping, and processing gate checks
+- kept the view model responsible for OCR orchestration, freeze/retake flow, and capture-queue ownership while the support file now owns the reusable live-processing rules
+
+Hidden seams surfaced and fixed:
+1. the first helper rewrite briefly computed updated buffered-frame state outside the capture-queue-owned path, which would have weakened the queue ownership boundary
+2. that was corrected immediately so the extracted buffer update still runs against the capture-queue-owned state before assignment
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `ScoreScannerViewModel.swift` kept the same high-level coordinator role, with more of the live-processing rule set now living in one dedicated support file
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 330: Android PracticeStore home-bootstrap snapshot support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStoreBootstrapSupport.kt`
+
+Changes made in this pass:
+- moved home-bootstrap snapshot assembly glue out of `PracticeStore.kt` into `PracticeStoreBootstrapSupport.kt`
+- extracted dedicated support for:
+  - building the store-specific home bootstrap snapshot from current runtime state
+  - resolving the resume candidate into the lookup set used for the bootstrap snapshot
+  - saving the assembled bootstrap snapshot in one support call instead of rebuilding that wiring inside the store
+- trimmed `PracticeStore.kt` so it no longer owns the small bundle of resume-slug lookup plus snapshot assembly code
+
+Hidden seams surfaced and reduced:
+1. the store was still hand-wiring the same home-bootstrap pieces each time it saved a snapshot:
+   - current visible games
+   - combined lookup games
+   - resume candidate lookup
+   - snapshot assembly
+2. that bundle now lives in the bootstrap support file beside the existing restore/build helpers, which makes the snapshot contract easier to reason about in one place
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `PracticeStore.kt` dropped from `914` lines to `906`
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 331: Android PracticeStore persistence-state assembly split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStorePersistenceStateSupport.kt`
+
+Changes made in this pass:
+- moved runtime-state and shadow-state save-payload assembly out of `PracticeStore.kt` into `PracticeStorePersistenceStateSupport.kt`
+- extracted dedicated support for:
+  - building the runtime `PracticePersistedState` from current store-owned values
+  - building the canonical shadow state used during persistence saves
+  - returning the paired runtime/shadow save payload as one support object
+- removed the now-redundant `runtimeStateSnapshot()` wrapper from the store and routed its remaining callers through the new support helpers instead
+
+Hidden seams surfaced and reduced:
+1. the store was still assembling the same persistence shape in two places:
+   - migration-time runtime snapshot building
+   - normal save-state runtime/shadow payload building
+2. those save-payload details now live in one support layer instead of being repeated inline inside the coordinator
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- this pass was more about consolidating persistence-shape ownership than raw file shrink, and `PracticeStore.kt` now reads more like the coordinator over those save-payload helpers
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 332: Android PracticeStore library-state support cleanup
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStoreLibraryStateSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeLibraryIntegration.kt`
+
+Changes made in this pass:
+- expanded `PracticeStoreLibraryStateSupport.kt` so both loaded library state and selected-source application go through one shared support layer
+- rewrote `setPreferredLibrarySource(...)` in `PracticeStore.kt` to use the shared library-state support instead of building its own source-selection state inline
+- updated `applyLibraryState(...)` to use the support-owned persisted selected-source value
+- removed the now-dead `PracticeLibraryIntegration.applySelectedSource(...)` wrapper after the store stopped calling it
+
+Hidden seams surfaced and reduced:
+1. the store and library integration were both owning pieces of the same source-selection contract:
+   - selected source normalization
+   - visible-game filtering
+   - persisted selected-source updates
+2. this pass moved the store-facing state shape into one support layer and removed the stale integration wrapper so that contract is no longer split across two places
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- this pass was primarily about removing one stale wrapper and centralizing library-state mutation support rather than chasing a large line-count drop
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 333: iOS scanner display-state support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerViewModel.swift`
+- `Pinball App 2/Pinball App 2/practice/ScoreScannerDisplayStateSupport.swift`
+
+Changes made in this pass:
+- moved the repeated live display-state assembly out of `ScoreScannerViewModel.swift` into `ScoreScannerDisplayStateSupport.swift`
+- extracted dedicated support for:
+  - computing the live scanner display state from filtered OCR analysis plus stability snapshot
+  - computing the fallback display state after OCR failure when only the stability snapshot remains
+- updated the view model so both the normal OCR path and the failure path use the same support-owned display state shape instead of rebuilding those UI values inline
+
+Hidden seams surfaced and reduced:
+1. the scanner view model was still rebuilding the same UI-facing values in two nearby paths:
+   - normal live OCR processing
+   - OCR failure fallback processing
+2. those display-state rules now live in one support file instead of drifting inside the coordinator
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `ScoreScannerViewModel.swift` dropped from `460` lines to `454`
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
 ## Pass 314-315: Practice journal list/editor split
 
 Primary files:

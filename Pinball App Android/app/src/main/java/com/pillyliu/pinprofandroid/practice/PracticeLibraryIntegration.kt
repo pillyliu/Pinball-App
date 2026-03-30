@@ -18,18 +18,6 @@ internal data class PracticeLibraryStoreState(
 internal class PracticeLibraryIntegration(
     private val context: Context,
 ) {
-    fun applySelectedSource(
-        sourceId: String?,
-        sources: List<LibrarySource>,
-        allGames: List<PinballGame>,
-    ): PracticeLibrarySourceSelectionResult {
-        return applyPracticeLibrarySourceSelection(
-            sourceId = sourceId,
-            sources = sources,
-            allGames = allGames,
-        )
-    }
-
     fun persistSelectedSource(sourceId: String?) {
         LibrarySourceStateStore.setSelectedSource(context, sourceId)
     }
