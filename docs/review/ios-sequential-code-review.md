@@ -10963,6 +10963,375 @@ Verification:
 - `./gradlew :app:compileDebugKotlin`
 - result: both passed
 
+## Pass 347: iOS shared content and table chrome split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/ui/SharedTableUi.swift`
+- `Pinball App 2/Pinball App 2/ui/AppContentChrome.swift`
+- `Pinball App 2/Pinball App 2/ui/AppTableChrome.swift`
+
+Changes made in this pass:
+- moved table layout, divider, and header-cell helpers out of `SharedTableUi.swift` into `AppTableChrome.swift`
+- moved reusable content chrome out of `SharedTableUi.swift` into `AppContentChrome.swift`:
+  - section/card titles
+  - inline title-with-variant label and UIKit bridge
+  - metric grid
+  - inline/panel status and empty-state cards
+- left `SharedTableUi.swift` focused on the native clear-text field bridge
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 348: Android shared content chrome split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppContentChrome.kt`
+
+Changes made in this pass:
+- moved reusable content chrome out of `CommonUi.kt` into `AppContentChrome.kt`:
+  - section/card titles
+  - metric grid
+  - empty/status surfaces
+  - refresh row
+  - passive/tinted status chips
+  - metric pill and three-column legend header
+- left `CommonUi.kt` focused on app shell, route/header structure, gestures, controls, and button primitives
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 349: iOS button and filter chrome cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/ui/AppFilterControls.swift`
+- `Pinball App 2/Pinball App 2/ui/AppButtonStyles.swift`
+- `Pinball App 2/Pinball App 2/ui/AppContentChrome.swift`
+
+Changes made in this pass:
+- moved generic button-press feedback and reusable button styles out of `AppFilterControls.swift` into `AppButtonStyles.swift`
+- moved generic content-status chrome out of `AppFilterControls.swift` into `AppContentChrome.swift`:
+  - inline link action
+  - refresh status row
+  - passive/tinted status chips
+  - metric pill
+  - success banner
+- left `AppFilterControls.swift` focused on toolbar, menu-label, and filter-control presentation
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 350: shared resource pill chrome split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/ui/AppResourceChrome.swift`
+- `Pinball App 2/Pinball App 2/ui/AppResourcePillChrome.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppResourceChrome.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppResourcePillSupport.kt`
+
+Changes made in this pass:
+- moved reusable resource pill, badge, wrap-layout, and inline-text-with-pill infrastructure into dedicated support files on both platforms
+- left the remaining resource chrome files focused on:
+  - overlay titles and subtitles
+  - reading-progress chrome
+  - media preview placeholders
+  - video-tile chrome
+
+Hidden seam surfaced and fixed:
+1. Android `AppResourceChrome.kt` initially kept too many now-unused imports after the split
+2. the support split stayed intact; only the surviving file imports were tightened enough to rebuild cleanly
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
+## Pass 351: iOS inline-title chrome split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/ui/AppContentChrome.swift`
+- `Pinball App 2/Pinball App 2/ui/AppInlineTitleChrome.swift`
+
+Changes made in this pass:
+- moved the UIKit-backed inline title-with-variant bridge out of `AppContentChrome.swift` into `AppInlineTitleChrome.swift`
+- moved the supporting appearance model, UILabel subclass, and string/font helpers with it
+- left `AppContentChrome.swift` focused on SwiftUI-native metric, status, and panel content chrome
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 352: Android app surface chrome split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppSurfaceChrome.kt`
+
+Changes made in this pass:
+- moved the shared app surface shell out of `CommonUi.kt` into `AppSurfaceChrome.kt`:
+  - composition-local bottom-bar visibility
+  - background and route-screen shell
+  - keyboard-dismiss background gesture
+  - back/header icon buttons
+  - screen header
+- left `CommonUi.kt` focused on controls, swipe actions, inline actions, and remaining generic UI widgets
+
+Hidden seam surfaced and fixed:
+1. the first cut trimmed `CommonUi.kt` imports too aggressively, which surfaced as unresolved references during the Android compile
+2. restoring the remaining imports kept the file boundary intact without undoing the split
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 353: Android info chrome split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppContentChrome.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppInfoChrome.kt`
+
+Changes made in this pass:
+- moved shared info/title chrome out of `AppContentChrome.kt` into `AppInfoChrome.kt`:
+  - section title
+  - card heading/title surfaces
+  - metric grid
+  - empty label
+- left `AppContentChrome.kt` focused on status cards, banners, refresh chrome, and other feedback surfaces
+
+Hidden seam surfaced and fixed:
+1. the first Android cut trimmed `AppContentChrome.kt` imports too aggressively after the move
+2. restoring only the still-needed layout/background imports kept the split intact without re-mixing the title chrome
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 354: Android inline pill text support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppResourcePillSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppInlinePillTextSupport.kt`
+
+Changes made in this pass:
+- moved the inline title-with-pill layout machinery out of `AppResourcePillSupport.kt` into `AppInlinePillTextSupport.kt`
+- moved the supporting candidate, measurement, truncation, and fit-resolution helpers with it
+- left `AppResourcePillSupport.kt` focused on resource-row and pill presentation instead of also owning custom text layout math
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 355: iOS surface modifier split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/ui/AppTheme.swift`
+- `Pinball App 2/Pinball App 2/ui/AppSurfaceModifiers.swift`
+
+Changes made in this pass:
+- moved the shared app background and reusable view modifiers out of `AppTheme.swift` into `AppSurfaceModifiers.swift`:
+  - `AppBackground`
+  - readable-width and panel/control/list style modifiers
+  - keyboard-dismiss tap gesture helper
+- left `AppTheme.swift` focused on theme tokens, semantic colors, and layout constants
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 356: iOS info chrome split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/ui/AppContentChrome.swift`
+- `Pinball App 2/Pinball App 2/ui/AppInfoChrome.swift`
+
+Changes made in this pass:
+- moved shared info/title chrome out of `AppContentChrome.swift` into `AppInfoChrome.swift`:
+  - section title
+  - card headings/titles
+  - title-with-variant card wrapper
+  - metric grid item/model
+- left `AppContentChrome.swift` focused on status, refresh, and feedback surfaces
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
+## Pass 357: shared status pill chrome split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/ui/AppContentChrome.swift`
+- `Pinball App 2/Pinball App 2/ui/AppStatusPillChrome.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppContentChrome.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppStatusPillSupport.kt`
+
+Changes made in this pass:
+- moved reusable status-pill and metric-pill chrome out of the generic content files into dedicated shared-UI support files on both platforms
+- moved Android's reusable three-column legend header with the pill helpers so the content file no longer owns compact legend layout logic
+- left the remaining content chrome files focused on inline status messaging, success banners, panel cards, and refresh-state presentation
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
+## Pass 358: Android shared button and selection chrome split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppButtonChrome.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppSelectionChrome.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppToggleControls.kt`
+
+Changes made in this pass:
+- moved Android toggle controls out of `CommonUi.kt` into `AppToggleControls.kt`:
+  - switch colors and wrapper
+  - checkbox colors and wrapper
+- moved reusable button/action chrome out of `CommonUi.kt` into `AppButtonChrome.kt`:
+  - external-link button
+  - inline/text actions
+  - top-bar dropdown trigger
+  - primary/secondary/destructive buttons
+- moved row/pill selection chrome out of `CommonUi.kt` into `AppSelectionChrome.kt`
+- left `CommonUi.kt` focused on:
+  - card container/control card
+  - swipe actions
+  - inset filter header
+
+Hidden seam surfaced and fixed:
+1. the first Android cut missed one `clip` import in the new selection file and the surviving `Icons` import in `CommonUi.kt`
+2. tightening only those imports kept the split intact without re-mixing the controls
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 359: Android route edge-swipe migration
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/CommonUi.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppSurfaceChrome.kt`
+
+Changes made in this pass:
+- moved the `iosEdgeSwipeBack` modifier out of `CommonUi.kt` into `AppSurfaceChrome.kt`
+- colocated the back-swipe gesture with the route/surface shell that consumes it
+- left `CommonUi.kt` free of route-navigation gesture ownership
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 360: Android screen surface split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppSurfaceChrome.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppScreenSurface.kt`
+
+Changes made in this pass:
+- moved the shared Android screen shell out of `AppSurfaceChrome.kt` into `AppScreenSurface.kt`:
+  - bottom-bar composition local
+  - `AppScreen` and `AppRouteScreen`
+  - edge-swipe back gesture
+  - keyboard-dismiss background tap gesture
+  - atmosphere background
+- left `AppSurfaceChrome.kt` focused on back/header/icon chrome
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 361: Android inline action chrome split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppButtonChrome.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppInlineActionChrome.kt`
+
+Changes made in this pass:
+- moved inline action surfaces out of `AppButtonChrome.kt` into `AppInlineActionChrome.kt`:
+  - inline action chip
+  - text action
+  - inline link action
+  - top-bar dropdown trigger
+- left `AppButtonChrome.kt` focused on button-style surfaces:
+  - external-link button
+  - primary/secondary/destructive buttons
+
+Hidden seam surfaced and fixed:
+1. the first cut of `AppInlineActionChrome.kt` missed the `dp` unit import
+2. removing an unnecessary explicit `weight` import restored the normal RowScope-based layout usage
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 362: iOS display and layout token split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/ui/AppTheme.swift`
+- `Pinball App 2/Pinball App 2/ui/AppDisplayMode.swift`
+- `Pinball App 2/Pinball App 2/ui/AppLayoutTokens.swift`
+
+Changes made in this pass:
+- moved `AppDisplayMode` out of `AppTheme.swift` into `AppDisplayMode.swift`
+- moved `AppSpacing`, `AppRadii`, and `AppLayout` out of `AppTheme.swift` into `AppLayoutTokens.swift`
+- left `AppTheme.swift` focused on semantic colors, token structs, and the central theme/color bridge
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
 ## Pass 341: iOS standings support split
 
 Primary files:
