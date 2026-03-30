@@ -2,6 +2,11 @@ import SwiftUI
 
 extension PracticeScreen {
     var resumeGame: PinballGame? {
+        if let timelineID = store.mostRecentTimelineGameID(),
+           let match = store.gameForAnyID(timelineID) {
+            return match
+        }
+
         let libraryID = appNavigation.lastViewedLibraryGameID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let practiceID = practiceLastViewedGameID.trimmingCharacters(in: .whitespacesAndNewlines)
         let candidateID: String

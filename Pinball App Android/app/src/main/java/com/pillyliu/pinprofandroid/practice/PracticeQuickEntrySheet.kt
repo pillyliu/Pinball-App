@@ -24,67 +24,6 @@ import com.pillyliu.pinprofandroid.ui.AppTextAction
 import com.pillyliu.pinprofandroid.ui.dismissKeyboardOnTapOutside
 import kotlin.math.roundToInt
 
-private const val QUICK_GAME_KEY_PREFIX = "practice-quick-game-"
-private const val QUICK_LIBRARY_KEY_PREFIX = "practice-quick-library-"
-private const val ALL_GAMES_LIBRARY_OPTION = "__all_games__"
-
-internal fun resolveInitialQuickEntryLibraryOption(
-    origin: QuickEntryOrigin,
-    fromGameView: Boolean,
-    selectedGameSourceId: String,
-    resumeGameSourceId: String,
-    savedLibraryOption: String,
-    preferredLibraryOption: String,
-    avenueLibraryOption: String,
-    defaultPracticeSourceId: String,
-    availableLibraryOptionIds: Set<String>,
-): String {
-    fun validSourceOrBlank(sourceId: String): String {
-        return sourceId.takeIf { it.isNotBlank() && it in availableLibraryOptionIds }.orEmpty()
-    }
-
-    fun validLibraryOptionOrBlank(option: String): String {
-        return when {
-            option == ALL_GAMES_LIBRARY_OPTION -> ALL_GAMES_LIBRARY_OPTION
-            option.isNotBlank() && option in availableLibraryOptionIds -> option
-            else -> ""
-        }
-    }
-
-    return when {
-        origin == QuickEntryOrigin.Mechanics -> ALL_GAMES_LIBRARY_OPTION
-        fromGameView -> validLibraryOptionOrBlank(defaultPracticeSourceId)
-            .ifBlank { validSourceOrBlank(selectedGameSourceId) }
-            .ifBlank { ALL_GAMES_LIBRARY_OPTION }
-        else -> validSourceOrBlank(resumeGameSourceId)
-            .ifBlank { validSourceOrBlank(selectedGameSourceId) }
-            .ifBlank { validLibraryOptionOrBlank(savedLibraryOption) }
-            .ifBlank { validLibraryOptionOrBlank(preferredLibraryOption) }
-            .ifBlank { validLibraryOptionOrBlank(avenueLibraryOption) }
-            .ifBlank { validLibraryOptionOrBlank(defaultPracticeSourceId) }
-            .ifBlank { availableLibraryOptionIds.firstOrNull().orEmpty() }
-            .ifBlank { ALL_GAMES_LIBRARY_OPTION }
-    }
-}
-
-internal fun resolveInitialQuickEntryGameSlug(
-    origin: QuickEntryOrigin,
-    fromGameView: Boolean,
-    selectedGameSlug: String,
-    resumeGameSlug: String,
-    savedQuickGameSlug: String,
-    fallbackGameSlug: String,
-): String {
-    return when {
-        origin == QuickEntryOrigin.Mechanics -> ""
-        fromGameView -> selectedGameSlug
-        resumeGameSlug.isNotBlank() -> resumeGameSlug
-        selectedGameSlug.isNotBlank() -> selectedGameSlug
-        savedQuickGameSlug.isNotBlank() -> savedQuickGameSlug
-        else -> fallbackGameSlug
-    }
-}
-
 @Composable
 internal fun QuickEntrySheet(
     store: PracticeStore,
@@ -282,58 +221,20 @@ internal fun QuickEntrySheet(
         title = { Text("Quick Entry") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (!fromGameView) {
-                    if (showLibraryDropdown) {
-                        SimpleMenuDropdown(
-                            title = "Library",
-                            options = listOf(ALL_GAMES_LIBRARY_OPTION) + librarySources.map { it.id },
-                            selected = selectedLibraryOption,
-                            selectedLabel = when (selectedLibraryOption) {
-                                ALL_GAMES_LIBRARY_OPTION -> "All games"
-                                else -> librarySources.firstOrNull { it.id == selectedLibraryOption }?.name ?: selectedLibraryOption
-                            },
-                            onSelect = { selectedLibraryOption = it },
-                            formatOptionLabel = { option ->
-                                when (option) {
-                                    ALL_GAMES_LIBRARY_OPTION -> "All games"
-                                    else -> librarySources.firstOrNull { it.id == option }?.name ?: option
-                                }
-                            },
-                        )
-                    }
-                    SimpleMenuDropdown(
-                        title = "Game",
-                        options = if (mode == QuickActivity.Mechanics) {
-                            listOf("None") + gameOptions.map { it.practiceKey }
-                        } else {
-                            gameOptions.map { it.practiceKey }
-                        },
-                        selected = if (mode == QuickActivity.Mechanics && gameSlug.isBlank()) "None" else gameSlug,
-                        selectedLabel = if (mode == QuickActivity.Mechanics && gameSlug.isBlank()) {
-                            "None"
-                        } else {
-                            findGameByPracticeLookupKey(gameOptions, gameSlug)?.displayTitleForPractice ?: gameSlug
-                        },
-                        onSelect = { gameSlug = it },
-                        formatOptionLabel = { option ->
-                            if (option == "None") {
-                                "None"
-                            } else {
-                                findGameByPracticeLookupKey(gameOptions, option)?.displayTitleForPractice ?: option
-                            }
-                        },
-                    )
-                }
-                if (showActivityDropdown) {
-                    SimpleMenuDropdown(
-                        title = "Activity",
-                        options = studyActivities.map { it.label },
-                        selected = mode.label,
-                        onSelect = { selected ->
-                            mode = studyActivities.firstOrNull { it.label == selected } ?: QuickActivity.Rulesheet
-                        },
-                    )
-                }
+                QuickEntrySelectionFields(
+                    fromGameView = fromGameView,
+                    showLibraryDropdown = showLibraryDropdown,
+                    librarySources = librarySources,
+                    selectedLibraryOption = selectedLibraryOption,
+                    onLibraryOptionChange = { selectedLibraryOption = it },
+                    mode = mode,
+                    showActivityDropdown = showActivityDropdown,
+                    studyActivities = studyActivities,
+                    onActivityChange = { mode = it },
+                    gameOptions = gameOptions,
+                    gameSlug = gameSlug,
+                    onGameSlugChange = { gameSlug = it },
+                )
 
                 QuickEntryModeFields(
                     mode = mode,

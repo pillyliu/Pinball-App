@@ -58,6 +58,7 @@ import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.ui.AppInlineActionChip
 import com.pillyliu.pinprofandroid.ui.AppInlineTaskStatus
 import com.pillyliu.pinprofandroid.ui.AppCardSubheading
+import com.pillyliu.pinprofandroid.ui.AppConfirmDialog
 import com.pillyliu.pinprofandroid.ui.AppPanelEmptyCard
 import com.pillyliu.pinprofandroid.ui.AppPanelStatusCard
 import com.pillyliu.pinprofandroid.ui.AppPrimaryButton
@@ -200,6 +201,8 @@ private fun SettingsLibrarySection(
     onRefreshSource: (ImportedSourceRecord) -> Unit,
     onDeleteSource: (String) -> Unit,
 ) {
+    var pendingDeleteSource by remember { mutableStateOf<ImportedSourceRecord?>(null) }
+
     CardContainer {
         SectionTitle("Library")
         AppCardSubheading("Add")
@@ -242,12 +245,25 @@ private fun SettingsLibrarySection(
                 } else {
                     null
                 },
-                onDelete = { onDeleteSource(source.id) },
+                onDelete = { pendingDeleteSource = source },
             )
         }
         if (importedSources.isEmpty()) {
             AppPanelEmptyCard(text = "No sources added yet.")
         }
+    }
+
+    pendingDeleteSource?.let { source ->
+        AppConfirmDialog(
+            title = "Delete ${source.type.deleteLabel()}?",
+            message = "Remove ${source.name} from Library and Practice? This can't be undone.",
+            confirmLabel = "Delete",
+            onConfirm = {
+                onDeleteSource(source.id)
+                pendingDeleteSource = null
+            },
+            onDismiss = { pendingDeleteSource = null },
+        )
     }
 }
 
@@ -365,6 +381,13 @@ private fun ManagedSourceRow(
             )
         }
     }
+}
+
+private fun LibrarySourceType.deleteLabel(): String = when (this) {
+    LibrarySourceType.MANUFACTURER -> "Manufacturer"
+    LibrarySourceType.VENUE -> "Venue"
+    LibrarySourceType.TOURNAMENT -> "Tournament"
+    LibrarySourceType.CATEGORY -> "Source"
 }
 
 @Composable

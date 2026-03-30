@@ -6,6 +6,17 @@ struct CachedPracticeJournalPayload {
 }
 
 extension PracticeStore {
+    func mostRecentTimelineGameID() -> String? {
+        let raw = mostRecentPracticeTimelineGameID(
+            journalEntries: state.journalEntries,
+            libraryEvents: LibraryActivityLog.events()
+        )?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !raw.isEmpty else { return nil }
+
+        let canonical = canonicalPracticeGameID(raw).trimmingCharacters(in: .whitespacesAndNewlines)
+        return canonical.isEmpty ? raw : canonical
+    }
+
     func journalSections(filter: JournalFilter) -> [PracticeJournalDaySection] {
         cachedJournalPayload(for: filter).sections
     }
@@ -258,6 +269,25 @@ private func filterLibraryActivities(_ events: [LibraryActivityEvent], filter: J
         return events.filter { [.openRulesheet, .openPlayfield, .tapVideo].contains($0.kind) }
     case .practice, .score, .notes, .league:
         return []
+    }
+}
+
+func mostRecentPracticeTimelineGameID(
+    journalEntries: [JournalEntry],
+    libraryEvents: [LibraryActivityEvent]
+) -> String? {
+    let latestJournalEntry = journalEntries.max { $0.timestamp < $1.timestamp }
+    let latestLibraryEvent = libraryEvents.max { $0.timestamp < $1.timestamp }
+
+    switch (latestJournalEntry, latestLibraryEvent) {
+    case let (journalEntry?, libraryEvent?):
+        return journalEntry.timestamp >= libraryEvent.timestamp ? journalEntry.gameID : libraryEvent.gameID
+    case let (journalEntry?, nil):
+        return journalEntry.gameID
+    case let (nil, libraryEvent?):
+        return libraryEvent.gameID
+    case (nil, nil):
+        return nil
     }
 }
 

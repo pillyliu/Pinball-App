@@ -10963,6 +10963,102 @@ Verification:
 - `./gradlew :app:compileDebugKotlin`
 - result: both passed
 
+## Pass 314-315: Practice journal list/editor split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalListSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalEntryEditorSheet.swift`
+
+Changes made in these passes:
+- split the iOS Practice journal file into dedicated layers:
+  - `PracticeJournalListSupport.swift` now owns the journal action bar, list panel, day header, row rendering, and static editable row chrome
+  - `PracticeJournalEntryEditorSheet.swift` now owns the full journal-entry editing sheet plus its draft seeding, normalization, validation, and persistence routing
+- trimmed `PracticeJournalSettingsSections.swift` back to the journal item models, grouped-section helper, and the high-level `PracticeJournalSectionView` coordinator
+
+Hidden seams surfaced and fixed:
+1. `PracticeJournalSettingsSections.swift` was still acting like two unrelated files fused together:
+   - the journal list/filter surface
+   - the full editor-sheet workflow
+2. the row chrome and swipe-edit behavior had also become a second hidden bucket inside that same file, even though it is a reusable list concern rather than journal-screen orchestration
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `PracticeJournalSettingsSections.swift` dropped from `573` lines to `102`, and the remaining journal list/editor behavior now lives in dedicated support files instead of one mixed surface file
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 312-313: Practice group editor and Android store load/runtime cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupEditorComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupEditorSectionSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupEditorActionSupport.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStoreLoadSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStoreRuntimeSupport.kt`
+
+Changes made in these passes:
+- split the iOS Practice group editor into dedicated section/chrome views:
+  - `PracticeGroupEditorSectionSupport.swift` now owns the name, template, title, and settings sections plus the inline date and title-delete popovers
+  - `PracticeGroupEditorComponents.swift` is trimmed back toward state ownership, lifecycle wiring, and coordination
+- moved iOS group-editor save/template/date helpers out of the screen file:
+  - `PracticeGroupEditorActionSupport.swift` now owns template-default normalization, save validation/persistence, bank-template application, duplicate-template application, and the shared editor date formatter
+- split the Android Practice store’s async load/persistence scaffolding out of `PracticeStore.kt`:
+  - `PracticeStoreLoadSupport.kt` now owns the initial library + persisted-state bootstrap load plus the search/league/bank catalog loaders
+  - `PracticeStoreRuntimeSupport.kt` now owns the runtime-state application shape and canonical shadow-state assembly used during saves
+- trimmed `PracticeStore.kt` back toward being the state host and domain orchestrator instead of also carrying every async-load and runtime-shape helper inline
+
+Hidden seams surfaced and fixed:
+1. `PracticeGroupEditorComponents.swift` was still mixing four different responsibilities in one SwiftUI file:
+   - section UI
+   - popover chrome
+   - save validation/persistence
+   - template application policy
+2. Android `PracticeStore.kt` was still bundling async library/catalog loaders and runtime shadow-state assembly inline even after the earlier bootstrap and reference-support splits, which left the bottom half of the store acting like a generic persistence bucket
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `PracticeGroupEditorComponents.swift` dropped from `694` lines to `337`
+- `PracticeStore.kt` dropped from `957` lines to `943` in this pass, with the more important change being that the load/runtime scaffolding now lives in dedicated support files
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
+## Pass 307: Practice group editor support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupEditorComponents.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupEditorSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGroupSelectionSupport.swift`
+
+Changes made in this pass:
+- split the iOS Practice group editor support bucket into:
+  - `PracticeGroupEditorSupport.swift` for:
+    - `GroupProgressWheel`
+    - group template/date enums
+    - adaptive popover placement support shared with the dashboard/editor surfaces
+  - `PracticeGroupSelectionSupport.swift` for:
+    - `GroupGameSelectionScreen`
+    - selected-title drag/drop reorder delegates
+- trimmed `PracticeGroupEditorComponents.swift` back toward the editor screen itself instead of also owning the group picker and generic popover utility
+
+Hidden seams surfaced and fixed:
+1. `PracticeGroupEditorComponents.swift` had become another mixed bucket: editor screen, game selection screen, reorder delegates, and adaptive popover infrastructure were all coexisting in one file
+2. the adaptive popover helper is not editor-only; moving it into dedicated support makes its reuse by Practice dashboard/editor routes more explicit
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the group editor file now reads more like the actual editor flow instead of a general Practice utility file
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
 ## Pass 300-304: Android GameRoom end-state cleanup
 
 Primary files:
@@ -11009,6 +11105,106 @@ Current Android GameRoom end-state:
 Verification:
 - `./gradlew :app:compileDebugKotlin`
 - result: passed after the settings-route, model, UI, and Pinside support splits
+
+## Pass 308-309: Practice quick-entry and store reference support cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeQuickEntrySheet.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeQuickEntryModeFields.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeQuickEntrySaveLogic.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeEntryFieldSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeScoreFormatting.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStoreReferenceSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStoreLibraryStateSupport.kt`
+
+Changes made in these passes:
+- split iOS Practice quick-entry into real support layers:
+  - `PracticeQuickEntryModeFields.swift` now owns the activity-specific form body
+  - `PracticeQuickEntrySaveLogic.swift` now owns the activity save/validation path
+  - `PracticeEntryFieldSupport.swift` now owns the shared text-editor and percent-slider chrome used by Practice entry sheets
+  - `PracticeScoreFormatting.swift` now owns the shared comma formatter instead of leaving separate copies in quick-entry and the regular score sheet
+- trimmed `PracticeQuickEntrySheet.swift` back toward selection, lifecycle, and save routing instead of also owning every mode-specific field and save branch
+- moved the Android PracticeStore stored-reference and load-decision helpers out of `PracticeStore.kt`
+- moved the trivial Practice library-state application shape into `PracticeStoreLibraryStateSupport.kt` so `PracticeStore.kt` reads more like orchestration than raw shape assembly
+
+Hidden seams surfaced and fixed:
+1. iOS Practice quick-entry and the regular score-entry sheet were both carrying their own score comma-formatters and entry-field chrome, which had become a stale duplication seam
+2. Android `PracticeStore.kt` still carried stored-reference scanning and load-decision policy inline even after the earlier Practice bootstrap split, so the bottom of the file was still acting like a generic helper bucket
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- iOS quick-entry now matches the same mode-fields/save-logic decomposition pattern Android already used
+- Android PracticeStore now has clearer boundaries between orchestration and stored-reference/load-decision helpers
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
+## Pass 310-311: Practice game-entry file split and Android quick-entry selection support
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/GameScoreEntrySheet.swift`
+- `Pinball App 2/Pinball App 2/practice/GameNoteEntrySheet.swift`
+- `Pinball App 2/Pinball App 2/practice/GameTaskEntrySheet.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeGameEntrySheets.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeQuickEntrySheet.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeQuickEntrySelectionSupport.kt`
+
+Changes made in these passes:
+- split the old iOS `PracticeGameEntrySheets.swift` catch-all file into three dedicated screens:
+  - `GameScoreEntrySheet.swift`
+  - `GameNoteEntrySheet.swift`
+  - `GameTaskEntrySheet.swift`
+- deleted the stale combined file once its contents had been moved into dedicated screen files
+- updated the iOS task-entry screen to use the shared Practice entry-field helpers and the shared category-label helper rather than carrying another local copy of that UI support
+- moved Android quick-entry library/game/activity dropdown rendering plus the initial quick-entry key/source resolution helpers into `PracticeQuickEntrySelectionSupport.kt`
+- trimmed `PracticeQuickEntrySheet.kt` back toward state, effect, and save orchestration instead of also rendering every selection field inline
+
+Hidden seams surfaced and fixed:
+1. `PracticeGameEntrySheets.swift` had become a misleading file name because it was really three separate screens sharing only a few small helpers
+2. Android `PracticeQuickEntrySheet.kt` was still a mixed dialog shell plus selection-surface renderer even after the earlier mode-fields/save-logic cleanup, so the next truthful split was the selection layer
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- iOS game entry screens and Android quick-entry selection now read like dedicated files rather than leftover combined buckets
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
+## Pass 305-306: Practice journal/settings and bootstrap support cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalSettingsSections.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeJournalEntryEditorSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeSettingsSupport.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeStoreBootstrapSupport.kt`
+
+Changes made in these passes:
+- split the iOS Practice journal/settings bucket by concern:
+  - `PracticeJournalEntryEditorSupport.swift` now owns the journal entry editor leaf sections plus shared progress/note/score-format helpers
+  - `PracticeSettingsSupport.swift` now owns the Practice settings cards and destructive-confirmation prompts
+  - `PracticeJournalSettingsSections.swift` is trimmed back toward journal list + editor flow rather than also being the settings surface file
+- split Android Practice home-bootstrap snapshot restore/build logic out of `PracticeStore.kt` into `PracticeStoreBootstrapSupport.kt`
+  - snapshot restore now returns an explicit payload instead of rewriting store state inline
+  - snapshot save/build and lookup-game assembly now live in one support layer with explicit inputs/outputs
+
+Hidden seams surfaced and fixed:
+1. `PracticeJournalSettingsSections.swift` had quietly become two unrelated files fused together: journal editing/list UI and the Practice settings screen
+2. `PracticeStore.kt` was still carrying home-bootstrap persistence/rehydration policy inline even though the Android Practice package already had strong decomposition everywhere else
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- iOS Practice journal/settings support and Android Practice bootstrap logic now read more like dedicated support layers instead of leftover buckets
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
 
 ## Pass 299: Android GameRoom screen state grouping split
 

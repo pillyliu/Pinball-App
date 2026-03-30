@@ -13,9 +13,7 @@ import com.pillyliu.pinprofandroid.library.LibrarySourceStateStore
 import com.pillyliu.pinprofandroid.library.PM_AVENUE_LIBRARY_SOURCE_ID
 import com.pillyliu.pinprofandroid.library.PinballGame
 import com.pillyliu.pinprofandroid.library.canonicalLibrarySourceId
-import com.pillyliu.pinprofandroid.library.loadPracticeCatalogGames
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import java.time.Instant
 import java.time.ZoneId
 import kotlin.math.abs
@@ -180,18 +178,19 @@ internal class PracticeStore(private val context: Context) {
     }
 
     private fun applyRuntimePersistedState(state: PracticePersistedState) {
-        playerName = state.playerName
-        ifpaPlayerID = state.ifpaPlayerID
-        comparisonPlayerName = state.comparisonPlayerName
-        leaguePlayerName = state.leaguePlayerName
-        cloudSyncEnabled = state.cloudSyncEnabled
-        selectedGroupID = state.selectedGroupID
-        groups = state.groups
-        scores = state.scores
-        notes = state.notes
-        journal = state.journal
-        rulesheetProgress = state.rulesheetProgress
-        gameSummaryNotes = state.gameSummaryNotes
+        val applied = appliedPracticeRuntimeState(state)
+        playerName = applied.playerName
+        ifpaPlayerID = applied.ifpaPlayerID
+        comparisonPlayerName = applied.comparisonPlayerName
+        leaguePlayerName = applied.leaguePlayerName
+        cloudSyncEnabled = applied.cloudSyncEnabled
+        selectedGroupID = applied.selectedGroupID
+        groups = applied.groups
+        scores = applied.scores
+        notes = applied.notes
+        journal = applied.journal
+        rulesheetProgress = applied.rulesheetProgress
+        gameSummaryNotes = applied.gameSummaryNotes
     }
 
     suspend fun loadIfNeeded() {
@@ -202,15 +201,9 @@ internal class PracticeStore(private val context: Context) {
         didLoad = true
         try {
             PinballPerformanceTrace.measureSuspend("PracticeBootstrap") {
-                var loadedState: LoadedPracticeStatePayload? = null
-                coroutineScope {
-                    val initialLibraryState = async { libraryIntegration.loadInitialLibraryState() }
-                    val loadedStateTask = async { persistenceIntegration.loadState() }
-
-                    applyLibraryState(initialLibraryState.await())
-                    loadedState = loadedStateTask.await()
-                    applyLoadedState(loadedState)
-                }
+                val initialState = loadInitialPracticeStoreState(libraryIntegration, persistenceIntegration)
+                applyLibraryState(initialState.libraryState)
+                applyLoadedState(initialState.loadedState)
                 if (needsBankTemplateGamesForStoredReferences()) {
                     ensureBankTemplateGamesLoaded()
                 }
@@ -222,7 +215,7 @@ internal class PracticeStore(private val context: Context) {
                 }
                 val migrated = migrateLoadedStateToPracticeKeys()
                 migratePreferenceGameKeysToPracticeKeys()
-                if (loadedState?.requiresCanonicalSave == true && !migrated) {
+                if (initialState.loadedState?.requiresCanonicalSave == true && !migrated) {
                     saveState()
                     persistenceIntegration.clearLegacyState()
                 }
@@ -762,11 +755,12 @@ internal class PracticeStore(private val context: Context) {
     }
 
     private fun applyLibraryState(libraryState: PracticeLibraryStoreState) {
-        games = libraryState.visibleGames
-        allLibraryGames = libraryState.allGames
-        librarySources = libraryState.sources
-        defaultPracticeSourceId = libraryState.defaultSourceId
-        didLoadAllLibraryGames = libraryState.isFullLibraryScope
+        val applied = appliedPracticeLibraryState(libraryState)
+        games = applied.visibleGames
+        allLibraryGames = applied.allGames
+        librarySources = applied.sources
+        defaultPracticeSourceId = applied.defaultSourceId
+        didLoadAllLibraryGames = applied.isFullLibraryScope
         defaultPracticeSourceId?.let { sourceId ->
             libraryIntegration.persistSelectedSource(sourceId)
         }
@@ -776,9 +770,7 @@ internal class PracticeStore(private val context: Context) {
         if (searchCatalogGames.isNotEmpty() || isLoadingSearchCatalog) return
         isLoadingSearchCatalog = true
         try {
-            searchCatalogGames = PinballPerformanceTrace.measureSuspend("PracticeSearchCatalogLoad") {
-                loadPracticeCatalogGames(context)
-            }
+            searchCatalogGames = loadPracticeSearchCatalogGames(context)
             saveHomeBootstrapSnapshotIfNeeded()
         } finally {
             isLoadingSearchCatalog = false
@@ -789,11 +781,7 @@ internal class PracticeStore(private val context: Context) {
         if (leagueCatalogGames.isNotEmpty() || isLoadingLeagueCatalogGames) return
         isLoadingLeagueCatalogGames = true
         try {
-            leagueCatalogGames = PinballPerformanceTrace.measureSuspend("PracticeLeagueCatalogLoad") {
-                loadPracticeCatalogGames(context)
-            }
-        } catch (_: Throwable) {
-            leagueCatalogGames = emptyList()
+            leagueCatalogGames = loadPracticeLeagueCatalogGames(context)
         } finally {
             isLoadingLeagueCatalogGames = false
         }
@@ -803,9 +791,7 @@ internal class PracticeStore(private val context: Context) {
         if (bankTemplateGames.isNotEmpty() || isLoadingBankTemplateGames) return
         isLoadingBankTemplateGames = true
         try {
-            bankTemplateGames = PinballPerformanceTrace.measureSuspend("PracticeBankTemplateLoad") {
-                loadPracticeAvenueBankTemplateGames()
-            }
+            bankTemplateGames = loadPracticeBankTemplateGamesForStore()
             saveHomeBootstrapSnapshotIfNeeded()
         } finally {
             isLoadingBankTemplateGames = false
@@ -847,132 +833,48 @@ internal class PracticeStore(private val context: Context) {
     }
 
     private fun restoreHomeBootstrapSnapshotIfAvailable() {
-        val snapshot = PracticeHomeBootstrapSnapshotStore.load(context) ?: run {
+        val snapshot = loadPracticeHomeBootstrapRestorePayload(context) ?: run {
             hasRestoredHomeBootstrapSnapshot = false
             return
         }
-
-        canonicalPersistedState = emptyCanonicalPracticePersistedState().copy(
-            customGroups = snapshot.groups.map { group ->
-                CanonicalCustomGroup(
-                    id = group.id,
-                    name = group.name,
-                    gameIDs = group.gameSlugs,
-                    type = group.type,
-                    isActive = group.isActive,
-                    isArchived = group.isArchived,
-                    isPriority = group.isPriority,
-                    startDateMs = group.startDateMs,
-                    endDateMs = group.endDateMs,
-                    createdAtMs = snapshot.capturedAtMs,
-                )
-            },
-            practiceSettings = CanonicalPracticeSettings(
-                playerName = snapshot.playerName,
-                ifpaPlayerID = "",
-                comparisonPlayerName = "",
-                selectedGroupID = snapshot.selectedGroupID,
-            ),
-        )
+        canonicalPersistedState = snapshot.canonicalState
         rulesheetResumeOffsets = emptyMap()
-        applyRuntimePersistedState(
-            practicePersistedStateFromValues(
-                playerName = snapshot.playerName,
-                ifpaPlayerID = "",
-                comparisonPlayerName = "",
-                leaguePlayerName = "",
-                cloudSyncEnabled = false,
-                selectedGroupID = snapshot.selectedGroupID,
-                groups = snapshot.groups,
-                scores = emptyList(),
-                notes = emptyList(),
-                journal = emptyList(),
-                rulesheetProgress = emptyMap(),
-                gameSummaryNotes = emptyMap(),
-            ),
-        )
-        games = snapshot.visibleGames.map(PracticeHomeBootstrapGameSnapshot::toPinballGame)
-        allLibraryGames = snapshot.lookupGames.map(PracticeHomeBootstrapGameSnapshot::toPinballGame)
-        librarySources = snapshot.librarySources.map(PracticeHomeBootstrapSourceSnapshot::toLibrarySource)
+        applyRuntimePersistedState(snapshot.runtimeState)
+        games = snapshot.visibleGames
+        allLibraryGames = snapshot.lookupGames
+        librarySources = snapshot.librarySources
         defaultPracticeSourceId = snapshot.selectedLibrarySourceId
-        hasRestoredHomeBootstrapSnapshot = snapshot.isUsable()
+        hasRestoredHomeBootstrapSnapshot = snapshot.hasUsableSnapshot
     }
 
     private fun saveHomeBootstrapSnapshotIfNeeded() {
-        val snapshot = buildHomeBootstrapSnapshot() ?: return
-        PracticeHomeBootstrapSnapshotStore.save(context, snapshot)
+        savePracticeHomeBootstrapSnapshot(context, buildHomeBootstrapSnapshot())
     }
 
     private fun buildHomeBootstrapSnapshot(): PracticeHomeBootstrapSnapshot? {
-        val snapshot = PracticeHomeBootstrapSnapshot(
-            schemaVersion = 1,
-            capturedAtMs = System.currentTimeMillis(),
-            playerName = playerName.trim(),
+        return buildPracticeHomeBootstrapSnapshot(
+            playerName = playerName,
             selectedGroupID = selectedGroupID,
             groups = groups,
             selectedLibrarySourceId = defaultPracticeSourceId,
-            librarySources = librarySources.map { source ->
-                PracticeHomeBootstrapSourceSnapshot(
-                    id = source.id,
-                    name = source.name,
-                    typeRaw = source.type.rawValue,
-                )
-            },
-            visibleGames = games.map(::homeBootstrapSnapshotGame),
-            lookupGames = currentHomeBootstrapLookupGames().map(::homeBootstrapSnapshotGame),
+            librarySources = librarySources,
+            visibleGames = games,
+            lookupGames = currentHomeBootstrapLookupGames(),
         )
-        return snapshot.takeIf { it.isUsable() }
     }
 
     private fun currentHomeBootstrapLookupGames(): List<PinballGame> {
-        val combined = practiceLookupGames()
-        val resumeCandidate = resumeSlugFromLibraryOrPractice()?.let(::gameForAnyID)
-        val ordered = LinkedHashMap<String, PinballGame>()
-
-        fun append(game: PinballGame?) {
-            game ?: return
-            val key = sourceScopedPracticeGameID(game.sourceId, game.practiceKey)
-            ordered.putIfAbsent(key, game)
-        }
-
-        append(resumeCandidate)
-        combined.forEach(::append)
-        return ordered.values.toList()
-    }
-
-    private fun homeBootstrapSnapshotGame(game: PinballGame): PracticeHomeBootstrapGameSnapshot {
-        return PracticeHomeBootstrapGameSnapshot(
-            libraryEntryId = game.libraryEntryId,
-            practiceIdentity = game.practiceIdentity,
-            opdbId = game.opdbId,
-            opdbGroupId = game.opdbGroupId,
-            opdbMachineId = game.opdbMachineId,
-            variant = game.variant,
-            sourceId = game.sourceId,
-            sourceName = game.sourceName,
-            sourceTypeRaw = game.sourceType.rawValue,
-            area = game.area,
-            areaOrder = game.areaOrder,
-            group = game.group,
-            position = game.position,
-            bank = game.bank,
-            name = game.name,
-            manufacturer = game.manufacturer,
-            year = game.year,
-            slug = game.slug,
-            primaryImageUrl = game.primaryImageUrl,
-            primaryImageLargeUrl = game.primaryImageLargeUrl,
-            playfieldImageUrl = game.playfieldImageUrl,
-            alternatePlayfieldImageUrl = game.alternatePlayfieldImageUrl,
-            playfieldLocalOriginal = game.playfieldLocalOriginal,
-            playfieldLocal = game.playfieldLocal,
+        return practiceHomeBootstrapLookupGames(
+            combinedGames = practiceLookupGames(),
+            resumeCandidate = resumeSlugFromLibraryOrPractice()?.let(::gameForAnyID),
         )
     }
 
     private fun saveState() {
         canonicalPersistedState = persistenceIntegration.saveState(
             runtimeState = runtimeStateSnapshot(),
-            shadowState = canonicalPersistedState.copy(
+            shadowState = practiceShadowCanonicalState(
+                canonicalState = canonicalPersistedState,
                 rulesheetResumeOffsets = rulesheetResumeOffsets,
                 gameSummaryNotes = gameSummaryNotes,
             ),
@@ -1002,59 +904,40 @@ internal class PracticeStore(private val context: Context) {
     }
 
     private fun storedReferenceIds(): List<String> {
-        val preferenceKeys = listOf(
-            KEY_PRACTICE_LAST_VIEWED_SLUG,
-            KEY_LIBRARY_LAST_VIEWED_SLUG,
-        ) + QUICK_GAME_PREF_KEYS
-
-        return buildList {
-            addAll(groups.flatMap { it.gameSlugs })
-            addAll(scores.map { it.gameSlug })
-            addAll(notes.map { it.gameSlug })
-            addAll(journal.map { it.gameSlug })
-            addAll(rulesheetProgress.keys)
-            addAll(gameSummaryNotes.keys)
-            addAll(canonicalPersistedState.rulesheetResumeOffsets.keys)
-            addAll(canonicalPersistedState.videoResumeHints.keys)
-            addAll(canonicalPersistedState.gameSummaryNotes.keys)
-            preferenceKeys.forEach { key ->
-                prefs.getString(key, null)?.let(::add)
-            }
-        }
+        return practiceStoredReferenceIds(
+            groups = groups,
+            scores = scores,
+            notes = notes,
+            journal = journal,
+            rulesheetProgress = rulesheetProgress,
+            gameSummaryNotes = gameSummaryNotes,
+            canonicalState = canonicalPersistedState,
+            prefs = prefs,
+            quickGamePrefKeys = QUICK_GAME_PREF_KEYS,
+        )
     }
 
     private fun needsBankTemplateGamesForStoredReferences(): Boolean {
-        return storedReferenceIds().any { raw ->
-            val trimmed = raw.trim()
-            if (trimmed.isBlank()) return@any false
-            val parsed = parseSourceScopedPracticeGameID(trimmed)
-            parsed.sourceID != null && gameForAnyID(trimmed) == null
-        }
+        return practiceNeedsBankTemplateGamesForReferences(
+            referenceIds = storedReferenceIds(),
+            gameResolver = ::gameForAnyID,
+        )
     }
 
     private fun needsSearchCatalogForStoredReferences(): Boolean {
-        if (searchCatalogGames.isNotEmpty()) return false
-
-        return storedReferenceIds().any { raw ->
-            val trimmed = raw.trim()
-            if (trimmed.isBlank()) return@any false
-            val parsed = parseSourceScopedPracticeGameID(trimmed)
-            if (parsed.sourceID != null) return@any false
-            gameForAnyID(trimmed) == null
-        }
+        return practiceNeedsSearchCatalogForReferences(
+            referenceIds = storedReferenceIds(),
+            searchCatalogGamesLoaded = searchCatalogGames.isNotEmpty(),
+            gameResolver = ::gameForAnyID,
+        )
     }
 
     private fun needsAllLibraryGamesForStoredReferences(): Boolean {
-        if (didLoadAllLibraryGames) return false
-
-        return storedReferenceIds().any { raw ->
-            val trimmed = raw.trim()
-            if (trimmed.isBlank()) return@any false
-            val parsed = parseSourceScopedPracticeGameID(trimmed)
-            val sourceId = canonicalLibrarySourceId(parsed.sourceID)
-            if (sourceId == null || sourceId == PM_AVENUE_LIBRARY_SOURCE_ID) return@any false
-            gameForAnyID(trimmed) == null
-        }
+        return practiceNeedsAllLibraryGamesForReferences(
+            referenceIds = storedReferenceIds(),
+            fullLibraryLoaded = didLoadAllLibraryGames,
+            gameResolver = ::gameForAnyID,
+        )
     }
 
 }

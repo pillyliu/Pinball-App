@@ -366,6 +366,7 @@ private struct SettingsManagedSourceTable: View {
     let onTogglePinned: (String, Bool) -> Void
     let onRefresh: (PinballImportedSourceRecord) -> Void
     let onDelete: (String) -> Void
+    @State private var pendingDeleteItem: SettingsManagedSourceItem?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -395,12 +396,60 @@ private struct SettingsManagedSourceTable: View {
                     onToggleEnabled: { onToggleEnabled(item.id, $0) },
                     onTogglePinned: { onTogglePinned(item.id, $0) },
                     onRefresh: { onRefresh(item.source) },
-                    onDelete: { onDelete(item.id) }
+                    onDelete: { pendingDeleteItem = item }
                 )
                 if index < items.count - 1 {
                     AppTableRowDivider()
                 }
             }
+        }
+        .alert(deleteAlertTitle, isPresented: pendingDeleteItemAlertIsPresented) {
+            Button("Delete", role: .destructive) {
+                guard let pendingDeleteItem else { return }
+                onDelete(pendingDeleteItem.id)
+                self.pendingDeleteItem = nil
+            }
+            Button("Cancel", role: .cancel) {
+                pendingDeleteItem = nil
+            }
+        } message: {
+            Text(deleteAlertMessage)
+        }
+    }
+
+    private var pendingDeleteItemAlertIsPresented: Binding<Bool> {
+        Binding(
+            get: { pendingDeleteItem != nil },
+            set: { isPresented in
+                if !isPresented {
+                    pendingDeleteItem = nil
+                }
+            }
+        )
+    }
+
+    private var deleteAlertTitle: String {
+        let typeLabel = pendingDeleteItem.map(deleteTypeLabel(for:)) ?? "Source"
+        return "Delete \(typeLabel)?"
+    }
+
+    private var deleteAlertMessage: String {
+        guard let pendingDeleteItem else {
+            return "This removes the source from Library and Practice."
+        }
+        return "Remove \(pendingDeleteItem.title) from Library and Practice? This cannot be undone."
+    }
+
+    private func deleteTypeLabel(for item: SettingsManagedSourceItem) -> String {
+        switch item.sourceType {
+        case .manufacturer:
+            return "Manufacturer"
+        case .venue:
+            return "Venue"
+        case .tournament:
+            return "Tournament"
+        case .category:
+            return "Source"
         }
     }
 }

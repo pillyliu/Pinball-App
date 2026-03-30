@@ -131,3 +131,70 @@ final class PracticeQuickEntryDefaultsTests: XCTestCase {
         )
     }
 }
+
+final class PracticeResumeGameTests: XCTestCase {
+    func testMostRecentTimelineGameIDPrefersNewestLibraryActivity() {
+        let now = Date()
+        let journalEntries = [
+            JournalEntry(
+                gameID: "practice-game",
+                action: .scoreLogged,
+                score: 12_345,
+                timestamp: now.addingTimeInterval(-120)
+            )
+        ]
+        let libraryEvents = [
+            LibraryActivityEvent(
+                gameID: "library-game",
+                gameName: "Library Game",
+                kind: .browseGame,
+                timestamp: now
+            )
+        ]
+
+        XCTAssertEqual(
+            mostRecentPracticeTimelineGameID(
+                journalEntries: journalEntries,
+                libraryEvents: libraryEvents
+            ),
+            "library-game"
+        )
+    }
+
+    func testMostRecentTimelineGameIDPrefersNewestPracticeJournalEntry() {
+        let now = Date()
+        let journalEntries = [
+            JournalEntry(
+                gameID: "practice-game",
+                action: .practiceSession,
+                progressPercent: 80,
+                timestamp: now
+            )
+        ]
+        let libraryEvents = [
+            LibraryActivityEvent(
+                gameID: "library-game",
+                gameName: "Library Game",
+                kind: .browseGame,
+                timestamp: now.addingTimeInterval(-90)
+            )
+        ]
+
+        XCTAssertEqual(
+            mostRecentPracticeTimelineGameID(
+                journalEntries: journalEntries,
+                libraryEvents: libraryEvents
+            ),
+            "practice-game"
+        )
+    }
+
+    func testMostRecentTimelineGameIDReturnsNilWhenTimelineIsEmpty() {
+        XCTAssertNil(
+            mostRecentPracticeTimelineGameID(
+                journalEntries: [],
+                libraryEvents: []
+            )
+        )
+    }
+}

@@ -1,6 +1,12 @@
 import XCTest
 @testable import PinProf
 
+private extension ScoreParsingService {
+    static func bestCandidate(from observations: [ScoreOCRObservation]) -> ScoreScannerCandidate? {
+        rankedCandidates(from: observations).first
+    }
+}
+
 final class ScoreScannerServicesTests: XCTestCase {
     func testParsingNormalizesCommonOCRConfusions() {
         let observations = [

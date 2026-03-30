@@ -46,7 +46,7 @@ struct LibraryPlayfieldResourcesRow: View {
                     .buttonStyle(PinballResourceChipButtonStyle())
                     .simultaneousGesture(
                         TapGesture().onEnded {
-                            LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openPlayfield)
+                            LibraryActivityLog.log(gameID: game.practiceLinkID, gameName: game.name, kind: .openPlayfield)
                         }
                     )
                 }
@@ -107,7 +107,7 @@ private struct LibraryRulesheetChip: View {
         .buttonStyle(PinballResourceChipButtonStyle())
         .simultaneousGesture(
             TapGesture().onEnded {
-                LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .openRulesheet, detail: detailLabel)
+                LibraryActivityLog.log(gameID: game.practiceLinkID, gameName: game.name, kind: .openRulesheet, detail: detailLabel)
             }
         )
     }

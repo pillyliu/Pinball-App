@@ -6,6 +6,10 @@ extension PinballGame {
             opdbID?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ??
             ""
     }
+
+    var practiceLinkID: String {
+        canonicalPracticeKey.nilIfEmpty ?? id
+    }
 }
 
 private let sourceScopedPracticeGameIDPrefix = "source::"

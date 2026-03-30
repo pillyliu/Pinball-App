@@ -162,30 +162,6 @@ struct PracticeQuickEntrySheet: View {
         selectedActivity.label
     }
 
-    private var selectedVideoSourceLabel: String {
-        let trimmed = selectedVideoSource.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "Video" : trimmed
-    }
-
-    private var selectedMechanicsSkillLabel: String {
-        let trimmed = mechanicsSkill.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "Skill" : trimmed
-    }
-
-    private var quickPracticeCategories: [PracticeCategory] {
-        [.general, .modes, .multiball, .shots]
-    }
-
-    private var selectedPracticeCategoryLabel: String {
-        switch practiceCategory {
-        case .general: return "General"
-        case .modes: return "Modes"
-        case .multiball: return "Multiball"
-        case .shots: return "Shots"
-        case .strategy: return "Strategy"
-        }
-    }
-
     var body: some View {
         let gameOptions = orderedGamesForDropdown(filteredGamesForPicker, collapseByPracticeIdentity: true)
         NavigationStack {
@@ -224,147 +200,29 @@ struct PracticeQuickEntrySheet: View {
                                 .accessibilityLabel("Activity")
                             }
 
-                            switch selectedActivity {
-                            case .score:
-                                TextField("Score", text: $scoreText)
-                                    .font(.subheadline)
-                                    .keyboardType(.numberPad)
-                                    .multilineTextAlignment(.trailing)
-                                    .monospacedDigit()
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 8)
-                                    .appControlStyle()
-                                    .focused($scoreFieldFocused)
-                                    .onChange(of: scoreText) { _, newValue in
-                                        let formatted = formatScoreInputWithCommas(newValue)
-                                        if formatted != newValue { scoreText = formatted }
-                                    }
-
-                                Button {
-                                    presentScoreScanner()
-                                } label: {
-                                    Label("Scan Score", systemImage: "viewfinder")
-                                        .font(.subheadline.weight(.semibold))
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .appControlStyle()
-                                        .contentShape(RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous))
-                                }
-                                .buttonStyle(.plain)
-                                .frame(maxWidth: .infinity)
-
-                                Picker("Context", selection: $scoreContext) {
-                                    ForEach(ScoreContext.allCases) { context in
-                                        Text(context.label).tag(context)
-                                    }
-                                }
-                                .appSegmentedControlStyle()
-
-                                if scoreContext == .tournament {
-                                    styledTextField("Tournament name", text: $tournamentName)
-                                }
-                            case .rulesheet:
-                                sliderRow(title: "Rulesheet progress", value: $rulesheetProgress)
-                                styledMultilineTextEditor("Optional notes", text: $noteText)
-                            case .tutorialVideo, .gameplayVideo:
-                                Menu {
-                                    if videoSourceOptions.isEmpty {
-                                        Text("No video sources")
-                                    } else {
-                                        ForEach(videoSourceOptions, id: \.self) { source in
-                                            Button {
-                                                selectedVideoSource = source
-                                            } label: {
-                                                AppSelectableMenuRow(text: source, isSelected: selectedVideoSource == source)
-                                            }
-                                        }
-                                    }
-                                }
-                                label: {
-                                    AppCompactDropdownLabel(text: selectedVideoSourceLabel)
-                                }
-                                .buttonStyle(.plain)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .accessibilityLabel("Video")
-
-                                Picker("Input mode", selection: $videoKind) {
-                                    ForEach(practiceVideoInputKindOptions) { kind in
-                                        Text(practiceVideoInputKindLabel(kind)).tag(kind)
-                                    }
-                                }
-                                .appSegmentedControlStyle()
-
-                                if videoKind == .clock {
-                                    HStack(alignment: .top, spacing: 10) {
-                                        PracticeTimePopoverField(title: "Watched", value: $videoWatchedTime)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                        PracticeTimePopoverField(title: "Duration", value: $videoTotalTime)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                } else {
-                                    sliderRow(title: "Percent watched", value: $videoPercent)
-                                }
-
-                                styledMultilineTextEditor("Optional notes", text: $noteText)
-                            case .playfield:
-                                styledMultilineTextEditor("Optional notes", text: $noteText)
-                            case .practice:
-                                Menu {
-                                    ForEach(quickPracticeCategories) { category in
-                                        Button {
-                                            practiceCategory = category
-                                        } label: {
-                                            AppSelectableMenuRow(
-                                                text: category == .general ? "General" : category.label,
-                                                isSelected: practiceCategory == category
-                                            )
-                                        }
-                                    }
-                                }
-                                label: {
-                                    AppCompactDropdownLabel(text: selectedPracticeCategoryLabel)
-                                }
-                                .buttonStyle(.plain)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .accessibilityLabel("Practice type")
-
-                                styledTextField("Practice minutes (optional)", text: $practiceMinutes, keyboard: .numberPad)
-                                styledMultilineTextEditor("Optional notes", text: $noteText)
-                            case .mechanics:
-                                Menu {
-                                    ForEach(store.allTrackedMechanicsSkills(), id: \.self) { skill in
-                                        Button {
-                                            mechanicsSkill = skill
-                                        } label: {
-                                            AppSelectableMenuRow(text: skill, isSelected: mechanicsSkill == skill)
-                                        }
-                                    }
-                                }
-                                label: {
-                                    AppCompactDropdownLabel(text: selectedMechanicsSkillLabel)
-                                }
-                                .buttonStyle(.plain)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .accessibilityLabel("Skill")
-
-                                HStack {
-                                    Text("Competency")
-                                    Spacer()
-                                    Text("\(Int(mechanicsCompetency))/5")
-                                        .monospacedDigit()
-                                        .foregroundStyle(.primary)
-                                }
-                                Slider(value: $mechanicsCompetency, in: 1...5, step: 1)
-
-                                styledMultilineTextEditor("Optional notes", text: $mechanicsNote)
-
-                                let detected = store.detectedMechanicsTags(in: mechanicsNote)
-                                if !detected.isEmpty {
-                                    Text("Detected tags: \(detected.joined(separator: ", "))")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
+                            PracticeQuickEntryModeFields(
+                                selectedActivity: selectedActivity,
+                                videoSourceOptions: videoSourceOptions,
+                                mechanicsSkills: store.allTrackedMechanicsSkills(),
+                                detectedMechanicsTags: store.detectedMechanicsTags(in: mechanicsNote),
+                                scoreFieldFocused: $scoreFieldFocused,
+                                onOpenScoreScanner: presentScoreScanner,
+                                scoreText: $scoreText,
+                                scoreContext: $scoreContext,
+                                tournamentName: $tournamentName,
+                                rulesheetProgress: $rulesheetProgress,
+                                videoKind: $videoKind,
+                                selectedVideoSource: $selectedVideoSource,
+                                videoWatchedTime: $videoWatchedTime,
+                                videoTotalTime: $videoTotalTime,
+                                videoPercent: $videoPercent,
+                                practiceMinutes: $practiceMinutes,
+                                practiceCategory: $practiceCategory,
+                                mechanicsSkill: $mechanicsSkill,
+                                mechanicsCompetency: $mechanicsCompetency,
+                                mechanicsNote: $mechanicsNote,
+                                noteText: $noteText
+                            )
 
                             if let validationMessage {
                                 Text(validationMessage)
@@ -544,165 +402,29 @@ struct PracticeQuickEntrySheet: View {
         .accessibilityLabel("Game")
     }
 
-    @ViewBuilder
-    private func styledTextField(
-        _ placeholder: String,
-        text: Binding<String>,
-        axis: Axis = .horizontal,
-        keyboard: UIKeyboardType = .default,
-        textAlignment: TextAlignment = .leading,
-        monospacedDigits: Bool = false
-    ) -> some View {
-        let field = TextField(placeholder, text: text, axis: axis)
-            .font(.subheadline)
-            .keyboardType(keyboard)
-            .lineLimit(axis == .vertical ? 2 ... 4 : 1 ... 1)
-            .multilineTextAlignment(textAlignment)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .appControlStyle()
-        if monospacedDigits { field.monospacedDigit() } else { field }
-    }
-
-    @ViewBuilder
-    private func styledMultilineTextEditor(_ placeholder: String, text: Binding<String>) -> some View {
-        ZStack(alignment: .topLeading) {
-            if text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text(placeholder)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 14)
-                    .allowsHitTesting(false)
-            }
-            TextEditor(text: text)
-                .font(.subheadline)
-                .scrollContentBackground(.hidden)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-        }
-        .frame(minHeight: 88, maxHeight: 96)
-        .appControlStyle()
-    }
-
-    private func sliderRow(title: String, value: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text("\(Int(value.wrappedValue.rounded()))%")
-                    .monospacedDigit()
-                    .foregroundStyle(.primary)
-            }
-            Slider(value: value, in: 0...100, step: 1)
-                .tint(.white.opacity(0.92))
-                .padding(.horizontal, 2)
-        }
-    }
-
     private func save() -> String? {
-        validationMessage = nil
-        let normalizedNoteText = noteText.replacingOccurrences(of: "\r\n", with: "\n")
-        let trimmedNote = normalizedNoteText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let note = trimmedNote.isEmpty ? nil : normalizedNoteText
-
-        switch selectedActivity {
-        case .score:
-            let normalized = scoreText.replacingOccurrences(of: ",", with: "")
-            guard let score = Double(normalized), score > 0 else {
-                validationMessage = "Enter a valid score above 0."
-                return nil
-            }
-            store.addScore(gameID: selectedGameID, score: score, context: scoreContext, tournamentName: tournamentName)
-            return selectedGameID
-        case .rulesheet:
-            store.addGameTaskEntry(
-                gameID: selectedGameID,
-                task: .rulesheet,
-                progressPercent: Int(rulesheetProgress.rounded()),
-                note: note
-            )
-            return selectedGameID
-        case .tutorialVideo, .gameplayVideo:
-            guard let videoDraft = buildVideoLogDraft(
-                inputKind: videoKind,
-                sourceLabel: selectedVideoSource,
-                watchedTime: videoWatchedTime,
-                totalTime: videoTotalTime,
-                percentValue: videoPercent
-            ) else {
-                validationMessage = "Use valid hh:mm:ss watched/total values (or leave both blank for 100%)."
-                return nil
-            }
-
-            let action: JournalActionType = selectedActivity == .tutorialVideo ? .tutorialWatch : .gameplayWatch
-            store.addManualVideoProgress(
-                gameID: selectedGameID,
-                action: action,
-                kind: videoDraft.kind,
-                value: videoDraft.value,
-                progressPercent: videoDraft.progressPercent,
-                note: note
-            )
-            return selectedGameID
-        case .playfield:
-            store.addGameTaskEntry(
-                gameID: selectedGameID,
-                task: .playfield,
-                progressPercent: nil,
-                note: note ?? "Reviewed playfield image"
-            )
-            return selectedGameID
-        case .practice:
-            let trimmedMinutes = practiceMinutes.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmedMinutes.isEmpty,
-               (Int(trimmedMinutes) == nil || Int(trimmedMinutes) ?? 0 <= 0) {
-                validationMessage = "Practice minutes must be a whole number greater than 0 when entered."
-                return nil
-            }
-            let focusLine: String? = practiceCategory == .general ? nil : "Focus: \(selectedPracticeCategoryLabel)"
-            let composedNote: String?
-            if let minutes = Int(trimmedMinutes), minutes > 0 {
-                let prefix = "Practice session: \(minutes) minute\(minutes == 1 ? "" : "s")"
-                let tail = [focusLine, note].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ")
-                composedNote = tail.isEmpty ? prefix : "\(prefix). \(tail)"
-            } else {
-                let base = "Practice session"
-                let tail = [focusLine, note].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ")
-                composedNote = tail.isEmpty ? base : "\(base). \(tail)"
-            }
-            store.addGameTaskEntry(
-                gameID: selectedGameID,
-                task: .practice,
-                progressPercent: nil,
-                note: composedNote
-            )
-            return selectedGameID
-        case .mechanics:
-            let skill = mechanicsSkill.trimmingCharacters(in: .whitespacesAndNewlines)
-            let normalizedMechanicsNote = mechanicsNote.replacingOccurrences(of: "\r\n", with: "\n")
-            let rawNote = normalizedMechanicsNote.trimmingCharacters(in: .whitespacesAndNewlines)
-            let prefix = skill.isEmpty ? "#mechanics" : "#\(skill.replacingOccurrences(of: " ", with: ""))"
-            let composed = rawNote.isEmpty
-                ? "\(prefix) competency \(Int(mechanicsCompetency))/5."
-                : "\(prefix) competency \(Int(mechanicsCompetency))/5. \(rawNote)"
-            let targetGameID = store.canonicalPracticeGameID(selectedGameID)
-            store.addNote(gameID: targetGameID, category: .general, detail: skill.isEmpty ? nil : skill, note: composed)
-            return targetGameID
-        }
+        let result = savePracticeQuickEntry(
+            store: store,
+            activity: selectedActivity,
+            selectedGameID: selectedGameID,
+            scoreText: scoreText,
+            scoreContext: scoreContext,
+            tournamentName: tournamentName,
+            rulesheetProgress: rulesheetProgress,
+            videoKind: videoKind,
+            selectedVideoSource: selectedVideoSource,
+            videoWatchedTime: videoWatchedTime,
+            videoTotalTime: videoTotalTime,
+            videoPercent: videoPercent,
+            practiceMinutes: practiceMinutes,
+            practiceCategory: practiceCategory,
+            mechanicsSkill: mechanicsSkill,
+            mechanicsCompetency: mechanicsCompetency,
+            mechanicsNote: mechanicsNote,
+            noteText: noteText
+        )
+        validationMessage = result.validationMessage
+        return result.savedGameID
     }
 
-}
-private func formatScoreInputWithCommas(_ raw: String) -> String {
-    let digits = raw.filter(\.isNumber)
-    guard !digits.isEmpty else { return "" }
-    var grouped: [String] = []
-    var remaining = String(digits)
-    while remaining.count > 3 {
-        let cut = remaining.index(remaining.endIndex, offsetBy: -3)
-        grouped.insert(String(remaining[cut...]), at: 0)
-        remaining = String(remaining[..<cut])
-    }
-    grouped.insert(remaining, at: 0)
-    return grouped.joined(separator: ",")
 }

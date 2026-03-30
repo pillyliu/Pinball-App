@@ -20,7 +20,7 @@ struct LibraryDetailVideoGrid: View {
                     onSelect: {
                         activeVideoID = video.id
                         LibraryActivityLog.log(
-                            gameID: game.id,
+                            gameID: game.practiceLinkID,
                             gameName: game.name,
                             kind: .tapVideo,
                             detail: video.label

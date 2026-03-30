@@ -95,8 +95,8 @@ struct LibraryScreen: View {
     }
 
     private func handleDetailGameAppear(_ game: PinballGame) {
-        appNavigation.lastViewedLibraryGameID = game.id
-        LibraryActivityLog.log(gameID: game.id, gameName: game.name, kind: .browseGame)
+        appNavigation.lastViewedLibraryGameID = game.practiceLinkID
+        LibraryActivityLog.log(gameID: game.practiceLinkID, gameName: game.name, kind: .browseGame)
     }
 }
 
