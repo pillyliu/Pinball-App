@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PinProf Full Promo Storyboard</title>
+  <style>
+    :root {
+      --bg: #130f0d;
+      --panel: rgba(28, 21, 17, 0.88);
+      --panel-soft: rgba(255, 255, 255, 0.035);
+      --line: rgba(255, 231, 206, 0.12);
+      --text: #f6eadc;
+      --muted: #d0b9a1;
+      --gold: #f2b24a;
+      --amber: #ff8f2b;
+      --red: #df5a43;
+      --teal: #69c8c0;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(223, 90, 67, 0.16), transparent 22%),
+        radial-gradient(circle at top right, rgba(105, 200, 192, 0.14), transparent 22%),
+        linear-gradient(180deg, #120f0d 0%, #17120f 100%);
+    }
+
+    .page {
+      width: min(1600px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 28px 0 56px;
+    }
+
+    .hero {
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      border-radius: 28px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 0.98;
+      font-weight: 850;
+    }
+
+    .subhead {
+      max-width: 980px;
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.45;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .legend span {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(18, 15, 13, 0.62);
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .section {
+      margin-top: 28px;
+      padding: 18px;
+      border-radius: 28px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      box-shadow: var(--shadow);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+      padding: 2px 6px 0;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.05;
+      font-weight: 800;
+    }
+
+    .section-time {
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.09);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+      overflow: hidden;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px 0;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 21px;
+      line-height: 1.1;
+      font-weight: 800;
+    }
+
+    .card-time {
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .frame {
+      position: relative;
+      margin: 14px 18px 0;
+      aspect-ratio: 16 / 9;
+      border-radius: 22px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #241b16, #110d0b);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+    }
+
+    .notes {
+      display: grid;
+      gap: 12px;
+      padding: 16px 18px 18px;
+    }
+
+    .detail {
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .detail .label {
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding-top: 2px;
+    }
+
+    .detail .value {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .glow {
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(10px);
+      opacity: 0.78;
+    }
+
+    .g1 {
+      width: 240px;
+      height: 240px;
+      right: 2%;
+      top: 8%;
+      background: radial-gradient(circle, rgba(242,178,74,0.86), rgba(242,178,74,0.06) 62%, transparent 74%);
+    }
+
+    .g2 {
+      width: 220px;
+      height: 220px;
+      right: 15%;
+      bottom: 0;
+      background: radial-gradient(circle, rgba(105,200,192,0.62), rgba(105,200,192,0.05) 62%, transparent 74%);
+    }
+
+    .g3 {
+      width: 180px;
+      height: 180px;
+      left: 0;
+      bottom: 8%;
+      background: radial-gradient(circle, rgba(223,90,67,0.6), rgba(223,90,67,0.04) 62%, transparent 74%);
+    }
+
+    .soft-vignette {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(7, 6, 6, 0.56) 0%, rgba(7, 6, 6, 0.14) 40%, rgba(7, 6, 6, 0.38) 100%),
+        radial-gradient(circle at center, transparent 42%, rgba(0,0,0,0.46) 100%);
+    }
+
+    .person,
+    .phone,
+    .logo,
+    .screen,
+    .mini-logo {
+      position: absolute;
+      overflow: hidden;
+      box-shadow: 0 24px 40px rgba(0,0,0,0.34);
+    }
+
+    .person img,
+    .phone img,
+    .logo img,
+    .screen img,
+    .mini-logo img,
+    .bg img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .person {
+      width: 28%;
+      aspect-ratio: 1;
+      border-radius: 26px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: #201611;
+    }
+
+    .person.center {
+      left: 36%;
+      top: 20%;
+    }
+
+    .person.left {
+      left: 5%;
+      top: 14%;
+    }
+
+    .person.centerwide {
+      left: 35%;
+      top: 18%;
+      width: 29%;
+    }
+
+    .logo {
+      right: 6%;
+      top: 10%;
+      width: 38%;
+      aspect-ratio: 1;
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: #fff8ef;
+    }
+
+    .mini-logo {
+      inset: 15% 31%;
+      border-radius: 28px;
+      background: #fff8ef;
+    }
+
+    .screen {
+      right: 4%;
+      top: 8%;
+      width: 43%;
+      height: 84%;
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.09);
+      background: #0b0b0b;
+    }
+
+    .screen.soft {
+      opacity: 0.42;
+      filter: saturate(0.8) blur(0.2px);
+    }
+
+    .phone {
+      right: 6%;
+      top: 7%;
+      width: 37%;
+      height: 86%;
+      border-radius: 30px;
+      border: 8px solid #221913;
+      background: #000;
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      z-index: 3;
+      left: 50%;
+      top: 8px;
+      width: 28%;
+      height: 18px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: rgba(32, 27, 23, 0.92);
+    }
+
+    .bg {
+      position: absolute;
+      inset: 0;
+      opacity: 0.34;
+      filter: blur(8px) saturate(1.12);
+      transform: scale(1.06);
+    }
+
+    .title-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      background: linear-gradient(180deg, rgba(15, 12, 10, 0.68), rgba(15, 12, 10, 0.8));
+    }
+
+    .title-overlay h3 {
+      margin: 0;
+      font-size: clamp(42px, 5vw, 70px);
+      line-height: 1;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .title-overlay p {
+      margin: 10px 0 0;
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .caption {
+      position: absolute;
+      left: 18px;
+      bottom: 18px;
+      max-width: 54%;
+      padding: 13px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(18,15,13,0.8);
+      backdrop-filter: blur(10px);
+    }
+
+    .caption strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .caption span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .feature-pill,
+    .director,
+    .tag {
+      position: absolute;
+      padding: 9px 13px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(18,15,13,0.82);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      box-shadow: 0 16px 28px rgba(0,0,0,0.28);
+    }
+
+    .feature-pill {
+      left: 33%;
+      top: 16%;
+      color: var(--text);
+    }
+
+    .feature-stack {
+      position: absolute;
+      left: 33%;
+      top: 16%;
+      display: grid;
+      gap: 10px;
+    }
+
+    .director {
+      right: 18px;
+      bottom: 18px;
+      color: var(--gold);
+    }
+
+    .tag {
+      left: 18px;
+      top: 18px;
+      color: var(--gold);
+    }
+
+    .arrow-text {
+      position: absolute;
+      left: 43%;
+      top: 47%;
+      color: var(--gold);
+      font-size: 22px;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .ghost-panel {
+      position: absolute;
+      right: 4%;
+      top: 12%;
+      width: 44%;
+      height: 76%;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      border-radius: 28px;
+      border: 1px dashed rgba(255,255,255,0.16);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+        radial-gradient(circle at center, rgba(242,178,74,0.16), rgba(242,178,74,0.03) 60%, transparent 74%);
+      text-align: center;
+      color: rgba(246,234,220,0.72);
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--gold);
+    }
+
+    @media (max-width: 1180px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <p class="eyebrow">Shot-By-Shot Board</p>
+      <h1>PinProf Full Promo Storyboard</h1>
+      <p class="subhead">A full visual production board for the 2:25 intro video. Each frame maps the look, spoken line, app action, on-screen feature label, and transition so you can shoot and edit from one page.</p>
+      <div class="legend">
+        <span>Centered A-roll intro/outro</span>
+        <span>Left A-roll + right app proof</span>
+        <span>Full-screen tab title cards</span>
+        <span>2-3 word feature overlays</span>
+        <span>Quick crossfades between sections</span>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Opening</h2>
+        <div class="section-time">0:00-0:15</div>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 1. Cold Open</h3>
+            <div class="card-time">0:00-0:07</div>
+          </div>
+          <div class="frame">
+            <div class="glow g1"></div>
+            <div class="glow g2"></div>
+            <div class="glow g3"></div>
+            <div class="soft-vignette"></div>
+            <div class="person center">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter centered" />
+            </div>
+            <div class="caption">
+              <strong>Centered camera intro in front of a glowing machine</strong>
+              <span>Dim room. Machine stays soft and atmospheric behind you. Keylight shapes your face.</span>
+            </div>
+            <div class="director">Fade in from black</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“Hey everyone, my name is Peter. I’m excited to share with you all something I’ve been working on for the past few months.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">None yet. Pure A-roll introduction.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value">None.</div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Fade in from black.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 2. PinProf Reveal</h3>
+            <div class="card-time">0:07-0:13</div>
+          </div>
+          <div class="frame">
+            <div class="glow g1"></div>
+            <div class="glow g2"></div>
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="arrow-text">This is PinProf</div>
+            <div class="logo">
+              <img src="../../PinProf%20Logo%20Cropped%20HQ.jpg" alt="PinProf logo" />
+            </div>
+            <div class="caption">
+              <strong>Shift left to create the app/proof zone</strong>
+              <span>This establishes the recurring split layout used throughout the promo.</span>
+            </div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“This is PinProf, a pinball study app with your own personal pinball professor.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Logo only on the right half of frame.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value">None.</div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Peter slides left while logo fades in on the right.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 3. Library Title Card</h3>
+            <div class="card-time">0:13-0:15</div>
+          </div>
+          <div class="frame">
+            <div class="bg">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/library-screenshot.webp" alt="Library background" />
+            </div>
+            <div class="title-overlay">
+              <div>
+                <h3>Library</h3>
+                <p>Look It Up Fast</p>
+              </div>
+            </div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">No narration needed. Quick beat between intro and Library story.</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">None. Full-screen stylized tab card.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Library</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Quick crossfade from logo reveal.</div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Library</h2>
+        <div class="section-time">0:15-0:35</div>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 4. Rulesheet Jump</h3>
+            <div class="card-time">0:15-0:23</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/library-screenshot.webp" alt="Library screenshot" />
+            </div>
+            <div class="feature-pill">Read Rulesheet</div>
+            <div class="tag">Jurassic Park</div>
+            <div class="director">Cut from title card</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“When you’re walking up to a game, sometimes you just want to look something up quickly. On Jurassic Park, how do you qualify that early extra ball, and where do you collect it? In Library, you can jump straight to that part of the rules, see that it takes six rescues to light extra ball, and that it’s collected at the right ramp.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Open <code>Library</code>, scroll to <code>Jurassic Park</code>, open game view, open <code>Rulesheet</code>, jump to <code>Extra Ball</code>, highlight <code>6 rescues</code>, highlight <code>right ramp</code>.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Read Rulesheet</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Cut from full-screen title card to split-screen layout.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 5. Playfield Proof</h3>
+            <div class="card-time">0:23-0:29</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="screen">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/library-screenshot.webp" alt="Playfield reference" />
+            </div>
+            <div class="feature-pill">View Playfield</div>
+            <div class="caption">
+              <strong>Hold on the right-ramp area</strong>
+              <span>Let the extra ball sign be the visual payoff to the rulesheet line.</span>
+            </div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“Then you can check the playfield, spot that little extra ball sign...”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Tap <code>Playfield</code>, zoom to right ramp, show extra ball sign above it.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>View Playfield</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Hard cut from rulesheet clip.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 6. Gameplay Follow-Through</h3>
+            <div class="card-time">0:29-0:35</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/library-screenshot.webp" alt="Gameplay reference" />
+            </div>
+            <div class="feature-pill">Watch Gameplay</div>
+            <div class="director">Quick dip to next title card</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“...and even watch a gameplay video to see it in action.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Scroll to videos, tap <code>Gameplay Video 1</code>, tap <code>Open in YouTube</code>.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Watch Gameplay</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Hard cut in-section, then quick dip to Practice title card.</div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Practice</h2>
+        <div class="section-time">0:35-1:01</div>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 7. Practice Title Card</h3>
+            <div class="card-time">0:35-0:37</div>
+          </div>
+          <div class="frame">
+            <div class="bg">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/practice-screenshot.webp" alt="Practice background" />
+            </div>
+            <div class="title-overlay">
+              <div>
+                <h3>Practice</h3>
+                <p>Track The Work</p>
+              </div>
+            </div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">No narration beat needed here. Let the title card reset the viewer.</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">None. Full-screen transition card.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Practice</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Quick crossfade from Library section.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 8. Study Logging</h3>
+            <div class="card-time">0:37-0:43</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/practice-screenshot.webp" alt="Practice screenshot" />
+            </div>
+            <div class="feature-pill">Log Study</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“With all of this practice you’re putting in, you’ll want to keep track of it. If you studied the rules or reviewed the playfield, you can log that.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Open <code>Practice</code>, show <code>Resume Game</code> for <code>Jurassic Park</code>, log <code>Rulesheet Study</code>, log <code>Playfield Review</code>.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Log Study</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Cut from title card to split-screen.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 9. Score Scan</h3>
+            <div class="card-time">0:43-0:49</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/practice-screenshot.webp" alt="Scan score reference" />
+            </div>
+            <div class="feature-pill">Scan Score</div>
+            <div class="caption">
+              <strong>Keep this clip tight</strong>
+              <span>Only show the alignment, auto-freeze, reading, and save.</span>
+            </div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“Recording your scores is easy. You can scan a score right off the machine and save it in seconds.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Open score entry, tap <code>Scan Score</code>, line up score, auto-freeze, use reading, save score.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Scan Score</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Hard cut from study logging.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 10. Group Creation</h3>
+            <div class="card-time">0:49-0:55</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/practice-screenshot.webp" alt="Group dashboard reference" />
+            </div>
+            <div class="feature-pill">Create Study Group</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“You can also build a study group around an upcoming bank of league games.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Open <code>Group Dashboard</code>, choose <code>LPL Bank Templates</code>, select <code>Bank 7</code>, create group.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Create Study Group</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Hard cut from score scan.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 11. Notes Lookup</h3>
+            <div class="card-time">0:55-0:58</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/practice-screenshot.webp" alt="Notes lookup" />
+            </div>
+            <div class="feature-pill">Review Notes</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“Look up any machine quickly, review notes...”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Swipe back to <code>Practice</code>, tap search icon, type <code>mm</code>, open <code>Medieval Madness</code>, scroll to game note.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Review Notes</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Cut within the line so the visual pace stays ahead of the narration.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 12. Log History</h3>
+            <div class="card-time">0:58-1:01</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/practice-screenshot.webp" alt="Log history" />
+            </div>
+            <div class="feature-pill">Check Game Log</div>
+            <div class="director">Quick crossfade to GameRoom card</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“...and check the log to see everything you’ve done for practice in the past.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Tap <code>Log</code> and scroll through the history.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Check Game Log</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Hard cut within Practice, then quick crossfade to GameRoom title card.</div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">GameRoom</h2>
+        <div class="section-time">1:01-1:22</div>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 13. GameRoom Title Card</h3>
+            <div class="card-time">1:01-1:03</div>
+          </div>
+          <div class="frame">
+            <div class="bg">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/gameroom-screenshot.webp" alt="GameRoom background" />
+            </div>
+            <div class="title-overlay">
+              <div>
+                <h3>GameRoom</h3>
+                <p>Own The Collection</p>
+              </div>
+            </div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">No extra line needed. Let the title card do the reset.</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">None.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>GameRoom</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Quick crossfade from Practice.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 14. Pinside Import</h3>
+            <div class="card-time">1:03-1:09</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/gameroom-screenshot.webp" alt="GameRoom import" />
+            </div>
+            <div class="feature-pill">Import Pinside Collection</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“For owners, PinProf makes it easy to keep track of your personal collection.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Open <code>GameRoom</code>, import from <code>Pinside</code>, type <code>Pillyliu</code>, show <code>Pokemon</code> as unimported, click import.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Import Pinside Collection</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Cut from title card to split-screen.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 15. Area + Position</h3>
+            <div class="card-time">1:09-1:13</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/gameroom-screenshot.webp" alt="Organize games" />
+            </div>
+            <div class="feature-pill">Organize Games</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“You can import your games from Pinside and organize them by area and position.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Assign area, group, and position to <code>Pokemon</code>.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Organize Games</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Hard cut from import flow.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 16. Machine Maintenance</h3>
+            <div class="card-time">1:13-1:18</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/gameroom-screenshot.webp" alt="Track issues" />
+            </div>
+            <div class="feature-pill">Track Issues</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“Keep track of play count and maintenance, log issues and fixes as they happen...”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Swipe back to <code>GameRoom</code>, tap <code>Godzilla</code> to show selected machine view, tap again to enter game view, resolve issue <code>left flipper rebuilt</code>.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Track Issues</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Hard cut.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 17. Library Browse View</h3>
+            <div class="card-time">1:18-1:22</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="screen">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/gameroom-screenshot.webp" alt="Browse GameRoom" />
+            </div>
+            <div class="feature-pill">Browse GameRoom</div>
+            <div class="director">Crossfade to Settings card</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“...and browse your GameRoom in the Library.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Go to <code>Library</code>, change filter from manufacturer to <code>GameRoom</code> (<code>Flynn's Arcade</code>), show games laid out by location.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Browse GameRoom</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Hard cut, then quick crossfade to Settings title card.</div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Settings</h2>
+        <div class="section-time">1:22-1:35</div>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 18. Settings Title Card</h3>
+            <div class="card-time">1:22-1:24</div>
+          </div>
+          <div class="frame">
+            <div class="bg">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/settings-screenshot.webp" alt="Settings background" />
+            </div>
+            <div class="title-overlay">
+              <div>
+                <h3>Settings</h3>
+                <p>Connect Real Play</p>
+              </div>
+            </div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">Quick visual reset before venue, tournament, and IFPA examples.</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">None.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Settings</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Quick crossfade.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 19. Venue + Tournament Import</h3>
+            <div class="card-time">1:24-1:30</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/settings-screenshot.webp" alt="Venue and tournament import" />
+            </div>
+            <div class="feature-pill">Import Venues / Tournaments</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“PinProf also connects you to the places you play at and the tournaments you compete in. You can add your local arcade and bring those games into the Library. If you play competitively, load in a tournament’s arena list with its MatchPlay ID for easy studying...”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Open <code>Settings</code>, add your local arcade (<code>Pinball Pete's</code>), add tournament, enter MatchPlay ID <code>240877</code>.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>Import Venues / Tournaments</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Cut from title card to split-screen.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 20. IFPA Profile</h3>
+            <div class="card-time">1:30-1:35</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/settings-screenshot.webp" alt="IFPA profile" />
+            </div>
+            <div class="feature-pill">View IFPA Profile</div>
+            <div class="director">Crossfade to League card</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“...and quickly check your IFPA profile to see where you stand.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Open IFPA profile.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>View IFPA Profile</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Hard cut in-section, then crossfade to League title card.</div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">League</h2>
+        <div class="section-time">1:35-1:57</div>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 21. League Title Card</h3>
+            <div class="card-time">1:35-1:37</div>
+          </div>
+          <div class="frame">
+            <div class="bg">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/league-screenshot.webp" alt="League background" />
+            </div>
+            <div class="title-overlay">
+              <div>
+                <h3>League</h3>
+                <p>Your Local Scene</p>
+              </div>
+            </div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">Quick reset before the LPL-specific finish.</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">None.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>League</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Quick crossfade from Settings.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 22. League Stats</h3>
+            <div class="card-time">1:37-1:44</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/league-screenshot.webp" alt="LPL stats" />
+            </div>
+            <div class="feature-pill">View LPL Stats</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“Finally, there are some special features for my local pinball family, the Lansing Pinball League. With PinProf, you can easily view league stats at a glance.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Open <code>League</code>, show mini views refreshing, open <code>Stats</code>, select bank <code>5</code>, player <code>Peter Liu</code>, machine <code>Pulp Fiction</code>, show machine stats.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>View LPL Stats</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Cut from title card to split-screen.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 23. Season Growth</h3>
+            <div class="card-time">1:44-1:51</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/league-screenshot.webp" alt="LPL standings" />
+            </div>
+            <div class="feature-pill">View LPL Standings</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“Or you can take a deep dive and see how you did on a game compared to everyone else in that bank or from across all of LPL history. You can track your growth over the seasons...”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Open <code>Standings</code>, select season <code>21</code>, scroll to <code>Peter L</code>, keep only last initial visible for privacy.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>View LPL Standings</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Hard cut from stats view.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 24. Targets</h3>
+            <div class="card-time">1:51-1:57</div>
+          </div>
+          <div class="frame">
+            <div class="person left">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter left" />
+            </div>
+            <div class="phone">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/league-screenshot.webp" alt="LPL score targets" />
+            </div>
+            <div class="feature-pill">LPL Score Targets</div>
+            <div class="director">App fades out next</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“...and use score targets to help plan your next practice session.”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">Back out, open <code>Targets</code>, filter to <code>Bank 7</code>.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value"><code>LPL Score Targets</code></div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Hard cut in-section, then app begins fading for the outro.</div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Outro</h2>
+        <div class="section-time">1:57-2:25</div>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 25. Return To Center</h3>
+            <div class="card-time">1:57-2:18</div>
+          </div>
+          <div class="frame">
+            <div class="glow g1"></div>
+            <div class="glow g2"></div>
+            <div class="person centerwide">
+              <img src="../../Pinball%20App%202/Pinball%20App%202/SharedAppSupport/app-intro/professor-headshot.webp" alt="Peter recentered" />
+            </div>
+            <div class="ghost-panel">App footage fades away here as you slide back to center for the closing message.</div>
+            <div class="caption">
+              <strong>Back to camera-only for the thank-you</strong>
+              <span>This mirrors the opening and gives the final lines a more personal landing.</span>
+            </div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">“Over the past year and a half, I’ve gotten so much from the pinball community. I’ve met a ton of awesome people and made some amazing friends. I hope PinProf can be my way to give a little back. Give the app a flip and let me know what you think. Thanks!”</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">App pane fades away during the first line of the outro.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value">None.</div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">App fades out while Peter recenters.</div></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h3 class="card-title">Shot 26. Logo End Card</h3>
+            <div class="card-time">2:18-2:25</div>
+          </div>
+          <div class="frame">
+            <div class="glow g1"></div>
+            <div class="glow g3"></div>
+            <div class="mini-logo">
+              <img src="../../PinProf%20Logo%20Cropped%20HQ.jpg" alt="PinProf logo end card" />
+            </div>
+            <div class="director">Hold, then fade to black</div>
+          </div>
+          <div class="notes">
+            <div class="detail"><div class="label">Script</div><div class="value">No additional voiceover needed. Let the brand card breathe.</div></div>
+            <div class="detail"><div class="label">App</div><div class="value">None.</div></div>
+            <div class="detail"><div class="label">Overlay</div><div class="value">None.</div></div>
+            <div class="detail"><div class="label">Transition</div><div class="value">Cut to logo, hold for 2-3 seconds, fade to black.</div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
