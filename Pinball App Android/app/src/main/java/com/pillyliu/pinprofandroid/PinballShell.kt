@@ -217,7 +217,7 @@ private fun PinballShellContent(
     val appContext = LocalContext.current.applicationContext
     val practiceStore = remember(appContext) { PracticeStore(appContext) }
     val gameRoomStore = remember(appContext) { GameRoomStore(appContext) }
-    val gameRoomCatalogLoader = remember(appContext) { GameRoomCatalogLoader(appContext) }
+    val gameRoomCatalogLoader = remember { GameRoomCatalogLoader() }
     val gameRoomPinsideImportService = remember(appContext) { GameRoomPinsideImportService(appContext) }
     when (selectedTab) {
         PinballTab.Settings -> SettingsScreen(contentPadding = contentPaddingWithBottomBar)

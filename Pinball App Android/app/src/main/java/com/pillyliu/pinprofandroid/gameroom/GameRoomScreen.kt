@@ -1,10 +1,7 @@
 package com.pillyliu.pinprofandroid.gameroom
 
-import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -65,14 +62,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -122,78 +115,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.pillyliu.pinprofandroid.library.ConstrainedAsyncImagePreview
 
-private enum class GameRoomRoute {
-    Home,
-    Settings,
-    MachineView,
-}
-
-internal enum class GameRoomSettingsSection(val label: String) {
-    Import("Import"),
-    Edit("Edit"),
-    Archive("Archive"),
-}
-
-internal enum class GameRoomArchiveFilter(val label: String) {
-    All("All"),
-    Sold("Sold"),
-    Traded("Traded"),
-    Archived("Archived"),
-}
-
-internal enum class GameRoomCollectionLayout(val label: String) {
-    Tiles("Cards"),
-    List("List"),
-}
-
-internal enum class GameRoomMachineSubview(val label: String) {
-    Summary("Summary"),
-    Input("Input"),
-    Log("Log"),
-}
-
-internal enum class GameRoomInputSheet(val title: String) {
-    CleanGlass("Clean Glass"),
-    CleanPlayfield("Clean Playfield"),
-    SwapBalls("Swap Balls"),
-    CheckPitch("Check Pitch"),
-    LevelMachine("Level Machine"),
-    GeneralInspection("General Inspection"),
-    LogIssue("Log Issue"),
-    ResolveIssue("Resolve Issue"),
-    OwnershipUpdate("Ownership Update"),
-    InstallMod("Install Mod"),
-    ReplacePart("Replace Part"),
-    LogPlays("Log Plays"),
-    AddMedia("Add Photo/Video"),
-}
-
-internal enum class ImportReviewFilter(val label: String) {
-    All("All"),
-    NeedsReview("Needs Review"),
-}
-
-internal data class ImportDraftRow(
-    val id: String,
-    val sourceItemKey: String,
-    val rawTitle: String,
-    val rawVariant: String?,
-    val matchConfidence: MachineImportMatchConfidence,
-    val suggestions: List<String>,
-    val fingerprint: String,
-    val selectedCatalogGameID: String?,
-    val selectedVariant: String?,
-    val rawPurchaseDateText: String?,
-    val normalizedPurchaseDateMs: Long?,
-)
-
-internal data class IssueInputAttachmentDraft(
-    val id: String,
-    val kind: MachineAttachmentKind,
-    val uri: String,
-    val caption: String?,
-)
-
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 internal fun GameRoomScreen(
@@ -204,294 +125,130 @@ internal fun GameRoomScreen(
 ) {
     val context = LocalContext.current
     val store = externalStore ?: remember(context.applicationContext) { GameRoomStore(context.applicationContext) }
-    val catalogLoader = externalCatalogLoader ?: remember(context.applicationContext) { GameRoomCatalogLoader(context.applicationContext) }
+    val catalogLoader = externalCatalogLoader ?: remember { GameRoomCatalogLoader() }
     val pinsideImportService = externalPinsideImportService ?: remember(context.applicationContext) { GameRoomPinsideImportService(context.applicationContext) }
     val scope = rememberCoroutineScope()
-    var route by rememberSaveable { mutableStateOf(GameRoomRoute.Home) }
-    var selectedSettingsSection by rememberSaveable { mutableStateOf(GameRoomSettingsSection.Import) }
-    var selectedMachineID by rememberSaveable { mutableStateOf<String?>(null) }
-    var collectionLayout by rememberSaveable { mutableStateOf(GameRoomCollectionLayout.Tiles) }
-    var archiveFilter by rememberSaveable { mutableStateOf(GameRoomArchiveFilter.All) }
-    var machineSubview by rememberSaveable { mutableStateOf(GameRoomMachineSubview.Summary) }
-    var selectedLogEventID by rememberSaveable { mutableStateOf<String?>(null) }
-    var editingEventID by rememberSaveable { mutableStateOf<String?>(null) }
-    var editEventDateDraft by rememberSaveable { mutableStateOf(todayIsoDate()) }
-    var editEventSummaryDraft by rememberSaveable { mutableStateOf("") }
-    var editEventNotesDraft by rememberSaveable { mutableStateOf("") }
-    var activeInputSheet by rememberSaveable { mutableStateOf<GameRoomInputSheet?>(null) }
-    var inputNotesDraft by rememberSaveable { mutableStateOf("") }
-    var inputConsumableDraft by rememberSaveable { mutableStateOf("") }
-    var inputPitchValueDraft by rememberSaveable { mutableStateOf("") }
-    var inputPitchPointDraft by rememberSaveable { mutableStateOf("") }
-    var inputIssueSymptomDraft by rememberSaveable { mutableStateOf("") }
-    var inputIssueSeverityDraft by rememberSaveable { mutableStateOf(MachineIssueSeverity.medium.name) }
-    var inputIssueSubsystemDraft by rememberSaveable { mutableStateOf(MachineIssueSubsystem.other.name) }
-    var inputIssueDiagnosisDraft by rememberSaveable { mutableStateOf("") }
-    var inputDateDraft by rememberSaveable { mutableStateOf(todayIsoDate()) }
-    var inputResolveIssueIDDraft by rememberSaveable { mutableStateOf<String?>(null) }
-    var inputOwnershipTypeDraft by rememberSaveable { mutableStateOf(MachineEventType.moved.name) }
-    var inputSummaryDraft by rememberSaveable { mutableStateOf("") }
-    var inputDetailsDraft by rememberSaveable { mutableStateOf("") }
-    var inputPlayTotalDraft by rememberSaveable { mutableStateOf("") }
-    var inputMediaKindDraft by rememberSaveable { mutableStateOf(MachineAttachmentKind.photo.name) }
-    var inputMediaURIDraft by rememberSaveable { mutableStateOf("") }
-    var inputMediaCaptionDraft by rememberSaveable { mutableStateOf("") }
-    var pendingMediaMachineID by rememberSaveable { mutableStateOf<String?>(null) }
-    var pendingMediaOwnerType by rememberSaveable { mutableStateOf(MachineAttachmentOwnerType.event.name) }
-    var pendingMediaOwnerID by rememberSaveable { mutableStateOf<String?>(null) }
-    var pendingMediaOccurredAtMs by rememberSaveable { mutableStateOf<Long?>(null) }
-    var pendingMediaCaptionDraft by rememberSaveable { mutableStateOf("") }
-    var pendingMediaNotesDraft by rememberSaveable { mutableStateOf("") }
-    var issueDraftAttachments by remember { mutableStateOf<List<IssueInputAttachmentDraft>>(emptyList()) }
-    var mediaPreviewAttachmentID by rememberSaveable { mutableStateOf<String?>(null) }
-    var editingAttachmentID by rememberSaveable { mutableStateOf<String?>(null) }
-    var editAttachmentCaptionDraft by rememberSaveable { mutableStateOf("") }
-    var editAttachmentNotesDraft by rememberSaveable { mutableStateOf("") }
-    var addMachineExpanded by rememberSaveable { mutableStateOf(false) }
-    var nameExpanded by rememberSaveable { mutableStateOf(false) }
-    var areasExpanded by rememberSaveable { mutableStateOf(false) }
-    var editMachinesExpanded by rememberSaveable { mutableStateOf(false) }
-    var areaNameDraft by rememberSaveable { mutableStateOf("") }
-    var areaOrderDraft by rememberSaveable { mutableStateOf("1") }
-    var selectedAreaID by rememberSaveable { mutableStateOf<String?>(null) }
-    var selectedEditMachineID by rememberSaveable { mutableStateOf<String?>(null) }
-    var draftAreaID by rememberSaveable { mutableStateOf<String?>(null) }
-    var draftGroup by rememberSaveable { mutableStateOf("") }
-    var draftPosition by rememberSaveable { mutableStateOf("") }
-    var draftStatus by rememberSaveable { mutableStateOf(OwnedMachineStatus.active.name) }
-    var draftVariant by rememberSaveable { mutableStateOf("None") }
-    var draftPurchaseSource by rememberSaveable { mutableStateOf("") }
-    var draftSerialNumber by rememberSaveable { mutableStateOf("") }
-    var draftOwnershipNotes by rememberSaveable { mutableStateOf("") }
-    var venueNameDraft by rememberSaveable { mutableStateOf("") }
-    var importSourceInput by rememberSaveable { mutableStateOf("") }
-    var importSourceURL by rememberSaveable { mutableStateOf("") }
-    var importRows by remember { mutableStateOf<List<ImportDraftRow>>(emptyList()) }
-    var importIsLoading by rememberSaveable { mutableStateOf(false) }
-    var importErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
-    var importResultMessage by rememberSaveable { mutableStateOf<String?>(null) }
-    var importReviewFilter by rememberSaveable { mutableStateOf(ImportReviewFilter.All) }
-    var settingsSaveFeedbackMessage by rememberSaveable { mutableStateOf<String?>(null) }
-    var settingsSaveFeedbackTick by rememberSaveable { mutableIntStateOf(0) }
-    val activeMachines = store.activeMachines
-    val selectedMachineFromAll = store.state.ownedMachines.firstOrNull { it.id == selectedMachineID }
-    val selectedMachine = activeMachines.firstOrNull { it.id == selectedMachineID } ?: activeMachines.firstOrNull()
-    val allMachines = store.activeMachines + store.archivedMachines
-    val selectedEditMachine = allMachines.firstOrNull { it.id == selectedEditMachineID }
+    val navigationState = rememberGameRoomNavigationState()
+    val presentationState = rememberGameRoomPresentationDraftState()
+    val settingsState = rememberGameRoomSettingsDraftState()
+    var route by navigationState.route
+    var selectedSettingsSection by navigationState.selectedSettingsSection
+    var selectedMachineID by navigationState.selectedMachineID
+    var collectionLayout by navigationState.collectionLayout
+    var archiveFilter by navigationState.archiveFilter
+    var machineSubview by navigationState.machineSubview
+    var selectedLogEventID by navigationState.selectedLogEventID
+    var editingEventID by presentationState.editingEventID
+    var editEventDateDraft by presentationState.editEventDateDraft
+    var editEventSummaryDraft by presentationState.editEventSummaryDraft
+    var editEventNotesDraft by presentationState.editEventNotesDraft
+    var activeInputSheet by presentationState.activeInputSheet
+    var inputNotesDraft by presentationState.inputNotesDraft
+    var inputConsumableDraft by presentationState.inputConsumableDraft
+    var inputPitchValueDraft by presentationState.inputPitchValueDraft
+    var inputPitchPointDraft by presentationState.inputPitchPointDraft
+    var inputIssueSymptomDraft by presentationState.inputIssueSymptomDraft
+    var inputIssueSeverityDraft by presentationState.inputIssueSeverityDraft
+    var inputIssueSubsystemDraft by presentationState.inputIssueSubsystemDraft
+    var inputIssueDiagnosisDraft by presentationState.inputIssueDiagnosisDraft
+    var inputDateDraft by presentationState.inputDateDraft
+    var inputResolveIssueIDDraft by presentationState.inputResolveIssueIDDraft
+    var inputOwnershipTypeDraft by presentationState.inputOwnershipTypeDraft
+    var inputSummaryDraft by presentationState.inputSummaryDraft
+    var inputDetailsDraft by presentationState.inputDetailsDraft
+    var inputPlayTotalDraft by presentationState.inputPlayTotalDraft
+    var inputMediaKindDraft by presentationState.inputMediaKindDraft
+    var inputMediaURIDraft by presentationState.inputMediaURIDraft
+    var inputMediaCaptionDraft by presentationState.inputMediaCaptionDraft
+    var pendingMediaMachineID by presentationState.pendingMediaMachineID
+    var pendingMediaOwnerType by presentationState.pendingMediaOwnerType
+    var pendingMediaOwnerID by presentationState.pendingMediaOwnerID
+    var pendingMediaOccurredAtMs by presentationState.pendingMediaOccurredAtMs
+    var pendingMediaCaptionDraft by presentationState.pendingMediaCaptionDraft
+    var pendingMediaNotesDraft by presentationState.pendingMediaNotesDraft
+    var issueDraftAttachments by presentationState.issueDraftAttachments
+    var mediaPreviewAttachmentID by presentationState.mediaPreviewAttachmentID
+    var editingAttachmentID by presentationState.editingAttachmentID
+    var editAttachmentCaptionDraft by presentationState.editAttachmentCaptionDraft
+    var editAttachmentNotesDraft by presentationState.editAttachmentNotesDraft
+    var addMachineExpanded by settingsState.addMachineExpanded
+    var nameExpanded by settingsState.nameExpanded
+    var areasExpanded by settingsState.areasExpanded
+    var editMachinesExpanded by settingsState.editMachinesExpanded
+    var areaNameDraft by settingsState.areaNameDraft
+    var areaOrderDraft by settingsState.areaOrderDraft
+    var selectedAreaID by settingsState.selectedAreaID
+    var selectedEditMachineID by settingsState.selectedEditMachineID
+    var draftAreaID by settingsState.draftAreaID
+    var draftGroup by settingsState.draftGroup
+    var draftPosition by settingsState.draftPosition
+    var draftStatus by settingsState.draftStatus
+    var draftVariant by settingsState.draftVariant
+    var draftPurchaseSource by settingsState.draftPurchaseSource
+    var draftSerialNumber by settingsState.draftSerialNumber
+    var draftOwnershipNotes by settingsState.draftOwnershipNotes
+    var venueNameDraft by settingsState.venueNameDraft
+    var importSourceInput by settingsState.importSourceInput
+    var importSourceURL by settingsState.importSourceURL
+    var importRows by settingsState.importRows
+    var importIsLoading by settingsState.importIsLoading
+    var importErrorMessage by settingsState.importErrorMessage
+    var importResultMessage by settingsState.importResultMessage
+    var importReviewFilter by settingsState.importReviewFilter
+    var settingsSaveFeedbackMessage by settingsState.settingsSaveFeedbackMessage
+    var settingsSaveFeedbackTick by settingsState.settingsSaveFeedbackTick
+    val selections = rememberGameRoomScreenSelections(
+        store = store,
+        catalogLoader = catalogLoader,
+        selectedMachineID = selectedMachineID,
+        onSelectedMachineIDChange = { selectedMachineID = it },
+        selectedEditMachineID = selectedEditMachineID,
+        onSelectedEditMachineIDChange = { selectedEditMachineID = it },
+        draftAreaID = draftAreaID,
+        onDraftAreaIDChange = { draftAreaID = it },
+        onDraftGroupChange = { draftGroup = it },
+        onDraftPositionChange = { draftPosition = it },
+        onDraftStatusChange = { draftStatus = it },
+        onDraftVariantChange = { draftVariant = it },
+        onDraftPurchaseSourceChange = { draftPurchaseSource = it },
+        onDraftSerialNumberChange = { draftSerialNumber = it },
+        onDraftOwnershipNotesChange = { draftOwnershipNotes = it },
+        venueNameDraft = venueNameDraft,
+        onVenueNameDraftChange = { venueNameDraft = it },
+        activeInputSheet = activeInputSheet,
+        onInputDateDraftChange = { inputDateDraft = it },
+        onIssueDraftAttachmentsChange = { issueDraftAttachments = it },
+    )
+    val activeMachines = selections.activeMachines
+    val selectedMachineFromAll = selections.selectedMachineFromAll
+    val selectedMachine = selections.selectedMachine
+    val allMachines = selections.allMachines
+    val selectedEditMachine = selections.selectedEditMachine
 
-    LaunchedEffect(Unit) {
-        store.loadIfNeeded()
-        catalogLoader.loadIfNeeded()
-        store.migrateOwnedMachineOpdbIds(catalogLoader)
-    }
-
-    LaunchedEffect(activeMachines.map { it.id }) {
-        if (selectedMachineID == null || activeMachines.none { it.id == selectedMachineID }) {
-            selectedMachineID = activeMachines.firstOrNull()?.id
-        }
-    }
-
-    LaunchedEffect(allMachines.map { it.id }) {
-        if (selectedEditMachineID == null || allMachines.none { it.id == selectedEditMachineID }) {
-            selectedEditMachineID = allMachines.firstOrNull()?.id
-        }
-    }
-
-    LaunchedEffect(selectedEditMachineID) {
-        val machine = selectedEditMachine
-        if (machine == null) {
-            draftAreaID = null
-            draftGroup = ""
-            draftPosition = ""
-            draftStatus = OwnedMachineStatus.active.name
-            draftVariant = "None"
-            draftPurchaseSource = ""
-            draftSerialNumber = ""
-            draftOwnershipNotes = ""
-            return@LaunchedEffect
-        }
-        draftAreaID = machine.gameRoomAreaID
-        draftGroup = machine.groupNumber?.toString().orEmpty()
-        draftPosition = machine.position?.toString().orEmpty()
-        draftStatus = machine.status.name
-        draftVariant = machine.displayVariant ?: "None"
-        draftPurchaseSource = machine.purchaseSource.orEmpty()
-        draftSerialNumber = machine.serialNumber.orEmpty()
-        draftOwnershipNotes = machine.ownershipNotes.orEmpty()
-    }
-
-    LaunchedEffect(store.venueName) {
-        if (venueNameDraft.isBlank()) {
-            venueNameDraft = store.venueName
-        }
-    }
-
-    LaunchedEffect(activeInputSheet) {
-        if (activeInputSheet != null) {
-            inputDateDraft = todayIsoDate()
-            if (activeInputSheet == GameRoomInputSheet.LogIssue) {
-                issueDraftAttachments = emptyList()
-            }
-        }
-    }
-
-    val allAttachments = store.state.attachments
-    val mediaPreviewAttachment = mediaPreviewAttachmentID?.let { id -> allAttachments.firstOrNull { it.id == id } }
-    val editingAttachment = editingAttachmentID?.let { id -> allAttachments.firstOrNull { it.id == id } }
-
-    val addPhotoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        val machineID = pendingMediaMachineID
-        if (uri != null && machineID != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
-            }
-            val caption = pendingMediaCaptionDraft.ifBlank {
-                uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }.orEmpty()
-            }.ifBlank { null }
-            val notes = pendingMediaNotesDraft.ifBlank { null }
-            val occurredAtMs = pendingMediaOccurredAtMs
-            val ownerType = runCatching { MachineAttachmentOwnerType.valueOf(pendingMediaOwnerType) }.getOrDefault(MachineAttachmentOwnerType.event)
-            val ownerID = pendingMediaOwnerID
-            var timelineEventID: String? = null
-            val resolvedOwnerID = if (ownerType == MachineAttachmentOwnerType.issue && !ownerID.isNullOrBlank()) {
-                ownerID
-            } else {
-                store.addEvent(
-                    machineID = machineID,
-                    type = MachineEventType.photoAdded,
-                    category = MachineEventCategory.media,
-                    summary = "Photo added",
-                    occurredAtMs = occurredAtMs,
-                    notes = notes,
-                ).also { timelineEventID = it }
-            }
-            if (ownerType == MachineAttachmentOwnerType.issue && !ownerID.isNullOrBlank()) {
-                timelineEventID = store.addEvent(
-                    machineID = machineID,
-                    type = MachineEventType.photoAdded,
-                    category = MachineEventCategory.media,
-                    summary = "Issue photo added",
-                    occurredAtMs = occurredAtMs,
-                    notes = notes,
-                    linkedIssueID = ownerID,
-                )
-            }
-            store.addAttachment(
-                machineID = machineID,
-                ownerType = ownerType,
-                ownerID = resolvedOwnerID,
-                kind = MachineAttachmentKind.photo,
-                uri = uri.toString(),
-                caption = caption,
-            )
-            selectedLogEventID = timelineEventID
-            machineSubview = GameRoomMachineSubview.Log
-        }
-        pendingMediaMachineID = null
-        pendingMediaOwnerID = null
-        pendingMediaOwnerType = MachineAttachmentOwnerType.event.name
-        pendingMediaOccurredAtMs = null
-        pendingMediaCaptionDraft = ""
-        pendingMediaNotesDraft = ""
-    }
-
-    val addVideoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        val machineID = pendingMediaMachineID
-        if (uri != null && machineID != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
-            }
-            val caption = pendingMediaCaptionDraft.ifBlank {
-                uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }.orEmpty()
-            }.ifBlank { null }
-            val notes = pendingMediaNotesDraft.ifBlank { null }
-            val occurredAtMs = pendingMediaOccurredAtMs
-            val ownerType = runCatching { MachineAttachmentOwnerType.valueOf(pendingMediaOwnerType) }.getOrDefault(MachineAttachmentOwnerType.event)
-            val ownerID = pendingMediaOwnerID
-            var timelineEventID: String? = null
-            val resolvedOwnerID = if (ownerType == MachineAttachmentOwnerType.issue && !ownerID.isNullOrBlank()) {
-                ownerID
-            } else {
-                store.addEvent(
-                    machineID = machineID,
-                    type = MachineEventType.videoAdded,
-                    category = MachineEventCategory.media,
-                    summary = "Video added",
-                    occurredAtMs = occurredAtMs,
-                    notes = notes,
-                ).also { timelineEventID = it }
-            }
-            if (ownerType == MachineAttachmentOwnerType.issue && !ownerID.isNullOrBlank()) {
-                timelineEventID = store.addEvent(
-                    machineID = machineID,
-                    type = MachineEventType.videoAdded,
-                    category = MachineEventCategory.media,
-                    summary = "Issue video added",
-                    occurredAtMs = occurredAtMs,
-                    notes = notes,
-                    linkedIssueID = ownerID,
-                )
-            }
-            store.addAttachment(
-                machineID = machineID,
-                ownerType = ownerType,
-                ownerID = resolvedOwnerID,
-                kind = MachineAttachmentKind.video,
-                uri = uri.toString(),
-                caption = caption,
-            )
-            selectedLogEventID = timelineEventID
-            machineSubview = GameRoomMachineSubview.Log
-        }
-        pendingMediaMachineID = null
-        pendingMediaOwnerID = null
-        pendingMediaOwnerType = MachineAttachmentOwnerType.event.name
-        pendingMediaOccurredAtMs = null
-        pendingMediaCaptionDraft = ""
-        pendingMediaNotesDraft = ""
-    }
-
-    val issuePhotoDraftLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
-            }
-            val caption = uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
-            issueDraftAttachments = issueDraftAttachments + IssueInputAttachmentDraft(
-                id = java.util.UUID.randomUUID().toString(),
-                kind = MachineAttachmentKind.photo,
-                uri = uri.toString(),
-                caption = caption,
-            )
-        }
-    }
-
-    val issueVideoDraftLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
-            }
-            val caption = uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
-            issueDraftAttachments = issueDraftAttachments + IssueInputAttachmentDraft(
-                id = java.util.UUID.randomUUID().toString(),
-                kind = MachineAttachmentKind.video,
-                uri = uri.toString(),
-                caption = caption,
-            )
-        }
-    }
+    val mediaLaunchers = rememberGameRoomMediaLaunchers(
+        context = context,
+        store = store,
+        pendingMediaDraft = GameRoomPendingMediaDraft(
+            machineID = pendingMediaMachineID,
+            ownerTypeName = pendingMediaOwnerType,
+            ownerID = pendingMediaOwnerID,
+            occurredAtMs = pendingMediaOccurredAtMs,
+            captionDraft = pendingMediaCaptionDraft,
+            notesDraft = pendingMediaNotesDraft,
+        ),
+        onSelectedLogEventIDChange = { selectedLogEventID = it },
+        onMachineSubviewChange = { machineSubview = it },
+        onClearPendingMediaDraft = {
+            pendingMediaMachineID = null
+            pendingMediaOwnerID = null
+            pendingMediaOwnerType = MachineAttachmentOwnerType.event.name
+            pendingMediaOccurredAtMs = null
+            pendingMediaCaptionDraft = ""
+            pendingMediaNotesDraft = ""
+        },
+        issueDraftAttachments = issueDraftAttachments,
+        onIssueDraftAttachmentsChange = { issueDraftAttachments = it },
+    )
 
     BackHandler(enabled = route != GameRoomRoute.Home) {
         route = GameRoomRoute.Home
@@ -504,286 +261,94 @@ internal fun GameRoomScreen(
     ) {
         when (route) {
             GameRoomRoute.Home -> {
-                GameRoomHomeRoute(
-                    context = GameRoomHomeRouteContext(
-                store = store,
-                catalogLoader = catalogLoader,
-                        selectedMachine = selectedMachine,
-                        selectedMachineID = selectedMachineID,
-                        collectionLayout = collectionLayout,
-                        onCollectionLayoutChange = { collectionLayout = it },
-                        onSelectMachine = { selectedMachineID = it },
-                        onOpenMachineView = { route = GameRoomRoute.MachineView },
-                        onOpenSettings = { route = GameRoomRoute.Settings },
-                    ),
+                GameRoomScreenHomeRouteHost(
+                    store = store,
+                    catalogLoader = catalogLoader,
+                    selectedMachine = selectedMachine,
+                    selectedMachineID = selectedMachineID,
+                    collectionLayout = collectionLayout,
+                    onCollectionLayoutChange = { collectionLayout = it },
+                    onSelectedMachineIDChange = { selectedMachineID = it },
+                    onOpenMachineView = { route = GameRoomRoute.MachineView },
+                    onOpenSettings = { route = GameRoomRoute.Settings },
                 )
             }
 
             GameRoomRoute.Settings -> {
-                GameRoomSettingsRoute(
+                GameRoomScreenSettingsRouteHost(
+                    store = store,
+                    catalogLoader = catalogLoader,
+                    pinsideImportService = pinsideImportService,
+                    scope = scope,
                     selectedSettingsSection = selectedSettingsSection,
                     onSelectedSettingsSectionChange = { selectedSettingsSection = it },
                     onBack = { route = GameRoomRoute.Home },
-                    errorMessage = store.lastErrorMessage,
-                    overlayContent = {
-                        GameRoomFloatingSaveFeedbackOverlay(
-                            message = settingsSaveFeedbackMessage,
-                            token = settingsSaveFeedbackTick,
-                            modifier = Modifier.align(Alignment.Center),
-                        )
+                    settingsSaveFeedbackMessage = settingsSaveFeedbackMessage,
+                    settingsSaveFeedbackTick = settingsSaveFeedbackTick,
+                    importSourceInput = importSourceInput,
+                    onImportSourceInputChange = { importSourceInput = it },
+                    importSourceURL = importSourceURL,
+                    onImportSourceURLChange = { importSourceURL = it },
+                    importIsLoading = importIsLoading,
+                    onImportIsLoadingChange = { importIsLoading = it },
+                    importErrorMessage = importErrorMessage,
+                    onImportErrorMessageChange = { importErrorMessage = it },
+                    importResultMessage = importResultMessage,
+                    onImportResultMessageChange = { importResultMessage = it },
+                    importRows = importRows,
+                    onImportRowsChange = { importRows = it },
+                    importReviewFilter = importReviewFilter,
+                    onImportReviewFilterChange = { importReviewFilter = it },
+                    nameExpanded = nameExpanded,
+                    onNameExpandedChange = { nameExpanded = it },
+                    venueNameDraft = venueNameDraft,
+                    onVenueNameDraftChange = { venueNameDraft = it },
+                    onSettingsSaveFeedback = { message ->
+                        settingsSaveFeedbackMessage = message
+                        settingsSaveFeedbackTick += 1
                     },
-                    importContent = {
-                        GameRoomImportSettingsSection(
-                        store = store,
-                        catalogLoader = catalogLoader,
-                                importSourceInput = importSourceInput,
-                                onImportSourceInputChange = { importSourceInput = it },
-                                importIsLoading = importIsLoading,
-                                importErrorMessage = importErrorMessage,
-                                importResultMessage = importResultMessage,
-                                importRows = importRows,
-                                importReviewFilter = importReviewFilter,
-                                onImportReviewFilterChange = { importReviewFilter = it },
-                                onFetchCollection = {
-                                    val input = importSourceInput.trim()
-                                    if (!importIsLoading && input.isNotBlank()) {
-                                        scope.launch {
-                                            importErrorMessage = null
-                                            importResultMessage = null
-                                            importIsLoading = true
-                                            try {
-                                                val result = pinsideImportService.fetchCollectionMachines(input)
-                                                importSourceURL = result.sourceURL
-                                                importRows = result.machines.map { machine ->
-                                                    makeImportDraftRow(machine, catalogLoader)
-                                                }
-                                                importReviewFilter = ImportReviewFilter.All
-                                            } catch (error: GameRoomPinsideImportException) {
-                                                importSourceURL = ""
-                                                importRows = emptyList()
-                                                importErrorMessage = error.userMessage
-                                            } catch (_: Throwable) {
-                                                importSourceURL = ""
-                                                importRows = emptyList()
-                                                importErrorMessage = "Could not load Pinside collection right now."
-                                            } finally {
-                                                importIsLoading = false
-                                            }
-                                        }
-                                    }
-                                },
-                                onUpdateImportPurchaseDate = { rowID, updatedRaw ->
-                                    importRows = importRows.map { current ->
-                                        if (current.id != rowID) {
-                                            current
-                                        } else {
-                                            current.copy(
-                                                rawPurchaseDateText = updatedRaw.ifBlank { null },
-                                                normalizedPurchaseDateMs = normalizeFirstOfMonthMs(updatedRaw),
-                                            )
-                                        }
-                                    }
-                                },
-                                onUpdateImportMatch = { rowID, selectedCatalogGameID ->
-                                    importRows = importRows.map { current ->
-                                        if (current.id != rowID) {
-                                            current
-                                        } else {
-                                            val updatedRow = current.copy(selectedCatalogGameID = selectedCatalogGameID)
-                                            val availableVariants = importVariantOptions(updatedRow, catalogLoader)
-                                            val keepVariant = current.selectedVariant?.takeIf { variant ->
-                                                availableVariants.any { it.equals(variant, ignoreCase = true) }
-                                            }
-                                            updatedRow.copy(
-                                                selectedCatalogGameID = selectedCatalogGameID,
-                                                selectedVariant = keepVariant,
-                                            )
-                                        }
-                                    }
-                                },
-                                onUpdateImportVariant = { rowID, selectedVariant ->
-                                    importRows = importRows.map { current ->
-                                        if (current.id != rowID) {
-                                            current
-                                        } else {
-                                            current.copy(selectedVariant = selectedVariant)
-                                        }
-                                    }
-                                },
-                                onPerformImport = {
-                                    var importedCount = 0
-                                    var skippedDuplicates = 0
-                                    var skippedUnmatched = 0
-                                    importRows.forEach { row ->
-                                        val selectedCatalogID = row.selectedCatalogGameID
-                                        val game = selectedCatalogID?.let { catalogLoader.game(it) }
-                                        if (game == null) {
-                                            skippedUnmatched += 1
-                                            return@forEach
-                                        }
-                                        val resolvedVariant = row.selectedVariant ?: row.rawVariant
-                                        if (store.hasImportFingerprint(row.fingerprint) || store.hasOwnedMachine(game.catalogGameID, resolvedVariant)) {
-                                            skippedDuplicates += 1
-                                            return@forEach
-                                        }
-                                        store.importOwnedMachine(
-                                            game = game,
-                                            sourceUserOrURL = importSourceURL.ifBlank { importSourceInput.trim() },
-                                            sourceItemKey = row.sourceItemKey,
-                                            rawTitle = row.rawTitle,
-                                            rawVariant = resolvedVariant,
-                                            rawPurchaseDateText = row.rawPurchaseDateText,
-                                            normalizedPurchaseDateMs = row.normalizedPurchaseDateMs,
-                                            matchConfidence = row.matchConfidence,
-                                            fingerprint = row.fingerprint,
-                                        )
-                                        importedCount += 1
-                                    }
-                                    importResultMessage = "Imported $importedCount. Skipped $skippedDuplicates duplicates, $skippedUnmatched unmatched."
-                                },
-                            )
-                    },
-                    editContent = {
-                        GameRoomEditSettingsSection(
-                            context = GameRoomEditSettingsContext(
-                                store = store,
-                                catalogLoader = catalogLoader,
-                                nameExpanded = nameExpanded,
-                                onNameExpandedChange = { nameExpanded = it },
-                                venueNameDraft = venueNameDraft,
-                                onVenueNameDraftChange = { venueNameDraft = it },
-                                onSaveVenueName = {
-                                    store.updateVenueName(venueNameDraft)
-                                    venueNameDraft = store.venueName
-                                },
-                                onShowSaveFeedback = { message ->
-                                    settingsSaveFeedbackMessage = message
-                                    settingsSaveFeedbackTick += 1
-                                },
-                                addMachineExpanded = addMachineExpanded,
-                                onAddMachineExpandedChange = { addMachineExpanded = it },
-                                catalogIsLoading = catalogLoader.isLoading,
-                                catalogErrorMessage = catalogLoader.errorMessage,
-                                areasExpanded = areasExpanded,
-                                onAreasExpandedChange = { areasExpanded = it },
-                                areaNameDraft = areaNameDraft,
-                                onAreaNameDraftChange = { areaNameDraft = it },
-                                areaOrderDraft = areaOrderDraft,
-                                onAreaOrderDraftChange = { areaOrderDraft = it.filter { ch -> ch.isDigit() } },
-                                onSaveArea = {
-                                    store.upsertArea(
-                                        id = selectedAreaID,
-                                        name = areaNameDraft,
-                                        areaOrder = areaOrderDraft.toIntOrNull() ?: 1,
-                                    )
-                                    selectedAreaID = null
-                                    areaNameDraft = ""
-                                    areaOrderDraft = "1"
-                                },
-                                onResetAreaDraft = {
-                                    selectedAreaID = null
-                                    areaNameDraft = ""
-                                    areaOrderDraft = "1"
-                                },
-                                onEditArea = { area ->
-                                    selectedAreaID = area.id
-                                    areaNameDraft = area.name
-                                    areaOrderDraft = area.areaOrder.toString()
-                                },
-                                onDeleteArea = { areaID -> store.deleteArea(areaID) },
-                                editMachinesExpanded = editMachinesExpanded,
-                                onEditMachinesExpandedChange = { editMachinesExpanded = it },
-                                allMachines = allMachines,
-                                selectedEditMachine = selectedEditMachine,
-                                onSelectedEditMachineChange = { selectedEditMachineID = it },
-                                variantOptions = buildList {
-                                    add("None")
-                                    selectedEditMachine?.let { addAll(catalogLoader.variantOptions(it.catalogGameID)) }
-                                }.distinct(),
-                                draftVariant = draftVariant,
-                                onDraftVariantChange = { draftVariant = it },
-                                draftAreaID = draftAreaID,
-                                onDraftAreaIDChange = { draftAreaID = it },
-                                draftStatus = draftStatus,
-                                onDraftStatusChange = { draftStatus = it },
-                                draftGroup = draftGroup,
-                                onDraftGroupChange = { draftGroup = it.filter { ch -> ch.isDigit() } },
-                                draftPosition = draftPosition,
-                                onDraftPositionChange = { draftPosition = it.filter { ch -> ch.isDigit() } },
-                                draftPurchaseSource = draftPurchaseSource,
-                                onDraftPurchaseSourceChange = { draftPurchaseSource = it },
-                                draftSerialNumber = draftSerialNumber,
-                                onDraftSerialNumberChange = { draftSerialNumber = it },
-                                draftOwnershipNotes = draftOwnershipNotes,
-                                onDraftOwnershipNotesChange = { draftOwnershipNotes = it },
-                                onSaveMachine = {
-                                    selectedEditMachine?.let { machine ->
-                                        val editedVariant = draftVariant.takeUnless { it == "None" }
-                                        val resolvedGame = catalogLoader.game(machine.catalogGameID, editedVariant)
-                                        store.updateMachine(
-                                            id = machine.id,
-                                            areaID = draftAreaID,
-                                            groupNumber = draftGroup.toIntOrNull(),
-                                            position = draftPosition.toIntOrNull(),
-                                            status = runCatching { OwnedMachineStatus.valueOf(draftStatus) }.getOrDefault(OwnedMachineStatus.active),
-                                            opdbID = resolvedGame?.opdbID ?: machine.opdbID,
-                                            canonicalPracticeIdentity = resolvedGame?.canonicalPracticeIdentity,
-                                            displayTitle = resolvedGame?.displayTitle,
-                                            displayVariant = editedVariant ?: resolvedGame?.displayVariant,
-                                            manufacturer = resolvedGame?.manufacturer,
-                                            year = resolvedGame?.year,
-                                            purchaseSource = draftPurchaseSource,
-                                            serialNumber = draftSerialNumber,
-                                            ownershipNotes = draftOwnershipNotes,
-                                        )
-                                    }
-                                },
-                                onDeleteMachine = {
-                                    selectedEditMachine?.let { store.deleteMachine(it.id) }
-                                },
-                                onArchiveMachine = selectedEditMachine
-                                    ?.takeIf { it.status != OwnedMachineStatus.archived }
-                                    ?.let {
-                                        {
-                                            val editedVariant = draftVariant.takeUnless { it == "None" }
-                                            val resolvedGame = catalogLoader.game(it.catalogGameID, editedVariant)
-                                            store.updateMachine(
-                                                id = it.id,
-                                                areaID = draftAreaID,
-                                                groupNumber = draftGroup.toIntOrNull(),
-                                                position = draftPosition.toIntOrNull(),
-                                                status = OwnedMachineStatus.archived,
-                                                opdbID = resolvedGame?.opdbID ?: it.opdbID,
-                                                canonicalPracticeIdentity = resolvedGame?.canonicalPracticeIdentity,
-                                                displayTitle = resolvedGame?.displayTitle,
-                                                displayVariant = editedVariant ?: resolvedGame?.displayVariant,
-                                                manufacturer = resolvedGame?.manufacturer,
-                                                year = resolvedGame?.year,
-                                                purchaseSource = draftPurchaseSource,
-                                                serialNumber = draftSerialNumber,
-                                                ownershipNotes = draftOwnershipNotes,
-                                            )
-                                        }
-                                    },
-                            ),
-                        )
-                    },
-                    archiveContent = {
-                        GameRoomArchiveSettingsSection(
-                        store = store,
-                        archiveFilter = archiveFilter,
-                        onArchiveFilterChange = { archiveFilter = it },
-                        onOpenMachineView = { machineID ->
-                            selectedMachineID = machineID
-                            route = GameRoomRoute.MachineView
-                        },
-                    )
+                    addMachineExpanded = addMachineExpanded,
+                    onAddMachineExpandedChange = { addMachineExpanded = it },
+                    areasExpanded = areasExpanded,
+                    onAreasExpandedChange = { areasExpanded = it },
+                    areaNameDraft = areaNameDraft,
+                    onAreaNameDraftChange = { areaNameDraft = it },
+                    areaOrderDraft = areaOrderDraft,
+                    onAreaOrderDraftChange = { areaOrderDraft = it.filter { ch -> ch.isDigit() } },
+                    selectedAreaID = selectedAreaID,
+                    onSelectedAreaIDChange = { selectedAreaID = it },
+                    editMachinesExpanded = editMachinesExpanded,
+                    onEditMachinesExpandedChange = { editMachinesExpanded = it },
+                    allMachines = allMachines,
+                    selectedEditMachine = selectedEditMachine,
+                    onSelectedEditMachineChange = { selectedEditMachineID = it },
+                    draftVariant = draftVariant,
+                    onDraftVariantChange = { draftVariant = it },
+                    draftAreaID = draftAreaID,
+                    onDraftAreaIDChange = { draftAreaID = it },
+                    draftStatus = draftStatus,
+                    onDraftStatusChange = { draftStatus = it },
+                    draftGroup = draftGroup,
+                    onDraftGroupChange = { draftGroup = it.filter { ch -> ch.isDigit() } },
+                    draftPosition = draftPosition,
+                    onDraftPositionChange = { draftPosition = it.filter { ch -> ch.isDigit() } },
+                    draftPurchaseSource = draftPurchaseSource,
+                    onDraftPurchaseSourceChange = { draftPurchaseSource = it },
+                    draftSerialNumber = draftSerialNumber,
+                    onDraftSerialNumberChange = { draftSerialNumber = it },
+                    draftOwnershipNotes = draftOwnershipNotes,
+                    onDraftOwnershipNotesChange = { draftOwnershipNotes = it },
+                    archiveFilter = archiveFilter,
+                    onArchiveFilterChange = { archiveFilter = it },
+                    onOpenArchivedMachineView = { machineID ->
+                        selectedMachineID = machineID
+                        route = GameRoomRoute.MachineView
                     },
                 )
             }
 
             GameRoomRoute.MachineView -> {
-                GameRoomMachineRoute(
+                GameRoomScreenMachineRouteHost(
                     store = store,
                     catalogLoader = catalogLoader,
                     selectedMachine = selectedMachineFromAll,
@@ -792,138 +357,97 @@ internal fun GameRoomScreen(
                     selectedLogEventID = selectedLogEventID,
                     onSelectedLogEventIDChange = { selectedLogEventID = it },
                     onBack = { route = GameRoomRoute.Home },
-                    onOpenInputSheet = { activeInputSheet = it },
-                    onResolveIssueRequest = {
-                        inputResolveIssueIDDraft = it
-                        activeInputSheet = GameRoomInputSheet.ResolveIssue
-                    },
-                    onLogPlaysRequest = {
-                        inputPlayTotalDraft = it
-                        activeInputSheet = GameRoomInputSheet.LogPlays
-                    },
-                    onPreviewAttachment = { mediaPreviewAttachmentID = it.id },
-                    onEditEvent = { event ->
-                        editingEventID = event.id
-                        editEventDateDraft = isoDateFromMillis(event.occurredAtMs)
-                        editEventSummaryDraft = event.summary
-                        editEventNotesDraft = event.notes.orEmpty()
-                    },
-                    onDeleteEvent = { event ->
-                        store.deleteEvent(event.id)
-                    },
+                    onActiveInputSheetChange = { activeInputSheet = it },
+                    onInputResolveIssueIDDraftChange = { inputResolveIssueIDDraft = it },
+                    onInputPlayTotalDraftChange = { inputPlayTotalDraft = it },
+                    onMediaPreviewAttachmentIDChange = { mediaPreviewAttachmentID = it },
+                    onEditingEventIDChange = { editingEventID = it },
+                    onEditEventDateDraftChange = { editEventDateDraft = it },
+                    onEditEventSummaryDraftChange = { editEventSummaryDraft = it },
+                    onEditEventNotesDraftChange = { editEventNotesDraft = it },
                 )
             }
         }
     }
 
     GameRoomPresentationHost(
-        inputSheetContext = activeInputSheet?.let { selectedSheet ->
-            selectedMachineFromAll?.let { selectedMachine ->
-                GameRoomInputSheetContext(
-                    store = store,
-                    selectedMachine = selectedMachine,
-                    selectedSheet = selectedSheet,
-                    inputDateDraft = inputDateDraft,
-                    onInputDateDraftChange = { inputDateDraft = it },
-                    inputNotesDraft = inputNotesDraft,
-                    onInputNotesDraftChange = { inputNotesDraft = it },
-                    inputConsumableDraft = inputConsumableDraft,
-                    onInputConsumableDraftChange = { inputConsumableDraft = it },
-                    inputPitchValueDraft = inputPitchValueDraft,
-                    onInputPitchValueDraftChange = { inputPitchValueDraft = it },
-                    inputPitchPointDraft = inputPitchPointDraft,
-                    onInputPitchPointDraftChange = { inputPitchPointDraft = it },
-                    inputIssueSymptomDraft = inputIssueSymptomDraft,
-                    onInputIssueSymptomDraftChange = { inputIssueSymptomDraft = it },
-                    inputIssueSeverityDraft = inputIssueSeverityDraft,
-                    onInputIssueSeverityDraftChange = { inputIssueSeverityDraft = it },
-                    inputIssueSubsystemDraft = inputIssueSubsystemDraft,
-                    onInputIssueSubsystemDraftChange = {
-                        inputIssueSubsystemDraft = it
-                    },
-                    inputIssueDiagnosisDraft = inputIssueDiagnosisDraft,
-                    onInputIssueDiagnosisDraftChange = { inputIssueDiagnosisDraft = it },
-                    inputResolveIssueIDDraft = inputResolveIssueIDDraft,
-                    onInputResolveIssueIDDraftChange = { inputResolveIssueIDDraft = it },
-                    inputOwnershipTypeDraft = inputOwnershipTypeDraft,
-                    onInputOwnershipTypeDraftChange = {
-                        inputOwnershipTypeDraft = it
-                        if (inputSummaryDraft.isBlank()) {
-                            inputSummaryDraft = it.replaceFirstChar { ch -> ch.uppercase() }
-                        }
-                    },
-                    inputSummaryDraft = inputSummaryDraft,
-                    onInputSummaryDraftChange = { inputSummaryDraft = it },
-                    inputDetailsDraft = inputDetailsDraft,
-                    onInputDetailsDraftChange = { inputDetailsDraft = it },
-                    inputPlayTotalDraft = inputPlayTotalDraft,
-                    onInputPlayTotalDraftChange = { inputPlayTotalDraft = it.filter { ch -> ch.isDigit() } },
-                    inputMediaKindDraft = inputMediaKindDraft,
-                    onInputMediaKindDraftChange = { inputMediaKindDraft = it },
-                    inputMediaURIDraft = inputMediaURIDraft,
-                    onInputMediaURIDraftChange = { inputMediaURIDraft = it },
-                    inputMediaCaptionDraft = inputMediaCaptionDraft,
-                    onInputMediaCaptionDraftChange = { inputMediaCaptionDraft = it },
-                    issueDraftAttachments = issueDraftAttachments,
-                    onIssueDraftAttachmentsChange = { issueDraftAttachments = it },
-                    onLaunchIssuePhotoPicker = { issuePhotoDraftLauncher.launch(arrayOf("image/*")) },
-                    onLaunchIssueVideoPicker = { issueVideoDraftLauncher.launch(arrayOf("video/*")) },
-                    onLaunchPendingMediaPicker = { kind, occurredAtMs ->
-                        pendingMediaMachineID = selectedMachine.id
-                        pendingMediaOwnerType = MachineAttachmentOwnerType.event.name
-                        pendingMediaOwnerID = null
-                        pendingMediaOccurredAtMs = occurredAtMs
-                        pendingMediaCaptionDraft = inputMediaCaptionDraft
-                        pendingMediaNotesDraft = inputNotesDraft
-                        activeInputSheet = null
-                        if (kind == MachineAttachmentKind.photo) {
-                            addPhotoLauncher.launch(arrayOf("image/*"))
-                        } else {
-                            addVideoLauncher.launch(arrayOf("video/*"))
-                        }
-                    },
-                    onSelectedLogEventIDChange = { selectedLogEventID = it },
-                    onMachineSubviewChange = { machineSubview = it },
-                    onDismiss = { activeInputSheet = null },
-                )
-            }
-        },
-        editEventContext = editingEventID?.let { eventID ->
-            GameRoomEditEventContext(
-                store = store,
-                editingEventID = eventID,
-                editEventDateDraft = editEventDateDraft,
-                onEditEventDateDraftChange = { editEventDateDraft = it },
-                editEventSummaryDraft = editEventSummaryDraft,
-                onEditEventSummaryDraftChange = { editEventSummaryDraft = it },
-                editEventNotesDraft = editEventNotesDraft,
-                onEditEventNotesDraftChange = { editEventNotesDraft = it },
-                onDismiss = { editingEventID = null },
-            )
-        },
-        attachmentContext = GameRoomAttachmentPresentationContext(
+        inputSheetContext = buildGameRoomInputSheetContext(
             store = store,
-            mediaPreviewAttachment = mediaPreviewAttachment,
-            editingAttachment = editingAttachment,
+            selectedMachine = selectedMachineFromAll,
+            selectedSheet = activeInputSheet,
+            inputDateDraft = inputDateDraft,
+            onInputDateDraftChange = { inputDateDraft = it },
+            inputNotesDraft = inputNotesDraft,
+            onInputNotesDraftChange = { inputNotesDraft = it },
+            inputConsumableDraft = inputConsumableDraft,
+            onInputConsumableDraftChange = { inputConsumableDraft = it },
+            inputPitchValueDraft = inputPitchValueDraft,
+            onInputPitchValueDraftChange = { inputPitchValueDraft = it },
+            inputPitchPointDraft = inputPitchPointDraft,
+            onInputPitchPointDraftChange = { inputPitchPointDraft = it },
+            inputIssueSymptomDraft = inputIssueSymptomDraft,
+            onInputIssueSymptomDraftChange = { inputIssueSymptomDraft = it },
+            inputIssueSeverityDraft = inputIssueSeverityDraft,
+            onInputIssueSeverityDraftChange = { inputIssueSeverityDraft = it },
+            inputIssueSubsystemDraft = inputIssueSubsystemDraft,
+            onInputIssueSubsystemDraftChange = { inputIssueSubsystemDraft = it },
+            inputIssueDiagnosisDraft = inputIssueDiagnosisDraft,
+            onInputIssueDiagnosisDraftChange = { inputIssueDiagnosisDraft = it },
+            inputResolveIssueIDDraft = inputResolveIssueIDDraft,
+            onInputResolveIssueIDDraftChange = { inputResolveIssueIDDraft = it },
+            inputOwnershipTypeDraft = inputOwnershipTypeDraft,
+            onInputOwnershipTypeDraftChange = {
+                inputOwnershipTypeDraft = it
+                if (inputSummaryDraft.isBlank()) {
+                    inputSummaryDraft = it.replaceFirstChar { ch -> ch.uppercase() }
+                }
+            },
+            inputSummaryDraft = inputSummaryDraft,
+            onInputSummaryDraftChange = { inputSummaryDraft = it },
+            inputDetailsDraft = inputDetailsDraft,
+            onInputDetailsDraftChange = { inputDetailsDraft = it },
+            inputPlayTotalDraft = inputPlayTotalDraft,
+            onInputPlayTotalDraftChange = { inputPlayTotalDraft = it.filter { ch -> ch.isDigit() } },
+            inputMediaKindDraft = inputMediaKindDraft,
+            onInputMediaKindDraftChange = { inputMediaKindDraft = it },
+            inputMediaURIDraft = inputMediaURIDraft,
+            onInputMediaURIDraftChange = { inputMediaURIDraft = it },
+            inputMediaCaptionDraft = inputMediaCaptionDraft,
+            onInputMediaCaptionDraftChange = { inputMediaCaptionDraft = it },
+            issueDraftAttachments = issueDraftAttachments,
+            onIssueDraftAttachmentsChange = { issueDraftAttachments = it },
+            mediaLaunchers = mediaLaunchers,
+            onPendingMediaMachineIDChange = { pendingMediaMachineID = it },
+            onPendingMediaOwnerTypeChange = { pendingMediaOwnerType = it },
+            onPendingMediaOwnerIDChange = { pendingMediaOwnerID = it },
+            onPendingMediaOccurredAtMsChange = { pendingMediaOccurredAtMs = it },
+            onPendingMediaCaptionDraftChange = { pendingMediaCaptionDraft = it },
+            onPendingMediaNotesDraftChange = { pendingMediaNotesDraft = it },
+            onSelectedLogEventIDChange = { selectedLogEventID = it },
+            onMachineSubviewChange = { machineSubview = it },
+            onActiveInputSheetChange = { activeInputSheet = it },
+        ),
+        editEventContext = buildGameRoomEditEventContext(
+            store = store,
+            editingEventID = editingEventID,
+            editEventDateDraft = editEventDateDraft,
+            onEditEventDateDraftChange = { editEventDateDraft = it },
+            editEventSummaryDraft = editEventSummaryDraft,
+            onEditEventSummaryDraftChange = { editEventSummaryDraft = it },
+            editEventNotesDraft = editEventNotesDraft,
+            onEditEventNotesDraftChange = { editEventNotesDraft = it },
+            onEditingEventIDChange = { editingEventID = it },
+        ),
+        attachmentContext = buildGameRoomAttachmentPresentationContext(
+            store = store,
+            mediaPreviewAttachmentID = mediaPreviewAttachmentID,
+            editingAttachmentID = editingAttachmentID,
             editAttachmentCaptionDraft = editAttachmentCaptionDraft,
             onEditAttachmentCaptionDraftChange = { editAttachmentCaptionDraft = it },
             editAttachmentNotesDraft = editAttachmentNotesDraft,
             onEditAttachmentNotesDraftChange = { editAttachmentNotesDraft = it },
-            onClosePreview = { mediaPreviewAttachmentID = null },
-            onBeginAttachmentEdit = { attachment ->
-                editingAttachmentID = attachment.id
-                editAttachmentCaptionDraft = attachment.caption.orEmpty()
-                editAttachmentNotesDraft = if (attachment.ownerType == MachineAttachmentOwnerType.event) {
-                    store.state.events.firstOrNull { it.id == attachment.ownerID }?.notes.orEmpty()
-                } else {
-                    ""
-                }
-            },
-            onDeleteAttachment = { attachment ->
-                store.deleteAttachmentAndLinkedEvent(attachment.id)
-                mediaPreviewAttachmentID = null
-            },
-            onDismissAttachmentEdit = { editingAttachmentID = null },
+            onMediaPreviewAttachmentIDChange = { mediaPreviewAttachmentID = it },
+            onEditingAttachmentIDChange = { editingAttachmentID = it },
         ),
     )
 }

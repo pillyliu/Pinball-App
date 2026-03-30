@@ -237,6 +237,120 @@ Verification:
 - `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
 - result: `BUILD SUCCEEDED`
 
+## Pass 283: Android GameRoom add-machine settings split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomEditSettingsPanels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomAddMachineSettingsSupport.kt`
+
+Changes made in this pass:
+- moved the add-machine search, advanced filters, catalog results list, and variant chooser out of `GameRoomEditSettingsPanels.kt`
+- left the old settings-panels file focused on the smaller shared shell pieces instead of the full catalog-search workflow
+
+Hidden seams surfaced and fixed:
+1. the new add-machine support file still needed its own `clickable` import because the advanced-filter row was no longer inheriting that from the old mixed file
+2. the split clarified that catalog search/filter state is its own UI flow rather than generic settings-card chrome
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 284: Android GameRoom area and edit-machine settings split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomEditSettingsPanels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomEditMachinesSettingsSupport.kt`
+
+Changes made in this pass:
+- moved the area-management card and the edit-machine card into a dedicated support file
+- moved the `editMachineLabel(...)` helper alongside the edit-machine surface that actually uses it
+- reduced `GameRoomEditSettingsPanels.kt` to a small shell file
+
+Hidden seams surfaced and fixed:
+1. `GameRoomAreaSettingsCard(...)` briefly existed in both files during the split, which exposed that the old file was still carrying a stale duplicate implementation
+2. removing the duplicate left one truthful owner for both the area and machine editor surfaces
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 285: Android GameRoom media presentation split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPresentationComponents.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomMediaPresentationSupport.kt`
+
+Changes made in this pass:
+- moved the attachment grid and fullscreen media preview out of `GameRoomPresentationComponents.kt`
+- left `GameRoomPresentationComponents.kt` focused on log-row presentation instead of also owning the full media surface
+
+Hidden seams surfaced and fixed:
+1. after the media move, the trimmed log-row file still needed `background` and `clickable`, which made the old accidental coupling visible right away
+2. restoring only those imports confirmed the file boundary is now narrower and more honest
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 274: GameRoom issue and media form-body split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueLoggingSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueLogFormSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaEntrySupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaEntryFormSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaImportStatusSupport.swift`
+
+Changes made in this pass:
+- moved the issue logging form body out of `GameRoomIssueLoggingSupport.swift`
+- moved the media entry form body out of `GameRoomMediaEntrySupport.swift`
+- introduced one shared inline import-status surface for both sheets
+
+Hidden seam surfaced and reduced:
+1. both route sheets were still mixing navigation/picker lifecycle with the actual form layout, even after the earlier draft-state and import-state splits
+2. the route files now read like route shells again, and the shared import-status view removes one more small duplication seam between issue logging and media entry
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `GameRoomIssueLoggingSupport.swift` dropped to 91 lines
+- `GameRoomMediaEntrySupport.swift` dropped to 80 lines
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 275: GameRoom edit-machines shell split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinesView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinesShellSupport.swift`
+
+Changes made in this pass:
+- moved the edit-machines panel composition out of `GameRoomEditMachinesView.swift` into `GameRoomEditMachinesShellSupport.swift`
+- left the main view focused on:
+  - route lifecycle
+  - selection sync
+  - catalog search indexing
+  - machine save/archive/delete orchestration
+
+Hidden seam surfaced and reduced:
+1. `GameRoomEditMachinesView.swift` was still the last obvious GameRoom coordinator that mixed shell routing with all four panel-builder surfaces
+2. the shell split exposed one stale call-site mismatch around `machineMenuLabel`, which is now explicit and corrected instead of being hidden in the inline panel composition
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `GameRoomEditMachinesView.swift` is down to 296 lines and reads more like a coordinator than a catch-all view bucket
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
 ## Pass 155: Markdown image and HTML support split
 
 Primary files:
@@ -10848,6 +10962,2092 @@ Verification:
 - `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
 - `./gradlew :app:compileDebugKotlin`
 - result: both passed
+
+## Pass 300-304: Android GameRoom end-state cleanup
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreenSettingsRouteSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreenSettingsContentSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomEnumModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomInventoryModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomRecordModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomUiComponents.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomVariantPresentationSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomUiFormattingSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPinsideImport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPinsideTitleSupport.kt`
+
+Changes made in these passes:
+- split the Android settings-route host into:
+  - a smaller route shell in `GameRoomScreenSettingsRouteSupport.kt`
+  - dedicated route content builders in `GameRoomScreenSettingsContentSupport.kt` for:
+    - Pinside import fetch/update/import flow
+    - edit-settings context assembly
+- retired the old all-in-one `GameRoomModels.kt` bucket and split Android GameRoom models into:
+  - `GameRoomEnumModels.kt`
+  - `GameRoomInventoryModels.kt`
+  - `GameRoomRecordModels.kt`
+- split shared GameRoom UI concerns so `GameRoomUiComponents.kt` now focuses on the machine card/list surfaces, while:
+  - `GameRoomVariantPresentationSupport.kt` owns variant pills and manufacturer/variant dropdowns
+  - `GameRoomUiFormattingSupport.kt` owns location/meta/date/attention formatting helpers
+- split Pinside title and variant normalization out of `GameRoomPinsideImport.kt` into `GameRoomPinsideTitleSupport.kt`
+
+Hidden seams surfaced and fixed:
+1. the Android settings-route host still owned both async import fetch/error policy and the full edit-settings context assembly, which made it a second controller bucket after the screen split
+2. Android GameRoom was still carrying the old monolithic model file even after iOS had already proven the enum/inventory/record split
+3. the shared UI file had become a mixed bucket for machine cards, dropdowns, variant rendering, meta formatting, and date helpers; that made it harder to tell what was real screen chrome versus generic support
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- Android GameRoom is now in checkpoint territory rather than ongoing monolith cleanup
+- the biggest remaining Android GameRoom files are now mostly intentional coordinators or parser-heavy files rather than generic buckets
+
+Current Android GameRoom end-state:
+1. `GameRoomPinsideImport.kt` is still the largest remaining Android GameRoom file, but it is now mostly one service with page/network/parser policy rather than a generic shared bucket
+2. `GameRoomScreen.kt`, `GameRoomStore.kt`, `GameRoomMachineRoute.kt`, and `GameRoomRouteContent.kt` are still medium-large, but they now read as coordinators/routes instead of mixed policy hosts
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed after the settings-route, model, UI, and Pinside support splits
+
+## Pass 299: Android GameRoom screen state grouping split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreenStateSupport.kt`
+
+Changes made in this pass:
+- grouped the screen’s raw `rememberSaveable` and `remember` state into named state holders for:
+  - navigation state
+  - presentation/input draft state
+  - settings/import/edit draft state
+- moved `GameRoomRoute` into the same support file so screen-level route and draft state now live together instead of being declared inline at the top of `GameRoomScreen.kt`
+
+Hidden seams surfaced and fixed:
+1. `GameRoomScreen.kt` was still acting like a giant draft bucket even after the earlier route and effect splits
+2. making the state ownership explicit through named state groups clarifies that the screen is coordinating three domains of local UI state, rather than one undifferentiated mass of saved values
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 298: Android GameRoom screen selection and draft-sync split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreenSelectionSupport.kt`
+
+Changes made in this pass:
+- moved the screen’s derived machine-selection state and sync `LaunchedEffect` rules out of `GameRoomScreen.kt`
+- introduced a dedicated support file that now owns:
+  - initial store/catalog load
+  - selected machine and selected edit-machine fallback selection
+  - edit-machine draft synchronization
+  - venue-name draft seeding
+  - input-sheet date reset and issue-draft attachment reset
+
+Hidden seams surfaced and fixed:
+1. `GameRoomScreen.kt` was still the single place where several unrelated selection and draft-reset policies were silently coupled
+2. keeping those sync rules in one support file makes it clearer that the screen owns the raw state while the helper owns how that state is synchronized with store changes and active sheet transitions
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 297: Android GameRoom home and machine route bridge split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreenRouteBridgeSupport.kt`
+
+Changes made in this pass:
+- moved the Home route context assembly out of `GameRoomScreen.kt`
+- moved the Machine route callback bridge out of `GameRoomScreen.kt`
+- left the screen route switch reading more like:
+  - choose route
+  - hand off to route host
+  - keep shared screen state local
+
+Hidden seams surfaced and fixed:
+1. the remaining Home and Machine route branches were still mixing route selection with a lot of callback and draft-state wiring
+2. putting that bridge code in one dedicated support file makes it easier to keep the screen as a navigator instead of a grab-bag of route-specific callback glue
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 296: Android GameRoom settings-route host split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreenSettingsRouteSupport.kt`
+
+Changes made in this pass:
+- moved the full Settings route assembly out of `GameRoomScreen.kt`
+- introduced a dedicated settings-route host that owns:
+  - import fetch/update/import callbacks
+  - edit-settings context assembly
+  - archive route wiring
+- left `GameRoomScreen.kt` more focused on top-level route switching and shared screen state
+
+Hidden seams surfaced and fixed:
+1. the Settings route branch was still the single biggest inline coordinator inside the screen even after the earlier media and presentation-context splits
+2. import, edit, and archive callbacks were tightly interleaved in the screen branch, so giving them one route host makes that section easier to change without reopening unrelated route wiring
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 292: Android GameRoom store mutation split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomStoreInventorySupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomStoreRecordSupport.kt`
+
+Changes made in this pass:
+- moved pure machine, area, venue, and import state transitions out of `GameRoomStore.kt`
+- moved pure event, attachment, and issue state transitions out of `GameRoomStore.kt`
+- left `GameRoomStore.kt` as the observable state host that loads, saves, recomputes snapshots, and delegates mutations to the pure helpers
+
+Hidden seams surfaced and fixed:
+1. `openIssue(...)` and `resolveIssue(...)` were previously performing nested `addEvent(...)` calls that triggered repeated save/recompute behavior inside the store; the new pure state path now performs those linked issue-event updates in one state transition before the normal save/recompute
+2. machine and import mutations were repeating the same string normalization and copy patterns inline, which made the store harder to audit and easier to drift from future callers
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 293: Android GameRoom catalog machine-resolution split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomCatalogLoader.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomCatalogMachineResolutionSupport.kt`
+
+Changes made in this pass:
+- moved exact OPDB resolution, normalized catalog-game lookup, image candidate assembly, and preferred art selection out of `GameRoomCatalogLoader.kt`
+- introduced a small catalog-resolution context so the loader can hand its indexed catalog data to pure machine-resolution helpers
+
+Hidden seams surfaced and fixed:
+1. `GameRoomCatalogLoader.kt` was still mixing hosted-data load/index responsibilities with exact-machine and art-selection policy
+2. the exact-machine and art-selection logic depended on several parallel maps and lists, so making that dependency explicit through the resolution context reduces the chance of future one-off lookups drifting from the indexed source of truth
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 286: Android GameRoom screen action helper split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreenActionSupport.kt`
+
+Changes made in this pass:
+- moved import-row mutation helpers out of `GameRoomScreen.kt`
+- moved the import execution path out of `GameRoomScreen.kt`
+- moved edited-machine save/archive behavior out of `GameRoomScreen.kt`
+
+Hidden seams surfaced and fixed:
+1. the screen file was mixing route composition with import-row state mutation and machine persistence behavior
+2. after the split, the import and edit flows are easier to reuse without reopening the full screen shell
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 287: Android GameRoom media launcher split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreenMediaSupport.kt`
+
+Changes made in this pass:
+- moved pending media picker handling into a dedicated screen-media support file
+- moved issue draft attachment pickers into the same support layer
+- grouped the launcher return values behind `GameRoomMediaLaunchers`
+
+Hidden seams surfaced and fixed:
+1. the initial extraction used the wrong launcher type import; switching to `androidx.activity.compose.ManagedActivityResultLauncher` fixed the resulting bad type inference at the call sites
+2. that compile seam confirmed the screen was previously relying on a lot of inline compose-specific wiring that is now isolated
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 288: Android GameRoom screen settings and media surface split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomEditSettingsPanels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomAddMachineSettingsSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomEditMachinesSettingsSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPresentationComponents.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomMediaPresentationSupport.kt`
+
+Changes made in this pass:
+- moved the add-machine search/filter/results surface out of `GameRoomEditSettingsPanels.kt`
+- moved area and machine editor cards into their own support file
+- moved media grid and fullscreen media preview out of `GameRoomPresentationComponents.kt`
+
+Hidden seams surfaced and fixed:
+1. the extraction surfaced a stale duplicate `GameRoomAreaSettingsCard(...)`, which was removed so there is now one truthful owner for that card
+2. the trimmed presentation/log file still needed `background` and `clickable`, which made the old accidental coupling explicit and easy to fix
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 289: Android GameRoom input-sheet form split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPresentationHost.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomInputSheetFormSupport.kt`
+
+Changes made in this pass:
+- moved the full input-sheet form body and issue-attachment draft row out of `GameRoomPresentationHost.kt`
+- left `GameRoomPresentationHost.kt` as a smaller multiplexer and modal shell over the active presentation routes
+
+Hidden seams surfaced and fixed:
+1. the new form support file needed its own `dp` import for spacing rows after the extraction
+2. that was a clean compile-only seam and confirmed the form body is now truly independent of the presentation host shell
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 294: Android GameRoom catalog indexing split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomCatalogLoader.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomCatalogIndexingSupport.kt`
+
+Changes made in this pass:
+- moved the raw OPDB-to-GameRoom catalog indexing build-out of `GameRoomCatalogLoader.kt`
+- introduced `GameRoomLoadedCatalogData` so the loader now fetches hosted payloads and assigns indexed results instead of owning the full indexing procedure inline
+
+Hidden seams surfaced and fixed:
+1. `GameRoomCatalogLoader.kt` was still mixing hosted payload fetch with all of the manufacturer, variant, slug, and machine-record indexing logic
+2. that made it harder to reason about whether future cleanup changed loading behavior or only changed indexing behavior, so the new support file separates those responsibilities cleanly
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 295: Android GameRoom dead constructor dependency cleanup
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomCatalogLoader.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/PinballShell.kt`
+
+Changes made in this pass:
+- removed the unused `Context` constructor dependency from `GameRoomCatalogLoader`
+- updated the Android GameRoom call sites to construct the loader without threading through an application context it never used
+
+Hidden seams surfaced and fixed:
+1. the loader had been carrying dead API surface that suggested it needed runtime Android services even though it only used hosted preload/cache helpers
+2. leaving that constructor parameter in place would make future tests and refactors look more coupled to Android app state than they really are
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 290: Android GameRoom screen presentation context split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreenPresentationSupport.kt`
+
+Changes made in this pass:
+- moved the bottom presentation-context assembly out of `GameRoomScreen.kt`
+- introduced dedicated builders for:
+  - input-sheet presentation context
+  - edit-event presentation context
+  - attachment preview and edit presentation context
+- left `GameRoomScreen.kt` more clearly focused on route, screen state, and section wiring
+
+Hidden seams surfaced and fixed:
+1. the pending-media launch path was still tightly coupled to the selected machine and active sheet dismissal sequence, so the new support file now owns that transition explicitly instead of leaving it inline at the bottom of the screen
+2. attachment preview and edit state were previously computed inside the screen from raw attachment arrays, so the support split made that hidden dependency explicit and localized it to one place
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 291: Android GameRoom input-sheet concern split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomInputSheetFormSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomIssueInputSheetFormSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomMaintenanceInputSheetFormSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomMachineEventInputSheetFormSupport.kt`
+
+Changes made in this pass:
+- split the mixed input-sheet body into dedicated concern files for:
+  - issue and resolve-issue forms
+  - maintenance and pitch forms
+  - ownership, mod, replacement, play-count, and media forms
+- left `GameRoomInputSheetFormSupport.kt` as a small router plus the shared cancel/save action row
+
+Hidden seams surfaced and fixed:
+1. the old form file was still acting like a second presentation host by owning unrelated issue, maintenance, and media form behavior in one place
+2. after the split, the issue attachment draft row is now owned by the issue form support file, which keeps issue-only draft behavior from drifting back into the shared router
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 276: Android GameRoom import review support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomSettingsSections.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomImportReviewSupport.kt`
+
+Changes made in this pass:
+- moved the import-review filter, row card, and review-list UI out of `GameRoomSettingsSections.kt`
+- left `GameRoomSettingsSections.kt` focused on the settings-section shells and their high-level routing
+
+Hidden seams surfaced and fixed:
+1. the extracted import review UI initially depended on imports that were previously inherited from the old file
+2. those imports are now explicit in the new support file so future cleanup passes can change that surface without reopening the section shell
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 277: Android GameRoom settings card split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomSettingsSections.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomEditSettingsPanels.kt`
+
+Changes made in this pass:
+- moved the venue name, add-machine, area management, and edit-machines cards out of `GameRoomSettingsSections.kt`
+- left `GameRoomEditSettingsSection` reading more like a coordinator over named settings panels
+
+Hidden seams surfaced and fixed:
+1. the old extraction briefly carried a malformed archive-section `Text(...)` tail and stale segmented-button imports
+2. those compile-only seams were corrected immediately, which was useful confirmation that the file boundary was real rather than accidental
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 278: Android GameRoom screen model split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomScreenModels.kt`
+
+Changes made in this pass:
+- moved the screen-owned enums and small data records out of `GameRoomScreen.kt`:
+  - route-adjacent section filters
+  - subview/layout selections
+  - input-sheet identifiers
+  - import review drafts
+  - issue attachment drafts
+- kept `GameRoomRoute` local to the screen because it still only matters inside the top-level route shell
+
+Hidden seams surfaced and fixed:
+1. the split made the distinction clearer between reusable screen models and the one remaining route-local enum
+2. no visibility widening was needed beyond what the file move actually required
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 279: Android GameRoom input save/reset split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPresentationHost.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomInputSheetSaveSupport.kt`
+
+Changes made in this pass:
+- moved the input-sheet save path and draft reset path out of `GameRoomPresentationHost.kt`
+- left the host file focused on sheet rendering instead of also carrying every event/issue/media mutation case inline
+
+Hidden seams surfaced and fixed:
+1. this split exposed that the save/reset path was effectively a controller layer living inside a presentation file
+2. moving it out reduced the risk of future UI-only changes accidentally reopening persistence logic
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 280: Android GameRoom event and attachment sheet split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPresentationHost.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPresentationSheetSupport.kt`
+
+Changes made in this pass:
+- moved the edit-event sheet and attachment preview/edit sheet out of `GameRoomPresentationHost.kt`
+- left `GameRoomPresentationHost.kt` as a smaller multiplexer over the currently active presentation routes
+
+Hidden seams surfaced and fixed:
+1. the presentation host briefly lost `FontWeight` because the input-sheet title still uses it after the extraction
+2. restoring only that import kept the split clean without widening any behavior or state boundaries
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 281: Android GameRoom catalog loader model and helper split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomCatalogLoader.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomCatalogModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomCatalogVariantSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomCatalogArtSupport.kt`
+
+Changes made in this pass:
+- moved catalog-facing data classes out of the loader file
+- moved variant normalization and catalog-name parsing out of the loader file
+- moved slug-key assembly, hosted URL resolution, and art ranking helpers out of the loader file
+- left `GameRoomCatalogLoader.kt` reading more like the actual async extraction and lookup coordinator
+
+Hidden seams surfaced and fixed:
+1. the old loader was mixing raw hosted decode orchestration with pure variant/art helper policy
+2. after the split, future catalog-policy changes can happen without reopening the load-state plumbing
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 282: Android GameRoom snapshot and reminder support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomStore.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomStoreSnapshotSupport.kt`
+
+Changes made in this pass:
+- moved machine ordering, snapshot recomputation, reminder due-count logic, and play-count helper math out of `GameRoomStore.kt`
+- left `GameRoomStore.kt` more clearly responsible for persisted state ownership and mutation entry points
+
+Hidden seams surfaced and fixed:
+1. the old store mixed persistence and domain math so tightly that even read-only snapshot policy changes reopened the storage host
+2. the new support file makes the snapshot/reminder layer explicit and easier to verify independently in later cleanup or tests
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
+## Pass 271: GameRoom shared media import support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaPickerImportSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueLoggingSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaEntrySupport.swift`
+
+Changes made in this pass:
+- moved shared media-picker state, import error messages, imported-file persistence, and imported-caption helpers into `GameRoomMediaPickerImportSupport.swift`
+- updated the issue logging and media entry sheets to use the shared import state instead of carrying their own near-duplicate import lifecycle fields
+
+Hidden seam surfaced and reduced:
+1. the extracted picker helper initially failed to compile because `PhotosPickerItem` was only visible in the original view files' broader UI import context
+2. the shared helper now imports the same SwiftUI overlay context explicitly, so the type boundary is no longer relying on where the code happened to live before the split
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- issue logging and media entry still use the same picker/import flow, but now share one import-state contract
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 272: GameRoom issue and media draft-state split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueLoggingStateSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaEntryStateSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueLoggingSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaEntrySupport.swift`
+
+Changes made in this pass:
+- grouped issue logging sheet state into `GameRoomIssueLogDraft`
+- grouped media entry sheet state into `GameRoomMediaEntryDraft` and `GameRoomMediaEntryField`
+- moved attachment append/delete and normalized caption/notes helpers into the dedicated draft-state files
+
+Hidden seam surfaced and reduced:
+1. both sheets were still relying on clusters of loose `@State` values even after earlier GameRoom support splits
+2. those draft contracts now live outside the route views, which makes future issue/media edits less likely to drift across separate state variables
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 273: GameRoom edit-machines shell split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinesView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinesShellSupport.swift`
+
+Changes made in this pass:
+- moved the edit-machines panel composition out of `GameRoomEditMachinesView.swift` into `GameRoomEditMachinesShellSupport.swift`
+- left `GameRoomEditMachinesView.swift` focused on:
+  - owned state
+  - lifecycle watchers
+  - derived selections/indexes
+  - save/archive/delete orchestration
+
+Hidden seam surfaced and reduced:
+1. `GameRoomEditMachinesView.swift` was still mixing route lifecycle with four panel-builder surfaces, even after the earlier action/state splits
+2. the shell split exposed one old call-site type mismatch around `machineMenuLabel`, which is now explicit instead of being hidden inside the inline panel builder
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- the edit-machines flow still uses the same panel stack, bindings, and save callbacks
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 241: GameRoom shared text normalization and media-path cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomTextNormalizationSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaImportSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEventEntrySupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueEntrySupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineView.swift`
+
+Changes made in this pass:
+- moved the shared blank-string trimming helper out of `GameRoomMediaImportSupport.swift` into `GameRoomTextNormalizationSupport.swift`
+- updated event-entry, issue-entry, and event-edit sheets to call `gameRoomNormalizedOptional(...)` directly instead of carrying repeated local wrappers
+- updated `GameRoomMachineView.swift` to use the shared `gameRoomResolvedMediaURL(...)` helper instead of maintaining its own attachment URI parsing
+
+Hidden seams surfaced and fixed:
+1. `gameRoomNormalizedOptional(...)` was already a cross-surface helper, but it lived in a file named as if it only belonged to media import
+2. `GameRoomMachineView.swift` still had its own attachment URI resolver even though the media-entry/media-preview surfaces were already using the shared resolver
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- GameRoom text normalization and attachment URI parsing now come from one shared support path
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 270: GameRoom Pinside collection parser split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPinsideCollectionParsingSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPinsideDocumentSupport.swift`
+
+Changes made in this pass:
+- moved the lightweight Pinside collection-page parser into `GameRoomPinsideCollectionParsingSupport.swift`
+- left `GameRoomPinsideDocumentSupport.swift` focused on:
+  - detailed markdown/document parsing
+  - purchase-date normalization
+  - primary/fallback merge behavior
+
+Hidden seams surfaced and reduced:
+1. `GameRoomPinsideDocumentSupport.swift` was still mixing two parsing modes:
+   - the lightweight collection-page slug extractor
+   - the detailed document parser and merge path
+2. after the split, the remaining document-support file reads like one parsing mode instead of an accidental umbrella for all Pinside parsing
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 268: GameRoom catalog image candidate support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogMachineResolutionSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogImageCandidateSupport.swift`
+
+Changes made in this pass:
+- moved GameRoom catalog artwork candidate assembly into `GameRoomCatalogImageCandidateSupport.swift`
+- left `GameRoomCatalogMachineResolutionSupport.swift` focused on:
+  - exact OPDB resolution
+  - normalized catalog-game lookup
+- widened the shared catalog lookup helpers so both support files can reuse:
+  - grouped catalog lookup by game ID
+  - exact OPDB catalog lookup
+
+Hidden seams surfaced and reduced:
+1. `GameRoomCatalogMachineResolutionSupport.swift` was still mixing two different policies:
+   - exact machine identity resolution
+   - image candidate fallback ordering
+2. separating those policies makes later artwork-ranking cleanup possible without reopening the exact OPDB matching path
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 269: GameRoom machine editor form split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinePanelsSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineEditorFieldsSupport.swift`
+
+Changes made in this pass:
+- moved the full machine editor form into `GameRoomMachineEditorFieldsSupport.swift`
+- left `GameRoomEditMachinePanelsSupport.swift` focused on the machine-management shell:
+  - empty-state routing
+  - machine selector row
+  - conditional presentation of the editor form
+
+Hidden seams surfaced and reduced:
+1. `GameRoomEditMachinePanelsSupport.swift` was still carrying both the management-panel shell and the full machine editor form
+2. after the split, the file boundary matches the UI hierarchy more closely, so later editor-form cleanup will not require reopening the management shell
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 262: GameRoom settings support stale-name split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomAdaptivePopoverSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSaveFeedbackOverlaySupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsSupport.swift`
+
+Changes made in this pass:
+- split the old `GameRoomSettingsSupport.swift` bucket into:
+  - `GameRoomAdaptivePopoverSupport.swift`
+  - `GameRoomSaveFeedbackOverlaySupport.swift`
+- deleted the stale `GameRoomSettingsSupport.swift` file after those two unrelated concerns were separated
+
+Hidden seams surfaced and reduced:
+1. `GameRoomSettingsSupport.swift` had become a misleading bucket that no longer represented “settings support” as a single concern
+2. after the split, the adaptive popover geometry path and the floating save-feedback overlay stopped sharing one stale filename just because they happened to live near the settings screen
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 263: GameRoom machine input support stale-name split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineMaintenanceInputSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineCustomEventInputSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineServiceInputSupport.swift`
+
+Changes made in this pass:
+- split the old `GameRoomMachineServiceInputSupport.swift` file into:
+  - `GameRoomMachineMaintenanceInputSupport.swift` for the recurring maintenance sheets
+  - `GameRoomMachineCustomEventInputSupport.swift` for install-mod, replace-part, and log-plays entry
+- deleted the stale `GameRoomMachineServiceInputSupport.swift` file after those sheets were separated
+
+Hidden seams surfaced and reduced:
+1. the old file name had gone stale because it owned both service-entry sheets and custom event-entry sheets
+2. separating the two groups makes later maintenance-entry cleanup possible without reopening the custom event path, and vice versa
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 264: GameRoom catalog variant label support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogVariantSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogVariantLabelSupport.swift`
+
+Changes made in this pass:
+- moved pure catalog variant normalization and label-selection helpers into `GameRoomCatalogVariantLabelSupport.swift`
+- left `GameRoomCatalogVariantSupport.swift` focused on assembled catalog game records, deduping, variant-option maps, and preferred-record selection
+
+Hidden seams surfaced and reduced:
+1. `GameRoomCatalogVariantSupport.swift` was still carrying two different concerns:
+   - variant-label normalization and comparison rules
+   - actual catalog-game assembly and selection policy
+2. splitting the pure label helpers out made the support boundary much closer to the actual “variant label vs catalog resolution” contract
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 265: GameRoom edit-machines state consolidation
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinesView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachineStateSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachineActionSupport.swift`
+
+Changes made in this pass:
+- introduced `GameRoomEditMachinesViewState` so the edit-machines screen carries one top-level state object instead of a long list of loose `@State` properties
+- added `GameRoomEditMachinePanelExpansionState` to group the disclosure-panel expansion flags
+- made `GameRoomAreaDraftState` writable so the area editor can bind directly into the grouped state
+- updated `GameRoomEditMachinesView.swift` to read and write:
+  - filters
+  - machine selection
+  - area draft
+  - machine draft
+  - venue name draft
+  - disclosure expansion state
+  - pending variant picker
+  - catalog search index
+  through the one `viewState` object
+
+Hidden seams surfaced and fixed:
+1. `GameRoomEditMachinesView.swift` was still acting like a state bucket even after earlier action and selection splits
+2. the first consolidation pass briefly left one stale `onChange(of: selectedMachineID)` watcher behind from the pre-consolidation layout; that compile-only seam was fixed immediately before the final green build
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `GameRoomEditMachinesView.swift` dropped from 333 lines to 321 while the edit-machine coordinator state became much easier to audit as one object
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 266: GameRoom import review row split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomImportReviewSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomImportReviewRowSupport.swift`
+
+Changes made in this pass:
+- moved the import review row card, purchase-date binding, duplicate-warning display, match-selection menu, variant-selection menu, and confidence badge into `GameRoomImportReviewRowSupport.swift`
+- left `GameRoomImportReviewSupport.swift` focused on the review section shell:
+  - filter control
+  - filtered-row loop
+  - import action button
+
+Hidden seams surfaced and reduced:
+1. `GameRoomImportReviewSupport.swift` was still acting as both the review-section coordinator and the full row-entry surface
+2. after the split, the file boundary now matches that UI hierarchy much more closely, which makes later review-row cleanup possible without reopening the section shell
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `GameRoomImportReviewSupport.swift` dropped from 163 lines to 45
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 267: GameRoom variant presentation support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachinePresentationSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomVariantPresentationSupport.swift`
+
+Changes made in this pass:
+- moved the GameRoom variant pill and variant-badge labeling helpers into `GameRoomVariantPresentationSupport.swift`
+- left `GameRoomMachinePresentationSupport.swift` focused on:
+  - attention/status color
+  - location/meta line formatting
+  - snapshot metric assembly
+
+Hidden seams surfaced and reduced:
+1. `GameRoomMachinePresentationSupport.swift` was still mixing two different presentation layers:
+   - machine status/location/metric formatting
+   - reusable variant pill and badge presentation
+2. separating the variant-specific path makes the machine presentation support file read more like a status/meta helper bucket instead of a mixed visual grab bag
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `GameRoomMachinePresentationSupport.swift` dropped from 178 lines to 81
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 257: GameRoom import review support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomImportSettingsSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomImportReviewSupport.swift`
+
+Changes made in this pass:
+- moved the review section and per-row review card UI into `GameRoomImportReviewSupport.swift`
+- left `GameRoomImportSettingsSupport.swift` focused on the source-input fetch section
+
+Hidden seams surfaced and reduced:
+1. `GameRoomImportSettingsSupport.swift` was still carrying both sides of the import flow:
+   - source fetch/input
+   - review-and-correct matches
+2. those now live in separate files that match the two-step import workflow, which makes import UI maintenance less likely to reopen the fetch step when only review-row behavior changes
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 258: GameRoom media thumbnail support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaThumbnailSupport.swift`
+
+Changes made in this pass:
+- moved the attachment square tile and image/video thumbnail loaders into `GameRoomMediaThumbnailSupport.swift`
+- left `GameRoomMediaSupport.swift` focused on the preview sheet and media edit sheet
+
+Hidden seams surfaced and reduced:
+1. `GameRoomMediaSupport.swift` was still mixing three layers:
+   - thumbnail tile rendering
+   - asynchronous image/video thumbnail loading
+   - full preview and edit sheet presentation
+2. thumbnail generation now lives in one dedicated support file, so later media-sheet edits will not have to reopen the thumbnail loading path
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 259: GameRoom edit-machine action support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinesView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachineActionSupport.swift`
+
+Changes made in this pass:
+- moved edit-machine selection syncing, area-draft defaults, and catalog search-index rebuilding into `GameRoomEditMachineActionSupport.swift`
+- moved add-machine selection and duplicate-detection policy into `GameRoomEditMachineActionSupport.swift`
+- moved edited-machine resolution and persisted machine-update wiring into `GameRoomEditMachineActionSupport.swift`
+- left `GameRoomEditMachinesView.swift` focused on panel routing, bindings, and save/archive/delete triggers
+
+Hidden seams surfaced and reduced:
+1. `GameRoomEditMachinesView.swift` was still mixing three layers at once:
+   - panel-shell composition
+   - derived selection/catalog state
+   - add/edit mutation policy
+2. after the split, the view file stopped carrying most of the business-logic helpers directly, which makes it much easier to tell which behavior belongs to the coordinator and which behavior belongs to GameRoom edit policy
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `GameRoomEditMachinesView.swift` dropped from 383 lines to 333 while keeping the same add/edit machine behavior
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 260: GameRoom machine route and content split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineContentSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineRouteSupport.swift`
+
+Changes made in this pass:
+- moved the machine scroll content, summary/input/log routing, and machine-detail composition into `GameRoomMachineContentSupport.swift`
+- moved route-level machine lookup, optional-alert bindings, and attachment open-target policy into `GameRoomMachineRouteSupport.swift`
+- left `GameRoomMachineView.swift` focused on the route shell:
+  - sheets
+  - alerts
+  - navigation destination
+  - attachment-preview/fullscreen state
+
+Hidden seams surfaced and fixed:
+1. `GameRoomMachineView.swift` was still acting as both the route shell and the full machine-detail surface even after earlier machine-support splits
+2. the first extraction pass briefly introduced a mismatched delimiter in the input-sheet route; that compile-only break was fixed immediately before the final green build
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `GameRoomMachineView.swift` dropped from 218 lines to 140 and now reads like an actual route shell instead of a mixed content/router file
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 261: GameRoom machine summary and input surface split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineSummarySupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineInputPanelSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachinePanelsSupport.swift`
+
+Changes made in this pass:
+- moved the machine snapshot/media summary surface into `GameRoomMachineSummarySupport.swift`
+- moved the service/issue/ownership input surface into `GameRoomMachineInputPanelSupport.swift`
+- deleted the stale combined `GameRoomMachinePanelsSupport.swift` file after its two surfaces were separated
+
+Hidden seams surfaced and reduced:
+1. after the route/content split, `GameRoomMachinePanelsSupport.swift` had become a misleading bucket that still owned two unrelated surfaces:
+   - the read-only snapshot/media summary
+   - the action-launch input panel
+2. splitting those surfaces finished the machine-detail decomposition and removed one more misleading “miscellaneous panels” file from GameRoom
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 255: GameRoom persistence model split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPersistenceModels.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomReminderConfig.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomImportRecord.swift`
+
+Changes made in this pass:
+- moved `MachineReminderConfig` into `GameRoomReminderConfig.swift`
+- moved `MachineImportRecord` into `GameRoomImportRecord.swift`
+- left `GameRoomPersistenceModels.swift` focused on the top-level `GameRoomPersistedState` shape
+
+Hidden seams surfaced and reduced:
+1. `GameRoomPersistenceModels.swift` was still mixing three separate persistence layers:
+   - per-machine reminder configuration
+   - import history records
+   - the top-level persisted state container
+2. those model boundaries now match the actual persistence contracts, which should make future schema review less likely to reopen unrelated record types
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 256: GameRoom reminder snapshot support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStoreSnapshotSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomReminderSnapshotSupport.swift`
+
+Changes made in this pass:
+- moved reminder due-count, play-count baseline, latest-event, and effective-reminder-config helpers into `GameRoomReminderSnapshotSupport.swift`
+- moved small machine-event and issue query helpers into the same support file
+- left `GameRoomStoreSnapshotSupport.swift` focused on:
+  - active/archive inventory views
+  - snapshot recompute orchestration
+  - machine sort policy
+
+Hidden seams surfaced and reduced:
+1. `GameRoomStoreSnapshotSupport.swift` was still mixing snapshot orchestration with the lower-level reminder policy that computes due maintenance counts
+2. the reminder/play-count logic is now reviewable in one place without reopening the higher-level snapshot assembly path every time a maintenance badge or attention-state rule is touched
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 254: GameRoom add-machine filter and result support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomAddMachineSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomAddMachineFiltersSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomAddMachineResultSupport.swift`
+
+Changes made in this pass:
+- moved the advanced manufacturer/year/type filter disclosure UI into `GameRoomAddMachineFiltersSupport.swift`
+- moved the catalog result row and variant-picker popover into `GameRoomAddMachineResultSupport.swift`
+- left `GameRoomAddMachineSupport.swift` focused on the add-machine panel shell, status line, and result list routing
+
+Hidden seams surfaced and reduced:
+1. `GameRoomAddMachineSupport.swift` was still carrying three separate layers:
+   - the add-machine panel shell
+   - advanced filter controls
+   - the result-row and variant-picker leaf UI
+2. separating those layers makes the add-machine flow easier to scan without reopening the filter chrome every time the result-row behavior changes
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 253: GameRoom home selection and collection chrome support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomHomeComponents.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomHomeSelectionSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachinePresentationSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCollectionChromeSupport.swift`
+
+Changes made in this pass:
+- moved GameRoom home selected-machine lookup, selection syncing, and transition-source selection into `GameRoomHomeSelectionSupport.swift`
+- left `GameRoomHomeComponents.swift` focused on the actual home screen shell and route wiring
+- moved collection artwork chrome and attention-indicator views out of `GameRoomMachinePresentationSupport.swift` into `GameRoomCollectionChromeSupport.swift`
+- left `GameRoomMachinePresentationSupport.swift` focused on display helpers:
+  - location/meta text
+  - status styling
+  - variant badges
+  - snapshot metric assembly
+
+Hidden seams surfaced and reduced:
+1. `GameRoomHomeComponents.swift` was still mixing the top-level home screen layout with the small-but-important selection/transition policy that decides which machine the home card opens
+2. `GameRoomMachinePresentationSupport.swift` had drifted into a misleading file boundary by still owning collection-specific artwork chrome even after the collection rows moved into their own support file
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 251: GameRoom Pinside page support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPinsideDocumentSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPinsidePageSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPinsideImport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPinsideImportServiceSupport.swift`
+
+Changes made in this pass:
+- moved Pinside collection-page validation and Cloudflare challenge detection into `GameRoomPinsidePageSupport.swift`
+- moved slug extraction and bundled Pinside group-map resource loading into `GameRoomPinsidePageSupport.swift`
+- left `GameRoomPinsideDocumentSupport.swift` focused on machine parsing and fallback merge behavior
+- kept `GameRoomPinsideImport.swift` as the thin actor entry point and `GameRoomPinsideImportServiceSupport.swift` as the fetch/network helper layer
+
+Hidden seams surfaced and reduced:
+1. `GameRoomPinsideDocumentSupport.swift` was still mixing three different layers:
+   - raw page sanity checks and Cloudflare detection
+   - document-to-machine parsing
+   - bundled resource lookup for the fallback title map
+2. the page-validation/resource layer now lives in one support file, which makes future Pinside parser work less likely to reopen the fetch and bundle-loading rules at the same time
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 252: GameRoom home collection support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomHomeCollectionSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSelectedSummarySupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCollectionRowSupport.swift`
+
+Changes made in this pass:
+- moved the selected-machine summary card into `GameRoomSelectedSummarySupport.swift`
+- moved the collection tile and list-row views into `GameRoomCollectionRowSupport.swift`
+- left `GameRoomHomeCollectionSupport.swift` focused on the collection card container and its layout toggle
+
+Hidden seams surfaced and reduced:
+1. `GameRoomHomeCollectionSupport.swift` was still carrying three distinct home-surface layers at once:
+   - the selected-machine summary card
+   - the collection container and layout switcher
+   - the leaf tile/list row views
+2. those boundaries now match the actual home-screen composition, which makes later GameRoom home polish less likely to reopen unrelated summary-card or row-presentation code
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 244: GameRoom sheet chrome and issue attachment support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSheetChromeSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEventEditSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueAttachmentSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEventEntrySupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueEntrySupport.swift`
+
+Changes made in this pass:
+- moved the shared GameRoom sheet chrome helpers into `GameRoomSheetChromeSupport.swift`
+- moved `GameRoomEventEditSheet` into `GameRoomEventEditSupport.swift`
+- moved issue attachment draft/list/button leaf views into `GameRoomIssueAttachmentSupport.swift`
+- trimmed `GameRoomIssueEntrySupport.swift` back to issue form state, picker routing, and save/import actions
+
+Hidden seams surfaced and fixed:
+1. the initial attachment-button split briefly failed because the new button row was passed immediate function calls instead of closures
+2. after correcting that wiring, the split compiled cleanly and the attachment UI responsibility now lives in a file that matches its actual job
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- issue attachment rows/buttons and sheet chrome are now reusable support instead of inline event/issue-file baggage
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 245: GameRoom presentation text-normalization cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPresentationComponents.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomTextNormalizationSupport.swift`
+
+Changes made in this pass:
+- updated `GameRoomLogDetailCard` to use `gameRoomNormalizedOptional(...)` instead of keeping its own blank-string trimming helper
+
+Hidden seam surfaced and fixed:
+1. the presentation layer was still carrying a private normalization path even after shared GameRoom text support existed
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- GameRoom entry, issue, media, and presentation surfaces now share one text-normalization rule
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 246: GameRoom edit-machines panel shell split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinePanelStackSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinesView.swift`
+
+Changes made in this pass:
+- moved the disclosure/panel stack shell into `GameRoomEditMachinePanelStackSupport.swift`
+- trimmed `GameRoomEditMachinesView.swift` down to state ownership, lifecycle hooks, panel data, and edit actions
+
+Hidden seams surfaced and reduced:
+1. `GameRoomEditMachinesView.swift` was still mixing top-level shell composition with the actual edit/add/search logic
+2. separating the disclosure shell makes the remaining `GameRoomEditMachinesView` work more obviously about state and actions, not panel chrome
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `GameRoomEditMachinesView.swift` dropped from 415 lines to 392
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 247: GameRoom event and issue entry support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomServiceEventEntrySupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomOwnershipEventEntrySupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueLoggingSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueResolutionSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueSubsystemSupport.swift`
+- removed stale shell: `Pinball App 2/Pinball App 2/gameroom/GameRoomRecordModels.swift`
+
+Changes made in this pass:
+- split service/play-count entry sheets out of the old mixed event-entry file into `GameRoomServiceEventEntrySupport.swift`
+- split ownership and part/mod entry sheets into `GameRoomOwnershipEventEntrySupport.swift`
+- split issue logging, issue resolution, and subsystem display-title formatting into:
+  - `GameRoomIssueLoggingSupport.swift`
+  - `GameRoomIssueResolutionSupport.swift`
+  - `GameRoomIssueSubsystemSupport.swift`
+- deleted the stale `GameRoomRecordModels.swift` shell after the snapshot/event/issue/attachment record types had already moved into dedicated files
+
+Hidden seams surfaced and reduced:
+1. the old event and issue entry buckets were still just holding multiple unrelated sheet flows because they happened to be created in the same earlier cleanup pass
+2. `GameRoomRecordModels.swift` had become a misleading empty file after the record-type split, which would have looked like unfinished model debt on later passes
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- event, ownership, issue, and issue-resolution flows now live in files that match their actual responsibilities
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 248: GameRoom catalog model and machine-resolution support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogLoader.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogModels.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogMachineResolutionSupport.swift`
+
+Changes made in this pass:
+- moved `GameRoomCatalogGame` and `GameRoomCatalogSlugMatch` out of `GameRoomCatalogLoader.swift` into `GameRoomCatalogModels.swift`
+- moved exact-OPDB resolution, normalized catalog-game lookup, and image-candidate assembly into `GameRoomCatalogMachineResolutionSupport.swift`
+- trimmed `GameRoomCatalogLoader.swift` down to the hosted-data load/reload pipeline, lookup entry points, and published loader state
+
+Hidden seams surfaced and reduced:
+1. `GameRoomCatalogLoader.swift` was still mixing three layers:
+   - catalog data model types
+   - async hosted-data loading and index construction
+   - exact-machine normalization and artwork-candidate policy
+2. the exact-OPDB and image fallback rules are now reviewable without reopening the async loader flow every time a GameRoom media issue comes up
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `GameRoomCatalogLoader.swift` dropped from 266 lines to 147
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 249: GameRoom machine route helper cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineRouteSupport.swift`
+
+Changes made in this pass:
+- moved machine-route helper queries out of `GameRoomMachineView.swift` into `GameRoomMachineRouteSupport.swift`:
+  - recent attachments
+  - open-issue detection
+  - linked attachment lookup
+  - linked event lookup
+  - per-machine event sorting
+- removed the stale `logRowHeights` state from `GameRoomMachineView.swift` after log-row measurement had already moved into `GameRoomMachineLogSupport.swift`
+
+Hidden seams surfaced and reduced:
+1. `GameRoomMachineView.swift` was still carrying small store-state query helpers that only remained there because the machine route and the underlying panels used to live in one file
+2. the unused `logRowHeights` state was stale hidden state left behind after the log-height measurement logic moved into `GameRoomMachineLogSupport.swift`
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `GameRoomMachineView.swift` dropped from 222 lines to 218 and no longer carries stale log-measurement state
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 250: GameRoom edit-machine selection and import scoring support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachineSelectionSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinesView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomImportMatcherScoringSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomImportDateParsingSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomImportScoringSupport.swift`
+
+Changes made in this pass:
+- moved edit-machine selection helpers into `GameRoomEditMachineSelectionSupport.swift`:
+  - selected-machine validation
+  - venue-name draft sync
+  - machine-menu label formatting
+  - indexed manufacturer extraction
+- trimmed `GameRoomEditMachinesView.swift` to use those helpers instead of carrying small local wrappers
+- split `GameRoomImportMatcherScoringSupport.swift` into:
+  - `GameRoomImportDateParsingSupport.swift` for purchase-date normalization
+  - `GameRoomImportScoringSupport.swift` for text/token/manufacturer/year scoring helpers
+- left `GameRoomImportMatcherScoringSupport.swift` focused on:
+  - match labels
+  - ranked suggestion assembly
+  - confidence mapping
+
+Hidden seams surfaced and reduced:
+1. `GameRoomImportMatcherScoringSupport.swift` had drifted into a misleading file name because it still owned date parsing alongside actual scoring policy
+2. `GameRoomEditMachinesView.swift` was still carrying several small support helpers that belonged with the edit-machine selection/search contract rather than the view lifecycle itself
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `GameRoomImportMatcherScoringSupport.swift` dropped from 194 lines to 63
+- `GameRoomEditMachinesView.swift` dropped from 392 lines to 383
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 243: GameRoom machine input-sheet routing split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineServiceInputSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineIssueInputSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineOwnershipMediaInputSupport.swift`
+
+Changes made in this pass:
+- moved service-entry sheet routing out of `GameRoomMachineSupport.swift` into `GameRoomMachineServiceInputSupport.swift`
+- moved issue open/resolve sheet routing into `GameRoomMachineIssueInputSupport.swift`
+- moved ownership-update and add-media sheet routing into `GameRoomMachineOwnershipMediaInputSupport.swift`
+- trimmed `GameRoomMachineSupport.swift` down to the input-sheet enum and the top-level switch router
+
+Hidden seams surfaced and reduced:
+1. `GameRoomMachineSupport.swift` had become a catch-all for every machine input flow even though the flows already grouped naturally by:
+   - service and maintenance
+   - issue tracking
+   - ownership and media
+2. the old file boundary made simple changes to one sheet category reopen unrelated categories in the same file
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `GameRoomMachineSupport.swift` dropped from 284 lines to 57
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 242: GameRoom area and machine-selection support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomAreaManagementSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineSelectionSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinePanelsSupport.swift`
+
+Changes made in this pass:
+- moved venue-name and area-management panels into `GameRoomAreaManagementSupport.swift`
+- moved machine menu-group and variant-selection row support into `GameRoomMachineSelectionSupport.swift`
+- trimmed `GameRoomEditMachinePanelsSupport.swift` down to the actual edit/mutation panel wiring
+
+Hidden seams surfaced and reduced:
+1. `GameRoomEditMachinePanelsSupport.swift` was carrying three separate concerns at once:
+   - venue and area settings
+   - machine/variant selection chrome
+   - machine editor fields and actions
+2. the file now aligns more closely with the edit-machine flow boundaries, which should make the remaining `GameRoomEditMachinesView.swift` cleanup easier
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `GameRoomEditMachinePanelsSupport.swift` dropped from 312 lines to 172
+
+Remaining notable seam after this pass:
+1. `GameRoomMachineView.swift` still owns attachment-link lookup and event/log routing helpers that probably want a dedicated support file in a later pass
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 232: GameRoom machine view shell support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineViewSupport.swift`
+
+Changes made in this pass:
+- moved the GameRoom machine screen shell views out of `GameRoomMachineView.swift`:
+  - `GameRoomMachineFullscreenPhotoItem`
+  - `GameRoomMachineSubview`
+  - `GameRoomMachineHeroSection`
+  - `GameRoomMachineHeaderSection`
+  - `GameRoomMachineSubviewPicker`
+  - `GameRoomMachineUnavailableMessage`
+- left `GameRoomMachineView.swift` focused on route state, sheets/alerts, and subview routing
+
+Hidden seam surfaced and reduced:
+1. `GameRoomMachineView.swift` was still mixing machine-screen navigation/sheet state with static presentation shells for hero/header/subview chrome
+2. those shell views now live in one support file, so future GameRoom machine cleanup can review route behavior separately from display composition
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 239: GameRoom catalog variant and slug support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogLoader.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogVariantSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogSlugSupport.swift`
+
+Changes made in this pass:
+- split the old `GameRoomCatalogLoaderSupport.swift` bucket into:
+  - `GameRoomCatalogVariantSupport.swift` for:
+    - catalog game construction
+    - variant parsing and ranking
+    - preferred-game selection
+    - variant-option normalization
+    - normalized catalog identity helpers
+  - `GameRoomCatalogSlugSupport.swift` for:
+    - slug-key generation
+    - duplicate slug collision logging
+    - slug normalization and suffix stripping
+    - hosted/local URL resolution
+- left `GameRoomCatalogLoader.swift` focused on hosted data loading, indexing, and public lookup APIs
+
+Hidden seam surfaced and reduced:
+1. the old support file was still mixing two separate policy layers:
+   - machine/variant identity rules
+   - slug matching and hosted-path resolution
+2. those rules now live in separate support files, so future cleanup can review variant policy without reopening slug collision handling and vice versa
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 240: GameRoom Pinside title and document support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPinsideImport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPinsideTitleSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPinsideDocumentSupport.swift`
+
+Changes made in this pass:
+- split the old `GameRoomPinsideParsingSupport.swift` bucket into:
+  - `GameRoomPinsideTitleSupport.swift` for:
+    - displayed-title normalization
+    - variant derivation from title/slug
+    - group-map title fallback resolution
+  - `GameRoomPinsideDocumentSupport.swift` for:
+    - page validation and Cloudflare challenge detection
+    - basic HTML slug scraping
+    - detailed Jina markdown parsing
+    - fallback merge behavior
+    - bundled group-map loading
+    - purchase-month normalization
+- left `GameRoomPinsideImport.swift` focused on network/orchestration behavior
+
+Compile-only seam fixed during the split:
+1. `parsePinsideDisplayedTitle(...)` was still `private` from the old single-file layout, so the document parser could not call it after the split
+2. the helper was widened just enough for the new sibling support file and the final build passed
+
+Hidden seam surfaced and reduced:
+1. the old parser file was still mixing page validation, fallback merge policy, title normalization, slug-derived variant logic, and bundled group-map loading in one place
+2. the new file boundary now matches those responsibilities more closely:
+   - title/variant resolution
+   - document parsing and fallback merge
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- first run failed with the private helper visibility seam above
+- final result after the visibility fix: passed
+
+## Pass 237: GameRoom store inventory support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStoreInventorySupport.swift`
+
+Changes made in this pass:
+- moved GameRoom inventory and venue mutations out of `GameRoomStore.swift`:
+  - `area(for:)`
+  - `addOwnedMachine(...)`
+  - `updateMachine(...)`
+  - `deleteMachine(...)`
+  - `upsertArea(...)`
+  - `deleteArea(...)`
+  - `updateVenueName(...)`
+- left `GameRoomStore.swift` focused on published state ownership, load/save behavior, and shared recompute/persistence helpers
+
+Hidden seam surfaced and reduced:
+1. `GameRoomStore.swift` was still mixing state host responsibilities with the full inventory/area mutation surface
+2. `deleteMachine(...)` was also directly mutating `snapshots` before the authoritative `saveAndRecompute()` path recalculated them, which was redundant hidden state churn
+3. inventory and venue mutations now live in one extension file, and the redundant pre-recompute snapshot mutation is gone
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 238: GameRoom store record support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStoreRecordSupport.swift`
+
+Changes made in this pass:
+- moved GameRoom event/issue/attachment mutation APIs out of `GameRoomStore.swift`:
+  - `updateEvent(...)`
+  - `deleteEvent(...)`
+  - `addEvent(...)`
+  - `openIssue(...)`
+  - `resolveIssue(...)`
+  - `addAttachment(...)`
+  - `updateAttachment(...)`
+  - `deleteAttachmentAndLinkedEvent(...)`
+- left `GameRoomStore.swift` as the state/persistence host and kept record mutation behavior unchanged
+
+Hidden seam surfaced and reduced:
+1. `GameRoomStore.swift` had become a second catch-all bucket for all GameRoom record mutation paths on top of already owning load/save state
+2. record mutations now live in one dedicated extension file, which makes future GameRoom record cleanup easier to review without reopening persistence/loading code
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 233: GameRoom edit-machine selection support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinesView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachineSelectionSupport.swift`
+
+Changes made in this pass:
+- moved the pure selection/filter helpers out of `GameRoomEditMachinesView.swift`:
+  - machine menu grouping
+  - selected machine lookup
+  - manufacturer suggestion visibility
+  - search-filter detection
+  - current variant label formatting
+  - add-machine result metadata
+  - parsed optional int/string helpers
+  - variant option and distinct-variant helpers
+- left `GameRoomEditMachinesView.swift` focused on owned state and user-triggered mutations
+
+Hidden seam surfaced and reduced:
+1. `GameRoomEditMachinesView.swift` still carried a large block of pure helper logic that did not need access to view state
+2. moving those helpers out makes the remaining file easier to treat as a view-state coordinator instead of a second utility bucket
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 234: GameRoom enum, inventory, and record model split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEnumModels.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomInventoryModels.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomRecordModels.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomModels.swift`
+
+Changes made in this pass:
+- moved GameRoom enums out of the old catch-all `GameRoomModels.swift` into `GameRoomEnumModels.swift`
+- moved `GameRoomArea` and `OwnedMachine` into `GameRoomInventoryModels.swift`
+- completed the earlier record/history move by keeping:
+  - `OwnedMachineSnapshot`
+  - `MachineEvent`
+  - `MachineIssue`
+  - `MachineAttachment`
+  in `GameRoomRecordModels.swift`
+- removed the stale `GameRoomModels.swift` bucket entirely once it no longer owned a coherent set of types
+
+Hidden seam surfaced and reduced:
+1. after the earlier persistence and record splits, `GameRoomModels.swift` had become a misleading leftover bucket instead of a real model boundary
+2. the GameRoom model layer now has clearer ownership:
+   - enum/taxonomy types
+   - inventory/domain types
+   - record/history types
+   - persistence/import types
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 235: GameRoom edit-machine draft state support cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinesView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachineStateSupport.swift`
+
+Changes made in this pass:
+- grouped the add-machine filter fields into `GameRoomAddMachineFilters`
+- grouped the edit-machine draft fields into `GameRoomMachineEditDraft`
+- grouped the pending variant-picker state into `GameRoomPendingVariantPicker`
+- updated `GameRoomEditMachinesView.swift` to bind panel inputs through those state objects instead of carrying a long loose list of `@State` fields
+
+Hidden seam surfaced and reduced:
+1. `GameRoomEditMachinesView.swift` was still acting like a bag of unrelated state slots, which made it harder to see which fields belonged to the add-machine flow versus the edit-machine flow
+2. the view state now mirrors the actual UI contracts more clearly:
+   - add-machine filters
+   - edit-machine draft
+   - pending variant picker
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 236: GameRoom home collection chrome support cleanup
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomHomeCollectionSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachinePresentationSupport.swift`
+
+Changes made in this pass:
+- moved shared collection-card artwork chrome into `GameRoomCollectionArtworkChrome`
+- moved shared attention-state dot rendering into `GameRoomAttentionIndicator`
+- moved shared snapshot metric assembly into `gameRoomSnapshotMetrics(...)`
+- added `gameRoomVariantBadgeLabel(for:)` so the home tile/list views stop duplicating the same badge lookup
+- kept the mini-card and list-row-specific layout/content separate while removing the repeated image-overlay and attention-color scaffolding
+
+Hidden seam surfaced and reduced:
+1. the home tile card and list row were carrying near-duplicate artwork background, selection stroke, attention-state color, and variant-badge logic
+2. those shared display rules now live in one presentation layer instead of drifting between two home collection surfaces
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 217: GameRoom machine input and summary support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineSupport.swift`
+
+Changes made in this pass:
+- moved the machine input-sheet routing and the summary/input tab content out of `GameRoomMachineView.swift`
+- introduced `GameRoomMachineInputSheet`, `GameRoomMachineInputSheetContent`, `GameRoomMachineSummaryContent`, and `GameRoomMachineInputContent` as dedicated machine-view support types
+- left `GameRoomMachineView.swift` focused on shell state, tab selection, attachment routing, and navigation presentation
+
+Hidden seam surfaced and reduced:
+1. the machine screen previously mixed three layers in one file:
+   - screen shell and navigation state
+   - machine summary rendering
+   - service / issue / ownership / media input sheet routing
+2. those responsibilities now have clearer seams, so future GameRoom passes can adjust machine logging or input behavior without reopening the whole machine screen shell
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 218: GameRoom machine log support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineLogSupport.swift`
+
+Changes made in this pass:
+- moved the embedded machine log list, row-height preference plumbing, log detail routing, and swipe actions out of `GameRoomMachineView.swift`
+- introduced `GameRoomMachineLogContent` as the dedicated log-tab surface for machine history, media-open routing, and event edit/delete actions
+
+Hidden seam surfaced and reduced:
+1. the machine screen was still carrying the last large inline list-management bucket after the summary/input split
+2. the log tab now owns its own detail-card selection and measured embedded-list sizing instead of relying on `GameRoomMachineView.swift` to coordinate that view-specific plumbing
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 219: GameRoom edit-machines view extraction
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinesView.swift`
+
+Changes made in this pass:
+- moved `GameRoomEditMachinesView` wholesale out of `GameRoomSettingsComponents.swift`
+- kept `GameRoomSettingsComponents.swift` as the lightweight settings root and section switcher
+- moved the embedded name, area, machine editor, add-machine search, and variant-picker support views with the extracted machine editor file
+
+Hidden seam surfaced and reduced:
+1. `GameRoomSettingsComponents.swift` had stopped being a settings shell and had effectively become the entire GameRoom machine editor implementation
+2. after the extraction, the settings root is back to one clear job: load the catalog, choose the section, and route to the matching settings surface
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 220: GameRoom event entry support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPresentationComponents.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEventEntrySupport.swift`
+
+Changes made in this pass:
+- moved the shared service / play-count / ownership / part-or-mod entry sheets out of `GameRoomPresentationComponents.swift`
+- moved `GameRoomEventEditSheet` and the shared sheet-style helpers into `GameRoomEventEntrySupport.swift`
+- left `GameRoomPresentationComponents.swift` focused on read-side log detail presentation and event-title display helpers
+
+Hidden seam surfaced and reduced:
+1. the presentation file was still carrying a full set of edit-sheet forms even after issue/media support moved out
+2. the remaining file boundary now better matches the real split between read-side presentation and edit-side event-entry surfaces
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 221: GameRoom import support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomImportSettingsView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomImportSettingsSupport.swift`
+
+Changes made in this pass:
+- moved the import review filter, import draft row model, import matcher, source-entry section, review section, and review row card out of `GameRoomImportSettingsView.swift`
+- left `GameRoomImportSettingsView.swift` focused on fetch/import shell state, result messaging, and store mutations
+
+Hidden seam surfaced and reduced:
+1. the import screen had become another mixed-responsibility bucket with view shell state, matching heuristics, row models, and review UI all interleaved
+2. the matcher and review UI now live together in one support file, which makes future Pinside matching and import-review cleanup more localized
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 222: GameRoom issue entry support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueEntrySupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaSupport.swift`
+
+Changes made in this pass:
+- moved the issue logging and issue resolution sheets out of the mixed issue/media bucket into `GameRoomIssueEntrySupport.swift`
+- left the old media file focused on media entry preview/edit support instead of issue entry forms
+
+Hidden seam surfaced and reduced:
+1. the old issue/media support file had silently become two unrelated form systems:
+   - issue logging / issue resolution
+   - media import / preview / edit
+2. the extraction exposed one real file-boundary seam: `MovieTransferable` was still scoped to the old mixed file, so it was widened just enough for the new issue-entry sheet to keep using the same media import path
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 223: GameRoom home collection and presentation support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomHomeComponents.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomHomeCollectionSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachinePresentationSupport.swift`
+
+Changes made in this pass:
+- moved the selected-machine summary card and the full collection card surfaces out of `GameRoomHomeComponents.swift`
+- moved shared GameRoom machine presentation helpers out of the home file:
+  - location text
+  - machine meta line
+  - machine status label/color
+  - variant pill
+  - variant badge labeling
+- left `GameRoomHomeComponents.swift` focused on home-screen state, selection seeding, and navigation routing
+
+Hidden seam surfaced and reduced:
+1. `GameRoomHomeComponents.swift` was still acting as three different layers:
+   - home-screen shell state
+   - collection card/list rendering
+   - shared machine presentation helpers reused by the machine detail screen
+2. the shared machine presentation contract now lives in one explicit support file instead of being hidden inside the home screen file
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 224: GameRoom edit-machine panel support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinesView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomEditMachinePanelsSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomAddMachineSupport.swift`
+
+Changes made in this pass:
+- moved the venue-name, area-management, machine-selection, and machine-editor panels out of `GameRoomEditMachinesView.swift`
+- moved the add-machine search, advanced filters, result row, and variant-picker popover out of `GameRoomEditMachinesView.swift`
+- renamed the extracted support views with explicit `GameRoom...` prefixes so the file boundary is obvious and the editor shell no longer relies on ambiguous nested helper names
+
+Hidden seam surfaced and reduced:
+1. even after the initial machine-editor extraction, `GameRoomEditMachinesView.swift` was still carrying most of the actual edit UI leaf views inline
+2. the remaining file is now much closer to what it should be: state, derivations, selection syncing, and store mutations
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 225: GameRoom import matching support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomImportSettingsSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomImportMatchingSupport.swift`
+
+Changes made in this pass:
+- moved the Pinside import review filter, draft-row model, and import matcher out of `GameRoomImportSettingsSupport.swift`
+- left `GameRoomImportSettingsSupport.swift` focused on source-entry and review UI sections
+
+Hidden seam surfaced and reduced:
+1. the earlier import support split still mixed two separate concerns in one file:
+   - matching heuristics and normalization policy
+   - review UI sections and row cards
+2. matching policy now lives in its own support file, which makes future import-tuning or parity review easier without reopening the UI surfaces
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 226: GameRoom shared media import support and media-file rename
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaImportSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaEntrySupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMediaSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueEntrySupport.swift`
+
+Changes made in this pass:
+- moved shared GameRoom media import/storage helpers into `GameRoomMediaImportSupport.swift`
+- moved the add-photo/add-video sheet into `GameRoomMediaEntrySupport.swift`
+- renamed the stale `GameRoomIssueAndMediaSupport.swift` file to `GameRoomMediaSupport.swift`
+- updated the issue-entry path to reuse the same shared media import/storage helpers instead of keeping a second copy of that logic
+
+Hidden seams surfaced and reduced:
+1. the old file name had become misleading after issue entry moved out; the file no longer represented issue support at all
+2. the issue-entry sheet and media-entry sheet were both maintaining their own copies of:
+   - imported media storage
+   - imported video copy logic
+   - string normalization helpers
+3. those helpers now live in one shared GameRoom media support layer instead of drifting separately
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 227: GameRoom persistence model and decoding support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomModels.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPersistenceModels.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomDecodingSupport.swift`
+
+Changes made in this pass:
+- moved persistence-heavy GameRoom model types out of `GameRoomModels.swift`:
+  - `MachineReminderConfig`
+  - `MachineImportRecord`
+  - `GameRoomPersistedState`
+- moved shared decode helpers out of `GameRoomModels.swift` into `GameRoomDecodingSupport.swift`:
+  - trimmed string decoding
+  - UUID decoding
+  - enum decoding
+  - safe date decoding
+- left `GameRoomModels.swift` focused more tightly on the domain enums and user-facing GameRoom entities
+
+Hidden seam surfaced and fixed:
+1. `GameRoomModels.swift` was still carrying both the gameplay/domain types and the persistence/decode infrastructure that only exists to make saved-state migration resilient
+2. the first extraction surfaced one real cross-file seam: the moved `nilIfBlank` helper collided with an existing MatchPlay helper in `settings/MatchPlayClient.swift`, so the GameRoom decoding path now uses its own local trimming helper instead of introducing another global string extension
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 228: GameRoom store snapshot and import support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStore.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStoreSnapshotSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomStoreImportSupport.swift`
+
+Changes made in this pass:
+- moved snapshot/recompute logic out of `GameRoomStore.swift` into `GameRoomStoreSnapshotSupport.swift`:
+  - `activeMachines`
+  - `archivedMachines`
+  - `snapshot(for:)`
+  - machine sorting
+  - reminder task counts
+  - play-count bookkeeping
+  - latest event date lookup
+  - effective reminder config resolution
+- moved import/migration helpers out of `GameRoomStore.swift` into `GameRoomStoreImportSupport.swift`:
+  - duplicate fingerprint checks
+  - existing-machine lookup
+  - import record application
+  - saved-machine OPDB normalization/migration
+- widened only the two store helpers that the extracted files legitimately needed:
+  - `saveAndRecompute()`
+  - `normalizedOptionalString(_:)`
+
+Hidden seam surfaced and reduced:
+1. `GameRoomStore.swift` was still a mixed controller bucket containing live published state, mutation methods, import rules, snapshot generation, and reminder bookkeeping
+2. the extracted files now separate the two most stateful hidden contracts in the store:
+   - imported-machine reconciliation
+   - snapshot/reminder derivation
+3. during the split, a stale visibility assumption showed up immediately: these helpers previously “worked” only because they shared one file, so the fix was to expose the smallest owning helpers instead of loosening the rest of the store
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 229: GameRoom catalog loader support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogLoader.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomCatalogLoaderSupport.swift`
+
+Changes made in this pass:
+- moved the pure GameRoom catalog lookup policy out of `GameRoomCatalogLoader.swift` into `GameRoomCatalogLoaderSupport.swift`:
+  - catalog machine mapping
+  - preferred-record selection
+  - variant option normalization
+  - duplicate slug-key resolution
+  - variant matching/exact matching helpers
+  - normalized catalog ID/title helpers
+  - hosted image URL resolution
+- left `GameRoomCatalogLoader.swift` focused on loading, caching, and applying that policy to the published loader state
+
+Hidden seam surfaced and reduced:
+1. `GameRoomCatalogLoader.swift` was still mixing async loader orchestration with a large pure-policy bucket for:
+   - dedupe rules
+   - slug-key building
+   - variant scoring
+   - record ranking
+2. pulling that pure policy into its own support file makes future GameRoom matching review much easier without reopening the loader’s published state and network/data-loading path
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 230: GameRoom Pinside parsing support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPinsideImport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPinsideParsingSupport.swift`
+
+Changes made in this pass:
+- moved the pure Pinside parsing and normalization support out of `GameRoomPinsideImport.swift` into `GameRoomPinsideParsingSupport.swift`:
+  - group-map resource loading
+  - collection HTML validation
+  - Cloudflare-challenge detection
+  - basic and detailed machine parsing
+  - slug extraction
+  - displayed-title normalization
+  - slug-derived variant inference
+  - purchase-date month normalization
+  - primary/fallback machine merge logic
+- left `GameRoomPinsideImport.swift` focused on request orchestration, retry/fallback behavior, and fatal-vs-retryable error policy
+
+Hidden seams surfaced and fixed:
+1. `GameRoomPinsideImport.swift` had become an all-in-one file for:
+   - source URL normalization
+   - network fetching
+   - HTML validation
+   - regex parsing
+   - variant/title normalization
+   - date parsing
+   - fallback merge rules
+2. after extracting those helpers, one important stale seam appeared immediately: because the project defaults to `MainActor` isolation, the new top-level parser helpers quietly inherited actor isolation until they were explicitly marked `nonisolated`
+3. that would have become a real Swift 6 error later, so the helpers are now explicitly nonisolated and safe to call from the Pinside import actor
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 231: GameRoom machine panel support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachineSupport.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomMachinePanelsSupport.swift`
+
+Changes made in this pass:
+- moved the snapshot/media summary panel and the machine action-panel UI out of `GameRoomMachineSupport.swift` into `GameRoomMachinePanelsSupport.swift`:
+  - `GameRoomMachineSummaryContent`
+  - `GameRoomMachineInputContent`
+- left `GameRoomMachineSupport.swift` focused on the sheet-entry routing path:
+  - `GameRoomMachineInputSheet`
+  - `GameRoomMachineInputSheetContent`
+
+Hidden seam surfaced and reduced:
+1. `GameRoomMachineSupport.swift` was still a mixed screen-support bucket containing:
+   - input-sheet routing
+   - snapshot metrics and recent media presentation
+   - action-grid UI for service / issue / ownership tools
+2. splitting the summary and action panels out means the file boundaries now line up much more closely with the actual machine screen sections instead of grouping them only because they once fit in one file
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 215: GameRoom settings responsibility split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsComponents.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomImportSettingsView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomArchiveSettingsView.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomSettingsSupport.swift`
+
+Changes made in this pass:
+- moved the full Pinside import flow out of `GameRoomSettingsComponents.swift` into `GameRoomImportSettingsView.swift`:
+  - import matching heuristics
+  - purchase-date normalization
+  - review-card UI
+  - import execution path
+- moved the archive filter/list UI into `GameRoomArchiveSettingsView.swift`
+- moved shared settings-only chrome out into `GameRoomSettingsSupport.swift`:
+  - adaptive popover placement
+  - floating save-feedback overlay
+- left `GameRoomSettingsComponents.swift` focused on the settings shell plus the machine-editing surface
+
+Hidden seam surfaced and reduced:
+1. `GameRoomSettingsComponents.swift` was still carrying at least four separate layers in one file:
+   - top-level settings routing
+   - Pinside import matching/import policy
+   - machine editing
+   - shared settings-only view infrastructure
+2. the first extraction surfaced one real file-scope cleanup seam: `gameRoomAdaptivePopover(...)` was still `fileprivate` from when it lived in the same file, so the helper was widened just enough to stay reusable across the new support file boundary
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
+
+## Pass 216: GameRoom issue and media support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomPresentationComponents.swift`
+- `Pinball App 2/Pinball App 2/gameroom/GameRoomIssueAndMediaSupport.swift`
+
+Changes made in this pass:
+- moved GameRoom issue/media entry surfaces out of `GameRoomPresentationComponents.swift` into `GameRoomIssueAndMediaSupport.swift`:
+  - issue logging sheet
+  - issue resolution sheet
+  - media entry sheet
+  - attachment tiles and preview/edit sheets
+  - media import/copy helpers
+  - issue-subsystem display-title support
+- left `GameRoomPresentationComponents.swift` with the more generic entry sheets and event/log presentation pieces:
+  - service entry
+  - play-count entry
+  - ownership entry
+  - part/mod entry
+  - log detail card
+  - event edit sheet
+
+Hidden seam surfaced and reduced:
+1. `GameRoomPresentationComponents.swift` was still acting as both the generic entry-sheet bucket and the issue/media/attachment support bucket used by `GameRoomMachineView`
+2. separating those responsibilities makes future GameRoom cleanup safer because attachment import/preview work no longer sits in the same file as unrelated ownership/service sheets
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: `BUILD SUCCEEDED`
 
 ## Pass 189: Android loader model and OPDB decode support split
 
