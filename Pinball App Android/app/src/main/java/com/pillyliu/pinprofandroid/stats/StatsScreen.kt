@@ -1,26 +1,15 @@
 package com.pillyliu.pinprofandroid.stats
 
 import android.content.res.Configuration
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.background
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,19 +25,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.isSystemInDarkTheme
-import com.pillyliu.pinprofandroid.data.PinballDataCache
 import com.pillyliu.pinprofandroid.data.formatLplPlayerNameForDisplay
-import com.pillyliu.pinprofandroid.data.leaguePlayerNamesMatch
-import com.pillyliu.pinprofandroid.data.parseCsv
 import com.pillyliu.pinprofandroid.data.rememberShowFullLplLastName
 import com.pillyliu.pinprofandroid.league.LeaguePreviewRefreshEvents
 import com.pillyliu.pinprofandroid.practice.rememberPreferredLeaguePlayerName
@@ -56,60 +34,14 @@ import com.pillyliu.pinprofandroid.ui.AppFilterSheet
 import com.pillyliu.pinprofandroid.ui.AppInlineStatusMessage
 import com.pillyliu.pinprofandroid.ui.AppScreen
 import com.pillyliu.pinprofandroid.ui.CardContainer
-import com.pillyliu.pinprofandroid.ui.EmptyLabel
-import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.AppRefreshStatusRow
+import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
 import com.pillyliu.pinprofandroid.ui.DropdownOption
-import com.pillyliu.pinprofandroid.ui.FixedWidthTableCell
 import com.pillyliu.pinprofandroid.ui.InsetFilterHeader
-import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
-import java.text.NumberFormat
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import androidx.compose.ui.platform.LocalConfiguration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.pow
-import kotlin.math.sqrt
-
-
-private const val CSV_URL = "https://pillyliu.com/pinball/data/LPL_Stats.csv"
-
-private data class ScoreRow(
-    val id: Int,
-    val season: String,
-    val bankNumber: Int,
-    val player: String,
-    val machine: String,
-    val rawScore: Double,
-    val points: Double,
-)
-
-private data class StatPlayerLabel(
-    val rawPlayer: String,
-    val season: String?,
-)
-
-private data class StatResult(
-    val count: Int,
-    val low: Double?,
-    val lowPlayer: StatPlayerLabel?,
-    val high: Double?,
-    val highPlayer: StatPlayerLabel?,
-    val mean: Double?,
-    val median: Double?,
-    val std: Double?,
-)
-
-private data class StatsTableWidths(
-    val season: Int,
-    val bank: Int,
-    val player: Int,
-    val machine: Int,
-    val score: Int,
-    val points: Int,
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -208,17 +140,11 @@ fun StatsScreen(
         scope.launch {
             isRefreshing = true
             try {
-                val cached = if (force) {
-                    PinballDataCache.forceRefreshText(CSV_URL)
-                } else {
-                    PinballDataCache.passthroughOrCachedText(CSV_URL)
-                }
-                rows = withContext(Dispatchers.IO) {
-                    parseScoreRows(cached.text.orEmpty())
-                }
-                dataUpdatedAtMs = cached.updatedAtMs
+                val loaded = withContext(Dispatchers.IO) { loadStatsRows(force) }
+                rows = loaded.rows
+                dataUpdatedAtMs = loaded.updatedAtMs
                 if (rows.isNotEmpty()) {
-                    val seasonsNow = rows.map { it.season }.toSet().sortedWith(::compareSeasons)
+                    val seasonsNow = rows.map { it.season }.toSet().sortedWith(::compareStatsSeasons)
                     if ((!initialLoadComplete && season.isBlank()) || (season.isNotBlank() && season !in seasonsNow)) {
                         season = seasonsNow.lastOrNull().orEmpty()
                     }
@@ -230,7 +156,7 @@ fun StatsScreen(
                 }
                 if (dataUpdatedAtMs != null) {
                     scope.launch {
-                        val remoteHasNewer = PinballDataCache.hasRemoteUpdate(CSV_URL)
+                        val remoteHasNewer = hasRemoteStatsUpdate()
                         hasNewerData = remoteHasNewer
                     }
                 } else {
@@ -249,7 +175,7 @@ fun StatsScreen(
         refresh(false)
     }
 
-    val seasons = rows.map { it.season }.toSet().sortedWith(::compareSeasons)
+    val seasons = rows.map { it.season }.toSet().sortedWith(::compareStatsSeasons)
     val players = rows.filter { season.isEmpty() || it.season == season }.map { it.player }.toSet().sorted()
     val banks = rows.filter { (season.isEmpty() || it.season == season) && (player.isEmpty() || it.player == player) }
         .map { it.bankNumber }
@@ -284,7 +210,7 @@ fun StatsScreen(
         machine = machine,
         showFullLplLastName = showFullLplLastName,
     )
-    val seasonOptions = listOf(DropdownOption("", "S: All")) + seasons.map { DropdownOption(it, abbrSeason(it)) }
+    val seasonOptions = listOf(DropdownOption("", "S: All")) + seasons.map { DropdownOption(it, abbreviateStatsSeason(it)) }
     val playerOptions = listOf(DropdownOption("", "Player: All")) +
         players.map { DropdownOption(it, formatLplPlayerNameForDisplay(it, showFullLplLastName)) }
     val bankOptions = listOf(DropdownOption("", "B: All")) + banks.map { DropdownOption(it.toString(), "B$it") }
@@ -304,7 +230,7 @@ fun StatsScreen(
             error?.let { AppInlineStatusMessage(text = it, isError = true) }
             dataUpdatedAtMs?.let { updatedAt ->
                 AppRefreshStatusRow(
-                    label = formatUpdatedAt(updatedAt),
+                    label = formatStatsUpdatedAt(updatedAt),
                     isRefreshing = isRefreshing,
                     hasNewerData = hasNewerData,
                     pulseAlpha = pulseAlpha,
@@ -405,361 +331,4 @@ fun StatsScreen(
             )
         }
     }
-}
-
-@Composable
-private fun StatsTable(
-    filtered: List<ScoreRow>,
-    showFullLplLastName: Boolean,
-    preferredLeaguePlayerName: String,
-    isRefreshing: Boolean,
-    initialLoadComplete: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val hState = rememberScrollState()
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val baseTableWidth = 614f
-        val scale = (maxWidth.value / baseTableWidth).coerceIn(1f, 1.8f)
-        val widths = StatsTableWidths(
-            season = (72 * scale).toInt(),
-            bank = (52 * scale).toInt(),
-            player = (130 * scale).toInt(),
-            machine = (170 * scale).toInt(),
-            score = (120 * scale).toInt(),
-            points = (70 * scale).toInt(),
-        )
-        val tableWidth = widths.season + widths.bank + widths.player + widths.machine + widths.score + widths.points
-
-        Row(
-            modifier = Modifier.fillMaxSize().horizontalScroll(hState),
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            Column(
-                modifier = Modifier
-                    .width(tableWidth.dp)
-                    .fillMaxHeight(),
-            ) {
-                HeaderRow(widths)
-                if (!initialLoadComplete && isRefreshing) {
-                    Column(
-                        modifier = Modifier.weight(1f, fill = true),
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        EmptyLabel("Loading data…")
-                    }
-                } else if (filtered.isEmpty()) {
-                    Column(
-                        modifier = Modifier.weight(1f, fill = true),
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        EmptyLabel("No rows - check filters or data source.")
-                    }
-                } else {
-                    LazyColumn(modifier = Modifier.weight(1f, fill = true)) {
-                        itemsIndexed(filtered, key = { _, row -> row.id }) { _, row ->
-                            val isHighlighted = leaguePlayerNamesMatch(row.player, preferredLeaguePlayerName)
-                            val accentColor = if (isHighlighted) PinballThemeTokens.colors.statsMeanMedian else Color.Unspecified
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(if (row.id % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerHigh)
-                                    .padding(vertical = 6.dp),
-                            ) {
-                                FixedWidthTableCell(row.season, widths.season, bold = isHighlighted)
-                                FixedWidthTableCell(row.bankNumber.toString(), widths.bank, bold = isHighlighted)
-                                FixedWidthTableCell(
-                                    formatLplPlayerNameForDisplay(row.player, showFullLplLastName),
-                                    widths.player,
-                                    bold = isHighlighted,
-                                    color = accentColor,
-                                )
-                                FixedWidthTableCell(row.machine, widths.machine, bold = isHighlighted)
-                                FixedWidthTableCell(formatInt(row.rawScore), widths.score, bold = isHighlighted, color = accentColor)
-                                FixedWidthTableCell(formatInt(row.points), widths.points, bold = isHighlighted, color = accentColor)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MachineStatsPanel(
-    machine: String,
-    bankNumber: Int?,
-    season: String,
-    bankStats: StatResult,
-    historyStats: StatResult,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(1.dp),
-    ) {
-        if (machine.isEmpty()) {
-            Text("Select a machine to see machine stats", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-            return@Column
-        }
-        MachineStatsTable(
-            selectedLabel = selectedBankLabel(season, bankNumber),
-            selectedStats = bankStats,
-            allSeasonsStats = historyStats,
-        )
-    }
-}
-
-@Composable
-private fun MachineStatsTable(selectedLabel: String, selectedStats: StatResult, allSeasonsStats: StatResult) {
-    val rowLabels = listOf("High", "Low", "Avg", "Med", "Std", "Count")
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 0.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            HeaderCell("", modifier = Modifier.weight(0.7f))
-            HeaderCell(selectedLabel, modifier = Modifier.weight(1.65f))
-            HeaderCell("All Seasons", modifier = Modifier.weight(1.65f))
-        }
-        rowLabels.forEachIndexed { idx, label ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 0.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                StatLabelCell(label, modifier = Modifier.weight(0.7f))
-                StatValueCell(
-                    label = label,
-                    stats = selectedStats,
-                    modifier = Modifier.weight(1.65f),
-                )
-                StatValueCell(
-                    label = label,
-                    stats = allSeasonsStats,
-                    modifier = Modifier.weight(1.65f),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun HeaderCell(text: String, modifier: Modifier, alignRight: Boolean = false) {
-    Text(
-        text = text,
-        modifier = modifier,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Medium,
-        maxLines = 1,
-        textAlign = if (alignRight) TextAlign.End else TextAlign.Start,
-    )
-}
-
-@Composable
-private fun StatLabelCell(text: String, modifier: Modifier) {
-    Text(
-        text = text,
-        modifier = modifier,
-        color = MaterialTheme.colorScheme.onSurface,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.Medium,
-        maxLines = 1,
-    )
-}
-
-@Composable
-private fun StatValueCell(label: String, stats: StatResult, modifier: Modifier) {
-    val showFullLplLastName = rememberShowFullLplLastName()
-    val valueColor = statsAccentColor(label)
-    val value = when (label) {
-        "High" -> formatInt(stats.high)
-        "Low" -> formatInt(stats.low)
-        "Avg" -> formatInt(stats.mean)
-        "Med" -> formatInt(stats.median)
-        "Std" -> formatInt(stats.std)
-        "Count" -> if (stats.count > 0) stats.count.toString() else "-"
-        else -> "-"
-    }
-    val player = when (label) {
-        "High" -> stats.highPlayer
-        "Low" -> stats.lowPlayer
-        else -> null
-    }
-
-    Column(modifier = modifier) {
-        Text(
-            text = value,
-            color = valueColor,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Start,
-            modifier = Modifier.fillMaxWidth(),
-            maxLines = 1,
-        )
-        if (label == "High" || label == "Low") {
-            Text(
-                text = formatStatPlayerLabel(player, showFullLplLastName),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 9.sp,
-                textAlign = TextAlign.Start,
-                lineHeight = 9.sp,
-                modifier = Modifier.fillMaxWidth().padding(top = 0.dp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-private fun formatStatPlayerLabel(player: StatPlayerLabel?, showFullLplLastName: Boolean): String {
-    player ?: return "-"
-    val display = formatLplPlayerNameForDisplay(player.rawPlayer, showFullLplLastName)
-    return player.season?.takeIf { it.isNotBlank() }?.let { "$display ($it)" } ?: display
-}
-
-@Composable
-private fun statsAccentColor(label: String): Color {
-    val darkMode = isSystemInDarkTheme()
-    val base = when (label) {
-        "High" -> Color(0xFF34D399)
-        "Low" -> Color(0xFFF87171)
-        "Avg", "Med" -> Color(0xFF7DD3FC)
-        else -> MaterialTheme.colorScheme.onSurface
-    }
-    return if (label == "Std" || label == "Count") {
-        base
-    } else if (darkMode) {
-        lerp(base, Color.White, 0.14f)
-    } else {
-        lerp(base, MaterialTheme.colorScheme.onSurface, 0.34f)
-    }
-}
-
-private fun selectedBankLabel(season: String, bankNumber: Int?): String {
-    val seasonLabel = if (season.isBlank()) "S?" else abbrSeason(season)
-    val bankLabel = bankNumber?.let { "B$it" } ?: "B?"
-    return "$seasonLabel $bankLabel"
-}
-
-private fun seasonDisplayText(season: String): String = if (season.isBlank()) "S: All" else abbrSeason(season)
-private fun bankDisplayText(bankNumber: Int?): String = bankNumber?.let { "B$it" } ?: "B: All"
-private fun playerDisplayText(player: String, showFullLplLastName: Boolean): String =
-    if (player.isBlank()) "Player: All" else formatLplPlayerNameForDisplay(player, showFullLplLastName)
-private fun machineDisplayText(machine: String): String = if (machine.isBlank()) "Machine: All" else machine
-private fun statsNavSummaryText(season: String, bankNumber: Int?, player: String, machine: String, showFullLplLastName: Boolean): String {
-    val seasonToken = if (season.isBlank()) "S*" else abbrSeason(season)
-    val bankToken = bankNumber?.let { "B$it" } ?: "B*"
-    return "$seasonToken$bankToken  ${playerDisplayText(player, showFullLplLastName)}  ${machineDisplayText(machine)}"
-}
-
-@Composable
-private fun HeaderRow(widths: StatsTableWidths) {
-    Row {
-        FixedWidthTableCell(text = "Season", width = widths.season, bold = true, color = MaterialTheme.colorScheme.onSurface)
-        FixedWidthTableCell(text = "Bank", width = widths.bank, bold = true, color = MaterialTheme.colorScheme.onSurface)
-        FixedWidthTableCell(text = "Player", width = widths.player, bold = true, color = MaterialTheme.colorScheme.onSurface)
-        FixedWidthTableCell(text = "Machine", width = widths.machine, bold = true, color = MaterialTheme.colorScheme.onSurface)
-        FixedWidthTableCell(text = "Score", width = widths.score, bold = true, color = MaterialTheme.colorScheme.onSurface)
-        FixedWidthTableCell(text = "Points", width = widths.points, bold = true, color = MaterialTheme.colorScheme.onSurface)
-    }
-}
-
-private fun parseScoreRows(text: String): List<ScoreRow> {
-    val table = parseCsv(text)
-    if (table.isEmpty()) return emptyList()
-    val headers = table.first().map { it.trim() }
-
-    fun idx(name: String): Int = headers.indexOfFirst { it.equals(name, ignoreCase = true) }
-
-    val seasonIdx = idx("Season")
-    val bankNumberIdx = idx("BankNumber")
-    val playerIdx = idx("Player")
-    val machineIdx = idx("Machine")
-    val rawScoreIdx = idx("RawScore")
-    val pointsIdx = idx("Points")
-
-    if (listOf(seasonIdx, bankNumberIdx, playerIdx, machineIdx, rawScoreIdx, pointsIdx).any { it < 0 }) return emptyList()
-
-    return table.drop(1).mapIndexedNotNull { offset, row ->
-        if (row.size != headers.size) return@mapIndexedNotNull null
-        ScoreRow(
-            id = offset,
-            season = normalizeSeason(row[seasonIdx]),
-            bankNumber = row[bankNumberIdx].trim().toIntOrNull() ?: 0,
-            player = row[playerIdx].trim(),
-            machine = row[machineIdx].trim(),
-            rawScore = row[rawScoreIdx].trim().toDoubleOrNull() ?: 0.0,
-            points = row[pointsIdx].trim().toDoubleOrNull() ?: 0.0,
-        )
-    }
-}
-
-private fun normalizeSeason(raw: String): String {
-    val trimmed = raw.trim()
-    val digits = trimmed.filter { it.isDigit() }
-    return if (digits.isNotEmpty()) digits else trimmed
-}
-
-private fun compareSeasons(left: String, right: String): Int {
-    val leftNumber = left.toLongOrNull()
-    val rightNumber = right.toLongOrNull()
-    return when {
-        leftNumber != null && rightNumber != null -> leftNumber.compareTo(rightNumber)
-        else -> left.compareTo(right)
-    }
-}
-
-private fun computeStats(scope: List<ScoreRow>, isBankScope: Boolean): StatResult {
-    val values = scope.map { it.rawScore }.filter { it.isFinite() && it > 0 }
-    if (values.isEmpty()) return StatResult(0, null, null, null, null, null, null, null)
-
-    val sorted = values.sorted()
-    val count = values.size
-    val low = sorted.first()
-    val high = sorted.last()
-    val mean = values.sum() / count
-    val median = if (count % 2 == 0) (sorted[count / 2 - 1] + sorted[count / 2]) / 2 else sorted[(count - 1) / 2]
-    val variance = values.sumOf { (it - mean).pow(2) } / count
-    val std = sqrt(variance)
-
-    val lowRow = scope.firstOrNull { it.rawScore == low }
-    val highRow = scope.firstOrNull { it.rawScore == high }
-
-    fun label(row: ScoreRow): StatPlayerLabel =
-        StatPlayerLabel(
-            rawPlayer = row.player,
-            season = if (isBankScope) null else abbrSeason(row.season),
-        )
-
-    return StatResult(
-        count = count,
-        low = low,
-        lowPlayer = lowRow?.let(::label),
-        high = high,
-        highPlayer = highRow?.let(::label),
-        mean = mean,
-        median = median,
-        std = std,
-    )
-}
-
-private fun abbrSeason(season: String): String {
-    val digits = season.filter { it.isDigit() }
-    return if (digits.isNotEmpty()) "S$digits" else season
-}
-
-private fun formatInt(value: Double?): String {
-    if (value == null || !value.isFinite()) return "-"
-    return NumberFormat.getIntegerInstance().format(value.toLong())
-}
-
-private fun formatUpdatedAt(epochMs: Long): String {
-    return SimpleDateFormat("M/d/yy h:mm a", Locale.getDefault()).format(Date(epochMs))
 }

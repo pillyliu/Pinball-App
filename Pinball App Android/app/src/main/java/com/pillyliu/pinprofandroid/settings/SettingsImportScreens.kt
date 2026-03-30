@@ -3,32 +3,20 @@ package com.pillyliu.pinprofandroid.settings
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationManager
-import android.os.CancellationSignal
-import android.text.method.LinkMovementMethod
-import android.widget.TextView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -42,20 +30,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.core.location.LocationManagerCompat
 import com.pillyliu.pinprofandroid.ui.AppTintedStatusChip
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.text.HtmlCompat
 import com.pillyliu.pinprofandroid.library.CatalogManufacturerOption
 import com.pillyliu.pinprofandroid.library.LibraryVenueSearchResult
 import com.pillyliu.pinprofandroid.ui.AnchoredDropdownFilter
@@ -71,16 +51,7 @@ import com.pillyliu.pinprofandroid.ui.DropdownOption
 import com.pillyliu.pinprofandroid.ui.PinballThemeTokens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-
-internal enum class ManufacturerBucket(val label: String) {
-    MODERN("Modern"),
-    CLASSIC("Classic"),
-    OTHER("Other"),
-}
 
 @Composable
 internal fun AddManufacturerScreen(
@@ -161,32 +132,6 @@ internal fun AddManufacturerScreen(
             }
         }
     }
-}
-
-internal fun List<CatalogManufacturerOption>.filteredForBucket(
-    bucket: ManufacturerBucket,
-): List<CatalogManufacturerOption> {
-    val classicTopIds = filter { !it.isModern }
-        .sortedWith(compareByDescending<CatalogManufacturerOption> { it.gameCount }.thenBy { it.name.lowercase() })
-        .take(20)
-        .map { it.id }
-        .toSet()
-    return when (bucket) {
-        ManufacturerBucket.MODERN -> filter { it.isModern }
-        ManufacturerBucket.CLASSIC -> filter { it.id in classicTopIds }
-            .sortedWith(compareByDescending<CatalogManufacturerOption> { it.gameCount }.thenBy { it.name.lowercase() })
-        ManufacturerBucket.OTHER -> filter { !it.isModern && it.id !in classicTopIds }
-    }
-}
-
-internal fun extractTournamentId(raw: String): String? {
-    val trimmed = raw.trim()
-    if (trimmed.isBlank()) return null
-    if (trimmed.all { it.isDigit() }) return trimmed
-    return Regex("""tournaments/(\d+)""")
-        .find(trimmed)
-        ?.groupValues
-        ?.getOrNull(1)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -320,72 +265,25 @@ internal fun AddVenueScreen(
     AppScreen(contentPadding) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
             AppScreenHeader(title = "Add Venue", onBack = onBack)
-            CardContainer {
-                LinkedHtmlText(
-                    html = """Search powered by <a href="https://www.pinballmap.com">Pinball Map</a>""",
-                )
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text("City or ZIP code") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    trailingIcon = {
-                        if (locating) {
-                            CircularProgressIndicator(modifier = Modifier.padding(8.dp))
-                        } else {
-                            IconButton(
-                                onClick = { requestCurrentLocationSearch() },
-                                enabled = !searching,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.MyLocation,
-                                    contentDescription = "Use current location",
-                                )
-                            }
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-                        onSearch = {
-                            focusManager.clearFocus()
-                            if (!searching && !locating && query.isNotBlank()) {
-                                scope.launch { runSearch() }
-                            }
-                        },
-                    ),
-                )
-                AnchoredDropdownFilter(
-                    selectedText = "$radiusMiles miles",
-                    options = listOf(10, 25, 50, 100).map { miles ->
-                        DropdownOption(value = miles.toString(), label = "$miles miles")
-                    },
-                    onSelect = { value -> radiusMiles = value.toInt() },
-                    label = "Distance",
-                )
-                OutlinedTextField(
-                    value = minimumGameCount.toString(),
-                    onValueChange = { minimumGameCount = it.toIntOrNull()?.coerceAtLeast(0) ?: minimumGameCount },
-                    label = { Text("Minimum games") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                )
-                AppPrimaryButton(
-                    onClick = { scope.launch { runSearch() } },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !searching && !locating && query.isNotBlank(),
-                ) {
-                    Text(if (searching) "Searching..." else "Search Pinball Map")
-                }
-                if (locating) {
-                    AppInlineTaskStatus(text = "Getting current location…", showsProgress = true)
-                } else if (searching) {
-                    AppInlineTaskStatus(text = "Searching Pinball Map…", showsProgress = true)
-                } else if (error != null) {
-                    AppInlineTaskStatus(text = error.orEmpty(), isError = true)
-                }
-            }
+            SettingsVenueSearchCard(
+                query = query,
+                onQueryChange = { query = it },
+                radiusMiles = radiusMiles,
+                onRadiusMilesChange = { radiusMiles = it },
+                minimumGameCount = minimumGameCount,
+                onMinimumGameCountChange = { minimumGameCount = it },
+                searching = searching,
+                locating = locating,
+                error = error,
+                onSearch = { scope.launch { runSearch() } },
+                onSearchSubmit = {
+                    focusManager.clearFocus()
+                    if (!searching && !locating && query.isNotBlank()) {
+                        scope.launch { runSearch() }
+                    }
+                },
+                onCurrentLocation = { requestCurrentLocationSearch() },
+            )
             LaunchedEffect(minimumGameCount) {
                 prefs.edit().putInt("settings-add-venue-min-game-count", minimumGameCount).apply()
             }
@@ -394,125 +292,36 @@ internal fun AddVenueScreen(
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
                 items(filteredResults) { result ->
-                    CardContainer {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            AppCardSubheading(result.name)
-                            val locationLine = listOfNotNull(result.city, result.state, result.zip).joinToString(", ")
-                            if (locationLine.isNotBlank()) {
-                                Text(locationLine, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text(
-                                buildString {
-                                    append("${result.machineCount} games")
-                                    result.distanceMiles?.let { append(" • ${"%.1f".format(it)} miles") }
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            AppPrimaryButton(
-                                onClick = {
-                                    scope.launch {
-                                        searching = true
-                                        error = null
-                                        runCatching {
-                                            withContext(Dispatchers.IO) {
-                                                PinballMapClient.fetchVenueMachineIds(result.id.removePrefix("venue--pm-"))
-                                            }
-                                        }.onSuccess { machineIds ->
-                                            onImport(
-                                                result,
-                                                machineIds,
-                                                effectiveSearchContext(),
-                                                radiusMiles,
-                                            )
-                                        }.onFailure {
-                                            error = it.message ?: "Venue import failed."
-                                        }
-                                        searching = false
+                    SettingsVenueResultCard(
+                        result = result,
+                        searching = searching,
+                        onImport = {
+                            scope.launch {
+                                searching = true
+                                error = null
+                                runCatching {
+                                    withContext(Dispatchers.IO) {
+                                        PinballMapClient.fetchVenueMachineIds(result.id.removePrefix("venue--pm-"))
                                     }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                enabled = !searching,
-                            ) {
-                                Text("Import Venue")
+                                }.onSuccess { machineIds ->
+                                    onImport(
+                                        result,
+                                        machineIds,
+                                        effectiveSearchContext(),
+                                        radiusMiles,
+                                    )
+                                }.onFailure {
+                                    error = it.message ?: "Venue import failed."
+                                }
+                                searching = false
                             }
-                        }
-                    }
+                        },
+                    )
                 }
             }
         }
     }
 }
-
-private data class VenueSearchCoordinate(
-    val latitude: Double,
-    val longitude: Double,
-)
-
-private suspend fun currentVenueSearchCoordinate(context: Context): VenueSearchCoordinate =
-    suspendCancellableCoroutine { continuation ->
-        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-        if (locationManager == null) {
-            continuation.resumeWithException(IllegalStateException("Location services are unavailable on this device."))
-            return@suspendCancellableCoroutine
-        }
-
-        val fineGranted = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-        ) == PackageManager.PERMISSION_GRANTED
-        val coarseGranted = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!fineGranted && !coarseGranted) {
-            continuation.resumeWithException(IllegalStateException("Location permission is required to search near you."))
-            return@suspendCancellableCoroutine
-        }
-
-        val provider = when {
-            fineGranted && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
-            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
-            fineGranted -> LocationManager.GPS_PROVIDER
-            coarseGranted -> LocationManager.NETWORK_PROVIDER
-            else -> null
-        }
-        val lastKnownLocation = sequenceOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
-            .filter { providerName ->
-                providerName != LocationManager.GPS_PROVIDER || fineGranted
-            }
-            .mapNotNull { providerName ->
-                runCatching { locationManager.getLastKnownLocation(providerName) }.getOrNull()
-            }
-            .maxByOrNull(Location::getTime)
-
-        if (provider == null) {
-            val fallback = lastKnownLocation
-            if (fallback != null) {
-                continuation.resume(VenueSearchCoordinate(fallback.latitude, fallback.longitude))
-            } else {
-                continuation.resumeWithException(IllegalStateException("Turn on Location Services to search near you."))
-            }
-            return@suspendCancellableCoroutine
-        }
-
-        val cancellationSignal = CancellationSignal()
-        continuation.invokeOnCancellation { cancellationSignal.cancel() }
-        LocationManagerCompat.getCurrentLocation(
-            locationManager,
-            provider,
-            cancellationSignal,
-            ContextCompat.getMainExecutor(context),
-        ) { location ->
-            if (!continuation.isActive) return@getCurrentLocation
-            val resolvedLocation = location ?: lastKnownLocation
-            if (resolvedLocation != null) {
-                continuation.resume(VenueSearchCoordinate(resolvedLocation.latitude, resolvedLocation.longitude))
-            } else {
-                continuation.resumeWithException(IllegalStateException("Couldn't get your current location."))
-            }
-        }
-    }
 
 @Composable
 internal fun AddTournamentScreen(
@@ -560,66 +369,15 @@ internal fun AddTournamentScreen(
     AppScreen(contentPadding) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
             AppScreenHeader(title = "Add Tournament", onBack = onBack)
-            CardContainer {
-                LinkedHtmlText(
-                    html = """Import powered by <a href="https://matchplay.events">Match Play</a>""",
-                )
-                OutlinedTextField(
-                    value = rawTournamentId,
-                    onValueChange = { rawTournamentId = it },
-                    label = { Text("Tournament ID or URL") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { focusManager.clearFocus() }),
-                )
-                Text(
-                    "Enter a Match Play tournament ID or URL to import its arena list into Library and Practice.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                AppPrimaryButton(
-                    onClick = { scope.launch { performTournamentImport() } },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = canImportTournament,
-                ) {
-                    Text(if (importing) "Importing..." else "Import Tournament")
-                }
-                if (importing) {
-                    AppInlineTaskStatus(text = "Importing tournament…", showsProgress = true)
-                } else if (error != null) {
-                    AppInlineTaskStatus(text = error.orEmpty(), isError = true)
-                }
-            }
+            SettingsTournamentImportCard(
+                rawTournamentId = rawTournamentId,
+                onTournamentIdChange = { rawTournamentId = it },
+                importing = importing,
+                error = error,
+                canImportTournament = canImportTournament,
+                onImport = { scope.launch { performTournamentImport() } },
+                onDone = { focusManager.clearFocus() },
+            )
         }
     }
-}
-
-private sealed class TournamentImportException(message: String) : Exception(message) {
-    data object NoLinkedArenas : TournamentImportException("No OPDB-linked arenas were found for that tournament.")
-}
-
-@Composable
-internal fun LinkedHtmlText(
-    html: String,
-    modifier: Modifier = Modifier,
-) {
-    val bodyColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val linkColor = PinballThemeTokens.colors.brandGold
-    AndroidView(
-        modifier = modifier.fillMaxWidth(),
-        factory = { context ->
-            TextView(context).apply {
-                movementMethod = LinkMovementMethod.getInstance()
-                linksClickable = true
-                setBackgroundColor(Color.Transparent.toArgb())
-            }
-        },
-        update = { view ->
-            view.textSize = 12f
-            view.setTextColor(bodyColor.toArgb())
-            view.setLinkTextColor(linkColor.toArgb())
-            view.text = HtmlCompat.fromHtml(html, HtmlCompat.FROM_HTML_MODE_LEGACY)
-        },
-    )
 }

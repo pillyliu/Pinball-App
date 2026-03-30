@@ -10963,6 +10963,249 @@ Verification:
 - `./gradlew :app:compileDebugKotlin`
 - result: both passed
 
+## Pass 341: iOS standings support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/standings/StandingsScreen.swift`
+- `Pinball App 2/Pinball App 2/standings/StandingsModels.swift`
+- `Pinball App 2/Pinball App 2/standings/StandingsDataSupport.swift`
+- `Pinball App 2/Pinball App 2/standings/StandingsViewModel.swift`
+- `Pinball App 2/Pinball App 2/standings/StandingsViewSupport.swift`
+
+Changes made in this pass:
+- moved standings row models out of `StandingsScreen.swift`
+- moved CSV parsing and formatting helpers out of `StandingsScreen.swift`
+- moved the standings loader/state object out to `StandingsViewModel.swift`
+- moved row/header view helpers out to `StandingsViewSupport.swift`
+- left `StandingsScreen.swift` as the screen shell and filter/presentation coordinator
+
+Hidden seam surfaced and fixed:
+1. the extracted `StandingsViewModel.swift` kept `@Published` state but initially lost its `Combine` import during the split
+2. adding that import restored the expected observable-object boundary without changing behavior
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 342: iOS targets support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/targets/TargetsScreen.swift`
+- `Pinball App 2/Pinball App 2/targets/TargetsModels.swift`
+- `Pinball App 2/Pinball App 2/targets/TargetsViewModel.swift`
+- `Pinball App 2/Pinball App 2/targets/TargetsViewSupport.swift`
+
+Changes made in this pass:
+- moved target rows, sort mode, and formatting helpers out of `TargetsScreen.swift`
+- moved target load/sort/filter state out to `TargetsViewModel.swift`
+- moved row/header leaf views out to `TargetsViewSupport.swift`
+- left `TargetsScreen.swift` as the route shell and explanatory chrome
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 343: Android standings support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/standings/StandingsScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/standings/StandingsModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/standings/StandingsDataSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/standings/StandingsViewSupport.kt`
+
+Changes made in this pass:
+- moved standings row models out of `StandingsScreen.kt`
+- moved CSV parsing, season coercion, and formatting helpers out of `StandingsScreen.kt`
+- moved header/row leaf views out of `StandingsScreen.kt`
+- left `StandingsScreen.kt` as the Compose screen shell and refresh/filter coordinator
+
+Hidden seam surfaced and fixed:
+1. one call site still referenced the old `StandingRow(...)` name after the view split
+2. that was updated to `StandingsRow(...)` so the screen keeps using the extracted leaf view without duplicating the row implementation
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 344: Android targets support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/targets/TargetsScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/targets/TargetsModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/targets/TargetsDataSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/targets/TargetsViewSupport.kt`
+
+Changes made in this pass:
+- moved target models and bundled LPL target rows out of `TargetsScreen.kt`
+- moved resolved-target loading and sort policy out of `TargetsScreen.kt`
+- moved filter controls and table leaf views out of `TargetsScreen.kt`
+- left `TargetsScreen.kt` as the screen shell and state coordinator
+
+Hidden seam surfaced and fixed:
+1. the first support-file cut carried an invalid Material import that did not belong in the extracted dropdown/view helper file
+2. removing that import restored the build without broadening the screen file again
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 345: iOS settings import support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/settings/SettingsImportScreens.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsManufacturerSupport.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsVenueImportSupport.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsTournamentImportSupport.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsImportSharedViews.swift`
+
+Changes made in this pass:
+- moved manufacturer bucket/filter support out of `SettingsImportScreens.swift`
+- moved venue search status, venue controls, venue results, and location-request plumbing into `SettingsVenueImportSupport.swift`
+- moved tournament import error handling and card UI into `SettingsTournamentImportSupport.swift`
+- moved provider caption and import-result row UI into `SettingsImportSharedViews.swift`
+- left `SettingsImportScreens.swift` focused on the three screen shells and their async orchestration
+
+Hidden seam surfaced and fixed:
+1. `SettingsImportScreens.swift` still directly accessed `coordinate.latitude` and `coordinate.longitude` after the location requester moved out
+2. restoring the `CoreLocation` import in the screen file kept the split clean without dragging the requester back into the screen file
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 346: Android settings import support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsImportScreens.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsManufacturerSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsImportHtmlSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsVenueImportSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsTournamentImportSupport.kt`
+
+Changes made in this pass:
+- moved manufacturer bucket/filter support out of `SettingsImportScreens.kt`
+- moved linked HTML/provider-caption rendering out of `SettingsImportScreens.kt`
+- moved venue search card, venue result card, and current-location resolution into `SettingsVenueImportSupport.kt`
+- moved tournament import parsing, error types, and card UI into `SettingsTournamentImportSupport.kt`
+- left `SettingsImportScreens.kt` focused on screen-level state, permission flow, and async orchestration
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 337: iOS Stats support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/stats/StatsScreen.swift`
+- `Pinball App 2/Pinball App 2/stats/StatsModels.swift`
+- `Pinball App 2/Pinball App 2/stats/StatsDataSupport.swift`
+- `Pinball App 2/Pinball App 2/stats/StatsViewModel.swift`
+- `Pinball App 2/Pinball App 2/stats/StatsViewSupport.swift`
+- `Pinball App 2/Pinball App 2/stats/StatsFormattingSupport.swift`
+
+Changes made in this pass:
+- moved stats row/result models out of `StatsScreen.swift`
+- moved CSV load/parse logic into `StatsDataSupport.swift`
+- moved refresh/filter/state coordination into `StatsViewModel.swift`
+- moved table row and machine-stats leaf views into `StatsViewSupport.swift`
+- moved score/points/season formatting helpers into `StatsFormattingSupport.swift`
+- left `StatsScreen.swift` focused on layout, filter chrome, and route shell responsibilities
+
+Hidden seam surfaced and reduced:
+1. `StatsScreen.swift` was still acting as screen shell, view model, CSV loader, statistics engine, and leaf view bucket all at once
+2. the file boundary now matches those layers, so future stats work can change data loading or UI presentation without reopening the entire screen
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 338: iOS IFPA profile support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeIFPAProfileScreen.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeIFPAProfileModels.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeIFPAProfileCacheSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeIFPAProfileRemoteSupport.swift`
+
+Changes made in this pass:
+- moved IFPA profile models out of the screen file
+- moved cached snapshot persistence into `PracticeIFPAProfileCacheSupport.swift`
+- moved HTML fetch/parse logic into `PracticeIFPAProfileRemoteSupport.swift`
+- left `PracticeIFPAProfileScreen.swift` focused on load state, stale-cache fallback, and screen composition
+
+Hidden seam surfaced and reduced:
+1. the IFPA profile screen was still carrying its own network parser and cache codec, which made a UI change require rereading scraping and persistence code
+2. those support layers now live separately, so the remaining league-tab UI can be reviewed without reopening HTML parsing internals
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 339: Android Stats support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/stats/StatsScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/stats/StatsModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/stats/StatsDataSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/stats/StatsComputationSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/stats/StatsScreenSupport.kt`
+
+Changes made in this pass:
+- moved stats models into `StatsModels.kt`
+- moved CSV fetch/parse and season sorting into `StatsDataSupport.kt`
+- moved stats computation and display-format helpers into `StatsComputationSupport.kt`
+- moved table and machine-stats composables into `StatsScreenSupport.kt`
+- left `StatsScreen.kt` as the filter/state/shell coordinator
+
+Hidden seam surfaced and reduced:
+1. `StatsScreen.kt` was mixing Compose shell logic with raw CSV handling, statistics math, and all leaf table/panel UI
+2. the screen now reads more like a coordinator, and the parser/math code can evolve independently of the layout shell
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+## Pass 340: Android IFPA profile support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeIfpaProfileScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeIfpaProfileModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeIfpaProfileCacheSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/practice/PracticeIfpaProfileRemoteSupport.kt`
+
+Changes made in this pass:
+- moved IFPA models and cached-at formatting into `PracticeIfpaProfileModels.kt`
+- moved shared-preferences cache and JSON encoding into `PracticeIfpaProfileCacheSupport.kt`
+- moved public profile fetch and HTML parsing into `PracticeIfpaProfileRemoteSupport.kt`
+- left `PracticeIfpaProfileScreen.kt` focused on load/retry flow and the profile UI surface
+
+Hidden seam surfaced and reduced:
+1. the Android IFPA profile screen was still carrying network scraping, cache storage, and JSON serialization inside the UI file
+2. separating those layers makes the remaining league-tab UI easier to reason about and keeps parser/cache churn out of the composable shell
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
 ## Pass 334: Android PracticeStore load-coordinator cleanup
 
 Primary files:
