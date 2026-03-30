@@ -293,6 +293,7 @@ platform :ios do
       skip_metadata: true,
       skip_screenshots: true,
       skip_app_version_update: true,
+      run_precheck_before_submit: false,
       submit_for_review: false,
       automatic_release: false
     )
@@ -332,6 +333,7 @@ platform :ios do
       build_number: build_number,
       release_notes: metadata[:release_notes],
       promotional_text: metadata[:promotional_text],
+      run_precheck_before_submit: false,
       submit_for_review: true,
       automatic_release: truthy_option?(options[:automatic_release], default: false),
       phased_release: truthy_option?(options[:phased_release], default: false)
