@@ -1,59 +1,5 @@
 import SwiftUI
 
-struct TargetsPreview: View {
-    let rows: [LeagueTargetPreviewRow]
-    let bankLabel: String
-    let metric: LeagueTargetMetric
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(bankLabel)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.secondary)
-
-            HStack(spacing: 8) {
-                Text("Game")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 6)
-                Text("\(metric.title) highest")
-                    .id("target-metric-\(metric.rawValue)")
-                    .transition(.opacity)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(metric.color)
-            }
-
-            if rows.isEmpty {
-                AppInlineStatusMessage(text: "No target preview available yet")
-            } else {
-                VStack(alignment: .leading, spacing: 3) {
-                    ForEach(rows.prefix(5).indices, id: \.self) { index in
-                        let row = rows[index]
-                        HStack(spacing: 8) {
-                            Text(row.game)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-
-                            Spacer(minLength: 6)
-
-                            Text(metric.value(for: row).leagueHubFormattedWithCommas)
-                                .id("target-\(row.order)-\(metric.rawValue)")
-                                .transition(.opacity)
-                                .font(.footnote.monospacedDigit().weight(.semibold))
-                                .foregroundStyle(metric.color)
-                                .lineLimit(1)
-                        }
-                    }
-                }
-                .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: 1.0), value: metric.rawValue)
-    }
-}
-
 struct StandingsPreview: View {
     let seasonLabel: String
     let mode: LeagueStandingsPreviewMode
@@ -83,8 +29,8 @@ struct StandingsPreview: View {
             }
 
             standingsModeContent
-            .id("standings-mode-content-\(mode.rawValue)")
-            .transition(.opacity)
+                .id("standings-mode-content-\(mode.rawValue)")
+                .transition(.opacity)
         }
         .animation(.easeInOut(duration: 1.0), value: mode.rawValue)
     }
@@ -185,8 +131,6 @@ struct StandingsPreview: View {
     }
 
     private var aroundYouExpandedHeightCompensation: CGFloat {
-        // The extra Around You row is inside the row stack, so we only need the
-        // remaining height that the top-five divider layout contributes.
         (contentSpacing * 2) + expandedDividerTotalHeight - standingsRowSpacing - contentSpacing
     }
 
@@ -212,73 +156,5 @@ struct StandingsPreview: View {
         case 3: return AppTheme.podiumBronze
         default: return .secondary
         }
-    }
-}
-
-struct StatsPreview: View {
-    let rows: [LeagueStatsPreviewRow]
-    let bankLabel: String
-    let playerLabel: String
-    let showScore: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Text(bankLabel)
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-
-                if !playerLabel.isEmpty {
-                    Spacer(minLength: 0)
-                    Text(playerLabel)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .multilineTextAlignment(.trailing)
-                }
-            }
-
-            HStack(spacing: 8) {
-                Text("Game")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 6)
-                Text(showScore ? "Score" : "Pts")
-                    .id("stats-header-\(showScore)")
-                    .transition(.opacity)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(showScore ? AppTheme.statsHigh : AppTheme.statsMeanMedian)
-            }
-
-            if rows.isEmpty {
-                AppInlineStatusMessage(text: "Tap to open full stats")
-            } else {
-                VStack(alignment: .leading, spacing: 3) {
-                    ForEach(rows) { row in
-                        HStack(spacing: 8) {
-                            Text(row.machine)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-
-                            Spacer(minLength: 6)
-
-                            Text(showScore ? row.score.leagueHubFormattedWholeNumber : row.points.leagueHubFormattedWholeNumber)
-                                .id("stats-\(row.id)-\(showScore)")
-                                .transition(.opacity)
-                                .font(.footnote.monospacedDigit().weight(.semibold))
-                                .foregroundStyle(showScore ? AppTheme.statsHigh : AppTheme.statsMeanMedian)
-                                .lineLimit(1)
-                        }
-                    }
-                }
-                .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: 1.0), value: showScore)
     }
 }

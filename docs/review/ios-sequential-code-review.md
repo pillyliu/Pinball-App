@@ -10963,6 +10963,337 @@ Verification:
 - `./gradlew :app:compileDebugKotlin`
 - result: both passed
 
+## Pass 363: iOS Settings home section split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/settings/SettingsHomeSections.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsHomeAppearanceSupport.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsHomeLibrarySupport.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsHomeHostedDataSupport.swift`
+- `Pinball App 2/Pinball App 2/settings/SettingsHomePrivacyAboutSupport.swift`
+
+Changes made in this pass:
+- moved appearance controls out of `SettingsHomeSections.swift`
+- moved Library source management UI and delete-confirm flow into `SettingsHomeLibrarySupport.swift`
+- moved hosted-data refresh/cache controls into `SettingsHomeHostedDataSupport.swift`
+- moved privacy/about cards into `SettingsHomePrivacyAboutSupport.swift`
+- left `SettingsHomeSections.swift` focused on screen-level status assembly and section orchestration
+
+Hidden seam surfaced and fixed:
+1. the extracted iOS section views still needed the shared section-status helpers from `SettingsHomeSections.swift`
+2. widening those helpers from file-private ownership to module-local reuse kept the screen shell small without duplicating status-card code
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 364: Android Settings home section split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsHomeSections.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsHomeAppearanceSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsHomeLibrarySupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsHomeHostedDataSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/settings/SettingsHomePrivacyAboutSupport.kt`
+
+Changes made in this pass:
+- moved appearance controls out of `SettingsHomeSections.kt`
+- moved Library source add/manage UI and delete-confirm flow into `SettingsHomeLibrarySupport.kt`
+- moved hosted-data refresh/cache controls into `SettingsHomeHostedDataSupport.kt`
+- moved privacy/about cards into `SettingsHomePrivacyAboutSupport.kt`
+- left `SettingsHomeSections.kt` as the LazyColumn shell and screen-status coordinator
+
+Hidden seam surfaced and fixed:
+1. the first Android split imported the wrong `weight` symbol in `SettingsHomeLibrarySupport.kt`, which resolved to an internal layout property instead of the normal RowScope modifier
+2. removing that explicit import restored the repo's existing Compose pattern and brought the extracted Library section back to a clean compile
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 367: iOS shake-warning support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/app/AppShakeCoordinator.swift`
+- `Pinball App 2/Pinball App 2/app/AppShakeWarningModels.swift`
+- `Pinball App 2/Pinball App 2/app/AppShakeWarningHaptics.swift`
+- `Pinball App 2/Pinball App 2/app/AppShakeWarningOverlaySupport.swift`
+
+Changes made in this pass:
+- moved shake-warning models out of `AppShakeCoordinator.swift`
+- moved Core Haptics and UIKit fallback playback into `AppShakeWarningHaptics.swift`
+- moved overlay layout, professor artwork loading, fallback art, and subtitle font support into `AppShakeWarningOverlaySupport.swift`
+- left `AppShakeCoordinator.swift` as the undo-aware coordinator and overlay-state host
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 368: Android shake-warning support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/AppShakeWarning.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/AppShakeWarningModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/AppShakeMotionSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/AppShakeWarningOverlaySupport.kt`
+
+Changes made in this pass:
+- moved shake-warning models, motion tuning, and vibration effect policy out of `AppShakeWarning.kt`
+- moved accelerometer/linear-acceleration observation and lifecycle-aware motion effect support into `AppShakeMotionSupport.kt`
+- moved overlay host, warning card UI, professor art loading, and fallback placeholder UI into `AppShakeWarningOverlaySupport.kt`
+- left `AppShakeWarning.kt` as the overlay-state coordinator and haptics service host
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 369: iOS league preview surface split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewSections.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueTargetsPreview.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueStandingsPreview.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueStatsPreview.swift`
+
+Changes made in this pass:
+- moved the targets mini-preview out of `LeaguePreviewSections.swift` into `LeagueTargetsPreview.swift`
+- moved the standings mini-preview out of `LeaguePreviewSections.swift` into `LeagueStandingsPreview.swift`
+- moved the stats mini-preview out of `LeaguePreviewSections.swift` into `LeagueStatsPreview.swift`
+- deleted the stale mixed `LeaguePreviewSections.swift` bucket once the three leaf surfaces had real homes
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 370: Android league preview surface and shell split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueMiniPreviews.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueStatsMiniPreview.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueStandingsMiniPreview.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueTargetsMiniPreview.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewFormattingSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueShellContent.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueShellCardSupport.kt`
+
+Changes made in this pass:
+- moved the stats, standings, and targets mini-preview composables out of `LeagueMiniPreviews.kt` into dedicated support files
+- moved the shared rank-color and number-formatting helpers into `LeaguePreviewFormattingSupport.kt`
+- moved the destination-card and about-footer composition out of `LeagueShellContent.kt` into `LeagueShellCardSupport.kt`
+- left `LeagueShellContent.kt` as the layout shell that chooses portrait versus landscape composition
+- deleted the stale mixed `LeagueMiniPreviews.kt` file once the support files were in place
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 371: iOS league preview parsing split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewParsing.swift`
+- `Pinball App 2/Pinball App 2/league/LeaguePreviewParsingSupport.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueStandingsPreviewSupport.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueStatsPreviewSupport.swift`
+- `Pinball App 2/Pinball App 2/league/LeagueNextBankSupport.swift`
+
+Changes made in this pass:
+- moved shared parsed-row and helper functions out of `LeaguePreviewParsing.swift` into `LeaguePreviewParsingSupport.swift`
+- moved standings payload/build/CSV parsing into `LeagueStandingsPreviewSupport.swift`
+- moved stats payload/build/CSV parsing into `LeagueStatsPreviewSupport.swift`
+- moved next-bank resolution into `LeagueNextBankSupport.swift`
+- deleted the stale mixed `LeaguePreviewParsing.swift` file once the narrower support files existed
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 372: Android league preview parsing split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewParsing.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeaguePreviewParsingSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueStandingsPreviewSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueStatsPreviewSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/league/LeagueNextBankSupport.kt`
+
+Changes made in this pass:
+- moved shared name-matching, season coercion, sort-value, and around-you window helpers out of `LeaguePreviewParsing.kt` into `LeaguePreviewParsingSupport.kt`
+- moved standings preview build/CSV parsing into `LeagueStandingsPreviewSupport.kt`
+- moved stats preview build/CSV parsing into `LeagueStatsPreviewSupport.kt`
+- moved next-bank resolution into `LeagueNextBankSupport.kt`
+- removed the dead target-row parsing and library-merge helpers while splitting, because they were no longer used anywhere in the Android league loader path
+- deleted the stale mixed `LeaguePreviewParsing.kt` file once the narrower support files existed
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 373: iOS data-cache storage support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/data/PinballDataCache.swift`
+- `Pinball App 2/Pinball App 2/data/PinballDataCacheStorageSupport.swift`
+
+Changes made in this pass:
+- moved preload-manifest models, cache manifest/update-log models, and cache-index models out of `PinballDataCache.swift`
+- moved the bundled preload/path hashing and index read/write helpers into `PinballDataCacheStorageSupport.swift`
+- rewired `PinballDataCache.swift` to consume those helpers while keeping the actor as the fetch/revalidate coordinator
+- left remote image revalidation and network fetch policy in the main cache file
+
+Hidden seam surfaced and fixed:
+1. moving the cache models out of the actor file required renaming the generic nested `Manifest`, `UpdateLog`, and `CacheIndex` types to explicit cache-prefixed models so the support file could own them cleanly
+2. the first rewrite also left one stale inline index-load path in the actor; routing that through the shared helper kept the split consistent and the build clean
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 374: Android data-cache storage support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCache.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCacheStorageSupport.kt`
+
+Changes made in this pass:
+- moved preload asset constants, cache-root/resource/index path helpers, SHA-256 helpers, and JSON index read/write helpers out of `PinballDataCache.kt`
+- moved bundled preload manifest/path loading into `PinballDataCacheStorageSupport.kt`
+- rewired `PinballDataCache.kt` to use the shared storage helpers while keeping the object focused on fetch/revalidate and network/cache policy
+- cleaned a stale unused import while trimming the main file
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 375: iOS practice entry mutation support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreEntryMutations.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreStudyEntrySupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreEntryLoggingSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreEntrySettingsSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreJournalMutationSupport.swift`
+
+Changes made in this pass:
+- deleted the stale mixed `PracticeStoreEntryMutations.swift` bucket once the narrower mutation files existed
+- moved study progress lookup and task/video progress logging into `PracticeStoreStudyEntrySupport.swift`
+- moved score/note/browse journaling into `PracticeStoreEntryLoggingSupport.swift`
+- moved practice settings, analytics settings, state reset, and imported-league purge into `PracticeStoreEntrySettingsSupport.swift`
+- moved journal edit/delete behavior and the score/video/note/study reconciliation helpers into `PracticeStoreJournalMutationSupport.swift`
+
+Hidden seam surfaced and fixed:
+1. the journal edit/delete path looked like a generic mutation bucket at first, but it actually depends on one private cluster of nearest-match and study-reconcile helpers
+2. keeping that reconciliation logic together in `PracticeStoreJournalMutationSupport.swift` avoided creating cross-file private-helper drift while still deleting the catch-all file
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 376: Android Pinside import support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPinsideImport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPinsideImportModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPinsideUrlSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPinsideNetworkSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPinsideParsingSupport.kt`
+
+Changes made in this pass:
+- moved imported-machine/result models and import error/message mapping out of `GameRoomPinsideImport.kt`
+- moved collection URL normalization/building into `GameRoomPinsideUrlSupport.kt`
+- moved direct/Jina fetch and collection-page validation into `GameRoomPinsideNetworkSupport.kt`
+- moved basic/detailed machine parsing and merge logic into `GameRoomPinsideParsingSupport.kt`
+- rewired `GameRoomPinsideImport.kt` so the service now reads as the fallback/coordinator layer plus group-map loading
+
+Hidden seam surfaced and fixed:
+1. the parser already depended on shared helpers in the wider GameRoom package for displayed-title normalization and purchase-date normalization
+2. reusing `canonicalPinsideDisplayedTitle(...)` and `normalizeFirstOfMonthMs(...)` in the new support files avoided creating duplicate Pinside normalization paths during the split
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
+## Pass 365: iOS intro overlay support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/app/AppIntroOverlay.swift`
+- `Pinball App 2/Pinball App 2/app/AppIntroModels.swift`
+- `Pinball App 2/Pinball App 2/app/AppIntroArtworkSupport.swift`
+- `Pinball App 2/Pinball App 2/app/AppIntroViewSupport.swift`
+
+Changes made in this pass:
+- moved intro card models, theme values, and typography helpers out of `AppIntroOverlay.swift`
+- moved artwork loading, screenshot/welcome art, and professor spotlight support into `AppIntroArtworkSupport.swift`
+- moved backdrop, deck page, card shell, copy column, quote rendering, and page indicators into `AppIntroViewSupport.swift`
+- left `AppIntroOverlay.swift` as the modal overlay shell and dismiss/paging coordinator
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- result: passed
+
+## Pass 366: Android intro overlay support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/AppIntroOverlay.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/AppIntroModels.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/AppIntroArtworkSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/AppIntroViewSupport.kt`
+
+Changes made in this pass:
+- moved intro card models, theme values, typography, and accent resolution out of `AppIntroOverlay.kt`
+- moved screenshot/welcome artwork and professor spotlight support into `AppIntroArtworkSupport.kt`
+- moved backdrop, deck page, card shell, quote rendering, and page indicators into `AppIntroViewSupport.kt`
+- left `AppIntroOverlay.kt` as the overlay host and pager/dismiss coordinator
+
+Hidden seam surfaced and fixed:
+1. the first Android support-file cut carried an explicit `matchParentSize` import that did not belong in this codebase and missed the shell file's `statusBarsPadding` import
+2. removing the stray import and restoring the normal layout import brought the extracted overlay back to a clean compile without reopening the shell file
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- result: passed
+
 ## Pass 347: iOS shared content and table chrome split
 
 Primary files:

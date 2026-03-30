@@ -1,8 +1,6 @@
 package com.pillyliu.pinprofandroid.league
 
 import android.content.res.Configuration
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -16,23 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pillyliu.pinprofandroid.R
-import com.pillyliu.pinprofandroid.ui.CardContainer
 
 @Composable
 internal fun LeagueShellContent(
@@ -53,102 +39,15 @@ internal fun LeagueShellContent(
         val miniHeaderSize = if (tabletMode) 14.sp else 13.sp
         val miniValueSize = if (tabletMode) 15.sp else 14.sp
         val landscapeRowGap = if (compactHeight) 6.dp else 8.dp
-
-        @Composable
-        fun DestinationCard(destination: LeagueDestination, modifier: Modifier = Modifier) {
-            LeagueCard(
-                destination = destination,
-                modifier = modifier,
-                onClick = { onOpenDestination(destination) },
-                titleSize = titleSize,
-                subtitleSize = subtitleSize,
-            ) {
-                when (destination) {
-                    LeagueDestination.Stats -> {
-                        StatsMiniPreview(
-                            rows = previewState.statsRecentRows.take(maxRows),
-                            bankLabel = previewState.statsRecentBankLabel,
-                            playerLabel = previewState.statsPlayerRawName,
-                            showFullLplLastName = showFullLplLastName,
-                            showScore = previewRotation.showStatsScore,
-                            labelSize = miniLabelSize,
-                            headerSize = miniHeaderSize,
-                            valueSize = miniValueSize,
-                        )
-                    }
-                    LeagueDestination.Standings -> {
-                        val showAround = previewState.standingsAroundRows.isNotEmpty() && previewRotation.standingsModeIndex == 1
-                        StandingsMiniPreview(
-                            seasonLabel = previewState.standingsSeasonLabel,
-                            showAround = showAround,
-                            topRows = previewState.standingsTopRows,
-                            aroundRows = previewState.standingsAroundRows,
-                            currentPlayerRow = previewState.currentPlayerStanding,
-                            showFullLplLastName = showFullLplLastName,
-                            labelSize = miniLabelSize,
-                            headerSize = miniHeaderSize,
-                            valueSize = miniValueSize,
-                        )
-                    }
-                    LeagueDestination.Targets -> {
-                        TargetsMiniPreview(
-                            rows = previewState.nextBankTargets.take(maxRows),
-                            bankLabel = previewState.nextBankLabel,
-                            metricIndex = previewRotation.targetMetricIndex,
-                            labelSize = miniLabelSize,
-                            headerSize = miniHeaderSize,
-                            valueSize = miniValueSize,
-                        )
-                    }
-                    LeagueDestination.AboutLpl -> {
-                        Text(
-                            text = "League details, schedule, and official links.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = miniLabelSize,
-                        )
-                    }
-                }
-            }
-        }
-
-        @Composable
-        fun AboutFooterCard(modifier: Modifier = Modifier) {
-            CardContainer(
-                modifier = Modifier
-                    .then(modifier)
-                    .fillMaxWidth()
-                    .clickable { onOpenDestination(LeagueDestination.footerDestination) },
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.lpl_logo),
-                        contentDescription = "Lansing Pinball League logo",
-                        modifier = Modifier
-                            .width(42.dp)
-                            .height(28.dp),
-                        contentScale = ContentScale.Fit,
-                    )
-                    Text(
-                        text = "About Lansing Pinball League",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = if (tabletMode) 15.sp else 14.sp,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Icon(
-                        imageVector = Icons.Outlined.ChevronRight,
-                        contentDescription = "Open About Lansing Pinball League",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
+        val sizing = LeagueShellPreviewSizing(
+            maxRows = maxRows,
+            titleSize = titleSize,
+            subtitleSize = subtitleSize,
+            miniLabelSize = miniLabelSize,
+            miniHeaderSize = miniHeaderSize,
+            miniValueSize = miniValueSize,
+            footerTitleSize = if (tabletMode) 15.sp else 14.sp,
+        )
 
         if (isLandscape) {
             Column(
@@ -163,17 +62,23 @@ internal fun LeagueShellContent(
                         .height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(cardGap),
                 ) {
-                    DestinationCard(
+                    LeagueDestinationCard(
                         LeagueDestination.primaryDestinations[0],
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
+                        previewState = previewState,
+                        previewRotation = previewRotation,
+                        showFullLplLastName = showFullLplLastName,
+                        sizing = sizing,
+                        onOpenDestination = onOpenDestination,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
-                    DestinationCard(
+                    LeagueDestinationCard(
                         LeagueDestination.primaryDestinations[1],
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
+                        previewState = previewState,
+                        previewRotation = previewRotation,
+                        showFullLplLastName = showFullLplLastName,
+                        sizing = sizing,
+                        onOpenDestination = onOpenDestination,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
                 Row(
@@ -182,16 +87,19 @@ internal fun LeagueShellContent(
                         .height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(cardGap),
                 ) {
-                    DestinationCard(
+                    LeagueDestinationCard(
                         LeagueDestination.primaryDestinations[2],
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
+                        previewState = previewState,
+                        previewRotation = previewRotation,
+                        showFullLplLastName = showFullLplLastName,
+                        sizing = sizing,
+                        onOpenDestination = onOpenDestination,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
-                    AboutFooterCard(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
+                    LeagueAboutFooterCard(
+                        tabletMode = tabletMode,
+                        onOpenDestination = onOpenDestination,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
             }
@@ -203,9 +111,19 @@ internal fun LeagueShellContent(
                 verticalArrangement = Arrangement.spacedBy(cardGap),
             ) {
                 LeagueDestination.primaryDestinations.forEach { destination ->
-                    DestinationCard(destination)
+                    LeagueDestinationCard(
+                        destination = destination,
+                        previewState = previewState,
+                        previewRotation = previewRotation,
+                        showFullLplLastName = showFullLplLastName,
+                        sizing = sizing,
+                        onOpenDestination = onOpenDestination,
+                    )
                 }
-                AboutFooterCard()
+                LeagueAboutFooterCard(
+                    tabletMode = tabletMode,
+                    onOpenDestination = onOpenDestination,
+                )
             }
         }
     }

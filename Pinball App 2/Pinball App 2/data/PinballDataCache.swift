@@ -1,86 +1,6 @@
 import Foundation
 import CryptoKit
 
-nonisolated private struct BundledPinballPreloadManifest: Decodable {
-    let schemaVersion: Int
-    let generatedAt: String
-    let paths: [String]
-}
-
-nonisolated private func normalizedPinballCachePath(_ path: String) -> String {
-    if path.hasPrefix("/") { return path }
-    return "/" + path
-}
-
-nonisolated private func bundledPinballPreloadBundleURL() -> URL? {
-    Bundle.main.url(forResource: "PinballPreload", withExtension: "bundle")
-}
-
-nonisolated private func bundledPinballPreloadManifest() -> BundledPinballPreloadManifest? {
-    guard let bundleURL = bundledPinballPreloadBundleURL() else { return nil }
-    let manifestURL = bundleURL.appendingPathComponent("preload-manifest.json")
-    guard let data = try? Data(contentsOf: manifestURL) else { return nil }
-    return try? JSONDecoder().decode(BundledPinballPreloadManifest.self, from: data)
-}
-
-nonisolated private func bundledPinballPreloadFileURL(path: String) -> URL? {
-    guard let bundleURL = bundledPinballPreloadBundleURL() else { return nil }
-    let normalizedPath = normalizedPinballCachePath(path)
-    let relativePath = String(normalizedPath.dropFirst())
-    let fileURL = bundleURL.appendingPathComponent(relativePath)
-    guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
-    return fileURL
-}
-
-nonisolated private func pinballCacheRootURL(fileManager: FileManager = .default) -> URL {
-    let base = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
-    return base.appendingPathComponent("pinball-data-cache", isDirectory: true)
-}
-
-nonisolated private func pinballCachedFileURL(path: String, fileManager: FileManager = .default) -> URL {
-    let normalizedPath = normalizedPinballCachePath(path)
-    let ext = URL(fileURLWithPath: normalizedPath).pathExtension
-    let digest = SHA256.hash(data: Data(normalizedPath.utf8)).compactMap { String(format: "%02x", $0) }.joined()
-    let fileName = ext.isEmpty ? digest : "\(digest).\(ext)"
-    return pinballCacheRootURL(fileManager: fileManager)
-        .appendingPathComponent("resources", isDirectory: true)
-        .appendingPathComponent(fileName)
-}
-
-nonisolated func cachedPinballDataURL(path: String) -> URL? {
-    let fileURL = pinballCachedFileURL(path: path)
-    if FileManager.default.fileExists(atPath: fileURL.path) {
-        return fileURL
-    }
-    return bundledPinballPreloadFileURL(path: path)
-}
-
-nonisolated func loadCachedPinballData(path: String) throws -> Data? {
-    if let fileURL = cachedPinballDataURL(path: path) {
-        return try Data(contentsOf: fileURL)
-    }
-    return nil
-}
-
-nonisolated func pinballCacheLatestUpdateScanAt(
-    eventGeneratedAts: [String],
-    existingLastScan: String?
-) -> String? {
-    var latest = existingLastScan
-
-    for generatedAt in eventGeneratedAts {
-        guard let currentLatest = latest else {
-            latest = generatedAt
-            continue
-        }
-        if generatedAt > currentLatest {
-            latest = generatedAt
-        }
-    }
-
-    return latest
-}
-
 struct CachedTextResult {
     let text: String?
     let isMissing: Bool
@@ -121,51 +41,6 @@ actor PinballDataCache {
         }
     }
 
-    private struct Manifest: Decodable {
-        struct Entry: Decodable {
-            let hash: String
-            let size: Int
-            let mtimeMs: Double
-            let contentType: String
-        }
-
-        let schemaVersion: Int
-        let generatedAt: String
-        let totalFiles: Int
-        let files: [String: Entry]
-    }
-
-    private struct UpdateLog: Decodable {
-        struct Event: Decodable {
-            let generatedAt: String
-            let addedCount: Int
-            let changedCount: Int
-            let removedCount: Int
-            let totalFiles: Int
-            let added: [String]
-            let changed: [String]
-            let removed: [String]
-        }
-
-        let schemaVersion: Int
-        let events: [Event]
-    }
-
-    private struct CacheIndex: Codable {
-        struct Resource: Codable {
-            let path: String
-            var hash: String?
-            var lastValidatedAt: TimeInterval
-            var missing: Bool
-        }
-
-        var schemaVersion: Int = 1
-        var lastManifestGeneratedAt: String?
-        var lastUpdateScanAt: String?
-        var lastMetaFetchAt: TimeInterval?
-        var resources: [String: Resource] = [:]
-    }
-
     private let baseURL = URL(string: "https://pillyliu.com")!
     private let manifestURL = URL(string: "https://pillyliu.com/pinball/cache-manifest.json")!
     private let updateLogURL = URL(string: "https://pillyliu.com/pinball/cache-update-log.json")!
@@ -176,8 +51,8 @@ actor PinballDataCache {
     private let legacyCacheResetMarkerName = "legacy-cache-reset-v3-assets-v1"
 
     private var isLoaded = false
-    private var index = CacheIndex()
-    private var manifest: Manifest?
+    private var index = PinballCacheIndex()
+    private var manifest: PinballCacheManifest?
     private var cacheGeneration: UInt64 = 0
     private var inFlightRevalidations: [String: UInt64] = [:]
     private var inFlightRemoteImageRevalidations: [String: UInt64] = [:]
@@ -238,7 +113,7 @@ actor PinballDataCache {
         }
 
         cacheGeneration &+= 1
-        index = CacheIndex()
+        index = PinballCacheIndex()
         manifest = nil
         inFlightRevalidations.removeAll()
         inFlightRemoteImageRevalidations.removeAll()
@@ -522,8 +397,8 @@ actor PinballDataCache {
             throw URLError(.badServerResponse)
         }
 
-        let newManifest = try decoder.decode(Manifest.self, from: manifestData)
-        let updateLog = try decoder.decode(UpdateLog.self, from: updateData)
+        let newManifest = try decoder.decode(PinballCacheManifest.self, from: manifestData)
+        let updateLog = try decoder.decode(PinballCacheUpdateLog.self, from: updateData)
 
         manifest = newManifest
         index.lastMetaFetchAt = now
@@ -544,7 +419,7 @@ actor PinballDataCache {
         let removedPaths = updatedEvents.flatMap(\.removed)
         for removed in removedPaths {
             try? fileManager.removeItem(at: fileURL(for: removed))
-            index.resources[removed] = CacheIndex.Resource(path: removed, hash: nil, lastValidatedAt: now, missing: true)
+            index.resources[removed] = PinballCacheIndex.Resource(path: removed, hash: nil, lastValidatedAt: now, missing: true)
         }
 
         try persistIndex()
@@ -557,9 +432,7 @@ actor PinballDataCache {
         try fileManager.createDirectory(at: root, withIntermediateDirectories: true, attributes: nil)
         try purgeLegacyCachedPinballAssetsIfNeeded(root: root)
 
-        let indexURL = root.appendingPathComponent("cache-index.json")
-        if let data = try? Data(contentsOf: indexURL),
-           let saved = try? decoder.decode(CacheIndex.self, from: data) {
+        if let saved = loadPinballCacheIndex(from: root, decoder: decoder) {
             index = saved
         }
 
@@ -581,7 +454,7 @@ actor PinballDataCache {
         for rawPath in preloadManifest.paths {
             let normalizedPath = normalize(rawPath)
             if index.resources[normalizedPath]?.missing == true {
-                index.resources[normalizedPath] = CacheIndex.Resource(
+                index.resources[normalizedPath] = PinballCacheIndex.Resource(
                     path: normalizedPath,
                     hash: index.resources[normalizedPath]?.hash,
                     lastValidatedAt: now,
@@ -605,7 +478,7 @@ actor PinballDataCache {
 
             let data = try Data(contentsOf: sourceURL)
             try write(data: data, for: normalizedPath)
-            index.resources[normalizedPath] = CacheIndex.Resource(
+            index.resources[normalizedPath] = PinballCacheIndex.Resource(
                 path: normalizedPath,
                 hash: index.resources[normalizedPath]?.hash,
                 lastValidatedAt: now,
@@ -634,7 +507,7 @@ actor PinballDataCache {
         }
 
         cacheGeneration &+= 1
-        index = CacheIndex()
+        index = PinballCacheIndex()
         manifest = nil
         inFlightRevalidations.removeAll()
         inFlightRemoteImageRevalidations.removeAll()
@@ -655,8 +528,7 @@ actor PinballDataCache {
     }
 
     private func persistIndex() throws {
-        let data = try encoder.encode(index)
-        try data.write(to: cacheRootURL().appendingPathComponent("cache-index.json"), options: .atomic)
+        try persistPinballCacheIndex(index, cacheRootURL: cacheRootURL(), encoder: encoder)
     }
 
     private func cacheRootURL() -> URL {
@@ -719,7 +591,7 @@ actor PinballDataCache {
 
     private func markResourceMissing(path: String, validatedAt: TimeInterval, expectedGeneration: UInt64) throws {
         guard cacheGeneration == expectedGeneration else { return }
-        index.resources[path] = CacheIndex.Resource(path: path, hash: nil, lastValidatedAt: validatedAt, missing: true)
+        index.resources[path] = PinballCacheIndex.Resource(path: path, hash: nil, lastValidatedAt: validatedAt, missing: true)
         try persistIndex()
     }
 
@@ -732,7 +604,7 @@ actor PinballDataCache {
     ) throws {
         guard cacheGeneration == expectedGeneration else { return }
         try write(data: data, for: path)
-        index.resources[path] = CacheIndex.Resource(
+        index.resources[path] = PinballCacheIndex.Resource(
             path: path,
             hash: manifestHash,
             lastValidatedAt: validatedAt,

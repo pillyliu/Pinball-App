@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.pillyliu.pinprofandroid.library.HOSTED_PINBALL_REFRESH_TARGETS
-import com.pillyliu.pinprofandroid.library.hostedOPDBExportPath
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,18 +16,13 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
-import java.security.MessageDigest
 
 private const val BASE_URL = "https://pillyliu.com"
 private const val MANIFEST_URL = "https://pillyliu.com/pinball/cache-manifest.json"
 private const val UPDATE_LOG_URL = "https://pillyliu.com/pinball/cache-update-log.json"
-private const val PRELOAD_ASSET_ROOT = "pinprof-preload"
-private const val PRELOAD_MANIFEST_ASSET_PATH = "$PRELOAD_ASSET_ROOT/preload-manifest.json"
 private const val META_REFRESH_INTERVAL_MS = 5 * 60 * 1000L
-private const val LEGACY_CACHE_RESET_MARKER = "legacy-cache-reset-v4-rulesheets-v1"
 data class CachedTextResult(
     val text: String?,
     val isMissing: Boolean,
@@ -121,9 +115,9 @@ object PinballDataCache {
             cacheGeneration += 1
 
             val context = appContext ?: error("PinballDataCache.initialize(context) was not called")
-            val root = cacheRoot(context)
-            val resources = resourcesDir(context)
-            val index = indexFile(context)
+            val root = pinballCacheRoot(context)
+            val resources = pinballCacheResourcesDir(context)
+            val index = pinballCacheIndexFile(context)
 
             if (resources.exists()) {
                 resources.deleteRecursively()
@@ -139,7 +133,7 @@ object PinballDataCache {
             if (!root.exists()) {
                 root.mkdirs()
             }
-            writeIndexRoot(context, JSONObject().put("resources", JSONObject()))
+            pinballCacheWriteIndexRoot(context, JSONObject().put("resources", JSONObject()))
         }
     }
 
@@ -181,7 +175,7 @@ object PinballDataCache {
 
         val remoteHash = manifestFiles[path] ?: return@withContext false
         val local = readCached(path) ?: return@withContext false
-        sha256(local) != remoteHash
+        pinballCacheSha256(local) != remoteHash
     }
 
     suspend fun cachedUpdatedAtFor(url: String): Long? = withContext(Dispatchers.IO) {
@@ -332,7 +326,7 @@ object PinballDataCache {
         mutex.withLock {
             if (loaded) return
             val context = appContext ?: error("PinballDataCache.initialize(context) was not called")
-            val dir = cacheRoot(context)
+            val dir = pinballCacheRoot(context)
             if (!dir.exists()) dir.mkdirs()
             purgeLegacyCachedPinballAssetsIfNeeded(context)
             readIndexState()
@@ -343,7 +337,7 @@ object PinballDataCache {
     }
 
     private fun seedBundledPreloadIntoCacheIfNeeded(context: Context) {
-        val paths = readBundledPreloadPaths(context)
+        val paths = pinballCacheReadBundledPreloadPaths(context)
         paths.forEach { rawPath ->
             val normalizedPath = normalizePath(rawPath)
             if (resourceFile(normalizedPath).exists()) {
@@ -351,41 +345,22 @@ object PinballDataCache {
                 return@forEach
             }
 
-            val bundledBytes = readBundledPreloadBytes(context, normalizedPath)
+            val bundledBytes = pinballCacheReadBundledPreloadBytes(context, normalizedPath)
                 ?: throw IllegalStateException("Missing bundled preload asset for $normalizedPath")
             writeCached(normalizedPath, bundledBytes)
             upsertIndex(path = normalizedPath, hash = manifestFiles[normalizedPath], missing = false)
         }
     }
 
-    private fun readBundledPreloadPaths(context: Context): List<String> {
-        val manifestText = runCatching {
-            context.assets.open(PRELOAD_MANIFEST_ASSET_PATH).bufferedReader().use { it.readText() }
-        }.getOrNull() ?: return emptyList()
-        val root = runCatching { JSONObject(manifestText) }.getOrNull() ?: return emptyList()
-        val paths = root.optJSONArray("paths") ?: return emptyList()
-        return buildList {
-            for (index in 0 until paths.length()) {
-                val value = paths.optString(index).trim()
-                if (value.isNotEmpty()) add(value)
-            }
-        }
-    }
-
-    private fun readBundledPreloadBytes(context: Context, path: String): ByteArray? {
-        val assetPath = "$PRELOAD_ASSET_ROOT/${normalizePath(path).removePrefix("/")}"
-        return runCatching { context.assets.open(assetPath).use { it.readBytes() } }.getOrNull()
-    }
-
     private fun purgeLegacyCachedPinballAssetsIfNeeded(context: Context) {
-        val root = cacheRoot(context)
+        val root = pinballCacheRoot(context)
         if (!root.exists()) root.mkdirs()
-        val marker = File(root, LEGACY_CACHE_RESET_MARKER)
+        val marker = java.io.File(root, PINBALL_LEGACY_CACHE_RESET_MARKER)
         if (marker.exists()) return
 
         runCatching {
-            resourcesDir(context).takeIf { it.exists() }?.deleteRecursively()
-            indexFile(context).takeIf { it.exists() }?.delete()
+            pinballCacheResourcesDir(context).takeIf { it.exists() }?.deleteRecursively()
+            pinballCacheIndexFile(context).takeIf { it.exists() }?.delete()
         }
 
         manifestFiles.clear()
@@ -471,20 +446,9 @@ object PinballDataCache {
         return if (fetched.bytes != null) resourceFile(path) else url
     }
 
-    private fun cacheRoot(context: Context): File = File(context.filesDir, "pinball-data-cache")
-
-    private fun resourcesDir(context: Context): File = File(cacheRoot(context), "resources")
-
-    private fun indexFile(context: Context): File = File(cacheRoot(context), "cache-index.json")
-
-    private fun resourceFile(path: String): File {
+    private fun resourceFile(path: String): java.io.File {
         val context = appContext ?: error("Missing context")
-        val ext = path.substringAfterLast('.', "")
-        val digest = sha256(path)
-        val fileName = if (ext.isBlank()) digest else "$digest.$ext"
-        val dir = resourcesDir(context)
-        if (!dir.exists()) dir.mkdirs()
-        return File(dir, fileName)
+        return pinballCacheResourceFile(context, path)
     }
 
     private fun writeCached(path: String, bytes: ByteArray) {
@@ -513,20 +477,10 @@ object PinballDataCache {
         if (file.exists()) file.delete()
     }
 
-    private fun sha256(input: String): String {
-        val digest = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
-        return digest.joinToString(separator = "") { "%02x".format(it) }
-    }
-
-    private fun sha256(input: ByteArray): String {
-        val digest = MessageDigest.getInstance("SHA-256").digest(input)
-        return digest.joinToString(separator = "") { "%02x".format(it) }
-    }
-
     private fun upsertIndex(path: String, hash: String?, missing: Boolean) {
         val context = appContext ?: return
         synchronized(indexIoLock) {
-            val root = readOrInitIndexRoot(context)
+            val root = pinballCacheReadOrInitIndexRoot(context)
             val resources = root.optJSONObject("resources") ?: JSONObject().also { root.put("resources", it) }
             val obj = JSONObject()
                 .put("path", path)
@@ -536,7 +490,7 @@ object PinballDataCache {
             resources.put(path, obj)
             root.put("lastMetaFetchAt", lastMetaFetchAt)
             root.put("lastUpdateScanAt", lastUpdateScanAt)
-            writeIndexRoot(context, root)
+            pinballCacheWriteIndexRoot(context, root)
         }
     }
 
@@ -544,7 +498,7 @@ object PinballDataCache {
         val context = appContext ?: return false
         return synchronized(indexIoLock) {
             runCatching {
-                val root = readOrInitIndexRoot(context)
+                val root = pinballCacheReadOrInitIndexRoot(context)
                 val resources = root.optJSONObject("resources") ?: return@runCatching false
                 resources.optJSONObject(path)?.optBoolean("missing", false) == true
             }.getOrDefault(false)
@@ -555,7 +509,7 @@ object PinballDataCache {
         val context = appContext ?: return false
         return synchronized(indexIoLock) {
             runCatching {
-                val root = readOrInitIndexRoot(context)
+                val root = pinballCacheReadOrInitIndexRoot(context)
                 val resources = root.optJSONObject("resources") ?: return@runCatching false
                 val resource = resources.optJSONObject(path) ?: return@runCatching false
                 val missing = resource.optBoolean("missing", false)
@@ -568,7 +522,7 @@ object PinballDataCache {
     private fun readIndexState() {
         val context = appContext ?: return
         synchronized(indexIoLock) {
-            val root = readOrInitIndexRoot(context)
+            val root = pinballCacheReadOrInitIndexRoot(context)
             lastMetaFetchAt = root.optLong("lastMetaFetchAt", 0L)
             lastUpdateScanAt = root.optString("lastUpdateScanAt").takeIf { it.isNotBlank() }
         }
@@ -577,34 +531,14 @@ object PinballDataCache {
     private fun persistMetaState() {
         val context = appContext ?: return
         synchronized(indexIoLock) {
-            val root = readOrInitIndexRoot(context)
+            val root = pinballCacheReadOrInitIndexRoot(context)
             root.put("lastMetaFetchAt", lastMetaFetchAt)
             root.put("lastUpdateScanAt", lastUpdateScanAt)
             if (!root.has("resources")) {
                 root.put("resources", JSONObject())
             }
-            writeIndexRoot(context, root)
+            pinballCacheWriteIndexRoot(context, root)
         }
-    }
-
-    private fun readOrInitIndexRoot(context: Context): JSONObject {
-        val file = indexFile(context)
-        val root = if (!file.exists()) {
-            JSONObject()
-        } else {
-            runCatching { JSONObject(file.readText()) }.getOrElse {
-                file.delete()
-                JSONObject()
-            }
-        }
-        if (!root.has("resources") || root.optJSONObject("resources") == null) {
-            root.put("resources", JSONObject())
-        }
-        return root
-    }
-
-    private fun writeIndexRoot(context: Context, root: JSONObject) {
-        indexFile(context).writeText(root.toString())
     }
 
     private fun hasUsableNetwork(context: Context?): Boolean {
