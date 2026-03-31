@@ -74,6 +74,8 @@ struct GameScoreEntrySheet: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationTitle("Log Score")
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: scoreFieldFocused) { _, isFocused in

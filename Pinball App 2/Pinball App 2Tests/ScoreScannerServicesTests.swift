@@ -274,4 +274,31 @@ final class ScoreScannerServicesTests: XCTestCase {
 
         XCTAssertEqual(cropRect, CGRect(x: 30, y: 130, width: 40, height: 20))
     }
+
+    func testKeyboardOverlapReturnsZeroWhenKeyboardFrameIsBelowViewport() {
+        let overlap = scoreScannerKeyboardOverlap(
+            endFrame: CGRect(x: 0, y: 900, width: 390, height: 320),
+            viewportRect: CGRect(x: 0, y: 0, width: 390, height: 844)
+        )
+
+        XCTAssertEqual(overlap, 0)
+    }
+
+    func testKeyboardOverlapUsesViewportIntersectionHeight() {
+        let overlap = scoreScannerKeyboardOverlap(
+            endFrame: CGRect(x: 0, y: 544, width: 390, height: 320),
+            viewportRect: CGRect(x: 0, y: 0, width: 390, height: 844)
+        )
+
+        XCTAssertEqual(overlap, 300)
+    }
+
+    func testKeyboardOverlapIgnoresAreaOutsideShiftedViewport() {
+        let overlap = scoreScannerKeyboardOverlap(
+            endFrame: CGRect(x: 0, y: 730, width: 390, height: 220),
+            viewportRect: CGRect(x: 0, y: 59, width: 390, height: 750)
+        )
+
+        XCTAssertEqual(overlap, 79)
+    }
 }

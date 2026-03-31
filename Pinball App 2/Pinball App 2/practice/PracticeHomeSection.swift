@@ -213,12 +213,10 @@ struct PracticeWelcomeOverlay: View {
                 .font(.subheadline.weight(.semibold))
 
             VStack(alignment: .leading, spacing: 8) {
-                overlaySectionRow("Home", detail: "Return to game, quick entry, active groups")
                 overlaySectionRow("Group Dashboard", detail: "View and edit groups")
-                overlaySectionRow("Insights", detail: "Scores, variance, and trends")
+                overlaySectionRow("Insights", detail: "Statistics and head-to-head matchups")
                 overlaySectionRow("Mechanics", detail: "Track pinball skills")
                 overlaySectionRow("Journal Timeline", detail: "Practice and library activity history.")
-                overlaySectionRow("Game View", detail: "Game resources and study log")
             }
             .padding(.top, 2)
 

@@ -138,6 +138,9 @@ struct ScoreScannerView: View {
                 )
                 viewModel.updateTargetRect(targetRect)
             }
+            .onChange(of: targetRect) { _, newValue in
+                viewModel.updateTargetRect(newValue)
+            }
             .onDisappear {
                 viewModel.onDisappear()
             }

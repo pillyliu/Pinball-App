@@ -1,4 +1,17 @@
 import SwiftUI
+import UIKit
+
+private struct PracticeEntrySheetKeyboardResetModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content.onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+            practiceEntryDismissKeyboard()
+        }
+    }
+}
+
+private func practiceEntryDismissKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+}
 
 struct PracticeEntryGlassCard<Content: View>: View {
     let maxHeight: CGFloat
@@ -28,6 +41,7 @@ extension View {
     }
 
     func practiceEntrySheetStyle(detents: Set<PresentationDetent>) -> some View {
-        appSheetChrome(detents: detents, dismissesKeyboardOnTap: false, background: .clear)
+        modifier(PracticeEntrySheetKeyboardResetModifier())
+            .appSheetChrome(detents: detents, dismissesKeyboardOnTap: false, background: .clear)
     }
 }

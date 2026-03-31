@@ -217,6 +217,20 @@ final class ScoreScannerKeyboardFrameObserver: ObservableObject {
                 queue: .main
             ) { [weak self] notification in
                 self?.handle(notification: notification)
+            },
+            center.addObserver(
+                forName: UIApplication.willResignActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.reset()
+            },
+            center.addObserver(
+                forName: UIApplication.didBecomeActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.reset()
             }
         ]
     }
@@ -226,16 +240,20 @@ final class ScoreScannerKeyboardFrameObserver: ObservableObject {
         notificationTokens.forEach(center.removeObserver)
     }
 
+    func reset() {
+        overlap = 0
+    }
+
     private func handle(notification: Notification) {
         guard let endFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
-            overlap = 0
+            reset()
             return
         }
 
-        let screenBounds = UIApplication.shared.connectedScenes
-            .compactMap { ($0 as? UIWindowScene)?.screen.bounds }
-            .first ?? CGRect(x: 0, y: 0, width: endFrame.width, height: endFrame.maxY)
-        overlap = max(0, screenBounds.maxY - endFrame.minY)
+        let viewportRect = scoreScannerKeyboardViewportRect(
+            fallbackSize: CGSize(width: endFrame.width, height: max(endFrame.maxY, 0))
+        )
+        overlap = scoreScannerKeyboardOverlap(endFrame: endFrame, viewportRect: viewportRect)
     }
 }
 
@@ -335,6 +353,26 @@ func scoreScannerUpdatedStableViewportSize(
         width: max(currentStableViewportSize.width, size.width),
         height: max(currentStableViewportSize.height, size.height)
     )
+}
+
+func scoreScannerKeyboardOverlap(endFrame: CGRect, viewportRect: CGRect) -> CGFloat {
+    let overlapRect = viewportRect.standardized.intersection(endFrame.standardized)
+    guard !overlapRect.isNull else { return 0 }
+    return max(overlapRect.height, 0)
+}
+
+private func scoreScannerKeyboardViewportRect(fallbackSize: CGSize) -> CGRect {
+    let windowScenes = UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+    let keyWindow = windowScenes
+        .flatMap(\.windows)
+        .first(where: \.isKeyWindow)
+
+    let fallbackRect = keyWindow?.windowScene?.screen.bounds
+        ?? windowScenes.first(where: { $0.activationState == .foregroundActive })?.screen.bounds
+        ?? windowScenes.first?.screen.bounds
+        ?? CGRect(origin: .zero, size: fallbackSize)
+    return keyWindow?.bounds ?? fallbackRect
 }
 
 private func scoreScannerControlButton(
