@@ -86,6 +86,8 @@ Key coordinator files:
 Behavior notes:
 - hosted Library payload loads should prefer stale cached text on first paint and revalidate in the background
 - remote rulesheet viewers should fall back to the external web renderer when embedded loading fails
+- fullscreen hosted-image viewers should prioritize the faster local playfield candidates before slower original/external candidates
+- fullscreen hosted-image viewers should degrade to a failure state instead of leaving the user on a permanent loading spinner
 
 ## Practice
 

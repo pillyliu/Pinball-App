@@ -107,11 +107,16 @@ final class RemoteUIImageLoader: ObservableObject {
                 image = uiImage
                 failed = false
                 return
+            } catch is CancellationError {
+                return
             } catch {
                 continue
             }
         }
 
+        if Task.isCancelled {
+            return
+        }
         failed = true
     }
 }

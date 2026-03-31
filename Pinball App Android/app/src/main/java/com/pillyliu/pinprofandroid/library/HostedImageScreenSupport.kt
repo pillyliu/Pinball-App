@@ -31,9 +31,12 @@ internal fun ZoomablePlayfieldImage(
     onTap: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
-    val candidates = imageUrls.filter { it.isNotBlank() }.distinct()
+    val candidates = prioritizeHostedImageCandidates(
+        imageUrls.filter { it.isNotBlank() }.distinct(),
+    )
     var activeImageIndex by remember(candidates) { mutableIntStateOf(0) }
     var imageLoaded by remember(candidates, activeImageIndex) { mutableStateOf(false) }
+    var showFailure by remember(candidates, activeImageIndex) { mutableStateOf(false) }
     val gestureState = rememberZoomablePlayfieldGestureState()
     val touchSlop = androidx.compose.ui.platform.LocalViewConfiguration.current.touchSlop
     val displayScale by animateFloatAsState(
@@ -54,16 +57,16 @@ internal fun ZoomablePlayfieldImage(
 
     LaunchedEffect(candidates, activeImageIndex) {
         imageLoaded = false
+        showFailure = false
         val url = candidates.getOrNull(activeImageIndex) ?: return@LaunchedEffect
-        if (activeImageIndex >= candidates.lastIndex) return@LaunchedEffect
-        val timeoutMs = when {
-            url.contains("/pinball/images/playfields/") && !url.contains("_1400.") && !url.contains("_700.") -> 5000L
-            url.contains("_1400.") -> 2500L
-            else -> return@LaunchedEffect
-        }
+        val timeoutMs = hostedImageLoadTimeoutMs(url) ?: return@LaunchedEffect
         delay(timeoutMs)
-        if (!imageLoaded && activeImageIndex < candidates.lastIndex) {
-            activeImageIndex += 1
+        if (!imageLoaded) {
+            if (activeImageIndex < candidates.lastIndex) {
+                activeImageIndex += 1
+            } else {
+                showFailure = true
+            }
         }
     }
 
@@ -82,30 +85,46 @@ internal fun ZoomablePlayfieldImage(
     ) {
         val activeUrl = candidates.getOrNull(activeImageIndex)
         val imageRequest = rememberPlayfieldImageRequest(activeUrl)
-        AsyncImage(
-            model = imageRequest,
-            contentDescription = title,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = displayScale
-                    scaleY = displayScale
-                    translationX = displayOffsetX
-                    translationY = displayOffsetY
-                },
-            contentScale = ContentScale.Fit,
-            onLoading = { imageLoaded = false },
-            onSuccess = { imageLoaded = true },
-            onError = {
-                if (activeImageIndex < candidates.lastIndex) {
-                    activeImageIndex += 1
-                }
-            },
-        )
-
-        if (!imageLoaded) {
+        if (showFailure || candidates.isEmpty()) {
             Box(modifier = Modifier.align(Alignment.Center)) {
-                PlayfieldImageLoadingOverlay()
+                PlayfieldImageFailureOverlay(
+                    sourceUrl = candidates.getOrNull(activeImageIndex) ?: candidates.firstOrNull(),
+                )
+            }
+        } else {
+            AsyncImage(
+                model = imageRequest,
+                contentDescription = title,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = displayScale
+                        scaleY = displayScale
+                        translationX = displayOffsetX
+                        translationY = displayOffsetY
+                    },
+                contentScale = ContentScale.Fit,
+                onLoading = {
+                    imageLoaded = false
+                    showFailure = false
+                },
+                onSuccess = {
+                    imageLoaded = true
+                    showFailure = false
+                },
+                onError = {
+                    if (activeImageIndex < candidates.lastIndex) {
+                        activeImageIndex += 1
+                    } else {
+                        showFailure = true
+                    }
+                },
+            )
+
+            if (!imageLoaded) {
+                Box(modifier = Modifier.align(Alignment.Center)) {
+                    PlayfieldImageLoadingOverlay()
+                }
             }
         }
     }

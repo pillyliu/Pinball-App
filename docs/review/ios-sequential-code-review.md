@@ -11276,6 +11276,38 @@ Verification:
 - `./gradlew :app:compileDebugKotlin`
 - Android emulator QA: opening the `TF` rulesheet now reaches a `WebView` route instead of staying on the loading spinner
 
+## Pass 120: Hosted playfield viewer fallback parity
+
+Primary files:
+- `Pinball App 2/Pinball App 2/library/HostedImageCandidateSupport.swift`
+- `Pinball App 2/Pinball App 2/library/HostedImageScreen.swift`
+- `Pinball App 2/Pinball App 2/library/RemoteUIImageSupport.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/HostedImageCandidateSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/HostedImageRequestSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/HostedImageScreenSupport.kt`
+
+Changes made in this pass:
+- added paired hosted-image candidate prioritization so fullscreen playfield viewers prefer the faster `_1400` and `_700` PinProf candidates ahead of slower original or external candidates
+- added iOS candidate timeout advancement and final timeout failure handling so the hosted-image viewer can move past stalled candidates instead of waiting forever
+- made Android fullscreen playfield requests stop blocking on cache-model resolution before the image request even starts
+- added Android fullscreen hosted-image failure UI with an `Open Original URL` escape hatch instead of leaving the screen on a permanent loading overlay
+- hardened the iOS loader against cancellation so candidate-advance tasks do not leave stale failure state behind
+
+Hidden seams surfaced and fixed:
+1. fullscreen hosted-image QA showed the cache/runtime work had fixed Library hydration, but the playfield viewer could still hang behind slow or stalled image candidates
+2. iOS and Android had drifted on the failure mode: iOS already had a real failure state for hosted images, while Android could stay on `Loading image…` indefinitely with no recovery path
+
+Behavioral outcome:
+- iOS fullscreen playfields still load successfully after the candidate-ordering and timeout changes
+- Android fullscreen playfields now either load or degrade to a clear failure state with an external-open option instead of hanging forever
+- both platforms now use the same high-level candidate-ordering rule for hosted playfield images
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- iOS simulator QA: Library detail -> `PinProf` playfield still renders the fullscreen playfield image
+- Android emulator QA: Library detail -> `PinProf` playfield now reaches `Could not load image.` plus `Open Original URL` instead of staying on `Loading image…`
+
 ## Pass 118: Hosted library cache stale-first revalidation parity
 
 Primary files:
