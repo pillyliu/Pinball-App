@@ -5,10 +5,10 @@ internal fun parseBasicPinsideMachines(
     groupMap: Map<String, String>,
 ): List<PinsideImportedMachine> {
     validatePinsideCollectionPageHTML(html)
-    if (looksLikePinsideCloudflareChallenge(html)) {
+    if (looksLikePinsideChallengePage(html)) {
         throw pinsideImportException(GameRoomPinsideImportError.parseFailed, "Pinside returned a challenge page.")
     }
-    val slugs = extractPinsideCollectionSlugs(html)
+    val slugs = findPinsideCollectionSlugs(html)
     if (slugs.isEmpty()) {
         throw pinsideImportException(GameRoomPinsideImportError.noMachinesFound)
     }
@@ -16,8 +16,8 @@ internal fun parseBasicPinsideMachines(
         PinsideImportedMachine(
             id = slug,
             slug = slug,
-            rawTitle = resolvePinsideTitle(slug, groupMap),
-            rawVariant = variantFromPinsideSlug(slug),
+            rawTitle = resolvePinsideSlugTitle(slug, groupMap),
+            rawVariant = pinsideVariantFromSlug(slug),
         )
     }
 }
@@ -63,7 +63,7 @@ internal fun parseDetailedPinsideMachines(content: String): List<PinsideImported
             continue
         }
 
-        val parsedTitle = canonicalPinsideDisplayedTitle(displayTitle, variantFromPinsideSlug(slug))
+        val parsedTitle = canonicalPinsideDisplayedTitle(displayTitle, pinsideVariantFromSlug(slug))
         val manufacturer = metadataMatch.groupValues.getOrNull(1)?.trim()?.ifBlank { null }
         val year = metadataMatch.groupValues.getOrNull(2)?.trim()?.toIntOrNull()
 
@@ -127,66 +127,4 @@ internal fun mergePinsideMachines(
     }
 
     return merged
-}
-
-private fun looksLikePinsideCloudflareChallenge(html: String): Boolean {
-    val lowered = html.lowercase()
-    return lowered.contains("just a moment") &&
-        (
-            lowered.contains("cf_chl_") ||
-                lowered.contains("challenge-platform") ||
-                lowered.contains("enable javascript and cookies to continue")
-            )
-}
-
-private fun extractPinsideCollectionSlugs(html: String): List<String> {
-    val regex = Regex("""(?:https?:\/\/pinside\.com)?\/pinball\/machine\/([a-z0-9\-]+)""", RegexOption.IGNORE_CASE)
-    val ordered = linkedSetOf<String>()
-    regex.findAll(html).forEach { match ->
-        val slug = match.groupValues.getOrNull(1)?.lowercase().orEmpty()
-        if (slug.isNotBlank()) ordered += slug
-    }
-    return ordered.toList()
-}
-
-private fun resolvePinsideTitle(
-    slug: String,
-    groupMap: Map<String, String>,
-): String {
-    val mapped = groupMap[slug]?.trim().orEmpty()
-    if (mapped.isNotEmpty() && mapped != "~") {
-        return mapped
-    }
-    return humanizedPinsideTitleFromSlug(slug)
-}
-
-private fun variantFromPinsideSlug(slug: String): String? {
-    val lowered = slug.lowercase()
-    val anniversaryMatch = Regex("""(\d+)(st|nd|rd|th)-anniversary""", RegexOption.IGNORE_CASE)
-        .find(lowered)
-    if (anniversaryMatch != null) {
-        val ordinal = "${anniversaryMatch.groupValues[1]}${anniversaryMatch.groupValues[2].lowercase()}"
-        return "$ordinal Anniversary"
-    }
-    if (lowered.contains("anniversary")) {
-        return "Anniversary"
-    }
-    return when {
-        lowered.endsWith("-premium") -> "Premium"
-        lowered.endsWith("-pro") -> "Pro"
-        lowered.endsWith("-le") || lowered.contains("-limited-edition") -> "LE"
-        lowered.endsWith("-ce") || lowered.contains("-collector") -> "CE"
-        lowered.endsWith("-se") || lowered.contains("-special-edition") -> "SE"
-        else -> null
-    }
-}
-
-private fun humanizedPinsideTitleFromSlug(slug: String): String {
-    return slug
-        .split("-")
-        .filter { it.isNotBlank() }
-        .joinToString(" ") { token ->
-            token.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-        }
-        .ifBlank { "Imported Machine" }
 }

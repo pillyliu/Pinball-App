@@ -378,48 +378,31 @@ actor PinballDataCache {
 
     private func refreshMetadataIfNeeded(force: Bool) async throws {
         let now = Date().timeIntervalSince1970
-        if !force,
-           let last = index.lastMetaFetchAt,
-           now - last < metadataRefreshInterval {
+        guard PinballCacheMetadataSupport.shouldRefresh(
+            lastFetchedAt: index.lastMetaFetchAt,
+            now: now,
+            refreshInterval: metadataRefreshInterval,
+            force: force
+        ) else {
             return
         }
 
-        async let manifestDataTask = URLSession.shared.data(from: manifestURL)
-        async let updateDataTask = URLSession.shared.data(from: updateLogURL)
-
-        let (manifestData, manifestResponse) = try await manifestDataTask
-        let (updateData, updateResponse) = try await updateDataTask
-
-        if let http = manifestResponse as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            throw URLError(.badServerResponse)
-        }
-        if let http = updateResponse as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            throw URLError(.badServerResponse)
-        }
-
-        let newManifest = try decoder.decode(PinballCacheManifest.self, from: manifestData)
-        let updateLog = try decoder.decode(PinballCacheUpdateLog.self, from: updateData)
-
-        manifest = newManifest
-        index.lastMetaFetchAt = now
-        index.lastManifestGeneratedAt = newManifest.generatedAt
-
-        let lastScan = index.lastUpdateScanAt
-        let updatedEvents = updateLog.events.filter { event in
-            guard let lastScan else { return true }
-            return event.generatedAt > lastScan
-        }
-
-        index.lastUpdateScanAt = pinballCacheLatestUpdateScanAt(
-            eventGeneratedAts: updateLog.events.map(\.generatedAt),
-            existingLastScan: lastScan
+        let refresh = try await PinballCacheMetadataSupport.fetchRefresh(
+            manifestURL: manifestURL,
+            updateLogURL: updateLogURL,
+            decoder: decoder
         )
+        manifest = refresh.manifest
 
-        // Ensure removed paths don't stay on disk forever.
-        let removedPaths = updatedEvents.flatMap(\.removed)
+        let removedPaths = PinballCacheMetadataSupport.applyRefresh(refresh, to: &index)
         for removed in removedPaths {
             try? fileManager.removeItem(at: fileURL(for: removed))
-            index.resources[removed] = PinballCacheIndex.Resource(path: removed, hash: nil, lastValidatedAt: now, missing: true)
+            index.resources[removed] = PinballCacheIndex.Resource(
+                path: removed,
+                hash: nil,
+                lastValidatedAt: refresh.fetchedAt,
+                missing: true
+            )
         }
 
         try persistIndex()

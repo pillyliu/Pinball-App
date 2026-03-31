@@ -10963,6 +10963,94 @@ Verification:
 - `./gradlew :app:compileDebugKotlin`
 - result: both passed
 
+## Pass 378: Practice journal-linking support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreJournalMutationSupport.swift`
+- `Pinball App 2/Pinball App 2/practice/PracticeStoreJournalLinkingSupport.swift`
+
+Changes made in this pass:
+- moved the journal-to-entry linking helpers out of `PracticeStoreJournalMutationSupport.swift`:
+  - score log matching
+  - study-event matching
+  - video progress matching
+  - note entry matching
+  - journal-action task mapping
+  - study-event reconcile/update behavior
+- left `PracticeStoreJournalMutationSupport.swift` focused on the two mutation entrypoints:
+  - `updateJournalEntry(...)`
+  - `deleteJournalEntry(...)`
+
+Hidden seam surfaced and reduced:
+1. the journal mutation file was still mixing edit/delete orchestration with all of the identity-matching policy for score, note, study, and video records
+2. the new support file makes that journal-linking policy reviewable in one place, without reopening the mutation entrypoints themselves
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+
+## Pass 379: Android Pinside slug and title support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPinsideParsingSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/gameroom/GameRoomPinsideSlugSupport.kt`
+
+Changes made in this pass:
+- moved the slug/title helper layer out of `GameRoomPinsideParsingSupport.kt`:
+  - Cloudflare challenge-page detection
+  - collection slug extraction
+  - slug-to-title resolution via group-map fallback
+  - slug-based variant inference
+  - humanized fallback title generation
+- updated the parsing file to call the extracted helpers directly, so it now reads more like the actual collection/detail parser and merge coordinator
+
+Hidden seam surfaced and reduced:
+1. `GameRoomPinsideParsingSupport.kt` was still mixing collection/detail parsing with a second layer of slug/title normalization policy
+2. the new support file isolates that slug policy so future import cleanup can change normalization without reopening the parser loops
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+
+## Pass 377: Pinball data-cache metadata support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/data/PinballDataCache.swift`
+- `Pinball App 2/Pinball App 2/data/PinballDataCacheMetadataSupport.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCache.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCacheMetadataSupport.kt`
+
+Changes made in this pass:
+- moved manifest/update-log fetch and removed-path application support out of the main data-cache files on both platforms
+- left the platform cache objects focused on:
+  - cache coordination
+  - resource fetch/revalidate flow
+  - disk cache entry reads and writes
+- kept the current preload/storage split intact and added one narrower metadata-refresh support layer on top of it
+
+Hidden seam surfaced and reduced:
+1. both cache files were still mixing two different responsibilities:
+   - long-lived cache coordination/state
+   - one-shot metadata refresh parsing and removed-path bookkeeping
+2. that made the main cache files heavier than they needed to be, especially since the same manifest/update-log contract exists on both platforms
+
+Notable follow-up surfaced while verifying:
+1. the iOS target uses default main-actor isolation broadly enough that plain support helpers in app code need explicit `nonisolated` handling when called from inside an actor
+2. `ScoreScannerSessionSupport.swift` still emits a non-blocking `switch must be exhaustive` warning during iOS builds; that warning predates this cache split and is outside this pass
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- result: both passed
+
 ## Pass 363: iOS Settings home section split
 
 Primary files:

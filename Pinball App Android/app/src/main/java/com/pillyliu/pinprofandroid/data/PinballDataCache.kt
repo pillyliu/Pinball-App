@@ -271,54 +271,26 @@ object PinballDataCache {
 
     private suspend fun refreshMetadataIfNeeded(force: Boolean) {
         val now = System.currentTimeMillis()
-        if (!force && now - lastMetaFetchAt < META_REFRESH_INTERVAL_MS) return
+        if (!shouldRefreshPinballCacheMetadata(lastMetaFetchAt, now, META_REFRESH_INTERVAL_MS, force)) return
 
-        val manifestText = httpText(MANIFEST_URL)
-        val updateText = httpText(UPDATE_LOG_URL)
-
-        val manifestJson = JSONObject(manifestText)
-        val filesJson = manifestJson.optJSONObject("files") ?: JSONObject()
+        val refresh = fetchPinballCacheMetadataRefresh(
+            manifestUrl = MANIFEST_URL,
+            updateLogUrl = UPDATE_LOG_URL,
+            now = now,
+            lastUpdateScanAt = lastUpdateScanAt,
+            httpText = ::httpText,
+        )
 
         manifestFiles.clear()
-        val fileKeys = filesJson.keys()
-        while (fileKeys.hasNext()) {
-            val path = fileKeys.next()
-            val hash = filesJson.optJSONObject(path)?.optString("hash") ?: continue
-            manifestFiles[path] = hash
+        manifestFiles.putAll(refresh.manifestFiles)
+        refresh.removedPaths.forEach { path ->
+            deleteCached(path)
+            upsertIndex(path = path, hash = null, missing = true)
         }
 
-        val updateJson = JSONObject(updateText)
-        val events = updateJson.optJSONArray("events") ?: JSONArray()
-
-        var newestEventAt = lastUpdateScanAt
-        for (i in 0 until events.length()) {
-            val event = events.optJSONObject(i) ?: continue
-            val generatedAt = event.optString("generatedAt")
-            if (newestEventAt == null || generatedAt > newestEventAt) {
-                newestEventAt = generatedAt
-            }
-            if (lastUpdateScanAt != null && generatedAt <= lastUpdateScanAt!!) {
-                continue
-            }
-            val removed = mutableSetOf<String>()
-            collectPaths(event.optJSONArray("removed"), removed)
-            removed.forEach { path ->
-                deleteCached(path)
-                upsertIndex(path = path, hash = null, missing = true)
-            }
-        }
-
-        lastUpdateScanAt = newestEventAt
-        lastMetaFetchAt = now
+        lastUpdateScanAt = refresh.lastUpdateScanAt
+        lastMetaFetchAt = refresh.lastMetaFetchAt
         persistMetaState()
-    }
-
-    private fun collectPaths(array: JSONArray?, into: MutableSet<String>) {
-        if (array == null) return
-        for (i in 0 until array.length()) {
-            val path = array.optString(i)
-            if (path.isNotBlank()) into += path
-        }
     }
 
     private suspend fun ensureLoaded() {
