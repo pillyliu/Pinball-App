@@ -10962,6 +10962,42 @@ Verification:
 - `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
 - `./gradlew :app:compileDebugKotlin`
 
+## Pass 381: Shared UI theme-token consistency pass
+
+Primary files:
+- `Pinball App 2/Pinball App 2/ui/AppTheme.swift`
+- `Pinball App 2/Pinball App 2/ui/AppContentChrome.swift`
+- `Pinball App 2/Pinball App 2/ui/AppSurfaceModifiers.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/PinballDesignTokens.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/PinballTheme.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppButtonChrome.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppContentChrome.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppScreenSurface.kt`
+
+Changes made in this pass:
+- added shared status-chrome tokens on both platforms for:
+  - inline status spacing
+  - panel accent sizing
+  - status-card and empty-card padding
+  - refresh-row spacing
+  - success-banner spacing and padding
+- added shared atmosphere tokens on both platforms for the two background glow layers
+- updated iOS shared content and background chrome to read from those tokens instead of local literals
+- added Android theme parity for `brandOnGold` and updated the primary button to use theme-provided foreground ink instead of a private hardcoded color
+- updated Android shared content and screen-surface chrome to read from the new token sets instead of local literals
+
+Hidden seam surfaced and reduced:
+1. shared chrome across iOS and Android was visually similar but still carrying separate hardcoded spacing and glow values in the leaf UI files
+2. the new token layer makes those values part of the intentional design system instead of untracked local constants, which should make future parity review much easier
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- primary action button ink, success banners, status cards, empty cards, refresh rows, and atmosphere backgrounds now read more clearly from the shared theme layer on both platforms
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+
 ## Late-stage paired polish plan
 
 Tracking rule for the remaining work:

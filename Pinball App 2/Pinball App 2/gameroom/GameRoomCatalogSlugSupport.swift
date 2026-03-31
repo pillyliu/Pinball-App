@@ -15,6 +15,9 @@ extension GameRoomCatalogLoader {
             )
             for key in buildSlugKeys(from: machine.slug) {
                 if let existing = matches[key] {
+                    guard slugMatchConflicts(existing: existing, incoming: match) else {
+                        continue
+                    }
                     gameRoomCatalogLogger.warning(
                         "Duplicate GameRoom catalog slug key \(key, privacy: .public); keeping existing catalog game \(existing.catalogGameID, privacy: .public) and ignoring \(match.catalogGameID, privacy: .public)"
                     )
@@ -25,6 +28,13 @@ extension GameRoomCatalogLoader {
         }
 
         return matches
+    }
+
+    static func slugMatchConflicts(
+        existing: GameRoomCatalogSlugMatch,
+        incoming: GameRoomCatalogSlugMatch
+    ) -> Bool {
+        normalizedCatalogGameID(existing.catalogGameID) != normalizedCatalogGameID(incoming.catalogGameID)
     }
 
     static func buildSlugKeys(from slug: String) -> [String] {

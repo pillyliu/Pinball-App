@@ -17,6 +17,7 @@ data class PinballSemanticColors(
     val border: Color,
     val brandInk: Color,
     val brandGold: Color,
+    val brandOnGold: Color,
     val brandChalk: Color,
     val atmosphereTop: Color,
     val atmosphereBottom: Color,
@@ -70,6 +71,31 @@ data class PinballTypographyTokens(
     val shellLabel: TextStyle,
 )
 
+@Immutable
+data class PinballStatusChromeTokens(
+    val inlineSpacing: Dp,
+    val panelSpacing: Dp,
+    val panelAccentWidth: Dp,
+    val panelAccentHeight: Dp,
+    val panelPaddingHorizontal: Dp,
+    val panelPaddingVertical: Dp,
+    val emptyCardPaddingHorizontal: Dp,
+    val emptyCardPaddingVertical: Dp,
+    val refreshSpacing: Dp,
+    val successCompactSpacing: Dp,
+    val successRegularSpacing: Dp,
+    val successCompactHorizontal: Dp,
+    val successRegularHorizontal: Dp,
+    val successCompactVertical: Dp,
+    val successRegularVertical: Dp,
+)
+
+@Immutable
+data class PinballAtmosphereTokens(
+    val primaryGlowAlpha: Float,
+    val secondaryGlowAlpha: Float,
+)
+
 internal val LocalPinballSemanticColors = compositionLocalOf<PinballSemanticColors> {
     error("LocalPinballSemanticColors not provided")
 }
@@ -86,6 +112,14 @@ internal val LocalPinballTypographyTokens = compositionLocalOf<PinballTypography
     error("LocalPinballTypographyTokens not provided")
 }
 
+internal val LocalPinballStatusChromeTokens = compositionLocalOf<PinballStatusChromeTokens> {
+    error("LocalPinballStatusChromeTokens not provided")
+}
+
+internal val LocalPinballAtmosphereTokens = compositionLocalOf<PinballAtmosphereTokens> {
+    error("LocalPinballAtmosphereTokens not provided")
+}
+
 object PinballThemeTokens {
     val colors: PinballSemanticColors
         @Composable get() = LocalPinballSemanticColors.current
@@ -98,6 +132,12 @@ object PinballThemeTokens {
 
     val typography: PinballTypographyTokens
         @Composable get() = LocalPinballTypographyTokens.current
+
+    val statusChrome: PinballStatusChromeTokens
+        @Composable get() = LocalPinballStatusChromeTokens.current
+
+    val atmosphere: PinballAtmosphereTokens
+        @Composable get() = LocalPinballAtmosphereTokens.current
 }
 
 internal val DefaultPinballShapeTokens = PinballShapeTokens(
@@ -124,4 +164,27 @@ internal val DefaultPinballTypographyTokens = PinballTypographyTokens(
     dropdownItem = TextStyle(fontSize = 12.sp),
     tableCell = TextStyle(fontSize = 13.sp),
     shellLabel = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+)
+
+internal val DefaultPinballStatusChromeTokens = PinballStatusChromeTokens(
+    inlineSpacing = 8.dp,
+    panelSpacing = 10.dp,
+    panelAccentWidth = 5.dp,
+    panelAccentHeight = 36.dp,
+    panelPaddingHorizontal = 12.dp,
+    panelPaddingVertical = 10.dp,
+    emptyCardPaddingHorizontal = 10.dp,
+    emptyCardPaddingVertical = 6.dp,
+    refreshSpacing = 5.dp,
+    successCompactSpacing = 6.dp,
+    successRegularSpacing = 8.dp,
+    successCompactHorizontal = 8.dp,
+    successRegularHorizontal = 12.dp,
+    successCompactVertical = 5.dp,
+    successRegularVertical = 9.dp,
+)
+
+internal val DefaultPinballAtmosphereTokens = PinballAtmosphereTokens(
+    primaryGlowAlpha = 0.18f,
+    secondaryGlowAlpha = 0.12f,
 )

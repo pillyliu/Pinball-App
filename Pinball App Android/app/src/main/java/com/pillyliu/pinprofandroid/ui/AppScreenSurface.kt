@@ -130,6 +130,7 @@ fun Modifier.dismissKeyboardOnTapOutside(): Modifier {
 @Composable
 fun PinballAtmosphereBackground(modifier: Modifier = Modifier) {
     val colors = PinballThemeTokens.colors
+    val atmosphere = PinballThemeTokens.atmosphere
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -144,7 +145,7 @@ fun PinballAtmosphereBackground(modifier: Modifier = Modifier) {
                 .matchParentSize()
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(colors.atmosphereGlow.copy(alpha = 0.18f), Color.Transparent),
+                        colors = listOf(colors.atmosphereGlow.copy(alpha = atmosphere.primaryGlowAlpha), Color.Transparent),
                         center = Offset(0f, 0f),
                         radius = 900f,
                     ),
@@ -155,7 +156,7 @@ fun PinballAtmosphereBackground(modifier: Modifier = Modifier) {
                 .matchParentSize()
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(colors.brandChalk.copy(alpha = 0.12f), Color.Transparent),
+                        colors = listOf(colors.brandChalk.copy(alpha = atmosphere.secondaryGlowAlpha), Color.Transparent),
                         center = Offset(1400f, 2600f),
                         radius = 1200f,
                     ),

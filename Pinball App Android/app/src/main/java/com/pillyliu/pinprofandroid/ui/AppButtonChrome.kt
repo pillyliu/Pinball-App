@@ -92,7 +92,6 @@ fun AppPrimaryButton(
 ) {
     val colors = PinballThemeTokens.colors
     val shapes = PinballThemeTokens.shapes
-    val buttonInk = Color(0xFF261700)
     val shape = RoundedCornerShape(shapes.controlCorner)
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -100,7 +99,7 @@ fun AppPrimaryButton(
     val containerColor by animateColorAsState(
         targetValue = when {
             !enabled -> colors.brandGold.copy(alpha = 0.24f)
-            pressed -> lerp(colors.brandGold.copy(alpha = 0.92f), buttonInk, 0.22f)
+            pressed -> lerp(colors.brandGold.copy(alpha = 0.92f), colors.brandOnGold, 0.22f)
             else -> colors.brandGold.copy(alpha = 0.92f)
         },
         label = "appPrimaryButtonContainerColor",
@@ -115,9 +114,9 @@ fun AppPrimaryButton(
         interactionSource = interactionSource,
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
-            contentColor = buttonInk,
+            contentColor = colors.brandOnGold,
             disabledContainerColor = colors.brandGold.copy(alpha = 0.24f),
-            disabledContentColor = buttonInk.copy(alpha = 0.55f),
+            disabledContentColor = colors.brandOnGold.copy(alpha = 0.55f),
         ),
         content = content,
     )

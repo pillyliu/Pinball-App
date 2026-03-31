@@ -114,10 +114,12 @@ internal fun buildGameRoomLoadedCatalogData(
         buildSlugKeys(slug).forEach { key ->
             val existing = slugMatches[key]
             if (existing != null) {
-                Log.w(
-                    GAME_ROOM_CATALOG_TAG,
-                    "Duplicate GameRoom catalog slug key $key; keeping existing catalog game ${existing.catalogGameID} and ignoring ${slugMatch.catalogGameID}",
-                )
+                if (normalizedCatalogGameID(existing.catalogGameID) != normalizedCatalogGameID(slugMatch.catalogGameID)) {
+                    Log.w(
+                        GAME_ROOM_CATALOG_TAG,
+                        "Duplicate GameRoom catalog slug key $key; keeping existing catalog game ${existing.catalogGameID} and ignoring ${slugMatch.catalogGameID}",
+                    )
+                }
             } else {
                 slugMatches[key] = slugMatch
             }

@@ -56,6 +56,29 @@ struct AppTypographyTokens {
     let tableCell: Font
 }
 
+struct AppStatusChromeTokens {
+    let inlineSpacing: CGFloat
+    let panelSpacing: CGFloat
+    let panelAccentWidth: CGFloat
+    let panelAccentHeight: CGFloat
+    let panelPaddingHorizontal: CGFloat
+    let panelPaddingVertical: CGFloat
+    let emptyCardPaddingHorizontal: CGFloat
+    let emptyCardPaddingVertical: CGFloat
+    let refreshSpacing: CGFloat
+    let successCompactSpacing: CGFloat
+    let successRegularSpacing: CGFloat
+    let successCompactHorizontal: CGFloat
+    let successRegularHorizontal: CGFloat
+    let successCompactVertical: CGFloat
+    let successRegularVertical: CGFloat
+}
+
+struct AppAtmosphereTokens {
+    let primaryGlowOpacity: Double
+    let secondaryGlowOpacity: Double
+}
+
 enum AppTheme {
     static let colors = AppSemanticColors(
         background: Color(uiColor: .systemBackground),
@@ -110,6 +133,29 @@ enum AppTheme {
         dropdownChevronLarge: .footnote,
         shellLabel: .caption,
         tableCell: .caption
+    )
+
+    static let statusChrome = AppStatusChromeTokens(
+        inlineSpacing: 8,
+        panelSpacing: 10,
+        panelAccentWidth: 5,
+        panelAccentHeight: 36,
+        panelPaddingHorizontal: 12,
+        panelPaddingVertical: 10,
+        emptyCardPaddingHorizontal: 10,
+        emptyCardPaddingVertical: 6,
+        refreshSpacing: 5,
+        successCompactSpacing: 6,
+        successRegularSpacing: 8,
+        successCompactHorizontal: 8,
+        successRegularHorizontal: 12,
+        successCompactVertical: 5,
+        successRegularVertical: 9
+    )
+
+    static let atmosphere = AppAtmosphereTokens(
+        primaryGlowOpacity: 0.18,
+        secondaryGlowOpacity: 0.12
     )
 
     static let bg = colors.background

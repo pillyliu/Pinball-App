@@ -18,7 +18,7 @@ struct AppInlineTaskStatus: View {
     var isError: Bool = false
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppTheme.statusChrome.inlineSpacing) {
             if showsProgress {
                 ProgressView()
                     .controlSize(.small)
@@ -49,7 +49,7 @@ struct AppPanelStatusCard: View {
     var isError: Bool = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: AppTheme.statusChrome.panelSpacing) {
             RoundedRectangle(cornerRadius: 999, style: .continuous)
                 .fill(
                     LinearGradient(
@@ -61,8 +61,8 @@ struct AppPanelStatusCard: View {
                         endPoint: .bottom
                     )
                 )
-                .frame(width: 5)
-                .frame(maxHeight: .infinity)
+                .frame(width: AppTheme.statusChrome.panelAccentWidth)
+                .frame(minHeight: AppTheme.statusChrome.panelAccentHeight, maxHeight: .infinity)
                 .padding(.vertical, 2)
 
             AppInlineTaskStatus(
@@ -71,7 +71,8 @@ struct AppPanelStatusCard: View {
                 isError: isError
             )
         }
-        .padding(12)
+        .padding(.horizontal, AppTheme.statusChrome.panelPaddingHorizontal)
+        .padding(.vertical, AppTheme.statusChrome.panelPaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: AppRadii.panel, style: .continuous)
@@ -90,7 +91,8 @@ struct AppPanelEmptyCard: View {
 
     var body: some View {
         AppTablePlaceholder(text: text, minHeight: 0)
-            .padding(10)
+            .padding(.horizontal, AppTheme.statusChrome.emptyCardPaddingHorizontal)
+            .padding(.vertical, AppTheme.statusChrome.emptyCardPaddingVertical)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: AppRadii.control, style: .continuous)
@@ -125,7 +127,7 @@ struct AppRefreshStatusRow: View {
 
     var body: some View {
         Button(action: onRefresh) {
-            HStack(spacing: 5) {
+            HStack(spacing: AppTheme.statusChrome.refreshSpacing) {
                 Text(updatedAtLabel)
                 if isRefreshing {
                     ProgressView()
@@ -175,7 +177,11 @@ struct AppSuccessBanner: View {
     }
 
     var body: some View {
-        HStack(spacing: compact ? 6 : 8) {
+        HStack(
+            spacing: compact
+                ? AppTheme.statusChrome.successCompactSpacing
+                : AppTheme.statusChrome.successRegularSpacing
+        ) {
             Image(systemName: "checkmark.circle.fill")
                 .font(iconFont)
             Text(text)
@@ -183,8 +189,14 @@ struct AppSuccessBanner: View {
         }
         .font(textFont)
         .foregroundStyle(contentForeground)
-        .padding(.horizontal, compact ? 8 : 12)
-        .padding(.vertical, compact ? 5 : 9)
+        .padding(
+            .horizontal,
+            compact ? AppTheme.statusChrome.successCompactHorizontal : AppTheme.statusChrome.successRegularHorizontal
+        )
+        .padding(
+            .vertical,
+            compact ? AppTheme.statusChrome.successCompactVertical : AppTheme.statusChrome.successRegularVertical
+        )
         .background(
             Capsule()
                 .fill(foreground.opacity(backgroundOpacity))

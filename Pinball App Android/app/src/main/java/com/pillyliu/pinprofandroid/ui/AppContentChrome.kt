@@ -50,10 +50,11 @@ fun AppInlineTaskStatus(
     showsProgress: Boolean = false,
     isError: Boolean = false,
 ) {
+    val statusChrome = PinballThemeTokens.statusChrome
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(statusChrome.inlineSpacing),
     ) {
         if (showsProgress) {
             CircularProgressIndicator(
@@ -77,8 +78,7 @@ fun AppSuccessBanner(
     prominent: Boolean = false,
 ) {
     val colors = PinballThemeTokens.colors
-    val paddingHorizontal = if (compact) 8.dp else 12.dp
-    val paddingVertical = if (compact) 5.dp else 9.dp
+    val statusChrome = PinballThemeTokens.statusChrome
     val iconSize = if (compact) 14.dp else 18.dp
     val contentColor = if (prominent) Color.White.copy(alpha = 0.98f) else colors.statsHigh
     val backgroundAlpha = when {
@@ -109,9 +109,14 @@ fun AppSuccessBanner(
                 colors.statsHigh.copy(alpha = borderAlpha),
                 RoundedCornerShape(999.dp),
             )
-            .padding(horizontal = paddingHorizontal, vertical = paddingVertical),
+            .padding(
+                horizontal = if (compact) statusChrome.successCompactHorizontal else statusChrome.successRegularHorizontal,
+                vertical = if (compact) statusChrome.successCompactVertical else statusChrome.successRegularVertical,
+            ),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(
+            if (compact) statusChrome.successCompactSpacing else statusChrome.successRegularSpacing,
+        ),
     ) {
         Icon(
             imageVector = Icons.Filled.CheckCircle,
@@ -137,6 +142,7 @@ fun AppPanelStatusCard(
 ) {
     val colors = PinballThemeTokens.colors
     val shapes = PinballThemeTokens.shapes
+    val statusChrome = PinballThemeTokens.statusChrome
     CardContainer(modifier = modifier) {
         Row(
             modifier = Modifier
@@ -150,14 +156,17 @@ fun AppPanelStatusCard(
                     color = colors.border.copy(alpha = 0.18f),
                     shape = RoundedCornerShape(shapes.panelCorner),
                 )
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(
+                    horizontal = statusChrome.panelPaddingHorizontal,
+                    vertical = statusChrome.panelPaddingVertical,
+                ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(statusChrome.panelSpacing),
         ) {
             Box(
                 modifier = Modifier
-                    .width(5.dp)
-                    .height(36.dp)
+                    .width(statusChrome.panelAccentWidth)
+                    .height(statusChrome.panelAccentHeight)
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
@@ -185,12 +194,16 @@ fun AppPanelEmptyCard(
 ) {
     val colors = PinballThemeTokens.colors
     val shapes = PinballThemeTokens.shapes
+    val statusChrome = PinballThemeTokens.statusChrome
     Box(
         modifier = modifier
             .fillMaxWidth()
             .background(colors.controlBackground, RoundedCornerShape(shapes.controlCorner))
             .border(1.dp, colors.brandChalk.copy(alpha = 0.42f), RoundedCornerShape(shapes.controlCorner))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(
+                horizontal = statusChrome.emptyCardPaddingHorizontal,
+                vertical = statusChrome.emptyCardPaddingVertical,
+            ),
     ) {
         EmptyLabel(text)
     }
@@ -206,6 +219,7 @@ fun AppRefreshStatusRow(
     modifier: Modifier = Modifier,
 ) {
     val colors = PinballThemeTokens.colors
+    val statusChrome = PinballThemeTokens.statusChrome
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -216,7 +230,7 @@ fun AppRefreshStatusRow(
             fontSize = 11.sp,
         )
         if (isRefreshing) {
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(statusChrome.refreshSpacing + 1.dp))
             CircularProgressIndicator(
                 modifier = Modifier.size(10.dp),
                 strokeWidth = 1.5.dp,

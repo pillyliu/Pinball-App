@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AppBackground: View {
     var body: some View {
+        let atmosphere = AppTheme.atmosphere
         ZStack {
             LinearGradient(
                 colors: [AppTheme.atmosphereTop, AppTheme.bg, AppTheme.atmosphereBottom],
@@ -9,13 +10,13 @@ struct AppBackground: View {
                 endPoint: .bottomTrailing
             )
             RadialGradient(
-                colors: [AppTheme.atmosphereGlow.opacity(0.18), .clear],
+                colors: [AppTheme.atmosphereGlow.opacity(atmosphere.primaryGlowOpacity), .clear],
                 center: .topLeading,
                 startRadius: 18,
                 endRadius: 360
             )
             RadialGradient(
-                colors: [AppTheme.brandChalk.opacity(0.10), .clear],
+                colors: [AppTheme.brandChalk.opacity(atmosphere.secondaryGlowOpacity), .clear],
                 center: .bottomTrailing,
                 startRadius: 12,
                 endRadius: 320

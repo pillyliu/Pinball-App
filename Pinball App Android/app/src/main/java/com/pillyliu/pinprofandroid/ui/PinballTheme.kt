@@ -92,6 +92,8 @@ fun PinballTheme(
             LocalPinballShapeTokens provides DefaultPinballShapeTokens,
             LocalPinballSpacingTokens provides DefaultPinballSpacingTokens,
             LocalPinballTypographyTokens provides DefaultPinballTypographyTokens,
+            LocalPinballStatusChromeTokens provides DefaultPinballStatusChromeTokens,
+            LocalPinballAtmosphereTokens provides DefaultPinballAtmosphereTokens,
         ) {
             content()
         }
@@ -106,6 +108,7 @@ private fun semanticColors(darkTheme: Boolean): PinballSemanticColors {
             border = Color(0xFF8D919A),
             brandInk = Color(0xFFE1EEFF),
             brandGold = Color(0xFFFFD15C),
+            brandOnGold = Color(0xFF291B05),
             brandChalk = Color(0xFF93BEB0),
             atmosphereTop = Color(0xFF0D1016),
             atmosphereBottom = Color(0xFF161C25),
@@ -136,6 +139,7 @@ private fun semanticColors(darkTheme: Boolean): PinballSemanticColors {
             border = Color(0xFF737780),
             brandInk = Color(0xFF102033),
             brandGold = Color(0xFFD8A919),
+            brandOnGold = Color(0xFF221904),
             brandChalk = Color(0xFF4F7668),
             atmosphereTop = Color(0xFFF4F7FF),
             atmosphereBottom = Color(0xFFE9EEF8),
