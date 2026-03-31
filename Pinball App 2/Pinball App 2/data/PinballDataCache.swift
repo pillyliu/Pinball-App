@@ -412,90 +412,41 @@ actor PinballDataCache {
         guard !isLoaded else { return }
 
         let root = cacheRootURL()
-        try fileManager.createDirectory(at: root, withIntermediateDirectories: true, attributes: nil)
-        try purgeLegacyCachedPinballAssetsIfNeeded(root: root)
+        try PinballDataCacheBootstrapSupport.ensureCacheRootExists(root, fileManager: fileManager)
+        let didReset = try PinballDataCacheBootstrapSupport.purgeLegacyCachedPinballAssetsIfNeeded(
+            root: root,
+            markerName: legacyCacheResetMarkerName,
+            fileManager: fileManager
+        )
+        if didReset {
+            cacheGeneration &+= 1
+            index = PinballCacheIndex()
+            manifest = nil
+            inFlightRevalidations.removeAll()
+            inFlightRemoteImageRevalidations.removeAll()
+        }
 
-        if let saved = loadPinballCacheIndex(from: root, decoder: decoder) {
+        if let saved = PinballDataCacheBootstrapSupport.loadSavedIndex(from: root, decoder: decoder) {
             index = saved
         }
 
-        try seedBundledPreloadIntoCacheIfNeeded()
+        let didSeed = try PinballDataCacheBootstrapSupport.seedBundledPreloadIfNeeded(
+            index: &index,
+            now: Date().timeIntervalSince1970,
+            fileManager: fileManager,
+            writeData: { [self] data, path in
+                try write(data: data, for: path)
+            }
+        )
+        if didSeed {
+            try persistIndex()
+        }
 
         isLoaded = true
 
         Task.detached(priority: .utility) {
             await PinballDataCache.shared.refreshMetadataBestEffort(force: true)
         }
-    }
-
-    private func seedBundledPreloadIntoCacheIfNeeded() throws {
-        guard let preloadManifest = bundledPinballPreloadManifest() else { return }
-
-        let now = Date().timeIntervalSince1970
-        var didChangeIndex = false
-
-        for rawPath in preloadManifest.paths {
-            let normalizedPath = normalize(rawPath)
-            if index.resources[normalizedPath]?.missing == true {
-                index.resources[normalizedPath] = PinballCacheIndex.Resource(
-                    path: normalizedPath,
-                    hash: index.resources[normalizedPath]?.hash,
-                    lastValidatedAt: now,
-                    missing: false
-                )
-                didChangeIndex = true
-            }
-
-            let targetURL = fileURL(for: normalizedPath)
-            if fileManager.fileExists(atPath: targetURL.path) {
-                continue
-            }
-
-            guard let sourceURL = bundledPinballPreloadFileURL(path: normalizedPath) else {
-                throw NSError(
-                    domain: "PinballPreload",
-                    code: 1,
-                    userInfo: [NSLocalizedDescriptionKey: "Missing bundled preload file for \(normalizedPath)"]
-                )
-            }
-
-            let data = try Data(contentsOf: sourceURL)
-            try write(data: data, for: normalizedPath)
-            index.resources[normalizedPath] = PinballCacheIndex.Resource(
-                path: normalizedPath,
-                hash: index.resources[normalizedPath]?.hash,
-                lastValidatedAt: now,
-                missing: false
-            )
-            didChangeIndex = true
-        }
-
-        if didChangeIndex {
-            try persistIndex()
-        }
-    }
-
-    private func purgeLegacyCachedPinballAssetsIfNeeded(root: URL) throws {
-        let markerURL = root.appendingPathComponent(legacyCacheResetMarkerName)
-        guard !fileManager.fileExists(atPath: markerURL.path) else { return }
-
-        let resourcesURL = root.appendingPathComponent("resources", isDirectory: true)
-        let indexURL = root.appendingPathComponent("cache-index.json")
-
-        if fileManager.fileExists(atPath: resourcesURL.path) {
-            try? fileManager.removeItem(at: resourcesURL)
-        }
-        if fileManager.fileExists(atPath: indexURL.path) {
-            try? fileManager.removeItem(at: indexURL)
-        }
-
-        cacheGeneration &+= 1
-        index = PinballCacheIndex()
-        manifest = nil
-        inFlightRevalidations.removeAll()
-        inFlightRemoteImageRevalidations.removeAll()
-
-        try Data("ok".utf8).write(to: markerURL, options: .atomic)
     }
 
     private func refreshMetadataBestEffort(force: Bool) async {

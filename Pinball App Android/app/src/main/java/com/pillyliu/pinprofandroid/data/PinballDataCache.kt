@@ -298,48 +298,23 @@ object PinballDataCache {
         mutex.withLock {
             if (loaded) return
             val context = appContext ?: error("PinballDataCache.initialize(context) was not called")
-            val dir = pinballCacheRoot(context)
-            if (!dir.exists()) dir.mkdirs()
-            purgeLegacyCachedPinballAssetsIfNeeded(context)
+            ensurePinballCacheRootExists(context)
+            if (purgeLegacyPinballCacheIfNeeded(context)) {
+                manifestFiles.clear()
+                lastMetaFetchAt = 0L
+                lastUpdateScanAt = null
+            }
             readIndexState()
-            seedBundledPreloadIntoCacheIfNeeded(context)
+            seedBundledPinballPreloadIfNeeded(
+                context = context,
+                resourceExists = { path -> resourceFile(path).exists() },
+                readBundledBytes = { path -> pinballCacheReadBundledPreloadBytes(context, path) },
+                writeCached = { path, bytes -> writeCached(path, bytes) },
+                upsertIndex = { path -> upsertIndex(path = path, hash = manifestFiles[path], missing = false) },
+            )
             loaded = true
             requestMetadataRefresh(force = true)
         }
-    }
-
-    private fun seedBundledPreloadIntoCacheIfNeeded(context: Context) {
-        val paths = pinballCacheReadBundledPreloadPaths(context)
-        paths.forEach { rawPath ->
-            val normalizedPath = normalizePath(rawPath)
-            if (resourceFile(normalizedPath).exists()) {
-                upsertIndex(path = normalizedPath, hash = manifestFiles[normalizedPath], missing = false)
-                return@forEach
-            }
-
-            val bundledBytes = pinballCacheReadBundledPreloadBytes(context, normalizedPath)
-                ?: throw IllegalStateException("Missing bundled preload asset for $normalizedPath")
-            writeCached(normalizedPath, bundledBytes)
-            upsertIndex(path = normalizedPath, hash = manifestFiles[normalizedPath], missing = false)
-        }
-    }
-
-    private fun purgeLegacyCachedPinballAssetsIfNeeded(context: Context) {
-        val root = pinballCacheRoot(context)
-        if (!root.exists()) root.mkdirs()
-        val marker = java.io.File(root, PINBALL_LEGACY_CACHE_RESET_MARKER)
-        if (marker.exists()) return
-
-        runCatching {
-            pinballCacheResourcesDir(context).takeIf { it.exists() }?.deleteRecursively()
-            pinballCacheIndexFile(context).takeIf { it.exists() }?.delete()
-        }
-
-        manifestFiles.clear()
-        lastMetaFetchAt = 0L
-        lastUpdateScanAt = null
-
-        runCatching { marker.writeText("ok") }
     }
 
     private fun httpText(url: String): String {

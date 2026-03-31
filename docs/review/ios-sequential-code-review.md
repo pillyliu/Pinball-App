@@ -10961,6 +10961,56 @@ Stale-source sweep notes:
 Verification:
 - `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
 - `./gradlew :app:compileDebugKotlin`
+
+## Late-stage paired polish plan
+
+Tracking rule for the remaining work:
+- prefer paired iOS/Android passes whenever the seam exists on both platforms
+- keep the scope as close to 1:1 as practical, but preserve platform-specific idioms when the UI or runtime model is genuinely different
+- treat QA, automation, and performance review as first-class cleanup work, not just code splitting
+
+Remaining paired passes worth doing:
+
+1. Shared UI and theme consistency pass
+- iOS:
+  - `Pinball App 2/Pinball App 2/ui/AppTheme.swift`
+- Android:
+  - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppContentChrome.kt`
+  - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/ui/AppScreenSurface.kt`
+- Goal:
+  - tighten spacing, section chrome, surface hierarchy, and shared copy/empty-state consistency
+
+2. Cache and hosted-asset validation pass
+- iOS:
+  - `Pinball App 2/Pinball App 2/data/PinballDataCache.swift`
+  - `Pinball App 2/Pinball App 2/data/PinballDataCacheMetadataSupport.swift`
+  - `Pinball App 2/Pinball App 2/data/PinballDataCacheBootstrapSupport.swift`
+- Android:
+  - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCache.kt`
+  - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCacheMetadataSupport.kt`
+  - `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCacheBootstrapSupport.kt`
+- Goal:
+  - verify preload seeding, hosted image fetches, rulesheet loads, refresh behavior, and stale-data fallback behavior
+
+3. Paired smoke and UI automation pass
+- iOS:
+  - League previews -> Stats / Standings / Targets
+  - Library filters / game detail / rulesheet
+  - Practice quick entry / scanner entry point
+  - GameRoom settings / import / edit / archive
+  - Settings home / import screens
+- Android:
+  - same feature path coverage as iOS
+- Goal:
+  - turn the manual late-stage regression checklist into repeatable simulator/emulator coverage where practical
+
+4. Perf-focused follow-up only if QA reveals a real issue
+- iOS:
+  - runtime fetch / revalidate path in `PinballDataCache.swift`
+- Android:
+  - runtime fetch / revalidate path in `PinballDataCache.kt`
+- Goal:
+  - only do more cache/runtime refactoring if an actual hot path, redundant work pattern, or flaky refresh behavior shows up in testing
 - result: both passed
 
 ## Pass 378: Practice journal-linking support split
@@ -11016,6 +11066,33 @@ Behavioral outcome:
 Verification:
 - `./gradlew :app:compileDebugKotlin`
 - `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+
+## Pass 380: Pinball data-cache bootstrap support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/data/PinballDataCache.swift`
+- `Pinball App 2/Pinball App 2/data/PinballDataCacheBootstrapSupport.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCache.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCacheBootstrapSupport.kt`
+
+Changes made in this pass:
+- moved cache bootstrap/preload responsibilities out of the main data-cache coordinators on both platforms:
+  - cache-root creation
+  - legacy cache purge marker handling
+  - bundled preload seeding
+  - saved-index bootstrap loading on iOS
+- left the main cache files focused more tightly on the public cache API, fetch/revalidate coordination, and metadata refresh
+
+Hidden seam surfaced and reduced:
+1. the data-cache files were still mixing startup/bootstrap responsibilities with the actual runtime cache API and network revalidation flow
+2. the new bootstrap support files isolate the one-time load/reset/preload policy so future cache work can touch startup behavior without reopening the runtime fetch path
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
 
 ## Pass 377: Pinball data-cache metadata support split
 
