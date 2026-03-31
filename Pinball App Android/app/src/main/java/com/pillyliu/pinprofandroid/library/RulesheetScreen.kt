@@ -33,6 +33,7 @@ internal fun RulesheetScreen(
     val prefs = remember { context.getSharedPreferences("rulesheet-progress-v1", android.content.Context.MODE_PRIVATE) }
     var status by rememberSaveable(gameId) { mutableStateOf("loading") }
     var content by rememberSaveable(gameId) { mutableStateOf<RulesheetRenderContent?>(null) }
+    var webFallbackUrl by rememberSaveable(gameId) { mutableStateOf<String?>(null) }
     var chromeVisible by rememberSaveable(gameId) { mutableStateOf(false) }
     var progressRatio by rememberSaveable(gameId) { mutableFloatStateOf(0f) }
     var savedRatio by rememberSaveable(gameId) { mutableFloatStateOf(0f) }
@@ -49,13 +50,14 @@ internal fun RulesheetScreen(
 
     androidx.compose.runtime.LaunchedEffect(gameId, externalSource?.url) {
         if (status == "loaded" || status == "missing") return@LaunchedEffect
-        val (loadedStatus, loadedContent) = loadRulesheetRenderContent(
+        val result = loadRulesheetRenderContent(
             gameId = gameId,
             pathCandidates = pathCandidates,
             externalSource = externalSource,
         )
-        content = loadedContent
-        status = loadedStatus
+        content = result.content
+        webFallbackUrl = result.webFallbackUrl
+        status = result.status
     }
 
     AppRouteScreen(
@@ -71,25 +73,31 @@ internal fun RulesheetScreen(
                 "loading" -> AppFullscreenStatusOverlay(text = "Loading rulesheet…", showsProgress = true)
                 "missing" -> AppFullscreenStatusOverlay(text = "Rulesheet not available.")
                 "error" -> AppFullscreenStatusOverlay(text = "Could not load rulesheet.")
-                else -> content?.let {
-                    RulesheetContentWebView(
-                        content = it,
-                        modifier = Modifier.fillMaxSize(),
-                        stateKey = "rulesheet-$gameId-${externalSource?.url.orEmpty()}",
-                        resumeRequestId = resumeRequestId,
-                        resumeTargetRatio = resumeTargetRatio,
-                        onTap = { chromeVisible = !chromeVisible },
-                        onProgressChange = { progressRatio = it },
-                    )
+                else -> {
+                    when {
+                        webFallbackUrl != null -> ExternalRulesheetWebView(
+                            url = webFallbackUrl!!,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        content != null -> RulesheetContentWebView(
+                            content = content!!,
+                            modifier = Modifier.fillMaxSize(),
+                            stateKey = "rulesheet-$gameId-${externalSource?.url.orEmpty()}",
+                            resumeRequestId = resumeRequestId,
+                            resumeTargetRatio = resumeTargetRatio,
+                            onTap = { chromeVisible = !chromeVisible },
+                            onProgressChange = { progressRatio = it },
+                        )
+                    }
                 }
             }
-            if (status == "loaded" && !evaluatedResumePrompt) {
+            if (status == "loaded" && content != null && !evaluatedResumePrompt) {
                 evaluatedResumePrompt = true
                 if (savedRatio > 0.001f) {
                     showResumePrompt = true
                 }
             }
-            if (status == "loaded") {
+            if (status == "loaded" && content != null) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd),

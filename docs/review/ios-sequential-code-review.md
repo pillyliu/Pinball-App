@@ -11222,6 +11222,91 @@ Verification:
 - `./gradlew :app:compileDebugKotlin`
 - result: both passed
 
+## Pass 118: Hosted library cache stale-first revalidation parity
+
+Primary files:
+- `Pinball App 2/Pinball App 2/data/PinballDataCache.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCache.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryHostedData.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryScreenStateSupport.kt`
+
+Changes made in this pass:
+- changed both cache coordinators so hosted text payloads and allow-missing markers return stale cached results immediately, then trigger background revalidation instead of blocking first paint
+- kept first-load blocking only for the true no-cache case
+- moved Android library extraction work fully onto `Dispatchers.IO`
+- parallelized Android hosted Library sidecar loads so first render no longer serially waits through every hosted payload
+
+Hidden seams surfaced and fixed:
+1. the cache-runtime split left both platforms still treating stale hosted text as a synchronous fetch boundary, which was acceptable for explicit refreshes but wrong for Library and Practice hydration
+2. Android Library compounded that by loading hosted sidecars serially on the route path, so stale or slow network checks could trap the tab on `Loading library…` despite valid cached payloads already being on disk
+
+Behavioral outcome:
+- Library and Practice now paint from stale hosted cache immediately when data exists
+- Android Library no longer hangs on `Loading library…` when the hosted sidecars are already cached but revalidation is slow
+- stale revalidation still happens in the background so the cache can refresh without blocking first paint
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- Android emulator QA: Library now renders catalog content instead of staying on the loading screen
+
+## Pass 119: Android remote rulesheet fallback hardening
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetExternalWebSupport.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetScreen.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/RulesheetScreenSupport.kt`
+
+Changes made in this pass:
+- introduced `RulesheetLoadResult` so the Android rulesheet route can distinguish between embedded HTML content and an external-web fallback URL
+- added timeout-bounded remote embedded rulesheet loading on a separate thread boundary instead of waiting indefinitely on blocking `HttpURLConnection` work
+- degraded Android remote rulesheet failures into `ExternalRulesheetWebView` instead of leaving the screen on a permanent loading spinner
+- limited progress and resume UI to the embedded-render path only
+
+Hidden seams surfaced and fixed:
+1. Android remote rulesheet loading had no failure escape hatch while iOS already degraded to an external web fallback, so the two platforms had drifted on a real user-facing failure mode
+2. coroutine timeouts were not enough because the blocking remote rulesheet loader did not reliably cooperate with cancellation, so the timeout had to be enforced outside the loader thread itself
+
+Behavioral outcome:
+- Android Library remote rulesheets now open a usable external web fallback when embedded loading stalls or fails
+- the viewer no longer stays stuck on `Loading rulesheet…` indefinitely for remote rulesheet sources
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+- Android emulator QA: opening the `TF` rulesheet now reaches a `WebView` route instead of staying on the loading spinner
+
+## Pass 118: Hosted library cache stale-first revalidation parity
+
+Primary files:
+- `Pinball App 2/Pinball App 2/data/PinballDataCache.swift`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCache.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryDataLoader.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryHostedData.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/library/LibraryScreenStateSupport.kt`
+
+Changes made in this pass:
+- changed both cache coordinators so stale hosted text returns immediately when cached data exists, while background revalidation is scheduled instead of blocking first paint
+- changed allow-missing cache markers on both platforms to follow the same stale-first rule: return the current missing result immediately and refresh in the background when the record is old
+- moved Android Library extraction work onto the IO dispatcher and loaded hosted Library sidecar payloads in parallel so the screen no longer owns a long serial hydration chain
+- kept one Android screen-level performance trace around the full Library load path and removed the temporary per-asset investigation traces once the root cause was confirmed
+
+Hidden seams surfaced and fixed:
+1. the paired cache runtime cleanup had left both platforms with a stricter freshness policy than the app actually wants for first-paint Library and Practice hydration
+2. Android surfaced the bug more obviously because stale hosted Library payloads forced a network path before the Library screen could render anything, leaving the tab stuck on `Loading library...`
+3. the root issue was not corrupt hosted payload data; the cached OPDB export and sidecar assets were present and valid, but the stale-first behavior contract was missing from the runtime coordinators
+
+Behavioral outcome:
+- Library now renders immediately from cached hosted payloads on both platforms even when those payloads are older than the freshness window
+- background refresh still happens, but stale cache age no longer blocks the first visible Library state
+- no intended front-facing cache policy changed for true cache misses; those still fetch live data
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+- `./gradlew :app:compileDebugKotlin`
+- Android emulator QA: Library tab now opens into real content instead of staying on `Loading library...`
+- iOS simulator QA: Library tab still opens into real content after the paired cache behavior change
+
 ## Pass 363: iOS Settings home section split
 
 Primary files:

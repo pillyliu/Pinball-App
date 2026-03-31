@@ -54,6 +54,11 @@ Key files:
 - `PinballDataCacheStorageSupport.swift`: cache storage models and path helpers
 - `SharedCSV.swift`: shared CSV parsing and formatting support
 
+Behavior notes:
+- hosted text and allow-missing markers should return stale cached results immediately when present, then schedule background revalidation instead of blocking first paint
+- first-paint callers such as Library and Practice should only block on network fetch when no cached payload exists at all
+- remote embedded rulesheet loads should degrade to the external web fallback on failure instead of leaving the viewer in a permanent loading state
+
 ## Library
 
 Folder:
@@ -77,6 +82,10 @@ Key coordinator files:
 - `LibraryCatalogResolution.swift`
 - `LibraryResourceResolution.swift`
 - `LibraryImportedSourcesStore.swift`
+
+Behavior notes:
+- hosted Library payload loads should prefer stale cached text on first paint and revalidate in the background
+- remote rulesheet viewers should fall back to the external web renderer when embedded loading fails
 
 ## Practice
 

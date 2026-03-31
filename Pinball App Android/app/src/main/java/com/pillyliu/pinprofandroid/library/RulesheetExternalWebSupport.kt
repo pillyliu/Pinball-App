@@ -49,7 +49,7 @@ internal fun ExternalRulesheetWebScreen(
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun ExternalRulesheetWebView(url: String, modifier: Modifier = Modifier) {
+internal fun ExternalRulesheetWebView(url: String, modifier: Modifier = Modifier) {
     var loadedUrl by remember(url) { mutableStateOf<String?>(null) }
     AndroidView(
         modifier = modifier,

@@ -25,19 +25,38 @@ import com.pillyliu.pinprofandroid.ui.AppScreenHeader
 import com.pillyliu.pinprofandroid.ui.AppTextAction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.Locale
 import kotlin.math.roundToInt
+
+internal data class RulesheetLoadResult(
+    val status: String,
+    val content: RulesheetRenderContent?,
+    val webFallbackUrl: String? = null,
+)
 
 internal suspend fun loadRulesheetRenderContent(
     gameId: String,
     pathCandidates: List<String>?,
     externalSource: RulesheetRemoteSource?,
-): Pair<String, RulesheetRenderContent?> {
+): RulesheetLoadResult {
     externalSource?.let { source ->
-        return runCatching { withContext(Dispatchers.IO) { RemoteRulesheetLoader.load(source) } }
+        return runCatching {
+            withContext(Dispatchers.IO) {
+                loadRemoteRulesheetWithTimeout(source)
+            }
+        }
             .fold(
-                onSuccess = { "loaded" to it },
-                onFailure = { "error" to null },
+                onSuccess = { RulesheetLoadResult(status = "loaded", content = it) },
+                onFailure = {
+                    val fallbackUrl = source.url.takeIf { candidate -> candidate.isNotBlank() }
+                    if (fallbackUrl != null) {
+                        RulesheetLoadResult(status = "loaded", content = null, webFallbackUrl = fallbackUrl)
+                    } else {
+                        RulesheetLoadResult(status = "error", content = null)
+                    }
+                },
             )
     }
 
@@ -52,14 +71,34 @@ internal suspend fun loadRulesheetRenderContent(
         }
         val text = cached.text
         if (!text.isNullOrBlank()) {
-            return "loaded" to RulesheetRenderContent(
-                kind = RulesheetRenderKind.MARKDOWN,
-                body = normalizeRulesheet(text) + RULESHEET_BOTTOM_MARKDOWN_FILLER,
-                baseUrl = "https://pillyliu.com",
+            return RulesheetLoadResult(
+                status = "loaded",
+                content = RulesheetRenderContent(
+                    kind = RulesheetRenderKind.MARKDOWN,
+                    body = normalizeRulesheet(text) + RULESHEET_BOTTOM_MARKDOWN_FILLER,
+                    baseUrl = "https://pillyliu.com",
+                ),
             )
         }
     }
-    return (if (sawMissing) "missing" else "error") to null
+    return RulesheetLoadResult(
+        status = if (sawMissing) "missing" else "error",
+        content = null,
+    )
+}
+
+private fun loadRemoteRulesheetWithTimeout(
+    source: RulesheetRemoteSource,
+    timeoutMs: Long = 8_000,
+): RulesheetRenderContent {
+    val executor = Executors.newSingleThreadExecutor()
+    val future = executor.submit<RulesheetRenderContent> { RemoteRulesheetLoader.load(source) }
+    return try {
+        future.get(timeoutMs, TimeUnit.MILLISECONDS)
+    } finally {
+        future.cancel(true)
+        executor.shutdownNow()
+    }
 }
 
 @Composable

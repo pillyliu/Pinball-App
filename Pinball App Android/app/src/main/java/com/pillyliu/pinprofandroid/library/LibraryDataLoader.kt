@@ -1,6 +1,8 @@
 package com.pillyliu.pinprofandroid.library
 
 import android.content.Context
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal suspend fun loadLibraryExtraction(context: Context): LibraryExtraction {
     return loadLibraryExtraction(context, filterBySourceState = true)
@@ -13,8 +15,8 @@ internal suspend fun loadFullLibraryExtraction(context: Context): LibraryExtract
 private suspend fun loadLibraryExtraction(
     context: Context,
     filterBySourceState: Boolean,
-): LibraryExtraction {
-    return runCatching {
+): LibraryExtraction = withContext(Dispatchers.IO) {
+    runCatching {
         loadHostedLibraryExtraction(context, filterBySourceState)
     }.getOrElse {
         LibraryExtraction(

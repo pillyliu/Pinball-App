@@ -128,13 +128,18 @@ actor PinballDataCache {
 
         if let resource = index.resources[normalizedPath],
            resource.missing,
-           Date().timeIntervalSince1970 - resource.lastValidatedAt < maxCacheAge {
+           allowMissing {
+            if Date().timeIntervalSince1970 - resource.lastValidatedAt >= maxCacheAge {
+                scheduleRevalidateIfNeeded(path: normalizedPath, allowMissing: true)
+            }
             return CachedTextResult(text: nil, isMissing: true, updatedAt: nil)
         }
 
-        if let cached = try cachedText(for: normalizedPath),
-           let updatedAt = cached.updatedAt,
-           Date().timeIntervalSince(updatedAt) < maxCacheAge {
+        if let cached = try cachedText(for: normalizedPath) {
+            let isFresh = cached.updatedAt.map { Date().timeIntervalSince($0) < maxCacheAge } ?? false
+            if !isFresh {
+                scheduleRevalidateIfNeeded(path: normalizedPath, allowMissing: allowMissing)
+            }
             return cached
         }
 

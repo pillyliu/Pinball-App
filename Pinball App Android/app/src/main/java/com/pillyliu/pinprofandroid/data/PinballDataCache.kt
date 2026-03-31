@@ -141,13 +141,25 @@ object PinballDataCache {
         val path = normalizePath(url)
         ensureLoaded()
 
+        val isMarkedMissing = isMarkedMissingInIndex(path)
+        if (isMarkedMissing && allowMissing) {
+            if (!isMissingAndFresh(path, maxCacheAgeMs)) {
+                scheduleRuntimeRevalidate(path, allowMissing = true)
+            }
+            return@withContext CachedTextResult(text = null, isMissing = true, updatedAtMs = null)
+        }
+
         if (isMissingAndFresh(path, maxCacheAgeMs)) {
             return@withContext CachedTextResult(text = null, isMissing = true, updatedAtMs = null)
         }
 
         val cached = readCached(path)
         val updatedAtMs = cachedUpdatedAtMs(path)
-        if (cached != null && updatedAtMs != null && System.currentTimeMillis() - updatedAtMs < maxCacheAgeMs) {
+        if (cached != null) {
+            val isFresh = updatedAtMs != null && System.currentTimeMillis() - updatedAtMs < maxCacheAgeMs
+            if (!isFresh) {
+                scheduleRuntimeRevalidate(path, allowMissing)
+            }
             return@withContext CachedTextResult(
                 text = cached.decodeToString(),
                 isMissing = false,

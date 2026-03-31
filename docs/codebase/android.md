@@ -42,6 +42,11 @@ Key files:
 - `Csv.kt`: shared CSV support
 - `Net.kt`: shared network utilities
 
+Behavior notes:
+- hosted text and allow-missing markers should return stale cached results immediately when present, then schedule background revalidation instead of blocking first paint
+- first-paint callers such as Library and Practice should only block on network fetch when no cached payload exists at all
+- remote embedded rulesheet loads should degrade to the external web fallback on failure instead of leaving the viewer in a permanent loading state
+
 ## Library
 
 Folder:
@@ -60,6 +65,10 @@ Key coordinator files:
 - `LibraryCatalogResolution.kt`
 - `LibraryResourceResolution.kt`
 - `LibraryImportedSourcesStore.kt`
+
+Behavior notes:
+- hosted Library payload loads should prefer stale cached text on first paint and revalidate in the background
+- remote rulesheet viewers should fall back to the external web renderer when embedded loading fails
 
 ## Practice
 

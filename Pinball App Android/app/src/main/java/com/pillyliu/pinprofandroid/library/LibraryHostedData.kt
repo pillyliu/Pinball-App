@@ -3,6 +3,8 @@ package com.pillyliu.pinprofandroid.library
 import android.content.Context
 import com.pillyliu.pinprofandroid.PinballPerformanceTrace
 import com.pillyliu.pinprofandroid.data.PinballDataCache
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 internal const val HOSTED_LIBRARY_REFRESH_INTERVAL_MS = 24L * 60L * 60L * 1000L
 internal const val hostedOPDBExportPath = "/pinball/data/opdb_export.json"
@@ -56,25 +58,37 @@ internal val HOSTED_PINBALL_REFRESH_TARGETS = listOf(
 internal suspend fun loadHostedLibraryExtraction(
     context: Context,
     filterBySourceState: Boolean = true,
-): LibraryExtraction {
+): LibraryExtraction = coroutineScope {
     val opdbExportText = loadHostedOrCachedPinballText(hostedOPDBExportPath, allowMissing = false)
         ?: error("Missing OPDB export")
-    val practiceIdentityCurationsText = loadHostedOrCachedPinballText(hostedPracticeIdentityCurationsPath, allowMissing = true)
-    val rulesheetAssetsText = loadHostedOrCachedPinballText(hostedRulesheetAssetsPath, allowMissing = true)
-    val videoAssetsText = loadHostedOrCachedPinballText(hostedVideoAssetsPath, allowMissing = true)
-    val playfieldAssetsText = loadHostedOrCachedPinballText(hostedPlayfieldAssetsPath, allowMissing = true)
-    val gameinfoAssetsText = loadHostedOrCachedPinballText(hostedGameinfoAssetsPath, allowMissing = true)
-    val venueLayoutAssetsText = loadHostedOrCachedPinballText(hostedVenueLayoutAssetsPath, allowMissing = true)
+    val practiceIdentityCurationsText = async {
+        loadHostedOrCachedPinballText(hostedPracticeIdentityCurationsPath, allowMissing = true)
+    }
+    val rulesheetAssetsText = async {
+        loadHostedOrCachedPinballText(hostedRulesheetAssetsPath, allowMissing = true)
+    }
+    val videoAssetsText = async {
+        loadHostedOrCachedPinballText(hostedVideoAssetsPath, allowMissing = true)
+    }
+    val playfieldAssetsText = async {
+        loadHostedOrCachedPinballText(hostedPlayfieldAssetsPath, allowMissing = true)
+    }
+    val gameinfoAssetsText = async {
+        loadHostedOrCachedPinballText(hostedGameinfoAssetsPath, allowMissing = true)
+    }
+    val venueLayoutAssetsText = async {
+        loadHostedOrCachedPinballText(hostedVenueLayoutAssetsPath, allowMissing = true)
+    }
 
-    return buildCAFLibraryExtraction(
+    buildCAFLibraryExtraction(
         context = context,
         opdbExportRaw = opdbExportText,
-        practiceIdentityCurationsRaw = practiceIdentityCurationsText,
-        rulesheetAssetsRaw = rulesheetAssetsText,
-        videoAssetsRaw = videoAssetsText,
-        playfieldAssetsRaw = playfieldAssetsText,
-        gameinfoAssetsRaw = gameinfoAssetsText,
-        venueLayoutAssetsRaw = venueLayoutAssetsText,
+        practiceIdentityCurationsRaw = practiceIdentityCurationsText.await(),
+        rulesheetAssetsRaw = rulesheetAssetsText.await(),
+        videoAssetsRaw = videoAssetsText.await(),
+        playfieldAssetsRaw = playfieldAssetsText.await(),
+        gameinfoAssetsRaw = gameinfoAssetsText.await(),
+        venueLayoutAssetsRaw = venueLayoutAssetsText.await(),
         filterBySourceState = filterBySourceState,
     )
 }

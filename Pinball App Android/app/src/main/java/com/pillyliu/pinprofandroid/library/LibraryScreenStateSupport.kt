@@ -1,6 +1,7 @@
 package com.pillyliu.pinprofandroid.library
 
 import android.content.Context
+import com.pillyliu.pinprofandroid.PinballPerformanceTrace
 
 internal data class LibraryScreenLoadedState(
     val games: List<PinballGame>,
@@ -19,19 +20,21 @@ internal suspend fun loadLibraryScreenState(
     context: Context,
     currentSelectedSourceId: String,
 ): LibraryScreenLoadedState {
-    val extraction = loadLibraryExtraction(context)
-    val payload = extraction.payload
-    val sourceState = extraction.state
-    return LibraryScreenLoadedState(
-        games = payload.games,
-        sources = payload.sources,
-        sourceState = sourceState,
-        selection = resolveLibrarySelection(
-            payload = payload,
+    return PinballPerformanceTrace.measureSuspend("LibraryScreenLoad") {
+        val extraction = loadLibraryExtraction(context)
+        val payload = extraction.payload
+        val sourceState = extraction.state
+        LibraryScreenLoadedState(
+            games = payload.games,
+            sources = payload.sources,
             sourceState = sourceState,
-            currentSelectedSourceId = currentSelectedSourceId,
-        ),
-    )
+            selection = resolveLibrarySelection(
+                payload = payload,
+                sourceState = sourceState,
+                currentSelectedSourceId = currentSelectedSourceId,
+            ),
+        )
+    }
 }
 
 internal fun resolveLibraryScreenSourceSelection(
