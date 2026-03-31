@@ -38,6 +38,9 @@ func scoreScannerCameraAuthorizationRoute(
     for status: AVAuthorizationStatus
 ) -> ScoreScannerCameraAuthorizationRoute {
     switch status {
+    case .notDetermined:
+        assertionFailure("Unexpected .notDetermined camera authorization status before permission request.")
+        return .presentStatus(.cameraPermissionRequired)
     case .authorized:
         return .startSession
     case .restricted, .denied:
