@@ -41,20 +41,20 @@ actor PinballDataCache {
         }
     }
 
-    private let baseURL = URL(string: "https://pillyliu.com")!
+    let baseURL = URL(string: "https://pillyliu.com")!
     private let manifestURL = URL(string: "https://pillyliu.com/pinball/cache-manifest.json")!
     private let updateLogURL = URL(string: "https://pillyliu.com/pinball/cache-update-log.json")!
     private let metadataRefreshInterval: TimeInterval = 300
-    private let backgroundRevalidateInterval: TimeInterval = 180
+    let backgroundRevalidateInterval: TimeInterval = 180
     private let remoteImageDiskRevalidateInterval: TimeInterval = 6 * 60 * 60
     private let remoteImageDiskCacheSizeLimit: Int64 = 512 * 1024 * 1024
     private let legacyCacheResetMarkerName = "legacy-cache-reset-v3-assets-v1"
 
     private var isLoaded = false
-    private var index = PinballCacheIndex()
-    private var manifest: PinballCacheManifest?
-    private var cacheGeneration: UInt64 = 0
-    private var inFlightRevalidations: [String: UInt64] = [:]
+    var index = PinballCacheIndex()
+    var manifest: PinballCacheManifest?
+    var cacheGeneration: UInt64 = 0
+    var inFlightRevalidations: [String: UInt64] = [:]
     private var inFlightRemoteImageRevalidations: [String: UInt64] = [:]
     private let remoteImageLimiter = RequestLimiter(limit: 8)
 
@@ -141,41 +141,7 @@ actor PinballDataCache {
         return try await fetchTextFromNetwork(path: normalizedPath, allowMissing: allowMissing)
     }
 
-    func hasRemoteUpdate(path: String) async throws -> Bool {
-        try await ensureLoaded()
-        let normalizedPath = normalize(path)
-        try await refreshMetadataIfNeeded(force: true)
-
-        guard let remoteHash = manifest?.files[normalizedPath]?.hash else {
-            return false
-        }
-        guard let localData = try cachedData(for: normalizedPath) else {
-            return false
-        }
-        return sha256Hex(localData) != remoteHash
-    }
-
-    func loadData(url: URL) async throws -> Data {
-        try await ensureLoaded()
-
-        guard shouldUseManifestCache(for: url) else {
-            return try await loadRemoteImageData(url: url)
-        }
-
-        let path = normalize(url.path)
-        if let cached = try cachedData(for: path) {
-            scheduleRevalidateIfNeeded(path: path, allowMissing: false)
-            return cached
-        }
-
-        let fetched = try await fetchBinaryFromNetwork(path: path, allowMissing: false)
-        guard let data = fetched else {
-            throw URLError(.resourceUnavailable)
-        }
-        return data
-    }
-
-    private func loadRemoteImageData(url: URL) async throws -> Data {
+    func loadRemoteImageData(url: URL) async throws -> Data {
         if let cached = try cachedRemoteImageData(for: url) {
             scheduleRemoteImageRevalidateIfNeeded(url: url)
             return cached
@@ -237,103 +203,7 @@ actor PinballDataCache {
         }
     }
 
-    private func revalidate(path: String, allowMissing: Bool) async {
-        do {
-            _ = try await fetchBinaryFromNetwork(path: path, allowMissing: allowMissing)
-        } catch {
-            // Keep stale data on revalidation failures.
-        }
-    }
-
-    private func scheduleRevalidateIfNeeded(path: String, allowMissing: Bool) {
-        let now = Date().timeIntervalSince1970
-        if let resource = index.resources[path],
-           now - resource.lastValidatedAt < backgroundRevalidateInterval {
-            return
-        }
-        if inFlightRevalidations[path] != nil {
-            return
-        }
-
-        let generation = cacheGeneration
-        inFlightRevalidations[path] = generation
-        Task.detached(priority: .utility) {
-            await PinballDataCache.shared.runRevalidate(path: path, allowMissing: allowMissing, generation: generation)
-        }
-    }
-
-    private func runRevalidate(path: String, allowMissing: Bool, generation: UInt64) async {
-        defer { finishRevalidate(path: path, generation: generation) }
-        await revalidate(path: path, allowMissing: allowMissing)
-    }
-
-    private func fetchTextFromNetwork(path: String, allowMissing: Bool, allowStaleOnFailure: Bool = true) async throws -> CachedTextResult {
-        let data = try await fetchBinaryFromNetwork(path: path, allowMissing: allowMissing, allowStaleOnFailure: allowStaleOnFailure)
-        if data == nil {
-            return CachedTextResult(text: nil, isMissing: true, updatedAt: nil)
-        }
-
-        guard let data,
-              let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .unicode) else {
-            throw URLError(.cannotDecodeRawData)
-        }
-
-        return CachedTextResult(
-            text: text,
-            isMissing: false,
-            updatedAt: cachedFileUpdatedAt(for: path)
-        )
-    }
-
-    private func fetchBinaryFromNetwork(path: String, allowMissing: Bool, allowStaleOnFailure: Bool = true) async throws -> Data? {
-        let expectedGeneration = cacheGeneration
-        do {
-            try await refreshMetadataIfNeeded(force: false)
-        } catch {
-            // Metadata refresh should not block serving cached/offline-first data.
-        }
-
-        if let manifest,
-           manifest.files[path] == nil,
-           allowMissing {
-            try markResourceMissing(path: path, validatedAt: Date().timeIntervalSince1970, expectedGeneration: expectedGeneration)
-            return nil
-        }
-
-        let url = baseURL.appendingPathComponent(path.trimmingCharacters(in: CharacterSet(charactersIn: "/")))
-        var request = URLRequest(url: url)
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-        request.timeoutInterval = 20
-
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            if let http = response as? HTTPURLResponse {
-                if http.statusCode == 404, allowMissing {
-                    try markResourceMissing(path: path, validatedAt: Date().timeIntervalSince1970, expectedGeneration: expectedGeneration)
-                    return nil
-                }
-                if !(200...299).contains(http.statusCode) {
-                    throw URLError(.badServerResponse)
-                }
-            }
-
-            try storeFetchedResource(
-                data: data,
-                path: path,
-                manifestHash: manifest?.files[path]?.hash,
-                validatedAt: Date().timeIntervalSince1970,
-                expectedGeneration: expectedGeneration
-            )
-            return data
-        } catch {
-            if allowStaleOnFailure, let stale = try cachedData(for: path) {
-                return stale
-            }
-            throw error
-        }
-    }
-
-    private func cachedText(for path: String) throws -> CachedTextResult? {
+    func cachedText(for path: String) throws -> CachedTextResult? {
         guard let data = try cachedData(for: path) else { return nil }
         guard let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .unicode) else { return nil }
 
@@ -344,7 +214,7 @@ actor PinballDataCache {
         )
     }
 
-    private func cachedData(for path: String) throws -> Data? {
+    func cachedData(for path: String) throws -> Data? {
         if index.resources[path]?.missing == true {
             try? fileManager.removeItem(at: fileURL(for: path))
         }
@@ -356,14 +226,14 @@ actor PinballDataCache {
         return nil
     }
 
-    private func write(data: Data, for path: String) throws {
+    func write(data: Data, for path: String) throws {
         let url = fileURL(for: path)
         let dir = url.deletingLastPathComponent()
         try fileManager.createDirectory(at: dir, withIntermediateDirectories: true, attributes: nil)
         try data.write(to: url, options: .atomic)
     }
 
-    private func cachedFileUpdatedAt(for path: String) -> Date? {
+    func cachedFileUpdatedAt(for path: String) -> Date? {
         let url = fileURL(for: path)
         guard let attrs = try? fileManager.attributesOfItem(atPath: url.path),
               let modified = attrs[.modificationDate] as? Date else {
@@ -372,11 +242,11 @@ actor PinballDataCache {
         return modified
     }
 
-    private func sha256Hex(_ data: Data) -> String {
+    func sha256Hex(_ data: Data) -> String {
         SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 
-    private func refreshMetadataIfNeeded(force: Bool) async throws {
+    func refreshMetadataIfNeeded(force: Bool) async throws {
         let now = Date().timeIntervalSince1970
         guard PinballCacheMetadataSupport.shouldRefresh(
             lastFetchedAt: index.lastMetaFetchAt,
@@ -408,7 +278,7 @@ actor PinballDataCache {
         try persistIndex()
     }
 
-    private func ensureLoaded() async throws {
+    func ensureLoaded() async throws {
         guard !isLoaded else { return }
 
         let root = cacheRootURL()
@@ -461,7 +331,7 @@ actor PinballDataCache {
         await refreshMetadataBestEffort(force: true)
     }
 
-    private func persistIndex() throws {
+    func persistIndex() throws {
         try persistPinballCacheIndex(index, cacheRootURL: cacheRootURL(), encoder: encoder)
     }
 
@@ -518,35 +388,6 @@ actor PinballDataCache {
         inFlightRemoteImageRevalidations.removeValue(forKey: key)
     }
 
-    private func finishRevalidate(path: String, generation: UInt64) {
-        guard inFlightRevalidations[path] == generation else { return }
-        inFlightRevalidations.removeValue(forKey: path)
-    }
-
-    private func markResourceMissing(path: String, validatedAt: TimeInterval, expectedGeneration: UInt64) throws {
-        guard cacheGeneration == expectedGeneration else { return }
-        index.resources[path] = PinballCacheIndex.Resource(path: path, hash: nil, lastValidatedAt: validatedAt, missing: true)
-        try persistIndex()
-    }
-
-    private func storeFetchedResource(
-        data: Data,
-        path: String,
-        manifestHash: String?,
-        validatedAt: TimeInterval,
-        expectedGeneration: UInt64
-    ) throws {
-        guard cacheGeneration == expectedGeneration else { return }
-        try write(data: data, for: path)
-        index.resources[path] = PinballCacheIndex.Resource(
-            path: path,
-            hash: manifestHash,
-            lastValidatedAt: validatedAt,
-            missing: false
-        )
-        try persistIndex()
-    }
-
     private func pruneRemoteImageCacheIfNeeded() throws {
         let root = remoteImagesRootURL()
         guard fileManager.fileExists(atPath: root.path) else { return }
@@ -580,11 +421,11 @@ actor PinballDataCache {
         }
     }
 
-    private func normalize(_ path: String) -> String {
+    func normalize(_ path: String) -> String {
         normalizedPinballCachePath(path)
     }
 
-    private func shouldUseManifestCache(for url: URL) -> Bool {
+    func shouldUseManifestCache(for url: URL) -> Bool {
         guard let host = url.host?.lowercased() else { return false }
         return host == "pillyliu.com" && url.path.hasPrefix("/pinball/")
     }

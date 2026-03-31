@@ -37,6 +37,7 @@ Key files:
 - `PinballDataCache.kt`: runtime cache coordinator
 - `PinballDataCacheBootstrapSupport.kt`: cache root, preload, and bootstrap logic
 - `PinballDataCacheMetadataSupport.kt`: manifest and update-log refresh logic
+- `PinballDataCacheRuntimeSupport.kt`: runtime fetch, stale fallback, and background revalidate support
 - `PinballDataCacheStorageSupport.kt`: cache storage and file/index helpers
 - `Csv.kt`: shared CSV support
 - `Net.kt`: shared network utilities

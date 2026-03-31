@@ -19,10 +19,10 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-private const val BASE_URL = "https://pillyliu.com"
-private const val MANIFEST_URL = "https://pillyliu.com/pinball/cache-manifest.json"
-private const val UPDATE_LOG_URL = "https://pillyliu.com/pinball/cache-update-log.json"
-private const val META_REFRESH_INTERVAL_MS = 5 * 60 * 1000L
+internal const val BASE_URL = "https://pillyliu.com"
+internal const val MANIFEST_URL = "https://pillyliu.com/pinball/cache-manifest.json"
+internal const val UPDATE_LOG_URL = "https://pillyliu.com/pinball/cache-update-log.json"
+internal const val META_REFRESH_INTERVAL_MS = 5 * 60 * 1000L
 data class CachedTextResult(
     val text: String?,
     val isMissing: Boolean,
@@ -36,23 +36,23 @@ data class CachedBytesResult(
 )
 
 object PinballDataCache {
-    private val mutex = Mutex()
-    private val indexIoLock = Any()
-    private val refreshScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val remoteRequestLimiter = Semaphore(8)
+    internal val mutex = Mutex()
+    internal val indexIoLock = Any()
+    internal val refreshScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    internal val remoteRequestLimiter = Semaphore(8)
 
     @Volatile
-    private var appContext: Context? = null
+    internal var appContext: Context? = null
 
     @Volatile
-    private var loaded = false
+    internal var loaded = false
 
     @Volatile
-    private var cacheGeneration = 0L
+    internal var cacheGeneration = 0L
 
-    private val manifestFiles = mutableMapOf<String, String>()
-    private var lastMetaFetchAt: Long = 0L
-    private var lastUpdateScanAt: String? = null
+    internal val manifestFiles = mutableMapOf<String, String>()
+    internal var lastMetaFetchAt: Long = 0L
+    internal var lastUpdateScanAt: String? = null
 
     fun initialize(context: Context) {
         appContext = context.applicationContext
@@ -64,7 +64,7 @@ object PinballDataCache {
 
         val cached = readCached(path)
         if (cached != null) {
-            maybeRevalidateAsync(path, allowMissing)
+            scheduleRuntimeRevalidate(path, allowMissing)
             return@withContext CachedTextResult(
                 text = cached.decodeToString(),
                 isMissing = false,
@@ -72,7 +72,7 @@ object PinballDataCache {
             )
         }
 
-        val fetched = fetchBytes(path, allowMissing)
+        val fetched = runtimeFetchBytes(path, allowMissing)
         if (fetched.isMissing) {
             return@withContext CachedTextResult(
                 text = null,
@@ -89,7 +89,7 @@ object PinballDataCache {
         val path = normalizePath(url)
         ensureLoaded()
 
-        val fetched = fetchBytes(path, allowMissing, allowStaleOnFailure = false)
+        val fetched = runtimeFetchBytes(path, allowMissing, allowStaleOnFailure = false)
         if (fetched.isMissing) {
             return@withContext CachedTextResult(text = null, isMissing = true, updatedAtMs = null)
         }
@@ -101,7 +101,7 @@ object PinballDataCache {
         ensureLoaded()
         refreshMetadataIfNeeded(force = true)
         HOSTED_PINBALL_REFRESH_TARGETS.forEach { target ->
-            fetchBytes(
+            runtimeFetchBytes(
                 path = target.path,
                 allowMissing = target.allowMissing,
                 allowStaleOnFailure = false,
@@ -155,7 +155,7 @@ object PinballDataCache {
             )
         }
 
-        val fetched = fetchBytes(path, allowMissing)
+        val fetched = runtimeFetchBytes(path, allowMissing)
         if (fetched.isMissing) {
             return@withContext CachedTextResult(text = null, isMissing = true, updatedAtMs = null)
         }
@@ -184,92 +184,10 @@ object PinballDataCache {
         cachedUpdatedAtMs(path)
     }
 
-    suspend fun loadBytes(url: String, allowMissing: Boolean = false): CachedBytesResult = withContext(Dispatchers.IO) {
-        val path = normalizePath(url)
-        ensureLoaded()
+    suspend fun loadBytes(url: String, allowMissing: Boolean = false): CachedBytesResult =
+        runtimeLoadBytes(url, allowMissing)
 
-        val cached = readCached(path)
-        if (cached != null) {
-            maybeRevalidateAsync(path, allowMissing)
-            return@withContext CachedBytesResult(bytes = cached, isMissing = false, updatedAtMs = cachedUpdatedAtMs(path))
-        }
-
-        fetchBytes(path, allowMissing)
-    }
-
-    private suspend fun fetchBytes(path: String, allowMissing: Boolean, allowStaleOnFailure: Boolean = true): CachedBytesResult {
-        val fetchGeneration = cacheGeneration
-        if (!hasUsableNetwork(appContext)) {
-            val stale = readCached(path)
-            if (stale != null) {
-                return CachedBytesResult(bytes = stale, isMissing = false)
-            }
-            if (allowMissing) {
-                upsertIndex(path = path, hash = null, missing = true)
-                return CachedBytesResult(bytes = null, isMissing = true, updatedAtMs = null)
-            }
-            throw IllegalStateException("Offline and no cached file for $path")
-        }
-
-        try {
-            refreshMetadataIfNeeded(force = false)
-        } catch (_: Throwable) {
-            // Metadata refresh is best effort and should not block direct fetch attempts.
-        }
-
-        val url = "$BASE_URL$path"
-        return try {
-            remoteRequestLimiter.withPermit {
-                val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 15000
-                    readTimeout = 20000
-                    requestMethod = "GET"
-                    setRequestProperty("Cache-Control", "no-cache")
-                }
-
-                val code = conn.responseCode
-                if (code == 404 && allowMissing) {
-                    ensureActiveGeneration(fetchGeneration)
-                    upsertIndex(path = path, hash = null, missing = true)
-                    CachedBytesResult(bytes = null, isMissing = true, updatedAtMs = null)
-                } else {
-                    if (code !in 200..299) throw IllegalStateException("Fetch failed ($code) for $url")
-                    val bytes = conn.inputStream.use { it.readBytes() }
-                    ensureActiveGeneration(fetchGeneration)
-                    writeCached(path, bytes)
-                    upsertIndex(path = path, hash = manifestFiles[path], missing = false)
-                    CachedBytesResult(bytes = bytes, isMissing = false, updatedAtMs = cachedUpdatedAtMs(path))
-                }
-            }
-        } catch (t: Throwable) {
-            val stale = readCached(path)
-            if (allowStaleOnFailure && stale != null) {
-                CachedBytesResult(bytes = stale, isMissing = false, updatedAtMs = cachedUpdatedAtMs(path))
-            } else {
-                throw t
-            }
-        }
-    }
-
-    private fun maybeRevalidateAsync(path: String, allowMissing: Boolean) {
-        // Fire-and-forget background refresh to keep startup fast.
-        refreshScope.launch {
-            try {
-                mutex.withLock {
-                    fetchBytes(path, allowMissing)
-                }
-            } catch (_: Throwable) {
-            }
-        }
-    }
-
-    private fun ensureActiveGeneration(generation: Long) {
-        if (generation != cacheGeneration) {
-            throw CancellationException("Discarding stale cache write for generation $generation")
-        }
-    }
-
-    private suspend fun refreshMetadataIfNeeded(force: Boolean) {
+    internal suspend fun refreshMetadataIfNeeded(force: Boolean) {
         val now = System.currentTimeMillis()
         if (!shouldRefreshPinballCacheMetadata(lastMetaFetchAt, now, META_REFRESH_INTERVAL_MS, force)) return
 
@@ -293,7 +211,7 @@ object PinballDataCache {
         persistMetaState()
     }
 
-    private suspend fun ensureLoaded() {
+    internal suspend fun ensureLoaded() {
         if (loaded) return
         mutex.withLock {
             if (loaded) return
@@ -317,7 +235,7 @@ object PinballDataCache {
         }
     }
 
-    private fun httpText(url: String): String {
+    internal fun httpText(url: String): String {
         return kotlinx.coroutines.runBlocking(Dispatchers.IO) {
             remoteRequestLimiter.withPermit {
                 val conn = (URL(url).openConnection() as HttpURLConnection).apply {
@@ -333,7 +251,7 @@ object PinballDataCache {
         }
     }
 
-    private fun normalizePath(urlOrPath: String): String {
+    internal fun normalizePath(urlOrPath: String): String {
         return when {
             urlOrPath.startsWith("http://") || urlOrPath.startsWith("https://") -> URL(urlOrPath).path
             urlOrPath.startsWith("/") -> urlOrPath
@@ -341,7 +259,7 @@ object PinballDataCache {
         }
     }
 
-    private fun shouldCacheByManifest(urlOrPath: String): Boolean {
+    internal fun shouldCacheByManifest(urlOrPath: String): Boolean {
         val isAbsoluteUrl = urlOrPath.startsWith("http://") || urlOrPath.startsWith("https://")
         val normalizedPath = runCatching { normalizePath(urlOrPath) }.getOrDefault(urlOrPath)
         if (!isAbsoluteUrl && normalizedPath.startsWith("/pinball/")) {
@@ -355,55 +273,25 @@ object PinballDataCache {
         }
     }
 
-    suspend fun passthroughOrCachedText(url: String, allowMissing: Boolean = false): CachedTextResult {
-        if (!shouldCacheByManifest(url)) {
-            val text = httpText(url)
-            return CachedTextResult(text = text, isMissing = false, updatedAtMs = System.currentTimeMillis())
-        }
-        return loadText(url, allowMissing)
-    }
+    suspend fun passthroughOrCachedText(url: String, allowMissing: Boolean = false): CachedTextResult =
+        runtimePassthroughOrCachedText(url, allowMissing)
 
-    suspend fun passthroughOrCachedBytes(url: String, allowMissing: Boolean = false): CachedBytesResult {
-        if (!shouldCacheByManifest(url)) {
-            return remoteRequestLimiter.withPermit {
-                val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 15000
-                    readTimeout = 20000
-                    requestMethod = "GET"
-                }
-                val code = conn.responseCode
-                if (code == 404 && allowMissing) return@withPermit CachedBytesResult(bytes = null, isMissing = true)
-                if (code !in 200..299) throw IllegalStateException("Fetch failed ($code) for $url")
-                CachedBytesResult(bytes = conn.inputStream.use { it.readBytes() }, isMissing = false, updatedAtMs = System.currentTimeMillis())
-            }
-        }
-        return loadBytes(url, allowMissing)
-    }
+    suspend fun passthroughOrCachedBytes(url: String, allowMissing: Boolean = false): CachedBytesResult =
+        runtimePassthroughOrCachedBytes(url, allowMissing)
 
-    suspend fun resolveImageModel(url: String): Any {
-        if (!shouldCacheByManifest(url)) return url
-        val path = normalizePath(url)
-        ensureLoaded()
-        val cached = readCached(path)
-        if (cached != null) {
-            maybeRevalidateAsync(path, allowMissing = false)
-            return resourceFile(path)
-        }
-        val fetched = fetchBytes(path, allowMissing = false)
-        return if (fetched.bytes != null) resourceFile(path) else url
-    }
+    suspend fun resolveImageModel(url: String): Any = runtimeResolveImageModel(url)
 
-    private fun resourceFile(path: String): java.io.File {
+    internal fun resourceFile(path: String): java.io.File {
         val context = appContext ?: error("Missing context")
         return pinballCacheResourceFile(context, path)
     }
 
-    private fun writeCached(path: String, bytes: ByteArray) {
+    internal fun writeCached(path: String, bytes: ByteArray) {
         val file = resourceFile(path)
         file.writeBytes(bytes)
     }
 
-    private fun readCached(path: String): ByteArray? {
+    internal fun readCached(path: String): ByteArray? {
         if (isMarkedMissingInIndex(path)) {
             deleteCached(path)
         }
@@ -412,7 +300,7 @@ object PinballDataCache {
         return file.readBytes()
     }
 
-    private fun cachedUpdatedAtMs(path: String): Long? {
+    internal fun cachedUpdatedAtMs(path: String): Long? {
         val file = resourceFile(path)
         if (!file.exists()) return null
         val ts = file.lastModified()
@@ -424,7 +312,7 @@ object PinballDataCache {
         if (file.exists()) file.delete()
     }
 
-    private fun upsertIndex(path: String, hash: String?, missing: Boolean) {
+    internal fun upsertIndex(path: String, hash: String?, missing: Boolean) {
         val context = appContext ?: return
         synchronized(indexIoLock) {
             val root = pinballCacheReadOrInitIndexRoot(context)
@@ -488,7 +376,7 @@ object PinballDataCache {
         }
     }
 
-    private fun hasUsableNetwork(context: Context?): Boolean {
+    internal fun hasUsableNetwork(context: Context?): Boolean {
         context ?: return false
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
         val network = cm.activeNetwork ?: return false

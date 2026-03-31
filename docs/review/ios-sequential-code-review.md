@@ -10998,6 +10998,64 @@ Verification:
 - `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
 - `./gradlew :app:compileDebugKotlin`
 
+## Pass 382: iOS Pinball data-cache runtime support split
+
+Primary files:
+- `Pinball App 2/Pinball App 2/data/PinballDataCache.swift`
+- `Pinball App 2/Pinball App 2/data/PinballDataCacheRuntimeSupport.swift`
+
+Changes made in this pass:
+- moved the remaining runtime text/binary cache path out of the main iOS cache coordinator:
+  - manifest-backed data load entrypoints
+  - remote-update detection
+  - background revalidate scheduling
+  - text fetch/decode
+  - binary fetch with stale fallback
+  - missing-resource marking and fetched-resource persistence
+- left `PinballDataCache.swift` focused on:
+  - public cache entrypoints
+  - remote-image cache handling
+  - metadata/bootstrap coordination
+  - local storage helpers
+
+Hidden seam surfaced and reduced:
+1. even after the bootstrap, metadata, and storage splits, the iOS cache coordinator was still mixing two different runtime responsibilities:
+   - public cache API routing
+   - the lower-level fetch/revalidate/writeback flow
+2. the new runtime support file isolates the fetch/stale-fallback policy so future hosted-data changes can touch network coordination without reopening the full cache actor body
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `PinballDataCache.swift` now reads more clearly as the runtime coordinator shell instead of also carrying the whole network fetch pipeline inline
+
+Verification:
+- `xcodebuild -project 'Pinball App 2/Pinball App 2.xcodeproj' -scheme 'PinProf' -destination 'generic/platform=iOS Simulator' build`
+
+## Pass 383: Android Pinball data-cache runtime support split
+
+Primary files:
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCache.kt`
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/data/PinballDataCacheRuntimeSupport.kt`
+
+Changes made in this pass:
+- moved the matching Android runtime cache path out of the main cache object:
+  - byte fetch with stale fallback
+  - background revalidate launch
+  - passthrough-or-cached text/bytes helpers
+  - manifest-backed image-model resolution
+- kept thin member wrappers in `PinballDataCache.kt` so the rest of the app still calls the same public API surface while the heavier runtime flow lives in one support layer
+
+Hidden seam surfaced and reduced:
+1. the Android cache object had reached the same late-stage shape as iOS, where the remaining weight was mostly the runtime fetch/revalidate path rather than bootstrap or metadata logic
+2. using a support file plus thin wrappers preserves the current call sites while making the runtime path easier to compare against iOS 1:1
+
+Behavioral outcome:
+- no intended front-facing behavior changed
+- `PinballDataCache.kt` now reads more clearly as the cache API shell plus state host instead of also carrying the entire fetch/revalidate implementation inline
+
+Verification:
+- `./gradlew :app:compileDebugKotlin`
+
 ## Late-stage paired polish plan
 
 Tracking rule for the remaining work:

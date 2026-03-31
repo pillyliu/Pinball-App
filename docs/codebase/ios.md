@@ -50,6 +50,7 @@ Key files:
 - `PinballDataCache.swift`: runtime cache coordinator
 - `PinballDataCacheBootstrapSupport.swift`: cache root, preload, bootstrap logic
 - `PinballDataCacheMetadataSupport.swift`: manifest and update-log refresh logic
+- `PinballDataCacheRuntimeSupport.swift`: runtime fetch, stale fallback, and background revalidate support
 - `PinballDataCacheStorageSupport.swift`: cache storage models and path helpers
 - `SharedCSV.swift`: shared CSV parsing and formatting support
 
