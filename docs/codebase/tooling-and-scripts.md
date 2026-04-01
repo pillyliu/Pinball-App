@@ -1,8 +1,36 @@
 # Tooling And Scripts
 
-This file tracks the main non-feature support tooling in the repo.
+This file tracks the non-feature support layer for the repo: build systems, release automation, CI, preload assets, shared-asset sync, and documentation generation.
 
-## Release Tooling
+## Build Systems
+
+### iOS
+
+Primary project:
+- `Pinball App 2/Pinball App 2.xcodeproj`
+
+Version anchors:
+- `MARKETING_VERSION = 3.5.2`
+- `CURRENT_PROJECT_VERSION = 98`
+
+Important supporting folders:
+- `Pinball App 2/Pinball App 2/PinballPreload.bundle/` -> bundled preload manifest and cached-seed payloads
+- `Pinball App 2/Pinball App 2/SharedAppSupport/` -> app-owned shared source assets for both platforms
+
+### Android
+
+Primary project:
+- `Pinball App Android/app/build.gradle.kts`
+
+Version anchors:
+- `versionName = "3.5.2"`
+- `versionCode = 59`
+
+Important supporting folders:
+- `Pinball App Android/app/src/main/assets/pinprof-preload/` -> Android preload assets
+- Android drawables and other generated/shared app assets are refreshed from `SharedAppSupport` via the sync script
+
+## Release Automation
 
 ### iOS Fastlane
 
@@ -10,15 +38,10 @@ Folder:
 - `Pinball App 2/fastlane`
 
 Key files:
-- `Fastfile`: iOS release lanes and App Store submission flow
-- `Appfile`: App Store app identifiers and account wiring
-- `.env.default`: expected environment configuration
-- `README.md`: lane usage reference
-
-Use this for:
-- iOS distribution uploads
-- metadata submission
-- build-number and release lane operations
+- `Fastfile` -> iOS lanes for build, upload, submit, beta, and release-history support
+- `Appfile` -> App Store identifiers and account wiring
+- `.env.default.example` -> expected environment variable template
+- `README.md` -> auto-generated lane reference
 
 ### Android Fastlane
 
@@ -26,70 +49,88 @@ Folder:
 - `Pinball App Android/fastlane`
 
 Key files:
-- `Fastfile`: Android release lanes and Play upload flow
-- `Appfile`: Play package/account wiring
-- `README.md`: lane usage reference
+- `Fastfile` -> Android lanes for tests, release build, and Play uploads
+- `Appfile` -> package/account wiring
+- `README.md` -> lane usage reference
 
-Use this for:
-- Android production uploads
-- release bookkeeping
+## CI
 
-## Build And Simulator Tooling
+Workflow:
+- `.github/workflows/ci.yml`
+
+Current CI coverage:
+- Android
+  - `./gradlew :app:assembleDebug`
+  - `./gradlew :app:testDebugUnitTest --tests com.pillyliu.pinprofandroid.practice.PracticeCanonicalPersistenceTest`
+- iOS
+  - resolves a current simulator dynamically
+  - `xcodebuild ... build-for-testing`
+  - `xcodebuild ... -only-testing:"Pinball App 2Tests/PracticeStateCodecTests" test-without-building`
+
+## Local Simulator And QA Tooling
 
 Folder:
-- `.xcodebuildmcp`
+- `.xcodebuildmcp/`
 
 Key file:
-- `config.yaml`: XcodeBuildMCP session defaults for the repo
+- `config.yaml` -> XcodeBuildMCP defaults for simulator QA and debug sessions in this repo
 
 Use this for:
-- iOS simulator build, run, QA, and UI automation with XcodeBuildMCP
+- iOS simulator build and run
+- manual QA passes
+- UI inspection and screenshot capture
+- debugger attach flows
 
 ## Project Scripts
 
 Folder:
-- `scripts`
+- `scripts/`
 
-Current scripts:
-- `export_bob_rulesheet_urls.py`: exports or normalizes Bob's Rulesheet URL data
-- `generate_architecture_blueprint.sh`: generates the architecture blueprint workflow entrypoint
-- `render_architecture_pdf_upgraded.py`: renders architecture output to PDF
-- `render_mermaid_blocks.py`: renders Mermaid blocks for docs output
-- `pinball_api_auth.py`: shared auth support for Pinball API automation
-- `pinball_api_clients.py`: shared API client helpers for Pinball API tasks
-- `sync_shared_app_assets.sh`: syncs shared assets across app targets
-- `mermaid_print_theme.json`: Mermaid rendering theme config
+Architecture and docs:
+- `generate_architecture_blueprint.sh` -> one-command blueprint render entrypoint
+- `render_architecture_pdf_upgraded.py` -> PDF generation pipeline
+- `render_mermaid_blocks.py` -> Mermaid block rendering support
+- `mermaid_print_theme.json` -> print-theme config for rendered diagrams
 
-## Generated And Support Outputs
+Shared app support and assets:
+- `sync_shared_app_assets.sh` -> refreshes shared intro and shake-warning assets into platform-specific bundles
 
-Common generated/support folders:
-- `docs/rendered`: rendered documentation assets
-- `output`: generated output artifacts
-- `tmp`: temporary generated content
-- `archive`: retired docs and scripts kept for reference
+Pinball API and data utilities:
+- `pinball_api_auth.py` -> auth helpers for Pinball API tasks
+- `pinball_api_clients.py` -> shared client helpers
+- `export_bob_rulesheet_urls.py` -> rulesheet URL export and normalization helper
 
-## Preload And Shared Assets
+## Shared Support Assets
 
-iOS:
-- `Pinball App 2/Pinball App 2/PinballPreload.bundle`: bundled preload assets for cache seeding
+Bundled source-of-truth assets live in:
+- `Pinball App 2/Pinball App 2/SharedAppSupport/pinside_group_map.json`
+- `Pinball App 2/Pinball App 2/SharedAppSupport/shake-warnings/`
+- `Pinball App 2/Pinball App 2/SharedAppSupport/app-intro/`
 
-Android:
-- preload data is read from Android assets through the cache storage helpers
+These assets are app-owned, not part of the hosted `/pinball` publish payload.
 
-Shared exported assets:
-- `exported_logo_assets`: icon, splash, and branding exports
-- `web-assets`: web-facing asset support
+## Generated And Local-Only Output Areas
 
-## Documentation Layers
+Working output folders:
+- `docs/rendered/` -> rendered documentation assets used by docs
+- `output/` -> generated output artifacts
+- `tmp/` -> temporary generated content, including PDF work areas
 
-The repo now has several doc layers:
-- `docs/codebase`: living architecture and ownership map
-- `docs/review`: sequential cleanup and change log
-- `docs/modernization`: broader parity and modernization planning
-- `docs/marketing`: promo and video planning materials
+Historical and retired material:
+- `archive/` -> retired docs, scripts, and prior blueprint refresh snapshots
 
-Use them this way:
-- codebase docs explain ownership
-- review docs explain change history
-- modernization docs explain longer-range direction
-- marketing docs are non-code product collateral
+Local helper environments:
+- `.venv/`
+- `.venv-architecture-docs/`
+- `.venv_pdf/`
+
+These support local rendering and automation and are not part of the product runtime.
+
+## Documentation Workflow
+
+When architecture docs need refresh:
+1. update `README.md` if versions, layout, or doc entrypoints changed
+2. update `docs/codebase/ios.md` and or `docs/codebase/android.md` for ownership changes
+3. update this file if tooling, scripts, CI, preload, or release flow changed
+4. update `Pinball_App_Architecture_Blueprint.md` for system-model changes
+5. rerun `./scripts/generate_architecture_blueprint.sh` to refresh `Pinball_App_Architecture_Blueprint_print_layout.pdf`

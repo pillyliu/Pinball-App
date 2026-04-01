@@ -60,4 +60,4 @@ The old `2.0` milestone writeup is preserved only as historical local archive ma
 
 - `README.md`
 - `RELEASE_NOTES_3.5.0.md`
-- `Pinball_App_Architecture_Blueprint_latest.md`
+- `Pinball_App_Architecture_Blueprint.md`

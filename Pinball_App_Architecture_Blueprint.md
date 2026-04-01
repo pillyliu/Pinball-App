@@ -1,13 +1,24 @@
 # 1. Release Snapshot
 
 ## Document purpose
-This blueprint is the current-state architecture reference for PinProf version `3.5.0`.
+This blueprint is the current-state architecture reference for the PinProf workspace release line `3.5.2`.
 
 It is intended to describe what ships today across both mobile apps:
 - iOS app: `Pinball App 2`
 - Android app: `Pinball App Android`
 
 This version reflects the current five-tab product footprint, the GameRoom baseline, the expanded Settings surface, the shared design-system cleanup, the CAF publish path, and the current release/CI path.
+
+Companion docs:
+- `README.md` for workspace and release anchors
+- `docs/codebase/README.md` for the documentation system and ownership vocabulary
+- `docs/codebase/ios.md` for the detailed iOS code map
+- `docs/codebase/android.md` for the detailed Android code map
+- `docs/codebase/tooling-and-scripts.md` for build, release, CI, preload, and doc-generation flow
+
+Note:
+- the latest checked-in release-notes snapshot in this repo is still `RELEASE_NOTES_3.5.0.md`
+- the app source itself is currently versioned at `3.5.2`
 
 ## Product summary
 PinProf is a dual-platform pinball companion app for league players and home collectors. It combines:
@@ -17,7 +28,7 @@ PinProf is a dual-platform pinball companion app for league players and home col
 - personal machine ownership and maintenance logging
 - settings, imports, and hosted data management
 
-## What ships in 3.5.0
+## What ships in 3.5.2
 - Five root tabs on both platforms: `League`, `Library`, `Practice`, `GameRoom`, `Settings`
 - A CAF runtime data contract on both platforms built around:
   - `opdb_export.json`
@@ -160,8 +171,11 @@ PinProf is a dual-platform pinball companion app for league players and home col
   - external rulesheet discovery sources used upstream in publish scripts
 
 ## Current version anchors
-- iOS marketing version: `3.5.0`
-- Android target version for this release: `3.5.0`
+- iOS marketing version: `3.5.2`
+- iOS build number: `98`
+- Android target version for this release: `3.5.2`
+- Android version code: `59`
+- Latest checked-in release-notes snapshot: `RELEASE_NOTES_3.5.0.md`
 - Practice canonical persisted schema: `v4`
 - Primary runtime content contract: CAF hosted layers over OPDB identities
 - App-owned support artifacts: bundled `pinside_group_map.json`, shake-warning art, and intro overlay source images
@@ -208,7 +222,7 @@ flowchart TB
       ISCREENS["SwiftUI feature screens<br/>League / Library / Practice / GameRoom / Settings"]
       ICHROME["Shared chrome<br/>AppScreen / AppPresentationChrome / SharedFullscreenChrome / AppResourceChrome"]
       ICACHE["PinballDataCache actor"]
-      IHOSTED["LibraryHostedData + LibraryDataLoader + LibraryCatalogStore"]
+      IHOSTED["LibraryHostedData + LibraryDataLoader + CAF extraction builders"]
       IPRACTICE["PracticeStore + helpers"]
       IGCAT["GameRoomCatalogLoader"]
       IGAMEROOM["GameRoomStore + helpers"]
@@ -220,7 +234,7 @@ flowchart TB
       ASCREENS["Compose feature screens<br/>League / Library / Practice / GameRoom / Settings"]
       ACHROME["Shared chrome<br/>AppRouteScreen / CommonUi / SharedFullscreenChrome / AppResourceChrome"]
       ACACHE["PinballDataCache"]
-      AHOSTED["LibraryHostedData + LibraryDataLoader + LibraryCatalogStore"]
+      AHOSTED["LibraryHostedData + LibraryDataLoader + CAF extraction builders"]
       APRACTICE["PracticeStore + integrations"]
       AGCAT["GameRoomCatalogLoader"]
       AGAMEROOM["GameRoomStore + helpers"]
@@ -291,7 +305,7 @@ flowchart LR
     LDETAIL --> RESOURCE["LibraryResourceResolution"]
     LDETAIL --> ACTIVITY["LibraryActivityLog"]
 
-    LOADER --> STORE["LibraryCatalogStore<br/>OPDB + asset assembly"]
+    LOADER --> STORE["CAF extraction builders<br/>OPDB + asset assembly"]
     STORE --> CACHE["PinballDataCache"]
     RESOURCE --> CACHE
     STORE --> SOURCE["Imported source state + GameRoom overlay"]
@@ -419,93 +433,31 @@ flowchart TB
 ## 4.5 Code-Level Diagram (C4, feasible)
 
 ```mermaid
-classDiagram
-    class AppNavigationModel {
-      +selectedTab
-      +libraryGameIDToOpen
-      +lastViewedLibraryGameID
-      +openLibraryGame()
-    }
+flowchart LR
+    IOSENTRY["Pinball_App_2App.swift"] --> HOSTED["warmHostedCAFData()<br/>refreshHostedPinballDataIfNeeded()"]
+    ANDENTRY["MainActivity.kt"] --> HOSTED
+    HOSTED --> CACHE["PinballDataCache"]
 
-    class PinballDataCache {
-      +loadText()
-      +forceRefreshText()
-      +forceRefreshHostedLibraryData()
-      +hasRemoteUpdate()
-      +refreshMetadataFromForeground()
-    }
+    NAV["ContentView.swift + AppNavigationModel"] --> LIBVM["PinballLibraryViewModel"]
+    SHELL["PinballShell.kt"] --> LIBROUTES["Library route state + screen composition"]
 
-    class LibraryHostedData {
-      +warmHostedCAFData()
-      +loadHostedCatalogManufacturerOptions()
-    }
+    LIBVM --> IOSLOAD["loadLibraryExtraction()<br/>loadFullLibraryExtraction()"]
+    LIBROUTES --> ANDLOAD["loadLibraryExtraction(context)"]
+    IOSLOAD --> BUILD["buildCAFLibraryExtraction()<br/>imported-source merge + source filtering"]
+    ANDLOAD --> BUILD
+    BUILD --> CACHE
 
-    class LibraryDataLoader {
-      +loadLibraryExtraction()
-      +loadFullLibraryExtraction()
-      +loadPracticeCatalogGames()
-    }
+    IOSPRACTICE["PracticeStore.swift"] --> IOSLOAD
+    ANDPRACTICE["PracticeStore.kt + PracticeStoreLoadCoordinator"] --> ANDLOAD
+    IOSPRACTICE --> CACHE
+    ANDPRACTICE --> CACHE
 
-    class LibraryCatalogStore {
-      +buildCAFLibraryExtraction()
-      +buildCAFLibraryPayload()
-    }
+    GRCAT["GameRoomCatalogLoader"] --> CACHE
+    IOSROOM["GameRoomStore.swift"] --> GRCAT
+    ANDROOM["GameRoomStore.kt"] --> GRCAT
 
-    class PracticeStore {
-      +loadIfNeeded()
-      +addScore()
-      +addGameTaskEntry()
-      +addManualVideoProgress()
-      +addNote()
-      +updateJournalEntry()
-      +deleteJournalEntry()
-      +createGroup()
-      +updateGroup()
-      +importLeagueScoresFromCSV()
-    }
-
-    class GameRoomStore {
-      +load()
-      +save()
-      +addMachine()
-      +updateMachine()
-      +archiveMachine()
-      +recordEvent()
-      +attachMedia()
-      +importPinsideData()
-    }
-
-    class GameRoomCatalogLoader {
-      +loadIfNeeded()
-      +catalogGames
-    }
-
-    class PinballLibraryViewModel {
-      +loadIfNeeded()
-      +games
-      +query
-      +sortOption
-      +selectedSource
-      +selectedBank
-    }
-
-    class LeaguePreviewModel {
-      +loadIfNeeded()
-      +nextBankTargets
-      +standingsTopRows
-      +statsRecentRows
-    }
-
-    AppNavigationModel --> PinballLibraryViewModel
-    PinballLibraryViewModel --> LibraryDataLoader
-    LibraryDataLoader --> LibraryCatalogStore
-    LibraryDataLoader --> LibraryHostedData
-    LibraryHostedData --> PinballDataCache
-    LeaguePreviewModel --> PinballDataCache
-    PracticeStore --> LibraryDataLoader
-    PracticeStore --> PinballDataCache
-    GameRoomCatalogLoader --> LibraryHostedData
-    GameRoomStore --> GameRoomCatalogLoader
+    LEAGUEIOS["LeaguePreviewModel.swift"] --> CACHE
+    LEAGUEAND["League preview loaders + rotation state"] --> CACHE
 ```
 
 ---
@@ -1095,7 +1047,7 @@ flowchart TB
 flowchart TB
     HOST["Hosted CAF layers<br/>OPDB export + asset DBs + venue layout + league files"] --> CACHE["PinballDataCache"]
     CACHE --> HOSTED["LibraryHostedData"]
-    HOSTED --> LOADER["LibraryDataLoader + LibraryCatalogStore"]
+    HOSTED --> LOADER["LibraryDataLoader + CAF extraction builders"]
     SOURCE["Imported source state"] --> LOADER
     ROOM["GameRoom local owned machines"] --> LOADER
     LOADER --> LIB["Library and Practice source browsing"]
@@ -1207,7 +1159,7 @@ flowchart TB
 - `production`
 
 ## 10.5 Production Android delivery path
-1. update `versionName` and `versionCode`
+1. update `versionName` and `versionCode` from the current baseline (`3.5.2` / `59`) when preparing the next release
 2. run migration/unit validation
 3. build release AAB
 4. upload the AAB through the `production` Fastlane lane
@@ -1249,11 +1201,11 @@ flowchart TB
 
 # 12. Final Architecture Summary
 
-PinProf `3.5.0` is a five-tab, dual-platform pinball app with one shared product model and two native implementations. The current runtime centers on three strong foundations:
+PinProf `3.5.2` is a five-tab, dual-platform pinball app with one shared product model and two native implementations. The current runtime centers on three strong foundations:
 - a hosted-content system built around `PinballDataCache`, manifest-driven refresh, OPDB export, and asset-database JSON layers
 - local-first user domains led by `PracticeStore` and `GameRoomStore`
 - shared presentation and resource seams that reduce parity drift without flattening away native platform behavior
 
 The most important architectural relationship is that `Library` is not just a tab. It is the runtime assembly substrate for `Practice`, `GameRoom`, manufacturer browsing, and imported venue sources. The most important user-data relationship is that `Practice` remains group-identity compatible while `GameRoom` preserves exact machine `opdb_id`. The most important publish relationship is that PinProf Admin now owns the clean data-and-asset model, while the legacy website repo still stages the current deploy path the apps consume.
 
-This is the corrected reference architecture for the `3.5.0` release line based on the current app code and the current PinProf Admin publish model.
+This is the corrected reference architecture for the `3.5.2` release line based on the current app code and the current PinProf Admin publish model.

@@ -1,52 +1,92 @@
 # Pinball App
 
-Current mobile release: `3.5.0`
+Current workspace release line:
+- iOS marketing version: `3.5.2` (build `98`)
+- Android `versionName`: `3.5.2` (`versionCode` `59`)
 
 This repository contains both mobile apps:
-
 - `Pinball App 2/` -> iOS (SwiftUI + Xcode project)
 - `Pinball App Android/` -> Android (Kotlin + Jetpack Compose)
 
-## Current Product
+## Product Surface
 
-- Version `3.5.0` is the current iOS and Android release line.
-- The app now ships as the full five-tab PinProf product:
-  - `League`
-  - `Library`
-  - `Practice`
-  - `GameRoom`
-  - `Settings`
-- Canonical pinball data is published from `../PinProf Admin`, then consumed by both apps through preload plus hosted refresh.
+The current product footprint on both platforms is the full five-tab PinProf app:
+- `League`
+- `Library`
+- `Practice`
+- `GameRoom`
+- `Settings`
 
-## Notes
+Both apps consume hosted runtime content from `https://pillyliu.com/pinball/...`, then layer on local-first user data for practice, library state, and owned-machine workflows.
 
-- Canonical pinball data editing and publish generation now belongs in `../PinProf Admin`.
-- Runtime stats, standings, library, game info, and rulesheets are fetched from `https://pillyliu.com/pinball/...`.
-- `Pinball App 2/Pinball App 2/SharedAppSupport/` is the app-owned shared support home for both iOS and Android.
-- `Pinball App 2/Pinball App 2/SharedAppSupport/pinside_group_map.json` is the single source of truth for the Pinside group map used by both apps.
-- `Pinball App 2/Pinball App 2/SharedAppSupport/shake-warnings/` is the single source of truth for the shared shake-warning art used by both apps.
-- `Pinball App 2/Pinball App 2/SharedAppSupport/app-intro/` is the single source of truth for intro overlay source images; run `./scripts/sync_shared_app_assets.sh` after editing them to refresh the iOS launch-logo asset catalog files and Android intro drawables.
-- The mobile apps no longer rely on bundled `starter-pack` / `PinballStarter.bundle` pinball payloads at runtime.
-- Historical planning docs and superseded blueprint revisions now live under the local-only `archive/` folder so the repo root stays focused on current docs.
-- Build output, local machine files, and signing artifacts are ignored via `.gitignore`.
-- Current release snapshot: `RELEASE_NOTES_3.5.0.md`
-- Historical iOS 2.0 milestone notes are archived locally under `archive/`
+## Workspace Layout
 
-## Documentation
+Core app work:
+- `Pinball App 2/Pinball App 2/` -> iOS source
+- `Pinball App Android/app/src/main/java/com/pillyliu/pinprofandroid/` -> Android source
+- `Pinball App 2/Pinball App 2/SharedAppSupport/` -> app-owned shared support assets used by both apps
 
-- `Pinball_App_Architecture_Blueprint_latest.md` is the active architecture blueprint source.
-- Run `./scripts/generate_architecture_blueprint.sh` to refresh `Pinball_App_Architecture_Blueprint_latest_print_layout.pdf` from the current markdown plus Mermaid diagrams. The script bootstraps a local ignored virtualenv if `reportlab` is not already available.
-- Historical blueprint revisions, retired generated PDFs, and older helper scripts live under `archive/`.
+Documentation:
+- `docs/codebase/README.md` -> code bible index and maintenance rules
+- `docs/codebase/ios.md` -> detailed iOS ownership map
+- `docs/codebase/android.md` -> detailed Android ownership map
+- `docs/codebase/tooling-and-scripts.md` -> build, release, script, CI, and docs workflow map
+- `docs/workspace-catalog.md` -> inventory of non-app-code workspace assets and cleanup candidates
+- `Pinball_App_Architecture_Blueprint.md` -> system-level architecture blueprint
+- `Pinball_App_Architecture_Blueprint_print_layout.pdf` -> rendered print layout of the active blueprint
 
-## Release Versioning
+Supporting doc layers:
+- `docs/review/` -> cleanup and review history
+- `docs/modernization/` -> parity and longer-range planning
+- `docs/marketing/` -> promo and collateral planning
+- `archive/` -> retired or historical docs and scripts
 
-- Android release version is defined in `Pinball App Android/app/build.gradle.kts`.
-- Android production uploads use the existing Gradle version through Fastlane.
-- Current Android marketing version: `3.5.0`
-- Current Android version code: `56`
+## Runtime Data Model
 
-## Migration Test Gates
+The active runtime contract is the hosted CAF / OPDB pipeline:
+- `opdb_export.json`
+- `practice_identity_curations_v1.json`
+- `rulesheet_assets.json`
+- `video_assets.json`
+- `playfield_assets.json`
+- `gameinfo_assets.json`
+- `backglass_assets.json`
+- `venue_layout_assets.json`
+- league CSV and support files under `/pinball/data/`
 
-- iOS migration tests run via XCTest target `Pinball App 2Tests` (`PracticeStateCodecTests`).
-- Android migration tests run via `PracticeCanonicalPersistenceTest`.
-- CI and Fastlane release lanes now run these migration checks before shipping steps.
+Important current notes:
+- Canonical publish generation now belongs in `../PinProf Admin`.
+- The apps consume hosted `/pinball` payloads and do not talk directly to the admin database.
+- `SharedAppSupport/pinside_group_map.json` is the bundled source of truth for shared Pinside title/group mapping.
+- `SharedAppSupport/shake-warnings/` is the bundled source of truth for shake-warning art.
+- `SharedAppSupport/app-intro/` is the bundled source of truth for intro overlay source images.
+- Run `./scripts/sync_shared_app_assets.sh` after changing shared app-intro or shake-warning assets so iOS and Android bundles stay aligned.
+
+## Version And Release Anchors
+
+- iOS versioning lives in `Pinball App 2/Pinball App 2.xcodeproj/project.pbxproj`.
+- Android versioning lives in `Pinball App Android/app/build.gradle.kts`.
+- The latest checked-in release-notes snapshot is still `RELEASE_NOTES_3.5.0.md`.
+- The source tree itself is already on the `3.5.2` release line.
+
+## Validation Gates
+
+- iOS build:
+  - `xcodebuild build -project "Pinball App 2/Pinball App 2.xcodeproj" -scheme "PinProf"`
+- iOS migration tests:
+  - `Pinball App 2Tests/PracticeStateCodecTests`
+- Android build:
+  - `./gradlew :app:assembleDebug`
+- Android migration tests:
+  - `./gradlew :app:testDebugUnitTest --tests com.pillyliu.pinprofandroid.practice.PracticeCanonicalPersistenceTest`
+- CI:
+  - `.github/workflows/ci.yml`
+
+## Documentation Workflow
+
+When the codebase changes in a way that affects ownership, routing, runtime contracts, or release flow:
+1. update the relevant platform map in `docs/codebase/`
+2. update `Pinball_App_Architecture_Blueprint.md` if the system model changed
+3. archive major document snapshots under `archive/` with a dated folder name instead of renaming the active file
+4. rerun `./scripts/generate_architecture_blueprint.sh` if the blueprint markdown changed
+5. keep this README aligned with current version anchors and doc entrypoints

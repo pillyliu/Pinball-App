@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-INPUT_PATH="${1:-$ROOT_DIR/Pinball_App_Architecture_Blueprint_latest.md}"
-OUTPUT_PATH="${2:-$ROOT_DIR/Pinball_App_Architecture_Blueprint_latest_print_layout.pdf}"
+INPUT_PATH="${1:-$ROOT_DIR/Pinball_App_Architecture_Blueprint.md}"
+OUTPUT_PATH="${2:-$ROOT_DIR/Pinball_App_Architecture_Blueprint_print_layout.pdf}"
 DIAGRAMS_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pinball-architecture-diagrams.XXXXXX")"
 VENV_DIR="$ROOT_DIR/.venv-architecture-docs"
 PYTHON_BIN="$VENV_DIR/bin/python3"

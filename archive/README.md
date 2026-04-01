@@ -8,6 +8,35 @@ Guidelines:
 - do not treat archive contents as active app runtime, preload, or build dependencies
 - archive contents are gitignored so historical planning/spec files do not drift back into the main workspace by accident
 
+Current naming rule:
+
+- active docs keep stable, non-dated names
+- archived snapshots should go into dated folders under `archive/`
+- avoid `latest` in active filenames; use archive dates for historical snapshots instead
+
+## Archived on 2026-04-01 (Workspace cleanup)
+
+Folders:
+
+- `archive/2026-04-01-release-artifacts/`
+
+Archived today:
+
+- local iOS release artifacts:
+  - `PinProf.ipa`
+  - `PinProf.app.dSYM.zip`
+
+Why these were archived:
+
+- the repo root should stay focused on active docs, scripts, and app folders
+- local release outputs should not live indefinitely in the working app folder
+- these archive folders are local-only because `archive/` is intentionally ignored
+
+Related workspace organization from the same cleanup:
+
+- the root-level branding masters were moved into the tracked source-assets folder `exported_logo_assets/source/`
+- that keeps them available for future regeneration work without leaving them loose in the repo root
+
 ## Archived on 2026-03-25
 
 Folder:
@@ -24,10 +53,10 @@ Archived today:
 
 Why these were archived:
 
-- the active app docs are now `README.md`, `Pinball_App_Architecture_Blueprint_latest.md`, and the still-relevant docs under `docs/`
+- the active app docs are now `README.md`, `Pinball_App_Architecture_Blueprint.md`, and the still-relevant docs under `docs/`
 - old blueprint revisions, dated rollout plans, and parity notes were cluttering the repo root after the CAF migration landed
 - the retired shake-warning parity spec still described `shared/pinball`, starter-pack assets, and hosted warning art, which are no longer the active app path
-- the retired intro/onboarding planning docs still described pre-release planning states, asset-catalog intro art names, and version-overlay recommendations that no longer match the shipped `3.4.9` app
+- the retired intro/onboarding planning docs still described pre-release planning states, asset-catalog intro art names, and version-overlay recommendations that no longer match the shipped `3.5.2` app
 
 ## Archived on 2026-03-25 (Retired helper scripts)
 
@@ -79,8 +108,8 @@ Archived today:
 
 Why this was archived:
 
-- it described the older iOS `2.0` milestone, not the current cross-platform `3.4.9` release line
-- the active release-facing docs are now `README.md`, `RELEASE_NOTES_3.4.9.md`, and `Pinball_App_Architecture_Blueprint_latest.md`
+- it described the older iOS `2.0` milestone, not the current cross-platform `3.5.2` source release line
+- the active release-facing docs are now `README.md`, `RELEASE_NOTES_3.5.0.md`, and `Pinball_App_Architecture_Blueprint.md`
 
 ## Archived on 2026-03-27 (Retired doc renderer)
 
