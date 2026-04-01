@@ -48,6 +48,15 @@ nonisolated private let legacyPinballMapVenueMigrationTargets: [LegacyPinballMap
     )
 ]
 
+// Refresh saved Pinball Map venue imports that were synced before the machine-ID replacement fix shipped.
+nonisolated let staleImportedPinballMapVenueRefreshCutoff: Date = {
+    let formatter = ISO8601DateFormatter()
+    guard let date = formatter.date(from: "2026-04-01T08:00:00-04:00") else {
+        fatalError("Invalid stale imported Pinball Map venue refresh cutoff")
+    }
+    return date
+}()
+
 nonisolated func canonicalLegacyLibrarySourceAliasID(_ rawID: String?) -> String? {
     guard let trimmed = rawID?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
         return nil
@@ -70,6 +79,14 @@ nonisolated func isImportedPinballMapSourceID(_ rawID: String?) -> Bool {
     canonicalLibrarySourceID(rawID)?.lowercased().hasPrefix("venue--pm-") == true
 }
 
+nonisolated func importedPinballMapVenueNeedsStaleRefresh(_ source: PinballImportedSourceRecord) -> Bool {
+    guard source.type == .venue else { return false }
+    guard source.provider == .pinballMap || isImportedPinballMapSourceID(source.id) else { return false }
+    guard !source.providerSourceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+    guard let lastSyncedAt = source.lastSyncedAt else { return false }
+    return lastSyncedAt < staleImportedPinballMapVenueRefreshCutoff
+}
+
 func migrateLegacyPinnedVenueImportsIfNeeded() async {
     let sourceState = PinballLibrarySourceStateStore.load()
     let importedSources = PinballImportedSourcesStore.load()
@@ -83,31 +100,66 @@ func migrateLegacyPinnedVenueImportsIfNeeded() async {
     let targets = legacyPinballMapVenueMigrationTargets.filter { target in
         referencedSourceIDs.contains(target.id) && !importedIDs.contains(target.id)
     }
-    guard !targets.isEmpty else { return }
 
     var didChange = false
-    for target in targets {
+    if !targets.isEmpty {
+        for target in targets {
+            do {
+                let machineIDs = try await PinballMapClient.fetchVenueMachineIDs(locationID: target.providerSourceID)
+                let record = PinballImportedSourceRecord(
+                    id: target.id,
+                    name: target.name,
+                    type: .venue,
+                    provider: .pinballMap,
+                    providerSourceID: target.providerSourceID,
+                    machineIDs: machineIDs,
+                    lastSyncedAt: Date(),
+                    searchQuery: nil,
+                    distanceMiles: nil
+                )
+                PinballImportedSourcesStore.upsert(record)
+                didChange = true
+            } catch {
+                continue
+            }
+        }
+    }
+
+    let didRefreshStaleVenueImports = await refreshStaleImportedPinballMapVenueImportsIfNeeded(
+        importedSources: PinballImportedSourcesStore.load()
+    )
+
+    if didChange || didRefreshStaleVenueImports {
+        postPinballLibrarySourcesDidChange()
+    }
+}
+
+private func refreshStaleImportedPinballMapVenueImportsIfNeeded(
+    importedSources: [PinballImportedSourceRecord]
+) async -> Bool {
+    let staleSources = importedSources.filter(importedPinballMapVenueNeedsStaleRefresh)
+    guard !staleSources.isEmpty else { return false }
+
+    var didChange = false
+    for source in staleSources {
         do {
-            let machineIDs = try await PinballMapClient.fetchVenueMachineIDs(locationID: target.providerSourceID)
-            let record = PinballImportedSourceRecord(
-                id: target.id,
-                name: target.name,
-                type: .venue,
-                provider: .pinballMap,
-                providerSourceID: target.providerSourceID,
-                machineIDs: machineIDs,
-                lastSyncedAt: Date(),
-                searchQuery: nil,
-                distanceMiles: nil
-            )
-            PinballImportedSourcesStore.upsert(record)
-            didChange = true
+            let machineIDs = try await PinballMapClient.fetchVenueMachineIDs(locationID: source.providerSourceID)
+            let previousMachineIDs = Array(
+                NSOrderedSet(array: source.machineIDs.compactMap(catalogNormalizedOptionalString))
+            ) as? [String] ?? []
+
+            var updated = source
+            updated.machineIDs = machineIDs
+            updated.lastSyncedAt = Date()
+            PinballImportedSourcesStore.upsert(updated)
+
+            if previousMachineIDs != machineIDs {
+                didChange = true
+            }
         } catch {
             continue
         }
     }
 
-    if didChange {
-        postPinballLibrarySourcesDidChange()
-    }
+    return didChange
 }

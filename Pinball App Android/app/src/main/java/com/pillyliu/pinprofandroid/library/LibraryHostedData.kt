@@ -3,6 +3,9 @@ package com.pillyliu.pinprofandroid.library
 import android.content.Context
 import com.pillyliu.pinprofandroid.PinballPerformanceTrace
 import com.pillyliu.pinprofandroid.data.PinballDataCache
+import com.pillyliu.pinprofandroid.data.refreshHostedResourcesIfNeeded
+import com.pillyliu.pinprofandroid.data.refreshRedactedPlayersFromCsv
+import com.pillyliu.pinprofandroid.league.LeaguePreviewRefreshEvents
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
@@ -32,6 +35,16 @@ internal val HOSTED_LIBRARY_PATHS = listOf(
     hostedBackglassAssetsPath,
     hostedVenueLayoutAssetsPath,
 )
+internal val HOSTED_CAF_DATA_PATH_SET = HOSTED_LIBRARY_PATHS.toSet()
+internal val HOSTED_LEAGUE_REFRESH_NOTIFICATION_PATHS = setOf(
+    hostedLeagueStandingsPath,
+    hostedLeagueStatsPath,
+    hostedLeagueTargetsPath,
+    hostedLeagueIfpaPlayersPath,
+    hostedResolvedLeagueTargetsPath,
+    hostedLeagueMachineMappingsPath,
+)
+
 internal data class HostedPinballRefreshTarget(
     val path: String,
     val allowMissing: Boolean,
@@ -109,6 +122,27 @@ internal suspend fun warmHostedCAFData() {
                 )
             }
         }
+    }
+}
+
+internal suspend fun refreshHostedPinballDataIfNeeded() {
+    try {
+        val changedPaths = PinballDataCache.refreshHostedResourcesIfNeeded(
+            targets = HOSTED_PINBALL_REFRESH_TARGETS,
+        )
+        if (changedPaths.isEmpty()) return
+
+        if (hostedRedactedPlayersCsvPath in changedPaths) {
+            refreshRedactedPlayersFromCsv()
+        }
+        if (changedPaths.any(HOSTED_CAF_DATA_PATH_SET::contains)) {
+            LibrarySourceEvents.notifyChanged()
+        }
+        if (changedPaths.any(HOSTED_LEAGUE_REFRESH_NOTIFICATION_PATHS::contains)) {
+            LeaguePreviewRefreshEvents.notifyChanged()
+        }
+    } catch (_: Throwable) {
+        // Keep cached data if selective refresh fails.
     }
 }
 

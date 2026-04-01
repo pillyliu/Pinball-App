@@ -4,6 +4,7 @@ import android.content.Context
 import com.pillyliu.pinprofandroid.settings.PinballMapClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.time.OffsetDateTime
 
 internal const val PM_AVENUE_LIBRARY_SOURCE_ID = "venue--pm-8760"
 internal const val PM_ELECTRIC_BAT_LIBRARY_SOURCE_ID = "venue--pm-10819"
@@ -53,6 +54,10 @@ private val legacyPinballMapVenueMigrationTargets = listOf(
     ),
 )
 
+// Refresh saved Pinball Map venue imports that were synced before the machine-ID replacement fix shipped.
+internal val STALE_IMPORTED_PINBALL_MAP_VENUE_REFRESH_CUTOFF_MS: Long =
+    OffsetDateTime.parse("2026-04-01T08:00:00-04:00").toInstant().toEpochMilli()
+
 internal fun canonicalLegacyLibrarySourceAliasId(raw: String?): String? {
     val trimmed = raw?.trim().orEmpty()
     if (trimmed.isEmpty()) return null
@@ -80,6 +85,14 @@ internal fun pinballMapLocationId(raw: String?): String? {
     return canonicalId.removePrefix("venue--pm-")
 }
 
+internal fun importedPinballMapVenueNeedsStaleRefresh(source: ImportedSourceRecord): Boolean {
+    if (source.type != LibrarySourceType.VENUE) return false
+    if (source.provider != ImportedSourceProvider.PINBALL_MAP && !isImportedPinballMapSourceId(source.id)) return false
+    if (source.providerSourceId.isBlank()) return false
+    val lastSyncedAtMs = source.lastSyncedAtMs ?: return false
+    return lastSyncedAtMs < STALE_IMPORTED_PINBALL_MAP_VENUE_REFRESH_CUTOFF_MS
+}
+
 internal suspend fun migrateLegacyPinnedVenueImportsIfNeeded(context: Context) = withContext(Dispatchers.IO) {
     val sourceState = LibrarySourceStateStore.load(context)
     val importedSources = ImportedSourcesStore.load(context)
@@ -93,7 +106,6 @@ internal suspend fun migrateLegacyPinnedVenueImportsIfNeeded(context: Context) =
     val targets = legacyPinballMapVenueMigrationTargets.filter { target ->
         referencedSourceIds.contains(target.id) && !importedIds.contains(target.id)
     }
-    if (targets.isEmpty()) return@withContext
 
     var didChange = false
     targets.forEach { target ->
@@ -115,7 +127,48 @@ internal suspend fun migrateLegacyPinnedVenueImportsIfNeeded(context: Context) =
         }
     }
 
+    val didRefreshStaleVenueImports = refreshStaleImportedPinballMapVenueImportsIfNeeded(
+        context = context,
+        importedSources = ImportedSourcesStore.load(context),
+    )
+
+    if (didRefreshStaleVenueImports) {
+        didChange = true
+    }
+
     if (didChange) {
         LibrarySourceEvents.notifyChanged()
     }
+}
+
+private fun refreshStaleImportedPinballMapVenueImportsIfNeeded(
+    context: Context,
+    importedSources: List<ImportedSourceRecord>,
+): Boolean {
+    val staleSources = importedSources.filter(::importedPinballMapVenueNeedsStaleRefresh)
+    if (staleSources.isEmpty()) return false
+
+    var didChange = false
+    staleSources.forEach { source ->
+        runCatching {
+            val machineIds = PinballMapClient.fetchVenueMachineIds(source.providerSourceId)
+            val previousMachineIds = source.machineIds
+                .mapNotNull { it.trim().ifBlank { null } }
+                .distinct()
+
+            ImportedSourcesStore.upsert(
+                context,
+                source.copy(
+                    machineIds = machineIds,
+                    lastSyncedAtMs = System.currentTimeMillis(),
+                ),
+            )
+
+            if (previousMachineIds != machineIds) {
+                didChange = true
+            }
+        }
+    }
+
+    return didChange
 }

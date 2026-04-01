@@ -199,9 +199,9 @@ object PinballDataCache {
     suspend fun loadBytes(url: String, allowMissing: Boolean = false): CachedBytesResult =
         runtimeLoadBytes(url, allowMissing)
 
-    internal suspend fun refreshMetadataIfNeeded(force: Boolean) {
+    internal suspend fun refreshMetadataIfNeeded(force: Boolean): Set<String> {
         val now = System.currentTimeMillis()
-        if (!shouldRefreshPinballCacheMetadata(lastMetaFetchAt, now, META_REFRESH_INTERVAL_MS, force)) return
+        if (!shouldRefreshPinballCacheMetadata(lastMetaFetchAt, now, META_REFRESH_INTERVAL_MS, force)) return emptySet()
 
         val refresh = fetchPinballCacheMetadataRefresh(
             manifestUrl = MANIFEST_URL,
@@ -221,6 +221,7 @@ object PinballDataCache {
         lastUpdateScanAt = refresh.lastUpdateScanAt
         lastMetaFetchAt = refresh.lastMetaFetchAt
         persistMetaState()
+        return refresh.removedPaths
     }
 
     internal suspend fun ensureLoaded() {

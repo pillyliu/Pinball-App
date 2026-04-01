@@ -1,5 +1,6 @@
 package com.pillyliu.pinprofandroid.data
 
+import com.pillyliu.pinprofandroid.library.HostedPinballRefreshTarget
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -8,6 +9,38 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
+
+internal suspend fun PinballDataCache.refreshHostedResourcesIfNeeded(
+    targets: List<HostedPinballRefreshTarget>,
+    forceMetadataRefresh: Boolean = true,
+): Set<String> = withContext(Dispatchers.IO) {
+    ensureLoaded()
+
+    mutex.withLock {
+        val trackedPaths = targets.mapTo(linkedSetOf()) { normalizePath(it.path) }
+        val changedPaths = refreshMetadataIfNeeded(force = forceMetadataRefresh)
+            .filterTo(linkedSetOf()) { it in trackedPaths }
+
+        targets.forEach { target ->
+            val normalizedPath = normalizePath(target.path)
+            if (normalizedPath in changedPaths) return@forEach
+            if (!hostedResourceNeedsRefresh(normalizedPath, target.allowMissing)) return@forEach
+
+            val previousBytes = readCached(normalizedPath)
+            val fetched = runtimeFetchBytes(
+                path = normalizedPath,
+                allowMissing = target.allowMissing,
+                allowStaleOnFailure = false,
+            )
+            val refreshedBytes = if (fetched.isMissing) null else readCached(normalizedPath)
+            if (!nullableContentEquals(previousBytes, refreshedBytes)) {
+                changedPaths += normalizedPath
+            }
+        }
+
+        changedPaths
+    }
+}
 
 internal suspend fun PinballDataCache.runtimeLoadBytes(
     url: String,
@@ -151,4 +184,19 @@ internal suspend fun PinballDataCache.runtimeResolveImageModel(url: String): Any
     }
     val fetched = runtimeFetchBytes(path, allowMissing = false)
     return if (fetched.bytes != null) resourceFile(path) else url
+}
+
+private fun PinballDataCache.hostedResourceNeedsRefresh(path: String, allowMissing: Boolean): Boolean {
+    val remoteHash = manifestFiles[path]
+    if (remoteHash != null) {
+        val localBytes = readCached(path) ?: return true
+        return pinballCacheSha256(localBytes) != remoteHash
+    }
+    return !allowMissing
+}
+
+private fun nullableContentEquals(left: ByteArray?, right: ByteArray?): Boolean {
+    if (left === right) return true
+    if (left == null || right == null) return false
+    return left.contentEquals(right)
 }
