@@ -25,6 +25,15 @@ nonisolated let hostedCAFDataPaths = [
     hostedBackglassAssetsPath,
     hostedVenueLayoutAssetsPath,
 ]
+nonisolated let hostedCAFDataPathSet = Set(hostedCAFDataPaths)
+nonisolated let hostedLeagueRefreshNotificationPaths: Set<String> = [
+    hostedLeagueStandingsPath,
+    hostedLeagueStatsPath,
+    hostedLeagueTargetsPath,
+    hostedLeagueIFPAPlayersPath,
+    hostedResolvedLeagueTargetsPath,
+    hostedLeagueMachineMappingsPath,
+]
 nonisolated let hostedPinballRefreshTargets: [(path: String, allowMissing: Bool)] = [
     (hostedOPDBExportPath, false),
     (hostedPracticeIdentityCurationsPath, true),
@@ -73,6 +82,27 @@ func warmHostedCAFData() async {
                 )
             }
         }
+    }
+}
+
+func refreshHostedPinballDataIfNeeded() async {
+    do {
+        let changedPaths = try await PinballDataCache.shared.refreshHostedResourcesIfNeeded(
+            targets: hostedPinballRefreshTargets
+        )
+        guard !changedPaths.isEmpty else { return }
+
+        if changedPaths.contains(hostedRedactedPlayersCSVPath) {
+            await refreshRedactedPlayersFromCSV()
+        }
+        if !changedPaths.isDisjoint(with: hostedCAFDataPathSet) {
+            postPinballLibrarySourcesDidChange()
+        }
+        if !changedPaths.isDisjoint(with: hostedLeagueRefreshNotificationPaths) {
+            notifyLeaguePreviewNeedsRefresh()
+        }
+    } catch {
+        // Keep cached data if selective refresh fails.
     }
 }
 

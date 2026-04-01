@@ -367,6 +367,7 @@ struct StatsScreen: View {
         .appPanelStyle()
         .onReceive(NotificationCenter.default.publisher(for: .pinballLeaguePreviewNeedsRefresh)) { _ in
             preferredLeaguePlayerName = PracticeStore.loadPreferredLeaguePlayerNameFromDefaults() ?? ""
+            Task { await viewModel.reloadFromCache() }
         }
     }
 

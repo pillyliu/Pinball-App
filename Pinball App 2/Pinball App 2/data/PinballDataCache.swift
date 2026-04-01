@@ -84,7 +84,7 @@ actor PinballDataCache {
 
     func forceRefreshHostedLibraryData() async throws {
         try await ensureLoaded()
-        try await refreshMetadataIfNeeded(force: true)
+        _ = try await refreshMetadataIfNeeded(force: true)
         for target in hostedPinballRefreshTargets {
             _ = try await fetchBinaryFromNetwork(
                 path: target.path,
@@ -251,7 +251,7 @@ actor PinballDataCache {
         SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 
-    func refreshMetadataIfNeeded(force: Bool) async throws {
+    func refreshMetadataIfNeeded(force: Bool) async throws -> [String] {
         let now = Date().timeIntervalSince1970
         guard PinballCacheMetadataSupport.shouldRefresh(
             lastFetchedAt: index.lastMetaFetchAt,
@@ -259,7 +259,7 @@ actor PinballDataCache {
             refreshInterval: metadataRefreshInterval,
             force: force
         ) else {
-            return
+            return []
         }
 
         let refresh = try await PinballCacheMetadataSupport.fetchRefresh(
@@ -281,6 +281,7 @@ actor PinballDataCache {
         }
 
         try persistIndex()
+        return removedPaths
     }
 
     func ensureLoaded() async throws {
@@ -326,7 +327,7 @@ actor PinballDataCache {
 
     private func refreshMetadataBestEffort(force: Bool) async {
         do {
-            try await refreshMetadataIfNeeded(force: force)
+            _ = try await refreshMetadataIfNeeded(force: force)
         } catch {
             // Allow offline/slow-network startup without stalling UI.
         }

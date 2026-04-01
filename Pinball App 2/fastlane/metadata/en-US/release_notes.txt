@@ -1,1 +1,1 @@
-Performance and reliability improvements across Library, Practice, and GameRoom
+Improved cache refresh reliability across Library and League data

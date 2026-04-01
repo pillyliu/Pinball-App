@@ -72,6 +72,17 @@ final class StandingsViewModel: ObservableObject {
         await loadCSV(forceRefresh: true)
     }
 
+    func reloadFromCache() async {
+        if !didLoad {
+            await loadIfNeeded()
+            return
+        }
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+        await loadCSV(forceRefresh: false)
+    }
+
     private func loadCSV(forceRefresh: Bool) async {
         do {
             let cached: CachedTextResult

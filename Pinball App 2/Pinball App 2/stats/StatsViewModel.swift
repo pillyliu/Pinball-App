@@ -129,6 +129,17 @@ final class StatsViewModel: ObservableObject {
         }
     }
 
+    func reloadFromCache() async {
+        if !didLoad {
+            await loadIfNeeded()
+            return
+        }
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+        await loadCSV(resetSelection: false)
+    }
+
     private func loadCSV(resetSelection: Bool) async {
         do {
             let loaded = try await StatsCSVLoader().loadRows()

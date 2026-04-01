@@ -24,14 +24,14 @@ struct Pinball_App_2App: App {
                     await migrateLegacyPinnedVenueImportsIfNeeded()
                     await refreshRedactedPlayersFromCSV()
                     await warmHostedCAFData()
+                    await refreshHostedPinballDataIfNeeded()
                 }
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             Task {
-                await PinballDataCache.shared.refreshMetadataFromForeground()
                 await migrateLegacyPinnedVenueImportsIfNeeded()
-                await refreshRedactedPlayersFromCSV()
+                await refreshHostedPinballDataIfNeeded()
             }
         }
     }

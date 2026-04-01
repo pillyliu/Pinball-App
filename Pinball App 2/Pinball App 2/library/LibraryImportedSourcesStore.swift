@@ -72,7 +72,7 @@ enum PinballImportedSourcesStore {
         var records = load()
         guard let canonicalRecord = normalizedImportedRecord(record) else { return }
         if let index = records.firstIndex(where: { $0.id == canonicalRecord.id }) {
-            records[index] = mergedImportedSourceRecord(records[index], canonicalRecord)
+            records[index] = canonicalRecord
         } else {
             records.append(canonicalRecord)
         }

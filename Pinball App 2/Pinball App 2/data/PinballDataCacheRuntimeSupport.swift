@@ -1,10 +1,44 @@
 import Foundation
 
 extension PinballDataCache {
+    func refreshHostedResourcesIfNeeded(
+        targets: [(path: String, allowMissing: Bool)],
+        forceMetadataRefresh: Bool = true
+    ) async throws -> Set<String> {
+        try await ensureLoaded()
+
+        let trackedPaths = Set(targets.map { normalize($0.path) })
+        let removedPaths = try await refreshMetadataIfNeeded(force: forceMetadataRefresh)
+        var changedPaths = Set(removedPaths.filter(trackedPaths.contains))
+
+        for target in targets {
+            let normalizedPath = normalize(target.path)
+            if changedPaths.contains(normalizedPath) {
+                continue
+            }
+            guard try hostedResourceNeedsRefresh(path: normalizedPath, allowMissing: target.allowMissing) else {
+                continue
+            }
+
+            let previousData = try cachedData(for: normalizedPath)
+            _ = try await fetchBinaryFromNetwork(
+                path: normalizedPath,
+                allowMissing: target.allowMissing,
+                allowStaleOnFailure: false
+            )
+            let refreshedData = try cachedData(for: normalizedPath)
+            if previousData != refreshedData {
+                changedPaths.insert(normalizedPath)
+            }
+        }
+
+        return changedPaths
+    }
+
     func hasRemoteUpdate(path: String) async throws -> Bool {
         try await ensureLoaded()
         let normalizedPath = normalize(path)
-        try await refreshMetadataIfNeeded(force: true)
+        _ = try await refreshMetadataIfNeeded(force: true)
 
         guard let remoteHash = manifest?.files[normalizedPath]?.hash else {
             return false
@@ -86,7 +120,7 @@ extension PinballDataCache {
     func fetchBinaryFromNetwork(path: String, allowMissing: Bool, allowStaleOnFailure: Bool = true) async throws -> Data? {
         let expectedGeneration = cacheGeneration
         do {
-            try await refreshMetadataIfNeeded(force: false)
+            _ = try await refreshMetadataIfNeeded(force: false)
         } catch {
             // Metadata refresh should not block serving cached/offline-first data.
         }
@@ -134,6 +168,17 @@ extension PinballDataCache {
     func finishRevalidate(path: String, generation: UInt64) {
         guard inFlightRevalidations[path] == generation else { return }
         inFlightRevalidations.removeValue(forKey: path)
+    }
+
+    private func hostedResourceNeedsRefresh(path: String, allowMissing: Bool) throws -> Bool {
+        if let remoteHash = manifest?.files[path]?.hash {
+            guard let localData = try cachedData(for: path) else {
+                return true
+            }
+            return sha256Hex(localData) != remoteHash
+        }
+
+        return !allowMissing
     }
 
     func markResourceMissing(path: String, validatedAt: TimeInterval, expectedGeneration: UInt64) throws {
