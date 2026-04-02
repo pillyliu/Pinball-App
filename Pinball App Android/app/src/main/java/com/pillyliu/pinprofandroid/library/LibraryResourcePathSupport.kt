@@ -86,28 +86,17 @@ internal fun isPinProfRulesheetUrl(url: String?): Boolean {
     }.getOrDefault(false)
 }
 
-internal fun normalizeLibraryPlayfieldLocalPath(path: String?): String? {
-    val raw = normalizedOptionalString(path) ?: return null
-    val target = when {
-        raw.endsWith("_700.webp", ignoreCase = true) -> raw
-        raw.endsWith("_1400.webp", ignoreCase = true) -> raw.replace(Regex("_1400\\.webp$", RegexOption.IGNORE_CASE), "_700.webp")
-        raw.contains("/pinball/images/playfields/") -> raw.replace(Regex("\\.[A-Za-z0-9]+$"), "_700.webp")
-        else -> raw
-    }
-    return target
-}
-
-internal fun normalizeLibraryCachePath(path: String?): String? {
+private fun normalizeLibraryPublishedPlayfieldPath(path: String?): String? {
     val raw = normalizedOptionalString(path) ?: return null
     fun normalizePlayfieldPublishedPath(value: String): String =
-        value.replace(Regex("(/pinball/images/playfields/.+?)(?:_(700|1400))?\\.[A-Za-z0-9]+$", RegexOption.IGNORE_CASE), "$1.webp")
+        value.replace(Regex("(/pinball/images/playfields/.+?)(?:_\\d+)?\\.[A-Za-z0-9]+$", RegexOption.IGNORE_CASE), "$1.webp")
     if (raw.startsWith("/")) {
         return if (raw.contains("/pinball/images/playfields/")) normalizePlayfieldPublishedPath(raw) else raw
     }
     if (raw.startsWith("http://") || raw.startsWith("https://")) {
         return try {
             val uri = java.net.URI(raw)
-            if (uri.host?.equals("pillyliu.com", ignoreCase = true) == true) {
+            if (isPinProfHost(uri.host)) {
                 uri.path?.takeIf { it.isNotBlank() }?.let {
                     if (it.contains("/pinball/images/playfields/")) normalizePlayfieldPublishedPath(it) else it
                 } ?: raw
@@ -120,6 +109,14 @@ internal fun normalizeLibraryCachePath(path: String?): String? {
     }
     val normalized = "/$raw"
     return if (normalized.contains("/pinball/images/playfields/")) normalizePlayfieldPublishedPath(normalized) else normalized
+}
+
+internal fun normalizeLibraryPlayfieldLocalPath(path: String?): String? {
+    return normalizeLibraryPublishedPlayfieldPath(path)
+}
+
+internal fun normalizeLibraryCachePath(path: String?): String? {
+    return normalizeLibraryPublishedPlayfieldPath(path)
 }
 
 internal fun PinballGame.resolve(pathOrUrl: String?): String? =

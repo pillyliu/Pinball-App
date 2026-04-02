@@ -5,6 +5,7 @@ import com.pillyliu.pinprofandroid.PinballPerformanceTrace
 import com.pillyliu.pinprofandroid.library.LibrarySource
 import com.pillyliu.pinprofandroid.library.LibrarySourceType
 import com.pillyliu.pinprofandroid.library.PinballGame
+import com.pillyliu.pinprofandroid.library.normalizeLibraryPlayfieldLocalPath
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -58,6 +59,7 @@ internal data class PracticeHomeBootstrapGameSnapshot(
     val playfieldLocal: String?,
 ) {
     fun toPinballGame(): PinballGame {
+        val normalizedPlayfieldLocal = normalizeLibraryPlayfieldLocalPath(playfieldLocal ?: playfieldLocalOriginal)
         return PinballGame(
             libraryEntryId = libraryEntryId,
             practiceIdentity = practiceIdentity,
@@ -92,8 +94,8 @@ internal data class PracticeHomeBootstrapGameSnapshot(
             primaryImageLargeUrl = primaryImageLargeUrl,
             playfieldImageUrl = playfieldImageUrl,
             alternatePlayfieldImageUrl = alternatePlayfieldImageUrl,
-            playfieldLocalOriginal = playfieldLocalOriginal,
-            playfieldLocal = playfieldLocal,
+            playfieldLocalOriginal = normalizedPlayfieldLocal,
+            playfieldLocal = normalizedPlayfieldLocal,
             playfieldSourceLabel = null,
             gameinfoLocal = null,
             rulesheetLocal = null,
@@ -205,6 +207,7 @@ private fun buildPracticeHomeBootstrapSnapshotJson(snapshot: PracticeHomeBootstr
 }
 
 private fun PracticeHomeBootstrapGameSnapshot.toJson(): JSONObject {
+    val normalizedPlayfieldLocal = normalizeLibraryPlayfieldLocalPath(playfieldLocal ?: playfieldLocalOriginal)
     return JSONObject().apply {
         put("libraryEntryId", libraryEntryId)
         put("practiceIdentity", practiceIdentity)
@@ -228,8 +231,8 @@ private fun PracticeHomeBootstrapGameSnapshot.toJson(): JSONObject {
         put("primaryImageLargeUrl", primaryImageLargeUrl)
         put("playfieldImageUrl", playfieldImageUrl)
         put("alternatePlayfieldImageUrl", alternatePlayfieldImageUrl)
-        put("playfieldLocalOriginal", playfieldLocalOriginal)
-        put("playfieldLocal", playfieldLocal)
+        put("playfieldLocalOriginal", normalizedPlayfieldLocal)
+        put("playfieldLocal", normalizedPlayfieldLocal)
     }
 }
 

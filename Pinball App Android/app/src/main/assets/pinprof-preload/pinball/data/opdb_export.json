@@ -1026,7 +1026,7 @@
   {
     "opdb_id": "GRQ6d-MDRlL",
     "is_machine": true,
-    "name": "Sky\u00b7Line",
+    "name": "Sky·Line",
     "common_name": null,
     "shortname": "",
     "physical_machine": 1,
@@ -15199,7 +15199,7 @@
   {
     "opdb_id": "G5Q19-MDEy0",
     "is_machine": true,
-    "name": "Vol\u00e8e",
+    "name": "Volèe",
     "common_name": null,
     "shortname": "",
     "physical_machine": 1,
@@ -55527,9 +55527,9 @@
   {
     "opdb_id": "GRKOX-MLyrW",
     "is_machine": true,
-    "name": "Jack\u2022Bot",
+    "name": "Jack•Bot",
     "common_name": "JackBot",
-    "shortname": "J\u2022B",
+    "shortname": "J•B",
     "physical_machine": 1,
     "ipdb_id": 3619,
     "manufacture_date": "1995-01-01",
@@ -99490,7 +99490,7 @@
   {
     "opdb_id": "G5Woz-MKNq6",
     "is_machine": true,
-    "name": "Charlie\u2019s Angels",
+    "name": "Charlie’s Angels",
     "common_name": null,
     "shortname": "CA",
     "physical_machine": 1,
@@ -99664,7 +99664,7 @@
   {
     "opdb_id": "G5Woz-MwNP3",
     "is_machine": true,
-    "name": "Charlie\u2019s Angels (EM)",
+    "name": "Charlie’s Angels (EM)",
     "common_name": null,
     "shortname": "CA",
     "physical_machine": 1,
@@ -114380,7 +114380,7 @@
     "manufacturer": {
       "manufacturer_id": 141,
       "name": "IDSA",
-      "full_name": "Ideas y Dise\u00f1os, Sociedad An\u00f3nima",
+      "full_name": "Ideas y Diseños, Sociedad Anónima",
       "created_at": "2024-01-19",
       "updated_at": "2024-01-19"
     },
@@ -121395,7 +121395,7 @@
     "manufacturer": {
       "manufacturer_id": 165,
       "name": "Rowamet",
-      "full_name": "Rowamet Ind\u00fastria Eletrometal\u00fargica LTDA",
+      "full_name": "Rowamet Indústria Eletrometalúrgica LTDA",
       "created_at": "2025-10-16",
       "updated_at": "2025-10-16"
     },
@@ -121423,7 +121423,7 @@
     "manufacturer": {
       "manufacturer_id": 165,
       "name": "Rowamet",
-      "full_name": "Rowamet Ind\u00fastria Eletrometal\u00fargica LTDA",
+      "full_name": "Rowamet Indústria Eletrometalúrgica LTDA",
       "created_at": "2025-10-16",
       "updated_at": "2025-10-16"
     },
@@ -121815,7 +121815,7 @@
   {
     "opdb_id": "GV8wB-Mq12N",
     "is_machine": true,
-    "name": "Pok\u00e9mon (Pro)",
+    "name": "Pokémon (Pro)",
     "common_name": null,
     "shortname": "Pokemon",
     "physical_machine": 1,
@@ -121868,7 +121868,7 @@
   {
     "opdb_id": "GV8wB-MRjKd",
     "is_machine": true,
-    "name": "Pok\u00e9mon (Premium/LE)",
+    "name": "Pokémon (Premium/LE)",
     "common_name": null,
     "shortname": "Pokemon",
     "physical_machine": 0,
@@ -131314,7 +131314,7 @@
     "manufacturer": {
       "manufacturer_id": 165,
       "name": "Rowamet",
-      "full_name": "Rowamet Ind\u00fastria Eletrometal\u00fargica LTDA",
+      "full_name": "Rowamet Indústria Eletrometalúrgica LTDA",
       "created_at": "2025-10-16",
       "updated_at": "2025-10-16"
     },
@@ -131350,7 +131350,7 @@
   {
     "opdb_id": "GV8wB-MRjKd-AOVy7",
     "is_alias": true,
-    "name": "Pok\u00e9mon (Premium)",
+    "name": "Pokémon (Premium)",
     "common_name": null,
     "shortname": "Pokemon",
     "ipdb_id": null,
@@ -131398,7 +131398,7 @@
   {
     "opdb_id": "GV8wB-MRjKd-ARz2r",
     "is_alias": true,
-    "name": "Pok\u00e9mon (LE)",
+    "name": "Pokémon (LE)",
     "common_name": null,
     "shortname": "Pokemon",
     "ipdb_id": null,
@@ -131497,8 +131497,8 @@
         "primary": true,
         "type": "playfield",
         "urls": {
-          "medium": "/pinball/images/playfields/G900001-1-playfield_700.webp",
-          "large": "/pinball/images/playfields/G900001-1-playfield_1400.webp"
+          "medium": "/pinball/images/playfields/G900001-1-playfield.webp",
+          "large": "/pinball/images/playfields/G900001-1-playfield.webp"
         }
       }
     ]

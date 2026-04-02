@@ -49,6 +49,7 @@ nonisolated struct PracticeHomeBootstrapSnapshot: Codable {
         let playfieldLocal: String?
 
         init(game: PinballGame) {
+            let normalizedPlayfieldLocal = game.playfieldLocal ?? game.playfieldLocalOriginal
             libraryEntryID = game.libraryEntryID
             practiceIdentity = game.practiceIdentity
             opdbID = game.opdbID
@@ -70,8 +71,8 @@ nonisolated struct PracticeHomeBootstrapSnapshot: Codable {
             primaryImageLargeUrl = game.primaryImageLargeUrl
             playfieldImageUrl = game.playfieldImageUrl
             alternatePlayfieldImageUrl = game.alternatePlayfieldImageUrl
-            playfieldLocalOriginal = game.playfieldLocalOriginal
-            playfieldLocal = game.playfieldLocal
+            playfieldLocalOriginal = normalizedPlayfieldLocal
+            playfieldLocal = normalizedPlayfieldLocal
         }
 
         nonisolated var pinballGame: PinballGame {
@@ -212,8 +213,9 @@ extension PinballGame {
         playfieldImageUrl = snapshot.playfieldImageUrl
         alternatePlayfieldImageUrl = snapshot.alternatePlayfieldImageUrl
         playfieldSourceLabel = nil
-        playfieldLocalOriginal = normalizeLibraryCachePath(snapshot.playfieldLocalOriginal)
-        playfieldLocal = normalizeLibraryPlayfieldLocalPath(snapshot.playfieldLocal)
+        let normalizedPlayfieldLocal = normalizeLibraryPlayfieldLocalPath(snapshot.playfieldLocal ?? snapshot.playfieldLocalOriginal)
+        playfieldLocalOriginal = normalizedPlayfieldLocal
+        playfieldLocal = normalizedPlayfieldLocal
         gameinfoLocal = nil
         rulesheetLocal = nil
         rulesheetUrl = nil

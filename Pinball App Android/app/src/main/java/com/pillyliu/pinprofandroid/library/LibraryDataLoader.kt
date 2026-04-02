@@ -178,10 +178,10 @@ private fun filterPayload(payload: ParsedLibraryData, state: LibrarySourceState)
 }
 
 internal fun resolvedPlayfieldSourceLabel(game: PinballGame): String? {
-    if (isPinProfPlayfieldUrl(game.playfieldImageUrl) || isPinProfPlayfieldUrl(game.playfieldLocalOriginalURL)) {
+    if (isPinProfPlayfieldUrl(game.playfieldImageUrl) || isPinProfPlayfieldUrl(game.playfieldLocalURL)) {
         return if (game.usesBundledOnlyAppAssetException) "Local" else "PinProf"
     }
-    if (!game.playfieldLocal.isNullOrBlank()) {
+    if (game.playfieldLocalURL != null) {
         return if (game.usesBundledOnlyAppAssetException) "Local" else "PinProf"
     }
     val explicit = game.playfieldSourceLabel?.trim()?.takeIf { it.isNotEmpty() }

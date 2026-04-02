@@ -4,8 +4,7 @@ private const val SYNTHETIC_PINPROF_LABS_GROUP_ID = "G900001"
 private const val SYNTHETIC_PINPROF_LABS_MACHINE_ID = "G900001-1"
 private const val SYNTHETIC_PINPROF_LABS_MANUFACTURER_ID = "manufacturer-9001"
 private const val SYNTHETIC_PINPROF_LABS_BACKGLASS_PATH = "/pinball/images/backglasses/G900001-1-backglass.webp"
-private const val SYNTHETIC_PINPROF_LABS_PLAYFIELD_MEDIUM_PATH = "/pinball/images/playfields/G900001-1-playfield_700.webp"
-private const val SYNTHETIC_PINPROF_LABS_PLAYFIELD_LARGE_PATH = "/pinball/images/playfields/G900001-1-playfield_1400.webp"
+private const val SYNTHETIC_PINPROF_LABS_PLAYFIELD_PATH = "/pinball/images/playfields/G900001-1-playfield.webp"
 
 private fun syntheticPinProfLabsCatalogMachineRecord(): CatalogMachineRecord =
     CatalogMachineRecord(
@@ -31,8 +30,8 @@ private fun syntheticPinProfLabsCatalogMachineRecord(): CatalogMachineRecord =
         opdbGroupDescription = "A long-lost pinball treasure.",
         primaryImageMediumUrl = SYNTHETIC_PINPROF_LABS_BACKGLASS_PATH,
         primaryImageLargeUrl = SYNTHETIC_PINPROF_LABS_BACKGLASS_PATH,
-        playfieldImageMediumUrl = SYNTHETIC_PINPROF_LABS_PLAYFIELD_MEDIUM_PATH,
-        playfieldImageLargeUrl = SYNTHETIC_PINPROF_LABS_PLAYFIELD_LARGE_PATH,
+        playfieldImageMediumUrl = SYNTHETIC_PINPROF_LABS_PLAYFIELD_PATH,
+        playfieldImageLargeUrl = SYNTHETIC_PINPROF_LABS_PLAYFIELD_PATH,
     )
 
 internal fun appendSyntheticPinProfLabsMachine(machines: List<CatalogMachineRecord>): List<CatalogMachineRecord> {

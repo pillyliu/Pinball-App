@@ -142,7 +142,7 @@ extension PinballGame {
         if !profPlayfieldBaseCandidates.isEmpty {
             return "PinProf"
         }
-        if !localFallbackPlayfieldCandidates.isEmpty {
+        if !explicitLocalPlayfieldCandidates.isEmpty {
             return localPlayfieldChipTitle
         }
         if let playfieldImageSourceURL {
@@ -182,7 +182,7 @@ extension PinballGame {
         if !profCandidates.isEmpty {
             appendGroup(title: "PinProf", candidates: profCandidates)
         } else {
-            appendGroup(title: localPlayfieldChipTitle, candidates: localFallbackPlayfieldCandidates)
+            appendGroup(title: localPlayfieldChipTitle, candidates: explicitLocalPlayfieldCandidates)
         }
 
         appendGroup(title: "OPDB", candidates: opdbPlayfieldCandidates(liveStatus: liveStatus))

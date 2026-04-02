@@ -41,18 +41,12 @@ extension PinballGame {
         ])
     }
 
-    var localFallbackPlayfieldCandidates: [URL] {
-        deduplicatedPlayfieldURLs([
-            playfieldLocalURL,
-        ])
-    }
-
     var profPlayfieldBaseCandidates: [URL] {
         if usesBundledOnlyAppAssetException {
             return []
         }
         return deduplicatedPlayfieldURLs([
-            libraryIsPinProfPlayfieldURL(playfieldLocalOriginalURL) ? playfieldLocalOriginalURL : nil,
+            libraryIsPinProfPlayfieldURL(playfieldLocalURL) ? playfieldLocalURL : nil,
             libraryIsPinProfPlayfieldURL(playfieldImageSourceURL) ? playfieldImageSourceURL : nil,
         ])
     }
@@ -62,12 +56,7 @@ extension PinballGame {
             return []
         }
         let liveURL = liveStatus?.effectiveKind == .pillyliu ? liveStatus?.effectiveURL : nil
-        let hasHostedCandidate = liveURL != nil || !profPlayfieldBaseCandidates.isEmpty
-        return deduplicatedPlayfieldURLs(
-            [liveURL] +
-                profPlayfieldBaseCandidates.map(Optional.some) +
-                (hasHostedCandidate ? localFallbackPlayfieldCandidates.map(Optional.some) : [])
-        )
+        return deduplicatedPlayfieldURLs([liveURL] + profPlayfieldBaseCandidates.map(Optional.some))
     }
 
     func opdbPlayfieldCandidates(liveStatus: LibraryLivePlayfieldStatus?) -> [URL] {
@@ -82,8 +71,7 @@ extension PinballGame {
     var preferredLocalPlayfieldCandidates: [URL] {
         deduplicatedPlayfieldURLs(
             explicitLocalPlayfieldCandidates.map(Optional.some) +
-                localOriginalPlayfieldURLs().map(Optional.some) +
-                localPlayfieldURLs(widths: [1400, 700]).map(Optional.some)
+                inferredHostedPlayfieldURLs().map(Optional.some)
         )
     }
 
@@ -111,23 +99,10 @@ extension PinballGame {
         return deduplicatedPlayfieldURLs([libraryMissingArtworkURL()])
     }
 
-    func localOriginalPlayfieldURLs() -> [URL] {
+    func inferredHostedPlayfieldURLs() -> [URL] {
         deduplicatedPlayfieldURLs(
-            playfieldAssetKeys.flatMap { assetKey in
-                librarySupportedPlayfieldOriginalExtensions.compactMap { ext in
-                    libraryResolveURL(pathOrURL: "/pinball/images/playfields/\(assetKey)-playfield.\(ext)")
-                }
-            }
-        )
-    }
-
-    func localPlayfieldURLs(widths: [Int]) -> [URL] {
-        deduplicatedPlayfieldURLs(
-            playfieldAssetKeys.flatMap { assetKey in
-                widths.compactMap { width in
-                    let path = "/pinball/images/playfields/\(assetKey)-playfield_\(width).webp"
-                    return libraryResolveURL(pathOrURL: path)
-                }
+            playfieldAssetKeys.compactMap { assetKey in
+                libraryResolveURL(pathOrURL: "/pinball/images/playfields/\(assetKey)-playfield.webp")
             }
         )
     }

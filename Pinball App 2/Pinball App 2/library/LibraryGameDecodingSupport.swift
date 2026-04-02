@@ -72,8 +72,9 @@ extension PinballGame {
         alternatePlayfieldImageUrl = try container.decodeIfPresent(String.self, forKey: .alternatePlayfieldImageUrl)
         let rawPlayfieldLocal = try container.decodeIfPresent(String.self, forKey: .playfieldLocal)
             ?? assets?.playfieldLocalPractice
-        playfieldLocalOriginal = normalizeLibraryCachePath(rawPlayfieldLocal)
-        playfieldLocal = normalizeLibraryPlayfieldLocalPath(rawPlayfieldLocal)
+        let normalizedPlayfieldLocalPath = normalizeLibraryPlayfieldLocalPath(rawPlayfieldLocal)
+        playfieldLocalOriginal = normalizedPlayfieldLocalPath
+        playfieldLocal = normalizedPlayfieldLocalPath
         gameinfoLocal = assets?.gameinfoLocalPractice
         rulesheetLocal = assets?.rulesheetLocalPractice
         rulesheetUrl = try container.decodeIfPresent(String.self, forKey: .rulesheetUrl)

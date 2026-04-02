@@ -4,8 +4,7 @@ private let syntheticPinProfLabsGroupID = "G900001"
 private let syntheticPinProfLabsMachineID = "G900001-1"
 private let syntheticPinProfLabsManufacturerID = "manufacturer-9001"
 private let syntheticPinProfLabsBackglassPath = "/pinball/images/backglasses/G900001-1-backglass.webp"
-private let syntheticPinProfLabsPlayfieldMediumPath = "/pinball/images/playfields/G900001-1-playfield_700.webp"
-private let syntheticPinProfLabsPlayfieldLargePath = "/pinball/images/playfields/G900001-1-playfield_1400.webp"
+private let syntheticPinProfLabsPlayfieldPath = "/pinball/images/playfields/G900001-1-playfield.webp"
 
 private func syntheticPinProfLabsCatalogMachineRecord() -> CatalogMachineRecord {
     CatalogMachineRecord(
@@ -34,8 +33,8 @@ private func syntheticPinProfLabsCatalogMachineRecord() -> CatalogMachineRecord 
             largeURL: syntheticPinProfLabsBackglassPath
         ),
         playfieldImage: CatalogMachineRecord.RemoteImageSet(
-            mediumURL: syntheticPinProfLabsPlayfieldMediumPath,
-            largeURL: syntheticPinProfLabsPlayfieldLargePath
+            mediumURL: syntheticPinProfLabsPlayfieldPath,
+            largeURL: syntheticPinProfLabsPlayfieldPath
         )
     )
 }

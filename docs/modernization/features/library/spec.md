@@ -60,11 +60,10 @@ Library includes:
 
 - Preload bundles stay intentionally small and do not need to contain every hosted playfield that exists on `pillyliu.com`.
 - Live app builds should still infer hosted playfield files from `pillyliu.com` for any already-known game identity.
+- Exported local playfield paths should normalize to the one published hosted file path, not a separate app-only derivative.
 - Hosted playfield lookup order is:
-  - explicit local original path from exported data
-  - inferred hosted original `...-playfield.{webp,jpg,jpeg,png}`
-  - inferred hosted `...-playfield_1400.webp`
-  - inferred hosted `...-playfield_700.webp`
+  - explicit local playfield path from exported data
+  - inferred hosted original `...-playfield.webp`
   - less-specific local OPDB-group fallback
   - OPDB-provided playfield fallback
 - That means newly uploaded hosted playfields can work without a preload-bundle update as long as the game already has the correct OPDB identity in app data.

@@ -2,12 +2,9 @@ package com.pillyliu.pinprofandroid.library
 
 import java.net.URL
 
-private val PinballGame.localFallbackPlayfieldCandidates: List<String>
-    get() = listOfNotNull(playfieldLocalURL).distinct()
-
 private val PinballGame.profPlayfieldBaseCandidates: List<String>
     get() = listOfNotNull(
-        playfieldLocalOriginalURL?.takeIf(::isPinProfPlayfieldUrl),
+        playfieldLocalURL?.takeIf(::isPinProfPlayfieldUrl),
         resolveLibraryUrl(playfieldImageUrl)?.takeIf(::isPinProfPlayfieldUrl),
     ).distinct().let { candidates ->
         if (usesBundledOnlyAppAssetException) emptyList() else candidates
@@ -18,13 +15,9 @@ private fun PinballGame.profPlayfieldCandidates(liveStatus: LivePlayfieldStatus?
         return emptyList()
     }
     val liveUrl = liveStatus?.effectiveUrl?.takeIf { liveStatus.effectiveKind == LivePlayfieldKind.PILLYLIU }
-    val hasHostedCandidate = liveUrl != null || profPlayfieldBaseCandidates.isNotEmpty()
     return buildList {
         liveUrl?.let(::add)
         addAll(profPlayfieldBaseCandidates)
-        if (hasHostedCandidate) {
-            addAll(localFallbackPlayfieldCandidates)
-        }
     }.distinct()
 }
 
@@ -89,7 +82,7 @@ internal fun PinballGame.fullscreenPlayfieldCandidates(): List<String> =
 internal fun PinballGame.resolvedPlayfieldCandidates(liveStatus: LivePlayfieldStatus?): List<String> =
     when {
         profPlayfieldCandidates(liveStatus).isNotEmpty() -> profPlayfieldCandidates(liveStatus)
-        localFallbackPlayfieldCandidates.isNotEmpty() -> localFallbackPlayfieldCandidates
+        explicitLocalPlayfieldCandidates.isNotEmpty() -> explicitLocalPlayfieldCandidates
         opdbPlayfieldCandidates(liveStatus).isNotEmpty() -> opdbPlayfieldCandidates(liveStatus)
         else -> emptyList()
     }
@@ -100,8 +93,8 @@ internal fun PinballGame.profPlayfieldCandidatesForOptions(liveStatus: LivePlayf
 internal fun PinballGame.profPlayfieldBaseCandidatesForLabel(): List<String> =
     profPlayfieldBaseCandidates
 
-internal fun PinballGame.localFallbackPlayfieldCandidatesForLabel(): List<String> =
-    localFallbackPlayfieldCandidates
+internal fun PinballGame.explicitLocalPlayfieldCandidatesForLabel(): List<String> =
+    explicitLocalPlayfieldCandidates
 
 internal fun PinballGame.opdbPlayfieldCandidatesForOptions(liveStatus: LivePlayfieldStatus?): List<String> =
     opdbPlayfieldCandidates(liveStatus)

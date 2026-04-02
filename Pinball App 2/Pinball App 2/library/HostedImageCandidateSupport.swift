@@ -1,11 +1,9 @@
 import Foundation
 
 private enum HostedImageCandidatePriority: Int {
-    case pinProf1400 = 0
-    case pinProf700 = 1
-    case pinProfOriginal = 2
-    case opdbOrExternal = 3
-    case other = 4
+    case pinProf = 0
+    case opdbOrExternal = 1
+    case other = 2
 }
 
 func prioritizeHostedImageCandidates(_ candidates: [URL]) -> [URL] {
@@ -21,11 +19,7 @@ func prioritizeHostedImageCandidates(_ candidates: [URL]) -> [URL] {
 
 func hostedImageLoadTimeout(for url: URL) -> TimeInterval? {
     switch hostedImageCandidatePriority(url) {
-    case .pinProf1400:
-        return 3.0
-    case .pinProf700:
-        return 2.0
-    case .pinProfOriginal:
+    case .pinProf:
         return 5.0
     case .opdbOrExternal:
         return 6.0
@@ -35,15 +29,8 @@ func hostedImageLoadTimeout(for url: URL) -> TimeInterval? {
 }
 
 private func hostedImageCandidatePriority(_ url: URL) -> HostedImageCandidatePriority {
-    let lowercasedPath = url.path.lowercased()
-    if lowercasedPath.contains("/pinball/images/playfields/") {
-        if lowercasedPath.contains("_1400.") {
-            return .pinProf1400
-        }
-        if lowercasedPath.contains("_700.") {
-            return .pinProf700
-        }
-        return .pinProfOriginal
+    if libraryIsPinProfPlayfieldURL(url) {
+        return .pinProf
     }
 
     let host = url.host?.lowercased() ?? ""

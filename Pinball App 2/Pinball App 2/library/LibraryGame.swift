@@ -76,8 +76,9 @@ nonisolated struct PinballGame: Identifiable, Decodable {
         playfieldImageUrl = record.playfieldImageURL
         alternatePlayfieldImageUrl = record.alternatePlayfieldImageURL
         playfieldSourceLabel = record.playfieldSourceLabel
-        playfieldLocalOriginal = normalizeLibraryCachePath(record.playfieldLocalPath)
-        playfieldLocal = normalizeLibraryPlayfieldLocalPath(record.playfieldLocalPath)
+        let normalizedPlayfieldLocalPath = normalizeLibraryPlayfieldLocalPath(record.playfieldLocalPath)
+        playfieldLocalOriginal = normalizedPlayfieldLocalPath
+        playfieldLocal = normalizedPlayfieldLocalPath
         gameinfoLocal = record.gameinfoLocalPath
         rulesheetLocal = record.rulesheetLocalPath
         rulesheetUrl = record.rulesheetURL

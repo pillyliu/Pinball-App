@@ -46,7 +46,7 @@ internal fun PinballGame.resolvedPlayfieldOptions(liveStatus: LivePlayfieldStatu
     if (profCandidates.isNotEmpty()) {
         appendOption(label = "PinProf", candidates = profCandidates)
     } else {
-        appendOption(label = localPlayfieldChipLabel, candidates = localFallbackPlayfieldCandidatesForLabel())
+        appendOption(label = localPlayfieldChipLabel, candidates = explicitLocalPlayfieldCandidatesForLabel())
     }
 
     appendOption(label = "OPDB", candidates = opdbPlayfieldCandidatesForOptions(liveStatus))
@@ -69,7 +69,7 @@ internal val PinballGame.playfieldButtonLabel: String
         if (profPlayfieldBaseCandidatesForLabel().isNotEmpty()) {
             return "PinProf"
         }
-        if (localFallbackPlayfieldCandidatesForLabel().isNotEmpty()) {
+        if (explicitLocalPlayfieldCandidatesForLabel().isNotEmpty()) {
             return localPlayfieldChipLabel
         }
         val resolved = resolveLibraryUrl(playfieldImageUrl)

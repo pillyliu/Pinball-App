@@ -135,7 +135,7 @@ class LibraryDataLoaderParityTest {
         assertEquals("PinProf: The Final Exam", machine.name)
         assertEquals("PinProf Labs", machine.manufacturerName)
         assertEquals("/pinball/images/backglasses/G900001-1-backglass.webp", machine.primaryImageMediumUrl)
-        assertEquals("/pinball/images/playfields/G900001-1-playfield_700.webp", machine.playfieldImageMediumUrl)
+        assertEquals("/pinball/images/playfields/G900001-1-playfield.webp", machine.playfieldImageMediumUrl)
     }
 
     @Test
@@ -171,7 +171,7 @@ class LibraryDataLoaderParityTest {
             practiceIdentity = "GrkL5",
             opdbId = "GrkL5-MJoNN",
             playfieldLocalOriginal = "/pinball/images/playfields/GrkL5-MJoNN-playfield.webp",
-            playfieldLocal = "/pinball/images/playfields/GrkL5-MJoNN-playfield_700.webp",
+            playfieldLocal = "/pinball/images/playfields/GrkL5-MJoNN-playfield.webp",
             rulesheetLocal = "/pinball/rulesheets/GrkL5-rulesheet.md",
         )
 
@@ -186,7 +186,7 @@ class LibraryDataLoaderParityTest {
             practiceIdentity = "G900001",
             opdbId = "G900001-1",
             playfieldLocalOriginal = "/pinball/images/playfields/G900001-1-playfield.webp",
-            playfieldLocal = "/pinball/images/playfields/G900001-1-playfield_700.webp",
+            playfieldLocal = "/pinball/images/playfields/G900001-1-playfield.webp",
             rulesheetLocal = "/pinball/rulesheets/G900001-rulesheet.md",
         )
 
@@ -195,14 +195,14 @@ class LibraryDataLoaderParityTest {
         assertEquals("Local", game.resolvedPlayfieldOptions(liveStatus = null).first().label)
         val hostedLiveStatus = LivePlayfieldStatus(
             effectiveKind = LivePlayfieldKind.PILLYLIU,
-            effectiveUrl = "https://pillyliu.com/pinball/images/playfields/G900001-1-playfield_700.webp",
+            effectiveUrl = "https://pillyliu.com/pinball/images/playfields/G900001-1-playfield.webp",
         )
         assertEquals("Local", game.resolvedPlayfieldOptions(liveStatus = hostedLiveStatus).first().label)
         assertEquals("Local", game.resolvedPlayfieldButtonLabel(liveStatus = hostedLiveStatus))
     }
 
     @Test
-    fun resolveImportedGame_suppressesStaleLocalRulesheetWhenTfExists() {
+    fun resolveImportedGame_usesTfRulesheetWhenNoLocalOverrideExists() {
         val game = resolveImportedGame(
             machine = catalogMachine(),
             source = ImportedSourceRecord(
@@ -216,7 +216,6 @@ class LibraryDataLoaderParityTest {
             manufacturerById = emptyMap(),
             curatedOverride = LegacyCuratedOverride(
                 practiceIdentity = "GQKyP",
-                rulesheetLocalPath = "/pinball/rulesheets/GQKyP-rulesheet.md",
             ),
             opdbRulesheets = listOf(
                 CatalogRulesheetLinkRecord(

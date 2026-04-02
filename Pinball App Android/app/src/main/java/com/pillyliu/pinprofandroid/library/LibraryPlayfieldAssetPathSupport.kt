@@ -1,6 +1,5 @@
 package com.pillyliu.pinprofandroid.library
 
-private val supportedPlayfieldOriginalExtensions = listOf("webp", "jpg", "jpeg", "png")
 private val bundledOnlyAppGroupIds = setOf("G900001")
 
 internal val PinballGame.usesBundledOnlyAppAssetException: Boolean
@@ -64,36 +63,22 @@ internal val PinballGame.explicitLocalPlayfieldCandidates: List<String>
 internal val PinballGame.preferredLocalPlayfieldCandidates: List<String>
     get() = (
         explicitLocalPlayfieldCandidates +
-            localOriginalPlayfieldCandidates() +
-            localPlayfieldCandidates(listOf(1400, 700))
+            inferredHostedPlayfieldCandidates()
         ).distinct()
 
-private fun PinballGame.localOriginalPlayfieldCandidates(): List<String> {
+private fun PinballGame.inferredHostedPlayfieldCandidates(): List<String> {
     val candidates = LinkedHashSet<String>()
     playfieldAssetKeys.forEach { assetKey ->
-        supportedPlayfieldOriginalExtensions.forEach { ext ->
-            resolveLibraryUrl("/pinball/images/playfields/$assetKey-playfield.$ext")?.let(candidates::add)
-        }
-    }
-    return candidates.toList()
-}
-
-private fun PinballGame.localPlayfieldCandidates(widths: List<Int>): List<String> {
-    val candidates = LinkedHashSet<String>()
-    playfieldAssetKeys.forEach { assetKey ->
-        widths.forEach { width ->
-            val path = "/pinball/images/playfields/$assetKey-playfield_${width}.webp"
-            resolveLibraryUrl(path)?.let(candidates::add)
-        }
+        resolveLibraryUrl("/pinball/images/playfields/$assetKey-playfield.webp")?.let(candidates::add)
     }
     return candidates.toList()
 }
 
 internal val PinballGame.playfieldLocalURL: String?
-    get() = resolveLibraryUrl(playfieldLocal)
+    get() = resolveLibraryUrl(playfieldLocal ?: playfieldLocalOriginal)
 
 internal val PinballGame.playfieldLocalOriginalURL: String?
-    get() = resolveLibraryUrl(playfieldLocalOriginal)
+    get() = resolveLibraryUrl(playfieldLocalOriginal ?: playfieldLocal)
 
 internal val PinballGame.alternatePlayfieldImageSourceUrl: String?
     get() = resolveLibraryUrl(alternatePlayfieldImageUrl)

@@ -1,6 +1,5 @@
 import Foundation
 
-nonisolated let librarySupportedPlayfieldOriginalExtensions = ["webp", "jpg", "jpeg", "png"]
 nonisolated let libraryMissingArtworkPath = "/pinball/images/playfields/fallback-image-not-available_2048.webp"
 nonisolated let libraryPinProfHosts: Set<String> = [
     "pillyliu.com",
@@ -87,18 +86,19 @@ nonisolated func libraryIsPinProfPlayfieldURL(_ url: URL?) -> Bool {
     return url.path.hasPrefix("/pinball/images/playfields/")
 }
 
-nonisolated func normalizeLibraryCachePath(_ pathOrURL: String?) -> String? {
+nonisolated func normalizeLibraryPublishedPlayfieldPath(_ pathOrURL: String?) -> String? {
     guard let raw = pathOrURL?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
         return nil
     }
     func normalizePlayfieldPublishedPath(_ value: String) -> String {
         value.replacingOccurrences(
-            of: #"(/pinball/images/playfields/.+?)(?:_(700|1400))?\.[A-Za-z0-9]+$"#,
+            of: #"(/pinball/images/playfields/.+?)(?:_\d+)?\.[A-Za-z0-9]+$"#,
             with: "$1.webp",
             options: .regularExpression
         )
     }
-    if let url = URL(string: raw), let host = url.host?.lowercased(), host == "pillyliu.com" {
+    if let url = URL(string: raw), url.scheme != nil {
+        guard libraryIsPinProfHost(url.host) else { return raw }
         return url.path.contains("/pinball/images/playfields/") ? normalizePlayfieldPublishedPath(url.path) : url.path
     }
     if raw.hasPrefix("/") {
@@ -108,20 +108,12 @@ nonisolated func normalizeLibraryCachePath(_ pathOrURL: String?) -> String? {
     return normalized.contains("/pinball/images/playfields/") ? normalizePlayfieldPublishedPath(normalized) : normalized
 }
 
+nonisolated func normalizeLibraryCachePath(_ pathOrURL: String?) -> String? {
+    normalizeLibraryPublishedPlayfieldPath(pathOrURL)
+}
+
 nonisolated func normalizeLibraryPlayfieldLocalPath(_ pathOrURL: String?) -> String? {
-    guard let raw = pathOrURL?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
-        return nil
-    }
-    if raw.localizedCaseInsensitiveContains("/pinball/images/playfields/") {
-        if raw.lowercased().hasSuffix("_700.webp") { return raw }
-        if raw.lowercased().hasSuffix("_1400.webp") {
-            return raw.replacingOccurrences(of: "_1400.webp", with: "_700.webp", options: [.caseInsensitive])
-        }
-        if let dot = raw.lastIndex(of: ".") {
-            return String(raw[..<dot]) + "_700.webp"
-        }
-    }
-    return raw
+    normalizeLibraryPublishedPlayfieldPath(pathOrURL)
 }
 
 nonisolated func libraryMissingArtworkURL() -> URL? {

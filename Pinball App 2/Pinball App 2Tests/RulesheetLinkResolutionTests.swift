@@ -69,7 +69,7 @@ final class RulesheetLinkResolutionTests: XCTestCase {
         XCTAssertEqual("Local", game.resolvedPlayfieldOptions(liveStatus: nil).first?.title)
         let hostedLiveStatus = LibraryLivePlayfieldStatus(
             effectiveKind: .pillyliu,
-            effectiveURL: URL(string: "https://pillyliu.com/pinball/images/playfields/G900001-1-playfield_700.webp")
+            effectiveURL: URL(string: "https://pillyliu.com/pinball/images/playfields/G900001-1-playfield.webp")
         )
         XCTAssertEqual("Local", game.resolvedPlayfieldOptions(liveStatus: hostedLiveStatus).first?.title)
         XCTAssertEqual("Local", game.resolvedPlayfieldButtonLabel(liveStatus: hostedLiveStatus))
