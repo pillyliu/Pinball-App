@@ -1,5 +1,27 @@
 # PinProf Intro Video Script
 
+> Status: this is the longer baseline script. For the current tighter promo direction and preferred outro wording, start from [pinprof-promo-codex-brief.md](/Users/pillyliu/Documents/Codex/Pinball%20App/docs/marketing/pinprof-promo-codex-brief.md) before revising this script.
+
+## Current Trimmed Draft
+
+This is the current working draft after the first major trim pass. It removes the app sequence notes so the narration can be judged on its own.
+
+Script:
+
+Hey everyone, my name is Peter. I’m excited to share something I’ve been working on. This is PinProf, a pinball study app.
+
+When you’re walking up to a game, sometimes you just want to look something up quickly. On Jurassic Park, how do you get that early extra ball? In Library, you can jump straight to that part of the rules, see that it takes six rescues, and that it’s collected at the right ramp. Then you can check the playfield, spot that little extra ball sign, and even watch a gameplay video to see it in action.
+
+It’s simple to keep track of your hard work. If you studied the rules or reviewed the playfield, you can log that. Recording your scores is easy. Just scan the score right off the machine. You can also build study groups, look up any machine quickly, review notes, and check the comprehensive practice log.
+
+For owners, PinProf makes it easy to keep track of your personal collection. You can import your games from Pinside and organize them by area and position. Keep track of play count and maintenance, and log issues and fixes as they happen.
+
+PinProf also connects you to the places you play and the tournaments you compete in. You can add your home arcade or any other venue. If you play competitively, load in a tournament’s arena list with its MatchPlay ID, or quickly check your IFPA stats.
+
+There are also special features for the Lansing Pinball League. View scores from across all of LPL history, check the league standings, and see score targets based on historical averages.
+
+Over the past year and a half, the pinball community has given me so much. PinProf is my way of giving back. Give it a flip, thanks.
+
 **Intro**  
 Script: Hey everyone, my name is Peter. I’m excited to share with you all something I’ve been working on for the past few months. This is PinProf, a pinball study app with your own personal pinball professor.  
 Sequence:

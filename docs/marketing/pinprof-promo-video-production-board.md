@@ -1,5 +1,7 @@
 # PinProf Promo Video Production Board
 
+> Status: this board reflects the earlier long-form promo direction. For the current shorter `~1:30` direction, use [pinprof-promo-codex-brief.md](/Users/pillyliu/Documents/Codex/Pinball%20App/docs/marketing/pinprof-promo-codex-brief.md) as the source of truth when there is a conflict.
+
 ## Visual System
 
 - **A-roll framing:** Peter on camera. Centered for the opening and closing. Shifted to the left third once app footage begins.

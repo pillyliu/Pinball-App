@@ -1026,7 +1026,7 @@
   {
     "opdb_id": "GRQ6d-MDRlL",
     "is_machine": true,
-    "name": "Sky·Line",
+    "name": "Sky\u00b7Line",
     "common_name": null,
     "shortname": "",
     "physical_machine": 1,
@@ -5477,7 +5477,7 @@
     "images": [
       {
         "title": "Backglass",
-        "primary": true,
+        "primary": false,
         "type": "backglass",
         "urls": {
           "medium": "https://img.opdb.org/0359eaac-f96d-4e46-b1dd-54ae38869a69-medium.jpg",
@@ -5496,6 +5496,54 @@
           "small": {
             "width": 250,
             "height": 226
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "backglass",
+        "urls": {
+          "medium": "https://img.opdb.org/17a516b0-d608-444c-bdb8-62af1cfbfb9e-medium.jpg",
+          "large": "https://img.opdb.org/17a516b0-d608-444c-bdb8-62af1cfbfb9e-large.jpg",
+          "small": "https://img.opdb.org/17a516b0-d608-444c-bdb8-62af1cfbfb9e-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 640,
+            "height": 592
+          },
+          "large": {
+            "width": 1044,
+            "height": 966
+          },
+          "small": {
+            "width": 250,
+            "height": 231
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "playfield",
+        "urls": {
+          "medium": "https://img.opdb.org/1252325f-72df-494b-9178-6ac85976815e-medium.jpg",
+          "large": "https://img.opdb.org/1252325f-72df-494b-9178-6ac85976815e-large.jpg",
+          "small": "https://img.opdb.org/1252325f-72df-494b-9178-6ac85976815e-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 426,
+            "height": 640
+          },
+          "large": {
+            "width": 998,
+            "height": 1500
+          },
+          "small": {
+            "width": 166,
+            "height": 250
           }
         }
       }
@@ -7055,6 +7103,30 @@
             "height": 158
           }
         }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "playfield",
+        "urls": {
+          "medium": "https://img.opdb.org/2dedc9cd-c618-42dd-bd9d-2768bab9e551-medium.jpg",
+          "large": "https://img.opdb.org/2dedc9cd-c618-42dd-bd9d-2768bab9e551-large.jpg",
+          "small": "https://img.opdb.org/2dedc9cd-c618-42dd-bd9d-2768bab9e551-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 438,
+            "height": 640
+          },
+          "large": {
+            "width": 972,
+            "height": 1420
+          },
+          "small": {
+            "width": 171,
+            "height": 250
+          }
+        }
       }
     ]
   },
@@ -8394,6 +8466,30 @@
           "small": {
             "width": 250,
             "height": 211
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "cabinet",
+        "urls": {
+          "medium": "https://img.opdb.org/1d14c8c3-8f44-4435-b61b-83e4d38ed10a-medium.jpg",
+          "large": "https://img.opdb.org/1d14c8c3-8f44-4435-b61b-83e4d38ed10a-large.jpg",
+          "small": "https://img.opdb.org/1d14c8c3-8f44-4435-b61b-83e4d38ed10a-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 444,
+            "height": 640
+          },
+          "large": {
+            "width": 1040,
+            "height": 1500
+          },
+          "small": {
+            "width": 174,
+            "height": 250
           }
         }
       }
@@ -10758,30 +10854,6 @@
     "created_at": "2018-03-11",
     "updated_at": "2018-04-21",
     "images": [
-      {
-        "title": "Backglass",
-        "primary": false,
-        "type": "backglass",
-        "urls": {
-          "medium": "https://img.opdb.org/456f984c-d2e6-4a5c-a949-f65736bef1ac-medium.jpg",
-          "large": "https://img.opdb.org/456f984c-d2e6-4a5c-a949-f65736bef1ac-large.jpg",
-          "small": "https://img.opdb.org/456f984c-d2e6-4a5c-a949-f65736bef1ac-small.jpg"
-        },
-        "sizes": {
-          "medium": {
-            "width": 450,
-            "height": 600
-          },
-          "large": {
-            "width": 450,
-            "height": 600
-          },
-          "small": {
-            "width": 188,
-            "height": 250
-          }
-        }
-      },
       {
         "title": null,
         "primary": true,
@@ -14317,7 +14389,7 @@
     "images": [
       {
         "title": "Backglass",
-        "primary": true,
+        "primary": false,
         "type": "backglass",
         "urls": {
           "medium": "https://img.opdb.org/4334d7d0-2aba-48e6-9e48-16199bd11ed2-medium.jpg",
@@ -14335,6 +14407,54 @@
           },
           "small": {
             "width": 240,
+            "height": 250
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "backglass",
+        "urls": {
+          "medium": "https://img.opdb.org/2dd03950-fb49-4107-b233-96ddcd0ae1f6-medium.jpg",
+          "large": "https://img.opdb.org/2dd03950-fb49-4107-b233-96ddcd0ae1f6-large.jpg",
+          "small": "https://img.opdb.org/2dd03950-fb49-4107-b233-96ddcd0ae1f6-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 640,
+            "height": 460
+          },
+          "large": {
+            "width": 1296,
+            "height": 932
+          },
+          "small": {
+            "width": 250,
+            "height": 180
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "playfield",
+        "urls": {
+          "medium": "https://img.opdb.org/865bd026-de2c-495a-97e5-d3dc24ee9eff-medium.jpg",
+          "large": "https://img.opdb.org/865bd026-de2c-495a-97e5-d3dc24ee9eff-large.jpg",
+          "small": "https://img.opdb.org/865bd026-de2c-495a-97e5-d3dc24ee9eff-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 433,
+            "height": 640
+          },
+          "large": {
+            "width": 936,
+            "height": 1385
+          },
+          "small": {
+            "width": 169,
             "height": 250
           }
         }
@@ -15199,7 +15319,7 @@
   {
     "opdb_id": "G5Q19-MDEy0",
     "is_machine": true,
-    "name": "Volèe",
+    "name": "Vol\u00e8e",
     "common_name": null,
     "shortname": "",
     "physical_machine": 1,
@@ -23322,30 +23442,6 @@
     "updated_at": "2025-10-17",
     "images": [
       {
-        "title": "Backglass",
-        "primary": false,
-        "type": "backglass",
-        "urls": {
-          "medium": "https://img.opdb.org/4143ab5a-6004-421a-b008-e7c0d3b17421-medium.jpg",
-          "large": "https://img.opdb.org/4143ab5a-6004-421a-b008-e7c0d3b17421-large.jpg",
-          "small": "https://img.opdb.org/4143ab5a-6004-421a-b008-e7c0d3b17421-small.jpg"
-        },
-        "sizes": {
-          "medium": {
-            "width": 640,
-            "height": 578
-          },
-          "large": {
-            "width": 664,
-            "height": 600
-          },
-          "small": {
-            "width": 250,
-            "height": 226
-          }
-        }
-      },
-      {
         "title": null,
         "primary": true,
         "type": "backglass",
@@ -31115,7 +31211,7 @@
     "images": [
       {
         "title": "Backglass",
-        "primary": true,
+        "primary": false,
         "type": "backglass",
         "urls": {
           "medium": "https://img.opdb.org/e7a828e7-ed87-4c04-97be-11ee98954bed-medium.jpg",
@@ -31134,6 +31230,54 @@
           "small": {
             "width": 250,
             "height": 244
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "backglass",
+        "urls": {
+          "medium": "https://img.opdb.org/28d50d51-90a8-487e-aeaa-750006c5ca22-medium.jpg",
+          "large": "https://img.opdb.org/28d50d51-90a8-487e-aeaa-750006c5ca22-large.jpg",
+          "small": "https://img.opdb.org/28d50d51-90a8-487e-aeaa-750006c5ca22-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 640,
+            "height": 623
+          },
+          "large": {
+            "width": 972,
+            "height": 946
+          },
+          "small": {
+            "width": 250,
+            "height": 243
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "playfield",
+        "urls": {
+          "medium": "https://img.opdb.org/e365d615-fb47-47b5-a9ff-4f62931a05d7-medium.jpg",
+          "large": "https://img.opdb.org/e365d615-fb47-47b5-a9ff-4f62931a05d7-large.jpg",
+          "small": "https://img.opdb.org/e365d615-fb47-47b5-a9ff-4f62931a05d7-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 451,
+            "height": 640
+          },
+          "large": {
+            "width": 1057,
+            "height": 1500
+          },
+          "small": {
+            "width": 176,
+            "height": 250
           }
         }
       }
@@ -33620,6 +33764,30 @@
           "small": {
             "width": 250,
             "height": 245
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "playfield",
+        "urls": {
+          "medium": "https://img.opdb.org/485feea8-8213-4e16-a44b-99493a2b34c3-medium.jpg",
+          "large": "https://img.opdb.org/485feea8-8213-4e16-a44b-99493a2b34c3-large.jpg",
+          "small": "https://img.opdb.org/485feea8-8213-4e16-a44b-99493a2b34c3-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 522,
+            "height": 640
+          },
+          "large": {
+            "width": 1080,
+            "height": 1325
+          },
+          "small": {
+            "width": 204,
+            "height": 250
           }
         }
       }
@@ -42160,6 +42328,30 @@
             "height": 250
           }
         }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "playfield",
+        "urls": {
+          "medium": "https://img.opdb.org/775361e9-8814-40a3-9e2c-f5699ba951a1-medium.jpg",
+          "large": "https://img.opdb.org/775361e9-8814-40a3-9e2c-f5699ba951a1-large.jpg",
+          "small": "https://img.opdb.org/775361e9-8814-40a3-9e2c-f5699ba951a1-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 471,
+            "height": 640
+          },
+          "large": {
+            "width": 900,
+            "height": 1223
+          },
+          "small": {
+            "width": 184,
+            "height": 250
+          }
+        }
       }
     ]
   },
@@ -43419,30 +43611,6 @@
     "created_at": "2018-03-11",
     "updated_at": "2018-04-11",
     "images": [
-      {
-        "title": "Backglass",
-        "primary": false,
-        "type": "backglass",
-        "urls": {
-          "medium": "https://img.opdb.org/6fe570ee-63ba-495a-b7b8-3837d91de8d3-medium.jpg",
-          "large": "https://img.opdb.org/6fe570ee-63ba-495a-b7b8-3837d91de8d3-large.jpg",
-          "small": "https://img.opdb.org/6fe570ee-63ba-495a-b7b8-3837d91de8d3-small.jpg"
-        },
-        "sizes": {
-          "medium": {
-            "width": 460,
-            "height": 350
-          },
-          "large": {
-            "width": 460,
-            "height": 350
-          },
-          "small": {
-            "width": 250,
-            "height": 190
-          }
-        }
-      },
       {
         "title": null,
         "primary": true,
@@ -55527,9 +55695,9 @@
   {
     "opdb_id": "GRKOX-MLyrW",
     "is_machine": true,
-    "name": "Jack•Bot",
+    "name": "Jack\u2022Bot",
     "common_name": "JackBot",
-    "shortname": "J•B",
+    "shortname": "J\u2022B",
     "physical_machine": 1,
     "ipdb_id": 3619,
     "manufacture_date": "1995-01-01",
@@ -65800,30 +65968,6 @@
     "updated_at": "2018-04-01",
     "images": [
       {
-        "title": "Backglass",
-        "primary": false,
-        "type": "backglass",
-        "urls": {
-          "medium": "https://img.opdb.org/0169b412-9f6f-46df-83d5-e5934bdbb083-medium.jpg",
-          "large": "https://img.opdb.org/0169b412-9f6f-46df-83d5-e5934bdbb083-large.jpg",
-          "small": "https://img.opdb.org/0169b412-9f6f-46df-83d5-e5934bdbb083-small.jpg"
-        },
-        "sizes": {
-          "medium": {
-            "width": 640,
-            "height": 571
-          },
-          "large": {
-            "width": 673,
-            "height": 600
-          },
-          "small": {
-            "width": 250,
-            "height": 223
-          }
-        }
-      },
-      {
         "title": null,
         "primary": true,
         "type": "backglass",
@@ -67724,30 +67868,6 @@
     "created_at": "2018-03-11",
     "updated_at": "2018-04-25",
     "images": [
-      {
-        "title": "Backglass",
-        "primary": false,
-        "type": "backglass",
-        "urls": {
-          "medium": "https://img.opdb.org/9c2ef768-4851-4aa9-99e9-133a778902d6-medium.jpg",
-          "large": "https://img.opdb.org/9c2ef768-4851-4aa9-99e9-133a778902d6-large.jpg",
-          "small": "https://img.opdb.org/9c2ef768-4851-4aa9-99e9-133a778902d6-small.jpg"
-        },
-        "sizes": {
-          "medium": {
-            "width": 640,
-            "height": 587
-          },
-          "large": {
-            "width": 654,
-            "height": 600
-          },
-          "small": {
-            "width": 250,
-            "height": 229
-          }
-        }
-      },
       {
         "title": null,
         "primary": true,
@@ -76501,30 +76621,6 @@
     "updated_at": "2018-04-05",
     "images": [
       {
-        "title": "Backglass",
-        "primary": false,
-        "type": "backglass",
-        "urls": {
-          "medium": "https://img.opdb.org/6d218e9b-7823-4ae3-8866-06f5ff31d5e0-medium.jpg",
-          "large": "https://img.opdb.org/6d218e9b-7823-4ae3-8866-06f5ff31d5e0-large.jpg",
-          "small": "https://img.opdb.org/6d218e9b-7823-4ae3-8866-06f5ff31d5e0-small.jpg"
-        },
-        "sizes": {
-          "medium": {
-            "width": 640,
-            "height": 510
-          },
-          "large": {
-            "width": 753,
-            "height": 600
-          },
-          "small": {
-            "width": 250,
-            "height": 199
-          }
-        }
-      },
-      {
         "title": null,
         "primary": true,
         "type": "backglass",
@@ -78783,30 +78879,6 @@
     "created_at": "2018-03-11",
     "updated_at": "2018-04-11",
     "images": [
-      {
-        "title": "Backglass",
-        "primary": false,
-        "type": "backglass",
-        "urls": {
-          "medium": "https://img.opdb.org/b9468775-4126-4871-939a-ecd09d667897-medium.jpg",
-          "large": "https://img.opdb.org/b9468775-4126-4871-939a-ecd09d667897-large.jpg",
-          "small": "https://img.opdb.org/b9468775-4126-4871-939a-ecd09d667897-small.jpg"
-        },
-        "sizes": {
-          "medium": {
-            "width": 640,
-            "height": 549
-          },
-          "large": {
-            "width": 699,
-            "height": 600
-          },
-          "small": {
-            "width": 250,
-            "height": 215
-          }
-        }
-      },
       {
         "title": null,
         "primary": true,
@@ -84451,7 +84523,7 @@
     "images": [
       {
         "title": "Backglass",
-        "primary": true,
+        "primary": false,
         "type": "backglass",
         "urls": {
           "medium": "https://img.opdb.org/b92cd541-3814-41d8-99fa-20a9234f997f-medium.jpg",
@@ -84470,6 +84542,54 @@
           "small": {
             "width": 250,
             "height": 211
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "backglass",
+        "urls": {
+          "medium": "https://img.opdb.org/4af3ec1d-be25-4101-863d-33f73d4aba67-medium.jpg",
+          "large": "https://img.opdb.org/4af3ec1d-be25-4101-863d-33f73d4aba67-large.jpg",
+          "small": "https://img.opdb.org/4af3ec1d-be25-4101-863d-33f73d4aba67-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 640,
+            "height": 561
+          },
+          "large": {
+            "width": 1080,
+            "height": 946
+          },
+          "small": {
+            "width": 250,
+            "height": 219
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "playfield",
+        "urls": {
+          "medium": "https://img.opdb.org/38128af0-ec0d-47f4-a479-bcdc06cf3ef5-medium.jpg",
+          "large": "https://img.opdb.org/38128af0-ec0d-47f4-a479-bcdc06cf3ef5-large.jpg",
+          "small": "https://img.opdb.org/38128af0-ec0d-47f4-a479-bcdc06cf3ef5-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 401,
+            "height": 640
+          },
+          "large": {
+            "width": 900,
+            "height": 1436
+          },
+          "small": {
+            "width": 157,
+            "height": 250
           }
         }
       }
@@ -86512,7 +86632,7 @@
     "images": [
       {
         "title": "Backglass",
-        "primary": true,
+        "primary": false,
         "type": "backglass",
         "urls": {
           "medium": "https://img.opdb.org/10b805fb-78bf-47c3-aeb7-7fa9624e1ccb-medium.jpg",
@@ -86555,6 +86675,30 @@
           "small": {
             "width": 169,
             "height": 250
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "backglass",
+        "urls": {
+          "medium": "https://img.opdb.org/748cfe39-919c-4de8-ae2a-0d0655c85634-medium.jpg",
+          "large": "https://img.opdb.org/748cfe39-919c-4de8-ae2a-0d0655c85634-large.jpg",
+          "small": "https://img.opdb.org/748cfe39-919c-4de8-ae2a-0d0655c85634-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 640,
+            "height": 436
+          },
+          "large": {
+            "width": 1260,
+            "height": 859
+          },
+          "small": {
+            "width": 250,
+            "height": 170
           }
         }
       }
@@ -87720,30 +87864,6 @@
     "updated_at": "2018-04-05",
     "images": [
       {
-        "title": "Backglass",
-        "primary": false,
-        "type": "backglass",
-        "urls": {
-          "medium": "https://img.opdb.org/61059765-4556-4e84-8006-e05ccabab132-medium.jpg",
-          "large": "https://img.opdb.org/61059765-4556-4e84-8006-e05ccabab132-large.jpg",
-          "small": "https://img.opdb.org/61059765-4556-4e84-8006-e05ccabab132-small.jpg"
-        },
-        "sizes": {
-          "medium": {
-            "width": 640,
-            "height": 480
-          },
-          "large": {
-            "width": 640,
-            "height": 480
-          },
-          "small": {
-            "width": 250,
-            "height": 188
-          }
-        }
-      },
-      {
         "title": null,
         "primary": true,
         "type": "backglass",
@@ -88712,6 +88832,30 @@
           "small": {
             "width": 250,
             "height": 174
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": false,
+        "type": "playfield",
+        "urls": {
+          "medium": "https://img.opdb.org/a1fa1337-24d4-483d-b288-50dae23a29c7-medium.jpg",
+          "large": "https://img.opdb.org/a1fa1337-24d4-483d-b288-50dae23a29c7-large.jpg",
+          "small": "https://img.opdb.org/a1fa1337-24d4-483d-b288-50dae23a29c7-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 525,
+            "height": 640
+          },
+          "large": {
+            "width": 1080,
+            "height": 1316
+          },
+          "small": {
+            "width": 205,
+            "height": 250
           }
         }
       }
@@ -97544,6 +97688,30 @@
             "height": 228
           }
         }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "playfield",
+        "urls": {
+          "medium": "https://img.opdb.org/3f0cef31-5b16-4a74-9e78-88c8880cd8dd-medium.jpg",
+          "large": "https://img.opdb.org/3f0cef31-5b16-4a74-9e78-88c8880cd8dd-large.jpg",
+          "small": "https://img.opdb.org/3f0cef31-5b16-4a74-9e78-88c8880cd8dd-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 424,
+            "height": 640
+          },
+          "large": {
+            "width": 972,
+            "height": 1465
+          },
+          "small": {
+            "width": 166,
+            "height": 250
+          }
+        }
       }
     ]
   },
@@ -99490,7 +99658,7 @@
   {
     "opdb_id": "G5Woz-MKNq6",
     "is_machine": true,
-    "name": "Charlie’s Angels",
+    "name": "Charlie\u2019s Angels",
     "common_name": null,
     "shortname": "CA",
     "physical_machine": 1,
@@ -99664,7 +99832,7 @@
   {
     "opdb_id": "G5Woz-MwNP3",
     "is_machine": true,
-    "name": "Charlie’s Angels (EM)",
+    "name": "Charlie\u2019s Angels (EM)",
     "common_name": null,
     "shortname": "CA",
     "physical_machine": 1,
@@ -102060,6 +102228,30 @@
           "small": {
             "width": 250,
             "height": 169
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "playfield",
+        "urls": {
+          "medium": "https://img.opdb.org/c75791f6-0d8d-4305-99a5-6e7d5449d586-medium.jpg",
+          "large": "https://img.opdb.org/c75791f6-0d8d-4305-99a5-6e7d5449d586-large.jpg",
+          "small": "https://img.opdb.org/c75791f6-0d8d-4305-99a5-6e7d5449d586-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 424,
+            "height": 640
+          },
+          "large": {
+            "width": 992,
+            "height": 1500
+          },
+          "small": {
+            "width": 165,
+            "height": 250
           }
         }
       }
@@ -106352,6 +106544,30 @@
           "small": {
             "width": 250,
             "height": 145
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "playfield",
+        "urls": {
+          "medium": "https://img.opdb.org/e4c02a1b-b49c-4370-88e1-c94ab0774dec-medium.jpg",
+          "large": "https://img.opdb.org/e4c02a1b-b49c-4370-88e1-c94ab0774dec-large.jpg",
+          "small": "https://img.opdb.org/e4c02a1b-b49c-4370-88e1-c94ab0774dec-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 409,
+            "height": 640
+          },
+          "large": {
+            "width": 959,
+            "height": 1500
+          },
+          "small": {
+            "width": 160,
+            "height": 250
           }
         }
       }
@@ -114380,7 +114596,7 @@
     "manufacturer": {
       "manufacturer_id": 141,
       "name": "IDSA",
-      "full_name": "Ideas y Diseños, Sociedad Anónima",
+      "full_name": "Ideas y Dise\u00f1os, Sociedad An\u00f3nima",
       "created_at": "2024-01-19",
       "updated_at": "2024-01-19"
     },
@@ -121395,7 +121611,7 @@
     "manufacturer": {
       "manufacturer_id": 165,
       "name": "Rowamet",
-      "full_name": "Rowamet Indústria Eletrometalúrgica LTDA",
+      "full_name": "Rowamet Ind\u00fastria Eletrometal\u00fargica LTDA",
       "created_at": "2025-10-16",
       "updated_at": "2025-10-16"
     },
@@ -121423,7 +121639,7 @@
     "manufacturer": {
       "manufacturer_id": 165,
       "name": "Rowamet",
-      "full_name": "Rowamet Indústria Eletrometalúrgica LTDA",
+      "full_name": "Rowamet Ind\u00fastria Eletrometal\u00fargica LTDA",
       "created_at": "2025-10-16",
       "updated_at": "2025-10-16"
     },
@@ -121815,7 +122031,7 @@
   {
     "opdb_id": "GV8wB-Mq12N",
     "is_machine": true,
-    "name": "Pokémon (Pro)",
+    "name": "Pok\u00e9mon (Pro)",
     "common_name": null,
     "shortname": "Pokemon",
     "physical_machine": 1,
@@ -121868,7 +122084,7 @@
   {
     "opdb_id": "GV8wB-MRjKd",
     "is_machine": true,
-    "name": "Pokémon (Premium/LE)",
+    "name": "Pok\u00e9mon (Premium/LE)",
     "common_name": null,
     "shortname": "Pokemon",
     "physical_machine": 0,
@@ -123792,6 +124008,30 @@
           "small": {
             "width": 250,
             "height": 161
+          }
+        }
+      },
+      {
+        "title": null,
+        "primary": true,
+        "type": "playfield",
+        "urls": {
+          "medium": "https://img.opdb.org/6178a0b6-5bef-4d5c-b02f-c6b93635f433-medium.jpg",
+          "large": "https://img.opdb.org/6178a0b6-5bef-4d5c-b02f-c6b93635f433-large.jpg",
+          "small": "https://img.opdb.org/6178a0b6-5bef-4d5c-b02f-c6b93635f433-small.jpg"
+        },
+        "sizes": {
+          "medium": {
+            "width": 350,
+            "height": 640
+          },
+          "large": {
+            "width": 820,
+            "height": 1500
+          },
+          "small": {
+            "width": 137,
+            "height": 250
           }
         }
       }
@@ -131314,7 +131554,7 @@
     "manufacturer": {
       "manufacturer_id": 165,
       "name": "Rowamet",
-      "full_name": "Rowamet Indústria Eletrometalúrgica LTDA",
+      "full_name": "Rowamet Ind\u00fastria Eletrometal\u00fargica LTDA",
       "created_at": "2025-10-16",
       "updated_at": "2025-10-16"
     },
@@ -131350,7 +131590,7 @@
   {
     "opdb_id": "GV8wB-MRjKd-AOVy7",
     "is_alias": true,
-    "name": "Pokémon (Premium)",
+    "name": "Pok\u00e9mon (Premium)",
     "common_name": null,
     "shortname": "Pokemon",
     "ipdb_id": null,
@@ -131398,7 +131638,7 @@
   {
     "opdb_id": "GV8wB-MRjKd-ARz2r",
     "is_alias": true,
-    "name": "Pokémon (LE)",
+    "name": "Pok\u00e9mon (LE)",
     "common_name": null,
     "shortname": "Pokemon",
     "ipdb_id": null,

@@ -1,8 +1,8 @@
 # Pinball App
 
 Current workspace release line:
-- iOS marketing version: `3.5.2` (build `98`)
-- Android `versionName`: `3.5.2` (`versionCode` `59`)
+- iOS marketing version: `3.5.3` (build `99`)
+- Android `versionName`: `3.5.3` (`versionCode` `60`)
 
 This repository contains both mobile apps:
 - `Pinball App 2/` -> iOS (SwiftUI + Xcode project)
@@ -67,7 +67,7 @@ Important current notes:
 - iOS versioning lives in `Pinball App 2/Pinball App 2.xcodeproj/project.pbxproj`.
 - Android versioning lives in `Pinball App Android/app/build.gradle.kts`.
 - The latest checked-in release-notes snapshot is still `RELEASE_NOTES_3.5.0.md`.
-- The source tree itself is already on the `3.5.2` release line.
+- The source tree itself is already on the `3.5.3` release line.
 
 ## Validation Gates
 
