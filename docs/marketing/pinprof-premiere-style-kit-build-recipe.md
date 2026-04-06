@@ -25,7 +25,9 @@ Use the app as content and the style kit as chrome.
 
 - The app footage itself should stay clean and readable.
 - The Premiere elements should provide the atmosphere, pane, border, glow, and editorial hierarchy around the app.
-- Do not add fake device hardware.
+- Preferred full-height app chrome is now a neutral phone-like frame with a transparent center.
+- It should read like a branded vessel, not a literal iPhone bezel mockup.
+- The older filled pane assets are still useful for focus-crop or alternate layouts, but they are no longer the default full-height treatment.
 
 ## Asset Set
 
@@ -38,6 +40,13 @@ Reusable pane bases:
 
 - `full_app_pane_base_4k.png`
 - `focus_crop_pane_base_4k.png`
+
+Preferred phone-frame assets:
+
+- `phone_frame_overlay_4k.png`
+- `phone_frame_window_matte_4k.png`
+- `phone_focus_frame_overlay_4k.png`
+- `phone_focus_frame_window_matte_4k.png`
 
 Reusable label treatments:
 
@@ -57,14 +66,78 @@ Title cards:
 End card:
 
 - `end_card_4k.png`
+- `outro_logo_glow_plate_4k.png`
+- `outro_logo_square_frame_overlay_4k.png`
+
+Watermark:
+
+- `watermark_logo_soft_overlay_4k.png`
 
 Preview boards:
 
+- `preview_phone_frame_layout_library_4k.png`
+- `preview_phone_focus_frame_layout_library_4k.png`
+- `preview_intro_logo_reveal_4k.png`
+- `preview_outro_logo_endcard_4k.png`
+- `preview_watermark_logo_4k.png`
 - `preview_full_app_layout_library_4k.png`
 - `preview_focus_crop_layout_league_4k.png`
 - `preview_style_kit_overview_4k.png`
 
 ## Premiere Use
+
+### Preferred Full Portrait View
+
+Use when the point is a normal full-height app shot that should still feel device-adjacent.
+
+Stack:
+
+1. `background_plate_master_4k.png`
+2. presenter footage on the left
+3. app footage, sized to the `media_rect` for `phone_frame_view` from `style_kit_manifest.json`
+4. `phone_frame_overlay_4k.png` above the app footage
+5. optional helper label if needed
+
+If you need the app footage clipped by a still matte:
+
+1. use `phone_frame_window_matte_4k.png` as the matte source
+2. or crop/mask directly to the same `media_rect`
+
+Current placement from the manifest:
+
+- frame rect: `2706,74,3660,2086`
+- app media rect: `2732,100,3634,2060`
+- frame radius: `120`
+- media radius: `96`
+
+This is the current preferred full-height treatment.
+
+### Preferred Focus Crop View
+
+Use when the point is readability and the crop should keep the full captured app width while trimming height only.
+
+Current crop rule:
+
+- source width stays at the full capture width
+- source crop becomes `1320 x 1980`
+- aspect ratio is `3:2` in height:width terms
+
+Stack:
+
+1. `background_plate_master_4k.png`
+2. presenter footage on the left
+3. cropped app footage, sized to the `media_rect` for `phone_focus_frame_view`
+4. `phone_focus_frame_overlay_4k.png` above the app footage
+5. optional helper text below or beside it if needed
+
+Current placement from the manifest:
+
+- frame rect: `2706,377,3660,1782`
+- app media rect: `2732,403,3634,1756`
+- frame radius: `120`
+- media radius: `96`
+
+This is the current preferred cropped-detail treatment because it preserves full app width and only removes top/bottom content.
 
 ### Full App View
 

@@ -1,5 +1,7 @@
 # PinProf Promo Final Audio Beat Map
 
+> Status: provisional timing guide only. This map was derived from an earlier standalone spoken take. The next timing pass should be remapped from the audio in the chosen A-roll source clips listed in [pinprof-promo-primary-source-selects.md](/Users/pillyliu/Documents/Codex/Pinball%20App/docs/marketing/pinprof-promo-primary-source-selects.md), using their locked in/out trim ranges for Premiere.
+
 This beat map is anchored to the current spoken recording:
 
 - Audio: `/Users/pillyliu/Library/CloudStorage/Dropbox/Pinball/PinProf Promo Video/PinProf Intro Script Final.m4a`

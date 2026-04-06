@@ -2,25 +2,25 @@
 
 > Status: this is the longer baseline script. For the current tighter promo direction and preferred outro wording, start from [pinprof-promo-codex-brief.md](/Users/pillyliu/Documents/Codex/Pinball%20App/docs/marketing/pinprof-promo-codex-brief.md) before revising this script.
 
-## Current Trimmed Draft
+## Current Final Script
 
-This is the current working draft after the first major trim pass. It removes the app sequence notes so the narration can be judged on its own.
+This is the current script to use for promo read-throughs and edit planning. It removes the app sequence notes so the narration can be judged on its own.
 
 Script:
 
 Hey everyone, my name is Peter. I’m excited to share something I’ve been working on. This is PinProf, a pinball study app.
 
-When you’re walking up to a game, sometimes you just want to look something up quickly. On Jurassic Park, how do you get that early extra ball? In Library, you can jump straight to that part of the rules, see that it takes six rescues, and that it’s collected at the right ramp. Then you can check the playfield, spot that little extra ball sign, and even watch a gameplay video to see it in action.
+On Jurassic Park, how do you get that early extra ball? In PinProf’s Library, you can jump straight to the Extra Ball section of the rules and see exactly how it’s lit and collected. Then you can check the playfield, spot the extra ball sign, and even watch a video to see it in action.
 
-It’s simple to keep track of your hard work. If you studied the rules or reviewed the playfield, you can log that. Recording your scores is easy. Just scan the score right off the machine. You can also build study groups, look up any machine quickly, review notes, and check the comprehensive practice log.
+It’s simple to keep track of your study. If you’ve read the rules or reviewed the playfield, you can log that. Recording your scores is easy. Just scan it right off the machine. You can also build study groups, look up any game quickly, and review practice notes.
 
-For owners, PinProf makes it easy to keep track of your personal collection. You can import your games from Pinside and organize them by area and position. Keep track of play count and maintenance, and log issues and fixes as they happen.
+For owners, PinProf makes it easy to keep track of your personal collection. Import your games from Pinside, and log maintenance and issues as they happen.
 
-PinProf also connects you to the places you play and the tournaments you compete in. You can add your home arcade or any other venue. If you play competitively, load in a tournament’s arena list with its MatchPlay ID, or quickly check your IFPA stats.
+PinProf also connects you to your pinball scene. Add your local arcade or any other venue. If you play competitively, load in a tournament’s arena list with its MatchPlay ID, or quickly check your IFPA stats.
 
-There are also special features for the Lansing Pinball League. View scores from across all of LPL history, check the league standings, and see score targets based on historical averages.
+And as a bonus, there are special features for my local pinball family, the Lansing Pinball League.
 
-Over the past year and a half, the pinball community has given me so much. PinProf is my way of giving back. Give it a flip, thanks.
+Over the past year and a half, I've gotten so much from the pinball community. PinProf is my small way to give back. Give it a flip, thanks.
 
 **Intro**  
 Script: Hey everyone, my name is Peter. I’m excited to share with you all something I’ve been working on for the past few months. This is PinProf, a pinball study app with your own personal pinball professor.  
@@ -102,21 +102,10 @@ Sequence:
 - Open your `IFPA` profile
 
 **League**  
-Script: Finally, there are some special features for my local pinball family, the Lansing Pinball League. With PinProf, you can easily view league stats at a glance. Or you can take a deep dive and see how you did on a game compared to everyone else in that bank or from across all of LPL history. You can track your growth over the seasons, and use score targets to help plan your next practice session.  
+Script: And as a bonus, there are special features for my local pinball family, the Lansing Pinball League.  
 Sequence:
 - Open `League`
-- Show the mini views refreshing
-- Open `Stats`
-- Select bank (`5`), player (`Peter Liu`), and machine (`Pulp Fiction`)
-- Show machine stats
-- Back out to mini views
-- Open `Standings`
-- Select season `21`
-- Scroll to `Peter L`
-- Keep only last initial visible for privacy
-- Back out
-- Open `Targets`
-- Filter to `Bank 7`
+- Hold on the `League` tab with the mini views visible from the clip
 
 **Outro**  
 Script: Over the past year and a half, I’ve gotten so much from the pinball community. I’ve met so many awesome people and made some amazing friends. I hope PinProf can be my way to give a little back. To all of you, here's to many more extra balls, jackpots, and high scores.  

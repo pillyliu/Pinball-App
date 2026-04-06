@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 
 CANVAS = (3840, 2160)
@@ -31,6 +31,64 @@ FOCUS_PANE_RECT = (FOCUS_PANE_X, FOCUS_PANE_Y, FOCUS_PANE_X + FOCUS_PANE_WIDTH, 
 FOCUS_INNER_RECT = (1920, 572, 3640, 1588)
 FOCUS_LABEL_RECT = (2260, 1656, 3300, 1788)
 FEATURE_LABEL_RECT = (1948, 1492, 2876, 1604)
+PHONE_CAPTURE_WIDTH = 1320
+PHONE_CAPTURE_HEIGHT = 2868
+PHONE_SCREEN_HEIGHT = 1960
+PHONE_SCREEN_WIDTH = round(PHONE_SCREEN_HEIGHT * PHONE_CAPTURE_WIDTH / PHONE_CAPTURE_HEIGHT)
+PHONE_BEZEL = 26
+PHONE_FRAME_WIDTH = PHONE_SCREEN_WIDTH + PHONE_BEZEL * 2
+PHONE_FRAME_HEIGHT = PHONE_SCREEN_HEIGHT + PHONE_BEZEL * 2
+PHONE_FRAME_MARGIN_RIGHT = 180
+PHONE_FRAME_X = CANVAS[0] - PHONE_FRAME_MARGIN_RIGHT - PHONE_FRAME_WIDTH
+PHONE_FRAME_Y = (CANVAS[1] - PHONE_FRAME_HEIGHT) // 2
+PHONE_FRAME_RECT = (
+    PHONE_FRAME_X,
+    PHONE_FRAME_Y,
+    PHONE_FRAME_X + PHONE_FRAME_WIDTH,
+    PHONE_FRAME_Y + PHONE_FRAME_HEIGHT,
+)
+PHONE_SCREEN_RECT = (
+    PHONE_FRAME_X + PHONE_BEZEL,
+    PHONE_FRAME_Y + PHONE_BEZEL,
+    PHONE_FRAME_X + PHONE_BEZEL + PHONE_SCREEN_WIDTH,
+    PHONE_FRAME_Y + PHONE_BEZEL + PHONE_SCREEN_HEIGHT,
+)
+PHONE_FRAME_RADIUS = 120
+PHONE_SCREEN_RADIUS = 96
+PHONE_FOCUS_CAPTURE_HEIGHT = PHONE_CAPTURE_WIDTH * 3 // 2
+PHONE_FOCUS_SCREEN_HEIGHT = PHONE_SCREEN_HEIGHT
+PHONE_FOCUS_SCREEN_WIDTH = round(PHONE_FOCUS_SCREEN_HEIGHT * PHONE_CAPTURE_WIDTH / PHONE_FOCUS_CAPTURE_HEIGHT)
+PHONE_FOCUS_FRAME_WIDTH = PHONE_FOCUS_SCREEN_WIDTH + PHONE_BEZEL * 2
+PHONE_FOCUS_FRAME_HEIGHT = PHONE_FOCUS_SCREEN_HEIGHT + PHONE_BEZEL * 2
+PHONE_FOCUS_FRAME_X = CANVAS[0] - PHONE_FRAME_MARGIN_RIGHT - PHONE_FOCUS_FRAME_WIDTH
+PHONE_FOCUS_FRAME_Y = PHONE_FRAME_Y
+PHONE_FOCUS_FRAME_RECT = (
+    PHONE_FOCUS_FRAME_X,
+    PHONE_FOCUS_FRAME_Y,
+    PHONE_FOCUS_FRAME_X + PHONE_FOCUS_FRAME_WIDTH,
+    PHONE_FOCUS_FRAME_Y + PHONE_FOCUS_FRAME_HEIGHT,
+)
+PHONE_FOCUS_SCREEN_RECT = (
+    PHONE_FOCUS_FRAME_X + PHONE_BEZEL,
+    PHONE_FOCUS_FRAME_Y + PHONE_BEZEL,
+    PHONE_FOCUS_FRAME_X + PHONE_BEZEL + PHONE_FOCUS_SCREEN_WIDTH,
+    PHONE_FOCUS_FRAME_Y + PHONE_BEZEL + PHONE_FOCUS_SCREEN_HEIGHT,
+)
+INTRO_PRESENTER_CENTER = (1120, 1080)
+INTRO_PRESENTER_SIZE = 1180
+PRESENTER_FEATHER_RECT = (120, 150, 1680, 2010)
+PRESENTER_FEATHER_RADIUS = 220
+PRESENTER_FEATHER_BLUR = 120
+INTRO_LOGO_CENTER = (2840, 1080)
+INTRO_LOGO_FRAME_SIZE = 1120
+INTRO_LOGO_SIZE = 910
+OUTRO_LOGO_CENTER = (CANVAS[0] // 2, CANVAS[1] // 2)
+OUTRO_LOGO_FRAME_SIZE = 1640
+OUTRO_LOGO_SIZE = 1380
+WATERMARK_LOGO_CENTER = (3635, 1910)
+WATERMARK_FRAME_SIZE = 300
+WATERMARK_LOGO_SIZE = 248
+WATERMARK_FEATHER = 104
 
 COLORS = {
     "launch_black": "#060609",
@@ -85,6 +143,7 @@ class LayoutSpec:
     pane_rect: tuple[int, int, int, int]
     media_rect: tuple[int, int, int, int]
     corner_radius: int
+    media_corner_radius: int | None = None
 
 
 def rgba(hex_value: str, alpha: int = 255) -> tuple[int, int, int, int]:
@@ -156,6 +215,30 @@ def add_soft_ellipse(
     ImageDraw.Draw(layer).ellipse(shifted_bbox, fill=color)
     layer = layer.filter(ImageFilter.GaussianBlur(blur))
     base.alpha_composite(layer.crop((margin, margin, margin + CANVAS[0], margin + CANVAS[1])))
+
+
+def rounded_mask(rect: tuple[int, int, int, int], radius: int, fill: int = 255) -> Image.Image:
+    mask = Image.new("L", CANVAS, 0)
+    ImageDraw.Draw(mask).rounded_rectangle(rect, radius=radius, fill=fill)
+    return mask
+
+
+def soft_rounded_falloff_mask(
+    rect: tuple[int, int, int, int],
+    radius: int,
+    feather: int,
+    inner_inset: int,
+) -> Image.Image:
+    outer = rounded_mask(rect, radius).filter(ImageFilter.GaussianBlur(feather))
+    inner_rect = (
+        rect[0] + inner_inset,
+        rect[1] + inner_inset,
+        rect[2] - inner_inset,
+        rect[3] - inner_inset,
+    )
+    inner_radius = max(32, radius - inner_inset)
+    inner = rounded_mask(inner_rect, inner_radius)
+    return ImageChops.lighter(outer, inner)
 
 
 def make_background(accent_bias: str | None = None) -> Image.Image:
@@ -296,6 +379,257 @@ def pane_base(rect: tuple[int, int, int, int], radius: int, accent_hex: str) -> 
     return pane
 
 
+def transparent_phone_frame_overlay(layout: LayoutSpec, accent_hex: str) -> Image.Image:
+    outer_radius = layout.corner_radius
+    inner_radius = layout.media_corner_radius or max(24, outer_radius - 24)
+    outer_mask = rounded_mask(layout.pane_rect, outer_radius)
+    inner_mask = rounded_mask(layout.media_rect, inner_radius)
+    ring_mask = ImageChops.subtract(outer_mask, inner_mask)
+
+    overlay = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+
+    shadow_mask = Image.new("L", CANVAS, 0)
+    shifted_shadow_rect = (
+        layout.pane_rect[0],
+        layout.pane_rect[1] + 28,
+        layout.pane_rect[2],
+        layout.pane_rect[3] + 28,
+    )
+    ImageDraw.Draw(shadow_mask).rounded_rectangle(shifted_shadow_rect, radius=outer_radius, fill=92)
+    shadow = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    shadow.putalpha(shadow_mask.filter(ImageFilter.GaussianBlur(62)))
+    overlay = Image.alpha_composite(overlay, shadow)
+
+    glow_mask = rounded_mask(
+        (
+            layout.pane_rect[0] - 8,
+            layout.pane_rect[1] - 8,
+            layout.pane_rect[2] + 8,
+            layout.pane_rect[3] + 8,
+        ),
+        outer_radius + 8,
+    )
+    glow = Image.new("RGBA", CANVAS, rgba(accent_hex, 0))
+    glow.putalpha(glow_mask.filter(ImageFilter.GaussianBlur(28)).point(lambda value: min(255, int(value * 0.18))))
+    overlay = Image.alpha_composite(overlay, glow)
+
+    frame_fill = Image.new("RGBA", CANVAS, rgba("#101318", 228))
+    frame_fill.putalpha(ring_mask)
+    overlay = Image.alpha_composite(overlay, frame_fill)
+
+    draw = ImageDraw.Draw(overlay)
+    draw.rounded_rectangle(layout.pane_rect, radius=outer_radius, outline=rgba("#F3F6FB", 44), width=2)
+    draw.rounded_rectangle(layout.media_rect, radius=inner_radius, outline=rgba("#F3F6FB", 28), width=2)
+    draw.rounded_rectangle(
+        (
+            layout.pane_rect[0] + 3,
+            layout.pane_rect[1] + 3,
+            layout.pane_rect[2] - 3,
+            layout.pane_rect[3] - 3,
+        ),
+        radius=outer_radius - 2,
+        outline=rgba(accent_hex, 22),
+        width=1,
+    )
+    return overlay
+
+
+def transparent_window_matte(layout: LayoutSpec) -> Image.Image:
+    inner_radius = layout.media_corner_radius or max(24, layout.corner_radius - 24)
+    matte = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    ImageDraw.Draw(matte).rounded_rectangle(layout.media_rect, radius=inner_radius, fill=(255, 255, 255, 255))
+    return matte
+
+
+def phone_frame_preview(background: Image.Image, screenshot_path: Path, accent_hex: str) -> Image.Image:
+    preview = background.copy()
+    screenshot = cover_image(Image.open(screenshot_path), (PHONE_SCREEN_WIDTH, PHONE_SCREEN_HEIGHT))
+    preview.alpha_composite(screenshot, (PHONE_SCREEN_RECT[0], PHONE_SCREEN_RECT[1]))
+    preview.alpha_composite(
+        transparent_phone_frame_overlay(
+            LayoutSpec(PHONE_FRAME_RECT, PHONE_SCREEN_RECT, PHONE_FRAME_RADIUS, PHONE_SCREEN_RADIUS),
+            accent_hex,
+        )
+    )
+    return preview
+
+
+def intro_logo_glow_plate() -> Image.Image:
+    plate = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    add_radial_glow(plate, INTRO_LOGO_CENTER, 1260, rgba(COLORS["brand_gold"])[:3], 0.12)
+    add_radial_glow(plate, (INTRO_LOGO_CENTER[0] + 60, INTRO_LOGO_CENTER[1] - 20), 920, rgba("#F6CF61")[:3], 0.08)
+    return plate
+
+
+def presenter_feather_matte() -> Image.Image:
+    mask = Image.new("L", CANVAS, 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        PRESENTER_FEATHER_RECT,
+        radius=PRESENTER_FEATHER_RADIUS,
+        fill=255,
+    )
+    mask = mask.filter(ImageFilter.GaussianBlur(PRESENTER_FEATHER_BLUR))
+    matte = Image.new("RGBA", CANVAS, (255, 255, 255, 0))
+    matte.putalpha(mask)
+    return matte
+
+
+def feather_presenter_on_background(background: Image.Image, presenter_path: Path) -> Image.Image:
+    canvas = background.copy()
+    presenter = cover_image(Image.open(presenter_path), (INTRO_PRESENTER_SIZE, INTRO_PRESENTER_SIZE))
+    presenter_x = INTRO_PRESENTER_CENTER[0] - presenter.width // 2
+    presenter_y = INTRO_PRESENTER_CENTER[1] - presenter.height // 2
+    presenter_layer = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    presenter_layer.alpha_composite(presenter, (presenter_x, presenter_y))
+    matte = presenter_feather_matte()
+    presenter_layer.putalpha(ImageChops.multiply(presenter_layer.getchannel("A"), matte.getchannel("A")))
+    return Image.alpha_composite(canvas, presenter_layer)
+
+
+def logo_square_frame_overlay_at(center: tuple[int, int], frame_size: int, accent_hex: str = COLORS["brand_gold"]) -> Image.Image:
+    half = frame_size // 2
+    rect = (
+        center[0] - half,
+        center[1] - half,
+        center[0] + half,
+        center[1] + half,
+    )
+    overlay = rounded_panel_overlay(
+        rect,
+        radius=96,
+        fill_color=rgba(COLORS["panel_graphite"], 228),
+        border_color=rgba(COLORS["panel_outline"], 42),
+        border_width=2,
+        glow_color=rgba(accent_hex, 34),
+        shadow_alpha=64,
+        shadow_offset_y=18,
+        shadow_blur=60,
+    )
+    highlight = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    highlight_rect = (rect[0] + 10, rect[1] + 10, rect[2] - 10, rect[1] + 150)
+    ImageDraw.Draw(highlight).rounded_rectangle(highlight_rect, radius=84, fill=rgba("#FFFFFF", 18))
+    highlight = highlight.filter(ImageFilter.GaussianBlur(18))
+    overlay = Image.alpha_composite(overlay, highlight)
+    draw = ImageDraw.Draw(overlay)
+    draw.rounded_rectangle(
+        (rect[0] + 2, rect[1] + 2, rect[2] - 2, rect[3] - 2),
+        radius=94,
+        outline=rgba(accent_hex, 18),
+        width=1,
+    )
+    return overlay
+
+
+def logo_art_layer(logo_path: Path, center: tuple[int, int], frame_size: int, logo_size: int) -> Image.Image:
+    logo = Image.open(logo_path).convert("RGBA").resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+    logo_x = center[0] - logo.width // 2
+    logo_y = center[1] - logo.height // 2
+    logo_layer = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    logo_layer.alpha_composite(logo, (logo_x, logo_y))
+    logo_mask_rect = (
+        center[0] - frame_size // 2 + 22,
+        center[1] - frame_size // 2 + 22,
+        center[0] + frame_size // 2 - 22,
+        center[1] + frame_size // 2 - 22,
+    )
+    logo_mask = rounded_mask(logo_mask_rect, max(120, frame_size // 7))
+    logo_layer.putalpha(ImageChops.multiply(logo_layer.getchannel("A"), logo_mask))
+    return logo_layer
+
+
+def logo_square_window_matte(center: tuple[int, int], frame_size: int) -> Image.Image:
+    rect = (
+        center[0] - frame_size // 2 + 22,
+        center[1] - frame_size // 2 + 22,
+        center[0] + frame_size // 2 - 22,
+        center[1] + frame_size // 2 - 22,
+    )
+    matte = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    ImageDraw.Draw(matte).rounded_rectangle(rect, radius=max(120, frame_size // 7), fill=(255, 255, 255, 255))
+    return matte
+
+
+def outro_logo_glow_plate() -> Image.Image:
+    plate = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    add_radial_glow(plate, OUTRO_LOGO_CENTER, 1380, rgba(COLORS["brand_gold"])[:3], 0.14)
+    add_radial_glow(plate, (OUTRO_LOGO_CENTER[0], OUTRO_LOGO_CENTER[1] - 40), 980, rgba("#F6CF61")[:3], 0.09)
+    return plate
+
+
+def watermark_logo_overlay(logo_path: Path) -> Image.Image:
+    overlay = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    rect = (
+        WATERMARK_LOGO_CENTER[0] - WATERMARK_FRAME_SIZE // 2,
+        WATERMARK_LOGO_CENTER[1] - WATERMARK_FRAME_SIZE // 2,
+        WATERMARK_LOGO_CENTER[0] + WATERMARK_FRAME_SIZE // 2,
+        WATERMARK_LOGO_CENTER[1] + WATERMARK_FRAME_SIZE // 2,
+    )
+
+    add_radial_glow(overlay, WATERMARK_LOGO_CENTER, 520, rgba(COLORS["brand_gold"])[:3], 0.075)
+    add_radial_glow(overlay, (WATERMARK_LOGO_CENTER[0], WATERMARK_LOGO_CENTER[1] - 8), 300, rgba("#F6CF61")[:3], 0.05)
+
+    patch_mask = soft_rounded_falloff_mask(
+        rect,
+        max(84, WATERMARK_FRAME_SIZE // 3),
+        WATERMARK_FEATHER,
+        inner_inset=40,
+    )
+
+    patch = Image.new("RGBA", CANVAS, rgba(COLORS["panel_graphite"], 0))
+    patch.putalpha(patch_mask.point(lambda value: int(value * 0.34)))
+    overlay = Image.alpha_composite(overlay, patch)
+
+    warm_rect = (
+        rect[0] + 18,
+        rect[1] + 18,
+        rect[2] - 18,
+        rect[3] - 18,
+    )
+    warm_mask = soft_rounded_falloff_mask(
+        warm_rect,
+        max(68, WATERMARK_FRAME_SIZE // 4),
+        max(44, WATERMARK_FEATHER // 2),
+        inner_inset=30,
+    )
+    warm = Image.new("RGBA", CANVAS, rgba(COLORS["brand_gold"], 0))
+    warm.putalpha(warm_mask.point(lambda value: int(value * 0.09)))
+    overlay = Image.alpha_composite(overlay, warm)
+
+    logo = Image.open(logo_path).convert("RGBA").resize((WATERMARK_LOGO_SIZE, WATERMARK_LOGO_SIZE), Image.Resampling.LANCZOS)
+    logo_x = WATERMARK_LOGO_CENTER[0] - logo.width // 2
+    logo_y = WATERMARK_LOGO_CENTER[1] - logo.height // 2
+    logo_layer = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    logo_layer.alpha_composite(logo, (logo_x, logo_y))
+    logo_rect = (
+        logo_x + 6,
+        logo_y + 6,
+        logo_x + logo.width - 6,
+        logo_y + logo.height - 6,
+    )
+    logo_mask = rounded_mask(
+        logo_rect,
+        max(52, logo.width // 5),
+    ).filter(ImageFilter.GaussianBlur(3))
+    logo_layer.putalpha(ImageChops.multiply(logo_layer.getchannel("A"), logo_mask))
+    overlay = Image.alpha_composite(overlay, logo_layer)
+
+    return overlay
+
+
+def watermark_preview(background: Image.Image, logo_path: Path) -> Image.Image:
+    preview = background.copy()
+    preview = Image.alpha_composite(preview, watermark_logo_overlay(logo_path))
+    return preview
+
+
+def intro_logo_reveal_preview(background: Image.Image, presenter_path: Path, logo_path: Path) -> Image.Image:
+    canvas = feather_presenter_on_background(background, presenter_path)
+    canvas = Image.alpha_composite(canvas, intro_logo_glow_plate())
+    canvas = Image.alpha_composite(canvas, logo_square_frame_overlay_at(INTRO_LOGO_CENTER, INTRO_LOGO_FRAME_SIZE))
+    canvas = Image.alpha_composite(canvas, logo_art_layer(logo_path, INTRO_LOGO_CENTER, INTRO_LOGO_FRAME_SIZE, INTRO_LOGO_SIZE))
+    return canvas
+
+
 def title_card(section: str) -> Image.Image:
     accent = SECTION_ACCENTS[section]
     background = make_background(section if section == "league" else None)
@@ -372,13 +706,9 @@ def layout_preview(
 
 def make_end_card(background_path: Path) -> Image.Image:
     background = make_background()
-    logo = Image.open(background_path).convert("RGBA").resize((900, 900), Image.Resampling.LANCZOS)
-    logo_x = (CANVAS[0] - logo.width) // 2
-    logo_y = 560
-    glow = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
-    add_radial_glow(glow, (CANVAS[0] // 2, 1170), 1100, rgba(COLORS["brand_gold"])[:3], 0.12)
-    background = Image.alpha_composite(background, glow)
-    background.alpha_composite(logo, (logo_x, logo_y))
+    background = Image.alpha_composite(background, outro_logo_glow_plate())
+    background = Image.alpha_composite(background, logo_square_frame_overlay_at(OUTRO_LOGO_CENTER, OUTRO_LOGO_FRAME_SIZE))
+    background = Image.alpha_composite(background, logo_art_layer(background_path, OUTRO_LOGO_CENTER, OUTRO_LOGO_FRAME_SIZE, OUTRO_LOGO_SIZE))
     return background
 
 
@@ -429,6 +759,28 @@ def manifest() -> dict[str, object]:
         "layouts": {
             "full_app_view": asdict(LayoutSpec(FULL_APP_RECT, FULL_APP_INNER_RECT, 34)),
             "focus_crop_view": asdict(LayoutSpec(FOCUS_PANE_RECT, FOCUS_INNER_RECT, 30)),
+            "phone_frame_view": asdict(LayoutSpec(PHONE_FRAME_RECT, PHONE_SCREEN_RECT, PHONE_FRAME_RADIUS, PHONE_SCREEN_RADIUS)),
+            "phone_focus_frame_view": asdict(LayoutSpec(PHONE_FOCUS_FRAME_RECT, PHONE_FOCUS_SCREEN_RECT, PHONE_FRAME_RADIUS, PHONE_SCREEN_RADIUS)),
+            "intro_presenter_center": {"x": INTRO_PRESENTER_CENTER[0], "y": INTRO_PRESENTER_CENTER[1], "size": INTRO_PRESENTER_SIZE},
+            "presenter_feather_rect": {
+                "x1": PRESENTER_FEATHER_RECT[0],
+                "y1": PRESENTER_FEATHER_RECT[1],
+                "x2": PRESENTER_FEATHER_RECT[2],
+                "y2": PRESENTER_FEATHER_RECT[3],
+                "radius": PRESENTER_FEATHER_RADIUS,
+                "blur": PRESENTER_FEATHER_BLUR,
+            },
+            "intro_logo_center": {"x": INTRO_LOGO_CENTER[0], "y": INTRO_LOGO_CENTER[1], "size": INTRO_LOGO_SIZE},
+            "intro_logo_frame": {"x": INTRO_LOGO_CENTER[0], "y": INTRO_LOGO_CENTER[1], "size": INTRO_LOGO_FRAME_SIZE},
+            "outro_logo_center": {"x": OUTRO_LOGO_CENTER[0], "y": OUTRO_LOGO_CENTER[1], "size": OUTRO_LOGO_SIZE},
+            "outro_logo_frame": {"x": OUTRO_LOGO_CENTER[0], "y": OUTRO_LOGO_CENTER[1], "size": OUTRO_LOGO_FRAME_SIZE},
+            "watermark_logo": {
+                "x": WATERMARK_LOGO_CENTER[0],
+                "y": WATERMARK_LOGO_CENTER[1],
+                "frame_size": WATERMARK_FRAME_SIZE,
+                "logo_size": WATERMARK_LOGO_SIZE,
+                "feather": WATERMARK_FEATHER,
+            },
             "feature_label_rect": FEATURE_LABEL_RECT,
             "focus_phrase_rect": FOCUS_LABEL_RECT,
         },
@@ -450,7 +802,7 @@ def main() -> None:
 
     intro_dir = Path("/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/SharedAppSupport/app-intro")
     presenter_path = intro_dir / "professor-headshot.webp"
-    logo_path = Path("/Users/pillyliu/Documents/Codex/Pinball App/Pinball App 2/Pinball App 2/Assets.xcassets/LaunchLogo.imageset/LaunchLogo@3x.png")
+    promo_logo_path = Path("/Users/pillyliu/Library/CloudStorage/Dropbox/Pinball/PinProf Logo/PinProf Logo Upscaled.png")
     section_screenshot_paths = {
         "library": intro_dir / "library-screenshot.webp",
         "practice": intro_dir / "practice-screenshot.webp",
@@ -468,6 +820,36 @@ def main() -> None:
 
     save_png(pane_base(FULL_APP_RECT, 34, COLORS["brand_gold"]), assets_dir / "full_app_pane_base_4k.png")
     save_png(pane_base(FOCUS_PANE_RECT, 30, SECTION_ACCENTS["league"]), assets_dir / "focus_crop_pane_base_4k.png")
+    save_png(
+        transparent_phone_frame_overlay(
+            LayoutSpec(PHONE_FRAME_RECT, PHONE_SCREEN_RECT, PHONE_FRAME_RADIUS, PHONE_SCREEN_RADIUS),
+            COLORS["brand_gold"],
+        ),
+        assets_dir / "phone_frame_overlay_4k.png",
+    )
+    save_png(
+        transparent_window_matte(LayoutSpec(PHONE_FRAME_RECT, PHONE_SCREEN_RECT, PHONE_FRAME_RADIUS, PHONE_SCREEN_RADIUS)),
+        assets_dir / "phone_frame_window_matte_4k.png",
+    )
+    save_png(
+        transparent_phone_frame_overlay(
+            LayoutSpec(PHONE_FOCUS_FRAME_RECT, PHONE_FOCUS_SCREEN_RECT, PHONE_FRAME_RADIUS, PHONE_SCREEN_RADIUS),
+            COLORS["brand_gold"],
+        ),
+        assets_dir / "phone_focus_frame_overlay_4k.png",
+    )
+    save_png(
+        transparent_window_matte(LayoutSpec(PHONE_FOCUS_FRAME_RECT, PHONE_FOCUS_SCREEN_RECT, PHONE_FRAME_RADIUS, PHONE_SCREEN_RADIUS)),
+        assets_dir / "phone_focus_frame_window_matte_4k.png",
+    )
+    save_png(presenter_feather_matte(), assets_dir / "presenter_feather_matte_left_4k.png")
+    save_png(intro_logo_glow_plate(), assets_dir / "intro_logo_glow_plate_4k.png")
+    save_png(logo_square_frame_overlay_at(INTRO_LOGO_CENTER, INTRO_LOGO_FRAME_SIZE), assets_dir / "logo_square_frame_overlay_4k.png")
+    save_png(logo_square_window_matte(INTRO_LOGO_CENTER, INTRO_LOGO_FRAME_SIZE), assets_dir / "logo_square_frame_window_matte_4k.png")
+    save_png(outro_logo_glow_plate(), assets_dir / "outro_logo_glow_plate_4k.png")
+    save_png(logo_square_frame_overlay_at(OUTRO_LOGO_CENTER, OUTRO_LOGO_FRAME_SIZE), assets_dir / "outro_logo_square_frame_overlay_4k.png")
+    save_png(logo_square_window_matte(OUTRO_LOGO_CENTER, OUTRO_LOGO_FRAME_SIZE), assets_dir / "outro_logo_square_frame_window_matte_4k.png")
+    save_png(watermark_logo_overlay(promo_logo_path), assets_dir / "watermark_logo_soft_overlay_4k.png")
     save_png(feature_label_overlay("Read Rulesheet", COLORS["brand_gold"]), assets_dir / "feature_label_sample_read_rulesheet_4k.png")
     save_png(focus_phrase_overlay("View Standings", SECTION_ACCENTS["league"]), assets_dir / "focus_phrase_sample_view_standings_4k.png")
 
@@ -481,7 +863,7 @@ def main() -> None:
         save_png(title_image, assets_dir / f"title_card_{section}_4k.png")
         save_flat_jpg(title_image, assets_dir / f"title_card_{section}_4k_flat.jpg")
 
-    save_png(make_end_card(logo_path), assets_dir / "end_card_4k.png")
+    save_png(make_end_card(promo_logo_path), assets_dir / "end_card_4k.png")
 
     for section, screenshot_path in section_screenshot_paths.items():
         accent = SECTION_ACCENTS[section]
@@ -507,11 +889,40 @@ def main() -> None:
         save_png(preview_full, preview_dir / f"preview_full_app_layout_{section}_4k.png")
         save_png(preview_focus, preview_dir / f"preview_focus_crop_layout_{section}_4k.png")
 
+    phone_preview = phone_frame_preview(background_master, section_screenshot_paths["library"], COLORS["brand_gold"])
+    save_png(phone_preview, preview_dir / "preview_phone_frame_layout_library_4k.png")
+    phone_focus_preview = background_master.copy()
+    screenshot = cover_image(Image.open(section_screenshot_paths["library"]), (PHONE_FOCUS_SCREEN_WIDTH, PHONE_FOCUS_SCREEN_HEIGHT))
+    phone_focus_preview.alpha_composite(screenshot, (PHONE_FOCUS_SCREEN_RECT[0], PHONE_FOCUS_SCREEN_RECT[1]))
+    phone_focus_preview.alpha_composite(
+        transparent_phone_frame_overlay(
+            LayoutSpec(PHONE_FOCUS_FRAME_RECT, PHONE_FOCUS_SCREEN_RECT, PHONE_FRAME_RADIUS, PHONE_SCREEN_RADIUS),
+            COLORS["brand_gold"],
+        )
+    )
+    save_png(phone_focus_preview, preview_dir / "preview_phone_focus_frame_layout_library_4k.png")
+    save_png(
+        intro_logo_reveal_preview(background_master, presenter_path, promo_logo_path),
+        preview_dir / "preview_intro_logo_reveal_4k.png",
+    )
+    save_png(
+        make_end_card(promo_logo_path),
+        preview_dir / "preview_outro_logo_endcard_4k.png",
+    )
+    save_png(
+        watermark_preview(background_master, promo_logo_path),
+        preview_dir / "preview_watermark_logo_4k.png",
+    )
+    save_png(
+        feather_presenter_on_background(background_master, presenter_path),
+        preview_dir / "preview_presenter_feather_left_4k.png",
+    )
+
     overview = build_overview(
         [
-            ("Full App View", preview_dir / "preview_full_app_layout_library_4k.png"),
-            ("Focus Crop View", preview_dir / "preview_focus_crop_layout_library_4k.png"),
-            ("Library Title Card", assets_dir / "title_card_library_4k.png"),
+            ("Intro Logo Reveal", preview_dir / "preview_intro_logo_reveal_4k.png"),
+            ("Outro End Card", preview_dir / "preview_outro_logo_endcard_4k.png"),
+            ("Watermark", preview_dir / "preview_watermark_logo_4k.png"),
             ("End Card", assets_dir / "end_card_4k.png"),
         ]
     )
