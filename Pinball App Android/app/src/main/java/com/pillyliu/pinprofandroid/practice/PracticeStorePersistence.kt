@@ -6,6 +6,7 @@ import org.json.JSONObject
 internal data class PracticePersistedState(
     val playerName: String,
     val ifpaPlayerID: String,
+    val prpaPlayerID: String,
     val comparisonPlayerName: String,
     val leaguePlayerName: String,
     val cloudSyncEnabled: Boolean,
@@ -22,6 +23,7 @@ internal fun buildPracticeStateJson(state: PracticePersistedState): String {
     val root = JSONObject()
     root.put("playerName", state.playerName)
     root.put("ifpaPlayerID", state.ifpaPlayerID)
+    root.put("prpaPlayerID", state.prpaPlayerID)
     root.put("comparisonPlayerName", state.comparisonPlayerName)
     root.put("leaguePlayerName", state.leaguePlayerName)
     root.put("cloudSyncEnabled", state.cloudSyncEnabled)
@@ -98,6 +100,7 @@ internal fun parsePracticeStateJson(raw: String): PracticePersistedState? {
         PracticePersistedState(
             playerName = root.optString("playerName", ""),
             ifpaPlayerID = root.optString("ifpaPlayerID", ""),
+            prpaPlayerID = root.optString("prpaPlayerID", ""),
             comparisonPlayerName = root.optString("comparisonPlayerName", ""),
             leaguePlayerName = root.optString("leaguePlayerName", ""),
             cloudSyncEnabled = root.optBoolean("cloudSyncEnabled", false),

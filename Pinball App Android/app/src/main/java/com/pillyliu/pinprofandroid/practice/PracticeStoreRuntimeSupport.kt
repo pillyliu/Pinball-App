@@ -3,6 +3,7 @@ package com.pillyliu.pinprofandroid.practice
 internal data class AppliedPracticeRuntimeState(
     val playerName: String,
     val ifpaPlayerID: String,
+    val prpaPlayerID: String,
     val comparisonPlayerName: String,
     val leaguePlayerName: String,
     val cloudSyncEnabled: Boolean,
@@ -21,6 +22,7 @@ internal fun appliedPracticeRuntimeState(
     return AppliedPracticeRuntimeState(
         playerName = state.playerName,
         ifpaPlayerID = state.ifpaPlayerID,
+        prpaPlayerID = state.prpaPlayerID,
         comparisonPlayerName = state.comparisonPlayerName,
         leaguePlayerName = state.leaguePlayerName,
         cloudSyncEnabled = state.cloudSyncEnabled,

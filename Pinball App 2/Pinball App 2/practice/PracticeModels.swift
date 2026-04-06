@@ -357,12 +357,14 @@ struct PracticeSettings: Codable {
     var playerName: String
     var comparisonPlayerName: String
     var ifpaPlayerID: String
+    var prpaPlayerID: String
     var selectedGroupID: UUID?
 
     private enum CodingKeys: String, CodingKey {
         case playerName
         case comparisonPlayerName
         case ifpaPlayerID
+        case prpaPlayerID
         case selectedGroupID
     }
 
@@ -370,11 +372,13 @@ struct PracticeSettings: Codable {
         playerName: String,
         comparisonPlayerName: String,
         ifpaPlayerID: String,
+        prpaPlayerID: String,
         selectedGroupID: UUID?
     ) {
         self.playerName = playerName
         self.comparisonPlayerName = comparisonPlayerName
         self.ifpaPlayerID = ifpaPlayerID
+        self.prpaPlayerID = prpaPlayerID
         self.selectedGroupID = selectedGroupID
     }
 
@@ -383,6 +387,7 @@ struct PracticeSettings: Codable {
         playerName = try container.decodeIfPresent(String.self, forKey: .playerName) ?? ""
         comparisonPlayerName = try container.decodeIfPresent(String.self, forKey: .comparisonPlayerName) ?? ""
         ifpaPlayerID = try container.decodeIfPresent(String.self, forKey: .ifpaPlayerID) ?? ""
+        prpaPlayerID = try container.decodeIfPresent(String.self, forKey: .prpaPlayerID) ?? ""
         selectedGroupID = try container.decodeIfPresent(UUID.self, forKey: .selectedGroupID)
     }
 
@@ -390,6 +395,7 @@ struct PracticeSettings: Codable {
         playerName: "",
         comparisonPlayerName: "",
         ifpaPlayerID: "",
+        prpaPlayerID: "",
         selectedGroupID: nil
     )
 }

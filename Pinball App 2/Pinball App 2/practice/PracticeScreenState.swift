@@ -21,6 +21,7 @@ struct PracticeScreenState {
     var mechanicsNote: String = ""
     var playerName: String = ""
     var ifpaPlayerID: String = ""
+    var prpaPlayerID: String = ""
     var insightsOpponentName: String = ""
     var insightsOpponentOptions: [String] = []
     var leaguePlayerName: String = ""

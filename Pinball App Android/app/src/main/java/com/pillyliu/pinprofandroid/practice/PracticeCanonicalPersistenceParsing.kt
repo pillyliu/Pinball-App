@@ -160,6 +160,7 @@ private fun parseCanonicalPracticeState(root: JSONObject): CanonicalPracticePers
             CanonicalPracticeSettings(
                 playerName = obj.optString("playerName", ""),
                 ifpaPlayerID = obj.optString("ifpaPlayerID", ""),
+                prpaPlayerID = obj.optString("prpaPlayerID", ""),
                 comparisonPlayerName = obj.optString("comparisonPlayerName", ""),
                 selectedGroupID = obj.optString("selectedGroupID").takeIf { it.isNotBlank() && it != "null" }?.let { validUuidOrStable("group", it) },
             )

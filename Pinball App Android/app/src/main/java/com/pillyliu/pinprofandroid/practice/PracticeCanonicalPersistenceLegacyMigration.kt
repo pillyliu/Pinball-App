@@ -77,6 +77,7 @@ internal fun canonicalPracticeStateFromLegacyState(legacy: PracticePersistedStat
         practiceSettings = CanonicalPracticeSettings(
             playerName = legacy.playerName,
             ifpaPlayerID = legacy.ifpaPlayerID,
+            prpaPlayerID = "",
             comparisonPlayerName = legacy.comparisonPlayerName,
             selectedGroupID = remappedSelectedGroupId,
         ),

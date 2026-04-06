@@ -88,6 +88,7 @@ internal data class CanonicalAnalyticsSettings(
 internal data class CanonicalPracticeSettings(
     val playerName: String,
     val ifpaPlayerID: String,
+    val prpaPlayerID: String,
     val comparisonPlayerName: String,
     val selectedGroupID: String?,
 )
@@ -133,6 +134,6 @@ internal fun emptyCanonicalPracticePersistedState(): CanonicalPracticePersistedS
         rulesheetResumeOffsets = emptyMap(),
         videoResumeHints = emptyMap(),
         gameSummaryNotes = emptyMap(),
-        practiceSettings = CanonicalPracticeSettings(playerName = "", ifpaPlayerID = "", comparisonPlayerName = "", selectedGroupID = null),
+        practiceSettings = CanonicalPracticeSettings(playerName = "", ifpaPlayerID = "", prpaPlayerID = "", comparisonPlayerName = "", selectedGroupID = null),
     )
 }

@@ -79,6 +79,9 @@ internal class PracticeStore(private val context: Context) {
     var ifpaPlayerID by mutableStateOf("")
         private set
 
+    var prpaPlayerID by mutableStateOf("")
+        private set
+
     var comparisonPlayerName by mutableStateOf("")
         private set
 
@@ -183,6 +186,7 @@ internal class PracticeStore(private val context: Context) {
         val applied = appliedPracticeRuntimeState(state)
         playerName = applied.playerName
         ifpaPlayerID = applied.ifpaPlayerID
+        prpaPlayerID = applied.prpaPlayerID
         comparisonPlayerName = applied.comparisonPlayerName
         leaguePlayerName = applied.leaguePlayerName
         cloudSyncEnabled = applied.cloudSyncEnabled
@@ -264,6 +268,10 @@ internal class PracticeStore(private val context: Context) {
 
     fun updateIfpaPlayerID(value: String) {
         mutateAndSave { ifpaPlayerID = value.trim() }
+    }
+
+    fun updatePrpaPlayerID(value: String) {
+        mutateAndSave { prpaPlayerID = value.trim() }
     }
 
     fun updateComparisonPlayerName(name: String) {
@@ -786,6 +794,7 @@ internal class PracticeStore(private val context: Context) {
             runtimeState = practiceStoreRuntimeState(
                 playerName = playerName,
                 ifpaPlayerID = ifpaPlayerID,
+                prpaPlayerID = prpaPlayerID,
                 comparisonPlayerName = comparisonPlayerName,
                 leaguePlayerName = leaguePlayerName,
                 cloudSyncEnabled = cloudSyncEnabled,
@@ -851,6 +860,7 @@ internal class PracticeStore(private val context: Context) {
             rulesheetResumeOffsets = rulesheetResumeOffsets,
             playerName = playerName,
             ifpaPlayerID = ifpaPlayerID,
+            prpaPlayerID = prpaPlayerID,
             comparisonPlayerName = comparisonPlayerName,
             leaguePlayerName = leaguePlayerName,
             cloudSyncEnabled = cloudSyncEnabled,

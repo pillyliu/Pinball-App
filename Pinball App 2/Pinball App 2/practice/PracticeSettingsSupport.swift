@@ -3,12 +3,14 @@ import SwiftUI
 struct PracticeSettingsSectionView: View {
     @Binding var playerName: String
     @Binding var ifpaPlayerID: String
+    @Binding var prpaPlayerID: String
     @Binding var leaguePlayerName: String
     let leaguePlayerOptions: [String]
     let leagueImportStatus: String
     let importedLeagueScoreCount: Int
     let onSaveProfile: () -> Void
     let onSaveIFPAID: () -> Void
+    let onSavePRPAID: () -> Void
     let onImportLeagueCSV: () -> Void
     let onLeaguePlayerSelected: (String) -> Void
     let onClearImportedLeagueScores: () -> Void
@@ -52,6 +54,10 @@ struct PracticeSettingsSectionView: View {
             PracticeIFPASettingsCard(
                 ifpaPlayerID: $ifpaPlayerID,
                 onSaveIFPAID: onSaveIFPAID
+            )
+            PracticePRPASettingsCard(
+                prpaPlayerID: $prpaPlayerID,
+                onSavePRPAID: onSavePRPAID
             )
             PracticeLeagueImportSettingsCard(
                 leaguePlayerName: leaguePlayerName,
@@ -143,6 +149,33 @@ private struct PracticeIFPASettingsCard: View {
                 .foregroundStyle(.secondary)
 
             Button("Save IFPA ID", action: onSaveIFPAID)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .buttonStyle(AppPrimaryActionButtonStyle())
+        }
+    }
+}
+
+private struct PracticePRPASettingsCard: View {
+    @Binding var prpaPlayerID: String
+    let onSavePRPAID: () -> Void
+
+    var body: some View {
+        PracticeSettingsCard {
+            AppSectionTitle(text: "PRPA")
+
+            TextField("PRPA number", text: $prpaPlayerID)
+                .keyboardType(.numberPad)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .appControlStyle()
+
+            Text("Save your Punk Rock Pinball Association player number to add PRPA rankings to the same Practice profile screen.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Button("Save PRPA ID", action: onSavePRPAID)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .buttonStyle(AppPrimaryActionButtonStyle())
         }

@@ -117,7 +117,7 @@ private fun practiceTopTitle(
 ): String {
     return when (route) {
         PracticeRoute.Search -> "Find Game"
-        PracticeRoute.IfpaProfile -> "IFPA Profile"
+        PracticeRoute.IfpaProfile -> "Ranking Profile"
         PracticeRoute.GroupDashboard -> "Group Dashboard"
         PracticeRoute.GroupEditor -> if (editingGroupID == null) "Create Group" else "Edit Group"
         PracticeRoute.Journal -> "Journal Timeline"

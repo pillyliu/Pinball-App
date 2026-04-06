@@ -30,6 +30,7 @@ internal fun canonicalPracticeStateFromRuntimeAndShadow(
         practiceSettings = shadow.practiceSettings.copy(
             playerName = runtime.playerName,
             ifpaPlayerID = runtime.ifpaPlayerID,
+            prpaPlayerID = runtime.prpaPlayerID,
             comparisonPlayerName = runtime.comparisonPlayerName,
             selectedGroupID = runtime.selectedGroupID,
         ),
@@ -92,6 +93,7 @@ internal fun runtimePracticeStateFromCanonicalState(
     return PracticePersistedState(
         playerName = canonical.practiceSettings.playerName,
         ifpaPlayerID = canonical.practiceSettings.ifpaPlayerID,
+        prpaPlayerID = canonical.practiceSettings.prpaPlayerID,
         comparisonPlayerName = canonical.practiceSettings.comparisonPlayerName,
         leaguePlayerName = canonical.leagueSettings.playerName,
         cloudSyncEnabled = canonical.syncSettings.cloudSyncEnabled,

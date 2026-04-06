@@ -116,6 +116,7 @@ internal fun buildCanonicalPracticeStateJson(state: CanonicalPracticePersistedSt
     root.put("practiceSettings", JSONObject().apply {
         put("playerName", state.practiceSettings.playerName)
         put("ifpaPlayerID", state.practiceSettings.ifpaPlayerID)
+        put("prpaPlayerID", state.practiceSettings.prpaPlayerID)
         put("comparisonPlayerName", state.practiceSettings.comparisonPlayerName)
         state.practiceSettings.selectedGroupID?.let { put("selectedGroupID", it) }
     })

@@ -21,6 +21,7 @@ extension PracticeScreen {
 
         uiState.playerName = store.state.practiceSettings.playerName
         uiState.ifpaPlayerID = store.state.practiceSettings.ifpaPlayerID
+        uiState.prpaPlayerID = store.state.practiceSettings.prpaPlayerID
         uiState.insightsOpponentName = store.state.practiceSettings.comparisonPlayerName
         uiState.leaguePlayerName = store.state.leagueSettings.playerName
         let knownGroupIDs = Set(store.state.customGroups.map(\.id))

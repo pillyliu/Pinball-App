@@ -5,7 +5,8 @@ extension PracticeScreen {
         PracticeHomeContext(
             store: store,
             greetingName: greetingName,
-            hasIFPAProfileAccess: !uiState.ifpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            hasIFPAProfileAccess: !uiState.ifpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !uiState.prpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             resumeGame: resumeGame,
             allGames: store.games,
             searchGames: store.searchCatalogGames,
@@ -158,6 +159,7 @@ extension PracticeScreen {
         PracticeSettingsContext(
             playerName: $uiState.playerName,
             ifpaPlayerID: $uiState.ifpaPlayerID,
+            prpaPlayerID: $uiState.prpaPlayerID,
             leaguePlayerName: $uiState.leaguePlayerName,
             leaguePlayerOptions: uiState.leaguePlayerOptions,
             leagueImportStatus: uiState.leagueImportStatus,
@@ -176,6 +178,11 @@ extension PracticeScreen {
                 let sanitized = uiState.ifpaPlayerID.filter(\.isNumber)
                 uiState.ifpaPlayerID = sanitized
                 store.updatePracticeSettings(ifpaPlayerID: sanitized)
+            },
+            onSavePRPAID: {
+                let sanitized = uiState.prpaPlayerID.filter(\.isNumber)
+                uiState.prpaPlayerID = sanitized
+                store.updatePracticeSettings(prpaPlayerID: sanitized)
             },
             onLeaguePlayerSelected: { selectedPlayer in
                 let trimmedPlayer = selectedPlayer.trimmingCharacters(in: .whitespacesAndNewlines)

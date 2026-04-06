@@ -37,6 +37,7 @@ internal fun loadPracticeHomeBootstrapRestorePayload(
             practiceSettings = CanonicalPracticeSettings(
                 playerName = snapshot.playerName,
                 ifpaPlayerID = "",
+                prpaPlayerID = "",
                 comparisonPlayerName = "",
                 selectedGroupID = snapshot.selectedGroupID,
             ),
@@ -44,6 +45,7 @@ internal fun loadPracticeHomeBootstrapRestorePayload(
         runtimeState = practicePersistedStateFromValues(
             playerName = snapshot.playerName,
             ifpaPlayerID = "",
+            prpaPlayerID = "",
             comparisonPlayerName = "",
             leaguePlayerName = "",
             cloudSyncEnabled = false,

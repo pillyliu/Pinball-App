@@ -3,6 +3,7 @@ package com.pillyliu.pinprofandroid.practice
 internal fun practicePersistedStateFromValues(
     playerName: String,
     ifpaPlayerID: String,
+    prpaPlayerID: String,
     comparisonPlayerName: String,
     leaguePlayerName: String,
     cloudSyncEnabled: Boolean,
@@ -17,6 +18,7 @@ internal fun practicePersistedStateFromValues(
     return PracticePersistedState(
         playerName = playerName,
         ifpaPlayerID = ifpaPlayerID,
+        prpaPlayerID = prpaPlayerID,
         comparisonPlayerName = comparisonPlayerName,
         leaguePlayerName = leaguePlayerName,
         cloudSyncEnabled = cloudSyncEnabled,
@@ -34,6 +36,7 @@ internal fun emptyPracticePersistedState(): PracticePersistedState {
     return PracticePersistedState(
         playerName = "",
         ifpaPlayerID = "",
+        prpaPlayerID = "",
         comparisonPlayerName = "",
         leaguePlayerName = "",
         cloudSyncEnabled = false,

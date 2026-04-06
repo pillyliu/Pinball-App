@@ -123,7 +123,7 @@ struct PracticeHomeRootView: View {
             HStack(spacing: 0) {
                 Text("Welcome back, ")
                 AppInlineLinkAction(text: greetingName, action: onOpenIFPAProfile)
-                .accessibilityLabel(hasIFPAProfileAccess ? "Open IFPA profile for \(greetingName)" : "Open IFPA setup for \(greetingName)")
+                    .accessibilityLabel(hasIFPAProfileAccess ? "Open ranking profile for \(greetingName)" : "Open ranking setup for \(greetingName)")
             }
             .font(.title3.weight(.semibold))
             .foregroundStyle(AppTheme.brandInk)

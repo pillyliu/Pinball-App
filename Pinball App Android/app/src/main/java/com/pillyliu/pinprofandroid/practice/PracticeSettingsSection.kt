@@ -32,6 +32,7 @@ internal fun PracticeSettingsSection(
     val showFullLplLastName = rememberShowFullLplLastName()
     val scope = rememberCoroutineScope()
     var draftIfpaId by remember(store.ifpaPlayerID) { mutableStateOf(store.ifpaPlayerID) }
+    var draftPrpaId by remember(store.prpaPlayerID) { mutableStateOf(store.prpaPlayerID) }
 
     CardContainer {
         SectionTitle("Practice Profile")
@@ -73,6 +74,26 @@ internal fun PracticeSettingsSection(
             onClick = { store.updateIfpaPlayerID(draftIfpaId.filter(Char::isDigit)) },
             modifier = Modifier.fillMaxWidth(),
         ) { Text("Save IFPA ID") }
+    }
+
+    CardContainer {
+        SectionTitle("PRPA")
+        OutlinedTextField(
+            value = draftPrpaId,
+            onValueChange = { draftPrpaId = it.filter(Char::isDigit) },
+            label = { Text("PRPA number") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+        )
+        Text(
+            "Save your Punk Rock Pinball Association player number to add PRPA rankings to the same Practice profile screen.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        AppPrimaryButton(
+            onClick = { store.updatePrpaPlayerID(draftPrpaId.filter(Char::isDigit)) },
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("Save PRPA ID") }
     }
 
     CardContainer {

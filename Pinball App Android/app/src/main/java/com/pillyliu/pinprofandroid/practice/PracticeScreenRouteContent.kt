@@ -49,6 +49,7 @@ internal fun PracticeScreenRouteContent(
             PracticeIfpaProfileScreen(
                 playerName = ifpaProfileContext.playerName,
                 ifpaPlayerID = ifpaProfileContext.ifpaPlayerID,
+                prpaPlayerID = ifpaProfileContext.prpaPlayerID,
             )
         }
 

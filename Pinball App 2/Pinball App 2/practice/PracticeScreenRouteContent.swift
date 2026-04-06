@@ -95,10 +95,11 @@ extension PracticeScreen {
                     }
             }
         case .ifpaProfile:
-            practiceScreen("IFPA Profile") {
+            practiceScreen("Ranking Profile") {
                 PracticeIFPAProfileScreen(
                     playerName: practiceSettingsContext.playerName.wrappedValue,
-                    ifpaPlayerID: practiceSettingsContext.ifpaPlayerID.wrappedValue
+                    ifpaPlayerID: practiceSettingsContext.ifpaPlayerID.wrappedValue,
+                    prpaPlayerID: practiceSettingsContext.prpaPlayerID.wrappedValue
                 )
             }
         case .game:
@@ -246,6 +247,7 @@ extension PracticeScreen {
         PracticeSettingsSectionView(
             playerName: context.playerName,
             ifpaPlayerID: context.ifpaPlayerID,
+            prpaPlayerID: context.prpaPlayerID,
             leaguePlayerName: context.leaguePlayerName,
             leaguePlayerOptions: context.leaguePlayerOptions,
             leagueImportStatus: context.leagueImportStatus,
@@ -255,6 +257,9 @@ extension PracticeScreen {
             },
             onSaveIFPAID: {
                 context.onSaveIFPAID()
+            },
+            onSavePRPAID: {
+                context.onSavePRPAID()
             },
             onImportLeagueCSV: {
                 context.onImportLeagueCSV()

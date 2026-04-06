@@ -8,6 +8,7 @@ internal data class PracticeStorePersistenceState(
 internal fun practiceStoreRuntimeState(
     playerName: String,
     ifpaPlayerID: String,
+    prpaPlayerID: String,
     comparisonPlayerName: String,
     leaguePlayerName: String,
     cloudSyncEnabled: Boolean,
@@ -22,6 +23,7 @@ internal fun practiceStoreRuntimeState(
     return practicePersistedStateFromValues(
         playerName = playerName,
         ifpaPlayerID = ifpaPlayerID,
+        prpaPlayerID = prpaPlayerID,
         comparisonPlayerName = comparisonPlayerName,
         leaguePlayerName = leaguePlayerName,
         cloudSyncEnabled = cloudSyncEnabled,
@@ -40,6 +42,7 @@ internal fun practiceStorePersistenceState(
     rulesheetResumeOffsets: Map<String, Double>,
     playerName: String,
     ifpaPlayerID: String,
+    prpaPlayerID: String,
     comparisonPlayerName: String,
     leaguePlayerName: String,
     cloudSyncEnabled: Boolean,
@@ -54,6 +57,7 @@ internal fun practiceStorePersistenceState(
     val runtimeState = practiceStoreRuntimeState(
         playerName = playerName,
         ifpaPlayerID = ifpaPlayerID,
+        prpaPlayerID = prpaPlayerID,
         comparisonPlayerName = comparisonPlayerName,
         leaguePlayerName = leaguePlayerName,
         cloudSyncEnabled = cloudSyncEnabled,

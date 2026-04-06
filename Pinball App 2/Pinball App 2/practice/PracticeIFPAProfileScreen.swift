@@ -1,7 +1,85 @@
 import SwiftUI
 import Foundation
 
+private enum PracticeRankingProfileSource: String, CaseIterable, Identifiable {
+    case ifpa = "IFPA"
+    case prpa = "PRPA"
+
+    var id: Self { self }
+}
+
 struct PracticeIFPAProfileScreen: View {
+    let playerName: String
+    let ifpaPlayerID: String
+    let prpaPlayerID: String
+
+    @State private var selectedSource: PracticeRankingProfileSource = .ifpa
+
+    private var trimmedIFPAPlayerID: String {
+        ifpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedPRPAPlayerID: String {
+        prpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var availableSources: [PracticeRankingProfileSource] {
+        var sources: [PracticeRankingProfileSource] = []
+        if !trimmedIFPAPlayerID.isEmpty {
+            sources.append(.ifpa)
+        }
+        if !trimmedPRPAPlayerID.isEmpty {
+            sources.append(.prpa)
+        }
+        return sources
+    }
+
+    private var resolvedSelectedSource: PracticeRankingProfileSource {
+        if availableSources.contains(selectedSource) {
+            return selectedSource
+        }
+        return availableSources.first ?? .ifpa
+    }
+
+    private var sourceBinding: Binding<PracticeRankingProfileSource> {
+        Binding(
+            get: { resolvedSelectedSource },
+            set: { selectedSource = $0 }
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if availableSources.isEmpty {
+                AppPanelEmptyCard(text: "Add your IFPA or PRPA ID in Practice Settings to load your public ranking snapshot here.")
+            } else {
+                if availableSources.count > 1 {
+                    Picker("Source", selection: sourceBinding) {
+                        ForEach(availableSources) { source in
+                            Text(source.rawValue).tag(source)
+                        }
+                    }
+                    .appSegmentedControlStyle()
+                }
+
+                switch resolvedSelectedSource {
+                case .ifpa:
+                    PracticeIFPAPublicProfileView(
+                        playerName: playerName,
+                        ifpaPlayerID: trimmedIFPAPlayerID
+                    )
+                case .prpa:
+                    PracticePRPAPublicProfileView(
+                        playerName: playerName,
+                        prpaPlayerID: trimmedPRPAPlayerID
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct PracticeIFPAPublicProfileView: View {
     let playerName: String
     let ifpaPlayerID: String
 
@@ -11,6 +89,14 @@ struct PracticeIFPAProfileScreen: View {
     @State private var staleSnapshot: IFPACachedProfileSnapshot?
     @State private var staleSnapshotFailureMessage: String?
     @State private var loadedPlayerID: String = ""
+
+    private static let cachedSnapshotDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
 
     private var trimmedIFPAPlayerID: String {
         ifpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -41,14 +127,6 @@ struct PracticeIFPAProfileScreen: View {
             await handleProfileTask()
         }
     }
-
-    private static let cachedSnapshotDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter
-    }()
 
     private var missingIDCard: some View {
         AppPanelEmptyCard(text: "Add your IFPA ID in Practice Settings to load your public ranking snapshot here.")
@@ -248,6 +326,296 @@ struct PracticeIFPAProfileScreen: View {
             staleSnapshot = nil
             staleSnapshotFailureMessage = nil
             IFPAPublicProfileCacheStore.save(fetchedProfile)
+        } catch {
+            if let cachedSnapshot {
+                profile = cachedSnapshot.profile
+                staleSnapshot = cachedSnapshot
+                staleSnapshotFailureMessage = error.localizedDescription
+                errorMessage = nil
+            } else {
+                profile = nil
+                staleSnapshot = nil
+                staleSnapshotFailureMessage = nil
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
+private struct PracticePRPAPublicProfileView: View {
+    let playerName: String
+    let prpaPlayerID: String
+
+    @State private var profile: PRPAPlayerProfile?
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var staleSnapshot: PRPACachedProfileSnapshot?
+    @State private var staleSnapshotFailureMessage: String?
+    @State private var loadedPlayerID: String = ""
+
+    private static let cachedSnapshotDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    private var trimmedPRPAPlayerID: String {
+        prpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var staleSnapshotNotice: String? {
+        guard let staleSnapshot, let staleSnapshotFailureMessage else { return nil }
+        let cachedAtLabel = Self.cachedSnapshotDateFormatter.string(from: staleSnapshot.cachedAt)
+        return "Showing your last saved PRPA snapshot from \(cachedAtLabel). It may be outdated because the latest refresh failed. \(staleSnapshotFailureMessage)"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if trimmedPRPAPlayerID.isEmpty {
+                missingIDCard
+            } else if isLoading && profile == nil {
+                AppPanelStatusCard(
+                    text: "Loading PRPA profile…",
+                    showsProgress: true
+                )
+            } else if let profile {
+                profileContent(profile)
+            } else if let errorMessage {
+                errorCard(errorMessage)
+            }
+        }
+        .task(id: trimmedPRPAPlayerID) {
+            await handleProfileTask()
+        }
+    }
+
+    private var missingIDCard: some View {
+        AppPanelEmptyCard(text: "Add your PRPA ID in Practice Settings to load your public ranking snapshot here.")
+    }
+
+    private func errorCard(_ message: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            AppSectionTitle(text: "Could not load PRPA profile")
+            AppInlineTaskStatus(text: message, isError: true)
+            retryButton
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .appPanelStyle()
+    }
+
+    private var retryButton: some View {
+        Button("Try Again") {
+            Task {
+                await reloadProfile()
+            }
+        }
+        .buttonStyle(AppPrimaryActionButtonStyle())
+    }
+
+    @ViewBuilder
+    private func profileContent(_ profile: PRPAPlayerProfile) -> some View {
+        if let staleSnapshotNotice {
+            VStack(alignment: .leading, spacing: 8) {
+                AppInlineTaskStatus(text: staleSnapshotNotice, isError: true)
+                retryButton
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .appPanelStyle()
+        }
+
+        VStack(alignment: .leading, spacing: 8) {
+            AppCardTitle(text: displayName(for: profile))
+            AppCardSubheading(text: "PRPA #\(profile.playerID)")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .appPanelStyle()
+
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+            statCard(title: "Rank", value: profile.openRanking)
+            statCard(title: "Points", value: profile.openPoints)
+            statCard(title: "Events", value: profile.eventsPlayed)
+        }
+
+        if hasMeaningful(profile.lastEventDate)
+            || hasMeaningful(profile.averagePointsPerEvent)
+            || hasMeaningful(profile.bestFinish)
+            || hasMeaningful(profile.worstFinish)
+            || profile.ifpaPlayerID != nil {
+            VStack(alignment: .leading, spacing: 8) {
+                AppSectionTitle(text: "At a Glance")
+
+                if let lastEventDate = profile.lastEventDate {
+                    infoRow(label: "Last event", value: lastEventDate)
+                }
+
+                if hasMeaningful(profile.averagePointsPerEvent) {
+                    infoRow(label: "Avg / event", value: profile.averagePointsPerEvent)
+                }
+
+                if hasMeaningful(profile.bestFinish) {
+                    infoRow(label: "Best finish", value: profile.bestFinish)
+                }
+
+                if hasMeaningful(profile.worstFinish) {
+                    infoRow(label: "Worst finish", value: profile.worstFinish)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .appPanelStyle()
+        }
+
+        if !profile.scenes.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                AppSectionTitle(text: "Scenes")
+
+                ForEach(profile.scenes) { scene in
+                    HStack(alignment: .firstTextBaseline) {
+                        AppCardSubheading(text: scene.name)
+                        Spacer()
+                        Text(scene.rank)
+                            .font(.subheadline.weight(.semibold))
+                    }
+
+                    if scene.id != profile.scenes.last?.id {
+                        Divider()
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .appPanelStyle()
+        }
+
+        VStack(alignment: .leading, spacing: 8) {
+            AppSectionTitle(text: "Recent Tournaments")
+
+            if profile.recentTournaments.isEmpty {
+                AppPanelEmptyCard(text: "No recent tournament results were found on the public PRPA profile.")
+            } else {
+                ForEach(profile.recentTournaments) { tournament in
+                    VStack(alignment: .leading, spacing: 6) {
+                        AppCardSubheading(text: tournament.name)
+                        if let eventType = tournament.eventType {
+                            Text(eventType)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        HStack(alignment: .top) {
+                            infoColumn(label: "Date", value: tournament.dateLabel)
+                            Spacer()
+                            infoColumn(label: "Place", value: tournament.placement)
+                            Spacer()
+                            infoColumn(label: "Points", value: tournament.pointsGained)
+                        }
+                    }
+                    .padding(.vertical, 4)
+
+                    if tournament.id != profile.recentTournaments.last?.id {
+                        Divider()
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .appPanelStyle()
+
+        if let profileURL = URL(string: "https://punkrockpinball.com/player/?prp_id=\(profile.playerID)") {
+            Link(destination: profileURL) {
+                AppExternalLinkButtonLabel(text: "Open full PRPA profile")
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func statCard(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            AppCardTitle(text: value)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .appPanelStyle()
+    }
+
+    private func infoRow(label: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .multilineTextAlignment(.trailing)
+        }
+        .font(.subheadline)
+    }
+
+    private func infoColumn(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.subheadline)
+        }
+    }
+
+    private func displayName(for profile: PRPAPlayerProfile) -> String {
+        let trimmedLocalName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedLocalName.isEmpty {
+            return trimmedLocalName
+        }
+        return profile.displayName
+    }
+
+    private func hasMeaningful(_ value: String?) -> Bool {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return false
+        }
+        return trimmed != "-"
+    }
+
+    private func handleProfileTask() async {
+        guard !trimmedPRPAPlayerID.isEmpty else {
+            loadedPlayerID = ""
+            profile = nil
+            errorMessage = nil
+            staleSnapshot = nil
+            staleSnapshotFailureMessage = nil
+            return
+        }
+
+        if loadedPlayerID != trimmedPRPAPlayerID {
+            loadedPlayerID = trimmedPRPAPlayerID
+            errorMessage = nil
+            staleSnapshot = nil
+            staleSnapshotFailureMessage = nil
+            profile = PRPAPublicProfileCacheStore.load(playerID: trimmedPRPAPlayerID)?.profile
+        }
+
+        await reloadProfile()
+    }
+
+    private func reloadProfile() async {
+        guard !trimmedPRPAPlayerID.isEmpty, !isLoading else { return }
+        let cachedSnapshot = PRPAPublicProfileCacheStore.load(playerID: trimmedPRPAPlayerID)
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            let fetchedProfile = try await PRPAPublicProfileService.fetchProfile(playerID: trimmedPRPAPlayerID)
+            profile = fetchedProfile
+            staleSnapshot = nil
+            staleSnapshotFailureMessage = nil
+            PRPAPublicProfileCacheStore.save(fetchedProfile)
         } catch {
             if let cachedSnapshot {
                 profile = cachedSnapshot.profile

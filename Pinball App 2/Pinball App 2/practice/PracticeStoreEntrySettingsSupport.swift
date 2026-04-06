@@ -1,7 +1,12 @@
 import Foundation
 
 extension PracticeStore {
-    func updatePracticeSettings(playerName: String? = nil, comparisonPlayerName: String? = nil, ifpaPlayerID: String? = nil) {
+    func updatePracticeSettings(
+        playerName: String? = nil,
+        comparisonPlayerName: String? = nil,
+        ifpaPlayerID: String? = nil,
+        prpaPlayerID: String? = nil
+    ) {
         if let playerName {
             state.practiceSettings.playerName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
         }
@@ -10,6 +15,9 @@ extension PracticeStore {
         }
         if let ifpaPlayerID {
             state.practiceSettings.ifpaPlayerID = ifpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if let prpaPlayerID {
+            state.practiceSettings.prpaPlayerID = prpaPlayerID.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         saveState()
         saveHomeBootstrapSnapshotIfNeeded()

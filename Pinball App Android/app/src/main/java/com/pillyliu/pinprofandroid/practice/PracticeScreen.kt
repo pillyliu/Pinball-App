@@ -226,6 +226,7 @@ internal fun PracticeScreen(
                     val ifpaProfileContext = PracticeIfpaProfileContext(
                         playerName = store.playerName,
                         ifpaPlayerID = store.ifpaPlayerID,
+                        prpaPlayerID = store.prpaPlayerID,
                     )
                     val groupDashboardContext = PracticeGroupDashboardContext(
                         store = store,
